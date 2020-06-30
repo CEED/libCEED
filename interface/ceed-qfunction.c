@@ -569,18 +569,14 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   // LCOV_EXCL_STOP
 
   ierr = CeedQFunctionCreateInteriorByName(ceed, "Identity", qf); CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(*qf, "input", 1, inmode); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(*qf, "output", 1, outmode); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(*qf, "input", size, inmode); CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(*qf, "output", size, outmode); CeedChk(ierr);
 
   (*qf)->identity = 1;
-  if (size > 1) {
-    CeedInt *ctx;
-    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-    ctx[0] = size;
-    ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(ctx)); CeedChk(ierr);
-    (*qf)->inputfields[0]->size = size;
-    (*qf)->outputfields[0]->size = size;
-  }
+  CeedInt *ctx;
+  ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+  ctx[0] = size;
+  ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(*ctx)); CeedChk(ierr);
 
   return 0;
 }

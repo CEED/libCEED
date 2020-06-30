@@ -123,11 +123,11 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  // std::cout << code.str();
-
-  // Compile kernel
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
+  CeedDebug(code.str().c_str());
+
+  // Compile kernel
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "qfunction", &data->qFunction);

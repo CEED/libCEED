@@ -159,6 +159,22 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                           NULL, appCtx->viewFinalSoln, &(appCtx->viewFinalSoln),
                           NULL); CHKERRQ(ierr);
 
+  // Check PETSc CUDA support
+  // *INDENT-OFF*
+  #ifdef PETSC_HAVE_CUDA
+  appCtx->petscHaveCuda = PETSC_TRUE;
+  #else
+  appCtx->petscHaveCuda = PETSC_FALSE;
+  #endif
+  // *INDENT-ON*
+
+  appCtx->memTypeRequested = appCtx->petscHaveCuda ? CEED_MEM_DEVICE :
+                             CEED_MEM_HOST;
+  ierr = PetscOptionsEnum("-memtype", "CEED MemType requested", NULL, memTypes,
+                          (PetscEnum)appCtx->memTypeRequested,
+                          (PetscEnum *)&appCtx->memTypeRequested,
+                          &appCtx->setMemTypeRequest); CHKERRQ(ierr);
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set

@@ -35,7 +35,7 @@
 //     ./bpsraw -problem bp5 -ceed /omp/occa
 //     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 1 -ksp_max_it_clip 20,20
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 1 -ksp_max_it_clip 15,15
 
 /// @file
 /// CEED BPs example using PETSc
@@ -232,7 +232,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -264,7 +264,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
