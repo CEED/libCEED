@@ -169,7 +169,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
            array if applicable. The backend may copy values to a different
            memtype, such as during @ref CeedOperatorApply().
            Use @CeedVectorSyncArray() to force synchronization for externally
-           allocated arrays, such as arrays set with @ref CEED_USE_POINTER. 
+           allocated arrays, such as arrays set with @ref CEED_USE_POINTER.
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
