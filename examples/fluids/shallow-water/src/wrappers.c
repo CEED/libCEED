@@ -126,25 +126,20 @@ PetscErrorCode FormIFunction_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
 PetscErrorCode FormJacobian_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
                                PetscReal sigma, Mat J, Mat Jpre,
                                void *userData) {
-//  User user = *(User*)userData;
-//  PetscErrorCode ierr;
+  PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  // empty body for now
-
-//  // Set the preconditioning for the Jacobian, Jpre, to be = sigma M
-//  ierr = VecScale(user->M, sigma); CHKERRQ(ierr);
-//  ierr = VecCopy(M, JPreVec); CHKERRQ(ierr);
-
-//  // Set up the MatShell for the associated Jacobian operator
-//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
-//                 PETSC_DETERMINE, (void*)&user, &J);
-//  MatShellSetOperation(J, MATOP_MULT, (void(*)(void))JacobianProductMat);
-
-//  // Set up the MatShell for the associated Jacobian preconditioning operator
-//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
-//                 PETSC_DETERMINE, (void*)&user, &Jpre);
-//  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
+  
+  ierr = TSComputeIJacobianDefaultColor(ts, t, Q, Qdot, sigma, J, Jpre, NULL); 
+  CHKERRQ(ierr);
+  
+  // Jpre might be AIJ (e.g., when using coloring), so we need to assemble it
+  ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  if (J != Jpre) {
+    ierr = MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }
