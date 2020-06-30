@@ -115,20 +115,18 @@ install:
         && cd occa && git reset --hard 327badb && cd ..
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
-# LIBXSMM v1.16 (need to use releases or specific commits, XSMM develops on master)
+# LIBXSMM v1.16.1
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        git clone https://github.com/hfp/libxsmm.git
-        && cd libxsmm && git reset --hard 143409c && cd ..
+        git clone --depth=1 --branch 1.16.1 https://github.com/hfp/libxsmm.git
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
-# MFEM
-  - git clone --depth 1 https://github.com/mfem/mfem.git
+# MFEM v4.1
+  - git clone --depth 1 --branch v4.1 https://github.com/mfem/mfem.git
         && make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
         && export MFEM_DIR=$PWD/mfem
-# Nek5k (pinned before Nek partially updated MPI_Type_extent)
-  - git clone https://github.com/Nek5000/Nek5000.git
-        && cd Nek5000 && git reset --hard 6f5c7eb && cd ..
+# Nek5k v19.0
+  - git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git
         && cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..
         && export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
