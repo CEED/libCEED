@@ -87,6 +87,11 @@ typedef PetscErrorCode BCFunc(PetscInt, PetscReal, const PetscReal *, PetscInt,
 //         are added to boundary.c.
 BCFunc BCMMS, BCZero, BCClamp;
 
+// MemType Options
+static const char *const memTypes[] = {"host","device","memType",
+                                       "CEED_MEM_",0
+                                      };
+
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
@@ -123,6 +128,8 @@ struct AppCtx_private {
   PetscInt      bcClampCount;
   PetscScalar   bcClampMax[16][7];
   PetscScalar   forcingVector[3];
+  PetscBool     petscHaveCuda, setMemTypeRequest;
+  CeedMemType   memTypeRequested;
 };
 
 // Problem specific data
@@ -159,6 +166,11 @@ struct UserMult_private {
   Ceed          ceed;
   PetscScalar   loadIncrement;
   Physics       phys, physSmoother;
+  CeedMemType   memType;
+  int (*VecGetArray)(Vec, PetscScalar **);
+  int (*VecGetArrayRead)(Vec, const PetscScalar **);
+  int (*VecRestoreArray)(Vec, PetscScalar **);
+  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // Data for Jacobian setup routine
@@ -180,6 +192,11 @@ struct UserMultProlongRestr_private {
   CeedVector   ceedVecC, ceedVecF;
   CeedOperator opProlong, opRestrict;
   Ceed         ceed;
+  CeedMemType   memType;
+  int (*VecGetArray)(Vec, PetscScalar **);
+  int (*VecGetArrayRead)(Vec, const PetscScalar **);
+  int (*VecRestoreArray)(Vec, PetscScalar **);
+  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // libCEED data struct for level
@@ -256,9 +273,10 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 UserMult jacobianCtx);
 
 // Setup context data for prolongation and restriction operators
-PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, DM dmC, DM dmF, Vec VF,
-                                       Vec VlocC, Vec VlocF, CeedData ceedDataC,
-                                       CeedData ceedDataF, Ceed ceed,
+PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, AppCtx appCtx, DM dmC,
+                                       DM dmF, Vec VF, Vec VlocC, Vec VlocF,
+                                       CeedData ceedDataC, CeedData ceedDataF,
+                                       Ceed ceed,
                                        UserMultProlongRestr prolongRestrCtx);
 
 // -----------------------------------------------------------------------------

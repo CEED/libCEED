@@ -253,7 +253,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -289,7 +289,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -617,7 +617,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
 
     // Setup RHS and target
     CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorSyncArray(rhsceed, CEED_MEM_HOST);
 
     // Cleanup
     CeedQFunctionDestroy(&qf_setuprhs);

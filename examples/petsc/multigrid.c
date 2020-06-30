@@ -254,9 +254,6 @@ int main(int argc, char **argv) {
   }
   ierr = VecDuplicate(X[fineLevel], &rhs); CHKERRQ(ierr);
 
-  // Set up libCEED
-  CeedInit(ceedresource, &ceed);
-
   // Print global grid information
   if (!test_mode) {
     PetscInt P = degree + 1, Q = P + qextra;
@@ -317,8 +314,8 @@ int main(int argc, char **argv) {
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
                                 ncompu, gsize[i], xlsize[i], bpchoice,
-                                ceeddata[i], i==(fineLevel), rhsceed,
-                                &target); CHKERRQ(ierr);
+                                ceeddata[i], i==(fineLevel), rhsceed, &target);
+    CHKERRQ(ierr);
   }
 
   // Gather RHS
@@ -332,7 +329,7 @@ int main(int argc, char **argv) {
   ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
-  // Create the restriction/interpolation Q-function
+  // Create the restriction/interpolation QFunction
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
                               &qfrestrict);
   CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
@@ -343,7 +340,7 @@ int main(int argc, char **argv) {
                                 leveldegrees, qfrestrict, qfprolong);
   CHKERRQ(ierr);
 
-  // Create the error Q-function
+  // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
                               bpOptions[bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
@@ -365,12 +362,14 @@ int main(int argc, char **argv) {
     PetscScalar *x;
 
     // CEED vector
+    ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
     ierr = VecGetArray(Xloc[i], &x); CHKERRQ(ierr);
     CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
     CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
                                        ceeddata[i]->xceed);
+    CeedVectorSyncArray(ceeddata[i]->xceed, CEED_MEM_HOST);
 
     // Restore vector
     ierr = VecRestoreArray(Xloc[i], &x); CHKERRQ(ierr);

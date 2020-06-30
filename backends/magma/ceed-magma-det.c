@@ -41,5 +41,5 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/magma/det", CeedInit_Magma_Det,25);
+  CeedRegister("/gpu/magma/det", CeedInit_Magma_Det, 25);
 }

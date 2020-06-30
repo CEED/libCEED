@@ -197,6 +197,53 @@ int CeedSetErrorHandler(Ceed ceed,
 /// @{
 
 /**
+  @brief Print Ceed debugging information
+
+  @param ceed    Ceed context
+  @param format  Printing format
+
+  @return None
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+void CeedDebugImpl(const Ceed ceed, const char *format,...) {
+  if (!ceed->debug) return;
+  va_list args;
+  va_start(args, format);
+  CeedDebugImpl256(ceed, 0, format, args);
+  va_end(args);
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Print Ceed debugging information in color
+
+  @param ceed    Ceed context
+  @param color   Color to print
+  @param format  Printing format
+
+  @return None
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
+                      const char *format,...) {
+  if (!ceed->debug) return;
+  va_list args;
+  va_start(args, format);
+  fflush(stdout);
+  fprintf(stdout, "\033[38;5;%dm", color);
+  vfprintf(stdout, format, args);
+  fprintf(stdout, "\033[m");
+  fprintf(stdout, "\n");
+  fflush(stdout);
+  va_end(args);
+}
+// LCOV_EXCL_STOP
+
+/**
   @brief Allocate an array on the host; use CeedMalloc()
 
   Memory usage can be tracked by the library.  This ensures sufficient
@@ -314,6 +361,21 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
   backends[num_backends].init = init;
   backends[num_backends].priority = priority;
   num_backends++;
+  return 0;
+}
+
+/**
+  @brief Return debugging status flag
+
+  @param ceed     Ceed context to get debugging flag
+  @param isDebug  Variable to store debugging flag
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Bcakend
+**/
+int CeedIsDebug(Ceed ceed, bool *isDebug) {
+  *isDebug = ceed->debug;
   return 0;
 }
 
@@ -704,6 +766,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   const char fallbackresource[] = "/cpu/self/ref/serial";
   ierr = CeedSetOperatorFallbackResource(*ceed, fallbackresource);
   CeedChk(ierr);
+
+  // Record env variables CEED_DEBUG or DBG
+  (*ceed)->debug = !!getenv("CEED_DEBUG") || !!getenv("DBG");
 
   // Backend specific setup
   ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);

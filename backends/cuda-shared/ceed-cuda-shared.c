@@ -41,6 +41,7 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Cuda); CeedChk(ierr);
   CeedChk(ierr);
@@ -52,6 +53,6 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 40);
+  CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 25);
 }
 //------------------------------------------------------------------------------

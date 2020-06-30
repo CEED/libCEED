@@ -903,6 +903,7 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
   ierr = cudaFree(data->d_qweight1d); CeedChk_Cu(ceed, ierr);
   ierr = cudaFree(data->d_interp1d); CeedChk_Cu(ceed, ierr);
   ierr = cudaFree(data->d_grad1d); CeedChk_Cu(ceed, ierr);
+  ierr = cudaFree(data->d_collograd1d); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChk(ierr);
 
@@ -952,6 +953,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
     CeedChk_Cu(ceed, ierr);
     ierr = cudaMemcpy(data->d_collograd1d, collograd1d, qBytes * Q1d,
                       cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+    ierr = CeedFree(&collograd1d); CeedChk(ierr);
   }
 
   // Compile basis kernels

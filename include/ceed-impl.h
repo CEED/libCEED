@@ -121,6 +121,7 @@ struct Ceed_private {
   int refcount;
   bool isDeterministic;
   void *data;
+  bool debug;
   foffset *foffsets;
 };
 
