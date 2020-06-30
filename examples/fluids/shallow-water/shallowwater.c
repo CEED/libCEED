@@ -340,7 +340,7 @@ int main(int argc, char **argv) {
   ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
                              dm, Qloc, Q, ceeddata->Erestrictq,
                              &ctx, 0.0); CHKERRQ(ierr);
-
+  
   MPI_Comm_rank(comm, &rank);
   if (!rank) {
     ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);
@@ -364,25 +364,17 @@ int main(int argc, char **argv) {
   // Set up the MatShell for the associated Jacobian operator
   ierr = MatCreateShell(PETSC_COMM_SELF, 5*odofs, 5*odofs, PETSC_DETERMINE,
                         PETSC_DETERMINE, user, &J); CHKERRQ(ierr);
-  // Set the MatShell user context
-//  ierr = MatShellSetContext(J, user); CHKERRQ(ierr);
   // Set the MatShell operation needed for the Jacobian
   ierr = MatShellSetOperation(J, MATOP_MULT,
                               (void (*)(void))ApplyJacobian_SW); CHKERRQ(ierr);
 
-  // Set up the MatShell for the associated Jacobian preconditioning operator
-//  MatCreateShell(PETSC_COMM_SELF, lsize, lsize, PETSC_DETERMINE,
-//                 PETSC_DETERMINE, (void*)&user, &Jpre);
-//  MatShellSetOperation(Jpre, MATOP_MATMAT_MULT, (void(*)(void))PreJacobianProductMat);
-
   // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
-  ierr = TSSetType(ts,TSARKIMEX); CHKERRQ(ierr);
-  ierr = TSSetIFunction(ts, NULL, FormIFunction_SW, &user); CHKERRQ(ierr);
+  ierr = TSSetType(ts, TSARKIMEX); CHKERRQ(ierr);
+  // Tell the TS which functions to use for Explicit part (RHS), Implicit part and Jacobian
   ierr = TSSetRHSFunction(ts, NULL, FormRHSFunction_SW, &user); CHKERRQ(ierr);
-  // TODO: Check TSSetIJacobian
-  ierr = DMSetMatType(dm, MATSHELL); CHKERRQ(ierr);
+  ierr = TSSetIFunction(ts, NULL, FormIFunction_SW, &user); CHKERRQ(ierr);
   ierr = TSSetIJacobian(ts, J, J, FormJacobian_SW, &user); CHKERRQ(ierr);
 
   // Other TS options
@@ -438,7 +430,6 @@ int main(int argc, char **argv) {
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps,(double)ftime); CHKERRQ(ierr);
   }
-
 
   // Clean up libCEED
   CeedVectorDestroy(&ceeddata->qdata);
