@@ -41,6 +41,10 @@ PetscErrorCode ApplyLocalCeedOp(Vec X, Vec Y, UserMult user) {
   CeedVectorSetArray(user->Yceed, user->memType, CEED_USE_POINTER, y);
 
   // Apply CEED operator
+  // Note: CeedVectorSyncArray is not required when the backend memtype and
+  //         the PETSc vector agree. We could in that case use
+  //         VecGetArrayInPlace. Instead, we use SetArray/SyncArray so we can
+  //         request host memory for easier debugging.
   CeedOperatorApply(user->op, user->Xceed, user->Yceed, CEED_REQUEST_IMMEDIATE);
   CeedVectorSyncArray(user->Yceed, user->memType);
 
