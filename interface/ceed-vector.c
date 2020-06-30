@@ -168,8 +168,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
   @brief Set the array used by a CeedVector, freeing any previously allocated
            array if applicable. The backend may copy values to a different
            memtype, such as during @ref CeedOperatorApply().
-           Use @CeedVectorSyncArray() to force synchronization for externally
-           allocated arrays, such as arrays set with @ref CEED_USE_POINTER.
+           See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
@@ -263,6 +262,41 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
     ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
   }
 
+  return 0;
+}
+
+/**
+  @brief Take ownership of the CeedVector array and remove the array from the
+           CeedVector
+
+  @param vec        CeedVector
+  @param mtype      Memory type on which to take the array. If the backend
+                    uses a different memory type, this will perform a copy.
+  @param[out] array Array on memory type mtype, or NULL if array pointer is
+                      not required
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
+  int ierr;
+
+  if (vec->state % 2 == 1)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Cannot take CeedVector array, the access "
+                     "lock is already in use");
+  // LCOV_EXCL_STOP
+  if (vec->numreaders > 0)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Cannot take CeedVector array, a process "
+                     "has read access");
+  // LCOV_EXCL_STOP
+
+  CeedScalar *tempArray = NULL;
+  ierr = vec->TakeArray(vec, mtype, &tempArray); CeedChk(ierr);
+  if (array)
+    (*array) = tempArray;
   return 0;
 }
 

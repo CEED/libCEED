@@ -319,7 +319,7 @@ int main(int argc, char **argv) {
   }
 
   // Gather RHS
-  CeedVectorSyncArray(rhsceed, memtyperequested);
+  CeedVectorTakeArray(rhsceed, memtyperequested, NULL);
   if (memtyperequested == CEED_MEM_HOST) {
     ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   } else {

@@ -206,9 +206,9 @@ int main(int argc, char **argv) {
   // Apply the mass operator: 'u' -> 'v'
   CeedOperatorApply(ceeddata->op_apply, ceeddata->uceed, ceeddata->vceed,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(ceeddata->vceed, CEED_MEM_HOST);
 
   // Gather output vector
+  CeedVectorTakeArray(ceeddata->vceed, CEED_MEM_HOST, NULL);
   ierr = VecRestoreArray(Vloc, &v); CHKERRQ(ierr);
   ierr = VecZeroEntries(V); CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(dm, Vloc, ADD_VALUES, V); CHKERRQ(ierr);

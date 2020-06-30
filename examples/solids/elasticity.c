@@ -289,6 +289,7 @@ int main(int argc, char **argv) {
   ierr = VecZeroEntries(F); CHKERRQ(ierr);
 
   if (appCtx->forcingChoice != FORCE_NONE) {
+    CeedVectorTakeArray(forceCeed, appCtx->memTypeRequested, NULL);
     if (appCtx->memTypeRequested == CEED_MEM_HOST) {
       ierr = VecRestoreArray(Floc, &f); CHKERRQ(ierr);
     } else {

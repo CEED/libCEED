@@ -101,6 +101,33 @@ static int CeedVectorSetArray_Occa(const CeedVector vec,
 }
 
 // *****************************************************************************
+// * Vector Take Array
+// *****************************************************************************
+static int CeedVectorTakeArray_Occa(CeedVector vec, CeedMemType mtype,
+                                    CeedScalar **array) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
+  CeedDebug("[CeedVector][Take]");
+  CeedVector_Occa *data;
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
+  if (mtype != CEED_MEM_HOST)
+    return CeedError(ceed, 1, "Can only provide to HOST memory");
+  if (!data->h_array) { // Allocate if array was not allocated yet
+    CeedDebug("[CeedVector][Take] Allocating");
+    ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
+    CeedChk(ierr);
+  }
+  CeedDebug("[CeedVector][Take] CeedSyncD2H_Occa");
+  CeedSyncD2H_Occa(vec);
+  *array = data->h_array;
+  (*array) = data->h_array;
+  data->h_array = NULL;
+  data->h_array_allocated = NULL;
+  return 0;
+}
+
+// *****************************************************************************
 // * Get read-only access to a vector via the specified mtype memory type
 // * on which to access the array. If the backend uses a different memory type,
 // * this will perform a copy (possibly cached).
@@ -181,6 +208,8 @@ int CeedVectorCreate_Occa(const CeedInt n, CeedVector vec) {
   CeedDebug("[CeedVector][Create] n=%d", n);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
+                                CeedVectorTakeArray_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
                                 CeedVectorGetArray_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
