@@ -111,10 +111,11 @@ struct SurfaceContext_ {
 //          0.0
 //        Energy Density:
 //          Inflow BCs:
-//            E = 1E6 is applied weakly in QFunction "Advection2d_Sur"
+//            E = E_wind
 //          Outflow BCs:
-//            The current values of E are applied weakly in
-//              QFunction "Advection2d_Sur"
+//            E = E(boundary)
+//          Both In/Outflow BCs for E are applied weakly in the
+//            QFunction "Advection2d_Sur"
 //
 // *****************************************************************************
 
