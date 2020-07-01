@@ -6,7 +6,7 @@ Compressible Navier-Stokes mini-app
 This example is located in the subdirectory :file:`examples/fluids`. It solves
 the time-dependent Navier-Stokes equations of compressible gas dynamics in a static
 Eulerian three-dimensional frame using unstructured high-order finite/spectral
-element spatial discretizations and explicit high-order time-stepping (available in
+element spatial discretizations and explicit or implicit high-order time-stepping (available in
 PETSc). Moreover, the Navier-Stokes example has been developed using PETSc, so that the
 pointwise physics (defined at quadrature points) is separated from the parallelization
 and meshing concerns.
