@@ -61,18 +61,19 @@ int main(int argc, char **argv) {
   const CeedInt ncompx = 3;
   PetscInt viz_refine = 0;
   PetscBool read_mesh, simplex, test;
-  PetscInt topodim = 2, ncompq = 5, lnodes;
+  PetscInt topodim = 2, ncompq = 3, lnodes;
   // libCEED context
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
                                           filename[PETSC_MAX_PATH_LEN];
   Ceed ceed;
   CeedData ceeddata;
   CeedMemType memtyperequested;
-  PetscScalar meter     = 1e-2;       // 1 meter in scaled length units
-  PetscScalar second    = 1e-2;       // 1 second in scaled time units
-  PetscScalar Omega     = 7.29212e-5; // Earth rotation rate (1/s)
-  PetscScalar g         = 9.81;       // gravitational acceleration (m/s^2)
-  PetscScalar R         = 6.37122e6;  // Earth radius (m)
+  PetscScalar meter  = 1e-2;       // 1 meter in scaled length units
+  PetscScalar second = 1e-2;       // 1 second in scaled time units
+  PetscScalar Omega  = 7.29212e-5; // Earth rotation rate (1/s)
+  PetscScalar R      = 6.37122e6;  // Earth radius (m)
+  PetscScalar g      = 9.81;       // gravitational acceleration (m/s^2)
+  PetscScalar H0     = 0;          // constant mean height (m)
   PetscScalar mpersquareds;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -127,6 +128,8 @@ int main(int argc, char **argv) {
                          NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-H0", "Mean height",
+                            NULL, H0, &H0, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -161,6 +164,7 @@ int main(int argc, char **argv) {
     .Omega = Omega,
     .R = R,
     .g = g,
+    .H0 = H0,
     .time = 0.
   };
 
@@ -362,8 +366,9 @@ int main(int argc, char **argv) {
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // Set up the MatShell for the associated Jacobian operator
-  ierr = MatCreateShell(PETSC_COMM_SELF, 5*odofs, 5*odofs, PETSC_DETERMINE,
-                        PETSC_DETERMINE, user, &J); CHKERRQ(ierr);
+  ierr = MatCreateShell(PETSC_COMM_SELF, ncompq*odofs, ncompq*odofs, 
+                        PETSC_DETERMINE, PETSC_DETERMINE, user, &J); 
+  CHKERRQ(ierr);
   // Set the MatShell operation needed for the Jacobian
   ierr = MatShellSetOperation(J, MATOP_MULT,
                               (void (*)(void))ApplyJacobian_SW); CHKERRQ(ierr);

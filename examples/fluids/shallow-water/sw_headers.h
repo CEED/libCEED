@@ -33,6 +33,7 @@ typedef struct {
   CeedScalar Omega;
   CeedScalar R;
   CeedScalar g;
+  CeedScalar H0;
   CeedScalar time;
 } PhysicsContext_s;
 typedef PhysicsContext_s *PhysicsContext;
