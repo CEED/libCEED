@@ -37,6 +37,7 @@ typedef struct {
   CeedScalar Omega;
   CeedScalar R;
   CeedScalar g;
+  CeedScalar H0;
   CeedScalar time;
 } PhysicsContext_s;
 typedef PhysicsContext_s *PhysicsContext;
@@ -66,11 +67,6 @@ static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[],
   q[0] = u0;
   q[1] = v0;
   q[2] = h0;
-  // Terrain topography, h_s
-  q[3] = sin(x) + cos(y); // put 0 for constant flat topography
-  // Reference height, H_0
-  q[4] = 0; // flat
-
   // Return
   return 0;
 }
@@ -140,24 +136,23 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   for (CeedInt i=0; i<Q; i++) {
     // *INDENT-OFF*
     // Setup
-    // -- Coordinates
-    // Compute latitude
-    const CeedScalar theta           =  asin(X[2][i] / R);
-    // Compute Coriolis parameter
-    const CeedScalar f               = 2*Omega*sin(theta);
+    // -- Compute latitude
+    const CeedScalar theta     =  asin(X[2][i] / R);
+    // -- Compute Coriolis parameter
+    const CeedScalar f         = 2*Omega*sin(theta);
     // -- Interp in
-    const CeedScalar u[2]            =  {q[0][i],
-                                         q[1][i]
-                                        };
+    const CeedScalar u[2]      =  {q[0][i],
+                                   q[1][i]
+                                  };
     // *INDENT-OFF*
-    const CeedScalar du[2][2]        = {{dq[0][0][i],  // du/dx
-                                         dq[1][0][i]}, // du/dy
-                                        {dq[0][1][i],  // dv/dx
-                                         dq[1][1][i]}  // dv/dy
-                                       };
+    const CeedScalar du[2][2]  = {{dq[0][0][i],  // du/dx
+                                   dq[1][0][i]}, // du/dy
+                                  {dq[0][1][i],  // dv/dx
+                                   dq[1][1][i]}  // dv/dy
+                                 };
     // *INDENT-ON*
     // Interp-to-Interp qdata
-    const CeedScalar wdetJ           =   qdata[0][i];
+    const CeedScalar wdetJ    =   qdata[0][i];
 
     // The Physics
     // Explicit spatial terms of G_1(t,q):
@@ -215,36 +210,35 @@ CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
              (*dv)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
-  const PhysicsContext context = (PhysicsContext)ctx;
-  const CeedScalar g           = context->g;
+  const PhysicsContext context  = (PhysicsContext)ctx;
+  const CeedScalar g            = context->g;
+  const CeedScalar H0           = context->H0;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // Interp in
-    const CeedScalar u[2]            =  {q[0][i],
-                                         q[1][i]
-                                        };
-    const CeedScalar h               =   q[2][i];
-    // h_s
-    const CeedScalar h_s             =   q[3][i];
-    // H0
-    const CeedScalar H_0             =   q[4][i];
+    const CeedScalar u[2]       =  {q[0][i],
+                                    q[1][i]
+                                   };
+    const CeedScalar h          =   q[2][i];
 
     // Interp-to-Interp qdata
-    const CeedScalar wdetJ           =   qdata[0][i];
+    const CeedScalar wdetJ      =   qdata[0][i];
     // Interp-to-Grad qdata
     // Pseudo inverse of dxdX: (x_i,j)+ = X_i,j
     // *INDENT-OFF*
-    const CeedScalar dXdx[2][3]      = {{qdata[1][i],
-                                         qdata[2][i],
-                                         qdata[3][i]},
-                                        {qdata[4][i],
-                                         qdata[5][i],
-                                         qdata[6][i]}
-                                       };
+    const CeedScalar dXdx[2][3] = {{qdata[1][i],
+                                    qdata[2][i],
+                                    qdata[3][i]},
+                                   {qdata[4][i],
+                                    qdata[5][i],
+                                    qdata[6][i]}
+                                  };
     // *INDENT-ON*
+    // h_s
+    const CeedScalar hs        =   q[10][i];
 
     // The Physics
     // Mass matrix
@@ -256,24 +250,24 @@ CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     v[0][i] = 0;
     // Implicit terms multiplying dv
     // g * grad(h + h_s)
-    dv[0][0][i] = - g*(h + h_s)*wdetJ*(dXdx[0][0] + dXdx[0][1]); // lambda component
-    dv[1][0][i] = 0;                                             // theta component
+    dv[0][0][i] = - g*(h + hs)*wdetJ*(dXdx[0][0] + dXdx[0][1]); // lambda component
+    dv[1][0][i] = 0;                                            // theta component
 
     // Implicit spatial terms for F_2(t,q):
     // No implicit terms multiplying v
     v[1][i] = 0;
     // Implicit terms multiplying dv
     // g * grad(h + h_s)
-    dv[0][1][i] = 0;                                             // lambda component
-    dv[1][1][i] = - g*(h + h_s)*wdetJ*(dXdx[1][0] + dXdx[1][1]); // theta component
+    dv[0][1][i] = 0;                                            // lambda component
+    dv[1][1][i] = - g*(h + hs)*wdetJ*(dXdx[1][0] + dXdx[1][1]); // theta component
 
     // Implicit spatial terms for F_3(t,q):
     // No implicit terms multiplying v
     v[2][i] = 0;
     // Implicit terms multiplying dv
     // div((h + H_0) u)
-    dv[0][2][i] = - (h + H_0)*wdetJ*(u[0]*dXdx[0][0] + u[1]*dXdx[0][1]); // lambda component
-    dv[1][2][i] = - (h + H_0)*wdetJ*(u[0]*dXdx[1][0] + u[1]*dXdx[1][1]); // theta component
+    dv[0][2][i] = - (h + H0)*wdetJ*(u[0]*dXdx[0][0] + u[1]*dXdx[0][1]); // lambda component
+    dv[1][2][i] = - (h + H0)*wdetJ*(u[0]*dXdx[1][0] + u[1]*dXdx[1][1]); // theta component
 
   } // End Quadrature Point Loop
 
@@ -302,8 +296,8 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
-  const PhysicsContext context = (PhysicsContext)ctx;
-  const CeedScalar g           = context->g;
+  const PhysicsContext context  = (PhysicsContext)ctx;
+  const CeedScalar g            = context->g;
 
   CeedPragmaSIMD
   // Quadrature Point Loop

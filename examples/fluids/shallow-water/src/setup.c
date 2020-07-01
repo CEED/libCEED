@@ -136,10 +136,6 @@ PetscErrorCode SetupDM(DM dm, PetscInt degree, PetscInt ncompq,
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 2, "h");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 3, "h_s");
-    CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 4, "H_0");
-    CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -282,7 +278,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   CeedOperator op_setup, op_ics, op_explicit, op_implicit,
                op_jacobian;
   CeedVector xcorners, qdata, q0ceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = 10;
+  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = 11;
 
   // CEED bases
   P = degree + 1;
