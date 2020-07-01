@@ -1702,7 +1702,7 @@ int main(int argc, char **argv) {
   // Output numerical values from command line
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
-  // compare reference solution values with current run
+  // Compare reference solution values with current test run for CI
   if (testChoice != TEST_NONE) {
     PetscViewer viewer;
     // Read reference file
