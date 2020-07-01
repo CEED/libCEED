@@ -549,7 +549,7 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 
     // Setup RHS and target
     CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorSyncArray(rhsceed, CEED_MEM_HOST);
+    CeedVectorTakeArray(rhsceed, CEED_MEM_HOST, NULL);
 
     // Cleanup
     CeedQFunctionDestroy(&qf_setuprhs);
@@ -672,9 +672,10 @@ static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 
   // Apply CEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, CEED_MEM_HOST);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, CEED_MEM_HOST, NULL);
+  CeedVectorTakeArray(user->yceed, CEED_MEM_HOST, NULL);
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -716,9 +717,10 @@ static PetscErrorCode MatMult_Interp(Mat A, Vec X, Vec Y) {
   // Apply CEED operator
   CeedOperatorApply(user->op, user->ceedvecc, user->ceedvecf,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecf, CEED_MEM_HOST);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->ceedvecc, CEED_MEM_HOST, NULL);
+  CeedVectorTakeArray(user->ceedvecf, CEED_MEM_HOST, NULL);
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -765,9 +767,10 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   // Apply CEED operator
   CeedOperatorApply(user->op, user->ceedvecf, user->ceedvecc,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecc, CEED_MEM_HOST);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->ceedvecf, CEED_MEM_HOST, NULL);
+  CeedVectorTakeArray(user->ceedvecc, CEED_MEM_HOST, NULL);
   ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);

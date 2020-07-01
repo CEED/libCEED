@@ -143,6 +143,15 @@ void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
                             (CeedScalar *)(array + *offset));
 }
 
+#define fCeedVectorTakeArray FORTRAN_NAME(ceedvectortakearray,CEEDVECTORTAKEARRAY)
+void fCeedVectorTakeArray(int *vec, int *memtype, CeedScalar *array,
+                          int64_t *offset, int *err) {
+  CeedScalar *b;
+  CeedVector vec_ = CeedVector_dict[*vec];
+  *err = CeedVectorTakeArray(vec_, (CeedMemType)*memtype, &b);
+  *offset = b - array;
+}
+
 #define fCeedVectorSyncArray FORTRAN_NAME(ceedvectorsyncarray,CEEDVECTORSYNCARRAY)
 void fCeedVectorSyncArray(int *vec, int *memtype, int *err) {
   *err = CeedVectorSyncArray(CeedVector_dict[*vec], (CeedMemType)*memtype);
@@ -155,8 +164,7 @@ void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array,
-                         int64_t *offset,
-                         int *err) {
+                         int64_t *offset, int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArray(vec_, (CeedMemType)*memtype, &b);

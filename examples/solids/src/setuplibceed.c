@@ -413,7 +413,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
 
     // -- Compute forcing term
     CeedOperatorApply(opSetupForce, xcoord, forceCeed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorSyncArray(forceCeed, appCtx->memTypeRequested);
 
     // -- Cleanup
     CeedQFunctionDestroy(&qfSetupForce);

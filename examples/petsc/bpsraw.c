@@ -298,9 +298,10 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  CeedVectorTakeArray(user->yceed, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -344,9 +345,10 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  CeedVectorTakeArray(user->yceed, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -851,10 +853,10 @@ int main(int argc, char **argv) {
   // Setup qdata, rhs, and target
   CeedOperatorApply(opsetupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(opsetuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(rhsceed, user->memtype); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
   // Gather RHS
+  ierr = CeedVectorTakeArray(rhsceed, user->memtype, NULL); CHKERRQ(ierr);
   ierr = user->VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
   ierr = VecScatterBegin(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
