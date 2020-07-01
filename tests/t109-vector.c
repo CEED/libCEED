@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
     printf("Error protecting array a[3] = %f", (double)a[3]);
   // LCOV_EXCL_STOP
 
-
-
+// Note: We do not need to free c because c == a was stack allocated.
+//         If libCEED allocated c, then free() would be required.
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;
