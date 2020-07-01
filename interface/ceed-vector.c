@@ -267,7 +267,8 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
 
 /**
   @brief Take ownership of the CeedVector array and remove the array from the
-           CeedVector
+           CeedVector. The caller is responsible for managing and freeing
+           the array.
 
   @param vec        CeedVector
   @param mtype      Memory type on which to take the array. If the backend
