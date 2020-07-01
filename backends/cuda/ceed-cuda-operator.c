@@ -645,7 +645,7 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
     CeedChk(ierr);
     // Check if active output
     if (vec == CEED_VECTOR_ACTIVE) {
-      CeedVectorTakeArray(impl->qvecsout[out], CEED_MEM_DEVICE, NULL);
+      ierr = CeedVectorTakeArray(impl->qvecsout[out], CEED_MEM_DEVICE, NULL);
       CeedChk(ierr);
     }
   }
