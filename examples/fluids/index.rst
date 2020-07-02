@@ -341,3 +341,103 @@ and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
 for mass and energy densities. This problem can be run with::
 
    ./navierstokes -problem density_current
+
+
+.. _example-petsc-shallow-water:
+
+Shallow-water Equations mini-app
+========================================
+
+This example is located in the subdirectory :file:`examples/fluids/shallow-water`. It solves
+the time-dependent shallow-water equations on a cubed-sphere. The geometry of the cubed-sphere and the relative coordinate transformations are explained in the section :ref:`example-petsc-area-sphere`. The discretization of most of the spatial differential terms needed in the shallow-water equations is already described in the section :ref:`example-petsc-bps-sphere`.
+
+The mathematical formulation (from :cite:`taylor2010ACA`) is given in what
+follows
+
+.. math::
+   :label: eq-swe
+
+   \begin{aligned}
+   \frac{\partial \bm u}{\partial t} &= - (\omega + f) \bm{\hat k} \times \bm u - \nabla \left( \frac{|\bm u|^2}{2} + g (h + h_s) \right) \\
+   \frac{\partial h}{\partial t} &= - \nabla \cdot (H_0 + h) \bm u \, , \\
+   \end{aligned}
+   
+where quantities are expressed in spherical coordinates :math:`r^1 = \lambda` for longitude, :math:`r^2 = \theta` for latitude and :math:`r^3 = r` for the radius, with associated unit vectors :math:`\bm{ \hat \lambda}`, :math:`\bm {\hat \theta}`, and :math:`\bm{\hat k}`, respectively. We consider a unit sphere, hence, :math:`r = 1` and :math:`\partial / \partial r = 0`. In equations :math:numref:`eq-swe`, :math:`\bm u` represents  velocity field with longitudinal and latitudinal components :math:`\bm u = (u_{\lambda}, u_{\theta}) \equiv (u_1, u_2)`, and :math:`h` represents the height function of the fluid thickness; moreover, :math:`\omega = \nabla \times \bm u` is the vorticity, :math:`f` the Coriolis parameter such that :math:`f = 2 \bm{\Omega} \sin(\theta)` with :math:`\bm{\Omega}` Earth's rotation, :math:`g` represents the gravitational acceleration, :math:`h_s` the bottom surface (terrain) elevation, and :math:`H_0` the constant mean depth, such that the total fluid surface height is given by :math:`h_s + H_0 + h`. On the two-dimensional Riemannian manifold describing the sphere, we can use the coordinate indices :math:`x^s = {\alpha, \beta}`, so that we can express :math:`\bm u = u^{\alpha} \bm g_{\alpha} +  u^{\beta} \bm g_{\beta}`, where :math:`\bm g_{\alpha} = \partial / \partial \alpha` and :math:`\bm g_{\beta} = \partial / \partial \beta` are the natural basis vectors on the manifold :cite:`ullrich,rancic`.
+
+We solve equations :math:numref:`eq-swe` for the state variable :math:`\bm q = (q_1, q_2, q_3) = (\bm u, h) = (u_{\lambda}, u_{\theta}, h) \equiv (u_1, u_2, h)` with a semi-implicit time integration, for which 
+
+.. math::
+   :label: eq-swe-semi-implicit
+
+   \bm F(t, \bm q, \bm {\dot q}) = G(t, \bm q) \, ,
+
+where the time derivative :math:`\bm{\dot q}` is defined by
+
+.. math::
+  \bm{\dot q}(\bm q) = \sigma \bm q + \bm z
+
+in terms of :math:`\bm z` from prior state and :math:`\sigma > 0`,
+both of which depend on the specific time integration scheme. We split the implicit and explicit terms as follows:
+
+.. math::
+   :label: eq-swe-implicit-part
+   
+   \bm F(t, \bm q, \bm {\dot q}) := 
+   \left\{
+         \begin{array}{l}
+             F_1 (u_{\lambda}, u_{\theta}, h) = \frac{\partial u_{\lambda}}{\partial t} + g \frac{\partial }{\partial \alpha} \left( h + h_s \right)\\
+             F_2 (u_{\lambda}, u_{\theta}, h) = \frac{\partial u_{\theta}}{\partial t} + g \frac{\partial }{\partial \beta} \left( h + h_s \right)\\
+             F_3 (u_{\lambda}, u_{\theta}, h) = \frac{\partial h}{\partial t} + \frac{\partial }{\partial \alpha} \left( (H_0 + h) u_{\lambda} \right) + \frac{\partial }{\partial \beta} \left( (H_0 + h) u_{\theta} \right) .
+         \end{array}
+   \right.
+   
+While for the explicit part we specify
+
+.. math::
+   :label: eq-swe-explicit-part
+   
+   \bm G(t, \bm q) := 
+   \left\{
+         \begin{array}{l}
+             G_1 (u_{\lambda}, u_{\theta}, h) = - u_{\lambda} \frac{\partial u_{\lambda}}{\partial \alpha} - u_{\theta} \frac{\partial u_{\lambda}}{\partial \beta} - f u_{\theta}\\
+             G_2 (u_{\lambda}, u_{\theta}, h) =  - u_{\lambda} \frac{\partial u_{\theta}}{\partial \alpha} - u_{\theta} \frac{\partial u_{\theta}}{\partial \beta} + f u_{\lambda}\\
+             G_3 (u_{\lambda}, u_{\theta}, h) = 0 .
+         \end{array}
+   \right.
+
+The differentiation of the implicit part :math:numref:`eq-swe-implicit-part` with respect to the increment :math:`\delta \bm q = (\delta \bm u, \delta h)` gives the strong form of the incremental Jacobian :math:`\partial F_i / \partial \delta q_j`, with :math:`i,j = 1,2,3`
+
+.. math::
+   :label: eq-strong-swe-Jacobian
+   
+   \frac{\partial \bm F}{\partial \delta \bm q} := 
+   \left(
+         \begin{array}{ccc}
+             \frac{\partial F_1}{\partial \delta u_{\lambda}} & \frac{\partial F_1}{\partial \delta u_{\theta}} & \frac{\partial F_1}{\partial \delta h}\\
+             \frac{\partial F_2}{\partial \delta u_{\lambda}} & \frac{\partial F_2}{\partial \delta u_{\theta}} & \frac{\partial F_2}{\partial \delta h}\\
+             \frac{\partial F_3}{\partial \delta u_{\lambda}} & \frac{\partial F_3}{\partial \delta u_{\theta}} & \frac{\partial F_3}{\partial \delta h}
+         \end{array}
+   \right)
+   =
+   \left(
+         \begin{array}{ccc}
+             0 & 0 & g \partial (\delta h) / \partial \alpha \\
+             0 & 0 & g \partial (\delta h) / \partial \beta \\
+             \frac{\partial ((H_0 + h) \delta u_{\lambda})}{\partial \alpha} & \frac{\partial ((H_0 + h) \delta u_{\theta})}{\partial \beta} & \frac{\partial (\delta h u_{\lambda})}{\partial \alpha} + \frac{\partial (\delta h u_{\theta})}{\partial \beta} ,
+         \end{array}
+   \right)
+   
+whose integrands of the weak form are found by multiplying each entry of :math:`\partial F_i / \partial \delta q_j` by a test function :math:`\phi \in H^1(\Omega)`
+and integrating by parts
+
+.. math::
+   :label: eq-weak-swe-Jacobian
+   
+   \left(
+         \begin{array}{ccc}
+             0 & 0 & - g \delta h \partial \phi / \partial \alpha \\
+             0 & 0 & - g \delta h \partial \phi / \partial \beta  \\
+             - \frac{\partial \phi}{\partial \alpha} ((H_0 + h) \delta u_{\lambda}) & - \frac{\partial \phi}{\partial \beta} ((H_0 + h) \delta u_{\theta}) & - \frac{\partial \phi}{\partial \alpha} (\delta h u_{\lambda}) - \frac{\partial \phi}{\partial \beta} (\delta h u_{\theta})
+         \end{array}
+   \right) .
+

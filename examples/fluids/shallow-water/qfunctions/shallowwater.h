@@ -104,14 +104,16 @@ CEED_QFUNCTION(ICsSW)(void *ctx, CeedInt Q,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
-// of the velocity field, and h, represents the height function.
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
+// longitudinal and latitudinal components of the velocity field, and h, 
+// represents the height function.
 //
-// State variable vector: q = (u_lambda,u_theta,h)
+// State variable vector: q = (u_lambda, u_theta, h)
 //
-// Shallow-water Equations spatial terms of explicit function G(t,q) = (G_1(t,q), G_2(t,q)):
-// G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
-// G_2(t,q) = 0
+// Shallow-water Equations spatial terms of explicit function 
+// G(t,q) = (G_1(t,q), G_2(t,q)):
+//   G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
+//   G_2(t,q) = 0
 // *****************************************************************************
 CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            CeedScalar *const *out) {
@@ -145,10 +147,10 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                    q[1][i]
                                   };
     // *INDENT-OFF*
-    const CeedScalar du[2][2]  = {{dq[0][0][i],  // du/dx
-                                   dq[1][0][i]}, // du/dy
-                                  {dq[0][1][i],  // dv/dx
-                                   dq[1][1][i]}  // dv/dy
+    const CeedScalar du[2][2]  = {{dq[0][0][i],  // du_1/dx
+                                   dq[1][0][i]}, // du_1/dy
+                                  {dq[0][1][i],  // du_2/dx
+                                   dq[1][1][i]}  // du_2/dy
                                  };
     // *INDENT-ON*
     // Interp-to-Interp qdata
@@ -189,14 +191,18 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
-// of the velocity field, and h, represents the height function.
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
+// longitudinal and latitudinal components of the velocity field, and h, 
+// represents the height function.
 //
 // State variable vector: q = (u_lambda, u_theta, h)
 //
-// Shallow-water Equations spatial terms of implicit function: F(t,q) = (F_1(t,q), F_2(t,q)):
-// F_1(t,q) = g(grad(h + h_s))
-// F_2(t,q) = div((h + H_0) u)
+// Shallow-water Equations spatial terms of implicit function: 
+// F(t,q) = (F_1(t,q), F_2(t,q)):
+//   F_1(t,q) = g(grad(h + h_s))
+//   F_2(t,q) = div((h + H_0) u)
+//
+// To the spatial term F(t,q) one needs to add qdot (time derivative) on the LHS
 // *****************************************************************************
 CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            CeedScalar *const *out) {
@@ -280,10 +286,13 @@ CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta, represent the longitudinal and latitudinal components
-// of the velocity field, and h, represents the height function.
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
+// longitudinal and latitudinal components of the velocity field, and h, 
+// represents the height function.
 //
-// Discrete Jacobian: dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n ("sigma * dF/dqdot|q^n" will be added later)
+// Discrete Jacobian: 
+// dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n
+// ("sigma * dF/dqdot|q^n" will be added later)
 // *****************************************************************************
 CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            CeedScalar *const *out) {
