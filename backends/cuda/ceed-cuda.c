@@ -167,6 +167,9 @@ int CeedDestroy_Cuda(Ceed ceed) {
   int ierr;
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  if (data->cublasHandle) {
+    ierr = cublasDestroy(data->cublasHandle); CeedChk_Cublas(ceed, ierr);
+  }
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
