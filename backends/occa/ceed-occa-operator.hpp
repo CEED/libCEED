@@ -65,8 +65,8 @@ namespace ceed {
 
       static int ceedCreate(CeedOperator op);
 
-      static int ceedAssembleLinearQFunction(CeedOperator op);
-      static int ceedAssembleLinearDiagonal(CeedOperator op);
+      static int ceedLinearAssembleQFunction(CeedOperator op);
+      static int ceedLinearAssembleDiagonal(CeedOperator op);
       static int ceedCreateFDMElementInverse(CeedOperator op);
 
       static int ceedApplyAdd(CeedOperator op,
