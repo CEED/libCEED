@@ -44,12 +44,11 @@ struct SetupContext_ {
   CeedScalar lx;
   CeedScalar ly;
   CeedScalar lz;
-  CeedScalar periodicity0;
-  CeedScalar periodicity1;
-  CeedScalar periodicity2;
   CeedScalar center[3];
   CeedScalar dc_axis[3];
+  CeedScalar wind[3];
   CeedScalar time;
+  int wind_type; // See WindType: 0=ROTATION, 1=TRANSLATION
 };
 #endif
 
@@ -63,25 +62,60 @@ struct Advection2dContext_ {
 };
 #endif
 
+#ifndef surface_context_struct
+#define surface_context_struct
+typedef struct SurfaceContext_ *SurfaceContext;
+struct SurfaceContext_ {
+  CeedScalar E_wind;
+  CeedScalar strong_form;
+  bool implicit;
+};
+#endif
+
 // *****************************************************************************
 // This QFunction sets the the initial conditions and boundary conditions
+//   for two test cases: ROTATION and TRANSLATION
 //
-// Initial Conditions:
-//   Mass Density:
-//     Constant mass density of 1.0
-//   Momentum Density:
-//     Rotational field in x,y
-//   Energy Density:
-//     Maximum of 1. x0 decreasing linearly to 0. as radial distance increases
-//       to (1.-r/rc), then 0. everywhere else
+// -- ROTATION (default)
+//      Initial Conditions:
+//        Mass Density:
+//          Constant mass density of 1.0
+//        Momentum Density:
+//          Rotational field in x,y
+//        Energy Density:
+//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
+//            increases to (1.-r/rc), then 0. everywhere else
 //
-//  Boundary Conditions:
-//    Mass Density:
-//      0.0 flux
-//    Momentum Density:
-//      0.0
-//    Energy Density:
-//      0.0 flux
+//      Boundary Conditions:
+//        Mass Density:
+//          0.0 flux
+//        Momentum Density:
+//          0.0
+//        Energy Density:
+//          0.0 flux
+//
+// -- TRANSLATION
+//      Initial Conditions:
+//        Mass Density:
+//          Constant mass density of 1.0
+//        Momentum Density:
+//           Constant rectilinear field in x,y
+//        Energy Density:
+//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
+//            increases to (1.-r/rc), then 0. everywhere else
+//
+//      Boundary Conditions:
+//        Mass Density:
+//          0.0 flux
+//        Momentum Density:
+//          0.0
+//        Energy Density:
+//          Inflow BCs:
+//            E = E_wind
+//          Outflow BCs:
+//            E = E(boundary)
+//          Both In/Outflow BCs for E are applied weakly in the
+//            QFunction "Advection2d_Sur"
 //
 // *****************************************************************************
 
@@ -97,6 +131,7 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
   const CeedScalar lx = context->lx;
   const CeedScalar ly = context->ly;
   const CeedScalar lz = context->lz;
+  const CeedScalar *wind = context->wind;
 
   // Setup
   const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
@@ -108,11 +143,22 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
   const CeedScalar x = X[0], y = X[1];
 
   // Initial/Boundary Conditions
-  q[0] = 1.;
-  q[1] = -(y - center[1]);
-  q[2] =  (x - center[0]);
-  q[3] = 0;
-  q[4] = 0;
+  switch (context->wind_type) {
+  case 0:    // Rotation
+    q[0] = 1.;
+    q[1] = -(y - center[1]);
+    q[2] =  (x - center[0]);
+    q[3] = 0;
+    q[4] = 0;
+    break;
+  case 1:    // Translation
+    q[0] = 1.;
+    q[1] = wind[0];
+    q[2] = wind[1];
+    q[3] = 0;
+    q[4] = 0;
+    break;
+  }
 
   CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
   CeedScalar E = 1 - r/rc;
@@ -381,7 +427,74 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 
   return 0;
 }
+// *****************************************************************************
+// This QFunction implements consistent outflow and inflow BCs
+//      for 2D advection
+//
+//  Inflow and outflow faces are determined based on sign(dot(wind, normal)):
+//    sign(dot(wind, normal)) > 0 : outflow BCs
+//    sign(dot(wind, normal)) < 0 : inflow BCs
+//
+//  Outflow BCs:
+//    The validity of the weak form of the governing equations is extended
+//    to the outflow and the current values of E are applied.
+//
+//  Inflow BCs:
+//    A prescribed Total Energy (E_wind) is applied weakly.
+//
+// *****************************************************************************
+CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
+                                const CeedScalar *const *in,
+                                CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  SurfaceContext context = (SurfaceContext)ctx;
+  const CeedScalar E_wind = context->E_wind;
+  const CeedScalar strong_form = context->strong_form;
+  const bool implicit = context->implicit;
 
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho        =    q[0][i];
+    const CeedScalar u[3]       =   {q[1][i] / rho,
+                                     q[2][i] / rho,
+                                     q[3][i] / rho
+                                    };
+    const CeedScalar E          =    q[4][i];
+    // -- Interp-to-Interp qdata
+    // For explicit mode, the surface integral is on the RHS of ODE qdot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(qdot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * qdataSur[0][i];
+    // ---- Normal vectors
+    const CeedScalar norm[2]    =   {qdataSur[1][i],
+                                     qdataSur[2][i]
+                                    };
+    // Normal velocity
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1];
+
+    // No Change in density or momentum
+    for (CeedInt j=0; j<4; j++) {
+      v[j][i] = 0;
+    }
+
+    // Implementing in/outflow BCs
+    if (u_n > 0) { // outflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E * u_n;
+    } else { // inflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_n;
+    }
+  } // End Quadrature Point Loop
+  return 0;
+}
 // *****************************************************************************
 
 #endif // advection2d_h
