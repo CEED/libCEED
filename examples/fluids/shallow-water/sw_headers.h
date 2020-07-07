@@ -24,8 +24,10 @@
 #include <petscfe.h>
 #include <ceed.h>
 
-#ifndef physics_context_struct
-#define physics_context_struct
+// -----------------------------------------------------------------------------
+// Data Structs
+// -----------------------------------------------------------------------------
+
 typedef struct {
   CeedScalar u0;
   CeedScalar v0;
@@ -35,9 +37,27 @@ typedef struct {
   CeedScalar g;
   CeedScalar H0;
   CeedScalar time;
+  CeedScalar gamma;
 } PhysicsContext_s;
 typedef PhysicsContext_s *PhysicsContext;
-#endif // physics_context_struct
+
+typedef struct {
+  CeedScalar H0;
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+} ProblemContext_s;
+typedef ProblemContext_s *ProblemContext;
+
+// Problem specific data
+typedef struct {
+  CeedInt topodim, qdatasize;
+  CeedQFunctionUser setup, ics, apply_explfunction, apply_implfunction,
+                    apply_jacobian;
+  const char *setup_loc, *ics_loc, *apply_explfunction_loc,
+  *apply_implfunction_loc, *apply_jacobian_loc;
+  const bool non_zero_time;
+} problemData;
 
 // MemType Options
 static const char *const memTypes[] = {
@@ -46,14 +66,28 @@ static const char *const memTypes[] = {
   "memType", "CEED_MEM_", NULL
 };
 
-// Problem specific data
-typedef struct {
-  CeedInt topodim, qdatasize;
-  CeedQFunctionUser setup, ics, apply_explfunction, apply_implfunction;
-  const char *setup_loc, *ics_loc, *apply_explfunction_loc,
-  *apply_implfunction_loc;
-  const bool non_zero_time;
-} problemData;
+// Problem Options
+typedef enum {
+  SWE_ADVECTION = 0,
+  SWE_GEOSTROPHIC = 1
+} problemType;
+static const char *const problemTypes[] = {
+  "advection",
+  "geostrophic",
+  "problemType", "SWE_", NULL
+};
+
+typedef enum {
+  STAB_NONE = 0,
+  STAB_SU = 1,   // Streamline Upwind
+  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
+} StabilizationType;
+static const char *const StabilizationTypes[] = {
+  "none",
+  "SU",
+  "SUPG",
+  "StabilizationType", "STAB_", NULL
+};
 
 // PETSc user data
 typedef struct User_ *User;
@@ -82,10 +116,6 @@ struct Units_ {
   PetscScalar mpersquareds;
 };
 
-// -----------------------------------------------------------------------------
-// libCEED Data Struct
-// -----------------------------------------------------------------------------
-
 // libCEED data struct
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
@@ -97,6 +127,9 @@ struct CeedData_ {
   CeedOperator op_setup, op_mass, op_ics, op_explicit, op_implicit, op_jacobian;
   CeedVector xcorners, xceed, qdata, q0ceed, mceed, hsceed, H0ceed;
 };
+
+// External variables
+extern problemData problemOptions[];
 
 // -----------------------------------------------------------------------------
 // Setup DM functions
@@ -119,11 +152,10 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P, CeedInt ncomp,
                                      CeedElemRestriction *Erestrict);
 
 // Auxiliary function to set up libCEED objects for a given degree
-PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
-                            CeedInt topodim, CeedInt qextra,
-                            PetscInt ncompx, PetscInt ncompq,
-                            User user, CeedData data,
-                            PhysicsContext ctx);
+PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra, 
+                            PetscInt ncompx, PetscInt ncompq, User user, 
+                            CeedData data, problemData *problem,
+                            PhysicsContext phys_ctx, ProblemContext probl_ctx);
 
 // -----------------------------------------------------------------------------
 // RHS (Explicit part in time-stepper) function setup

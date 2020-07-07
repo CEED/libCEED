@@ -17,8 +17,10 @@
 /// @file
 /// Initial condition and operator for the shallow-water example using PETSc
 
-#ifndef densitycurrent_h
-#define densitycurrent_h
+#ifndef shallowwater_h
+#define shallowwater_h
+
+#include "../sw_headers.h"
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -28,51 +30,44 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef physics_context_struct
-#define physics_context_struct
-typedef struct {
-  CeedScalar u0;
-  CeedScalar v0;
-  CeedScalar h0;
-  CeedScalar Omega;
-  CeedScalar R;
-  CeedScalar g;
-  CeedScalar H0;
-  CeedScalar time;
-} PhysicsContext_s;
-typedef PhysicsContext_s *PhysicsContext;
-#endif // physics_context_struct
-
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
-//
-//  For now we have sinusoidal terrain and constant reference height H0
-//
+// This QFunction sets the the initial condition for the steady state nonlinear 
+// zonal geostrophic flow (test case 2 in "A Standard Test Set for Numerical 
+// Approximations to the Shallow Water Equations in Spherical Geometry" 
+// by Williamson et al. (1992)
 // *****************************************************************************
-static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[],
+static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[], 
                            CeedInt Nf, CeedScalar q[], void *ctx) {
 
   // Context
   const PhysicsContext context = (PhysicsContext)ctx;
   const CeedScalar u0          = context->u0;
-  const CeedScalar v0          = context->v0;
   const CeedScalar h0          = context->h0;
+  const CeedScalar R           = context->R;
+  const CeedScalar gamma       = context->gamma;
+  const CeedScalar rho         = R / 3.;
 
   // Setup
-  // -- Coordinates
-  const CeedScalar x = X[0];
-  const CeedScalar y = X[1];
+  // -- Compute latitude
+  const CeedScalar theta    = asin(X[2] / R);
+  // -- Compute longitude
+  const CeedScalar lambda   = atan2(X[1], X[0]); 
+  // -- Compute great circle distance between (lambda, theta) and the center,
+  //    (lambda_c, theta_c)
+  const CeedScalar lambda_c = 3. * M_PI / 2.;
+  const CeedScalar theta_c  = 0.;
+  const CeedScalar r        = R * acos(sin(theta_c)*sin(theta) + cos(theta_c)*cos(theta)*cos(lambda-lambda_c));  
 
   // Initial Conditions
-  q[0] = u0;
-  q[1] = v0;
-  q[2] = h0;
+  q[0] =  u0 * (cos(theta)*cos(gamma) + sin(theta)*cos(lambda)*sin(gamma));
+  q[1] = -u0 * sin(lambda)*sin(gamma);
+  q[2] = r < rho ? .5*h0*(1 + cos(M_PI*r/rho)) : 0.; // cosine bell
   // Return
   return 0;
 }
 
 // *****************************************************************************
-// Initial conditions for shallow-water
+// Initial conditions
 // *****************************************************************************
 CEED_QFUNCTION(ICsSW)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
@@ -98,7 +93,6 @@ CEED_QFUNCTION(ICsSW)(void *ctx, CeedInt Q,
   return 0;
 }
 
-
 // *****************************************************************************
 // This QFunction implements the explicit terms of the shallow-water
 // equations
@@ -121,11 +115,11 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // Inputs
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*dq)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
-             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+             (*dv)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -209,8 +203,8 @@ CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
@@ -299,7 +293,7 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*deltaq)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
+                   (*deltaq)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
@@ -307,6 +301,7 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // Context
   const PhysicsContext context  = (PhysicsContext)ctx;
   const CeedScalar g            = context->g;
+  const CeedScalar H0            = context->H0;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -314,8 +309,6 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Setup
     // Interp in
     const CeedScalar h          =   q[2][i];
-    // H0
-    const CeedScalar H_0        =   q[4][i];
     // Functional derivatives in
     const CeedScalar deltau[2]  =  {deltaq[0][0][i],
                                     deltaq[1][0][i]
@@ -347,8 +340,8 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     deltadvdX[1][1][i] = - g*wdetJ*dXdx[1][1]*deltah; // theta component
     // Jacobian spatial terms for F_3(t,q):
     // - dv \cdot ((H_0 + h) delta u)
-    deltadvdX[1][2][i] = - (H_0 + h)*wdetJ*(deltau[0]*dXdx[1][0] + deltau[1]*dXdx[1][1]); // theta component
-    deltadvdX[0][2][i] = - (H_0 + h)*wdetJ*(deltau[0]*dXdx[0][0] + deltau[1]*dXdx[0][1]); // lambda component
+    deltadvdX[1][2][i] = - (H0 + h)*wdetJ*(deltau[0]*dXdx[1][0] + deltau[1]*dXdx[1][1]); // lambda component
+    deltadvdX[0][2][i] = - (H0 + h)*wdetJ*(deltau[0]*dXdx[0][0] + deltau[1]*dXdx[0][1]); // theta component
 
   } // End Quadrature Point Loop
 
@@ -358,4 +351,4 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
 
 // *****************************************************************************
-#endif
+#endif // shallowwater_h

@@ -54,6 +54,10 @@ int main(int argc, char **argv) {
   Mat J, interpviz;
   User user;
   Units units;
+  problemType problemChoice;
+  problemData *problem = NULL;
+  StabilizationType stab;
+  PetscBool implicit;
   PetscInt degree, qextra, outputfreq, steps, contsteps;
   PetscMPIInt rank;
   PetscScalar ftime;
@@ -68,12 +72,15 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedData ceeddata;
   CeedMemType memtyperequested;
-  PetscScalar meter  = 1e-2;       // 1 meter in scaled length units
-  PetscScalar second = 1e-2;       // 1 second in scaled time units
-  PetscScalar Omega  = 7.29212e-5; // Earth rotation rate (1/s)
-  PetscScalar R      = 6.37122e6;  // Earth radius (m)
-  PetscScalar g      = 9.81;       // gravitational acceleration (m/s^2)
-  PetscScalar H0     = 0;          // constant mean height (m)
+  CeedScalar CtauS       = 0.;         // dimensionless
+  CeedScalar strong_form = 0.;         // [0,1]
+  PetscScalar meter      = 1e-2;       // 1 meter in scaled length units
+  PetscScalar second     = 1e-2;       // 1 second in scaled time units
+  PetscScalar Omega      = 7.29212e-5; // Earth rotation rate (1/s)
+  PetscScalar R          = 6.37122e6;  // Earth radius (m)
+  PetscScalar g          = 9.81;       // gravitational acceleration (m/s^2)
+  PetscScalar H0         = 0;          // constant mean height (m)
+  PetscScalar gamma      = 0;          // angle between axis of rotation and polar axis 
   PetscScalar mpersquareds;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -104,6 +111,38 @@ int main(int argc, char **argv) {
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-test", "Run in test mode",
                           NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
+  problemChoice = SWE_ADVECTION;
+  ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
+                          problemTypes, (PetscEnum)problemChoice,
+                          (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
+  problem = &problemOptions[problemChoice];
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
+                          NULL, implicit=PETSC_FALSE, &implicit, NULL);
+  CHKERRQ(ierr);
+  if (!implicit && stab != STAB_NONE) {
+    ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
+    CHKERRQ(ierr);
+  }
+  ierr = PetscOptionsScalar("-CtauS",
+                            "Scale coefficient for tau (nondimensional)",
+                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  if (stab == STAB_NONE && CtauS != 0) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
+    CHKERRQ(ierr);
+  }
+  ierr = PetscOptionsScalar("-strong_form",
+                            "Strong (1) or weak/integrated by parts (0) advection residual",
+                            NULL, strong_form, &strong_form, NULL);
+  CHKERRQ(ierr);
+  if (problemChoice == SWE_GEOSTROPHIC && (CtauS != 0 || strong_form != 0)) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Problem geostrophic does not support -CtauS or -strong_form\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsInt("-viz_refine",
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
@@ -130,6 +169,8 @@ int main(int argc, char **argv) {
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-H0", "Mean height",
                             NULL, H0, &H0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-H0", "Angle between axis of rotation and polar axis",
+                            NULL, gamma, &gamma, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -157,7 +198,7 @@ int main(int argc, char **argv) {
   g *= mpersquareds;
 
   // Set up the libCEED context
-  PhysicsContext_s ctx =  {
+  PhysicsContext_s phys_ctx =  {
     .u0 = 0.,
     .v0 = 0.,
     .h0 = .1,
@@ -165,7 +206,15 @@ int main(int argc, char **argv) {
     .R = R,
     .g = g,
     .H0 = H0,
+    .gamma = gamma,
     .time = 0.
+  };
+  
+  ProblemContext_s probl_ctx =  {
+    .H0 = H0,
+    .CtauS = CtauS,
+    .strong_form = strong_form,
+    .stabilization = stab
   };
 
   // Setup DM
@@ -277,6 +326,9 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,
                          "\n-- CEED Shallow-water equations solver on the cubed-sphere -- libCEED + PETSc --\n"
                          "  rank(s)                              : %d\n"
+                         "  Problem:\n"
+                         "    Problem Name                       : %s\n"
+                         "    Stabilization                      : %s\n"
                          "  PETSc:\n"
                          "    PETSc Vec Type                     : %s\n"
                          "  libCEED:\n"
@@ -292,7 +344,8 @@ int main(int argc, char **argv) {
                          "    DoFs per node                      : %D\n"
                          "    Global DoFs                        : %D\n"
                          "    Owned DoFs                         : %D\n",
-                         comm_size, ceedresource, usedresource,
+                         comm_size, problemTypes[problemChoice],
+                         StabilizationTypes[stab], ceedresource, usedresource,
                          CeedMemTypes[memtypebackend],
                          (setmemtyperequest) ?
                          CeedMemTypes[memtyperequested] : "none", numP, numQ,
@@ -307,8 +360,8 @@ int main(int argc, char **argv) {
 
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
-  ierr = SetupLibceed(dm, ceed, degree, topodim, qextra,
-                      ncompx, ncompq, user, ceeddata, &ctx); CHKERRQ(ierr);
+  ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user, ceeddata, 
+                      problem, &phys_ctx, &probl_ctx); CHKERRQ(ierr);
 
   // Set up PETSc context
   // Set up units structure
@@ -343,7 +396,7 @@ int main(int argc, char **argv) {
   // Apply IC operator and fix multiplicity of initial state vector
   ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
                              dm, Qloc, Q, ceeddata->Erestrictq,
-                             &ctx, 0.0); CHKERRQ(ierr);
+                             &phys_ctx, 0.0); CHKERRQ(ierr);
   
   MPI_Comm_rank(comm, &rank);
   if (!rank) {

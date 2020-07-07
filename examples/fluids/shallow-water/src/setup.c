@@ -25,12 +25,46 @@
 #include <ceed.h>
 #include "../sw_headers.h"               // Function prototytes
 #include "../qfunctions/setup_geo.h"     // Geometric factors
-#include "../qfunctions/shallowwater.h"  // Physics point-wise functions
+#include "../qfunctions/advection.h"     // Physics point-wise functions
+#include "../qfunctions/geostrophic.h"  // Physics point-wise functions
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
 #  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
 #endif
+
+problemData problemOptions[] = {
+  [SWE_ADVECTION] = {
+    .topodim                = 2,
+    .qdatasize              = 11,
+    .setup                  = SetupGeo,
+    .setup_loc              = SetupGeo_loc,
+    .ics                    = ICsSW_Advection,
+    .ics_loc                = ICsSW_Advection_loc,
+    .apply_explfunction     = SWExplicit_Advection,
+    .apply_explfunction_loc = SWExplicit_Advection_loc,
+    .apply_implfunction     = SWImplicit_Advection,
+    .apply_implfunction_loc = SWImplicit_Advection_loc,
+    .apply_jacobian         = SWJacobian_Advection,
+    .apply_jacobian_loc     = SWJacobian_Advection_loc,
+    .non_zero_time          = PETSC_TRUE
+  },
+  [SWE_GEOSTROPHIC] = {
+    .topodim                = 2,
+    .qdatasize              = 11,
+    .setup                  = SetupGeo,
+    .setup_loc              = SetupGeo_loc,
+    .ics                    = ICsSW,
+    .ics_loc                = ICsSW_loc,
+    .apply_explfunction     = SWExplicit,
+    .apply_explfunction_loc = SWExplicit_loc,
+    .apply_implfunction     = SWImplicit,
+    .apply_implfunction_loc = SWImplicit_loc,
+    .apply_jacobian         = SWJacobian,
+    .apply_jacobian_loc     = SWJacobian_loc,
+    .non_zero_time          = PETSC_FALSE
+  }
+};
 
 // -----------------------------------------------------------------------------
 // Auxiliary function to create PETSc FE space for a given degree
@@ -263,11 +297,10 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p) {
 // Auxiliary function to set up libCEED objects for a given degree
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
-                            CeedInt topodim, CeedInt qextra,
-                            PetscInt ncompx, PetscInt ncompq,
-                            User user, CeedData data,
-                            PhysicsContext ctx) {
+PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
+                            PetscInt ncompx, PetscInt ncompq, User user, 
+                            CeedData data, problemData *problem,
+                            PhysicsContext phys_ctx, ProblemContext probl_ctx) {
   int ierr;
   DM dmcoord;
   Vec Xloc;
@@ -278,7 +311,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   CeedOperator op_setup, op_ics, op_explicit, op_implicit,
                op_jacobian;
   CeedVector xcorners, qdata, q0ceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = 11;
+  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = problem->qdatasize, 
+          topodim = problem->topodim;;
 
   // CEED bases
   P = degree + 1;
@@ -317,20 +351,21 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   user->q0ceed = q0ceed;
 
   // Create the Q-Function that builds the quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, SetupGeo, SetupGeo_loc, &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc, 
+                              &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", ncompx*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", qdatasize, CEED_EVAL_NONE);
 
   // Create the Q-Function that sets the ICs of the operator
-  CeedQFunctionCreateInterior(ceed, 1, ICsSW, ICsSW_loc, &qf_ics);
+  CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc, &qf_ics);
   CeedQFunctionAddInput(qf_ics, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
 
   // Create the Q-Function that defines the explicit part of the PDE operator
-  CeedQFunctionCreateInterior(ceed, 1, SWExplicit, SWExplicit_loc,
-                              &qf_explicit);
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_explfunction, 
+                              problem->apply_explfunction_loc, &qf_explicit);
   CeedQFunctionAddInput(qf_explicit, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "q", ncompq, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "dq", ncompq*topodim, CEED_EVAL_GRAD);
@@ -339,8 +374,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunctionAddOutput(qf_explicit, "dv", ncompq*topodim, CEED_EVAL_GRAD);
 
   // Create the Q-Function that defines the implicit part of the PDE operator
-  CeedQFunctionCreateInterior(ceed, 1, SWImplicit, SWImplicit_loc,
-                              &qf_implicit);
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_implfunction, 
+                              problem->apply_implfunction_loc, &qf_implicit);
   CeedQFunctionAddInput(qf_implicit, "q", ncompq, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_implicit, "dq", ncompq*topodim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_implicit, "qdot", ncompq, CEED_EVAL_INTERP);
@@ -350,8 +385,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunctionAddOutput(qf_implicit, "dv", ncompq*topodim, CEED_EVAL_GRAD);
 
   // Create the Q-Function that defines the action of the Jacobian operator
-  CeedQFunctionCreateInterior(ceed, 1, SWJacobian, SWJacobian_loc,
-                              &qf_jacobian);
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_jacobian, 
+                              problem->apply_jacobian_loc, &qf_jacobian);
   CeedQFunctionAddInput(qf_jacobian, "q", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_jacobian, "deltaq", 3, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_jacobian, "qdata", 10, CEED_EVAL_NONE);
@@ -422,10 +457,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree,
   user->op_jacobian = op_jacobian;
 
   // Set up the libCEED context
-  CeedQFunctionSetContext(qf_ics, ctx, sizeof *ctx);
-  CeedQFunctionSetContext(qf_explicit, ctx, sizeof *ctx);
-  CeedQFunctionSetContext(qf_implicit, ctx, sizeof *ctx);
-  CeedQFunctionSetContext(qf_jacobian, ctx, sizeof *ctx);
+  CeedQFunctionSetContext(qf_ics, phys_ctx, sizeof *phys_ctx);
+  CeedQFunctionSetContext(qf_explicit, probl_ctx, sizeof *probl_ctx);
+  CeedQFunctionSetContext(qf_implicit, probl_ctx, sizeof *probl_ctx);
+  CeedQFunctionSetContext(qf_jacobian, probl_ctx, sizeof *probl_ctx);
 
   // Save libCEED data required for level // TODO: check how many of these are really needed outside
   data->basisx = basisx;
