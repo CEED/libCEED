@@ -1150,7 +1150,7 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
 
   // Coarse to fine basis
   CeedBasis basisFine;
-  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine);
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
   CeedInt dim, ncomp, P1dFine;
   ierr = CeedBasisGetDimension(basisFine, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basisFine, &ncomp); CeedChk(ierr);
@@ -1204,7 +1204,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
 
   // Coarse to fine basis
   CeedBasis basisFine;
-  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine);
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
   CeedInt dim, ncomp, nnodesCoarse, P1dFine, P1dCoarse;
   ierr = CeedBasisGetDimension(basisFine, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basisFine, &ncomp); CeedChk(ierr);
@@ -1262,7 +1262,7 @@ int CeedOperatorMultigridLevelH1Create(CeedElemRestriction rstrCoarse,
 
   // Coarse to fine basis
   CeedBasis basisFine;
-  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine);
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
   CeedElemTopology topo;
   ierr = CeedBasisGetTopology(basisFine, &topo); CeedChk(ierr);
   CeedInt dim, ncomp, nnodesCoarse, nnodesFine;
