@@ -21,6 +21,8 @@ Interface changes
 * Linear Operators can be assembled as point-block diagonal matices with :cpp:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
 * Diagonal assemble interface changed to accept a :ref:`CeedVector` instead of a pointer to a :ref:`CeedVector` to reduce memory movement when interfacing with calling code.
 * Added :cpp:func:`CeedOperatorLinearAssembleAddDiagonal` and :cpp:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
+* Added :cpp:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
+  This function is recommended over :cpp:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :cpp:func:`CeedVectorSetArray`.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
