@@ -215,13 +215,14 @@ static inline int CeedOperatorGetActiveBasis(CeedOperator op,
       *activeBasis = op->inputfields[i]->basis;
       break;
     }
-  
+
   if (!*activeBasis) {
     // LCOV_EXCL_START
     int ierr;
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    return CeedError(ceed, 1, "No active basis found for automatic multigrid setup");
+    return CeedError(ceed, 1,
+                     "No active basis found for automatic multigrid setup");
     // LCOV_EXCL_STOP
   }
   return 0;
@@ -244,9 +245,10 @@ static inline int CeedOperatorGetActiveBasis(CeedOperator op,
 
   @ref Developer
 **/
-static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction rstrCoarse,
-    CeedBasis basisCoarse, CeedBasis basisCtoF, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict) {
+static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
+    rstrCoarse, CeedBasis basisCoarse, CeedBasis basisCtoF,
+    CeedOperator opFine, CeedOperator *opCoarse, CeedOperator *opProlong,
+    CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
@@ -256,12 +258,13 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction rstrCoarse
   ierr = CeedOperatorIsComposite(opFine, &isComposite); CeedChk(ierr);
   if (isComposite)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Automatic multigrid setup for composite operators not supported");
+    return CeedError(ceed, 1,
+                     "Automatic multigrid setup for composite operators not supported");
   // LCOV_EXCL_STOP
 
   // Coarse Grid
-  ierr = CeedOperatorCreate(ceed, opFine->qf, opFine->dqf, opFine->dqfT, opCoarse);
-  CeedChk(ierr);
+  ierr = CeedOperatorCreate(ceed, opFine->qf, opFine->dqf, opFine->dqfT,
+                            opCoarse); CeedChk(ierr);
   CeedElemRestriction rstrFine = NULL;
   // -- Clone input fields
   for (int i = 0; i < opFine->qf->numinputfields; i++) {
@@ -301,25 +304,31 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction rstrCoarse
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basisCoarse, &ncomp); CeedChk(ierr);
   CeedQFunction qfRestrict;
-  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                                     &qfRestrict); CeedChk(ierr);
-  ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                            opRestrict); CeedChk(ierr);
-  ierr = CeedOperatorSetField(*opRestrict, "input", rstrFine, CEED_BASIS_COLLOCATED,
-                              CEED_VECTOR_ACTIVE); CeedChk(ierr);
+  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_NONE,
+                                     CEED_EVAL_INTERP, &qfRestrict);
+  CeedChk(ierr);
+  ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
+                            CEED_QFUNCTION_NONE, opRestrict);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "input", rstrFine,
+                              CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
   ierr = CeedOperatorSetField(*opRestrict, "output", rstrCoarse, basisCtoF,
                               CEED_VECTOR_ACTIVE); CeedChk(ierr);
 
   // Prolongation
   CeedQFunction qfProlong;
-  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                                     &qfProlong); CeedChk(ierr);
-  ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                            opProlong); CeedChk(ierr);
+  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_INTERP,
+                                     CEED_EVAL_NONE, &qfProlong);
+  CeedChk(ierr);
+  ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
+                            CEED_QFUNCTION_NONE, opProlong);
+  CeedChk(ierr);
   ierr = CeedOperatorSetField(*opRestrict, "input", rstrCoarse, basisCtoF,
-                             CEED_VECTOR_ACTIVE); CeedChk(ierr);
-  ierr = CeedOperatorSetField(*opRestrict, "output", rstrFine, CEED_BASIS_COLLOCATED,
                               CEED_VECTOR_ACTIVE); CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "output", rstrFine,
+                              CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
 
   // Cleanup
   ierr = CeedBasisDestroy(&basisCtoF); CeedChk(ierr);
@@ -1131,9 +1140,10 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
   @ref User
 **/
-int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction rstrCoarse,
-    CeedInt degreeCoarse, CeedOperator opFine, CeedOperator *opCoarse,
-    CeedOperator *opProlong, CeedOperator *opRestrict) {
+int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
+    rstrCoarse, CeedInt degreeCoarse, CeedOperator opFine,
+    CeedOperator *opCoarse, CeedOperator *opProlong,
+    CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
@@ -1147,7 +1157,7 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction rstrCoa
   ierr = CeedBasisGetNumNodes1D(basisFine, &P1dFine); CeedChk(ierr);
   CeedBasis basisCtoF;
   ierr = CeedBasisCreateTensorH1Lagrange(ceed, dim, ncomp, degreeCoarse, P1dFine,
-                                 CEED_GAUSS_LOBATTO, &basisCtoF);
+                                         CEED_GAUSS_LOBATTO, &basisCtoF);
   CeedChk(ierr);
 
   // Coarse basis
@@ -1157,14 +1167,15 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction rstrCoa
   const CeedScalar *qref;
   ierr = CeedBasisGetQRef(basisFine, &qref); CeedChk(ierr);
   CeedQuadMode qmode = fabs(qref[0] + 1) > CEED_EPSILON ?
-      CEED_GAUSS_LOBATTO : CEED_GAUSS;
+                       CEED_GAUSS_LOBATTO : CEED_GAUSS;
   ierr = CeedBasisCreateTensorH1Lagrange(ceed, dim, ncomp, degreeCoarse, Q1dFine,
-                                 qmode, &basisCoarse);
+                                         qmode, &basisCoarse);
   CeedChk(ierr);
 
   // Core code
   ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-    opFine, opCoarse, opProlong, opRestrict); CeedChk(ierr);
+                                         opFine, opCoarse, opProlong, opRestrict);
+  CeedChk(ierr);
   return 0;
 }
 
@@ -1217,7 +1228,8 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
 
   // Core code
   ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-    opFine, opCoarse, opProlong, opRestrict); CeedChk(ierr);
+                                         opFine, opCoarse, opProlong, opRestrict);
+  CeedChk(ierr);
   return 0;
 }
 
@@ -1238,8 +1250,12 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
   @ref User
 **/
 int CeedOperatorMultigridLevelH1Create(CeedElemRestriction rstrCoarse,
-    CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict) {
+                                       CeedBasis basisCoarse,
+                                       const CeedScalar *interpCtoF,
+                                       CeedOperator opFine,
+                                       CeedOperator *opCoarse,
+                                       CeedOperator *opProlong,
+                                       CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
@@ -1269,7 +1285,8 @@ int CeedOperatorMultigridLevelH1Create(CeedElemRestriction rstrCoarse,
 
   // Core code
   ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-    opFine, opCoarse, opProlong, opRestrict); CeedChk(ierr);
+                                         opFine, opCoarse, opProlong, opRestrict);
+  CeedChk(ierr);
   return 0;
 }
 
