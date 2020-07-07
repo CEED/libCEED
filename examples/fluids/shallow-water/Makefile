@@ -78,7 +78,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) r $(OBJDIR) shallowwater *.vtu
+	$(RM) -r $(OBJDIR) shallowwater *.vtu
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
