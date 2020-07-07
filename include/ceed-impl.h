@@ -176,6 +176,7 @@ struct CeedBasis_private {
   int refcount;
   bool tensorbasis;      /* flag for tensor basis */
   CeedInt dim;           /* topological dimension */
+  CeedElemTopology topo; /* element topology */
   CeedInt ncomp;         /* number of field components (1 for scalar fields) */
   CeedInt P1d;           /* number of nodes in one dimension */
   CeedInt Q1d;           /* number of quadrature points in one dimension */

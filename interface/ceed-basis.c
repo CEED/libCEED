@@ -408,6 +408,9 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Basis dimension must be a positive value");
   // LCOV_EXCL_STOP
+  CeedElemTopology topo = dim == 1 ? CEED_LINE :
+                          dim == 2 ? CEED_QUAD :
+                          CEED_HEX;
 
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
@@ -429,6 +432,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt ncomp, CeedInt P1d,
   (*basis)->refcount = 1;
   (*basis)->tensorbasis = 1;
   (*basis)->dim = dim;
+  (*basis)->topo = topo;
   (*basis)->ncomp = ncomp;
   (*basis)->P1d = P1d;
   (*basis)->Q1d = Q1d;
@@ -580,6 +584,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt ncomp,
   (*basis)->refcount = 1;
   (*basis)->tensorbasis = 0;
   (*basis)->dim = dim;
+  (*basis)->topo = topo;
   (*basis)->ncomp = ncomp;
   (*basis)->P = P;
   (*basis)->Q = Q;
@@ -696,6 +701,21 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
 **/
 int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
   *dim = basis->dim;
+  return 0;
+}
+
+/**
+  @brief Get topology for given CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] topo  Variable to store topology of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
+  *topo = basis->topo;
   return 0;
 }
 

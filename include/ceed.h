@@ -425,6 +425,7 @@ CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt nelem,
                                CeedTransposeMode tmode,
                                CeedEvalMode emode, CeedVector u, CeedVector v);
 CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
+CEED_EXTERN int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
 CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *numcomp);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d);
@@ -514,15 +515,15 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedElemRestriction rstrCoarse,
-    CeedBasis basisCoarse, const CeedScalar **interpCtoF, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateTensor(CeedElemRestriction rstrCoarse,
-    CeedBasis basisCoarse, const CeedScalar **interpCtoF, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateH1Lagrange(CeedElemRestriction rstrCoarse,
+CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction rstrCoarse,
     CeedInt degreeCoarse, CeedOperator opFine, CeedOperator *opCoarse,
     CeedOperator *opProlong, CeedOperator *opRestrict);
+CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
+    CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator opFine,
+    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
+CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedElemRestriction rstrCoarse,
+    CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator opFine,
+    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdminv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
