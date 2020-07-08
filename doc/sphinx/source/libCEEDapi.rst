@@ -277,7 +277,7 @@ Our long-term vision is to include a variety of backend implementations in
 libCEED, ranging from reference kernels to highly optimized kernels targeting
 specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
 backend implementation is provided in the file
-`ceed-ref.c <https://github.com/CEED/libCEED/blob/master/backends/ref/ceed-ref.c>`_.
+`ceed-ref.c <https://github.com/CEED/libCEED/blob/main/backends/ref/ceed-ref.c>`_.
 
 On the frontend, the mapping between the decomposition concepts and the code
 implementation is as follows:
@@ -298,7 +298,7 @@ implementation is as follows:
 
 To clarify these concepts and illustrate how they are combined in the API,
 consider the implementation of the action of a simple 1D mass matrix
-(cf. `tests/t500-operator.c <https://github.com/CEED/libCEED/blob/master/tests/t500-operator.c>`_).
+(cf. `tests/t500-operator.c <https://github.com/CEED/libCEED/blob/main/tests/t500-operator.c>`_).
 
 .. literalinclude::  ../../../tests/t500-operator.c
    :language: c
@@ -410,10 +410,9 @@ explicitly store **E-vectors** (inter-element continuity has been subsumed by
 the parallel restriction :math:`\bm{P}`), the element restriction :math:`\bm{G}`
 is the identity and :c:func:`CeedElemRestrictionCreateStrided()` is used instead.
 We plan to support other structured representations of :math:`\bm{G}` which will
-be added according to demand. In the case of non-conforming mesh elements,
-:math:`\bm{G}` needs a more general representation that expresses values at slave
-nodes (which do not appear in **L-vectors**) as linear combinations of the degrees of
-freedom at master nodes.
+be added according to demand.
+There are two common approaches for supporting non-conforming elements: applying the node constraints via :math:`\bm P` so that the **L-vector** can be processed uniformly and applying the constraintsss via :math:`\bm G` so that the **E-vector** is uniform.
+The former can be done with the existing interface while the latter will require a generalization to element restriction that would define field values at constrained nodes as linear combinations of the values at primary nodes.
 
 These operations, :math:`\bm{P}`, :math:`\bm{B}`, and :math:`\bm{D}`,
 are combined with a :ref:`CeedOperator`. As with :ref:`CeedQFunction`\s, operator fields are added
@@ -481,7 +480,7 @@ The available QFunctions are the ones associated with the mass, the Laplacian, a
 the identity operators. To illustrate how the user can declare a :ref:`CeedQFunction`
 via the gallery of available QFunctions, consider the selection of the
 :ref:`CeedQFunction` associated with a simple 1D mass matrix
-(cf. `tests/t410-qfunction.c <https://github.com/CEED/libCEED/blob/master/tests/t410-qfunction.c>`_).
+(cf. `tests/t410-qfunction.c <https://github.com/CEED/libCEED/blob/main/tests/t410-qfunction.c>`_).
 
 .. literalinclude::  ../../../tests/t410-qfunction.c
    :language: c

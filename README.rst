@@ -3,12 +3,12 @@ libCEED: the CEED Library
 
 |build-status| |codecov| |license| |doc| |doxygen| |binder|
 
-.. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=master
+.. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=main
     :alt: Build Status
     :scale: 100%
     :target: https://travis-ci.com/CEED/libCEED
 
-.. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/master/graphs/badge.svg
+.. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
     :alt: Code Coverage
     :scale: 100%
     :target: https://codecov.io/gh/CEED/libCEED/
@@ -31,7 +31,7 @@ libCEED: the CEED Library
 .. |binder| image:: http://mybinder.org/badge_logo.svg
     :alt: Binder
     :scale: 100%
-    :target: https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
+    :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
 Code for Efficient Extensible Discretization
 --------------------------------------------
