@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Create multigrid level
-  CeedOperatorMultigridLevelCreateTensorH1Lagrange(ErestrictuCoarse, 3, op_massFine,
+  CeedOperatorMultigridLevelCreateTensorH1Lagrange(ErestrictuCoarse, Pcoarse,
+      op_massFine,
       &op_massCoarse, &op_prolong, &op_restrict);
 
   // Coarse problem
@@ -104,7 +105,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-1.)>1e-10) printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
+  if (fabs(sum-1.)>1e-10)
+    printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
   // Prolong coarse u
@@ -116,7 +118,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(Ufine, CEED_MEM_HOST, &hu);
   CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &hm);
   for (CeedInt i = 0; i < NuFine; i++) {
-      hu[i] /= hm[i];
+    hu[i] /= hm[i];
   }
   CeedVectorRestoreArray(Ufine, &hu);
   CeedVectorRestoreArrayRead(mult, &hm);
@@ -131,14 +133,15 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<NuFine; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-1.)>1e-10) printf("Computed Area Fine Grid: %f != True Area: 1.0\n", sum);
+  if (fabs(sum-1.)>1e-10)
+    printf("Computed Area Fine Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vfine, &hv);
 
   // Restrict state to coarse grid
   CeedVectorGetArray(Vfine, CEED_MEM_HOST, &hvw);
   CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &hm);
   for (CeedInt i = 0; i < NuFine; i++) {
-      hvw[i] /= hm[i];
+    hvw[i] /= hm[i];
   }
   CeedVectorRestoreArray(Vfine, &hvw);
   CeedVectorRestoreArrayRead(mult, &hm);
@@ -150,7 +153,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-1.)>1e-10) printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
+  if (fabs(sum-1.)>1e-10)
+    printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
   // Cleanup

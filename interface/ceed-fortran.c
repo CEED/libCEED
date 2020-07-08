@@ -942,7 +942,8 @@ void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
   if (*err) return;
 }
 
-#define fCeedOperatorLinearAssembleQFunction FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
+#define fCeedOperatorLinearAssembleQFunction \
+    FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
 void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
     int *assembledrstr, int *rqst, int *err) {
   // Vector
@@ -992,7 +993,8 @@ void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
   }
 }
 
-#define fCeedOperatorLinearAssembleDiagonal FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
+#define fCeedOperatorLinearAssembleDiagonal \
+    FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
 void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
     int *rqst, int *err) {
   int createRequest = 1;
@@ -1020,6 +1022,90 @@ void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
   }
 }
 
+#define fCeedOperatorMultigridLevelCreateTensorH1Lagrange \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1lagrange, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1LAGRANGE)
+void fCeedOperatorMultigridLevelCreateTensorH1Lagrange(int *rstrCoarse,
+    int *degreeCoarse, int *opFine, int *opCoarse, int *opProlong,
+    int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreateTensorH1Lagrange(
+           CeedElemRestriction_dict[*rstrCoarse], *degreeCoarse,
+           CeedOperator_dict[*opFine], &opCoarse_,
+           &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
+#define fCeedOperatorMultigridLevelCreateTensorH1 \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1)
+void fCeedOperatorMultigridLevelCreateTensorH1(int *rstrCoarse,
+    int *basisCoarse, const CeedScalar *interpCtoF, int *opFine,
+    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreateTensorH1(
+           CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
+           interpCtoF, CeedOperator_dict[*opFine], &opCoarse_,
+           &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
+#define fCeedOperatorMultigridLevelCreateH1 \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreateh1, CEEDOPERATORMULTIGRIDLEVELCREATEH1)
+void fCeedOperatorMultigridLevelCreateH1(int *rstrCoarse,
+    int *basisCoarse, const CeedScalar *interpCtoF, int *opFine,
+    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreateH1(
+           CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
+           interpCtoF, CeedOperator_dict[*opFine], &opCoarse_,
+           &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
 #define fCeedOperatorView \
     FORTRAN_NAME(ceedoperatorview,CEEDOPERATORVIEW)
 void fCeedOperatorView(int *op, int *err) {
@@ -1028,7 +1114,8 @@ void fCeedOperatorView(int *op, int *err) {
   *err = CeedOperatorView(op_, stdout);
 }
 
-#define fCeedOperatorCreateFDMElementInverse FORTRAN_NAME(ceedoperatorcreatefdmelementinverse, CEEDOPERATORCREATEFDMELEMENTINVERSE)
+#define fCeedOperatorCreateFDMElementInverse \
+    FORTRAN_NAME(ceedoperatorcreatefdmelementinverse, CEEDOPERATORCREATEFDMELEMENTINVERSE)
 void fCeedOperatorCreateFDMElementInverse(int *op, int *fdminv,
     int *rqst, int *err) {
   // Operator

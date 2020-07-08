@@ -271,22 +271,22 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
     if (opFine->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       rstrFine = opFine->inputfields[i]->Erestrict;
       ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
-          rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
+                                  rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
     } else {
       ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
-          opFine->inputfields[i]->Erestrict, opFine->inputfields[i]->basis,
-          opFine->inputfields[i]->vec); CeedChk(ierr);
+                                  opFine->inputfields[i]->Erestrict, opFine->inputfields[i]->basis,
+                                  opFine->inputfields[i]->vec); CeedChk(ierr);
     }
   }
   // -- Clone output fields
   for (int i = 0; i < opFine->qf->numoutputfields; i++) {
     if (opFine->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
-          rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
+                                  rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
     } else {
       ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
-          opFine->outputfields[i]->Erestrict, opFine->outputfields[i]->basis,
-          opFine->outputfields[i]->vec); CeedChk(ierr);
+                                  opFine->outputfields[i]->Erestrict, opFine->outputfields[i]->basis,
+                                  opFine->outputfields[i]->vec); CeedChk(ierr);
     }
   }
 
@@ -1245,7 +1245,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
 
   @ref User
 **/
-int CeedOperatorMultigridLevelH1Create(CeedElemRestriction rstrCoarse,
+int CeedOperatorMultigridLevelCreateH1(CeedElemRestriction rstrCoarse,
                                        CeedBasis basisCoarse,
                                        const CeedScalar *interpCtoF,
                                        CeedOperator opFine,

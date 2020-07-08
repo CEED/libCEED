@@ -22,4 +22,5 @@ as required.
     5.1. CeedOperator with simplex bases tests  
     5.2. CeedOperator with operator composition tests  
     5.3. CeedOperator and CeedQFunction assembly tests  
-    5.4. CeedOperator element inverse tests
+    5.4. CeedOperator element inverse tests  
+    5.5. CeedOperator multigrid level tests
