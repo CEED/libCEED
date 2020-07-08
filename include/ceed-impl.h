@@ -267,6 +267,7 @@ struct CeedOperatorField_private {
                                       collocated fields */
   CeedVector vec;                /* State vector for passive fields or
                                       CEED_VECTOR_NONE for no vector */
+  const char *fieldname;         /* matching QFunction field name */
 };
 
 struct CeedOperator_private {

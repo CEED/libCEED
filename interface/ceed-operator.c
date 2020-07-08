@@ -268,35 +268,25 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
   CeedElemRestriction rstrFine = NULL;
   // -- Clone input fields
   for (int i = 0; i < opFine->qf->numinputfields; i++) {
-    (*opCoarse)->inputfields[i]->Erestrict = opFine->inputfields[i]->Erestrict;
-    opFine->inputfields[i]->Erestrict->refcount++;
-
-    (*opCoarse)->inputfields[i]->vec = opFine->inputfields[i]->vec;
-
     if (opFine->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
-      (*opCoarse)->inputfields[i]->basis = basisCoarse;
-      basisCoarse->refcount++;
       rstrFine = opFine->inputfields[i]->Erestrict;
+      ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
+          rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
     } else {
-      (*opCoarse)->inputfields[i]->basis = opFine->inputfields[i]->basis;
-      opFine->inputfields[i]->basis->refcount++;
-      opFine->inputfields[i]->vec->refcount++;
+      ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
+          opFine->inputfields[i]->Erestrict, opFine->inputfields[i]->basis,
+          opFine->inputfields[i]->vec); CeedChk(ierr);
     }
   }
   // -- Clone output fields
   for (int i = 0; i < opFine->qf->numoutputfields; i++) {
-    (*opCoarse)->outputfields[i]->Erestrict = opFine->outputfields[i]->Erestrict;
-    opFine->outputfields[i]->Erestrict->refcount++;
-
-    (*opCoarse)->outputfields[i]->vec = opFine->outputfields[i]->vec;
-
     if (opFine->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
-      (*opCoarse)->outputfields[i]->basis = basisCoarse;
-      basisCoarse->refcount++;
+      ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
+          rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE); CeedChk(ierr);
     } else {
-      (*opCoarse)->outputfields[i]->basis = opFine->outputfields[i]->basis;
-      opFine->outputfields[i]->basis->refcount++;
-      opFine->outputfields[i]->vec->refcount++;
+      ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
+          opFine->outputfields[i]->Erestrict, opFine->outputfields[i]->basis,
+          opFine->outputfields[i]->vec); CeedChk(ierr);
     }
   }
 
@@ -324,9 +314,9 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
   ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opProlong);
   CeedChk(ierr);
-  ierr = CeedOperatorSetField(*opRestrict, "input", rstrCoarse, basisCtoF,
+  ierr = CeedOperatorSetField(*opProlong, "input", rstrCoarse, basisCtoF,
                               CEED_VECTOR_ACTIVE); CeedChk(ierr);
-  ierr = CeedOperatorSetField(*opRestrict, "output", rstrFine,
+  ierr = CeedOperatorSetField(*opProlong, "output", rstrFine,
                               CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedChk(ierr);
 
@@ -853,6 +843,12 @@ found:
   if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE)
     v->refcount += 1;
   op->nfields += 1;
+
+  size_t len = strlen(fieldname);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, fieldname, len+1);
+  (*ofield)->fieldname = tmp;
   return 0;
 }
 
@@ -1520,6 +1516,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
           (*op)->inputfields[i]->vec != CEED_VECTOR_NONE ) {
         ierr = CeedVectorDestroy(&(*op)->inputfields[i]->vec); CeedChk(ierr);
       }
+      ierr = CeedFree(&(*op)->inputfields[i]->fieldname); CeedChk(ierr);
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
   for (int i=0; i<(*op)->nfields; i++)
@@ -1533,6 +1530,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
           (*op)->outputfields[i]->vec != CEED_VECTOR_NONE ) {
         ierr = CeedVectorDestroy(&(*op)->outputfields[i]->vec); CeedChk(ierr);
       }
+      ierr = CeedFree(&(*op)->outputfields[i]->fieldname); CeedChk(ierr);
       ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
     }
   // Destroy suboperators
