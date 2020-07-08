@@ -4,12 +4,12 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
-.. _master:
+.. _main:
 
-Current Master
+Current Main
 ----------------------------------------
 
-The current master branch contains bug fixes and interfaces changes.
+The current ``main`` branch contains bug fixes and interfaces changes.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -42,7 +42,7 @@ New features
   1-1 correspondence with the C interface, plus some convenience features.  For instance,
   data stored in the :cpp:type:`CeedVector` structure are available without copy as
   :py:class:`numpy.ndarray`.  Short tutorials are provided in
-  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/>`_.
+  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/>`_.
 * Linear QFunctions can be assembled as block-diagonal matrices (per quadrature point,
   :cpp:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
   (:cpp:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for

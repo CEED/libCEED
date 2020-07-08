@@ -2,8 +2,8 @@
 
 Contributions to libCEED are encouraged.
 <!---
-Please use a pull request to the appropriate branch ('maint' for
-backward-compatible bug fixes for the last stable release, 'master' for
+Please use a pull request to the appropriate branch ('stable' for
+backward-compatible bug fixes for the last stable release, main' for
 new features and everything else).
 -->
 Please make your commits well-organized and
@@ -41,7 +41,7 @@ email becomes inconsistent (look at `git shortlog -se`), please edit
 When contributors make a major contribution and support it, their names
 are included in the automatically generated user-manual documentation.
 
-Please avoid "merging from upstream" (like merging 'master' into your
+Please avoid "merging from upstream" (like merging 'main' into your
 feature branch) unless there is a specific reason to do so, in which
 case you should explain why in the merge commit.
 [Rationale](https://lwn.net/Articles/328436/) from
