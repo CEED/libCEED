@@ -250,9 +250,12 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
+  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = SetupDM(dm, degree, ncompq, topodim);
   CHKERRQ(ierr);
 
+  // Refine DM for high-order viz
   dmviz = NULL;
   interpviz = NULL;
   if (viz_refine) {
@@ -265,6 +268,8 @@ int main(int argc, char **argv) {
 
       ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
       CHKERRQ(ierr);
+      ierr = DMClearDS(dmhierarchy[i+1]); CHKERRQ(ierr);
+      ierr = DMClearFields(dmhierarchy[i+1]); CHKERRQ(ierr);
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;

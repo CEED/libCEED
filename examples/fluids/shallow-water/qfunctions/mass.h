@@ -51,8 +51,6 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
     v[0][i] = qdata[i] * u[0][i];
     v[1][i] = qdata[i] * u[1][i];
     v[2][i] = qdata[i] * u[2][i];
-    v[3][i] = qdata[i] * u[3][i];
-    v[4][i] = qdata[i] * u[4][i];
   }
   return 0;
 }

@@ -412,6 +412,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedElemRestrictionCreateVector(Erestrictq, &user->qceed, NULL);
   CeedElemRestrictionCreateVector(Erestrictq, &user->qdotceed, NULL);
   CeedElemRestrictionCreateVector(Erestrictq, &user->gceed, NULL);
+  CeedElemRestrictionCreateVector(Erestrictq, &user->fceed, NULL);
+  CeedElemRestrictionCreateVector(Erestrictq, &user->jceed, NULL);
 
   // Create the explicit part of the PDE operator
   CeedOperatorCreate(ceed, qf_explicit, NULL, NULL, &op_explicit);
@@ -420,7 +422,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_explicit, "dq", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_explicit, "qdata", Erestrictq,
+  CeedOperatorSetField(op_explicit, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_explicit, "v", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
@@ -435,7 +437,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedOperatorSetField(op_implicit, "dq", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_implicit, "qdot", Erestrictq, basisq, user->qdotceed);
-  CeedOperatorSetField(op_implicit, "qdata", Erestrictq,
+  CeedOperatorSetField(op_implicit, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, qdata);
   CeedOperatorSetField(op_implicit, "x", Erestrictx, basisx, xcorners);
   CeedOperatorSetField(op_implicit, "v", Erestrictq, basisq,

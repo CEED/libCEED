@@ -82,11 +82,11 @@ CEED_QFUNCTION(ICsSW_Advection)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5];
+    CeedScalar q[3];
 
-    Exact_SW_Advection(2, 0., x, 5, q, ctx);
+    Exact_SW_Advection(2, 0., x, 3, q, ctx);
 
-    for (CeedInt j=0; j<5; j++)
+    for (CeedInt j=0; j<3; j++)
       q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
@@ -120,8 +120,8 @@ CEED_QFUNCTION(SWExplicit_Advection)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*dq)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*dq)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2],
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
@@ -377,7 +377,7 @@ CEED_QFUNCTION(SWJacobian_Advection)(void *ctx, CeedInt Q,
                    (*deltaq)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
   // Context
   ProblemContext context = (ProblemContext)ctx;
