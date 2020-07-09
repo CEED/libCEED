@@ -1,5 +1,0 @@
-include LICENSE.txt
-include README.rst
-include setup.py
-include test_junit_xml.py
-include tox.ini
