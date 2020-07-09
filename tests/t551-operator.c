@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, action, and destruction for mass matrix operator with multigrid level, Lagrange basis
-/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, Lagrange basis
+/// Test creation, action, and destruction for mass matrix operator with multigrid level, tensor basis
+/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, tensor basis
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
@@ -89,8 +89,14 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Create multigrid level
-  CeedOperatorMultigridLevelCreateTensorH1Lagrange(ErestrictuCoarse, Pcoarse,
-      op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
+  CeedBasis buCoarse, bCtoF;
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Q, CEED_GAUSS, &buCoarse);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Pfine, CEED_GAUSS_LOBATTO,
+      &bCtoF);
+  const CeedScalar *interpCtoF;
+  CeedBasisGetInterp1D(bCtoF, &interpCtoF);
+  CeedOperatorMultigridLevelCreateTensorH1(ErestrictuCoarse, buCoarse,
+      interpCtoF, op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
 
   // Coarse problem
   CeedVectorCreate(ceed, NuCoarse, &Ucoarse);
@@ -169,6 +175,8 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
   CeedBasisDestroy(&bu);
+  CeedBasisDestroy(&buCoarse);
+  CeedBasisDestroy(&bCtoF);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Ucoarse);

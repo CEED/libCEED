@@ -586,6 +586,16 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
   *err = CeedBasisGetNumQuadraturePoints(CeedBasis_dict[*basis], Q);
 }
 
+#define fCeedBasisGetInterp1D \
+    FORTRAN_NAME(ceedbasisgetinterp1d, CEEDBASISGETINTERP1D)
+void fCeedBasisGetInterp1D(int *basis, CeedScalar *interp1d, int64_t *offset,
+    int *err) {
+  const CeedScalar *interp1d_;
+  CeedBasis basis_ = CeedBasis_dict[*basis];
+  *err = CeedBasisGetInterp1D(basis_, &interp1d_);
+  *offset = interp1d_ - interp1d;
+}
+
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(int *basis, int *err) {
   if (*basis == FORTRAN_NULL) return;
