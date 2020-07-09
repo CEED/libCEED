@@ -179,6 +179,7 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&bCtoF);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
+  CeedVectorDestroy(&mult);
   CeedVectorDestroy(&Ucoarse);
   CeedVectorDestroy(&Ufine);
   CeedVectorDestroy(&Vcoarse);

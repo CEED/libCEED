@@ -1172,6 +1172,9 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
   ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
                                          opFine, opCoarse, opProlong, opRestrict);
   CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedBasisDestroy(&basisCoarse); CeedChk(ierr);
   return 0;
 }
 

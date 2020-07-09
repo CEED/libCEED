@@ -124,27 +124,6 @@
       endif
       call ceedvectorrestorearrayread(vcoarse,hv,voffset,err)
 
-! Coarse problem
-      call ceedvectorcreate(ceed,nucoarse,ucoarse,err)
-      val=1.0
-      call ceedvectorsetvalue(ucoarse,val,err)
-      call ceedvectorcreate(ceed,nucoarse,vcoarse,err)
-      call ceedoperatorapply(op_masscoarse,ucoarse,vcoarse,&
-     & ceed_request_immediate,err)
-
-! Check output
-      call ceedvectorgetarrayread(vcoarse,ceed_mem_host,hv,voffset,err)
-      total=0.
-      do i=1,nucoarse
-        total=total+hv(voffset+i)
-      enddo
-      if (abs(total-1.)>1.0d-10) then
-! LCOV_EXCL_START
-        write(*,*) 'Computed Area Coarse Grid: ',total,' != True Area: 1.0'
-! LCOV_EXCL_STOP
-      endif
-      call ceedvectorrestorearrayread(vcoarse,hv,voffset,err)
-
 ! Prolong coarse u
       call ceedvectorcreate(ceed,nufine,ufine,err)
       call ceedvectorcreate(ceed,nufine,mult,err)
@@ -205,6 +184,7 @@
 
       call ceedvectordestroy(qdata,err)
       call ceedvectordestroy(x,err)
+      call ceedvectordestroy(mult,err)
       call ceedvectordestroy(ucoarse,err)
       call ceedvectordestroy(ufine,err)
       call ceedvectordestroy(vcoarse,err)
