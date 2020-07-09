@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   CeedBasis buCoarse, bCtoF;
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Q, CEED_GAUSS, &buCoarse);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Pfine, CEED_GAUSS_LOBATTO,
-      &bCtoF);
+                                  &bCtoF);
   const CeedScalar *interpCtoF;
   CeedBasisGetInterp1D(bCtoF, &interpCtoF);
   CeedOperatorMultigridLevelCreateTensorH1(ErestrictuCoarse, buCoarse,

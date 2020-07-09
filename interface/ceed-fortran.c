@@ -589,7 +589,7 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
 #define fCeedBasisGetInterp1D \
     FORTRAN_NAME(ceedbasisgetinterp1d, CEEDBASISGETINTERP1D)
 void fCeedBasisGetInterp1D(int *basis, CeedScalar *interp1d, int64_t *offset,
-    int *err) {
+                           int *err) {
   const CeedScalar *interp1d_;
   CeedBasis basis_ = CeedBasis_dict[*basis];
   *err = CeedBasisGetInterp1D(basis_, &interp1d_);
