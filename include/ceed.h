@@ -567,4 +567,16 @@ static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
 **/
 static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 
+/**
+  @brief Return maximum of two integers
+
+  @param[in] a  The first integer to compare
+  @param[in] b  The second integer to compare
+
+  @return The maximum of the two integers
+
+  @ref Utility
+**/
+static inline CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
+
 #endif
