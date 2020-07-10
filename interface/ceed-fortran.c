@@ -1034,14 +1034,15 @@ void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
 
 #define fCeedOperatorMultigridLevelCreateTensorH1Lagrange \
     FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1lagrange, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1LAGRANGE)
-void fCeedOperatorMultigridLevelCreateTensorH1Lagrange(int *rstrCoarse,
-    int *degreeCoarse, int *opFine, int *opCoarse, int *opProlong,
-    int *opRestrict, int *err) {
+void fCeedOperatorMultigridLevelCreateTensorH1Lagrange(int *pMultFine,
+    int *rstrCoarse, int *degreeCoarse, int *opFine, int *opCoarse,
+    int *opProlong, int *opRestrict, int *err) {
   // Operators
   CeedOperator opCoarse_, opProlong_, opRestrict_;
 
   // C interface call
   *err = CeedOperatorMultigridLevelCreateTensorH1Lagrange(
+           CeedVector_dict[*pMultFine],
            CeedElemRestriction_dict[*rstrCoarse], *degreeCoarse,
            CeedOperator_dict[*opFine], &opCoarse_,
            &opProlong_, &opRestrict_);
@@ -1062,14 +1063,15 @@ void fCeedOperatorMultigridLevelCreateTensorH1Lagrange(int *rstrCoarse,
 
 #define fCeedOperatorMultigridLevelCreateTensorH1 \
     FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1)
-void fCeedOperatorMultigridLevelCreateTensorH1(int *rstrCoarse,
-    int *basisCoarse, const CeedScalar *interpCtoF, int *opFine,
-    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+void fCeedOperatorMultigridLevelCreateTensorH1(int *pMultFine,
+    int *rstrCoarse, int *basisCoarse, const CeedScalar *interpCtoF,
+    int *opFine, int *opCoarse, int *opProlong, int *opRestrict, int *err) {
   // Operators
   CeedOperator opCoarse_, opProlong_, opRestrict_;
 
   // C interface call
   *err = CeedOperatorMultigridLevelCreateTensorH1(
+           CeedVector_dict[*pMultFine],
            CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
            interpCtoF, CeedOperator_dict[*opFine], &opCoarse_,
            &opProlong_, &opRestrict_);
@@ -1090,14 +1092,15 @@ void fCeedOperatorMultigridLevelCreateTensorH1(int *rstrCoarse,
 
 #define fCeedOperatorMultigridLevelCreateH1 \
     FORTRAN_NAME(ceedoperatormultigridlevelcreateh1, CEEDOPERATORMULTIGRIDLEVELCREATEH1)
-void fCeedOperatorMultigridLevelCreateH1(int *rstrCoarse,
-    int *basisCoarse, const CeedScalar *interpCtoF, int *opFine,
-    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+void fCeedOperatorMultigridLevelCreateH1(int *pMultFine,
+    int *rstrCoarse, int *basisCoarse, const CeedScalar *interpCtoF,
+    int *opFine, int *opCoarse, int *opProlong, int *opRestrict, int *err) {
   // Operators
   CeedOperator opCoarse_, opProlong_, opRestrict_;
 
   // C interface call
   *err = CeedOperatorMultigridLevelCreateH1(
+           CeedVector_dict[*pMultFine],
            CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
            interpCtoF, CeedOperator_dict[*opFine], &opCoarse_,
            &opProlong_, &opRestrict_);

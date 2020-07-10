@@ -233,6 +233,7 @@ static inline int CeedOperatorGetActiveBasis(CeedOperator op,
   @brief Common code for creating a multigrid coarse operator and level
            transfer operators for a CeedOperator
 
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstrCoarse   Coarse grid restriction
   @param[in] basisCoarse  Coarse grid active vector basis
   @param[in] basisCtoF    Basis for coarse to fine interpolation
@@ -245,10 +246,10 @@ static inline int CeedOperatorGetActiveBasis(CeedOperator op,
 
   @ref Developer
 **/
-static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
-    rstrCoarse, CeedBasis basisCoarse, CeedBasis basisCtoF,
-    CeedOperator opFine, CeedOperator *opCoarse, CeedOperator *opProlong,
-    CeedOperator *opRestrict) {
+static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
+    CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    CeedBasis basisCtoF, CeedOperator opFine, CeedOperator *opCoarse,
+    CeedOperator *opProlong, CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
@@ -290,37 +291,89 @@ static inline int CeedOperatorMultigridLevel_Core(CeedElemRestriction
     }
   }
 
+  // Multiplicity vector
+  CeedVector multVec, multE;
+  ierr = CeedElemRestrictionCreateVector(rstrFine, &multVec, &multE); CeedChk(ierr);
+  ierr = CeedVectorSetValue(multE, 0.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstrFine, CEED_NOTRANSPOSE, PMultFine, multE,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  ierr = CeedVectorSetValue(multVec, 0.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstrFine, CEED_TRANSPOSE, multE, multVec,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&multE); CeedChk(ierr);
+
   // Restriction
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basisCoarse, &ncomp); CeedChk(ierr);
   CeedQFunction qfRestrict;
-  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_NONE,
-                                     CEED_EVAL_INTERP, &qfRestrict);
-  CeedChk(ierr);
+  switch (ncomp) {
+    case 1:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict1", &qfRestrict);
+      CeedChk(ierr);
+      break;
+    case 3:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict3", &qfRestrict);
+      CeedChk(ierr);
+      break;
+    default:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfRestrict);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddInput(qfRestrict, "mult", 1, CEED_EVAL_NONE);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddOutput(qfRestrict, "output", ncomp, CEED_EVAL_INTERP);
+      CeedChk(ierr);
+      break;
+  }
   ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opRestrict);
   CeedChk(ierr);
   ierr = CeedOperatorSetField(*opRestrict, "input", rstrFine,
                               CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "mult", rstrFine,
+                              CEED_BASIS_COLLOCATED, multVec);
+  CeedChk(ierr);
   ierr = CeedOperatorSetField(*opRestrict, "output", rstrCoarse, basisCtoF,
                               CEED_VECTOR_ACTIVE); CeedChk(ierr);
 
   // Prolongation
   CeedQFunction qfProlong;
-  ierr = CeedQFunctionCreateIdentity(ceed, ncomp, CEED_EVAL_INTERP,
-                                     CEED_EVAL_NONE, &qfProlong);
-  CeedChk(ierr);
+  switch (ncomp) {
+    case 1:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong1", &qfProlong);
+      CeedChk(ierr);
+      break;
+    case 3:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong3", &qfProlong);
+      CeedChk(ierr);
+      break;
+    default:
+      ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfProlong);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddInput(qfProlong, "mult", 1, CEED_EVAL_NONE);
+      CeedChk(ierr);
+      ierr = CeedQFunctionAddOutput(qfProlong, "output", ncomp, CEED_EVAL_NONE);
+      CeedChk(ierr);
+      break;
+  }
   ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opProlong);
   CeedChk(ierr);
   ierr = CeedOperatorSetField(*opProlong, "input", rstrCoarse, basisCtoF,
                               CEED_VECTOR_ACTIVE); CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opProlong, "mult", rstrFine,
+                              CEED_BASIS_COLLOCATED, multVec);
+  CeedChk(ierr);
   ierr = CeedOperatorSetField(*opProlong, "output", rstrFine,
                               CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedChk(ierr);
 
   // Cleanup
+  ierr = CeedVectorDestroy(&multVec); CeedChk(ierr);
   ierr = CeedBasisDestroy(&basisCtoF); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qfRestrict); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qfProlong); CeedChk(ierr);
@@ -1124,6 +1177,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
   @brief Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a Lagrange tensor basis for the active basis
 
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstrCoarse   Coarse grid restriction
   @param[in] basisCoarse  Coarse grid active vector basis
   @param[in] interpCtoF   Matrix for coarse to fine interpolation
@@ -1136,9 +1190,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
   @ref User
 **/
-int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
-    rstrCoarse, CeedInt degreeCoarse, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong,
+int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedVector PMultFine,
+    CeedElemRestriction rstrCoarse, CeedInt degreeCoarse,
+    CeedOperator opFine, CeedOperator *opCoarse, CeedOperator *opProlong,
     CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
@@ -1169,8 +1223,9 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
   CeedChk(ierr);
 
   // Core code
-  ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-                                         opFine, opCoarse, opProlong, opRestrict);
+  ierr = CeedOperatorMultigridLevel_Core(PMultFine, rstrCoarse, basisCoarse,
+                                         basisCtoF, opFine, opCoarse,
+                                         opProlong, opRestrict);
   CeedChk(ierr);
 
   // Cleanup
@@ -1182,6 +1237,7 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
   @brief Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a tensor basis for the active basis
 
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstrCoarse   Coarse grid restriction
   @param[in] basisCoarse  Coarse grid active vector basis
   @param[in] interpCtoF   Matrix for coarse to fine interpolation
@@ -1194,9 +1250,11 @@ int CeedOperatorMultigridLevelCreateTensorH1Lagrange(CeedElemRestriction
 
   @ref User
 **/
-int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
-    CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator opFine,
-    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict) {
+int CeedOperatorMultigridLevelCreateTensorH1(CeedVector PMultFine,
+    CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    const CeedScalar *interpCtoF, CeedOperator opFine,
+    CeedOperator *opCoarse, CeedOperator *opProlong,
+    CeedOperator *opRestrict) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
@@ -1226,8 +1284,9 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
   ierr = CeedFree(&grad); CeedChk(ierr);
 
   // Core code
-  ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-                                         opFine, opCoarse, opProlong, opRestrict);
+  ierr = CeedOperatorMultigridLevel_Core(PMultFine, rstrCoarse, basisCoarse,
+                                         basisCtoF, opFine, opCoarse,
+                                         opProlong, opRestrict);
   CeedChk(ierr);
   return 0;
 }
@@ -1236,6 +1295,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
   @brief Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a non-tensor basis for the active vector
 
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstrCoarse   Coarse grid restriction
   @param[in] basisCoarse  Coarse grid active vector basis
   @param[in] interpCtoF   Matrix for coarse to fine interpolation
@@ -1248,7 +1308,8 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedElemRestriction rstrCoarse,
 
   @ref User
 **/
-int CeedOperatorMultigridLevelCreateH1(CeedElemRestriction rstrCoarse,
+int CeedOperatorMultigridLevelCreateH1(CeedVector PMultFine,
+                                       CeedElemRestriction rstrCoarse,
                                        CeedBasis basisCoarse,
                                        const CeedScalar *interpCtoF,
                                        CeedOperator opFine,
@@ -1283,8 +1344,9 @@ int CeedOperatorMultigridLevelCreateH1(CeedElemRestriction rstrCoarse,
   ierr = CeedFree(&grad); CeedChk(ierr);
 
   // Core code
-  ierr = CeedOperatorMultigridLevel_Core(rstrCoarse, basisCoarse, basisCtoF,
-                                         opFine, opCoarse, opProlong, opRestrict);
+  ierr = CeedOperatorMultigridLevel_Core(PMultFine, rstrCoarse, basisCoarse,
+                                         basisCtoF, opFine, opCoarse,
+                                         opProlong, opRestrict);
   CeedChk(ierr);
   return 0;
 }

@@ -13,10 +13,9 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_massCoarse, op_massFine,
                op_prolong, op_restrict;
-  CeedVector qdata, X, mult, Ucoarse, Ufine,
-             Vcoarse, Vfine;
-  CeedScalar *hu, *hvw;
-  const CeedScalar *hv, *hm;
+  CeedVector qdata, X, Ucoarse, Ufine,
+             Vcoarse, Vfine, PMultFine;
+  const CeedScalar *hv;
   CeedInt nelem = 15, Pcoarse = 3, Pfine = 5, Q = 8;
   CeedInt Nx = nelem+1, NuCoarse = nelem*(Pcoarse-1)+1,
           NuFine = nelem*(Pfine-1)+1;
@@ -89,8 +88,10 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Create multigrid level
-  CeedOperatorMultigridLevelCreateTensorH1Lagrange(ErestrictuCoarse, Pcoarse,
-      op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
+  CeedVectorCreate(ceed, NuFine, &PMultFine);
+  CeedVectorSetValue(PMultFine, 1.0);
+  CeedOperatorMultigridLevelCreateTensorH1Lagrange(PMultFine, ErestrictuCoarse,
+      Pcoarse, op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
 
   // Coarse problem
   CeedVectorCreate(ceed, NuCoarse, &Ucoarse);
@@ -110,17 +111,7 @@ int main(int argc, char **argv) {
 
   // Prolong coarse u
   CeedVectorCreate(ceed, NuFine, &Ufine);
-  CeedVectorCreate(ceed, NuFine, &mult);
-  CeedVectorSetValue(mult, 0.0);
-  CeedElemRestrictionGetMultiplicity(ErestrictuFine, mult);
   CeedOperatorApply(op_prolong, Ucoarse, Ufine, CEED_REQUEST_IMMEDIATE);
-  CeedVectorGetArray(Ufine, CEED_MEM_HOST, &hu);
-  CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &hm);
-  for (CeedInt i = 0; i < NuFine; i++) {
-    hu[i] /= hm[i];
-  }
-  CeedVectorRestoreArray(Ufine, &hu);
-  CeedVectorRestoreArrayRead(mult, &hm);
 
   // Fine problem
   CeedVectorCreate(ceed, NuFine, &Vfine);
@@ -137,13 +128,6 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(Vfine, &hv);
 
   // Restrict state to coarse grid
-  CeedVectorGetArray(Vfine, CEED_MEM_HOST, &hvw);
-  CeedVectorGetArrayRead(mult, CEED_MEM_HOST, &hm);
-  for (CeedInt i = 0; i < NuFine; i++) {
-    hvw[i] /= hm[i];
-  }
-  CeedVectorRestoreArray(Vfine, &hvw);
-  CeedVectorRestoreArrayRead(mult, &hm);
   CeedOperatorApply(op_restrict, Vfine, Vcoarse, CEED_REQUEST_IMMEDIATE);
 
   // Check output
@@ -171,11 +155,11 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&bu);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
-  CeedVectorDestroy(&mult);
   CeedVectorDestroy(&Ucoarse);
   CeedVectorDestroy(&Ufine);
   CeedVectorDestroy(&Vcoarse);
   CeedVectorDestroy(&Vfine);
+  CeedVectorDestroy(&PMultFine);
   CeedVectorDestroy(&qdata);
   CeedDestroy(&ceed);
   return 0;

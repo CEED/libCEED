@@ -11,8 +11,8 @@
       integer qf_setup,qf_mass
       integer op_setup,op_masscoarse,op_massfine
       integer op_prolong,op_restrict
-      integer qdata,x,ucoarse,ufine,vcoarse,vfine
-      integer nelem,pcoarse,pfine,q,mult
+      integer qdata,x,ucoarse,ufine,vcoarse,vfine,pmultfine
+      integer nelem,pcoarse,pfine,q
       parameter(nelem=15)
       parameter(pcoarse=3)
       parameter(pfine=5)
@@ -25,13 +25,13 @@
       integer inducoarse(nelem*pcoarse)
       integer indufine(nelem*pfine)
       real*8 arrx(nx)
-      integer*8 uoffset,voffset,xoffset,moffset,ioffset
+      integer*8 voffset,xoffset,ioffset
       real*8 val
       integer interpsize
       parameter(interpsize=pcoarse*pfine);
       real*8 interp1d(interpsize),interpctof(interpsize)
 
-      real*8 hu(nufine),hv(nufine),hm(nufine)
+      real*8 hv(nufine)
       real*8 total
 
       character arg*32
@@ -102,6 +102,9 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
 ! Create multigrid level
+      call ceedvectorcreate(ceed,nufine,pmultfine,err)
+      val=1.0
+      call ceedvectorsetvalue(pmultfine,val,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,pcoarse,q,ceed_gauss,&
      & bucoarse,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,pcoarse,pfine,&
@@ -110,9 +113,9 @@
       do i=1,interpsize
         interpctof(i)=interp1d(ioffset+i)
       enddo
-      call ceedoperatormultigridlevelcreatetensorh1(erestrictucoarse,&
-     & bucoarse,interpctof,op_massfine,op_masscoarse,op_prolong,&
-     & op_restrict,err)
+      call ceedoperatormultigridlevelcreatetensorh1(pmultfine,&
+     & erestrictucoarse,bucoarse,interpctof,op_massfine,op_masscoarse,&
+     & op_prolong,op_restrict,err)
 
 ! Coarse problem
       call ceedvectorcreate(ceed,nucoarse,ucoarse,err)
@@ -137,19 +140,8 @@
 
 ! Prolong coarse u
       call ceedvectorcreate(ceed,nufine,ufine,err)
-      call ceedvectorcreate(ceed,nufine,mult,err)
-      val=0.0
-      call ceedvectorsetvalue(mult,val,err)
-      call ceedelemrestrictiongetmultiplicity(erestrictufine,mult,err)
       call ceedoperatorapply(op_prolong,ucoarse,ufine,&
      & ceed_request_immediate,err)
-      call ceedvectorgetarray(ufine,ceed_mem_host,hu,uoffset,err)
-      call ceedvectorgetarrayread(mult,ceed_mem_host,hm,moffset,err)
-      do i=1,nufine
-        hu(uoffset+i)=hu(uoffset+i)/hm(uoffset+i)
-      enddo
-      call ceedvectorrestorearray(ufine,hu,uoffset,err)
-      call ceedvectorrestorearrayread(mult,hm,moffset,err)
 
 ! Fine problem
       call ceedvectorcreate(ceed,nufine,vfine,err)
@@ -170,13 +162,6 @@
       call ceedvectorrestorearrayread(vfine,hv,voffset,err)
 
 ! Restrict state to coarse grid
-      call ceedvectorgetarray(vfine,ceed_mem_host,hv,voffset,err)
-      call ceedvectorgetarrayread(mult,ceed_mem_host,hm,moffset,err)
-      do i=1,nufine
-          hv(voffset+i)=hv(voffset+i)/hm(moffset+i)
-      enddo
-      call ceedvectorrestorearray(vfine,hv,voffset,err)
-      call ceedvectorrestorearrayread(mult,hm,moffset,err)
       call ceedoperatorapply(op_restrict,vfine,vcoarse,&
      & ceed_request_immediate,err)
 
@@ -195,11 +180,11 @@
 
       call ceedvectordestroy(qdata,err)
       call ceedvectordestroy(x,err)
-      call ceedvectordestroy(mult,err)
       call ceedvectordestroy(ucoarse,err)
       call ceedvectordestroy(ufine,err)
       call ceedvectordestroy(vcoarse,err)
       call ceedvectordestroy(vfine,err)
+      call ceedvectordestroy(pmultfine,err)
       call ceedoperatordestroy(op_masscoarse,err)
       call ceedoperatordestroy(op_massfine,err)
       call ceedoperatordestroy(op_prolong,err)
