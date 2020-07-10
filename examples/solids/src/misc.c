@@ -75,9 +75,6 @@ PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, AppCtx appCtx, DM dmC,
                                        CeedData ceedDataC, CeedData ceedDataF,
                                        Ceed ceed,
                                        UserMultProlongRestr prolongRestrCtx) {
-  PetscErrorCode ierr;
-  PetscScalar *multArray;
-
   PetscFunctionBeginUser;
 
   // PETSc objects
@@ -111,36 +108,6 @@ PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, AppCtx appCtx, DM dmC,
     prolongRestrCtx->VecRestoreArray = VecCUDARestoreArray;
     prolongRestrCtx->VecRestoreArrayRead = VecCUDARestoreArrayRead;
   }
-
-  // Multiplicity vector
-  // -- Set libCEED vector
-  ierr = VecZeroEntries(VlocF);
-  ierr = prolongRestrCtx->VecGetArray(VlocF, &multArray); CHKERRQ(ierr);
-  CeedVectorSetArray(ceedDataF->xceed, appCtx->memTypeRequested,
-                     CEED_USE_POINTER, multArray);
-
-  // -- Compute multiplicity
-  CeedElemRestrictionGetMultiplicity(ceedDataF->Erestrictu, ceedDataF->xceed);
-
-  // -- Restore PETSc vector
-  CeedVectorTakeArray(ceedDataF->xceed, appCtx->memTypeRequested, NULL);
-  ierr = prolongRestrCtx->VecRestoreArray(VlocF, &multArray); CHKERRQ(ierr);
-
-  // -- Local-to-global
-  ierr = VecZeroEntries(VF); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dmF, VlocF, ADD_VALUES, VF); CHKERRQ(ierr);
-
-  // -- Global-to-local
-  ierr = VecDuplicate(VlocF, &prolongRestrCtx->multVec); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(dmF, VF, INSERT_VALUES, prolongRestrCtx->multVec);
-  CHKERRQ(ierr);
-
-  // -- Reciprocal
-  ierr = VecReciprocal(prolongRestrCtx->multVec); CHKERRQ(ierr);
-
-  // -- Reset work arrays
-  ierr = VecZeroEntries(VF); CHKERRQ(ierr);
-  ierr = VecZeroEntries(VlocF); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
@@ -289,7 +256,6 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   // -- Scale
   ierr = VecReciprocal(MultVec); CHKERRQ(ierr);
   ierr = VecPointwiseMult(Diagnostic, Diagnostic, MultVec);
-
 
   // ---------------------------------------------------------------------------
   // Output solution vector

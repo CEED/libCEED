@@ -145,9 +145,6 @@ PetscErrorCode Prolong_Ceed(Mat A, Vec X, Vec Y) {
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->locVecF, &f); CHKERRQ(ierr);
 
-  // Multiplicity
-  ierr = VecPointwiseMult(user->locVecF, user->locVecF, user->multVec);
-
   // Local-to-global
   ierr = VecZeroEntries(Y); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dmF, user->locVecF, ADD_VALUES, Y);
@@ -171,10 +168,6 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y) {
   ierr = DMGlobalToLocal(user->dmF, X, INSERT_VALUES, user->locVecF);
   CHKERRQ(ierr);
   ierr = VecZeroEntries(user->locVecC); CHKERRQ(ierr);
-
-  // Multiplicity
-  ierr = VecPointwiseMult(user->locVecF, user->locVecF, user->multVec);
-  CHKERRQ(ierr);
 
   // Setup CEED vectors
   ierr = user->VecGetArrayRead(user->locVecF, (const PetscScalar **)&f);

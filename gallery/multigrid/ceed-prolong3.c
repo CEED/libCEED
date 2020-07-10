@@ -49,6 +49,6 @@ static int CeedQFunctionInit_Prolong3(Ceed ceed, const char *requested,
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("Prolong3", Multigrid3_loc, 3, Multigrid3,
+  CeedQFunctionRegister("Prolong3", Multigrid3_loc, 1, Multigrid3,
                         CeedQFunctionInit_Prolong3);
 }

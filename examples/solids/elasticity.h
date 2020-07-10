@@ -188,7 +188,7 @@ typedef struct UserMultProlongRestr_private *UserMultProlongRestr;
 struct UserMultProlongRestr_private {
   MPI_Comm     comm;
   DM           dmC, dmF;
-  Vec          locVecC, locVecF, multVec;
+  Vec          locVecC, locVecF;
   CeedVector   ceedVecC, ceedVecF;
   CeedOperator opProlong, opRestrict;
   Ceed         ceed;
@@ -258,11 +258,11 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      CeedQFunction qfRestrict,
                                      CeedQFunction qfProlong);
 
-// Set up libCEED for a given degree
+// Set up libCEED multigrid level for a given degree
 PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
                                  CeedData *data, PetscInt level,
                                  PetscInt ncompu, PetscInt Ugsz,
-                                 PetscInt Ulocsz, CeedVector forceCeed,
+                                 PetscInt Ulocsz, CeedVector fineMult,
                                  CeedQFunction qfRestrict,
                                  CeedQFunction qfProlong);
 
