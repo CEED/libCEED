@@ -293,7 +293,8 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
 
   // Multiplicity vector
   CeedVector multVec, multE;
-  ierr = CeedElemRestrictionCreateVector(rstrFine, &multVec, &multE); CeedChk(ierr);
+  ierr = CeedElemRestrictionCreateVector(rstrFine, &multVec, &multE);
+  CeedChk(ierr);
   ierr = CeedVectorSetValue(multE, 0.0); CeedChk(ierr);
   ierr = CeedElemRestrictionApply(rstrFine, CEED_NOTRANSPOSE, PMultFine, multE,
                                   CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
@@ -307,24 +308,24 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
   ierr = CeedBasisGetNumComponents(basisCoarse, &ncomp); CeedChk(ierr);
   CeedQFunction qfRestrict;
   switch (ncomp) {
-    case 1:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict1", &qfRestrict);
-      CeedChk(ierr);
-      break;
-    case 3:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict3", &qfRestrict);
-      CeedChk(ierr);
-      break;
-    default:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfRestrict);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddInput(qfRestrict, "mult", 1, CEED_EVAL_NONE);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddOutput(qfRestrict, "output", ncomp, CEED_EVAL_INTERP);
-      CeedChk(ierr);
-      break;
+  case 1:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict1", &qfRestrict);
+    CeedChk(ierr);
+    break;
+  case 3:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict3", &qfRestrict);
+    CeedChk(ierr);
+    break;
+  default:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfRestrict);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddInput(qfRestrict, "mult", 1, CEED_EVAL_NONE);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddOutput(qfRestrict, "output", ncomp, CEED_EVAL_INTERP);
+    CeedChk(ierr);
+    break;
   }
   ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opRestrict);
@@ -341,24 +342,24 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
   // Prolongation
   CeedQFunction qfProlong;
   switch (ncomp) {
-    case 1:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong1", &qfProlong);
-      CeedChk(ierr);
-      break;
-    case 3:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong3", &qfProlong);
-      CeedChk(ierr);
-      break;
-    default:
-      ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfProlong);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddInput(qfProlong, "mult", 1, CEED_EVAL_NONE);
-      CeedChk(ierr);
-      ierr = CeedQFunctionAddOutput(qfProlong, "output", ncomp, CEED_EVAL_NONE);
-      CeedChk(ierr);
-      break;
+  case 1:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong1", &qfProlong);
+    CeedChk(ierr);
+    break;
+  case 3:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong3", &qfProlong);
+    CeedChk(ierr);
+    break;
+  default:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfProlong);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddInput(qfProlong, "mult", 1, CEED_EVAL_NONE);
+    CeedChk(ierr);
+    ierr = CeedQFunctionAddOutput(qfProlong, "output", ncomp, CEED_EVAL_NONE);
+    CeedChk(ierr);
+    break;
   }
   ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opProlong);
