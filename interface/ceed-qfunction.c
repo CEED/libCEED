@@ -743,7 +743,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
   // Free ctx if identity
-  if ((*qf)->identity) {
+  if ((*qf)->ownctx) {
     ierr = CeedFree(&(*qf)->ctx); CeedChk(ierr);
   }
 

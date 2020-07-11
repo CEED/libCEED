@@ -37,7 +37,7 @@ static int CeedQFunctionInit_Prolong3(Ceed ceed, const char *requested,
   const CeedInt size = 3;
   ierr = CeedQFunctionAddInput(qf, "input", size, CEED_EVAL_INTERP);
   CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "mult", 1, CEED_EVAL_NONE); CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qf, "mult", size, CEED_EVAL_NONE); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "output", size, CEED_EVAL_NONE);
   CeedChk(ierr);
 

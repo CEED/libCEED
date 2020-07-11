@@ -28,6 +28,7 @@ CEED_QFUNCTION(Multigrid)(void *ctx, const CeedInt Q,
   const CeedInt size = *(CeedInt *)ctx;
 
   // in[0] is input, size (Q*size)
+  // in[1] is multiplicity, size (Q*size)
   const CeedScalar *input = in[0];
   const CeedScalar *mult = in[1];
   // out[0] is output, size (Q*size)
@@ -36,11 +37,10 @@ CEED_QFUNCTION(Multigrid)(void *ctx, const CeedInt Q,
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    for (CeedInt j=0; j<size; i++) {
-      output[i+j*Q] = input[i+j*Q] / mult[i];
+    for (CeedInt j=0; j<size; j++) {
+      output[i+Q*j] = input[i+Q*j] / mult[i+Q*j];
     }
   } // End of Quadrature Point Loop
-
   return 0;
 }
 

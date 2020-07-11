@@ -316,16 +316,22 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict3", &qfRestrict);
     CeedChk(ierr);
     break;
-  default:
+  default: {
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfRestrict);
     CeedChk(ierr);
     ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
     CeedChk(ierr);
-    ierr = CeedQFunctionAddInput(qfRestrict, "mult", 1, CEED_EVAL_NONE);
+    ierr = CeedQFunctionAddInput(qfRestrict, "mult", ncomp, CEED_EVAL_NONE);
     CeedChk(ierr);
     ierr = CeedQFunctionAddOutput(qfRestrict, "output", ncomp, CEED_EVAL_INTERP);
     CeedChk(ierr);
+    CeedInt *ctx;
+    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+    ctx[0] = ncomp;
+    ierr = CeedQFunctionSetContext(qfRestrict, ctx, sizeof(*ctx)); CeedChk(ierr);
+    qfRestrict->ownctx = 1;
     break;
+  }
   }
   ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opRestrict);
@@ -350,16 +356,22 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong3", &qfProlong);
     CeedChk(ierr);
     break;
-  default:
+  default: {
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Multigrid", &qfProlong);
     CeedChk(ierr);
     ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
     CeedChk(ierr);
-    ierr = CeedQFunctionAddInput(qfProlong, "mult", 1, CEED_EVAL_NONE);
+    ierr = CeedQFunctionAddInput(qfProlong, "mult", ncomp, CEED_EVAL_NONE);
     CeedChk(ierr);
     ierr = CeedQFunctionAddOutput(qfProlong, "output", ncomp, CEED_EVAL_NONE);
     CeedChk(ierr);
+    CeedInt *ctx;
+    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
+    ctx[0] = ncomp;
+    ierr = CeedQFunctionSetContext(qfProlong, ctx, sizeof(*ctx)); CeedChk(ierr);
+    qfProlong->ownctx = 1;
     break;
+  }
   }
   ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, opProlong);
