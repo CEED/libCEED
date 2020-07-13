@@ -53,6 +53,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "advection.h"
 #include "advection2d.h"
 #include "common.h"
+#include "euler-vortex.h"
 #include "densitycurrent.h"
 #include "setup-boundary.h"
 
@@ -77,11 +78,13 @@ typedef enum {
   NS_DENSITY_CURRENT = 0,
   NS_ADVECTION = 1,
   NS_ADVECTION2D = 2,
+  NS_EULER_VORTEX = 3,
 } problemType;
 static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
+  "euler_vortex"
   "problemType", "NS_", NULL
 };
 
@@ -175,6 +178,23 @@ problemData problemOptions[] = {
     .applySur_loc              = Advection2d_Sur_loc,
     .bc                        = Exact_Advection2d,
     .non_zero_time             = PETSC_TRUE,
+  },
+  [NS_EULER_VORTEX] = {
+    .dim                       = 3,
+    .qdatasizeVol              = 10,
+    .qdatasizeSur              = 4,
+    .setupVol                  = Setup,
+    .setupVol_loc              = Setup_loc,
+    .setupSur                  = SetupBoundary,
+    .setupSur_loc              = SetupBoundary_loc,
+    .ics                       = ICsEuler,
+    .ics_loc                   = ICsEuler_loc,
+    .applyVol_rhs              = Euler,
+    .applyVol_rhs_loc          = Euler_loc,
+ // .applySur                  = Euler_Sur,
+//  .applySur_loc              = Euler_Sur_loc,
+    .bc                        = Exact_Euler,
+    .non_zero_time             = PETSC_FALSE,  // TODO: this needs to be true
   },
 };
 
@@ -1514,6 +1534,7 @@ int main(int argc, char **argv) {
                               sizeof ctxSurfaceData, &ctxSurfaceData);
 
   switch (problemChoice) {
+  case NS_EULER_VORTEX:
   case NS_DENSITY_CURRENT:
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
