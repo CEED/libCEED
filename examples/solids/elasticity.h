@@ -110,7 +110,6 @@ struct Units_private {
 typedef struct AppCtx_private *AppCtx;
 struct AppCtx_private {
   char          ceedResource[PETSC_MAX_PATH_LEN];     // libCEED backend
-  char          ceedResourceFine[PETSC_MAX_PATH_LEN]; // libCEED for fine grid
   char          meshFile[PETSC_MAX_PATH_LEN];         // exodusII mesh file
   PetscBool     testMode;
   PetscBool     viewSoln;

@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   UserMultProlongRestr *prolongRestrCtx;
   PCMGCycleType  pcmgCycleType = PC_MG_CYCLE_V;
   // libCEED objects
-  Ceed           ceed, ceedFine = NULL;
+  Ceed           ceed;
   CeedData       *ceedData;
   CeedQFunction  qfRestrict = NULL, qfProlong = NULL;
   // Parameters
@@ -108,8 +108,6 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initalize backend
   CeedInit(appCtx->ceedResource, &ceed);
-  if (appCtx->degree > 4 && appCtx->ceedResourceFine[0])
-    CeedInit(appCtx->ceedResourceFine, &ceedFine);
 
   // Check preferred MemType
   CeedMemType memTypeBackend;
@@ -257,10 +255,8 @@ int main(int argc, char **argv) {
   // ---- Setup residual, Jacobian evaluator and geometric information
   ierr = PetscCalloc1(1, &ceedData[fineLevel]); CHKERRQ(ierr);
   {
-    bool highOrder = (appCtx->levelDegrees[fineLevel] > 4 && ceedFine);
-    Ceed levelCeed = highOrder ? ceedFine : ceed;
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
-                                 levelCeed, appCtx, phys, ceedData, fineLevel,
+                                 ceed, appCtx, phys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
                                  forceCeed, qfRestrict, qfProlong);
     CHKERRQ(ierr);
@@ -288,9 +284,7 @@ int main(int argc, char **argv) {
                        CEED_USE_POINTER, (CeedScalar *)m);
 
     // Note: use high order ceed, if specified and degree > 4
-    bool highOrder = (appCtx->levelDegrees[level] > 4 && ceedFine);
-    Ceed levelCeed = highOrder ? ceedFine : ceed;
-    ierr = SetupLibceedLevel(levelDMs[level], levelCeed, appCtx, phys,
+    ierr = SetupLibceedLevel(levelDMs[level], ceed, appCtx, phys,
                              ceedData, level, ncompu, Ugsz[level],
                              Ulocsz[level], ceedData[level+1]->xceed, qfRestrict,
                              qfProlong); CHKERRQ(ierr);
@@ -344,12 +338,6 @@ int main(int argc, char **argv) {
                        (appCtx->setMemTypeRequest) ?
                        CeedMemTypes[appCtx->memTypeRequested] : "none");
     CHKERRQ(ierr);
-
-    if (ceedFine) {
-      ierr = PetscPrintf(comm,
-                         "    libCEED Backend - high order       : %s\n",
-                         appCtx->ceedResourceFine); CHKERRQ(ierr);
-    }
 
     VecType vecType;
     ierr = VecGetType(U, &vecType); CHKERRQ(ierr);
@@ -921,7 +909,6 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qfRestrict);
   CeedQFunctionDestroy(&qfProlong);
   CeedDestroy(&ceed);
-  CeedDestroy(&ceedFine);
 
   // PETSc objects
   ierr = VecDestroy(&U); CHKERRQ(ierr);

@@ -80,10 +80,6 @@ The command line options just shown are the minimum requirements to run the mini
      - CEED resource specifier
      - :code:`/cpu/self`
 
-   * - :code:`-ceed_fine`
-     - CEED resource specifier for multigrid fine grid
-     - :code:`/cpu/self`
-
    * - :code:`-qextra`
      - Number of extra quadrature points
      - :code:`0`
