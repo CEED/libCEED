@@ -219,7 +219,8 @@ def test_501(ceed_resource):
         assert abs(total - 1.0) < TOL
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for mass matrix operator with multiple
+#   components
 # -------------------------------------------------------------------------------
 
 
@@ -794,7 +795,7 @@ def test_511(ceed_resource):
         assert abs(total - 1.0) < 1E-10
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for composite mass matrix operator
 # -------------------------------------------------------------------------------
 
 
@@ -969,7 +970,7 @@ def test_520(ceed_resource):
             assert abs(v_array[i]) < TOL
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for composite mass matrix operator
 # -------------------------------------------------------------------------------
 
 
@@ -1310,7 +1311,7 @@ def test_523(ceed_resource, capsys):
     assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# CeedOperatorApplyAdd for composite operator
 # -------------------------------------------------------------------------------
 
 
