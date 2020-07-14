@@ -1511,16 +1511,16 @@ def test_533(ceed_resource):
     dim = 2
     nx = 3
     ny = 2
-    ndofs = (nx*2+1)*(ny*2+1)
-    nqpts = nelem*q*q
+    ndofs = (nx * 2 + 1) * (ny * 2 + 1)
+    nqpts = nelem * q * q
 
     # Vectors
-    x = ceed.Vector(dim*ndofs)
-    x_array = np.zeros(dim*ndofs)
-    for i in range(nx*2+1):
-        for j in range(ny*2+1):
-            x_array[i+j*(nx*2+1)+0*ndofs] = i / (2*nx)
-            x_array[i+j*(nx*2+1)+1*ndofs] = j / (2*ny)
+    x = ceed.Vector(dim * ndofs)
+    x_array = np.zeros(dim * ndofs)
+    for i in range(nx * 2 + 1):
+        for j in range(ny * 2 + 1):
+            x_array[i + j * (nx * 2 + 1) + 0 * ndofs] = i / (2 * nx)
+            x_array[i + j * (nx * 2 + 1) + 1 * ndofs] = j / (2 * ny)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
 
     qdata = ceed.Vector(nqpts)
@@ -1528,21 +1528,21 @@ def test_533(ceed_resource):
     v = ceed.Vector(ndofs)
 
     # Restrictions
-    indx = np.zeros(nelem*p*p, dtype="int32")
+    indx = np.zeros(nelem * p * p, dtype="int32")
     for i in range(nelem):
         col = i % nx
         row = i // nx
-        offset = col*(p-1) + row*(nx*2+1)*(p-1)
+        offset = col * (p - 1) + row * (nx * 2 + 1) * (p - 1)
         for j in range(p):
             for k in range(p):
-                indx[p*(p*i+k)+j] = offset + k*(nx*2+1) + j
-    rx = ceed.ElemRestriction(nelem, p*p, dim, ndofs, dim*ndofs,
+                indx[p * (p * i + k) + j] = offset + k * (nx * 2 + 1) + j
+    rx = ceed.ElemRestriction(nelem, p * p, dim, ndofs, dim * ndofs,
                               indx, cmode=libceed.USE_POINTER)
 
-    ru = ceed.ElemRestriction(nelem, p*p, 1, 1, ndofs, indx,
+    ru = ceed.ElemRestriction(nelem, p * p, 1, 1, ndofs, indx,
                               cmode=libceed.USE_POINTER)
-    strides = np.array([1, q*q, q*q], dtype="int32")
-    rui = ceed.StridedElemRestriction(nelem, q*q, 1, nqpts, strides)
+    strides = np.array([1, q * q, q * q], dtype="int32")
+    rui = ceed.StridedElemRestriction(nelem, q * q, 1, nqpts, strides)
 
     # Bases
     bx = ceed.BasisTensorH1Lagrange(dim, dim, p, q, libceed.GAUSS)
@@ -1580,7 +1580,7 @@ def test_533(ceed_resource):
         with u.array() as u_array:
             u_array[i] = 1.0
             if (i):
-                u_array[i-1] = 0.0
+                u_array[i - 1] = 0.0
 
         # Diagonal entry i
         op_mass.apply(u, v)

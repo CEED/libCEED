@@ -64,7 +64,7 @@ class _OperatorBase(ABC):
 
         # libCEED call
         lib.CeedOperatorLinearAssembleDiagonal(self._pointer[0],
-            d._pointer[0], request)
+                                               d._pointer[0], request)
 
     # Assemble add linear diagonal
     def linear_assemble_add_diagonal(self, d, request=REQUEST_IMMEDIATE):
@@ -76,11 +76,12 @@ class _OperatorBase(ABC):
 
         # libCEED call
         lib.CeedOperatorLinearAssembleAddDiagonal(self._pointer[0],
-            d._pointer[0], request)
+                                                  d._pointer[0], request)
 
     # Assemble linear point block diagonal
-    def linear_assemble_point_block_diagonal(self, d, request=REQUEST_IMMEDIATE):
-        """Assemble the diagonal of a square linear Operator
+    def linear_assemble_point_block_diagonal(
+            self, d, request=REQUEST_IMMEDIATE):
+        """Assemble the point block diagonal of a square linear Operator
 
            Args:
              d: Vector to store assembled Operator point block diagonal,
@@ -90,11 +91,12 @@ class _OperatorBase(ABC):
 
         # libCEED call
         lib.CeedOperatorLinearAssemblePointBlockDiagonal(self._pointer[0],
-            d._pointer[0], request)
+                                                         d._pointer[0], request)
 
     # Assemble linear point block diagonal
-    def linear_assemble_add_point_block_diagonal(self, d, request=REQUEST_IMMEDIATE):
-        """Sum the diagonal of a square linear Operator into a Vector
+    def linear_assemble_add_point_block_diagonal(
+            self, d, request=REQUEST_IMMEDIATE):
+        """Sum the point block diagonal of a square linear Operator into a Vector
 
            Args:
              d: Vector to store assembled Operator point block diagonal,
@@ -104,7 +106,7 @@ class _OperatorBase(ABC):
 
         # libCEED call
         lib.CeedOperatorLinearAssembleAddPointBlockDiagonal(self._pointer[0],
-            d._pointer[0], request)
+                                                            d._pointer[0], request)
 
     # Apply CeedOperator
     def apply(self, u, v, request=REQUEST_IMMEDIATE):
