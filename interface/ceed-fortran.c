@@ -102,7 +102,7 @@ void fCeedView(int *ceed, int *err) {
 
 #define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
 void fCeedDestroy(int *ceed, int *err) {
-  if (Ceed_n == 0) return;
+  if (Ceed_n == 0 || !Ceed_dict[*ceed]) return;
   *err = CeedDestroy(&Ceed_dict[*ceed]);
 
   if (*err == 0) {
@@ -211,7 +211,7 @@ void fCeedVectorView(int *vec, int *err) {
 
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
 void fCeedVectorDestroy(int *vec, int *err) {
-  if (CeedVector_n == 0) return;
+  if (CeedVector_n == 0 || !CeedVector_dict[*vec]) return;
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
 
   if (*err == 0) {
@@ -433,7 +433,7 @@ void fCeedRequestWait(int *rqst, int *err) {
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
 void fCeedElemRestrictionDestroy(int *elem, int *err) {
-  if (CeedElemRestriction_n == 0) return;
+  if (CeedElemRestriction_n == 0 || !CeedElemRestriction_dict[*elem]) return;
   *err = CeedElemRestrictionDestroy(&CeedElemRestriction_dict[*elem]);
 
   if (*err == 0) {
@@ -573,7 +573,7 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
 
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(int *basis, int *err) {
-  if (CeedBasis_n == 0) return;
+  if (CeedBasis_n == 0 || ! CeedBasis_dict[*basis]) return;
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 
   if (*err == 0) {
@@ -806,7 +806,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
-  if (CeedQFunction_n == 0 || CeedQFunction_dict[*qf] == NULL) return;
+  if (CeedQFunction_n == 0 || !CeedQFunction_dict[*qf]) return;
   bool fstatus;
   *err = CeedQFunctionIsFortran(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
@@ -1128,7 +1128,7 @@ void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
 #define fCeedOperatorDestroy \
     FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
 void fCeedOperatorDestroy(int *op, int *err) {
-  if (CeedOperator_n == 0) return;
+  if (CeedOperator_n == 0 || !CeedOperator_dict[*op]) return;
   *err = CeedOperatorDestroy(&CeedOperator_dict[*op]);
   if (*err) return;
   CeedOperator_n--;
