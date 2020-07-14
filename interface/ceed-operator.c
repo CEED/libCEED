@@ -1192,8 +1192,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
   @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstrCoarse   Coarse grid restriction
-  @param[in] basisCoarse  Coarse grid active vector basis
-  @param[in] interpCtoF   Matrix for coarse to fine interpolation
+  @param[in] degreeCoarse Coarse grid basis polynomial order
   @param[in] opFine       Fine grid operator
   @param[out] opCoarse    Coarse grid operator
   @param[out] opProlong   Coarse to fine operator
