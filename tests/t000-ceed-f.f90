@@ -10,6 +10,7 @@
 
       call ceedinit(trim(arg)//char(0),ceed,err)
       call ceeddestroy(ceed,err)
+      call ceeddestroy(ceed,err)
 
       end
 !-----------------------------------------------------------------------
