@@ -42,6 +42,7 @@ typedef struct {
 typedef PhysicsContext_s *PhysicsContext;
 
 typedef struct {
+  CeedScalar g;
   CeedScalar H0;
   CeedScalar CtauS;
   CeedScalar strong_form;
@@ -152,8 +153,8 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P, CeedInt ncomp,
                                      CeedElemRestriction *Erestrict);
 
 // Auxiliary function to set up libCEED objects for a given degree
-PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra, 
-                            PetscInt ncompx, PetscInt ncompq, User user, 
+PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
+                            PetscInt ncompx, PetscInt ncompq, User user,
                             CeedData data, problemData *problem,
                             PhysicsContext phys_ctx, ProblemContext probl_ctx);
 

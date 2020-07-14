@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   PetscScalar meter      = 1e-2;       // 1 meter in scaled length units
   PetscScalar second     = 1e-2;       // 1 second in scaled time units
   PetscScalar Omega      = 7.29212e-5; // Earth rotation rate (1/s)
-  PetscScalar R          = 6.37122e6;  // Earth radius (m)
+  PetscScalar R_e        = 6.37122e6;  // Earth radius (m)
   PetscScalar g          = 9.81;       // gravitational acceleration (m/s^2)
   PetscScalar H0         = 0;          // constant mean height (m)
   PetscScalar gamma      = 0;          // angle between axis of rotation and polar axis 
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     .v0 = 0.,
     .h0 = .1,
     .Omega = Omega,
-    .R = R,
+    .R = R_e/R_e, // normalize to unit sphere (R=1)
     .g = g,
     .H0 = H0,
     .gamma = gamma,
@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
   };
   
   ProblemContext_s probl_ctx =  {
+    .g = g,
     .H0 = H0,
     .CtauS = CtauS,
     .strong_form = strong_form,

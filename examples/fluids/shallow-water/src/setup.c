@@ -298,7 +298,7 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p) {
 // -----------------------------------------------------------------------------
 
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
-                            PetscInt ncompx, PetscInt ncompq, User user, 
+                            PetscInt ncompx, PetscInt ncompq, User user,
                             CeedData data, problemData *problem,
                             PhysicsContext phys_ctx, ProblemContext probl_ctx) {
   int ierr;
@@ -311,17 +311,17 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedOperator op_setup, op_ics, op_explicit, op_implicit,
                op_jacobian;
   CeedVector xcorners, qdata, q0ceed;
-  CeedInt P, Q, cStart, cEnd, nelem, qdatasize = problem->qdatasize, 
+  CeedInt numP, numQ, cStart, cEnd, nelem, qdatasize = problem->qdatasize,
           topodim = problem->topodim;;
 
   // CEED bases
-  P = degree + 1;
-  Q = P + qextra;
-  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompq, P, Q,
+  numP = degree + 1;
+  numQ = numP + qextra;
+  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompq, numP, numQ,
                                   CEED_GAUSS, &basisq);
-  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompx, 2, Q,
+  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompx, 2, numQ,
                                   CEED_GAUSS, &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompx, 2, P,
+  CeedBasisCreateTensorH1Lagrange(ceed, topodim, ncompx, 2, numP,
                                   CEED_GAUSS_LOBATTO, &basisxc);
 
   ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
@@ -329,14 +329,15 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CHKERRQ(ierr);
 
   // CEED restrictions
-  ierr = CreateRestrictionPlex(ceed, dm, P, ncompq, &Erestrictq); CHKERRQ(ierr);
+  ierr = CreateRestrictionPlex(ceed, dm, numP, ncompq, &Erestrictq);
+  CHKERRQ(ierr);
   ierr = CreateRestrictionPlex(ceed, dmcoord, 2, ncompx, &Erestrictx);
   CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q, qdatasize,
-                                   qdatasize*nelem*Q*Q,
+  CeedElemRestrictionCreateStrided(ceed, nelem, numQ*numQ, qdatasize,
+                                   qdatasize*nelem*numQ*numQ,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
 
   // Element coordinates
@@ -351,7 +352,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   user->q0ceed = q0ceed;
 
   // Create the Q-Function that builds the quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc, 
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup, problem->setup_loc,
                               &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "dx", ncompx*topodim, CEED_EVAL_GRAD);
@@ -364,7 +365,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
 
   // Create the Q-Function that defines the explicit part of the PDE operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->apply_explfunction, 
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_explfunction,
                               problem->apply_explfunction_loc, &qf_explicit);
   CeedQFunctionAddInput(qf_explicit, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_explicit, "q", ncompq, CEED_EVAL_INTERP);
@@ -374,7 +375,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedQFunctionAddOutput(qf_explicit, "dv", ncompq*topodim, CEED_EVAL_GRAD);
 
   // Create the Q-Function that defines the implicit part of the PDE operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->apply_implfunction, 
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_implfunction,
                               problem->apply_implfunction_loc, &qf_implicit);
   CeedQFunctionAddInput(qf_implicit, "q", ncompq, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_implicit, "dq", ncompq*topodim, CEED_EVAL_GRAD);
@@ -385,12 +386,16 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedQFunctionAddOutput(qf_implicit, "dv", ncompq*topodim, CEED_EVAL_GRAD);
 
   // Create the Q-Function that defines the action of the Jacobian operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->apply_jacobian, 
+  CeedQFunctionCreateInterior(ceed, 1, problem->apply_jacobian,
                               problem->apply_jacobian_loc, &qf_jacobian);
-  CeedQFunctionAddInput(qf_jacobian, "q", 3, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_jacobian, "deltaq", 3, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_jacobian, "qdata", 10, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_jacobian, "dv", 3, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_jacobian, "q", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_jacobian, "dq", ncompq*topodim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_jacobian, "deltaq", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_jacobian, "deltadq", ncompq*topodim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_jacobian, "qdata", qdatasize, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_jacobian, "deltav", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_jacobian, "deltadv", ncompq*topodim,
+                         CEED_EVAL_GRAD);
 
   // Create the operator that builds the quadrature data for the operator
   CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup);
@@ -450,11 +455,17 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedOperatorCreate(ceed, qf_jacobian, NULL, NULL, &op_jacobian);
   CeedOperatorSetField(op_jacobian, "q", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_jacobian, "dq", Erestrictq, basisq,
+                       CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "deltaq", Erestrictq, basisq,
-                       CEED_VECTOR_ACTIVE); // TODO: Check restriction and basis for delta q
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_jacobian, "deltadq", Erestrictq, basisq,
+                       CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_jacobian, "qdata", Erestrictqdi,
                        CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_jacobian, "dv", Erestrictq, basisq,
+  CeedOperatorSetField(op_jacobian, "deltav", Erestrictq, basisq,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_jacobian, "deltadv", Erestrictq, basisq,
                        CEED_VECTOR_ACTIVE);
   user->op_jacobian = op_jacobian;
 
