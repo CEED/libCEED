@@ -31,12 +31,12 @@
 #endif
 
 // *****************************************************************************
-// This QFunction sets the the initial condition for the steady state nonlinear 
-// zonal geostrophic flow (test case 2 in "A Standard Test Set for Numerical 
-// Approximations to the Shallow Water Equations in Spherical Geometry" 
+// This QFunction sets the the initial condition for the steady state nonlinear
+// zonal geostrophic flow (test case 2 in "A Standard Test Set for Numerical
+// Approximations to the Shallow Water Equations in Spherical Geometry"
 // by Williamson et al. (1992)
 // *****************************************************************************
-static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[], 
+static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
 
   // Context
@@ -51,12 +51,12 @@ static inline int Exact_SW(CeedInt dim, CeedScalar time, const CeedScalar X[],
   // -- Compute latitude
   const CeedScalar theta    = asin(X[2] / R);
   // -- Compute longitude
-  const CeedScalar lambda   = atan2(X[1], X[0]); 
+  const CeedScalar lambda   = atan2(X[1], X[0]);
   // -- Compute great circle distance between (lambda, theta) and the center,
   //    (lambda_c, theta_c)
   const CeedScalar lambda_c = 3. * M_PI / 2.;
   const CeedScalar theta_c  = 0.;
-  const CeedScalar r        = R * acos(sin(theta_c)*sin(theta) + cos(theta_c)*cos(theta)*cos(lambda-lambda_c));  
+  const CeedScalar r        = R * acos(sin(theta_c)*sin(theta) + cos(theta_c)*cos(theta)*cos(lambda-lambda_c));
 
   // Initial Conditions
   q[0] =  u0 * (cos(theta)*cos(gamma) + sin(theta)*cos(lambda)*sin(gamma));
@@ -98,13 +98,13 @@ CEED_QFUNCTION(ICsSW)(void *ctx, CeedInt Q,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
-// longitudinal and latitudinal components of the velocity field, and h, 
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the
+// longitudinal and latitudinal components of the velocity field, and h,
 // represents the height function.
 //
 // State variable vector: q = (u_lambda, u_theta, h)
 //
-// Shallow-water Equations spatial terms of explicit function 
+// Shallow-water Equations spatial terms of explicit function
 // G(t,q) = (G_1(t,q), G_2(t,q)):
 //   G_1(t,q) = - (omega + f) * khat curl u - grad(|u|^2/2)
 //   G_2(t,q) = 0
@@ -185,13 +185,13 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
-// longitudinal and latitudinal components of the velocity field, and h, 
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the
+// longitudinal and latitudinal components of the velocity field, and h,
 // represents the height function.
 //
 // State variable vector: q = (u_lambda, u_theta, h)
 //
-// Shallow-water Equations spatial terms of implicit function: 
+// Shallow-water Equations spatial terms of implicit function:
 // F(t,q) = (F_1(t,q), F_2(t,q)):
 //   F_1(t,q) = g(grad(h + h_s))
 //   F_2(t,q) = div((h + H_0) u)
@@ -280,11 +280,11 @@ CEED_QFUNCTION(SWImplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // equations
 //
 // The equations represent 2D shallow-water flow on a spherical surface, where
-// the state variables, u_lambda, u_theta (or u_1, u_2) represent the 
-// longitudinal and latitudinal components of the velocity field, and h, 
+// the state variables, u_lambda, u_theta (or u_1, u_2) represent the
+// longitudinal and latitudinal components of the velocity field, and h,
 // represents the height function.
 //
-// Discrete Jacobian: 
+// Discrete Jacobian:
 // dF/dq^n = sigma * dF/dqdot|q^n + dF/dq|q^n
 // ("sigma * dF/dqdot|q^n" will be added later)
 // *****************************************************************************
@@ -329,7 +329,21 @@ CEED_QFUNCTION(SWJacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                   };
     // *INDENT-ON*
 
-    // The Physics
+    // Action of Jacobian on increment:
+    //  [dF00  dF01  dF02] [delta u_lamda]
+    //  [dF10  dF11  dF12] [delta u_theta]
+    //  [dF20  dF21  dF22] [delta    h   ]
+    //
+    //        where
+    //
+    //  dF00 = 0, dF01 = 0, dF02 = g (\partial delta h / \partial x)
+    //  dF10 = 0, dF11 = 0, dF12 = g (\partial delta h / \partial y)
+    //  dF20 = \partial h / \partial x + (h+H0)\partial delta u_lambda / \partial x,
+    //  dF21 = \partial h / \partial y + (h+H0)\partial delta u_theta  / \partial y,
+    //  dF22 = u_lambda \partial delta h / \partial x +
+    //         u_theta  \partial delta h / \partial y +
+    //         \partial u_lambda / \partial x + \partial u_theta / \partial y
+
     // Jacobian spatial terms for F_1(t,q):
     // - dv \cdot (delta h u)
     deltadvdX[0][0][i] = - g*wdetJ*dXdx[0][0]*deltah; // lambda component

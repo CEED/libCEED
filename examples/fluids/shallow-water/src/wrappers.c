@@ -129,10 +129,10 @@ PetscErrorCode FormJacobian_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  
-  ierr = TSComputeIJacobianDefaultColor(ts, t, Q, Qdot, sigma, J, Jpre, NULL); 
+
+  ierr = TSComputeIJacobianDefaultColor(ts, t, Q, Qdot, sigma, J, Jpre, NULL);
   CHKERRQ(ierr);
-  
+
   // Jpre might be AIJ (e.g., when using coloring), so we need to assemble it
   ierr = MatAssemblyBegin(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd(Jpre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
