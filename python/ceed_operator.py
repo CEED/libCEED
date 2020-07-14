@@ -54,6 +54,58 @@ class _OperatorBase(ABC):
 
         return out_string
 
+    # Assemble linear diagonal
+    def linear_assemble_diagonal(self, d, request=REQUEST_IMMEDIATE):
+        """Assemble the diagonal of a square linear Operator
+
+           Args:
+             d: Vector to store assembled Operator diagonal
+             **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
+
+        # libCEED call
+        lib.CeedOperatorLinearAssembleDiagonal(self._pointer[0],
+            d._pointer[0], request)
+
+    # Assemble add linear diagonal
+    def linear_assemble_add_diagonal(self, d, request=REQUEST_IMMEDIATE):
+        """Sum the diagonal of a square linear Operator into a Vector
+
+           Args:
+             d: Vector to store assembled Operator diagonal
+             **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
+
+        # libCEED call
+        lib.CeedOperatorLinearAssembleAddDiagonal(self._pointer[0],
+            d._pointer[0], request)
+
+    # Assemble linear point block diagonal
+    def linear_assemble_point_block_diagonal(self, d, request=REQUEST_IMMEDIATE):
+        """Assemble the diagonal of a square linear Operator
+
+           Args:
+             d: Vector to store assembled Operator point block diagonal,
+                  provided in row-major form with an ncomp*ncomp block
+                  at each node
+             **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
+
+        # libCEED call
+        lib.CeedOperatorLinearAssemblePointBlockDiagonal(self._pointer[0],
+            d._pointer[0], request)
+
+    # Assemble linear point block diagonal
+    def linear_assemble_add_point_block_diagonal(self, d, request=REQUEST_IMMEDIATE):
+        """Sum the diagonal of a square linear Operator into a Vector
+
+           Args:
+             d: Vector to store assembled Operator point block diagonal,
+                  provided in row-major form with an ncomp*ncomp block
+                  at each node
+             **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
+
+        # libCEED call
+        lib.CeedOperatorLinearAssembleAddPointBlockDiagonal(self._pointer[0],
+            d._pointer[0], request)
+
     # Apply CeedOperator
     def apply(self, u, v, request=REQUEST_IMMEDIATE):
         """Apply Operator to a vector.
