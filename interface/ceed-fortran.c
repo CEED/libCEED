@@ -65,6 +65,9 @@ typedef int fortran_charlen_t;
   strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len)); \
   Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
 
+// -----------------------------------------------------------------------------
+// Ceed
+// -----------------------------------------------------------------------------
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
 void fCeedInit(const char *resource, int *ceed, int *err,
                fortran_charlen_t resource_len) {
@@ -115,6 +118,9 @@ void fCeedDestroy(int *ceed, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedVector
+// -----------------------------------------------------------------------------
 static CeedVector *CeedVector_dict = NULL;
 static int CeedVector_count = 0;
 static int CeedVector_n = 0;
@@ -224,6 +230,9 @@ void fCeedVectorDestroy(int *vec, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedElemRestriction
+// -----------------------------------------------------------------------------
 static CeedElemRestriction *CeedElemRestriction_dict = NULL;
 static int CeedElemRestriction_count = 0;
 static int CeedElemRestriction_n = 0;
@@ -446,6 +455,9 @@ void fCeedElemRestrictionDestroy(int *elem, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedBasis
+// -----------------------------------------------------------------------------
 static CeedBasis *CeedBasis_dict = NULL;
 static int CeedBasis_count = 0;
 static int CeedBasis_n = 0;
@@ -599,6 +611,9 @@ void fCeedLobattoQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
   *err = CeedLobattoQuadrature(*Q, qref1d, qweight1d);
 }
 
+// -----------------------------------------------------------------------------
+// CeedQFunction
+// -----------------------------------------------------------------------------
 static CeedQFunction *CeedQFunction_dict = NULL;
 static int CeedQFunction_count = 0;
 static int CeedQFunction_n = 0;
@@ -827,6 +842,9 @@ void fCeedQFunctionDestroy(int *qf, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedOperator
+// -----------------------------------------------------------------------------
 static CeedOperator *CeedOperator_dict = NULL;
 static int CeedOperator_count = 0;
 static int CeedOperator_n = 0;
@@ -1138,3 +1156,5 @@ void fCeedOperatorDestroy(int *op, int *err) {
     CeedOperator_count_max = 0;
   }
 }
+
+// -----------------------------------------------------------------------------
