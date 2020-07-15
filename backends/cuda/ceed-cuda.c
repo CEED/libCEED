@@ -161,6 +161,21 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
 }
 
 //------------------------------------------------------------------------------
+// Get CUBLAS handle
+//------------------------------------------------------------------------------
+int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
+  int ierr;
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, (void *) &data); CeedChk(ierr);
+
+  if (!data->cublasHandle) {
+    ierr = cublasCreate(&data->cublasHandle); CeedChk_Cublas(ceed, ierr);
+  }
+  *handle = data->cublasHandle;
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Backend destroy
 //------------------------------------------------------------------------------
 int CeedDestroy_Cuda(Ceed ceed) {

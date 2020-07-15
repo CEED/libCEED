@@ -356,16 +356,12 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
-  Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
-  if (!ceed_Cuda->cublasHandle) {
-    ierr = cublasCreate(&ceed_Cuda->cublasHandle); CeedChk_Cublas(ceed, ierr);
-  }
-  cublasHandle_t handle = ceed_Cuda->cublasHandle;
+  cublasHandle_t handle;
+  ierr = CeedCudaGetCublasHandle(ceed, &handle); CeedChk(ierr);
 
   // Compute norm
   const CeedScalar *d_array;
