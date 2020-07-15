@@ -20,6 +20,7 @@
 #include <nvrtc.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 
 #define CUDA_MAX_PATH 256
 
@@ -40,13 +41,38 @@ do { \
   } \
 } while (0)
 
+#define CeedChk_Cublas(ceed, x) \
+do { \
+  cublasStatus_t result = x; \
+  if (result != CUBLAS_STATUS_SUCCESS) { \
+    const char *msg = cublasGetErrorName(result); \
+    return CeedError((ceed), (int)result, msg); \
+   } \
+} while (0)
+
 #define QUOTE(...) #__VA_ARGS__
 
-typedef enum {CEED_CUDA_HOST_SYNC,
-              CEED_CUDA_DEVICE_SYNC,
-              CEED_CUDA_BOTH_SYNC,
-              CEED_CUDA_NONE_SYNC
-             } CeedCudaSyncState;
+#define CASE(name) case name: return #name
+static const char *cublasGetErrorName(cublasStatus_t error) {
+  switch (error) {
+    CASE(CUBLAS_STATUS_SUCCESS);
+    CASE(CUBLAS_STATUS_NOT_INITIALIZED);
+    CASE(CUBLAS_STATUS_ALLOC_FAILED);
+    CASE(CUBLAS_STATUS_INVALID_VALUE);
+    CASE(CUBLAS_STATUS_ARCH_MISMATCH);
+    CASE(CUBLAS_STATUS_MAPPING_ERROR);
+    CASE(CUBLAS_STATUS_EXECUTION_FAILED);
+    CASE(CUBLAS_STATUS_INTERNAL_ERROR);
+  default: return "CUBLAS_STATUS_UNKNOWN_ERROR";
+  }
+}
+
+typedef enum {
+  CEED_CUDA_HOST_SYNC,
+  CEED_CUDA_DEVICE_SYNC,
+  CEED_CUDA_BOTH_SYNC,
+  CEED_CUDA_NONE_SYNC
+} CeedCudaSyncState;
 
 typedef struct {
   CeedScalar *h_array;
@@ -130,6 +156,7 @@ typedef struct {
 typedef struct {
   int optblocksize;
   int deviceId;
+  cublasHandle_t cublasHandle;
 } Ceed_Cuda;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
@@ -170,6 +197,8 @@ CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
                                       void **args);
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
+
+CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
 
 CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
 
