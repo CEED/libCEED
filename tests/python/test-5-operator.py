@@ -219,7 +219,8 @@ def test_501(ceed_resource):
         assert abs(total - 1.0) < TOL
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for mass matrix operator with multiple
+#   components
 # -------------------------------------------------------------------------------
 
 
@@ -794,7 +795,7 @@ def test_511(ceed_resource):
         assert abs(total - 1.0) < 1E-10
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for composite mass matrix operator
 # -------------------------------------------------------------------------------
 
 
@@ -969,7 +970,7 @@ def test_520(ceed_resource):
             assert abs(v_array[i]) < TOL
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# Test creation, action, and destruction for composite mass matrix operator
 # -------------------------------------------------------------------------------
 
 
@@ -1310,7 +1311,7 @@ def test_523(ceed_resource, capsys):
     assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
-# Test creation, action, and destruction for mass matrix operator
+# CeedOperatorApplyAdd for composite operator
 # -------------------------------------------------------------------------------
 
 
@@ -1496,5 +1497,102 @@ def test_524(ceed_resource):
         for i in range(ndofs):
             total = total + v_array[i]
         assert abs(total - 1.0) < 1E-10
+
+# -------------------------------------------------------------------------------
+# Test assembly of mass matrix operator diagonal
+# -------------------------------------------------------------------------------
+
+
+def test_533(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    nelem = 6
+    p = 3
+    q = 4
+    dim = 2
+    nx = 3
+    ny = 2
+    ndofs = (nx * 2 + 1) * (ny * 2 + 1)
+    nqpts = nelem * q * q
+
+    # Vectors
+    x = ceed.Vector(dim * ndofs)
+    x_array = np.zeros(dim * ndofs)
+    for i in range(nx * 2 + 1):
+        for j in range(ny * 2 + 1):
+            x_array[i + j * (nx * 2 + 1) + 0 * ndofs] = i / (2 * nx)
+            x_array[i + j * (nx * 2 + 1) + 1 * ndofs] = j / (2 * ny)
+    x.set_array(x_array, cmode=libceed.USE_POINTER)
+
+    qdata = ceed.Vector(nqpts)
+    u = ceed.Vector(ndofs)
+    v = ceed.Vector(ndofs)
+
+    # Restrictions
+    indx = np.zeros(nelem * p * p, dtype="int32")
+    for i in range(nelem):
+        col = i % nx
+        row = i // nx
+        offset = col * (p - 1) + row * (nx * 2 + 1) * (p - 1)
+        for j in range(p):
+            for k in range(p):
+                indx[p * (p * i + k) + j] = offset + k * (nx * 2 + 1) + j
+    rx = ceed.ElemRestriction(nelem, p * p, dim, ndofs, dim * ndofs,
+                              indx, cmode=libceed.USE_POINTER)
+
+    ru = ceed.ElemRestriction(nelem, p * p, 1, 1, ndofs, indx,
+                              cmode=libceed.USE_POINTER)
+    strides = np.array([1, q * q, q * q], dtype="int32")
+    rui = ceed.StridedElemRestriction(nelem, q * q, 1, nqpts, strides)
+
+    # Bases
+    bx = ceed.BasisTensorH1Lagrange(dim, dim, p, q, libceed.GAUSS)
+    bu = ceed.BasisTensorH1Lagrange(dim, 1, p, q, libceed.GAUSS)
+
+    # QFunctions
+    qf_setup = ceed.QFunctionByName("Mass2DBuild")
+    qf_mass = ceed.QFunctionByName("MassApply")
+
+    # Operators
+    op_setup = ceed.Operator(qf_setup)
+    op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                       libceed.VECTOR_NONE)
+    op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
+    op_setup.set_field("qdata", rui, libceed.BASIS_COLLOCATED,
+                       libceed.VECTOR_ACTIVE)
+
+    op_mass = ceed.Operator(qf_mass)
+    op_mass.set_field("qdata", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
+    op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
+
+    # Setup
+    op_setup.apply(x, qdata)
+
+    # Assemble diagonal
+    d = ceed.Vector(ndofs)
+    op_mass.linear_assemble_diagonal(d)
+
+    # Manually assemble diagonal
+    u.set_value(0.0)
+    d_true = np.zeros(ndofs)
+    for i in range(ndofs):
+        # Set input
+        with u.array() as u_array:
+            u_array[i] = 1.0
+            if (i):
+                u_array[i - 1] = 0.0
+
+        # Diagonal entry i
+        op_mass.apply(u, v)
+
+        # Retrieve entry
+        with v.array_read() as v_array:
+            d_true[i] = v_array[i]
+
+    # Check
+    with d.array_read() as d_array:
+        for i in range(ndofs):
+            assert abs(d_array[i] - d_true[i]) < TOL
 
 # -------------------------------------------------------------------------------

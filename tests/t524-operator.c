@@ -1,6 +1,6 @@
 /// @file
-/// Test creation creation, action, and destruction for mass matrix operator
-/// \test Test creation creation, action, and destruction for mass matrix operator
+/// Test CeedOperatorApplyAdd for composite operator
+/// \test CeedOperatorApplyAdd for composite operator
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
