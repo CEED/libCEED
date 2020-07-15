@@ -226,8 +226,6 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsEuler_loc,
     .applyVol_rhs              = Euler,
     .applyVol_rhs_loc          = Euler_loc,
- // .applySur                  = Euler_Sur,
-//  .applySur_loc              = Euler_Sur_loc,
     .bc                        = Exact_Euler,
     .non_zero_time             = PETSC_FALSE,  // TODO: this needs to be true
   },
@@ -947,36 +945,37 @@ int main(int argc, char **argv) {
   // *INDENT-ON*
 
   // Create the libCEED contexts
-  PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second     = 1e-2;     // 1 second in scaled time units
-  PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
-  PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
-  CeedScalar theta0      = 300.;     // K
-  CeedScalar thetaC      = -15.;     // K
-  CeedScalar P0          = 1.e5;     // Pa
-  CeedScalar E_wind      = 1.e6;     // J
-  CeedScalar N           = 0.01;     // 1/s
-  CeedScalar cv          = 717.;     // J/(kg K)
-  CeedScalar cp          = 1004.;    // J/(kg K)
-  CeedScalar g           = 9.81;     // m/s^2
-  CeedScalar lambda      = -2./3.;   // -
-  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
+  PetscScalar meter          = 1e-2;     // 1 meter in scaled length units
+  PetscScalar second         = 1e-2;     // 1 second in scaled time units
+  PetscScalar kilogram       = 1e-6;     // 1 kilogram in scaled mass units
+  PetscScalar Kelvin         = 1;        // 1 Kelvin in scaled temperature units
+  CeedScalar theta0          = 300.;     // K
+  CeedScalar thetaC          = -15.;     // K
+  CeedScalar P0              = 1.e5;     // Pa
+  CeedScalar E_wind          = 1.e6;     // J
+  CeedScalar N               = 0.01;     // 1/s
+  CeedScalar cv              = 717.;     // J/(kg K)
+  CeedScalar cp              = 1004.;    // J/(kg K)
+  CeedScalar vortex_strength = 5.;       // -
+  CeedScalar g               = 9.81;     // m/s^2
+  CeedScalar lambda          = -2./3.;   // -
+  CeedScalar mu              = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k           = 0.02638;  // W/(m K)
-  CeedScalar CtauS       = 0.;       // dimensionless
-  CeedScalar strong_form = 0.;       // [0,1]
-  PetscScalar lx         = 8000.;    // m
-  PetscScalar ly         = 8000.;    // m
-  PetscScalar lz         = 4000.;    // m
-  CeedScalar rc          = 1000.;    // m (Radius of bubble)
-  PetscScalar resx       = 1000.;    // m (resolution in x)
-  PetscScalar resy       = 1000.;    // m (resolution in y)
-  PetscScalar resz       = 1000.;    // m (resolution in z)
-  PetscInt outputfreq    = 10;       // -
-  PetscInt contsteps     = 0;        // -
-  PetscInt degree        = 1;        // -
-  PetscInt qextra        = 2;        // -
-  PetscInt qextraSur     = 2;        // -
+  CeedScalar k               = 0.02638;  // W/(m K)
+  CeedScalar CtauS           = 0.;       // dimensionless
+  CeedScalar strong_form     = 0.;       // [0,1]
+  PetscScalar lx             = 8000.;    // m
+  PetscScalar ly             = 8000.;    // m
+  PetscScalar lz             = 4000.;    // m
+  CeedScalar rc              = 1000.;    // m (Radius of bubble)
+  PetscScalar resx           = 1000.;    // m (resolution in x)
+  PetscScalar resy           = 1000.;    // m (resolution in y)
+  PetscScalar resz           = 1000.;    // m (resolution in z)
+  PetscInt outputfreq        = 10;       // -
+  PetscInt contsteps         = 0;        // -
+  PetscInt degree            = 1;        // -
+  PetscInt qextra            = 2;        // -
+  PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -1091,6 +1090,15 @@ int main(int argc, char **argv) {
                             NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
                             NULL, cp, &cp, NULL); CHKERRQ(ierr);
+  PetscBool userVortex;
+  ierr = PetscOptionsScalar("-vortex_strength", "Strength of Vortex",
+                            NULL, vortex_strength, &vortex_strength, &userVortex);
+  CHKERRQ(ierr);
+  if (problemChoice != NS_EULER_VORTEX && userVortex) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -vortex_strength only with -problem euler_vortex\n");
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
@@ -1237,6 +1245,7 @@ int main(int argc, char **argv) {
     .wind[1] = wind[1],
     .wind[2] = wind[2],
     .time = 0,
+    .vortex_strength = vortex_strength,
     .wind_type = wind_type,
   };
 
