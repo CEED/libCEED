@@ -119,7 +119,9 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
+  bool isDeterministic;
   void *data;
+  bool debug;
   foffset *foffsets;
 };
 
@@ -128,6 +130,7 @@ struct CeedVector_private {
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);
+  int (*TakeArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
   int (*RestoreArray)(CeedVector);
@@ -271,9 +274,12 @@ struct CeedOperator_private {
   int refcount;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
-  int (*LinearAssembleDiagonal)(CeedOperator, CeedVector *, CeedRequest *);
-  int (*LinearAssemblePointBlockDiagonal)(CeedOperator, CeedVector *,
+  int (*LinearAssembleDiagonal)(CeedOperator, CeedVector, CeedRequest *);
+  int (*LinearAssembleAddDiagonal)(CeedOperator, CeedVector, CeedRequest *);
+  int (*LinearAssemblePointBlockDiagonal)(CeedOperator, CeedVector,
                                           CeedRequest *);
+  int (*LinearAssembleAddPointBlockDiagonal)(CeedOperator, CeedVector,
+      CeedRequest *);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);

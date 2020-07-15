@@ -19,7 +19,7 @@
 #include "ceed-poisson2dapply.h"
 
 /**
-  @brief Set fields for Ceed QFunction applying the 2D poisson operator
+  @brief Set fields for Ceed QFunction applying the 2D Poisson operator
 **/
 static int CeedQFunctionInit_Poisson2DApply(Ceed ceed, const char *requested,
     CeedQFunction qf) {
@@ -44,7 +44,7 @@ static int CeedQFunctionInit_Poisson2DApply(Ceed ceed, const char *requested,
 }
 
 /**
-  @brief Register Ceed QFunction for applying the 2D poisson operator
+  @brief Register Ceed QFunction for applying the 2D Poisson operator
 **/
 __attribute__((constructor))
 static void Register(void) {

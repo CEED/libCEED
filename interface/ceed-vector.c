@@ -77,7 +77,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 /**
   @brief Add a refrence to a CeedVector
 
-  @param[out] vec     CeedVector to increment refrence counter
+  @param[out] vec     CeedVector to increment reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -166,7 +166,9 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
 /**
   @brief Set the array used by a CeedVector, freeing any previously allocated
-    array if applicable
+           array if applicable. The backend may copy values to a different
+           memtype, such as during @ref CeedOperatorApply().
+           See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
 
   @param vec   CeedVector
   @param mtype Memory type of the array being passed
@@ -233,7 +235,10 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 }
 
 /**
-  @brief Sync the CeedVector to a specified memtype
+  @brief Sync the CeedVector to a specified memtype. This function is used to
+           force synchronization of arrays set with @ref CeedVectorSetArray().
+           If the requested memtype is already synchronized, this function
+           results in a no-op.
 
   @param vec        CeedVector
   @param mtype      Memtype to be synced
@@ -261,12 +266,48 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
 }
 
 /**
-  @brief Get read/write access to a CeedVector via the specified memory type
+  @brief Take ownership of the CeedVector array and remove the array from the
+           CeedVector. The caller is responsible for managing and freeing
+           the array.
+
+  @param vec        CeedVector
+  @param mtype      Memory type on which to take the array. If the backend
+                    uses a different memory type, this will perform a copy.
+  @param[out] array Array on memory type mtype, or NULL if array pointer is
+                      not required
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
+  int ierr;
+
+  if (vec->state % 2 == 1)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Cannot take CeedVector array, the access "
+                     "lock is already in use");
+  // LCOV_EXCL_STOP
+  if (vec->numreaders > 0)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1, "Cannot take CeedVector array, a process "
+                     "has read access");
+  // LCOV_EXCL_STOP
+
+  CeedScalar *tempArray = NULL;
+  ierr = vec->TakeArray(vec, mtype, &tempArray); CeedChk(ierr);
+  if (array)
+    (*array) = tempArray;
+  return 0;
+}
+
+/**
+  @brief Get read/write access to a CeedVector via the specified memory type.
+           Restore access with @ref CeedVectorRestoreArray().
 
   @param vec        CeedVector to access
-  @param mtype      Memory type on which to access the array.  If the backend
-                    uses a different memory type, this will perform a copy and
-                    CeedVectorRestoreArray() will copy back.
+  @param mtype      Memory type on which to access the array. If the backend
+                    uses a different memory type, this will perform a copy.
   @param[out] array Array on memory type mtype
 
   @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
@@ -301,7 +342,8 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
 }
 
 /**
-  @brief Get read-only access to a CeedVector via the specified memory type
+  @brief Get read-only access to a CeedVector via the specified memory type.
+           Restore access with @ref CeedVectorRestoreArrayRead().
 
   @param vec        CeedVector to access
   @param mtype      Memory type on which to access the array.  If the backend
@@ -333,7 +375,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
 }
 
 /**
-  @brief Restore an array obtained using CeedVectorGetArray()
+  @brief Restore an array obtained using @ref CeedVectorGetArray()
 
   @param vec     CeedVector to restore
   @param array   Array of vector data
@@ -362,7 +404,7 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 }
 
 /**
-  @brief Restore an array obtained using CeedVectorGetArrayRead()
+  @brief Restore an array obtained using @ref CeedVectorGetArrayRead()
 
   @param vec     CeedVector to restore
   @param array   Array of vector data

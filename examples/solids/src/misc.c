@@ -52,13 +52,28 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
   jacobianCtx->phys = phys;
   jacobianCtx->physSmoother = physSmoother;
 
+  // Get/Restore Array
+  jacobianCtx->memType = appCtx->memTypeRequested;
+  if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+    jacobianCtx->VecGetArray = VecGetArray;
+    jacobianCtx->VecGetArrayRead = VecGetArrayRead;
+    jacobianCtx->VecRestoreArray = VecRestoreArray;
+    jacobianCtx->VecRestoreArrayRead = VecRestoreArrayRead;
+  } else {
+    jacobianCtx->VecGetArray = VecCUDAGetArray;
+    jacobianCtx->VecGetArrayRead = VecCUDAGetArrayRead;
+    jacobianCtx->VecRestoreArray = VecCUDARestoreArray;
+    jacobianCtx->VecRestoreArrayRead = VecCUDARestoreArrayRead;
+  }
+
   PetscFunctionReturn(0);
 };
 
 // Setup context data for prolongation and restriction operators
-PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, DM dmC, DM dmF, Vec VF,
-                                       Vec VlocC, Vec VlocF, CeedData ceedDataC,
-                                       CeedData ceedDataF, Ceed ceed,
+PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, AppCtx appCtx, DM dmC,
+                                       DM dmF, Vec VF, Vec VlocC, Vec VlocF,
+                                       CeedData ceedDataC, CeedData ceedDataF,
+                                       Ceed ceed,
                                        UserMultProlongRestr prolongRestrCtx) {
   PetscErrorCode ierr;
   PetscScalar *multArray;
@@ -83,18 +98,33 @@ PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, DM dmC, DM dmF, Vec VF,
   // Ceed
   prolongRestrCtx->ceed = ceed;
 
+  // Get/Restore Array
+  prolongRestrCtx->memType = appCtx->memTypeRequested;
+  if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+    prolongRestrCtx->VecGetArray = VecGetArray;
+    prolongRestrCtx->VecGetArrayRead = VecGetArrayRead;
+    prolongRestrCtx->VecRestoreArray = VecRestoreArray;
+    prolongRestrCtx->VecRestoreArrayRead = VecRestoreArrayRead;
+  } else {
+    prolongRestrCtx->VecGetArray = VecCUDAGetArray;
+    prolongRestrCtx->VecGetArrayRead = VecCUDAGetArrayRead;
+    prolongRestrCtx->VecRestoreArray = VecCUDARestoreArray;
+    prolongRestrCtx->VecRestoreArrayRead = VecCUDARestoreArrayRead;
+  }
+
   // Multiplicity vector
   // -- Set libCEED vector
   ierr = VecZeroEntries(VlocF);
-  ierr = VecGetArray(VlocF, &multArray); CHKERRQ(ierr);
-  CeedVectorSetArray(ceedDataF->xceed, CEED_MEM_HOST, CEED_USE_POINTER,
-                     multArray);
+  ierr = prolongRestrCtx->VecGetArray(VlocF, &multArray); CHKERRQ(ierr);
+  CeedVectorSetArray(ceedDataF->xceed, appCtx->memTypeRequested,
+                     CEED_USE_POINTER, multArray);
 
   // -- Compute multiplicity
   CeedElemRestrictionGetMultiplicity(ceedDataF->Erestrictu, ceedDataF->xceed);
 
   // -- Restore PETSc vector
-  ierr = VecRestoreArray(VlocF, &multArray); CHKERRQ(ierr);
+  CeedVectorTakeArray(ceedDataF->xceed, appCtx->memTypeRequested, NULL);
+  ierr = prolongRestrCtx->VecRestoreArray(VlocF, &multArray); CHKERRQ(ierr);
 
   // -- Local-to-global
   ierr = VecZeroEntries(VF); CHKERRQ(ierr);
@@ -218,18 +248,18 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   ierr = VecZeroEntries(Yloc); CHKERRQ(ierr);
 
   // -- Setup CEED vectors
-  ierr = VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
+  ierr = user->VecGetArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
-  ierr = VecGetArray(Yloc, &y); CHKERRQ(ierr);
-  CeedVectorSetArray(user->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorSetArray(Yceed, CEED_MEM_HOST, CEED_USE_POINTER, y);
+  ierr = user->VecGetArray(Yloc, &y); CHKERRQ(ierr);
+  CeedVectorSetArray(user->Xceed, user->memType, CEED_USE_POINTER, x);
+  CeedVectorSetArray(Yceed, user->memType, CEED_USE_POINTER, y);
 
   // -- Apply CEED operator
   CeedOperatorApply(user->op, user->Xceed, Yceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(Yceed, CEED_MEM_HOST);
 
-  // -- Restore PETSc vectors
-  ierr = VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
+  // -- Restore PETSc vector
+  CeedVectorTakeArray(user->Xceed, user->memType, NULL);
+  ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
 
   // -- Local-to-global
@@ -248,7 +278,8 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   CeedElemRestrictionGetMultiplicity(ErestrictDiagnostic, Yceed);
 
   // -- Restore vectors
-  ierr = VecRestoreArray(Yloc, &y); CHKERRQ(ierr);
+  CeedVectorTakeArray(Yceed, user->memType, NULL);
+  ierr = user->VecRestoreArray(Yloc, &y); CHKERRQ(ierr);
 
   // -- Local-to-global
   ierr = VecZeroEntries(MultVec); CHKERRQ(ierr);

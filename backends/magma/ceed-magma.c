@@ -32,8 +32,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
-
-  // Create refrence CEED that implementation will be dispatched
+  // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/gpu/cuda/ref", &ceedref);
@@ -77,6 +76,5 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/magma", CeedInit_Magma,20);
+  CeedRegister("/gpu/magma", CeedInit_Magma, 20);
 }
-

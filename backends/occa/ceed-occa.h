@@ -109,7 +109,6 @@ typedef struct {
 // *****************************************************************************
 typedef struct {
   occaDevice device;
-  bool debug;
   bool ocl;
   char *libceed_dir;
   char *occa_cache_dir;
@@ -121,18 +120,6 @@ CEED_INTERN int CeedOklPath_Occa(const Ceed, const char *, const char *,
 
 // *****************************************************************************
 CEED_INTERN int CeedOklDladdr_Occa(Ceed);
-
-// *****************************************************************************
-// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & dbg macros
-// *****************************************************************************
-#ifndef CEED_DEBUG_COLOR
-#define CEED_DEBUG_COLOR 0
-#endif
-void CeedDebugImpl(const Ceed,const char *,...);
-void CeedDebugImpl256(const Ceed,const unsigned char,const char *,...);
-#define CeedDebug(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
-#define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
-#define dbg(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
 
 // *****************************************************************************
 CEED_INTERN int CeedBasisCreateTensorH1_Occa(CeedInt dim,

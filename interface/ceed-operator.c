@@ -797,7 +797,7 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 /**
   @brief Assemble the diagonal of a square linear CeedOperator
 
-  This returns a CeedVector containing the diagonal of a linear CeedOperator.
+  This overwrites a CeedVector with the diagonal of a linear CeedOperator.
 
   Note: Currently only non-composite CeedOperators with a single field and
           composite CeedOperators with single field sub-operators are supported.
@@ -811,7 +811,7 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 
   @ref User
 **/
-int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
+int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
                                        CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
@@ -820,13 +820,61 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
   // Use backend version, if available
   if (op->LinearAssembleDiagonal) {
     ierr = op->LinearAssembleDiagonal(op, assembled, request); CeedChk(ierr);
+  } else if (op->LinearAssembleAddDiagonal) {
+    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
+    return CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
   } else {
     // Fallback to reference Ceed
     if (!op->opfallback) {
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = op->opfallback->LinearAssembleDiagonal(op->opfallback, assembled,
+    if (op->opfallback->LinearAssembleDiagonal) {
+      ierr = op->opfallback->LinearAssembleDiagonal(op->opfallback, assembled,
+             request); CeedChk(ierr);
+    } else {
+      ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
+      return CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
+    }
+  }
+
+  return 0;
+}
+
+/**
+  @brief Assemble the diagonal of a square linear CeedOperator
+
+  This sums into a CeedVector the diagonal of a linear CeedOperator.
+
+  Note: Currently only non-composite CeedOperators with a single field and
+          composite CeedOperators with single field sub-operators are supported.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator diagonal
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
+    CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
+
+  // Use backend version, if available
+  if (op->LinearAssembleAddDiagonal) {
+    ierr = op->LinearAssembleAddDiagonal(op, assembled, request); CeedChk(ierr);
+  } else {
+    // Fallback to reference Ceed
+    if (!op->opfallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
+    // Assemble
+    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
+    ierr = op->opfallback->LinearAssembleAddDiagonal(op->opfallback, assembled,
            request); CeedChk(ierr);
   }
 
@@ -836,7 +884,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
 /**
   @brief Assemble the point block diagonal of a square linear CeedOperator
 
-  This returns a CeedVector containing the point block diagonal of a linear
+  This overwrites a CeedVector with the point block diagonal of a linear
     CeedOperator.
 
   Note: Currently only non-composite CeedOperators with a single field and
@@ -857,8 +905,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector *assembled,
   @ref User
 **/
 int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
-    CeedVector *assembled,
-    CeedRequest *request) {
+    CeedVector assembled, CeedRequest *request) {
   int ierr;
   Ceed ceed = op->ceed;
   ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
@@ -867,13 +914,69 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
   if (op->LinearAssemblePointBlockDiagonal) {
     ierr = op->LinearAssemblePointBlockDiagonal(op, assembled, request);
     CeedChk(ierr);
+  } else if (op->LinearAssembleAddPointBlockDiagonal) {
+    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
+    return CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled,
+           request);
   } else {
     // Fallback to reference Ceed
     if (!op->opfallback) {
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = op->opfallback->LinearAssemblePointBlockDiagonal(op->opfallback,
+    if (op->opfallback->LinearAssemblePointBlockDiagonal) {
+      ierr = op->opfallback->LinearAssemblePointBlockDiagonal(op->opfallback,
+             assembled, request); CeedChk(ierr);
+    } else {
+      ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
+      return CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled,
+             request);
+    }
+  }
+
+  return 0;
+}
+
+/**
+  @brief Assemble the point block diagonal of a square linear CeedOperator
+
+  This sums into a CeedVector with the point block diagonal of a linear
+    CeedOperator.
+
+  Note: Currently only non-composite CeedOperators with a single field and
+          composite CeedOperators with single field sub-operators are supported.
+
+  @param op             CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator point block
+                          diagonal, provided in row-major form with an
+                          @a ncomp * @a ncomp block at each node. The dimensions
+                          of this vector are derived from the active vector
+                          for the CeedOperator. The array has shape
+                          [nodes, component out, component in].
+  @param request        Address of CeedRequest for non-blocking completion, else
+                          CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
+    CeedVector assembled, CeedRequest *request) {
+  int ierr;
+  Ceed ceed = op->ceed;
+  ierr = CeedOperatorCheckReady(ceed, op); CeedChk(ierr);
+
+  // Use backend version, if available
+  if (op->LinearAssembleAddPointBlockDiagonal) {
+    ierr = op->LinearAssembleAddPointBlockDiagonal(op, assembled, request);
+    CeedChk(ierr);
+  } else {
+    // Fallback to reference Ceed
+    if (!op->opfallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
+    // Assemble
+    ierr = op->opfallback->LinearAssembleAddPointBlockDiagonal(op->opfallback,
            assembled, request); CeedChk(ierr);
   }
 

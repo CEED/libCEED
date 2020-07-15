@@ -6,7 +6,7 @@ Compressible Navier-Stokes mini-app
 This example is located in the subdirectory :file:`examples/fluids`. It solves
 the time-dependent Navier-Stokes equations of compressible gas dynamics in a static
 Eulerian three-dimensional frame using unstructured high-order finite/spectral
-element spatial discretizations and explicit high-order time-stepping (available in
+element spatial discretizations and explicit or implicit high-order time-stepping (available in
 PETSc). Moreover, the Navier-Stokes example has been developed using PETSc, so that the
 pointwise physics (defined at quadrature points) is separated from the parallelization
 and meshing concerns.
@@ -272,16 +272,50 @@ of total energy, is given by
    :label: eq-advection
 
 with :math:`\bm{u}` the vector velocity field. In this particular test case, a
-blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by
-a uniform circular velocity field. We have solved :math:numref:`eq-advection`
-with zero energy density :math:`E`, and no-flux for :math:`\bm{u}`.
-The :math:`3D` version of this problem can be run with::
+blob of total energy (defined by a characteristic radius :math:`r_c`) is transported by two
+different wind types.
 
-   ./navierstokes -problem advection
+- **Rotation**
 
-while the :math:`2D` version with::
+   In this case, a uniform circular velocity field transports the blob of total energy. We have
+   solved :math:numref:`eq-advection` applying zero energy density :math:`E`, and no-flux for
+   :math:`\bm{u}` on the boundaries.
 
-   ./navierstokes -problem advection2d
+   The :math:`3D` version of this test case can be run with::
+
+      ./navierstokes -problem advection -problem_advection_wind rotation
+
+   while the :math:`2D` version with::
+
+      ./navierstokes -problem advection2d -problem_advection_wind rotation
+
+- **Translation**
+
+   In this case, a background wind with a constant rectilinear velocity field, enters the domain and transports
+   the blob of total energy out of the domain.
+
+   For the inflow boundary conditions, a prescribed :math:`E_{wind}` is applied weakly on the inflow boundaries
+   such that the weak form boundary integral in :math:numref:`eq-weak-vector-ns` is defined as
+
+   .. math::
+      \int_{\partial \Omega_{inflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{inflow}} \bm v \, E_{wind} \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
+
+   For the outflow boundary conditions, we have used the current values of :math:`E`, following
+   :cite:`papanastasiou1992outflow` which extends the validity of the weak form of the governing
+   equations to the outflow instead of replacing them with unknown essential or natural
+   boundary conditions. The weak form boundary integral in :math:numref:`eq-weak-vector-ns` for
+   outflow boundary conditions is defined as
+
+   .. math::
+      \int_{\partial \Omega_{outflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{outflow}} \bm v \, E \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
+
+   The :math:`3D` version of this test case problem can be run with::
+
+      ./navierstokes -problem advection -problem_advection_wind translation -problem_advection_wind translation .5,-1,0
+
+   while the :math:`2D` version with::
+
+      ./navierstokes -problem advection2d -problem_advection_wind translation -problem_advection_wind translation 1,-.5
 
 
 .. _problem-density-current:

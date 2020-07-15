@@ -14,10 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include "ceed-cuda-gen.h"
 #include "ceed-cuda-gen-operator-build.h"
-#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
@@ -185,28 +183,6 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
 }
 
 //------------------------------------------------------------------------------
-// Assemble linear diagonal not supported
-//------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleDiagonal_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1,
-                   "Backend does not implement Operator diagonal assembly");
-}
-
-//------------------------------------------------------------------------------
-// Assemble linear point block diagonal not supported
-//------------------------------------------------------------------------------
-static int CeedOperatorLinearAssemblePointBlockDiagonal_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1,
-                   "Backend does not implement Operator point block diagonal assembly");
-}
-
-//------------------------------------------------------------------------------
 // Create FDM element inverse not supported
 //------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
@@ -228,13 +204,6 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
-                                CeedOperatorLinearAssembleDiagonal_Cuda);
-  CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemblePointBlockDiagonal",
-                                CeedOperatorLinearAssemblePointBlockDiagonal_Cuda);
-  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Cuda);
   CeedChk(ierr);

@@ -110,26 +110,25 @@ install:
         export PATH="/usr/local/opt/ccache/libexec:$PATH"
         && brew link --overwrite gcc;
     fi
-# OCCA
+# OCCA (pinned before OCCA changed destructor syntax)
   - git clone https://github.com/libocca/occa.git
         && cd occa && git reset --hard 327badb && cd ..
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
-# LIBXSMM v1.15 (need to use specific commit, XSMM develops on master)
+# LIBXSMM v1.16.1
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
-        git clone https://github.com/hfp/libxsmm.git
-        && cd libxsmm && git reset --hard 724205c && cd ..
+        git clone --depth=1 --branch 1.16.1 https://github.com/hfp/libxsmm.git
         && make -C libxsmm -j2
         && export XSMM_DIR=$PWD/libxsmm;
     fi
-# MFEM
-  - git clone --depth 1 https://github.com/mfem/mfem.git;
-  - make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
-  - export MFEM_DIR=$PWD/mfem
-# Nek5k
-  - git clone --depth 1 https://github.com/Nek5000/Nek5000.git;
-  - cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..;
-  - export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
+# MFEM v4.1
+  - git clone --depth 1 --branch v4.1 https://github.com/mfem/mfem.git
+        && make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
+        && export MFEM_DIR=$PWD/mfem
+# Nek5k v19.0
+  - git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git
+        && cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..
+        && export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
 # PETSc
   - PETSC_COMMIT=afc36f2e62dc81f9d8cae345c2c65c61f89b0500 # master 2020-05-13
   - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT

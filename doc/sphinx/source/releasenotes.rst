@@ -4,18 +4,25 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
-.. _master:
+.. _main:
 
-Current Master
+Current Main
 ----------------------------------------
 
-The current master branch contains bug fixes and interfaces changes.
+The current ``main`` branch contains bug fixes and interfaces changes.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * Replace limited :code:`CeedInterlaceMode` with more flexible component stride :code:`compstride` in :code:`CeedElemRestriction` constructors.
   As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
   These changes improve support for mixed finite element methods.
+* Replace various uses of :code:`Ceed*Get*Status` with :code:`Ceed*Is*` in the backend API to match common nomenclature.
+* Replace :code:`CeedOperatorAssembleLinearDiagonal` with :cpp:func:`CeedOperatorLinearAssembleDiagonal` for clarity.
+* Linear Operators can be assembled as point-block diagonal matices with :cpp:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
+* Diagonal assemble interface changed to accept a :ref:`CeedVector` instead of a pointer to a :ref:`CeedVector` to reduce memory movement when interfacing with calling code.
+* Added :cpp:func:`CeedOperatorLinearAssembleAddDiagonal` and :cpp:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
+* Added :cpp:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
+  This function is recommended over :cpp:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :cpp:func:`CeedVectorSetArray`.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -35,7 +42,7 @@ New features
   1-1 correspondence with the C interface, plus some convenience features.  For instance,
   data stored in the :cpp:type:`CeedVector` structure are available without copy as
   :py:class:`numpy.ndarray`.  Short tutorials are provided in
-  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/master?urlpath=lab/tree/examples/tutorials/>`_.
+  `Binder <https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/>`_.
 * Linear QFunctions can be assembled as block-diagonal matrices (per quadrature point,
   :cpp:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
   (:cpp:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for

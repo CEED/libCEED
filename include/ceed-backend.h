@@ -29,6 +29,17 @@
 #define CEED_COMPOSITE_MAX 16
 #define CEED_EPSILON 1E-16
 
+/// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & macros
+#ifndef CEED_DEBUG_COLOR
+#define CEED_DEBUG_COLOR 0
+#endif
+CEED_EXTERN void CeedDebugImpl(const Ceed,const char *,...);
+CEED_EXTERN void CeedDebugImpl256(const Ceed,const unsigned char,const char *,
+                                  ...);
+#define CeedDebug1(ceed,format, ...) CeedDebugImpl(ceed,format, ## __VA_ARGS__)
+#define CeedDebug256(ceed,color, ...) CeedDebugImpl256(ceed,color, ## __VA_ARGS__)
+#define CeedDebug(...) CeedDebug256(ceed,(unsigned char)CEED_DEBUG_COLOR, ## __VA_ARGS__)
+
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
 typedef struct CeedTensorContract_private *CeedTensorContract;
@@ -59,6 +70,7 @@ CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed),
                              unsigned int priority);
 
+CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *isDebug);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);
@@ -71,6 +83,7 @@ CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
     const char *resource);
 CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
+CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool isDeterministic);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed,
                                        const char *type, void *object,
                                        const char *fname, int (*f)());

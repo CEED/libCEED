@@ -14,38 +14,32 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-xsmm.h"
+#include "ceed-magma.h"
 
-//------------------------------------------------------------------------------
-// Backend Init
-//------------------------------------------------------------------------------
-static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
+static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/xsmm/serial"))
+  if (strcmp(resource, "/gpu/magma/det"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "serial libXSMM backend cannot use resource: %s",
-                     resource);
+    return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
-  CeedInit("/cpu/self/opt/serial", &ceedref);
+  CeedInit("/gpu/magma", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Xsmm); CeedChk(ierr);
+  // Create reference CEED for restriction
+  Ceed restrictionceedref;
+  CeedInit("/gpu/cuda/reg", &restrictionceedref);
+  ierr = CeedSetObjectDelegate(ceed, restrictionceedref, "ElemRestriction");
+  CeedChk(ierr);
 
   return 0;
 }
 
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
+  CeedRegister("/gpu/magma/det", CeedInit_Magma_Det, 25);
 }
-//------------------------------------------------------------------------------

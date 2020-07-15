@@ -35,7 +35,7 @@
 //     ./bpsraw -problem bp5 -ceed /omp/occa
 //     ./bpsraw -problem bp6 -ceed /ocl/occa
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 5
+//TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 1 -ksp_max_it_clip 15,15
 
 /// @file
 /// CEED BPs example using PETSc
@@ -232,7 +232,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -264,7 +264,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -298,9 +298,10 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  CeedVectorTakeArray(user->yceed, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -344,9 +345,10 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  CeedVectorTakeArray(user->yceed, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -420,7 +422,7 @@ int main(int argc, char **argv) {
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, qextra, localnodes, localelem, melem[3], mnodes[3], p[3],
-           irank[3], lnodes[3], lsize, ncompu = 1;
+           irank[3], lnodes[3], lsize, ncompu = 1, ksp_max_it_clip[2];
   PetscScalar *r;
   PetscBool test_mode, benchmark_mode, write_solution;
   PetscMPIInt size, rank;
@@ -490,6 +492,13 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-local",
                          "Target number of locally owned nodes per process",
                          NULL, localnodes, &localnodes, NULL); CHKERRQ(ierr);
+  PetscInt two = 2;
+  ksp_max_it_clip[0] = 5;
+  ksp_max_it_clip[1] = 20;
+  ierr = PetscOptionsIntArray("-ksp_max_it_clip",
+                              "Min and max number of iterations to use during benchmarking",
+                              NULL, ksp_max_it_clip, &two, NULL);
+  CHKERRQ(ierr);
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype",
                           "CEED MemType requested", NULL,
@@ -844,10 +853,10 @@ int main(int argc, char **argv) {
   // Setup qdata, rhs, and target
   CeedOperatorApply(opsetupgeo, xcoord, qdata, CEED_REQUEST_IMMEDIATE);
   CeedOperatorApply(opsetuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-  ierr = CeedVectorSyncArray(rhsceed, user->memtype); CHKERRQ(ierr);
   CeedVectorDestroy(&xcoord);
 
   // Gather RHS
+  ierr = CeedVectorTakeArray(rhsceed, user->memtype, NULL); CHKERRQ(ierr);
   ierr = user->VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
   ierr = VecScatterBegin(ltog, rhsloc, rhs, ADD_VALUES, SCATTER_FORWARD);
@@ -882,11 +891,11 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   // Set maxits based on first iteration timing
   if (my_rt > 0.02) {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5);
-    CHKERRQ(ierr);
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            ksp_max_it_clip[0]); CHKERRQ(ierr);
   } else {
-    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 20);
-    CHKERRQ(ierr);
+    ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT,
+                            ksp_max_it_clip[1]); CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
@@ -916,7 +925,7 @@ int main(int argc, char **argv) {
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    if (!test_mode || reason < 0 || rnorm > 1e-8) {
+    if (!test_mode || reason < 0 || rnorm > 1e-9) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"

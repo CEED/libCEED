@@ -118,9 +118,9 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
 
       break;
     case CEED_EVAL_DIV:
-      break; // Not implimented
+      break; // Not implemented
     case CEED_EVAL_CURL:
-      break; // Not implimented
+      break; // Not implemented
     }
   }
   return 0;

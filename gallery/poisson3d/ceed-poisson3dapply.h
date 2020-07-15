@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the geometric data for the 3D poisson
+  @brief Ceed QFunction for applying the geometric data for the 3D Poisson
            operator
 **/
 

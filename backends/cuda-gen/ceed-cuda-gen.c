@@ -14,12 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
@@ -29,7 +25,9 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
   if (strncmp(resource, "/gpu/cuda/gen", nrc))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
 
   Ceed ceedshared;
   CeedInit("/gpu/cuda/shared", &ceedshared);
@@ -47,6 +45,8 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Cuda_gen); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda_gen); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Cuda); CeedChk(ierr);
   return 0;
 }
 
@@ -55,6 +55,6 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 40);
+  CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
 }
 //------------------------------------------------------------------------------

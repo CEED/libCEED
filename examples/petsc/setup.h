@@ -253,7 +253,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -289,7 +289,7 @@ bpData bpOptions[6] = {
     .error = Error3,
     .setupgeofname = SetupDiffGeo_loc,
     .setuprhsfname = SetupDiffRhs3_loc,
-    .applyfname = Diff_loc,
+    .applyfname = Diff3_loc,
     .errorfname = Error3_loc,
     .inmode = CEED_EVAL_GRAD,
     .outmode = CEED_EVAL_GRAD,
@@ -617,7 +617,6 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt dim,
 
     // Setup RHS and target
     CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorSyncArray(rhsceed, CEED_MEM_HOST);
 
     // Cleanup
     CeedQFunctionDestroy(&qf_setuprhs);
@@ -711,25 +710,24 @@ static PetscErrorCode MatGetDiag(Mat A, Vec D) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Compute Diagonal via libCEED
-  CeedVector ceedDiagVec;
-  const CeedScalar *diagArray;
+  PetscScalar *x;
+
+  // -- Place PETSc vector in libCEED vector
+  ierr = user->VecGetArray(user->Xloc, &x); CHKERRQ(ierr);
+  CeedVectorSetArray(user->xceed, user->memtype, CEED_USE_POINTER, x);
 
   // -- Compute Diagonal
-  CeedOperatorLinearAssembleDiagonal(user->op, &ceedDiagVec,
+  CeedOperatorLinearAssembleDiagonal(user->op, user->xceed,
                                      CEED_REQUEST_IMMEDIATE);
 
-  // -- Place in PETSc vector
-  CeedVectorGetArrayRead(ceedDiagVec, CEED_MEM_HOST, &diagArray);
-  ierr = VecPlaceArray(user->Xloc, diagArray); CHKERRQ(ierr);
-
   // -- Local-to-Global
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  ierr = user->VecRestoreArray(user->Xloc, &x); CHKERRQ(ierr);
   ierr = VecZeroEntries(D); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, user->Xloc, ADD_VALUES, D); CHKERRQ(ierr);
 
-  // -- Cleanup
-  ierr = VecResetArray(user->Xloc); CHKERRQ(ierr);
-  CeedVectorRestoreArrayRead(ceedDiagVec, &diagArray);
-  CeedVectorDestroy(&ceedDiagVec);
+  // Cleanup
+  ierr = VecZeroEntries(user->Xloc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -754,9 +752,10 @@ static PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, UserO user) {
 
   // Apply libCEED operator
   CeedOperatorApply(user->op, user->xceed, user->yceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->yceed, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
+  CeedVectorTakeArray(user->yceed, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->Yloc, &y); CHKERRQ(ierr);
@@ -824,10 +823,11 @@ static PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   // Apply libCEED operator
   CeedOperatorApply(user->opprolong, user->ceedvecc, user->ceedvecf,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecf, user->memtype);
 
   // Restore PETSc vectors
-  ierr = user->VecRestoreArrayRead(user->locvecc, (const PetscScalar **)c);
+  CeedVectorTakeArray(user->ceedvecc, user->memtype, NULL);
+  CeedVectorTakeArray(user->ceedvecf, user->memtype, NULL);
+  ierr = user->VecRestoreArrayRead(user->locvecc, (const PetscScalar **)&c);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->locvecf, &f); CHKERRQ(ierr);
 
@@ -873,9 +873,10 @@ static PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   // Apply CEED operator
   CeedOperatorApply(user->oprestrict, user->ceedvecf, user->ceedvecc,
                     CEED_REQUEST_IMMEDIATE);
-  CeedVectorSyncArray(user->ceedvecc, user->memtype);
 
   // Restore PETSc vectors
+  CeedVectorTakeArray(user->ceedvecc, user->memtype, NULL);
+  CeedVectorTakeArray(user->ceedvecf, user->memtype, NULL);
   ierr = user->VecRestoreArrayRead(user->locvecf, (const PetscScalar **)&f);
   CHKERRQ(ierr);
   ierr = user->VecRestoreArray(user->locvecc, &c); CHKERRQ(ierr);
@@ -913,6 +914,7 @@ static PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
   // Apply libCEED operator
   CeedOperatorApply(op_error, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
+  CeedVectorTakeArray(user->xceed, user->memtype, NULL);
 
   // Restore PETSc vector
   ierr = user->VecRestoreArrayRead(user->Xloc, (const PetscScalar **)&x);

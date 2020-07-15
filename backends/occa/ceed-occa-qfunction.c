@@ -47,10 +47,10 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   const bool ocl = ceed_data->ocl;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
-  dbg("[CeedQFunction][BuildKernel] nc=%d",data->nc);
-  dbg("[CeedQFunction][BuildKernel] dim=%d",data->dim);
-  dbg("[CeedQFunction][BuildKernel] nelem=%d",data->nelem);
-  dbg("[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
+  CeedDebug("[CeedQFunction][BuildKernel] nc=%d",data->nc);
+  CeedDebug("[CeedQFunction][BuildKernel] dim=%d",data->dim);
+  CeedDebug("[CeedQFunction][BuildKernel] nelem=%d",data->nelem);
+  CeedDebug("[CeedQFunction][BuildKernel] elemsize=%d",data->elemsize);
   occaProperties pKR = occaCreateProperties();
   occaPropertiesSet(pKR, "defines/NC", occaInt(data->nc));
   occaPropertiesSet(pKR, "defines/DIM", occaInt(data->dim));
@@ -60,9 +60,9 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   // OCCA+MacOS implementation need that for now
   const CeedInt tile_size = ocl?1:q_tile_size;
   occaPropertiesSet(pKR, "defines/TILE_SIZE", occaInt(tile_size));
-  dbg("[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
-  dbg("[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
-  dbg("[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
+  CeedDebug("[CeedQFunction][BuildKernel] occaDeviceBuildKernel");
+  CeedDebug("[CeedQFunction][BuildKernel] oklPath=%s",data->oklPath);
+  CeedDebug("[CeedQFunction][BuildKernel] name=%s",data->qFunctionName);
   data->kQFunctionApply =
     occaDeviceBuildKernel(dev, data->oklPath, data->qFunctionName, pKR);
   occaFree(pKR);
@@ -82,7 +82,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-  dbg("[CeedQFunction][Apply]");
+  CeedDebug("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   const bool from_operator_apply = data->op;
@@ -111,7 +111,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
     data->ready=true;
     CeedQFunctionBuildKernel(qf,Q);
     if (!from_operator_apply) { // like coming directly from t20-qfunction
-      dbg("[CeedQFunction][Apply] NO operator_setup");
+      CeedDebug("[CeedQFunction][Apply] NO operator_setup");
       CeedQFunctionAllocNoOpIn_Occa(qf,Q,&data->idx,data->iOf7);
       CeedQFunctionAllocNoOpOut_Occa(qf,Q,&data->odx,data->oOf7);
     } else { // coming from operator_apply
@@ -128,7 +128,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   if (!from_operator_apply) {
     CeedQFunctionFillNoOp_Occa(qf,Q,d_indata,data->iOf7,data->oOf7,in);
   } else {
-    dbg("[CeedQFunction][Apply] Operator setup, filling");
+    CeedDebug("[CeedQFunction][Apply] Operator setup, filling");
     CeedQFunctionFillOp_Occa(qf,Q,d_indata,data->iOf7,data->oOf7,in);
   }
 
@@ -140,7 +140,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   }
 
   // ***************************************************************************
-  dbg("[CeedQFunction][Apply] occaKernelRun");
+  CeedDebug("[CeedQFunction][Apply] occaKernelRun");
   occaKernelRun(data->kQFunctionApply,
                 d_ctx, occaInt(Q),
                 d_idx, d_odx,
@@ -165,17 +165,17 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
     const CeedInt dim = data->dim;
     switch (emode) {
     case CEED_EVAL_NONE:
-      dbg("[CeedQFunction][Apply] out \"%s\" NONE",name);
+      CeedDebug("[CeedQFunction][Apply] out \"%s\" NONE",name);
       occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
                        NO_PROPS);
       break;
     case CEED_EVAL_INTERP:
-      dbg("[CeedQFunction][Apply] out \"%s\" INTERP",name);
+      CeedDebug("[CeedQFunction][Apply] out \"%s\" INTERP",name);
       occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*nelem*bytes,data->oOf7[i]*bytes,
                        NO_PROPS);
       break;
     case CEED_EVAL_GRAD:
-      dbg("[CeedQFunction][Apply] out \"%s\" GRAD",name);
+      CeedDebug("[CeedQFunction][Apply] out \"%s\" GRAD",name);
       ncomp /= dim;
       occaCopyMemToPtr(out[i],d_outdata,Q*ncomp*dim*nelem*bytes,data->oOf7[i]*bytes,
                        NO_PROPS);
@@ -208,7 +208,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   const bool operator_setup = data->op;
   free(data->oklPath);
-  dbg("[CeedQFunction][Destroy]");
+  CeedDebug("[CeedQFunction][Destroy]");
   occaFree(data->kQFunctionApply);
   if (data->ready) {
     if (!operator_setup) {
@@ -247,7 +247,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   // Locate last ':' character in qf->source ************************************
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
-  dbg("[CeedQFunction][Create] source path: %s",source);
+  CeedDebug("[CeedQFunction][Create] source path: %s",source);
   const char *last_colon = strrchr(source,':');
   const char *last_dot = strrchr(source,'.');
   if (!last_colon)
@@ -256,20 +256,20 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
     return CeedError(ceed, 1, "Can not find '.' in source path field!");
   // get the function name
   data->qFunctionName = last_colon+1;
-  dbg("[CeedQFunction][Create] qFunctionName: %s",data->qFunctionName);
+  CeedDebug("[CeedQFunction][Create] qFunctionName: %s",data->qFunctionName);
   // extract file base name
   const char *last_slash_pos = strrchr(source,'/');
   // if no slash has been found, revert to source field
   const char *last_slash = last_slash_pos?last_slash_pos+1:source;
-  dbg("[CeedQFunction][Create] last_slash: %s",last_slash);
+  CeedDebug("[CeedQFunction][Create] last_slash: %s",last_slash);
   // extract c_src_file & okl_base_name
   char *c_src_file, *okl_base_name;
   ierr = CeedCalloc(OCCA_PATH_MAX,&okl_base_name); CeedChk(ierr);
   ierr = CeedCalloc(OCCA_PATH_MAX,&c_src_file); CeedChk(ierr);
   memcpy(okl_base_name,last_slash,last_dot-last_slash);
   memcpy(c_src_file,source,last_colon-source);
-  dbg("[CeedQFunction][Create] c_src_file: %s",c_src_file);
-  dbg("[CeedQFunction][Create] okl_base_name: %s",okl_base_name);
+  CeedDebug("[CeedQFunction][Create] c_src_file: %s",c_src_file);
+  CeedDebug("[CeedQFunction][Create] okl_base_name: %s",okl_base_name);
   // Now fetch OKL filename ****************************************************
   ierr = CeedOklPath_Occa(ceed,c_src_file, okl_base_name, &data->oklPath);
   CeedChk(ierr);

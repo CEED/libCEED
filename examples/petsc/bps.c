@@ -34,7 +34,7 @@
 //     ./bps -problem bp5 -ceed /omp/occa -degree 3
 //     ./bps -problem bp6 -ceed /ocl/occa -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -205,7 +205,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                               true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
-  CeedVectorSyncArray(rhsceed, rp->memtyperequested);
+  CeedVectorTakeArray(rhsceed, rp->memtyperequested, NULL);
   if (rp->memtyperequested == CEED_MEM_HOST) {
     ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
   } else {
@@ -216,7 +216,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = DMLocalToGlobalEnd(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
-  // Create the error Q-function
+  // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[rp->bpchoice].error,
                               bpOptions[rp->bpchoice].errorfname, &qferror);
   CeedQFunctionAddInput(qferror, "u", rp->ncompu, CEED_EVAL_INTERP);

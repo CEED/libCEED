@@ -149,6 +149,7 @@ typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
+CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *isDeterministic);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
@@ -171,6 +172,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 #  define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
 #endif
+
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to
@@ -222,6 +224,8 @@ CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mtype,
                                    CeedCopyMode cmode, CeedScalar *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
 CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype);
+CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype,
+                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mtype,
                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
@@ -487,9 +491,13 @@ CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator compositeop,
 CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleDiagonal(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request);
+    CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op,
+    CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
-    CeedVector *assembled, CeedRequest *request);
+    CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
+    CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdminv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);

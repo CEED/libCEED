@@ -14,12 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include "ceed-cuda-shared.h"
 
 //------------------------------------------------------------------------------
@@ -29,7 +25,10 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   int ierr;
   const int nrc = 9; // number of characters in resource
   if (strncmp(resource, "/gpu/cuda/shared", nrc))
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+  // LCOV_EXCL_STOP
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   Ceed ceedreg;
   CeedInit("/gpu/cuda/reg", &ceedreg);
@@ -43,6 +42,9 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared);
   CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Cuda); CeedChk(ierr);
+  CeedChk(ierr);
   return 0;
 }
 
@@ -51,6 +53,6 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 40);
+  CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 25);
 }
 //------------------------------------------------------------------------------

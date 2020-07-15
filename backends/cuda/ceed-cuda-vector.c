@@ -13,9 +13,9 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #include "ceed-cuda.h"
-#include "string.h"
-#include <cuda.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // * Bytes used
@@ -151,6 +151,39 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
     return CeedVectorSetArrayDevice_Cuda(vec, cmode, array);
   }
   return 1;
+}
+
+//------------------------------------------------------------------------------
+// Vector Take Array
+//------------------------------------------------------------------------------
+static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mtype,
+                                    CeedScalar **array) {
+  int ierr;
+  CeedVector_Cuda *impl;
+  ierr = CeedVectorGetData(vec, (void *)&impl); CeedChk(ierr);
+
+  switch(mtype) {
+  case CEED_MEM_HOST:
+    if (impl->memState == CEED_CUDA_DEVICE_SYNC) {
+      ierr = CeedSyncD2H_Cuda(vec); CeedChk(ierr);
+    }
+    (*array) = impl->h_array;
+    impl->h_array = NULL;
+    impl->h_array_allocated = NULL;
+    impl->memState = CEED_CUDA_HOST_SYNC;
+    break;
+  case CEED_MEM_DEVICE:
+    if (impl->memState == CEED_CUDA_HOST_SYNC) {
+      ierr = CeedSyncH2D_Cuda(vec); CeedChk(ierr);
+    }
+    (*array) = impl->d_array;
+    impl->d_array = NULL;
+    impl->d_array_allocated = NULL;
+    impl->memState = CEED_CUDA_DEVICE_SYNC;
+    break;
+  }
+
+  return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -342,6 +375,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
+                                CeedVectorTakeArray_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
                                 CeedVectorSetValue_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",

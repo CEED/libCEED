@@ -1473,7 +1473,8 @@ C     Output: ap1
       call ceedoperatorapply(ceed_op,vec_p1,vec_ap1,
      $  ceed_request_immediate,err)
 
-      call ceedvectorsyncarray(vec_ap1,ceed_mem_host,err)
+      call ceedvectortakearray(vec_p1,ceed_mem_host,0,offset,err)
+      call ceedvectortakearray(vec_ap1,ceed_mem_host,0,offset,err)
 
       pap(1)=0.
 

@@ -157,6 +157,7 @@
      & bu,ceed_vector_active,err)
 
 ! Assemble Diagonal
+      call ceedvectorcreate(ceed,ndofs,a,err)
       call ceedoperatorlinearassemblediagonal(op_diff,a,&
      & ceed_request_immediate,err)
 

@@ -14,11 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <iostream>
 #include <sstream>
-#include "../cuda/ceed-cuda.h"
+#include "ceed-cuda.h"
 
 static const char *qReadWrite = QUOTE(
 template <int SIZE>
@@ -124,11 +123,11 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  // std::cout << code.str();
-
-  // Compile kernel
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
+  CeedDebug(code.str().c_str());
+
+  // Compile kernel
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "qfunction", &data->qFunction);

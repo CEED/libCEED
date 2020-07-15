@@ -48,12 +48,11 @@ struct SetupContext_ {
   CeedScalar lx;
   CeedScalar ly;
   CeedScalar lz;
-  CeedScalar periodicity0;
-  CeedScalar periodicity1;
-  CeedScalar periodicity2;
   CeedScalar center[3];
   CeedScalar dc_axis[3];
+  CeedScalar wind[3];
   CeedScalar time;
+  int wind_type;
 };
 #endif
 
@@ -765,7 +764,6 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-
 // *****************************************************************************
 
 #endif // densitycurrent_h

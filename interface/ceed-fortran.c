@@ -83,6 +83,12 @@ void fCeedInit(const char *resource, int *ceed, int *err,
   }
 }
 
+#define fCeedIsDeterministic \
+    FORTRAN_NAME(ceedisdeterministic,CEEDISDETERMINISTIC)
+void fCeedIsDeterministic(int *ceed, int *isDeterministic, int *err) {
+  *err = CeedIsDeterministic(Ceed_dict[*ceed], (bool *)isDeterministic);
+}
+
 #define fCeedGetPreferredMemType \
     FORTRAN_NAME(ceedgetpreferredmemtype,CEEDGETPREFERREDMEMTYPE)
 void fCeedGetPreferredMemType(int *ceed, int *type, int *err) {
@@ -137,6 +143,15 @@ void fCeedVectorSetArray(int *vec, int *memtype, int *copymode,
                             (CeedScalar *)(array + *offset));
 }
 
+#define fCeedVectorTakeArray FORTRAN_NAME(ceedvectortakearray,CEEDVECTORTAKEARRAY)
+void fCeedVectorTakeArray(int *vec, int *memtype, CeedScalar *array,
+                          int64_t *offset, int *err) {
+  CeedScalar *b;
+  CeedVector vec_ = CeedVector_dict[*vec];
+  *err = CeedVectorTakeArray(vec_, (CeedMemType)*memtype, &b);
+  *offset = b - array;
+}
+
 #define fCeedVectorSyncArray FORTRAN_NAME(ceedvectorsyncarray,CEEDVECTORSYNCARRAY)
 void fCeedVectorSyncArray(int *vec, int *memtype, int *err) {
   *err = CeedVectorSyncArray(CeedVector_dict[*vec], (CeedMemType)*memtype);
@@ -149,8 +164,7 @@ void fCeedVectorSetValue(int *vec, CeedScalar *value, int *err) {
 
 #define fCeedVectorGetArray FORTRAN_NAME(ceedvectorgetarray,CEEDVECTORGETARRAY)
 void fCeedVectorGetArray(int *vec, int *memtype, CeedScalar *array,
-                         int64_t *offset,
-                         int *err) {
+                         int64_t *offset, int *err) {
   CeedScalar *b;
   CeedVector vec_ = CeedVector_dict[*vec];
   *err = CeedVectorGetArray(vec_, (CeedMemType)*memtype, &b);
@@ -953,13 +967,6 @@ void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
 #define fCeedOperatorLinearAssembleDiagonal FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
 void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
     int *rqst, int *err) {
-  // Vector
-  if (CeedVector_count == CeedVector_count_max) {
-    CeedVector_count_max += CeedVector_count_max/2 + 1;
-    CeedRealloc(CeedVector_count_max, &CeedVector_dict);
-  }
-  CeedVector *assembledvec_ = &CeedVector_dict[CeedVector_count];
-
   int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
   if (*rqst == -1 || *rqst == -2) {
@@ -977,16 +984,11 @@ void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
   else rqst_ = &CeedRequest_dict[CeedRequest_count];
 
   *err = CeedOperatorLinearAssembleDiagonal(CeedOperator_dict[*op],
-         assembledvec_, rqst_);
+         CeedVector_dict[*assembledvec], rqst_);
   if (*err) return;
   if (createRequest) {
     *rqst = CeedRequest_count++;
     CeedRequest_n++;
-  }
-
-  if (*err == 0) {
-    *assembledvec = CeedVector_count++;
-    CeedVector_n++;
   }
 }
 
