@@ -15,11 +15,12 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Density current initial condition and operator for Navier-Stokes example using PETSc
+/// Euler traveling vortex initial condition and operator for Navier-Stokes
+/// example using PETSc
 
 // Model from:
-//   Semi-Implicit Formulations of the Navier-Stokes Equations: Application to
-//   Nonhydrostatic Atmospheric Modeling, Giraldo, Restelli, and Lauter (2010).
+//   On the order of accuracy and numerical performance of two classes of
+//   finite volume WENO, Zhang, Zhang, and Shu (2009).
 
 #ifndef eulervortex_h
 #define eulervortex_h
@@ -52,6 +53,7 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
+  CeedScalar vortex_strength;
   int wind_type;
 };
 #endif
@@ -64,99 +66,70 @@ struct SetupContext_ {
 //   Initial momentum density is zero.
 //
 // Initial Conditions:
-//   Potential Temperature:
-//     theta = thetabar + deltatheta
-//       thetabar   = theta0 exp( N**2 z / g )
-//       deltatheta = r <= rc : thetaC(1 + cos(pi r/rc)) / 2
-//                     r > rc : 0
-//         r        = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
-//         with (xc,yc,zc) center of domain, rc characteristic radius of thermal bubble
-//   Exner Pressure:
-//     Pi = Pibar + deltaPi
-//       Pibar      = 1. + g**2 (exp( - N**2 z / g ) - 1) / (cp theta0 N**2)
-//       deltaPi    = 0 (hydrostatic balance)
-//   Velocity/Momentum Density:
-//     Ui = ui = 0
+//   Density     = 1
+//   Pressure    = 1
+//   Temperature = P / (Rd rho) - (gamma - 1) vortex_strength**2
+//                 exp(1 - r**2) / (8 gamma pi**2)
+//   Velocity = vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc, 0] / (2 pi)
+//         r  = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
 //
 // Conversion to Conserved Variables:
-//   rho = P0 Pi**(cv/Rd) / (Rd theta)
-//   E   = rho (cv T + (u u)/2 + g z)
+//   E   = rho (cv T + (u u)/2 )
 //
-//  Boundary Conditions:
-//    Mass Density:
-//      0.0 flux
-//    Momentum Density:
-//      0.0
-//    Energy Density:
-//      0.0 flux
+// TODO: Not sure what to do about BCs
 //
 // Constants:
-//   theta0          ,  Potential temperature constant
-//   thetaC          ,  Potential temperature perturbation
-//   P0              ,  Pressure at the surface
-//   N               ,  Brunt-Vaisala frequency
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
 //   Rd     = cp - cv,  Specific heat difference
-//   g               ,  Gravity
-//   rc              ,  Characteristic radius of thermal bubble
+//   vortex_strength ,  Strength of vortex
 //   center          ,  Location of bubble center
-//   dc_axis         ,  Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric
+//   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
 
 // *****************************************************************************
 // This helper function provides support for the exact, time-dependent solution
-//   (currently not implemented) and IC formulation for density current
+//   (currently not implemented) and IC formulation for Euler traveling vortex
 // *****************************************************************************
 static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const SetupContext context = (SetupContext)ctx;
-
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar thetaC = context->thetaC;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar N      = context->N;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
-  const CeedScalar Rd     = context->Rd;
-  const CeedScalar g      = context->g;
-  const CeedScalar rc     = context->rc;
+  const CeedScalar cv = context->cv;
+  const CeedScalar cp = context->cp;
+  const CeedScalar Rd = context->Rd;
+  const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center;
-  const CeedScalar *dc_axis = context->dc_axis;
+  const CeedScalar gamma = cp / cv;
 
   // Setup
-  // -- Coordinates
-  const CeedScalar x = X[0];
-  const CeedScalar y = X[1];
-  const CeedScalar z = X[2];
+  const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
+  const CeedScalar x0 = x - center[0];
+  const CeedScalar y0 = y - center[1];
+  const CeedScalar z0 = z - center[2];
+  const CeedScalar r = sqrt( x0*x0 + y0*y0 + z0*z0 );
+  // Coefficient for computing perturbation in Velocity
+  const CeedScalar C = vortex_strength * exp((1. - r*r)/2.)  / (2. * M_PI);
 
-  // -- Potential temperature, density current
-  CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
-  // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
-  for (CeedInt i=0; i<3; i++)
-    rr[i] -= dc_axis[i] *
-             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
-  const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
-  const CeedScalar deltatheta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-  const CeedScalar theta = theta0*exp(N*N*z/g) + deltatheta;
-  // -- Exner pressure, hydrostatic balance
-  const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
-  // -- Density
-  const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
+  // Exact Solutions
+  const CeedScalar rho = 1.;
+  const CeedScalar P = 1.;
+  const CeedScalar T = P / (Rd*rho) - (gamma - 1.) * vortex_strength *
+                       vortex_strength * exp(1. - r*r) / (8.*gamma*M_PI*M_PI);
+  const CeedScalar u[3] = {1. - C * y0, 1. + C * x0, 0};
 
   // Initial Conditions
   q[0] = rho;
-  q[1] = 0.0;
-  q[2] = 0.0;
-  q[3] = 0.0;
-  q[4] = rho * (cv*theta*Pi + g*z);
+  q[1] = rho * u[0];
+  q[2] = rho * u[1];
+  q[3] = rho * u[2];
+  q[4] = rho * ( cv*T + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2. );
 
   return 0;
 }
 
 // *****************************************************************************
-// This QFunction sets the initial conditions for density current
+// This QFunction sets the initial conditions for Euler traveling vortex
 // *****************************************************************************
 CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
@@ -183,53 +156,31 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// This QFunction implements the following formulation of Navier-Stokes with
-//   explicit time stepping method
+// This QFunction implements the following formulation of Euler equations
+//   with explicit time stepping method
 //
-// This is 3D compressible Navier-Stokes in conservation form with state
-//   variables of density, momentum density, and total energy density.
+// This is 3D Euler for compressible gas dynamics in conservation
+//   form with state variables of density, momentum density, and total
+//   energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density,      Ui = rho ui
-//   E   - Total Energy Density,  E  = rho (cv T + (u u)/2 + g z)
+//   E   - Total Energy Density,  E  = rho ( cv T + (u u) / 2 )
 //
-// Navier-Stokes Equations:
-//   drho/dt + div( U )                               = 0
-//   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
-//   dE/dt   + div( (E + P) u )                       = div( Fe )
-//
-// Viscous Stress:
-//   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
-//
-// Thermal Stress:
-//   Fe = u Fu + k grad( T )
+// Euler Equations:
+//   drho/dt + div( U )                   = 0
+//   dU/dt   + div( rho (u x u) + P I3 )  = 0
+//   dE/dt   + div( (E + P) u )           = 0
 //
 // Equation of State:
-//   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
-//
-// Stabilization:
-//   Tau = diag(TauC, TauM, TauM, TauM, TauE)
-//     f1 = rho  sqrt(ui uj gij)
-//     gij = dXi/dX * dXi/dX
-//     TauC = Cc f1 / (8 gii)
-//     TauM = min( 1 , 1 / f1 )
-//     TauE = TauM / (Ce cv)
-//
-//  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
+//   P = (gamma - 1) (E - rho (u u) / 2)
 //
 // Constants:
-//   lambda = - 2 / 3,  From Stokes hypothesis
-//   mu              ,  Dynamic viscosity
-//   k               ,  Thermal conductivity
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
 //   g               ,  Gravity
 //   gamma  = cp / cv,  Specific heat ratio
-//
-// We require the product of the inverse of the Jacobian (dXdx_j,k) and
-// its transpose (dXdx_k,j) to properly compute integrals of the form:
-// int( gradv gradu )
 //
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
@@ -241,7 +192,8 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -280,16 +232,16 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     qdata[9][i]}
                                   };
     // *INDENT-ON*
-    // ke = kinetic energy
-    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
     // P = pressure
-    const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
+    const CeedScalar P  = (E - rho * (u[0]*u[0] + u[1]*u[1] +
+                           u[2]*u[2]) / 2.) * (gamma - 1.);
 
     // The Physics
-    // Zero dv so all future terms can safely sum into it
-    for (int j=0; j<5; j++)
+    for (int j=0; j<5; j++) {
+      v[j][i] = 0; // No body force
       for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+        dv[k][j][i] = 0; // Zero dv so all future terms can safely sum into it
+    }
 
     // -- Density
     // ---- u rho
@@ -308,7 +260,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++)
       dv[j][4][i]  += wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                          u[2]*dXdx[j][2]);
-
 
   } // End Quadrature Point Loop
 
