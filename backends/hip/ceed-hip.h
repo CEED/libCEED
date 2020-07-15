@@ -17,7 +17,6 @@
 #define _ceed_hip_h
 
 #include <ceed-backend.h>
-#include <ceed.h>
 
 #include <hip/hip_runtime.h>
 
@@ -97,6 +96,18 @@ typedef struct {
 } CeedBasisNonTensor_Hip;
 
 typedef struct {
+  hipModule_t module;
+  hipFunction_t linearDiagonal;
+  hipFunction_t linearPointBlock;
+  CeedBasis basisin, basisout;
+  CeedElemRestriction diagrstr, pbdiagrstr;
+  CeedInt numemodein, numemodeout, nnodes;
+  CeedEvalMode *h_emodein, *h_emodeout;
+  CeedEvalMode *d_emodein, *d_emodeout;
+  CeedScalar *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
+} CeedOperatorDiag_Hip;
+
+typedef struct {
   CeedVector
   *evecs;   // E-vectors needed to apply operator (input followed by outputs)
   CeedScalar **edata;
@@ -104,6 +115,7 @@ typedef struct {
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
+  CeedOperatorDiag_Hip *diag;
 } CeedOperator_Hip;
 
 typedef struct {
@@ -116,6 +128,8 @@ static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
 }
 
 CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource, int nrc);
+
+CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
 
 CEED_INTERN int CeedVectorCreate_Hip(CeedInt n, CeedVector vec);
 

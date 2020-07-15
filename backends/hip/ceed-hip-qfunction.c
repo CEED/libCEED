@@ -14,7 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdio.h>
 #include "ceed-hip.h"
@@ -92,7 +91,8 @@ static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-
+  if  (data->module)
+    CeedChk_Hip(ceed, hipModuleUnload(data->module));
   ierr = hipFree(data->d_c); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
@@ -120,7 +120,7 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   FILE *fp;
   long lSize;
   char *buffer;
-  fp = fopen ( hip_file, "rb" );
+  fp = fopen (hip_file, "rb");
   if (!fp)
     CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
 
@@ -130,17 +130,20 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   rewind(fp);
 
   // Allocate memory for entire content
-  ierr = CeedCalloc( lSize+1, &buffer ); CeedChk(ierr);
+  ierr = CeedCalloc(lSize+1, &buffer); CeedChk(ierr);
 
   // Copy the file into the buffer
-  if( 1!=fread( buffer, lSize, 1, fp) ) {
+  if(1!=fread(buffer, lSize, 1, fp)) {
     fclose(fp);
-    CeedFree(&buffer);
+    ierr = CeedFree(&buffer); CeedChk(ierr);
     CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
   }
 
-  // Save QFunction source
+  // Cleanup
   fclose(fp);
+  ierr = CeedFree(&hip_file); CeedChk(ierr);
+
+  // Save QFunction source
   CeedQFunction_Hip *data;
   ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
   data->qFunctionSource = buffer;

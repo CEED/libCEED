@@ -14,9 +14,6 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
-#include <ceed.h>
-#include "hip/hip_runtime.h"
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 
@@ -347,9 +344,9 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Hip *ceed_Hip;
-  CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
   CeedBasis_Hip *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 64;
 
@@ -435,9 +432,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Hip *ceed_Hip;
-  CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
   CeedBasisNonTensor_Hip *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
   CeedInt nnodes, nqpt;
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
@@ -525,7 +522,7 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
   CeedBasis_Hip *data;
   ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
 
-//  CeedChk_Hip(ceed, hipModuleUnload(data->module));
+  CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
   ierr = hipFree(data->d_qweight1d); CeedChk_Hip(ceed,ierr);
   ierr = hipFree(data->d_interp1d); CeedChk_Hip(ceed,ierr);
@@ -546,7 +543,7 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   CeedBasisNonTensor_Hip *data;
   ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
 
-//  CeedChk_Hip(ceed, hipModuleUnload(data->module));
+  CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
   ierr = hipFree(data->d_qweight); CeedChk_Hip(ceed, ierr);
   ierr = hipFree(data->d_interp); CeedChk_Hip(ceed, ierr);

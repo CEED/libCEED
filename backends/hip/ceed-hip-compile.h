@@ -16,7 +16,6 @@
 #ifndef _ceed_hip_compile_h
 #define _ceed_hip_compile_h
 
-#include <ceed-backend.h>
 #include <ceed.h>
 
 #include <hip/hip_runtime.h>

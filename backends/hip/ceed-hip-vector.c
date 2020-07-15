@@ -13,9 +13,9 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #include "ceed-hip.h"
-#include "string.h"
-#include <hip/hip_runtime.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // * Bytes used
@@ -154,6 +154,39 @@ static int CeedVectorSetArray_Hip(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
+// Vector Take Array
+//------------------------------------------------------------------------------
+static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
+                                    CeedScalar **array) {
+  int ierr;
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, (void *)&impl); CeedChk(ierr);
+
+  switch(mtype) {
+  case CEED_MEM_HOST:
+    if (impl->memState == CEED_HIP_DEVICE_SYNC) {
+      ierr = CeedSyncD2H_Hip(vec); CeedChk(ierr);
+    }
+    (*array) = impl->h_array;
+    impl->h_array = NULL;
+    impl->h_array_allocated = NULL;
+    impl->memState = CEED_HIP_HOST_SYNC;
+    break;
+  case CEED_MEM_DEVICE:
+    if (impl->memState == CEED_HIP_HOST_SYNC) {
+      ierr = CeedSyncH2D_Hip(vec); CeedChk(ierr);
+    }
+    (*array) = impl->d_array;
+    impl->d_array = NULL;
+    impl->d_array_allocated = NULL;
+    impl->memState = CEED_HIP_DEVICE_SYNC;
+    break;
+  }
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Set host array to value
 //------------------------------------------------------------------------------
 static int CeedHostSetValue(CeedScalar *h_array, CeedInt length,
@@ -164,7 +197,7 @@ static int CeedHostSetValue(CeedScalar *h_array, CeedInt length,
 }
 
 //------------------------------------------------------------------------------
-// Set device array to value (impl in .cu file)
+// Set device array to value (impl in .hip file)
 //------------------------------------------------------------------------------
 int CeedDeviceSetValue(CeedScalar *d_array, CeedInt length, CeedScalar val);
 
@@ -342,6 +375,8 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
 
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Hip); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
+                                CeedVectorTakeArray_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
                                 CeedVectorSetValue_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",

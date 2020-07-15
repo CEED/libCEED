@@ -14,34 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 
 // *INDENT-OFF*
-//static const char *restrictionkernels = QUOTE(
-
-// TODO -- investigate this
-//#if __CUDA_ARCH__ < 600
-//------------------------------------------------------------------------------
-// Atomic add, if CUDA version is older
-//------------------------------------------------------------------------------
-//__device__ double atomicAdd(double *address, double val) {
-//  unsigned long long int *address_as_ull = (unsigned long long int *)address;
-//  unsigned long long int old = *address_as_ull, assumed;
-//  do {
-//    assumed = old;
-//    old =
-//      atomicCAS(address_as_ull, assumed,
-//                __double_as_longlong(val +
-//                                     __longlong_as_double(assumed)));
-    // Note: uses integer comparison to avoid hang in case of NaN
-    // (since NaN != NaN)
-//  } while (assumed != old);
-//  return __longlong_as_double(old);
-//}
-//#endif // __CUDA_ARCH__ < 600
-
 static const char *restrictionkernels = QUOTE(
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, strided
@@ -225,7 +201,7 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-//  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
+  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&impl->h_ind_allocated); CeedChk(ierr);
   ierr = hipFree(impl->d_ind_allocated); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -264,7 +240,6 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
     ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
   }
 
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->h_ind           = NULL;
   impl->h_ind_allocated = NULL;
   impl->d_ind           = NULL;

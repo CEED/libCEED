@@ -14,13 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
 #include <string.h>
 #include <stdarg.h>
 #include "ceed-hip.h"
 
 //------------------------------------------------------------------------------
-// HIP prefered MemType
+// HIP preferred MemType
 //------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
@@ -51,6 +50,18 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   data->optblocksize = deviceProp.maxThreadsPerBlock;
   return 0;
 }
+
+//------------------------------------------------------------------------------
+// Backend Destroy 
+//------------------------------------------------------------------------------
+int CeedDestroy_Hip(Ceed ceed) {
+  int ierr;
+  Ceed_Hip *data;
+  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChk(ierr);
+  return 0;
+}
+
 
 //------------------------------------------------------------------------------
 // Backend Init
@@ -86,6 +97,10 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
                                 CeedQFunctionCreate_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Hip); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
+                                CeedCompositeOperatorCreate_Hip); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
+                                CeedDestroy_Hip); CeedChk(ierr);
   return 0;
 }
 
