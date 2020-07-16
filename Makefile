@@ -376,8 +376,8 @@ HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
 ifneq ($(HIP_LIB_DIR),)
-  $(libceeds) : HIPCCFLAGS += -I$(HIP_DIR)/include -I$(HIPBLASDIR)/include -I./include -I$(ROCM_DIR)/include
-  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -I$(HIPBLASDIR)/include -I$(ROCM_DIR)/include
+  $(libceeds) : HIPCCFLAGS += -I$(HIP_DIR)/include -I./include -I$(ROCM_DIR)/include
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -I$(ROCM_DIR)/include
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += -D__HIP_PLATFORM_HCC__
   endif
@@ -387,6 +387,7 @@ ifneq ($(HIP_LIB_DIR),)
   libceed.hip += $(hip.hip)
   libceed.cpp += $(hip.cpp)
   libceed.c   += $(hip.c)
+  $(hip.c:%.c=$(OBJDIR)/%.o) $(hip.c:%=%.tidy) : CPPFLAGS += -I$(HIP_DIR)/include -I$(ROCM_DIR)/include
   BACKENDS += $(HIP_BACKENDS)
 endif
 
