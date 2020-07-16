@@ -421,9 +421,9 @@ static inline int CeedOperatorRestoreInputs_Blocked(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
-static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector invec,
-                                     CeedVector outvec,
-                                     CeedRequest *request) {
+static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector invec,
+                                        CeedVector outvec,
+                                        CeedRequest *request) {
   int ierr;
   CeedOperator_Blocked *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -740,7 +740,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
                                 CeedOperatorLinearAssembleQFunction_Blocked);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                CeedOperatorApply_Blocked); CeedChk(ierr);
+                                CeedOperatorApplyAdd_Blocked); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Blocked); CeedChk(ierr);
   return 0;

@@ -384,8 +384,8 @@ static inline int CeedOperatorRestoreInputs_Ref(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
-static int CeedOperatorApply_Ref(CeedOperator op, CeedVector invec,
-                                 CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector invec,
+                                    CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -707,7 +707,7 @@ static int CreatePBRestriction_Ref(CeedElemRestriction rstr,
 //------------------------------------------------------------------------------
 // Assemble diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
+static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
     CeedVector assembled, CeedRequest *request, const bool pointBlock) {
   int ierr;
   Ceed ceed;
@@ -929,7 +929,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble composite diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(
+static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Ref(
   CeedOperator op, CeedVector assembled, CeedRequest *request,
   const bool pointBlock) {
   int ierr;
@@ -938,7 +938,7 @@ static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(
   ierr = CeedOperatorGetNumSub(op, &numSub); CeedChk(ierr);
   ierr = CeedOperatorGetSubList(op, &subOperators); CeedChk(ierr);
   for (CeedInt i = 0; i < numSub; i++) {
-    ierr = CeedOperatorAssembleDiagonalCore_Ref(subOperators[i], assembled,
+    ierr = CeedOperatorAssembleAddDiagonalCore_Ref(subOperators[i], assembled,
            request, pointBlock); CeedChk(ierr);
   }
   return 0;
@@ -947,32 +947,32 @@ static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(
 //------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleDiagonal_Ref(CeedOperator op,
+static int CeedOperatorLinearAssembleAddDiagonal_Ref(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Ref(op, assembled,
            request, false);
   } else {
-    return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, false);
+    return CeedOperatorAssembleAddDiagonalCore_Ref(op, assembled, request, false);
   }
 }
 
 //------------------------------------------------------------------------------
 // Assemble Linear Point Block Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssemblePointBlockDiagonal_Ref(CeedOperator op,
+static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Ref(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleDiagonalCompositeCore_Ref(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Ref(op, assembled,
            request, true);
   } else {
-    return CeedOperatorAssembleDiagonalCore_Ref(op, assembled, request, true);
+    return CeedOperatorAssembleAddDiagonalCore_Ref(op, assembled, request, true);
   }
 }
 
@@ -1227,17 +1227,17 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
                                 CeedOperatorLinearAssembleQFunction_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleDiagonal_Ref);
+                                CeedOperatorLinearAssembleAddDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                CeedOperatorApply_Ref); CeedChk(ierr);
+                                CeedOperatorApplyAdd_Ref); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Ref); CeedChk(ierr);
   return 0;
@@ -1251,11 +1251,11 @@ int CeedCompositeOperatorCreate_Ref(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleDiagonal_Ref);
+                                CeedOperatorLinearAssembleAddDiagonal_Ref);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssemblePointBlockDiagonal_Ref);
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Ref);
   CeedChk(ierr);
   return 0;
 }
