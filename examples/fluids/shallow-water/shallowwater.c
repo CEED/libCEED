@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   PetscScalar R_e        = 6.37122e6;  // Earth radius (m)
   PetscScalar g          = 9.81;       // gravitational acceleration (m/s^2)
   PetscScalar H0         = 0;          // constant mean height (m)
-  PetscScalar gamma      = 0;          // angle between axis of rotation and polar axis 
+  PetscScalar gamma      = 0;          // angle between axis of rotation and polar axis
   PetscScalar mpersquareds;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
     .gamma = gamma,
     .time = 0.
   };
-  
+
   ProblemContext_s probl_ctx =  {
     .g = g,
     .H0 = H0,
@@ -229,6 +229,16 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
+    // Define cube panels (charts)
+    DMLabel label;
+    PetscInt c, cStart, cEnd, npanel;
+    ierr = DMCreateLabel(dm, "panel");
+    ierr = DMGetLabel(dm, "panel", &label);
+    // Assign different panel (chart) values to the six faces of the cube
+    ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+    for (c = cStart, npanel = 0; c < cEnd; c++) {
+      ierr = DMLabelSetValue(label, c, npanel++); CHKERRQ(ierr);
+    }
     // Distribute mesh over processes
     {
       DM dmDist = NULL;
@@ -366,7 +376,7 @@ int main(int argc, char **argv) {
 
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
-  ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user, ceeddata, 
+  ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user, ceeddata,
                       problem, &phys_ctx, &probl_ctx); CHKERRQ(ierr);
 
   // Set up PETSc context
@@ -403,7 +413,7 @@ int main(int argc, char **argv) {
   ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
                              dm, Qloc, Q, ceeddata->Erestrictq,
                              &phys_ctx, 0.0); CHKERRQ(ierr);
-  
+
   MPI_Comm_rank(comm, &rank);
   if (!rank) {
     ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);
@@ -425,8 +435,8 @@ int main(int argc, char **argv) {
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // Set up the MatShell for the associated Jacobian operator
-  ierr = MatCreateShell(PETSC_COMM_SELF, ncompq*odofs, ncompq*odofs, 
-                        PETSC_DETERMINE, PETSC_DETERMINE, user, &J); 
+  ierr = MatCreateShell(PETSC_COMM_SELF, ncompq*odofs, ncompq*odofs,
+                        PETSC_DETERMINE, PETSC_DETERMINE, user, &J);
   CHKERRQ(ierr);
   // Set the MatShell operation needed for the Jacobian
   ierr = MatShellSetOperation(J, MATOP_MULT,
