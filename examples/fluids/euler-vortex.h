@@ -268,5 +268,33 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
+                              const CeedScalar *const *in,
+                              CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  return 0;
+}
+// *****************************************************************************
+CEED_QFUNCTION(Euler_Out)(void *ctx, CeedInt Q,
+                              const CeedScalar *const *in,
+                              CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  return 0;
+}
+// *****************************************************************************
 
 #endif // eulervortex_h
