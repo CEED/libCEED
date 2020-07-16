@@ -889,7 +889,8 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
     CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format, args);
 
   // Build message
-  char errmsg[CEED_MAX_RESOURCE_LEN], errmsgva[CEED_MAX_RESOURCE_LEN/2], *errmsg_copy;
+  char errmsg[CEED_MAX_RESOURCE_LEN], errmsgva[CEED_MAX_RESOURCE_LEN/2],
+       *errmsg_copy;
   vsprintf(errmsgva, format, args);
   sprintf(errmsg, "%s:%d in %s(): %s", filename, lineno, func, errmsgva);
   size_t slen = strlen(errmsg) + 1;

@@ -202,7 +202,8 @@ class CompositeOperator(_OperatorBase):
         # Reference to Ceed
         self._ceed = ceed
         # libCEED call
-        err_code = lib.CeedCompositeOperatorCreate(self._ceed._pointer[0], self._pointer)
+        err_code = lib.CeedCompositeOperatorCreate(
+            self._ceed._pointer[0], self._pointer)
         self._ceed._check_error(err_code)
 
     # Add sub operators
@@ -213,7 +214,8 @@ class CompositeOperator(_OperatorBase):
              subop: sub-operator Operator"""
 
         # libCEED call
-        err_code = lib.CeedCompositeOperatorAddSub(self._pointer[0], subop._pointer[0])
+        err_code = lib.CeedCompositeOperatorAddSub(
+            self._pointer[0], subop._pointer[0])
         self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------

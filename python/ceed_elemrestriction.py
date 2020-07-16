@@ -129,7 +129,7 @@ class _ElemRestrictionBase(ABC):
 
         # libCEED call
         err_code = lib.CeedElemRestrictionGetMultiplicity(
-                       self._pointer[0], mult._pointer[0])
+            self._pointer[0], mult._pointer[0])
         self._ceed._check_error(err_code)
 
         # Return

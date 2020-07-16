@@ -119,7 +119,8 @@ class QFunction(_QFunctionBase):
         ctx_pointer = ffi.cast("void *", ctx.__array_interface__['data'][0])
 
         # libCEED call
-        err_code = lib.CeedQFunctionSetContext(self._pointer[0], ctx_pointer, len(ctx))
+        err_code = lib.CeedQFunctionSetContext(
+            self._pointer[0], ctx_pointer, len(ctx))
         self._ceed._check_error(err_code)
 
     # Add fields to CeedQFunction
@@ -137,7 +138,7 @@ class QFunction(_QFunctionBase):
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
         err_code = lib.CeedQFunctionAddInput(
-                       self._pointer[0], fieldnameAscii, size, emode)
+            self._pointer[0], fieldnameAscii, size, emode)
         self._ceed._check_error(err_code)
 
     def add_output(self, fieldname, size, emode):
@@ -154,7 +155,7 @@ class QFunction(_QFunctionBase):
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
         err_code = lib.CeedQFunctionAddOutput(
-                        self._pointer[0], fieldnameAscii, size, emode)
+            self._pointer[0], fieldnameAscii, size, emode)
         self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------

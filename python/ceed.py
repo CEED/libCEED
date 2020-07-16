@@ -42,7 +42,9 @@ class Ceed():
         # libCEED call
         resourceAscii = ffi.new("char[]", resource.encode("ascii"))
         lib.CeedInit(resourceAscii, self._pointer)
-        lib.CeedSetErrorHandler(self._pointer[0], ffi.addressof(lib, "CeedErrorStore"))
+        lib.CeedSetErrorHandler(
+            self._pointer[0], ffi.addressof(
+                lib, "CeedErrorStore"))
 
     # Representation
     def __repr__(self):
@@ -67,11 +69,11 @@ class Ceed():
 
     # Error handler
     def _check_error(self, err_code):
-      """Check return code and retrieve error message for non-zero code"""
-      if (err_code):
-        message = ffi.new("char **")
-        lib.CeedGetErrorMessage(self._pointer[0], message)
-        raise Exception(ffi.string(message[0]).decode("UTF-8"))
+        """Check return code and retrieve error message for non-zero code"""
+        if (err_code):
+            message = ffi.new("char **")
+            lib.CeedGetErrorMessage(self._pointer[0], message)
+            raise Exception(ffi.string(message[0]).decode("UTF-8"))
 
     # Get Resource
     def get_resource(self):

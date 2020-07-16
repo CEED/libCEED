@@ -39,7 +39,8 @@ class Vector():
         self._ceed = ceed
 
         # libCEED call
-        err_code = lib.CeedVectorCreate(self._ceed._pointer[0], size, self._pointer)
+        err_code = lib.CeedVectorCreate(
+            self._ceed._pointer[0], size, self._pointer)
         self._ceed._check_error(err_code)
 
     # Destructor
@@ -92,7 +93,8 @@ class Vector():
                 array.__cuda_array_interface__['data'][0])
 
         # libCEED call
-        err_code = lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
+        err_code = lib.CeedVectorSetArray(
+            self._pointer[0], memtype, cmode, array_pointer)
         self._ceed._check_error(err_code)
 
     # Get Vector's data array
@@ -114,7 +116,8 @@ class Vector():
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
+        err_code = lib.CeedVectorGetArray(
+            self._pointer[0], memtype, array_pointer)
         self._ceed._check_error(err_code)
 
         # Return array created from buffer
@@ -158,7 +161,8 @@ class Vector():
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
+        err_code = lib.CeedVectorGetArrayRead(
+            self._pointer[0], memtype, array_pointer)
         self._ceed._check_error(err_code)
 
         # Return array created from buffer
@@ -204,7 +208,8 @@ class Vector():
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
+        err_code = lib.CeedVectorRestoreArrayRead(
+            self._pointer[0], array_pointer)
         self._ceed._check_error(err_code)
 
     @contextlib.contextmanager

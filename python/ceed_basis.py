@@ -112,7 +112,8 @@ class Basis(ABC):
         q_pointer = ffi.new("CeedInt *")
 
         # libCEED call
-        err_code = lib.CeedBasisGetNumQuadraturePoints(self._pointer[0], q_pointer)
+        err_code = lib.CeedBasisGetNumQuadraturePoints(
+            self._pointer[0], q_pointer)
         self._ceed._check_error(err_code)
 
         return q_pointer[0]
@@ -177,7 +178,8 @@ class Basis(ABC):
             qweight1d.__array_interface__['data'][0])
 
         # libCEED call
-        err_code = lib.CeedLobattoQuadrature(q, qref1d_pointer, qweight1d_pointer)
+        err_code = lib.CeedLobattoQuadrature(
+            q, qref1d_pointer, qweight1d_pointer)
         self._ceed._check_error(err_code)
 
         return qref1d, qweight1d
