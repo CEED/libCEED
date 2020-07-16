@@ -122,6 +122,7 @@ struct Ceed_private {
   bool isDeterministic;
   void *data;
   bool debug;
+  char *errmsg;
   foffset *foffsets;
 };
 
@@ -303,16 +304,5 @@ struct CeedOperator_private {
   CeedInt numsub;
   void *data;
 };
-
-CEED_INTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
-                                const char *, va_list);
-CEED_INTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
-                               const char *, va_list);
-CEED_INTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
-                              const char *, va_list);
-CEED_INTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (*eh)(Ceed, const char *, int,
-                                        const char *, int, const char *,
-                                        va_list));
 
 #endif
