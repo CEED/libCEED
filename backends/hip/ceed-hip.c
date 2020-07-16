@@ -52,7 +52,7 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
 }
 
 //------------------------------------------------------------------------------
-// Backend Destroy 
+// Backend Destroy
 //------------------------------------------------------------------------------
 int CeedDestroy_Hip(Ceed ceed) {
   int ierr;

@@ -70,10 +70,10 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
 // Setup infields or outfields
 //------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op,
-                                        bool inOrOut, CeedVector *evecs,
-                                        CeedVector *qvecs, CeedInt starte,
-                                        CeedInt numfields, CeedInt Q,
-                                        CeedInt numelements) {
+                                       bool inOrOut, CeedVector *evecs,
+                                       CeedVector *qvecs, CeedInt starte,
+                                       CeedInt numfields, CeedInt Q,
+                                       CeedInt numelements) {
   CeedInt dim, ierr, size;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -216,15 +216,15 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
   // Set up infield and outfield evecs and qvecs
   // Infields
   ierr = CeedOperatorSetupFields_Hip(qf, op, 0,
-                                      impl->evecs, impl->qvecsin, 0,
-                                      numinputfields, Q, numelements);
+                                     impl->evecs, impl->qvecsin, 0,
+                                     numinputfields, Q, numelements);
   CeedChk(ierr);
 
   // Outfields
   ierr = CeedOperatorSetupFields_Hip(qf, op, 1,
-                                      impl->evecs, impl->qvecsout,
-                                      numinputfields, numoutputfields, Q,
-                                      numelements); CeedChk(ierr);
+                                     impl->evecs, impl->qvecsout,
+                                     numinputfields, numoutputfields, Q,
+                                     numelements); CeedChk(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
   return 0;
@@ -380,7 +380,7 @@ static inline int CeedOperatorRestoreInputs_Hip(CeedInt numinputfields,
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
-                                     CeedVector outvec, CeedRequest *request) {
+                                    CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Hip *impl;
   ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
@@ -407,12 +407,12 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Hip(numinputfields, qfinputfields,
-                                      opinputfields, invec, false, impl,
-                                      request); CeedChk(ierr);
+                                     opinputfields, invec, false, impl,
+                                     request); CeedChk(ierr);
 
   // Input basis apply if needed
   ierr = CeedOperatorInputBasis_Hip(numelements, qfinputfields, opinputfields,
-                                     numinputfields, false, impl);
+                                    numinputfields, false, impl);
   CeedChk(ierr);
 
   // Output pointers, as necessary
@@ -502,7 +502,7 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Hip(numinputfields, qfinputfields,
-                                        opinputfields, false, impl);
+                                       opinputfields, false, impl);
   CeedChk(ierr);
   return 0;
 }
@@ -550,7 +550,7 @@ static int CeedOperatorLinearAssembleQFunction_Hip(CeedOperator op,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Hip(numinputfields, qfinputfields,
-                                      opinputfields, NULL, true, impl, request);
+                                     opinputfields, NULL, true, impl, request);
   CeedChk(ierr);
 
   // Count number of active input fields
@@ -608,7 +608,7 @@ static int CeedOperatorLinearAssembleQFunction_Hip(CeedOperator op,
 
   // Input basis apply
   ierr = CeedOperatorInputBasis_Hip(numelements, qfinputfields, opinputfields,
-                                     numinputfields, true, impl);
+                                    numinputfields, true, impl);
   CeedChk(ierr);
 
   // Assemble QFunction
@@ -653,7 +653,7 @@ static int CeedOperatorLinearAssembleQFunction_Hip(CeedOperator op,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Hip(numinputfields, qfinputfields,
-                                        opinputfields, true, impl);
+                                       opinputfields, true, impl);
   CeedChk(ierr);
 
   // Restore output
@@ -976,16 +976,16 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChk(ierr);
   diag->nnodes = nnodes;
   ierr = CeedCompileHip(ceed, diagonalkernels, &diag->module, 5,
-                         "NUMEMODEIN", numemodein,
-                         "NUMEMODEOUT", numemodeout,
-                         "NNODES", nnodes,
-                         "NQPTS", nqpts,
-                         "NCOMP", ncomp
-                        ); CeedChk_Hip(ceed, ierr);
+                        "NUMEMODEIN", numemodein,
+                        "NUMEMODEOUT", numemodeout,
+                        "NNODES", nnodes,
+                        "NQPTS", nqpts,
+                        "NCOMP", ncomp
+                       ); CeedChk_Hip(ceed, ierr);
   ierr = CeedGetKernelHip(ceed, diag->module, "linearDiagonal",
-                           &diag->linearDiagonal); CeedChk_Hip(ceed, ierr);
+                          &diag->linearDiagonal); CeedChk_Hip(ceed, ierr);
   ierr = CeedGetKernelHip(ceed, diag->module, "linearPointBlockDiagonal",
-                           &diag->linearPointBlock);
+                          &diag->linearPointBlock);
   CeedChk_Hip(ceed, ierr);
 
   // Basis matrices
@@ -1008,38 +1008,38 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
       identity[i*nnodes+i] = 1.0;
     ierr = hipMalloc((void **)&diag->d_identity, iBytes); CeedChk_Hip(ceed, ierr);
     ierr = hipMemcpy(diag->d_identity, identity, iBytes,
-                      hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                     hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
   }
 
   // CEED_EVAL_INTERP
   ierr = CeedBasisGetInterp(basisin, &interpin); CeedChk(ierr);
   ierr = hipMalloc((void **)&diag->d_interpin, iBytes); CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_interpin, interpin, iBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
   ierr = CeedBasisGetInterp(basisout, &interpout); CeedChk(ierr);
   ierr = hipMalloc((void **)&diag->d_interpout, iBytes); CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_interpout, interpout, iBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   // CEED_EVAL_GRAD
   ierr = CeedBasisGetGrad(basisin, &gradin); CeedChk(ierr);
   ierr = hipMalloc((void **)&diag->d_gradin, gBytes); CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_gradin, gradin, gBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
   ierr = hipMalloc((void **)&diag->d_gradout, gBytes); CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_gradout, gradout, gBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   // Arrays of emodes
   ierr = hipMalloc((void **)&diag->d_emodein, numemodein * eBytes);
   CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_emodein, emodein, numemodein * eBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
   ierr = hipMalloc((void **)&diag->d_emodeout, numemodeout * eBytes);
   CeedChk_Hip(ceed, ierr);
   ierr = hipMemcpy(diag->d_emodeout, emodeout, numemodeout * eBytes,
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   // Restriction
   diag->diagrstr = rstrout;
@@ -1107,11 +1107,11 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
                  };
   if (pointBlock) {
     ierr = CeedRunKernelDimHip(ceed, diag->linearPointBlock, grid,
-                                diag->nnodes, 1, elemsPerBlock, args);
+                               diag->nnodes, 1, elemsPerBlock, args);
     CeedChk(ierr);
   } else {
     ierr = CeedRunKernelDimHip(ceed, diag->linearDiagonal, grid,
-                                diag->nnodes, 1, elemsPerBlock, args);
+                               diag->nnodes, 1, elemsPerBlock, args);
     CeedChk(ierr);
   }
 

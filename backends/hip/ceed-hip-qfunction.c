@@ -24,7 +24,7 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
-                                   CeedVector *U, CeedVector *V) {
+                                  CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
@@ -68,7 +68,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   // Run kernel
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
   ierr = CeedRunKernelHip(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
-                           blocksize, args); CeedChk(ierr);
+                          blocksize, args); CeedChk(ierr);
 
 // Restore vectors
   for (CeedInt i = 0; i < numinputfields; i++) {

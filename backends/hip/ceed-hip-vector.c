@@ -38,7 +38,7 @@ static inline int CeedSyncH2D_Hip(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   ierr = hipMemcpy(data->d_array, data->h_array, bytes(vec),
-                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
   return 0;
 }
 
@@ -53,7 +53,7 @@ static inline int CeedSyncD2H_Hip(const CeedVector vec) {
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
 
   ierr = hipMemcpy(data->h_array, data->d_array, bytes(vec),
-                    hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+                   hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
   return 0;
 }
 
@@ -61,8 +61,8 @@ static inline int CeedSyncD2H_Hip(const CeedVector vec) {
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
-                                       const CeedCopyMode cmode,
-                                       CeedScalar *array) {
+                                      const CeedCopyMode cmode,
+                                      CeedScalar *array) {
   int ierr;
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
@@ -96,7 +96,7 @@ static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
 // Set array from device
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
-    const CeedCopyMode cmode, CeedScalar *array) {
+                                        const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -112,7 +112,7 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
     }
     if (array) {
       ierr = hipMemcpy(data->d_array, array, bytes(vec),
-                        hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
+                       hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
     }
     break;
   case CEED_OWN_POINTER:
@@ -135,9 +135,9 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedVectorSetArray_Hip(const CeedVector vec,
-                                   const CeedMemType mtype,
-                                   const CeedCopyMode cmode,
-                                   CeedScalar *array) {
+                                  const CeedMemType mtype,
+                                  const CeedCopyMode cmode,
+                                  CeedScalar *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -157,7 +157,7 @@ static int CeedVectorSetArray_Hip(const CeedVector vec,
 // Vector Take Array
 //------------------------------------------------------------------------------
 static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
-                                    CeedScalar **array) {
+                                   CeedScalar **array) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, (void *)&impl); CeedChk(ierr);
@@ -248,8 +248,8 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
 //   this will perform a copy (possibly cached).
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
-                                       const CeedMemType mtype,
-                                       const CeedScalar **array) {
+                                      const CeedMemType mtype,
+                                      const CeedScalar **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -294,8 +294,8 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
 // Get array
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Hip(const CeedVector vec,
-                                   const CeedMemType mtype,
-                                   CeedScalar **array) {
+                                  const CeedMemType mtype,
+                                  CeedScalar **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);

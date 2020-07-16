@@ -141,7 +141,7 @@ CEED_INTERN int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype,
     const CeedElemRestriction res);
 
 CEED_INTERN int CeedBasisApplyElems_Hip(CeedBasis basis, const CeedInt nelem,
-    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+                                        CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
 CEED_INTERN int CeedQFunctionApplyElems_Hip(CeedQFunction qf, const CeedInt Q,
     const CeedVector *const u, const CeedVector *v);
@@ -155,9 +155,9 @@ CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d,
     CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology, CeedInt, CeedInt,
-                                       CeedInt, const CeedScalar *,
-                                       const CeedScalar *, const CeedScalar *,
-                                       const CeedScalar *, CeedBasis);
+                                      CeedInt, const CeedScalar *,
+                                      const CeedScalar *, const CeedScalar *,
+                                      const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
 

@@ -108,7 +108,7 @@ void trOffset(const CeedInt nelem,
 // Apply restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
-    CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                        CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Hip *impl;
   ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
@@ -149,7 +149,7 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   CeedElemRestrictionGetNumElements(r, &nelem);
   void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
   ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nelem, blocksize),
-                           blocksize, args); CeedChk(ierr);
+                          blocksize, args); CeedChk(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
 
@@ -163,8 +163,8 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
 // Blocked not supported
 //------------------------------------------------------------------------------
 int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block,
-                                       CeedTransposeMode tmode, CeedVector u,
-                                       CeedVector v, CeedRequest *request) {
+                                      CeedTransposeMode tmode, CeedVector u,
+                                      CeedVector v, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
@@ -212,8 +212,8 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
 // Create Restriction
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
-                                   CeedCopyMode cmode, const CeedInt *indices,
-                                   CeedElemRestriction r) {
+                                  CeedCopyMode cmode, const CeedInt *indices,
+                                  CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
@@ -263,7 +263,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
       CeedChk_Hip(ceed, ierr);
       impl->d_ind_allocated = impl->d_ind;//We own the device memory
       ierr = hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
-                        hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                       hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
     }
   } else if (mtype == CEED_MEM_DEVICE) {
     switch (cmode) {
@@ -273,7 +273,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
         CeedChk_Hip(ceed, ierr);
         impl->d_ind_allocated = impl->d_ind;//We own the device memory
         ierr = hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
-                          hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
+                         hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
       }
       break;
     case CEED_OWN_POINTER:
@@ -290,15 +290,15 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
   CeedInt ncomp;
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedCompileHip(ceed, restrictionkernels, &impl->module, 7,
-                         "RESTRICTION_ELEMSIZE", elemsize,
-                         "RESTRICTION_NELEM", nelem,
-                         "RESTRICTION_NCOMP", ncomp,
-                         "RESTRICTION_COMPSTRIDE", compstride,
-                         "STRIDE_NODES", strides[0],
-                         "STRIDE_COMP", strides[1],
-                         "STRIDE_ELEM", strides[2]); CeedChk(ierr);
+                        "RESTRICTION_ELEMSIZE", elemsize,
+                        "RESTRICTION_NELEM", nelem,
+                        "RESTRICTION_NCOMP", ncomp,
+                        "RESTRICTION_COMPSTRIDE", compstride,
+                        "STRIDE_NODES", strides[0],
+                        "STRIDE_COMP", strides[1],
+                        "STRIDE_ELEM", strides[2]); CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "noTrStrided",
-                           &impl->noTrStrided); CeedChk(ierr);
+                          &impl->noTrStrided); CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "noTrOffset", &impl->noTrOffset);
   CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "trStrided", &impl->trStrided);
