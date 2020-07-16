@@ -447,8 +447,8 @@ static inline int CeedOperatorRestoreInputs_Opt(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
-static int CeedOperatorApply_Opt(CeedOperator op, CeedVector invec,
-                                 CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector invec,
+                                    CeedVector outvec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -762,7 +762,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
                                 CeedOperatorLinearAssembleQFunction_Opt);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                CeedOperatorApply_Opt); CeedChk(ierr);
+                                CeedOperatorApplyAdd_Opt); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Opt); CeedChk(ierr);
   return 0;
