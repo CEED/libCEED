@@ -976,6 +976,7 @@ int CeedGetErrorMessage(Ceed ceed, char **errmsg) {
   char *ceederrmsg = ceed->errmsg ? ceed->errmsg : "No error message stored";
   size_t slen = strlen(ceederrmsg) + 1;
   CeedRealloc(slen, errmsg);
+  assert(*errmsg != NULL);
   memcpy(*errmsg, ceederrmsg, slen);
   CeedFree(&ceed->errmsg);
   return 0;
