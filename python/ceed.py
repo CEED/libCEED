@@ -42,6 +42,7 @@ class Ceed():
         # libCEED call
         resourceAscii = ffi.new("char[]", resource.encode("ascii"))
         lib.CeedInit(resourceAscii, self._pointer)
+        lib.CeedSetErrorHandler(self._pointer[0], ffi.addressof(lib, "CeedErrorStore"))
 
     # Representation
     def __repr__(self):
@@ -56,12 +57,21 @@ class Ceed():
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedView(self._pointer[0], stream)
+                err_code = lib.CeedView(self._pointer[0], stream)
+                self._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
 
         return out_string
+
+    # Error handler
+    def _check_error(self, err_code):
+      """Check return code and retrieve error message for non-zero code"""
+      if (err_code):
+        message = ffi.new("char **")
+        lib.CeedGetErrorMessage(self._pointer[0], message)
+        raise Exception(ffi.string(message[0]).decode("UTF-8"))
 
     # Get Resource
     def get_resource(self):
@@ -72,7 +82,8 @@ class Ceed():
 
         # libCEED call
         resource = ffi.new("char **")
-        lib.CeedGetResource(self._pointer[0], resource)
+        err_code = lib.CeedGetResource(self._pointer[0], resource)
+        self._check_error(err_code)
 
         return ffi.string(resource[0]).decode("UTF-8")
 
@@ -85,7 +96,8 @@ class Ceed():
 
         # libCEED call
         memtype = ffi.new("CeedMemType *", MEM_HOST)
-        lib.CeedGetPreferredMemType(self._pointer[0], memtype)
+        err_code = lib.CeedGetPreferredMemType(self._pointer[0], memtype)
+        self._check_error(err_code)
 
         return memtype[0]
 

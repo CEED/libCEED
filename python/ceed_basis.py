@@ -43,7 +43,8 @@ class Basis(ABC):
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedBasisView(self._pointer[0], stream)
+                err_code = lib.CeedBasisView(self._pointer[0], stream)
+                self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
@@ -66,8 +67,9 @@ class Basis(ABC):
                         from quadrature points to nodes; default CEED_NOTRANSPOSE"""
 
         # libCEED call
-        lib.CeedBasisApply(self._pointer[0], nelem, tmode, emode,
-                           u._pointer[0], v._pointer[0])
+        err_code = lib.CeedBasisApply(self._pointer[0], nelem, tmode, emode,
+                                      u._pointer[0], v._pointer[0])
+        self._ceed._check_error(err_code)
 
     # Transpose a Basis
     @property
@@ -94,7 +96,8 @@ class Basis(ABC):
         p_pointer = ffi.new("CeedInt *")
 
         # libCEED call
-        lib.CeedBasisGetNumNodes(self._pointer[0], p_pointer)
+        err_code = lib.CeedBasisGetNumNodes(self._pointer[0], p_pointer)
+        self._ceed._check_error(err_code)
 
         return p_pointer[0]
 
@@ -109,7 +112,8 @@ class Basis(ABC):
         q_pointer = ffi.new("CeedInt *")
 
         # libCEED call
-        lib.CeedBasisGetNumQuadraturePoints(self._pointer[0], q_pointer)
+        err_code = lib.CeedBasisGetNumQuadraturePoints(self._pointer[0], q_pointer)
+        self._ceed._check_error(err_code)
 
         return q_pointer[0]
 
@@ -141,7 +145,8 @@ class Basis(ABC):
             qweight1d.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedGaussQuadrature(q, qref1d_pointer, qweight1d_pointer)
+        err_code = lib.CeedGaussQuadrature(q, qref1d_pointer, qweight1d_pointer)
+        self._ceed._check_error(err_code)
 
         return qref1d, qweight1d
 
@@ -172,7 +177,8 @@ class Basis(ABC):
             qweight1d.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedLobattoQuadrature(q, qref1d_pointer, qweight1d_pointer)
+        err_code = lib.CeedLobattoQuadrature(q, qref1d_pointer, qweight1d_pointer)
+        self._ceed._check_error(err_code)
 
         return qref1d, qweight1d
 
@@ -284,7 +290,8 @@ class Basis(ABC):
     # Destructor
     def __del__(self):
         # libCEED call
-        lib.CeedBasisDestroy(self._pointer)
+        err_code = lib.CeedBasisDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -323,9 +330,11 @@ class BasisTensorH1(Basis):
             qweight1d.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedBasisCreateTensorH1(self._ceed._pointer[0], dim, ncomp, P1d, Q1d,
-                                    interp1d_pointer, grad1d_pointer, qref1d_pointer,
-                                    qweight1d_pointer, self._pointer)
+        err_code = lib.CeedBasisCreateTensorH1(self._ceed._pointer[0], dim, ncomp,
+                                               P1d, Q1d, interp1d_pointer,
+                                               grad1d_pointer, qref1d_pointer,
+                                               qweight1d_pointer, self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -343,8 +352,9 @@ class BasisTensorH1Lagrange(Basis):
         self._ceed = ceed
 
         # libCEED call
-        lib.CeedBasisCreateTensorH1Lagrange(self._ceed._pointer[0], dim, ncomp, P,
-                                            Q, qmode, self._pointer)
+        err_code = lib.CeedBasisCreateTensorH1Lagrange(self._ceed._pointer[0], dim,
+                                                       ncomp, P, Q, qmode, self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -382,9 +392,10 @@ class BasisH1(Basis):
             qweight.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedBasisCreateH1(self._ceed._pointer[0], topo, ncomp, nnodes, nqpts,
-                              interp_pointer, grad_pointer, qref_pointer,
-                              qweight_pointer, self._pointer)
+        err_code = lib.CeedBasisCreateH1(self._ceed._pointer[0], topo, ncomp,
+                                         nnodes, nqpts, interp_pointer,
+                                         grad_pointer, qref_pointer,
+                                         qweight_pointer, self._pointer)
 
 # ------------------------------------------------------------------------------
 

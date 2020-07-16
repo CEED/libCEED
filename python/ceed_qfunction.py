@@ -33,7 +33,8 @@ class _QFunctionBase(ABC):
     # Destructor
     def __del__(self):
         # libCEED call
-        lib.CeedQFunctionDestroy(self._pointer)
+        err_code = lib.CeedQFunctionDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -48,7 +49,8 @@ class _QFunctionBase(ABC):
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedQFunctionView(self._pointer[0], stream)
+                err_code = lib.CeedQFunctionView(self._pointer[0], stream)
+                self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
@@ -73,7 +75,8 @@ class _QFunctionBase(ABC):
             outvecs[i] = outputs[i]._pointer[0]
 
         # libCEED call
-        lib.CeedQFunctionApply(self._pointer[0], q, invecs, outvecs)
+        err_code = lib.CeedQFunctionApply(self._pointer[0], q, invecs, outvecs)
+        self._ceed._check_error(err_code)
 
         # Clean-up
         ffi.release(invecs)
@@ -100,8 +103,9 @@ class QFunction(_QFunctionBase):
 
         # libCEED call
         sourceAscii = ffi.new("char[]", source.encode('ascii'))
-        lib.CeedQFunctionCreateInterior(self._ceed._pointer[0], vlength, fpointer,
-                                        sourceAscii, self._pointer)
+        err_code = lib.CeedQFunctionCreateInterior(self._ceed._pointer[0], vlength,
+                                                   fpointer, sourceAscii, self._pointer)
+        self._ceed._check_error(err_code)
 
     # Set context data
     def set_context(self, ctx):
@@ -115,7 +119,8 @@ class QFunction(_QFunctionBase):
         ctx_pointer = ffi.cast("void *", ctx.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedQFunctionSetContext(self._pointer[0], ctx_pointer, len(ctx))
+        err_code = lib.CeedQFunctionSetContext(self._pointer[0], ctx_pointer, len(ctx))
+        self._ceed._check_error(err_code)
 
     # Add fields to CeedQFunction
     def add_input(self, fieldname, size, emode):
@@ -131,8 +136,9 @@ class QFunction(_QFunctionBase):
 
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
-        lib.CeedQFunctionAddInput(
-            self._pointer[0], fieldnameAscii, size, emode)
+        err_code = lib.CeedQFunctionAddInput(
+                       self._pointer[0], fieldnameAscii, size, emode)
+        self._ceed._check_error(err_code)
 
     def add_output(self, fieldname, size, emode):
         """Add a QFunction output.
@@ -147,8 +153,9 @@ class QFunction(_QFunctionBase):
 
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
-        lib.CeedQFunctionAddOutput(
-            self._pointer[0], fieldnameAscii, size, emode)
+        err_code = lib.CeedQFunctionAddOutput(
+                        self._pointer[0], fieldnameAscii, size, emode)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -167,8 +174,9 @@ class QFunctionByName(_QFunctionBase):
 
         # libCEED call
         nameAscii = ffi.new("char[]", name.encode('ascii'))
-        lib.CeedQFunctionCreateInteriorByName(self._ceed._pointer[0], nameAscii,
-                                              self._pointer)
+        err_code = lib.CeedQFunctionCreateInteriorByName(self._ceed._pointer[0],
+                                                         nameAscii, self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -185,7 +193,7 @@ class IdentityQFunction(_QFunctionBase):
         self._ceed = ceed
 
         # libCEED call
-        lib.CeedQFunctionCreateIdentity(self._ceed._pointer[0], size, inmode,
-                                        outmode, self._pointer)
+        err_code = lib.CeedQFunctionCreateIdentity(self._ceed._pointer[0], size,
+                                                   inmode, outmode, self._pointer)
 
 # ------------------------------------------------------------------------------

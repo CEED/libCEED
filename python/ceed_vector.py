@@ -39,12 +39,14 @@ class Vector():
         self._ceed = ceed
 
         # libCEED call
-        lib.CeedVectorCreate(self._ceed._pointer[0], size, self._pointer)
+        err_code = lib.CeedVectorCreate(self._ceed._pointer[0], size, self._pointer)
+        self._ceed._check_error(err_code)
 
     # Destructor
     def __del__(self):
         # libCEED call
-        lib.CeedVectorDestroy(self._pointer)
+        err_code = lib.CeedVectorDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -60,7 +62,8 @@ class Vector():
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedVectorView(self._pointer[0], fmt, stream)
+                err_code = lib.CeedVectorView(self._pointer[0], fmt, stream)
+                self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
@@ -89,7 +92,8 @@ class Vector():
                 array.__cuda_array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
+        err_code = lib.CeedVectorSetArray(self._pointer[0], memtype, cmode, array_pointer)
+        self._ceed._check_error(err_code)
 
     # Get Vector's data array
     def get_array(self, memtype=MEM_HOST):
@@ -103,13 +107,15 @@ class Vector():
 
         # Retrieve the length of the array
         length_pointer = ffi.new("CeedInt *")
-        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        self._ceed._check_error(err_code)
 
         # Setup the pointer's pointer
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
+        err_code = lib.CeedVectorGetArray(self._pointer[0], memtype, array_pointer)
+        self._ceed._check_error(err_code)
 
         # Return array created from buffer
         if memtype == MEM_HOST:
@@ -145,13 +151,15 @@ class Vector():
 
         # Retrieve the length of the array
         length_pointer = ffi.new("CeedInt *")
-        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        self._ceed._check_error(err_code)
 
         # Setup the pointer's pointer
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
+        err_code = lib.CeedVectorGetArrayRead(self._pointer[0], memtype, array_pointer)
+        self._ceed._check_error(err_code)
 
         # Return array created from buffer
         if memtype == MEM_HOST:
@@ -185,7 +193,8 @@ class Vector():
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        lib.CeedVectorRestoreArray(self._pointer[0], array_pointer)
+        err_code = lib.CeedVectorRestoreArray(self._pointer[0], array_pointer)
+        self._ceed._check_error(err_code)
 
     # Restore an array obtained using getArrayRead
     def restore_array_read(self):
@@ -195,7 +204,8 @@ class Vector():
         array_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
+        err_code = lib.CeedVectorRestoreArrayRead(self._pointer[0], array_pointer)
+        self._ceed._check_error(err_code)
 
     @contextlib.contextmanager
     def array(self, *shape, memtype=MEM_HOST):
@@ -257,7 +267,8 @@ class Vector():
         length_pointer = ffi.new("CeedInt *")
 
         # libCEED call
-        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        self._ceed._check_error(err_code)
 
         return length_pointer[0]
 
@@ -271,7 +282,8 @@ class Vector():
         length_pointer = ffi.new("CeedInt *")
 
         # libCEED call
-        lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        self._ceed._check_error(err_code)
 
         return length_pointer[0]
 
@@ -283,7 +295,8 @@ class Vector():
              value: value to be used"""
 
         # libCEED call
-        lib.CeedVectorSetValue(self._pointer[0], value)
+        err_code = lib.CeedVectorSetValue(self._pointer[0], value)
+        self._ceed._check_error(err_code)
 
     # Sync the Vector to a specified memtype
     def sync_array(self, memtype=MEM_HOST):
@@ -293,7 +306,8 @@ class Vector():
              **memtype: memtype to be synced"""
 
         # libCEED call
-        lib.CeedVectorSyncArray(self._pointer[0], memtype)
+        err_code = lib.CeedVectorSyncArray(self._pointer[0], memtype)
+        self._ceed._check_error(err_code)
 
     # Compute the norm of a vector
     def norm(self, normtype=NORM_2):
@@ -305,7 +319,8 @@ class Vector():
         norm_pointer = ffi.new("CeedScalar *")
 
         # libCEED call
-        lib.CeedVectorNorm(self._pointer[0], normtype, norm_pointer)
+        err_code = lib.CeedVectorNorm(self._pointer[0], normtype, norm_pointer)
+        self._ceed._check_error(err_code)
 
         return norm_pointer[0]
 

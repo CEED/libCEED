@@ -34,7 +34,8 @@ class _ElemRestrictionBase(ABC):
     # Destructor
     def __del__(self):
         # libCEED call
-        lib.CeedElemRestrictionDestroy(self._pointer)
+        err_code = lib.CeedElemRestrictionDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -49,7 +50,8 @@ class _ElemRestrictionBase(ABC):
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedElemRestrictionView(self._pointer[0], stream)
+                err_code = lib.CeedElemRestrictionView(self._pointer[0], stream)
+                self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
@@ -67,8 +69,9 @@ class _ElemRestrictionBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedElemRestrictionApply(self._pointer[0], tmode, u._pointer[0],
-                                     v._pointer[0], request)
+        err_code = lib.CeedElemRestrictionApply(self._pointer[0], tmode, u._pointer[0],
+                                                v._pointer[0], request)
+        self._ceed._check_error(err_code)
 
     # Transpose an ElemRestriction
     @property
@@ -100,16 +103,15 @@ class _ElemRestrictionBase(ABC):
         evecPointer = ffi.new("CeedVector *") if createEvec else ffi.NULL
 
         # libCEED call
-        lib.CeedElemRestrictionCreateVector(self._pointer[0], lvecPointer,
-                                            evecPointer)
+        err_code = lib.CeedElemRestrictionCreateVector(self._pointer[0], lvecPointer,
+                                                       evecPointer)
+        self._ceed._check_error(err_code)
 
         # Return vectors
         lvec = _VectorWrap(
-            self._ceed._pointer,
-            lvecPointer) if createLvec else None
+            self._ceed, lvecPointer) if createLvec else None
         evec = _VectorWrap(
-            self._ceed._pointer,
-            evecPointer) if createEvec else None
+            self._ceed, evecPointer) if createEvec else None
 
         # Return
         return [lvec, evec]
@@ -126,8 +128,9 @@ class _ElemRestrictionBase(ABC):
         mult.set_value(0)
 
         # libCEED call
-        lib.CeedElemRestrictionGetMultiplicity(
-            self._pointer[0], mult._pointer[0])
+        err_code = lib.CeedElemRestrictionGetMultiplicity(
+                       self._pointer[0], mult._pointer[0])
+        self._ceed._check_error(err_code)
 
         # Return
         return mult
@@ -153,9 +156,11 @@ class ElemRestriction(_ElemRestrictionBase):
                                    offsets.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreate(self._ceed._pointer[0], nelem, elemsize,
-                                      ncomp, compstride, lsize, memtype, cmode,
-                                      offsets_pointer, self._pointer)
+        err_code = lib.CeedElemRestrictionCreate(self._ceed._pointer[0], nelem,
+                                                 elemsize, ncomp, compstride,
+                                                 lsize, memtype, cmode,
+                                                 offsets_pointer, self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -177,9 +182,11 @@ class StridedElemRestriction(_ElemRestrictionBase):
                                    strides.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreateStrided(self._ceed._pointer[0], nelem,
-                                             elemsize, ncomp, lsize,
-                                             strides_pointer, self._pointer)
+        err_code = lib.CeedElemRestrictionCreateStrided(self._ceed._pointer[0],
+                                                        nelem, elemsize, ncomp,
+                                                        lsize, strides_pointer,
+                                                        self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -202,10 +209,11 @@ class BlockedElemRestriction(_ElemRestrictionBase):
                                    offsets.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], nelem,
-                                             elemsize, blksize, ncomp,
-                                             compstride, lsize, memtype, cmode,
-                                             offsets_pointer, self._pointer)
+        err_code = lib.CeedElemRestrictionCreateBlocked(self._ceed._pointer[0], nelem,
+                                                        elemsize, blksize, ncomp,
+                                                        compstride, lsize, memtype, cmode,
+                                                        offsets_pointer, self._pointer)
+        self._ceed._check_error(err_code)
 
     # Transpose a Blocked ElemRestriction
     @property
@@ -236,8 +244,10 @@ class BlockedElemRestriction(_ElemRestrictionBase):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedElemRestrictionApplyBlock(self._pointer[0], block, tmode,
-                                          u._pointer[0], v._pointer[0], request)
+        err_code = lib.CeedElemRestrictionApplyBlock(self._pointer[0], block, tmode,
+                                                     u._pointer[0], v._pointer[0],
+                                                     request)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -259,10 +269,11 @@ class BlockedStridedElemRestriction(BlockedElemRestriction):
                                    strides.__array_interface__['data'][0])
 
         # libCEED call
-        lib.CeedElemRestrictionCreateBlockedStrided(self._ceed._pointer[0], nelem,
-                                                    elemsize, blksize, ncomp,
-                                                    lsize, strides_pointer,
-                                                    self._pointer)
+        err_code = lib.CeedElemRestrictionCreateBlockedStrided(self._ceed._pointer[0], nelem,
+                                                               elemsize, blksize, ncomp,
+                                                               lsize, strides_pointer,
+                                                               self._pointer)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 

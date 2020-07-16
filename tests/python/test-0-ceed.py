@@ -18,6 +18,7 @@
 # Test Ceed functionality
 
 import libceed
+import pytest
 
 # -------------------------------------------------------------------------------
 # Test creation and destruction of a Ceed object
@@ -60,5 +61,20 @@ def test_003(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     print(ceed)
+
+# -------------------------------------------------------------------------------
+# Test CEED object error handling
+# -------------------------------------------------------------------------------
+
+
+def test_003(ceed_resource):
+    with pytest.raises(Exception) as e_info:
+        ceed = libceed.Ceed(ceed_resource)
+
+        vec = ceed.Vector(5)
+        array1 = vec.get_array()
+        array2 = vec.get_array()
+
+        vec = vec.restore_array()
 
 # -------------------------------------------------------------------------------
