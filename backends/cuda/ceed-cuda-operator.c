@@ -1204,11 +1204,11 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Cuda);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
                                 CeedOperatorLinearAssembleDiagonal_Cuda);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemblePointBlockDiagonal",
+                                "LinearAssembleAddPointBlockDiagonal",
                                 CeedOperatorLinearAssemblePointBlockDiagonal_Cuda);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
