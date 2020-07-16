@@ -1133,7 +1133,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble composite diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Hip(
+static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(
   CeedOperator op, CeedVector assembled, CeedRequest *request,
   const bool pointBlock) {
   int ierr;
@@ -1151,13 +1151,13 @@ static inline int CeedOperatorLinearAssembleDiagonalCompositeCore_Hip(
 //------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleDiagonal_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleAddDiagonal_Hip(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleDiagonalCompositeCore_Hip(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
            request, false);
   } else {
     return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, false);
@@ -1167,13 +1167,13 @@ static int CeedOperatorLinearAssembleDiagonal_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble Linear Point Block Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssemblePointBlockDiagonal_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChk(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleDiagonalCompositeCore_Hip(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
            request, true);
   } else {
     return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, true);
@@ -1205,12 +1205,12 @@ int CeedOperatorCreate_Hip(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Hip);
   CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleDiagonal",
-                                CeedOperatorLinearAssembleDiagonal_Hip);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
+                                CeedOperatorLinearAssembleAddDiagonal_Hip);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemblePointBlockDiagonal",
-                                CeedOperatorLinearAssemblePointBlockDiagonal_Hip);
+                                "LinearAssembleAddPointBlockDiagonal",
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Hip);
@@ -1230,11 +1230,11 @@ int CeedCompositeOperatorCreate_Hip(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddDiagonal_Hip);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssemblePointBlockDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
   CeedChk(ierr);
   return 0;
 }
