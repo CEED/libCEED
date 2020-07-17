@@ -638,7 +638,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     ceed_error_handler = "abort";
   if (!strcmp(ceed_error_handler, "exit"))
     (*ceed)->Error = CeedErrorExit;
-  if (!strcmp(ceed_error_handler, "store"))
+  else if (!strcmp(ceed_error_handler, "store"))
     (*ceed)->Error = CeedErrorStore;
   else
     (*ceed)->Error = CeedErrorAbort;
