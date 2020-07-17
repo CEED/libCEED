@@ -66,7 +66,7 @@ OCCA_DIR ?= ../occa
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 #CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
-#TODO: FIX THIS to not avoid cuda
+#TODO: FIX THIS to allow for systems with CUDA and HIP
 CUDA_DIR ?= .
 HIP_DIR ?= /opt/rocm/hip
 
@@ -371,7 +371,6 @@ endif
 
 # HIP Backends
 ROCM_DIR = $(HIP_DIR)/..
-HIPBLASDIR = $(ROCM_DIR)/hipblas
 HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
@@ -379,10 +378,10 @@ ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I$(HIP_DIR)/include -I./include -I$(ROCM_DIR)/include
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -I$(ROCM_DIR)/include
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += -D__HIP_PLATFORM_HCC__
+    CPPFLAGS += -D__HIP_PLATFORM_HCC__ -D__HIP_ROCclr__
   endif
-  $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR)) -L$(HIPBLASDIR)/lib  -Wl,-rpath,$(abspath $(HIPBLASDIR)/lib)
-  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
+  $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
+  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc
   $(libceeds) : LINK = $(CXX)
   libceed.hip += $(hip.hip)
   libceed.cpp += $(hip.cpp)
