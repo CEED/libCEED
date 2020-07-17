@@ -642,6 +642,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     (*ceed)->Error = CeedErrorStore;
   else
     (*ceed)->Error = CeedErrorAbort;
+  memcpy((*ceed)->errmsg, "No error message stored", 24);
   (*ceed)->refcount = 1;
   (*ceed)->data = NULL;
 
@@ -881,7 +882,8 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
 // LCOV_EXCL_STOP
 
 /**
-  @brief Error handler that stores the error message for future use.
+  @brief Error handler that stores the error message for future use and returns
+           the error.
 
   Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
 
@@ -895,16 +897,13 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
     CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format, args);
 
   // Build message
-  char errmsg[CEED_MAX_RESOURCE_LEN], errmsgva[CEED_MAX_RESOURCE_LEN/2],
-       *errmsg_copy;
+  char errmsg[CEED_MAX_RESOURCE_LEN], errmsgva[CEED_MAX_RESOURCE_LEN/2];
   vsprintf(errmsgva, format, args);
   sprintf(errmsg, "%s:%d in %s(): %s", filename, lineno, func, errmsgva);
   size_t slen = strlen(errmsg) + 1;
 
   // Copy message
-  CeedMalloc(slen, &errmsg_copy);
-  memcpy(errmsg_copy, errmsg, slen);
-  ceed->errmsg = errmsg_copy;
+  memcpy(ceed->errmsg, errmsg, slen);
   return ecode;
 }
 // LCOV_EXCL_STOP
@@ -973,18 +972,29 @@ int CeedSetErrorHandler(Ceed ceed,
     CeedErrorStore()
 
   @param[in] ceed     Ceed contex to retrieve error message
-  @param[out] errmsg  Char pointer to hold error message, to be
-                        freed by caller
+  @param[out] errmsg  Char pointer to hold error message
 
   @ref Developer
 **/
-int CeedGetErrorMessage(Ceed ceed, char **errmsg) {
-  char *ceederrmsg = ceed->errmsg ? ceed->errmsg : "No error message stored";
-  size_t slen = strlen(ceederrmsg) + 1;
-  CeedRealloc(slen, errmsg);
-  assert(*errmsg != NULL);
-  memcpy(*errmsg, ceederrmsg, slen);
-  CeedFree(&ceed->errmsg);
+int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
+  *errmsg = ceed->errmsg;
+  return 0;
+}
+
+/**
+  @brief Restore error message
+
+  The error message is only stored when using the error handler
+    CeedErrorStore()
+
+  @param[in] ceed     Ceed contex to restore error message
+  @param[out] errmsg  Char pointer that holds error message
+
+  @ref Developer
+**/
+int CeedResetErrorMessage(Ceed ceed, const char **errmsg) {
+  *errmsg = NULL;
+  memcpy(ceed->errmsg, "No error message stored", 24);
   return 0;
 }
 

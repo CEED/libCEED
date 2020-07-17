@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   // Check for standard message with default handler
-  char *errmsg = NULL;
+  const char *errmsg = NULL;
   CeedGetErrorMessage(ceed, &errmsg);
   if (strcmp(errmsg, "No error message stored"))
     printf("Unexpected error message received: \"%s\"\n", errmsg);
@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
   CeedGetErrorMessage(ceed, &errmsg);
   if (!errmsg || !strcmp(errmsg, "No error message stored"))
     printf("Unexpected error message received: \"%s\"\n", errmsg);
+  CeedResetErrorMessage(ceed, &errmsg);
 
   // Check error message reset
   CeedGetErrorMessage(ceed, &errmsg);

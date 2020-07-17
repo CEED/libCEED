@@ -122,7 +122,7 @@ struct Ceed_private {
   bool isDeterministic;
   void *data;
   bool debug;
-  char *errmsg;
+  char errmsg[CEED_MAX_RESOURCE_LEN];
   foffset *foffsets;
 };
 

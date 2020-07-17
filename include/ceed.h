@@ -186,7 +186,8 @@ CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (*eh)(Ceed, const char *, int,
                                         const char *, int, const char *,
                                         va_list));
-CEED_EXTERN int CeedGetErrorMessage(Ceed, char **errmsg);
+CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
+CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 
 /// Specify memory type
 ///
