@@ -8,5 +8,8 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
   CeedDestroy(&ceed);
+
+  // Test double destroy is safe
+  CeedDestroy(&ceed);
   return 0;
 }
