@@ -376,9 +376,8 @@ HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I$(HIP_DIR)/include -I./include -I$(ROCM_DIR)/include
-  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -I$(ROCM_DIR)/include
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += -D__HIP_PLATFORM_HCC__ -D__HIP_ROCclr__
+    CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc
