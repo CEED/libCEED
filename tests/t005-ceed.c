@@ -13,7 +13,9 @@ int main(int argc, char **argv) {
   const char *errmsg = NULL;
   CeedGetErrorMessage(ceed, &errmsg);
   if (strcmp(errmsg, "No error message stored"))
+    // LCOV_EXCL_START
     printf("Unexpected error message received: \"%s\"\n", errmsg);
+  // LCOV_EXCL_STOP
 
   // Set error handler to store error message
   CeedSetErrorHandler(ceed, CeedErrorStore);
@@ -28,13 +30,17 @@ int main(int argc, char **argv) {
   // Check error message
   CeedGetErrorMessage(ceed, &errmsg);
   if (!errmsg || !strcmp(errmsg, "No error message stored"))
+    // LCOV_EXCL_START
     printf("Unexpected error message received: \"%s\"\n", errmsg);
+  // LCOV_EXCL_STOP
   CeedResetErrorMessage(ceed, &errmsg);
 
   // Check error message reset
   CeedGetErrorMessage(ceed, &errmsg);
   if (strcmp(errmsg, "No error message stored"))
+    // LCOV_EXCL_START
     printf("Unexpected error message received: \"%s\"\n", errmsg);
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedVectorRestoreArray(vec, &array);
