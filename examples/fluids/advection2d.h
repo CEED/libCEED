@@ -69,6 +69,8 @@ typedef struct SurfaceContext_ *SurfaceContext;
 struct SurfaceContext_ {
   CeedScalar E_wind;
   CeedScalar strong_form;
+  CeedScalar rho_enter;
+  CeedScalar u_enter[3];
   bool implicit;
 };
 #endif
