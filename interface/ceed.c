@@ -852,9 +852,13 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   if (ceed) {
     retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
   } else {
-    // This function doesn't actually return
     // LCOV_EXCL_START
-    retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+    const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
+    if (!strcmp(ceed_error_handler, "return"))
+      retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, args);
+    else
+      // This function will not return
+      retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
   }
   va_end(args);
   return retval;

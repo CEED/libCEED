@@ -16,6 +16,7 @@
 
 from _ceed_cffi import ffi, lib
 import sys
+import os
 import io
 import tempfile
 from abc import ABC
@@ -41,7 +42,10 @@ class Ceed():
 
         # libCEED call
         resourceAscii = ffi.new("char[]", resource.encode("ascii"))
-        lib.CeedInit(resourceAscii, self._pointer)
+        os.environ["CEED_ERROR_HANDLER"] = "return"
+        err_code = lib.CeedInit(resourceAscii, self._pointer)
+        if err_code:
+            raise Exception("Error initializing backend resource: " + resource)
         lib.CeedSetErrorHandler(
             self._pointer[0], ffi.addressof(
                 lib, "CeedErrorStore"))
