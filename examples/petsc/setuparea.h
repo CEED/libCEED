@@ -121,7 +121,7 @@ static problemData problemOptions[6] = {
 // PETSc sphere auxiliary functions
 // -----------------------------------------------------------------------------
 
-// Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
+// Utility function taken from petsc/src/dm/impls/plex/tutorials/ex7.c
 static PetscErrorCode ProjectToUnitSphere(DM dm) {
   Vec            coordinates;
   PetscScalar   *coords;
