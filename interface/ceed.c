@@ -855,6 +855,8 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   } else {
     // LCOV_EXCL_START
     const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
+    if (!ceed_error_handler)
+      ceed_error_handler = "abort";
     if (!strcmp(ceed_error_handler, "return"))
       retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, args);
     else

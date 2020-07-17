@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
     printf("Unexpected error message received: \"%s\"\n", errmsg);
 
   // Cleanup
+  CeedVectorRestoreArray(vec, &array);
   CeedVectorDestroy(&vec);
   CeedDestroy(&ceed);
   return 0;
