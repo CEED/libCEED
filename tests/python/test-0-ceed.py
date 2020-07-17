@@ -75,6 +75,6 @@ def test_003(ceed_resource):
         array1 = vec.get_array()
         array2 = vec.get_array()
 
-        vec = vec.restore_array()
+        vec.restore_array()
 
 # -------------------------------------------------------------------------------
