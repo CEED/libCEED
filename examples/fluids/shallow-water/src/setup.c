@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <petsc.h>
+#include <petscsys.h>
 #include <petscdmplex.h>
 #include <petscfe.h>
 #include <ceed.h>
@@ -65,6 +66,78 @@ problemData problemOptions[] = {
     .non_zero_time          = PETSC_FALSE
   }
 };
+
+// -----------------------------------------------------------------------------
+// Auxiliary function to determine if nodes belong to cube faces (panels)
+// -----------------------------------------------------------------------------
+
+PetscErrorCode FindPanelEdgeNodes(DM dm, PetscInt ncomp, PetscInt *nedgenodes,
+                                  EdgeNode *edgenodes) {
+
+  PetscInt ierr;
+  PetscInt cstart, cend, nstart, nend, nnodes, depth, edgenode = 0;
+  PetscSection section;
+  PetscFunctionBeginUser;
+  // Get Nelem
+  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cstart, &cend); CHKERRQ(ierr);
+  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, depth, &nstart, &nend); CHKERRQ(ierr);
+  nnodes = nend - nstart;
+  unsigned int bitmap[nnodes];
+  ierr = PetscMemzero(bitmap, sizeof(bitmap)); CHKERRQ(ierr);
+
+  // Get indices
+  for (PetscInt c = cstart; c < cend; c++) { // Traverse elements
+    PetscInt numindices, *indices, n, panel;
+    // Query element panel
+    ierr = DMGetLabelValue(dm, "panel", c, &panel); CHKERRQ(ierr);
+    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                   &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
+    for (n = 0; n < numindices; n += ncomp) { // Traverse nodes per element
+      PetscInt  bitmapidx = indices[n] / ncomp;
+      bitmap[bitmapidx] |= (1 << panel);
+    }
+    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+                                       &numindices, &indices, NULL, NULL);
+    CHKERRQ(ierr);
+  }
+  // Read the 1's in the resulting bitmap and extract edge nodes only
+  ierr = PetscMalloc1(nnodes + 24, edgenodes); CHKERRQ(ierr);
+  for (PetscInt i = 0; i < nnodes; i++) {
+    PetscInt ones = 0, panels[3];
+    for (PetscInt p = 0; p < 6; p++) {
+      if (bitmap[i] & 1)
+        panels[ones++] = p;
+      bitmap[i] >>= 1;
+    }
+    if (ones == 2) {
+      (*edgenodes)[edgenode].idx = i;
+      (*edgenodes)[edgenode].panelA = panels[0];
+      (*edgenodes)[edgenode].panelB = panels[1];
+      edgenode++;
+    }
+    else if (ones == 3) {
+      (*edgenodes)[edgenode].idx = i;
+      (*edgenodes)[edgenode].panelA = panels[0];
+      (*edgenodes)[edgenode].panelB = panels[1];
+      edgenode++;
+      (*edgenodes)[edgenode].idx = i;
+      (*edgenodes)[edgenode].panelA = panels[0];
+      (*edgenodes)[edgenode].panelB = panels[2];
+      edgenode++;
+      (*edgenodes)[edgenode].idx = i;
+      (*edgenodes)[edgenode].panelA = panels[1];
+      (*edgenodes)[edgenode].panelB = panels[2];
+      edgenode++;
+    }
+  }
+  ierr = PetscRealloc(edgenode, edgenodes); CHKERRQ(ierr);
+  *nedgenodes = edgenode;
+
+  PetscFunctionReturn(0);
+}
 
 // -----------------------------------------------------------------------------
 // Auxiliary function to create PETSc FE space for a given degree
@@ -178,7 +251,7 @@ PetscErrorCode SetupDM(DM dm, PetscInt degree, PetscInt ncompq,
 // PETSc sphere auxiliary function
 // -----------------------------------------------------------------------------
 
-// Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
+// Utility function taken from petsc/src/dm/impls/plex/tutorials/ex7.c
 PetscErrorCode ProjectToUnitSphere(DM dm) {
   Vec            coordinates;
   PetscScalar   *coords;
@@ -223,13 +296,13 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P,
 
   // Get indices
   ierr = PetscMalloc1(nelem*P*P, &erestrict); CHKERRQ(ierr);
-  for (c=cStart, eoffset = 0; c<cEnd; c++) {
+  for (c = cStart, eoffset = 0; c < cEnd; c++) {
     PetscInt numindices, *indices, i;
     ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
                                    &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
-    for (i=0; i<numindices; i+=ncomp) {
-      for (PetscInt j=0; j<ncomp; j++) {
+    for (i = 0; i < numindices; i += ncomp) {
+      for (PetscInt j = 0; j < ncomp; j++) {
         if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
           SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                    "Cell %D closure indices not interlaced", c);
@@ -244,7 +317,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P,
   }
   if (eoffset != nelem*P*P) SETERRQ3(PETSC_COMM_SELF,
         PETSC_ERR_LIB, "ElemRestriction of size (%D,%D) initialized %D nodes",
-        nelem, P*P,eoffset);
+        nelem, P*P, eoffset);
 
   // Setup CEED restriction
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);

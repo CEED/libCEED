@@ -93,6 +93,7 @@ static const char *const StabilizationTypes[] = {
 // PETSc user data
 typedef struct User_ *User;
 typedef struct Units_ *Units;
+typedef struct EdgeNode_ *EdgeNode;
 
 struct User_ {
   MPI_Comm comm;
@@ -117,6 +118,11 @@ struct Units_ {
   PetscScalar mpersquareds;
 };
 
+struct EdgeNode_ {
+  PetscInt idx; // Node index
+  PetscInt panelA, panelB; // Indices of panels sharing the edge node
+};
+
 // libCEED data struct
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
@@ -131,6 +137,14 @@ struct CeedData_ {
 
 // External variables
 extern problemData problemOptions[];
+
+// -----------------------------------------------------------------------------
+// Auxiliary functions for cube face (panel) charts
+// -----------------------------------------------------------------------------
+
+// Auxiliary function to determine if nodes belong to cube faces (panels)
+PetscErrorCode FindPanelEdgeNodes(DM dm, PetscInt ncomp, PetscInt *nedgenodes,
+                                  EdgeNode *edgenodes);
 
 // -----------------------------------------------------------------------------
 // Setup DM functions
