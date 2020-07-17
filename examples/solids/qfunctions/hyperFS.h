@@ -43,14 +43,14 @@ struct Physics_private {
 //  applications of the Neo-Hookean model.
 // -----------------------------------------------------------------------------
 static inline CeedScalar log1p_series_shifted(CeedScalar x) {
-  const CeedScalar left = sqrt(2)/2 - 1, right = sqrt(2) - 1;
+  const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
     if (x < left) { // Replace if with while for arbitrary range (may hurt vectorization)
-      sum -= log(2) / 2;
+      sum -= log(2.) / 2;
       x = 1 + 2 * x;
     } else if (right < x) {
-      sum += log(2) / 2;
+      sum += log(2.) / 2;
       x = (x - 1) / 2;
     }
   }
@@ -478,7 +478,7 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-ON*
 
   // Context
-  const Physics context = ctx;
+  const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
   const CeedScalar TwoMu = E / (1 + nu);
@@ -570,7 +570,7 @@ CEED_QFUNCTION(HyperFSDiagnostic)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  const Physics context = ctx;
+  const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
   const CeedScalar TwoMu = E / (1 + nu);

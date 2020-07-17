@@ -340,6 +340,8 @@ In addition to the function pointers (``setup`` and ``mass``), :ref:`CeedQFuncti
 constructors take a string representation specifying where the source for the
 implementation is found. This is used by backends that support Just-In-Time
 (JIT) compilation (i.e., CUDA and OCCA) to compile for coprocessors.
+For full support across all backends, these :ref:`CeedQFunction` source files must only contain constructs mutually supported by C99, C++11, and CUDA.
+For example, explict type casting of void pointers and explicit use of compatable arguments for :code:`math` library functions is required, and VLA syntax for array reshaping is only avaliable via libCEED's :ref:`CEED_Q_VLA` macro.
 
 Different input and output fields are added individually, specifying the field
 name, size of the field, and evaluation mode.
