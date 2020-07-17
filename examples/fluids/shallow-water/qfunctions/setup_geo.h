@@ -171,7 +171,7 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
     qdata[7][i] = dxdXTdxdXinv[0][0];
     qdata[8][i] = dxdXTdxdXinv[1][1];
     qdata[9][i] = dxdXTdxdXinv[0][1];
-    
+
     // Terrain topography, hs
     qdata[10][i] = sin(xx[0]) + cos(xx[1]); // put 0 for constant flat topography
   } // End of Quadrature Point Loop
