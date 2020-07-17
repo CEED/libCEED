@@ -439,7 +439,9 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
   @param f          Function pointer to evaluate action at quadrature points.
                       See \ref CeedQFunctionUser.
   @param source     Absolute path to source of QFunction,
-                      "\abs_path\file.h:function_name"
+                      "\abs_path\file.h:function_name".
+                      For support across all backends, this source must only
+                      contain constructs supported by C99, C++11, and CUDA.
   @param[out] qf    Address of the variable where the newly created
                       CeedQFunction will be stored
 
