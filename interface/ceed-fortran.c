@@ -585,7 +585,7 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
 
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(int *basis, int *err) {
-  if (CeedBasis_n == 0 || ! CeedBasis_dict[*basis]) return;
+  if (CeedBasis_n == 0 || !CeedBasis_dict[*basis]) return;
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 
   if (*err == 0) {
