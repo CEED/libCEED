@@ -1021,6 +1021,7 @@ int main(int argc, char **argv) {
   CeedScalar cv              = 717.;     // J/(kg K)
   CeedScalar cp              = 1004.;    // J/(kg K)
   CeedScalar vortex_strength = 5.;       // -
+  CeedScalar rho_enter       = 1.2;      // Kg/m^3
   CeedScalar g               = 9.81;     // m/s^2
   CeedScalar lambda          = -2./3.;   // -
   CeedScalar mu              = 75.;      // Pa s, dynamic viscosity
@@ -1040,7 +1041,8 @@ int main(int argc, char **argv) {
   PetscInt degree            = 1;        // -
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
-  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
+            u_enter[3] = {1., 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -1081,11 +1083,15 @@ int main(int argc, char **argv) {
                        "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
     CHKERRQ(ierr);
   }
-  if (wind_type == ADVECTION_WIND_TRANSLATION        // TODO: add euler as well
-      && problemChoice == NS_DENSITY_CURRENT) {
+  if (wind_type == ADVECTION_WIND_TRANSLATION
+      && (problemChoice == NS_DENSITY_CURRENT ||
+          problemChoice == NS_EULER_VORTEX)) {
     SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
-            "-problem_advection_wind translation is not defined for -problem density_current");
+            "-problem_advection_wind translation is not defined for -problem density_current or -problem euler_vortex");
   }
+  ierr = PetscOptionsRealArray("-problem_euler_vortex_velocity",
+                               "Incoming velocity vector",
+                               NULL, u_enter, &n, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -1163,6 +1169,9 @@ int main(int argc, char **argv) {
                        "Warning! Use -vortex_strength only with -problem euler_vortex\n");
     CHKERRQ(ierr);
   }
+  ierr = PetscOptionsScalar("-problem_euler_vortex_rho", "Incoming density",
+                            NULL, rho_enter, &rho_enter, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
@@ -1267,6 +1276,7 @@ int main(int argc, char **argv) {
   thetaC *= Kelvin;
   P0 *= Pascal;
   E_wind *= Joule;
+  rho_enter *= kgpercubicm;
   N *= (1./second);
   cv *= JperkgK;
   cp *= JperkgK;
@@ -1652,6 +1662,10 @@ int main(int argc, char **argv) {
   struct SurfaceContext_ ctxSurfaceData = {
     .E_wind = E_wind,
     .strong_form = strong_form,
+    .rho_enter = rho_enter,
+    .u_enter[0] = u_enter[0],
+    .u_enter[1] = u_enter[1],
+    .u_enter[2] = u_enter[2],
     .implicit = implicit,
   };
   CeedQFunctionContextCreate(ceed, &ctxSurface);
