@@ -119,75 +119,6 @@ int CeedRequestWait(CeedRequest *req) {
 /// @addtogroup CeedDeveloper
 /// @{
 
-/**
-  @brief Error handler that returns without printing anything.
-
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
-
-  @ref Developer
-**/
-// LCOV_EXCL_START
-int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
-                    const char *func, int ecode, const char *format,
-                    va_list args) {
-  return ecode;
-}
-// LCOV_EXCL_STOP
-
-/**
-  @brief Error handler that prints to stderr and aborts
-
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
-
-  @ref Developer
-**/
-// LCOV_EXCL_START
-int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
-                   const char *func, int ecode, const char *format,
-                   va_list args) {
-  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
-  vfprintf(stderr, format, args);
-  fprintf(stderr, "\n");
-  abort();
-  return ecode;
-}
-// LCOV_EXCL_STOP
-
-/**
-  @brief Error handler that prints to stderr and exits
-
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
-
-  In contrast to CeedErrorAbort(), this exits without a signal, so atexit()
-  handlers (e.g., as used by gcov) are run.
-
-  @ref Developer
-**/
-int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
-                  int ecode, const char *format, va_list args) {
-  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
-  vfprintf(stderr, format, args);
-  fprintf(stderr, "\n");
-  exit(ecode);
-  return ecode;
-}
-
-/**
-  @brief Set error handler
-
-  A default error handler is set in CeedInit().  Use this function to change
-  the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined
-  error handler.
-
-  @ref Developer
-**/
-int CeedSetErrorHandler(Ceed ceed,
-                        int (*eh)(Ceed, const char *, int, const char *,
-                                  int, const char *, va_list)) {
-  ceed->Error = eh;
-  return 0;
-}
-
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -707,8 +638,11 @@ int CeedInit(const char *resource, Ceed *ceed) {
     ceed_error_handler = "abort";
   if (!strcmp(ceed_error_handler, "exit"))
     (*ceed)->Error = CeedErrorExit;
+  else if (!strcmp(ceed_error_handler, "store"))
+    (*ceed)->Error = CeedErrorStore;
   else
     (*ceed)->Error = CeedErrorAbort;
+  memcpy((*ceed)->errmsg, "No error message stored", 24);
   (*ceed)->refcount = 1;
   (*ceed)->data = NULL;
 
@@ -919,13 +853,148 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   if (ceed) {
     retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
   } else {
-    // This function doesn't actually return
     // LCOV_EXCL_START
-    retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+    const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
+    if (!ceed_error_handler)
+      ceed_error_handler = "abort";
+    if (!strcmp(ceed_error_handler, "return"))
+      retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, args);
+    else
+      // This function will not return
+      retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
   }
   va_end(args);
   return retval;
   // LCOV_EXCL_STOP
+}
+
+/**
+  @brief Error handler that returns without printing anything.
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
+**/
+// LCOV_EXCL_START
+int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
+                    const char *func, int ecode, const char *format,
+                    va_list args) {
+  return ecode;
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Error handler that stores the error message for future use and returns
+           the error.
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
+**/
+// LCOV_EXCL_START
+int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
+                   const char *func, int ecode, const char *format,
+                   va_list args) {
+  if (ceed->parent)
+    CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format, args);
+
+  // Build message
+  CeedInt len;
+  len = snprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
+                 filename, lineno, func);
+  vsnprintf(ceed->errmsg + len, CEED_MAX_RESOURCE_LEN - len, format, args);
+  return ecode;
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Error handler that prints to stderr and aborts
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @ref Developer
+**/
+// LCOV_EXCL_START
+int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
+                   const char *func, int ecode, const char *format,
+                   va_list args) {
+  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
+  vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
+  abort();
+  return ecode;
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Error handler that prints to stderr and exits
+
+  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+
+  In contrast to CeedErrorAbort(), this exits without a signal, so atexit()
+  handlers (e.g., as used by gcov) are run.
+
+  @ref Developer
+**/
+int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
+                  int ecode, const char *format, va_list args) {
+  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
+  vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
+  exit(ecode);
+  return ecode;
+}
+
+/**
+  @brief Set error handler
+
+  A default error handler is set in CeedInit().  Use this function to change
+  the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined
+  error handler.
+
+  @ref Developer
+**/
+int CeedSetErrorHandler(Ceed ceed,
+                        int (*eh)(Ceed, const char *, int, const char *,
+                                  int, const char *, va_list)) {
+  ceed->Error = eh;
+  if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, eh);
+  for (int i=0; i<ceed->objdelegatecount; i++)
+    CeedSetErrorHandler(ceed->objdelegates[i].delegate, eh);
+  return 0;
+}
+
+/**
+  @brief Get error message
+
+  The error message is only stored when using the error handler
+    CeedErrorStore()
+
+  @param[in] ceed     Ceed contex to retrieve error message
+  @param[out] errmsg  Char pointer to hold error message
+
+  @ref Developer
+**/
+int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
+  *errmsg = ceed->errmsg;
+  return 0;
+}
+
+/**
+  @brief Restore error message
+
+  The error message is only stored when using the error handler
+    CeedErrorStore()
+
+  @param[in] ceed     Ceed contex to restore error message
+  @param[out] errmsg  Char pointer that holds error message
+
+  @ref Developer
+**/
+int CeedResetErrorMessage(Ceed ceed, const char **errmsg) {
+  *errmsg = NULL;
+  memcpy(ceed->errmsg, "No error message stored", 24);
+  return 0;
 }
 
 /// @}
