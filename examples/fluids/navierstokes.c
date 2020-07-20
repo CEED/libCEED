@@ -79,7 +79,7 @@ static const char *const problemTypes[] = {
   "density_current",
   "advection",
   "advection2d",
-  "euler_vortex"
+  "euler_vortex",
   "problemType", "NS_", NULL
 };
 
@@ -925,8 +925,8 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         PetscInt comps[1] = {4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_DC) {
+                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+      } else if (problem->bc == Exact_DC || problem->bc == Exact_Euler) {
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
@@ -1042,7 +1042,7 @@ int main(int argc, char **argv) {
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
-            u_enter[3] = {1., 0, 0};
+            u_enter[3] = {2., 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -1662,6 +1662,13 @@ int main(int argc, char **argv) {
   struct SurfaceContext_ ctxSurfaceData = {
     .E_wind = E_wind,
     .strong_form = strong_form,
+    .implicit = implicit,
+  };
+  struct EulerContext_ ctxEuler = {
+    .cv = cv,
+    .cp = cp,
+    .Rd = Rd,
+    .g = g,
     .rho_enter = rho_enter,
     .u_enter[0] = u_enter[0],
     .u_enter[1] = u_enter[1],
@@ -1673,16 +1680,26 @@ int main(int argc, char **argv) {
                               sizeof ctxSurfaceData, &ctxSurfaceData);
 
   switch (problemChoice) {
-  case NS_EULER_VORTEX:
   case NS_DENSITY_CURRENT:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxNS,
+          sizeof ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxAdvection2d,
+          sizeof ctxAdvection2d);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxAdvection2d,
+          sizeof ctxAdvection2d);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
+          sizeof ctxSurface);
+  case NS_EULER_VORTEX:
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxEuler,
+          sizeof ctxEuler);
+    if (qf_applyOut) CeedQFunctionSetContext(qf_applyOut, &ctxEuler,
+          sizeof ctxEuler);
+    if (qf_applyIn) CeedQFunctionSetContext(qf_applyIn, &ctxEuler,
+          sizeof ctxEuler);
   }
 
   // Set up PETSc context
