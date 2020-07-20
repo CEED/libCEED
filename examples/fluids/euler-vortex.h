@@ -58,12 +58,14 @@ struct SetupContext_ {
 };
 #endif
 
-#ifndef surface_context_struct
-#define surface_context_struct
-typedef struct SurfaceContext_ *SurfaceContext;
-struct SurfaceContext_ {
-  CeedScalar E_wind;
-  CeedScalar strong_form;
+#ifndef euler_context_struct
+#define euler_context_struct
+typedef struct EulerContext_ *EulerContext;
+struct EulerContext_ {
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
   CeedScalar rho_enter;
   CeedScalar u_enter[3];
   bool implicit;
@@ -128,7 +130,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar P = 1.;
   const CeedScalar T = P / (Rd*rho) - (gamma - 1.) * vortex_strength *
                        vortex_strength * exp(1. - r*r) / (8.*gamma*M_PI*M_PI);
-  const CeedScalar u[3] = {1. - C * y0, 1. + C * x0, 0};
+  const CeedScalar u[3] = {1., 0, 0}; // {1. - C * y0, 1. + C * x0, 0}; // commenting it out for now
 
   // Initial Conditions
   q[0] = rho;
@@ -207,14 +209,13 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar cv     = context[3];
-  const CeedScalar cp     = context[4];
-  const CeedScalar g      = context[5];
-  const CeedScalar Rd     = context[6];
-  const CeedScalar gamma  = cp / cv;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar cv    = context->cv;
+  const CeedScalar cp    = context->cp;
+  const CeedScalar Rd    = context->Rd;
+  const CeedScalar g     = context->g;
+  const CeedScalar gamma = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -300,15 +301,13 @@ CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
     // Context
-  SurfaceContext context = (SurfaceContext)ctx;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar cv        = context->cv;
+  const CeedScalar cp        = context->cp;
+  const CeedScalar Rd        = context->Rd;
   const CeedScalar rho_enter = context->rho_enter;
   const CeedScalar *u_enter  = context->u_enter;
-
-  SetupContext Context = (SetupContext)ctx;
-  const CeedScalar cv    = Context->cv;
-  const CeedScalar cp    = Context->cp;
-  const CeedScalar Rd    = Context->Rd;
-  const CeedScalar gamma = cp / cv;
+  const CeedScalar gamma     = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -387,11 +386,10 @@ CEED_QFUNCTION(Euler_Out)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
  // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar cv     = context[3];
-  const CeedScalar cp     = context[4];
-  const CeedScalar g      = context[5];
-  const CeedScalar gamma  = cp / cv;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar cv    = context->cv;
+  const CeedScalar cp    = context->cp;
+  const CeedScalar gamma = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
