@@ -67,7 +67,7 @@ def test_003(ceed_resource):
 # -------------------------------------------------------------------------------
 
 
-def test_003(ceed_resource):
+def test_005(ceed_resource):
     with pytest.raises(Exception) as e_info:
         ceed = libceed.Ceed(ceed_resource)
 
