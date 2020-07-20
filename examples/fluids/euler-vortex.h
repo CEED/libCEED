@@ -64,8 +64,6 @@ typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar g;
   CeedScalar rho_enter;
   CeedScalar u_enter[3];
   bool implicit;
@@ -82,7 +80,7 @@ struct EulerContext_ {
 // Initial Conditions:
 //   Density     = 1
 //   Pressure    = 1
-//   Temperature = P / (Rd rho) - (gamma - 1) vortex_strength**2
+//   Temperature = P / rho - (gamma - 1) vortex_strength**2
 //                 exp(1 - r**2) / (8 gamma pi**2)
 //   Velocity = vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc, 0] / (2 pi)
 //         r  = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
@@ -95,7 +93,6 @@ struct EulerContext_ {
 // Constants:
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
-//   Rd     = cp - cv,  Specific heat difference
 //   vortex_strength ,  Strength of vortex
 //   center          ,  Location of bubble center
 //   gamma  = cp / cv,  Specific heat ratio
@@ -111,7 +108,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar cv = context->cv;
   const CeedScalar cp = context->cp;
-  const CeedScalar Rd = context->Rd;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center;
   const CeedScalar gamma = cp / cv;
@@ -128,7 +124,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   // Exact Solutions
   const CeedScalar rho = 1.;
   const CeedScalar P = 1.;
-  const CeedScalar T = P / (Rd*rho) - (gamma - 1.) * vortex_strength *
+  const CeedScalar T = P / rho - (gamma - 1.) * vortex_strength *
                        vortex_strength * exp(1. - r*r) / (8.*gamma*M_PI*M_PI);
   const CeedScalar u[3] = {1., 0, 0}; // {1. - C * y0, 1. + C * x0, 0}; // commenting it out for now
 
@@ -213,8 +209,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   EulerContext context = (EulerContext)ctx;
   const CeedScalar cv    = context->cv;
   const CeedScalar cp    = context->cp;
-  const CeedScalar Rd    = context->Rd;
-  const CeedScalar g     = context->g;
   const CeedScalar gamma = cp / cv;
 
   CeedPragmaSIMD
@@ -304,7 +298,6 @@ CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
   EulerContext context = (EulerContext)ctx;
   const CeedScalar cv        = context->cv;
   const CeedScalar cp        = context->cp;
-  const CeedScalar Rd        = context->Rd;
   const CeedScalar rho_enter = context->rho_enter;
   const CeedScalar *u_enter  = context->u_enter;
   const CeedScalar gamma     = cp / cv;
@@ -341,14 +334,14 @@ CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
              (u_n - u_enter_n) / 2. , 2 );  // Utility Coefficient
       P_enter = (2. * P + (gamma - 1.) * P * (u_n - u_enter_n) *
                 (u_n - u_enter_n) / 2. + (u_n - u_enter_n) * sqrt(D)) / 2.;
-      T_enter = P_enter / ( Rd * rho_enter );
+      T_enter = P_enter / rho_enter;
       E_enter = rho_enter * ( cv * T_enter + (u_enter[0] * u_enter[0] +
                 u_enter[1] * u_enter[1] + u_enter[2] * u_enter[2]) / 2. );
     } else {
       a = sqrt( gamma * P / rho );  // Utility Coefficient
       P_enter = P * pow( ( u_n - u_enter_n + 2. * a / (gamma - 1.) /
                (2. * a / (gamma - 1.) ) ) , 2 * gamma / (gamma - 1.) );
-      T_enter = P_enter / ( Rd * rho_enter );
+      T_enter = P_enter / rho_enter;
       E_enter = rho_enter * ( cv * T_enter + (u_enter[0] * u_enter[0] +
                 u_enter[1] * u_enter[1] + u_enter[2] * u_enter[2]) / 2. );
     }
