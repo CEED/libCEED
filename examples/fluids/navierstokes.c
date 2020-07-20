@@ -1667,8 +1667,6 @@ int main(int argc, char **argv) {
   struct EulerContext_ ctxEuler = {
     .cv = cv,
     .cp = cp,
-    .Rd = Rd,
-    .g = g,
     .rho_enter = rho_enter,
     .u_enter[0] = u_enter[0],
     .u_enter[1] = u_enter[1],
