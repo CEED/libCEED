@@ -169,11 +169,11 @@ class _OperatorBase(ABC):
 
         # Wrap operators
         opCoarse = _OperatorWrap(
-            self._ceed._pointer, opCoarsePointer)
+            self._ceed, opCoarsePointer)
         opProlong = _OperatorWrap(
-            self._ceed._pointer, opProlongPointer)
+            self._ceed, opProlongPointer)
         opRestrict = _OperatorWrap(
-            self._ceed._pointer, opRestrictPointer)
+            self._ceed, opRestrictPointer)
 
         # Return
         return [opCoarse, opProlong, opRestrict]
@@ -209,11 +209,11 @@ class _OperatorBase(ABC):
 
         # Wrap operators
         opCoarse = _OperatorWrap(
-            self._ceed._pointer, opCoarsePointer)
+            self._ceed, opCoarsePointer)
         opProlong = _OperatorWrap(
-            self._ceed._pointer, opProlongPointer)
+            self._ceed, opProlongPointer)
         opRestrict = _OperatorWrap(
-            self._ceed._pointer, opRestrictPointer)
+            self._ceed, opRestrictPointer)
 
         # Return
         return [opCoarse, opProlong, opRestrict]
@@ -249,11 +249,11 @@ class _OperatorBase(ABC):
 
         # Wrap operators
         opCoarse = _OperatorWrap(
-            self._ceed._pointer, opCoarsePointer)
+            self._ceed, opCoarsePointer)
         opProlong = _OperatorWrap(
-            self._ceed._pointer, opProlongPointer)
+            self._ceed, opProlongPointer)
         opRestrict = _OperatorWrap(
-            self._ceed._pointer, opRestrictPointer)
+            self._ceed, opRestrictPointer)
 
         # Return
         return [opCoarse, opProlong, opRestrict]
