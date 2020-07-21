@@ -383,7 +383,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type,
     CeedChk_Hipblas(ceed, ierr);
     CeedScalar normNoAbs;
     ierr = hipMemcpy(&normNoAbs, data->d_array+indx-1, sizeof(CeedScalar),
-                      hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+                     hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
     *norm = fabs(normNoAbs);
     break;
   }
