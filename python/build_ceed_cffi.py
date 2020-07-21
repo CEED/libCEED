@@ -15,6 +15,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 import os
+import re
 from cffi import FFI
 ffibuilder = FFI()
 
@@ -31,10 +32,13 @@ with open(os.path.abspath("include/ceed.h")) as f:
     lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
     header = '\n'.join(lines)
     header = header.split("static inline CeedInt CeedIntPow", 1)[0]
+    # Note: cffi cannot handle vargs
+    header = re.sub("va_list", "const char *", header)
 ffibuilder.cdef(header)
 
 ffibuilder.set_source("_ceed_cffi",
                       """
+  #define va_list const char *
   #include <ceed.h>   // the C header of the library
   """,
                       include_dirs=[

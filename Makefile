@@ -357,7 +357,7 @@ CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
-  $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda
+  $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
   libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)

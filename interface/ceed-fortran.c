@@ -65,6 +65,9 @@ typedef int fortran_charlen_t;
   strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len)); \
   Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
 
+// -----------------------------------------------------------------------------
+// Ceed
+// -----------------------------------------------------------------------------
 #define fCeedInit FORTRAN_NAME(ceedinit,CEEDINIT)
 void fCeedInit(const char *resource, int *ceed, int *err,
                fortran_charlen_t resource_len) {
@@ -102,9 +105,11 @@ void fCeedView(int *ceed, int *err) {
 
 #define fCeedDestroy FORTRAN_NAME(ceeddestroy,CEEDDESTROY)
 void fCeedDestroy(int *ceed, int *err) {
+  if (*ceed == FORTRAN_NULL) return;
   *err = CeedDestroy(&Ceed_dict[*ceed]);
 
   if (*err == 0) {
+    *ceed = FORTRAN_NULL;
     Ceed_n--;
     if (Ceed_n == 0) {
       CeedFree(&Ceed_dict);
@@ -114,6 +119,9 @@ void fCeedDestroy(int *ceed, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedVector
+// -----------------------------------------------------------------------------
 static CeedVector *CeedVector_dict = NULL;
 static int CeedVector_count = 0;
 static int CeedVector_n = 0;
@@ -210,9 +218,11 @@ void fCeedVectorView(int *vec, int *err) {
 
 #define fCeedVectorDestroy FORTRAN_NAME(ceedvectordestroy,CEEDVECTORDESTROY)
 void fCeedVectorDestroy(int *vec, int *err) {
+  if (*vec == FORTRAN_NULL) return;
   *err = CeedVectorDestroy(&CeedVector_dict[*vec]);
 
   if (*err == 0) {
+    *vec = FORTRAN_NULL;
     CeedVector_n--;
     if (CeedVector_n == 0) {
       CeedFree(&CeedVector_dict);
@@ -222,6 +232,9 @@ void fCeedVectorDestroy(int *vec, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedElemRestriction
+// -----------------------------------------------------------------------------
 static CeedElemRestriction *CeedElemRestriction_dict = NULL;
 static int CeedElemRestriction_count = 0;
 static int CeedElemRestriction_n = 0;
@@ -431,9 +444,11 @@ void fCeedRequestWait(int *rqst, int *err) {
 #define fCeedElemRestrictionDestroy \
     FORTRAN_NAME(ceedelemrestrictiondestroy,CEEDELEMRESTRICTIONDESTROY)
 void fCeedElemRestrictionDestroy(int *elem, int *err) {
+  if (*elem == FORTRAN_NULL) return;
   *err = CeedElemRestrictionDestroy(&CeedElemRestriction_dict[*elem]);
 
   if (*err == 0) {
+    *elem = FORTRAN_NULL;
     CeedElemRestriction_n--;
     if (CeedElemRestriction_n == 0) {
       CeedFree(&CeedElemRestriction_dict);
@@ -443,6 +458,9 @@ void fCeedElemRestrictionDestroy(int *elem, int *err) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedBasis
+// -----------------------------------------------------------------------------
 static CeedBasis *CeedBasis_dict = NULL;
 static int CeedBasis_count = 0;
 static int CeedBasis_n = 0;
@@ -570,9 +588,11 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
 
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(int *basis, int *err) {
+  if (*basis == FORTRAN_NULL) return;
   *err = CeedBasisDestroy(&CeedBasis_dict[*basis]);
 
   if (*err == 0) {
+    *basis = FORTRAN_NULL;
     CeedBasis_n--;
     if (CeedBasis_n == 0) {
       CeedFree(&CeedBasis_dict);
@@ -595,6 +615,9 @@ void fCeedLobattoQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
   *err = CeedLobattoQuadrature(*Q, qref1d, qweight1d);
 }
 
+// -----------------------------------------------------------------------------
+// CeedQFunction
+// -----------------------------------------------------------------------------
 static CeedQFunction *CeedQFunction_dict = NULL;
 static int CeedQFunction_count = 0;
 static int CeedQFunction_n = 0;
@@ -802,6 +825,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
 #define fCeedQFunctionDestroy \
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
+  if (*qf == FORTRAN_NULL) return;
   bool fstatus;
   *err = CeedQFunctionIsFortran(CeedQFunction_dict[*qf], &fstatus);
   if (*err) return;
@@ -812,16 +836,20 @@ void fCeedQFunctionDestroy(int *qf, int *err) {
   }
 
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
-  if (*err) return;
-
-  CeedQFunction_n--;
-  if (CeedQFunction_n == 0) {
-    *err = CeedFree(&CeedQFunction_dict);
-    CeedQFunction_count = 0;
-    CeedQFunction_count_max = 0;
+  if (*err == 0) {
+    *qf = FORTRAN_NULL;
+    CeedQFunction_n--;
+    if (CeedQFunction_n == 0) {
+      *err = CeedFree(&CeedQFunction_dict);
+      CeedQFunction_count = 0;
+      CeedQFunction_count_max = 0;
+    }
   }
 }
 
+// -----------------------------------------------------------------------------
+// CeedOperator
+// -----------------------------------------------------------------------------
 static CeedOperator *CeedOperator_dict = NULL;
 static int CeedOperator_count = 0;
 static int CeedOperator_n = 0;
@@ -1123,12 +1151,17 @@ void fCeedOperatorApplyJacobian(int *op, int *qdatavec, int *ustatevec,
 #define fCeedOperatorDestroy \
     FORTRAN_NAME(ceedoperatordestroy, CEEDOPERATORDESTROY)
 void fCeedOperatorDestroy(int *op, int *err) {
+  if (*op == FORTRAN_NULL) return;
   *err = CeedOperatorDestroy(&CeedOperator_dict[*op]);
-  if (*err) return;
-  CeedOperator_n--;
-  if (CeedOperator_n == 0) {
-    *err = CeedFree(&CeedOperator_dict);
-    CeedOperator_count = 0;
-    CeedOperator_count_max = 0;
+  if (*err == 0) {
+    *op = FORTRAN_NULL;
+    CeedOperator_n--;
+    if (CeedOperator_n == 0) {
+      *err = CeedFree(&CeedOperator_dict);
+      CeedOperator_count = 0;
+      CeedOperator_count_max = 0;
+    }
   }
 }
+
+// -----------------------------------------------------------------------------

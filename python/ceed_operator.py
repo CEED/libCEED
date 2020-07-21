@@ -32,7 +32,8 @@ class _OperatorBase(ABC):
     # Destructor
     def __del__(self):
         # libCEED call
-        lib.CeedOperatorDestroy(self._pointer)
+        err_code = lib.CeedOperatorDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -47,7 +48,8 @@ class _OperatorBase(ABC):
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                lib.CeedOperatorView(self._pointer[0], stream)
+                err_code = lib.CeedOperatorView(self._pointer[0], stream)
+                self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
                 out_string = stream_file.read()
@@ -63,8 +65,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorLinearAssembleDiagonal(self._pointer[0],
-                                               d._pointer[0], request)
+        err_code = lib.CeedOperatorLinearAssembleDiagonal(self._pointer[0],
+                                                          d._pointer[0], request)
+        self._ceed._check_error(err_code)
 
     # Assemble add linear diagonal
     def linear_assemble_add_diagonal(self, d, request=REQUEST_IMMEDIATE):
@@ -75,8 +78,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorLinearAssembleAddDiagonal(self._pointer[0],
-                                                  d._pointer[0], request)
+        err_code = lib.CeedOperatorLinearAssembleAddDiagonal(self._pointer[0],
+                                                             d._pointer[0], request)
+        self._ceed._check_error(err_code)
 
     # Assemble linear point block diagonal
     def linear_assemble_point_block_diagonal(
@@ -90,8 +94,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorLinearAssemblePointBlockDiagonal(self._pointer[0],
-                                                         d._pointer[0], request)
+        err_code = lib.CeedOperatorLinearAssemblePointBlockDiagonal(self._pointer[0],
+                                                                    d._pointer[0], request)
+        self._ceed._check_error(err_code)
 
     # Assemble linear point block diagonal
     def linear_assemble_add_point_block_diagonal(
@@ -105,8 +110,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorLinearAssembleAddPointBlockDiagonal(self._pointer[0],
-                                                            d._pointer[0], request)
+        err_code = lib.CeedOperatorLinearAssembleAddPointBlockDiagonal(self._pointer[0],
+                                                                       d._pointer[0], request)
+        self._ceed._check_error(err_code)
 
     # Apply CeedOperator
     def apply(self, u, v, request=REQUEST_IMMEDIATE):
@@ -120,8 +126,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorApply(self._pointer[0], u._pointer[0], v._pointer[0],
-                              request)
+        err_code = lib.CeedOperatorApply(self._pointer[0], u._pointer[0], v._pointer[0],
+                                         request)
+        self._ceed._check_error(err_code)
 
     # Apply CeedOperator
     def apply_add(self, u, v, request=REQUEST_IMMEDIATE):
@@ -135,8 +142,9 @@ class _OperatorBase(ABC):
              **request: Ceed request, default CEED_REQUEST_IMMEDIATE"""
 
         # libCEED call
-        lib.CeedOperatorApplyAdd(self._pointer[0], u._pointer[0], v._pointer[0],
-                                 request)
+        err_code = lib.CeedOperatorApplyAdd(self._pointer[0], u._pointer[0], v._pointer[0],
+                                            request)
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -153,10 +161,11 @@ class Operator(_OperatorBase):
         self._ceed = ceed
 
         # libCEED call
-        lib.CeedOperatorCreate(self._ceed._pointer[0], qf._pointer[0],
-                               dqf._pointer[0] if dqf else ffi.NULL,
-                               dqfT._pointer[0] if dqfT else ffi.NULL,
-                               self._pointer)
+        err_code = lib.CeedOperatorCreate(self._ceed._pointer[0], qf._pointer[0],
+                                          dqf._pointer[0] if dqf else ffi.NULL,
+                                          dqfT._pointer[0] if dqfT else ffi.NULL,
+                                          self._pointer)
+        self._ceed._check_error(err_code)
 
     # Add field to CeedOperator
     def set_field(self, fieldname, restriction, basis, vector):
@@ -174,9 +183,10 @@ class Operator(_OperatorBase):
 
         # libCEED call
         fieldnameAscii = ffi.new("char[]", fieldname.encode('ascii'))
-        lib.CeedOperatorSetField(self._pointer[0], fieldnameAscii,
-                                 restriction._pointer[0], basis._pointer[0],
-                                 vector._pointer[0])
+        err_code = lib.CeedOperatorSetField(self._pointer[0], fieldnameAscii,
+                                            restriction._pointer[0], basis._pointer[0],
+                                            vector._pointer[0])
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------
 
@@ -192,7 +202,9 @@ class CompositeOperator(_OperatorBase):
         # Reference to Ceed
         self._ceed = ceed
         # libCEED call
-        lib.CeedCompositeOperatorCreate(self._ceed._pointer[0], self._pointer)
+        err_code = lib.CeedCompositeOperatorCreate(
+            self._ceed._pointer[0], self._pointer)
+        self._ceed._check_error(err_code)
 
     # Add sub operators
     def add_sub(self, subop):
@@ -202,6 +214,8 @@ class CompositeOperator(_OperatorBase):
              subop: sub-operator Operator"""
 
         # libCEED call
-        lib.CeedCompositeOperatorAddSub(self._pointer[0], subop._pointer[0])
+        err_code = lib.CeedCompositeOperatorAddSub(
+            self._pointer[0], subop._pointer[0])
+        self._ceed._check_error(err_code)
 
 # ------------------------------------------------------------------------------

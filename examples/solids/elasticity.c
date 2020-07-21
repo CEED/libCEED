@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   PetscInt       ncompe = 1, ncompd = 5; // 1 energy output, 5 diagnostic
   PetscInt       numLevels = 1, fineLevel = 0;
   PetscInt       *Ugsz, *Ulsz, *Ulocsz;  // sz: size
-  PetscInt       snesIts = 0;
+  PetscInt       snesIts = 0, kspIts = 0;
   // Timing
   double         startTime, elapsedTime, minTime, maxTime;
 
@@ -662,6 +662,8 @@ int main(int argc, char **argv) {
     PetscInt its;
     ierr = SNESGetIterationNumber(snes, &its); CHKERRQ(ierr);
     snesIts += its;
+    ierr = SNESGetLinearSolveIterations(snes, &its); CHKERRQ(ierr);
+    kspIts += its;
 
     // -- Check for divergence
     SNESConvergedReason reason;
@@ -706,8 +708,9 @@ int main(int argc, char **argv) {
     ierr = KSPGetType(ksp, &kspType); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "  Linear Solver:\n"
-                       "    KSP Type                           : %s\n",
-                       kspType); CHKERRQ(ierr);
+                       "    KSP Type                           : %s\n"
+                       "    Total KSP Iterations               : %D\n",
+                       kspType, kspIts); CHKERRQ(ierr);
 
     // -- PC
     PC pc;
@@ -755,8 +758,10 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "  Performance:\n"
-                       "    SNES Solve Time                    : %g (%g) sec\n",
-                       maxTime, minTime); CHKERRQ(ierr);
+                       "    SNES Solve Time                    : %g (%g) sec\n"
+                       "    DoFs/Sec in SNES                   : %g (%g) million\n",
+                       maxTime, minTime, 1e-6*Ugsz[fineLevel]*kspIts/maxTime,
+                       1e-6*Ugsz[fineLevel]*kspIts/minTime); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

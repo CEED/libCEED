@@ -173,6 +173,22 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
 #endif
 
+/// Ceed error handlers
+CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
+                                const char *, va_list);
+CEED_EXTERN int CeedErrorStore(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
+CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
+                               const char *, va_list);
+CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
+                              const char *, va_list);
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
+                                    int (*eh)(Ceed, const char *, int,
+                                        const char *, int, const char *,
+                                        va_list));
+CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
+CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
+
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to

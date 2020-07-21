@@ -350,6 +350,51 @@ static int CeedVectorRestoreArray_Cuda(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
+// Restore an array obtained using CeedVectorGetArray()
+//------------------------------------------------------------------------------
+static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
+                               CeedScalar *norm) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
+  CeedVector_Cuda *data;
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+  cublasHandle_t handle;
+  ierr = CeedCudaGetCublasHandle(ceed, &handle); CeedChk(ierr);
+
+  // Compute norm
+  const CeedScalar *d_array;
+  ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array); CeedChk(ierr);
+  switch (type) {
+  case CEED_NORM_1: {
+    ierr = cublasDasum(handle, length, d_array, 1, norm);
+    CeedChk_Cublas(ceed, ierr);
+    break;
+  }
+  case CEED_NORM_2: {
+    ierr = cublasDnrm2(handle, length, d_array, 1, norm);
+    CeedChk_Cublas(ceed, ierr);
+    break;
+  }
+  case CEED_NORM_MAX: {
+    CeedInt indx;
+    ierr = cublasIdamax(handle, length, d_array, 1, &indx);
+    CeedChk_Cublas(ceed, ierr);
+    CeedScalar normNoAbs;
+    ierr = cudaMemcpy(&normNoAbs, data->d_array+indx-1, sizeof(CeedScalar),
+                      cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
+    *norm = fabs(normNoAbs);
+    break;
+  }
+  }
+  ierr = CeedVectorRestoreArrayRead(vec, &d_array); CeedChk(ierr);
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Destroy the vector
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Cuda(const CeedVector vec) {
@@ -388,6 +433,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorRestoreArray_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
                                 CeedVectorRestoreArrayRead_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
+                                CeedVectorNorm_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Cuda); CeedChk(ierr);
 

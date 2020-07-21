@@ -11,5 +11,8 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
       call ceeddestroy(ceed,err)
 
+! Test double destroy is safe
+      call ceeddestroy(ceed,err)
+
       end
 !-----------------------------------------------------------------------
