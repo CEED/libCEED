@@ -25,7 +25,7 @@ CEED_QFUNCTION(Multigrid1)(void *ctx, const CeedInt Q,
                            const CeedScalar *const *in,
                            CeedScalar *const *out) {
   // in[0] is input, size (Q*1)
-  // in[1] is multiplicity, size (Q)
+  // in[1] is multiplicity, size (Q*1)
   const CeedScalar *input = in[0];
   const CeedScalar *mult = in[1];
   // out[0] is output, size (Q*1)
