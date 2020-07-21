@@ -365,7 +365,6 @@ ifneq ($(CUDA_LIB_DIR),)
   BACKENDS += $(CUDA_BACKENDS)
 endif
 
-
 # HIP Backends
 ROCM_DIR = $(HIP_DIR)/..
 HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT}))
