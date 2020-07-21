@@ -133,7 +133,7 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-OFF*
     // Setup
     // -- Compute latitude
-    const CeedScalar theta     =  asin(X[2][i] / R);
+    const CeedScalar theta     = asin(X[2][i] / R);
     // -- Compute Coriolis parameter
     const CeedScalar f         = 2*Omega*sin(theta);
     // -- Interp in
