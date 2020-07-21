@@ -189,7 +189,7 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
 //------------------------------------------------------------------------------
 // Set host array to value
 //------------------------------------------------------------------------------
-static int CeedHostSetValue(CeedScalar *h_array, CeedInt length,
+static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedInt length,
                             CeedScalar val) {
   for (int i = 0; i < length; i++)
     h_array[i] = val;
@@ -199,7 +199,7 @@ static int CeedHostSetValue(CeedScalar *h_array, CeedInt length,
 //------------------------------------------------------------------------------
 // Set device array to value (impl in .hip file)
 //------------------------------------------------------------------------------
-int CeedDeviceSetValue(CeedScalar *d_array, CeedInt length, CeedScalar val);
+int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedInt length, CeedScalar val);
 
 //------------------------------------------------------------------------------
 // Set a vector to a value,
@@ -216,7 +216,7 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   // Set value for synced device/host array
   switch(data->memState) {
   case CEED_HIP_HOST_SYNC:
-    ierr = CeedHostSetValue(data->h_array, length, val); CeedChk(ierr);
+    ierr = CeedHostSetValue_Hip(data->h_array, length, val); CeedChk(ierr);
     break;
   case CEED_HIP_NONE_SYNC:
     /*
@@ -229,14 +229,14 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
       data->d_array = data->d_array_allocated;
     }
     data->memState = CEED_HIP_DEVICE_SYNC;
-    ierr = CeedDeviceSetValue(data->d_array, length, val); CeedChk(ierr);
+    ierr = CeedDeviceSetValue_Hip(data->d_array, length, val); CeedChk(ierr);
     break;
   case CEED_HIP_DEVICE_SYNC:
-    ierr = CeedDeviceSetValue(data->d_array, length, val); CeedChk(ierr);
+    ierr = CeedDeviceSetValue_Hip(data->d_array, length, val); CeedChk(ierr);
     break;
   case CEED_HIP_BOTH_SYNC:
-    ierr = CeedHostSetValue(data->h_array, length, val); CeedChk(ierr);
-    ierr = CeedDeviceSetValue(data->d_array, length, val); CeedChk(ierr);
+    ierr = CeedHostSetValue_Hip(data->h_array, length, val); CeedChk(ierr);
+    ierr = CeedDeviceSetValue_Hip(data->d_array, length, val); CeedChk(ierr);
     break;
   }
   return 0;

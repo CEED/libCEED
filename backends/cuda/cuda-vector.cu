@@ -31,8 +31,8 @@ __global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size,
 //------------------------------------------------------------------------------
 // Set value on device memory
 //------------------------------------------------------------------------------
-extern "C" int CeedDeviceSetValue(CeedScalar* d_array, CeedInt length,
-                                  CeedScalar val) {
+extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedInt length,
+                                       CeedScalar val) {
   const int bsize = 512;
   const int vecsize = length;
   int gridsize = vecsize / bsize;
