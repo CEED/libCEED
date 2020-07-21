@@ -190,7 +190,7 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
 // Set host array to value
 //------------------------------------------------------------------------------
 static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedInt length,
-                            CeedScalar val) {
+                                CeedScalar val) {
   for (int i = 0; i < length; i++)
     h_array[i] = val;
   return 0;
