@@ -350,7 +350,7 @@ static int CeedVectorRestoreArray_Cuda(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
-// Restore an array obtained using CeedVectorGetArray()
+// Get the norm of a CeedVector
 //------------------------------------------------------------------------------
 static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
                                CeedScalar *norm) {

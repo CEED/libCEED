@@ -349,6 +349,51 @@ static int CeedVectorRestoreArray_Hip(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
+// Get the norm of a CeedVector
+//------------------------------------------------------------------------------
+static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type,
+                              CeedScalar *norm) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
+  CeedVector_Hip *data;
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+  hipblasHandle_t handle;
+  ierr = CeedHipGetHipblasHandle(ceed, &handle); CeedChk(ierr);
+
+  // Compute norm
+  const CeedScalar *d_array;
+  ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array); CeedChk(ierr);
+  switch (type) {
+  case CEED_NORM_1: {
+    ierr = hipblasDasum(handle, length, d_array, 1, norm);
+    CeedChk_Hipblas(ceed, ierr);
+    break;
+  }
+  case CEED_NORM_2: {
+    ierr = hipblasDnrm2(handle, length, d_array, 1, norm);
+    CeedChk_Hipblas(ceed, ierr);
+    break;
+  }
+  case CEED_NORM_MAX: {
+    CeedInt indx;
+    ierr = hipblasIdamax(handle, length, d_array, 1, &indx);
+    CeedChk_Hipblas(ceed, ierr);
+    CeedScalar normNoAbs;
+    ierr = hipMemcpy(&normNoAbs, data->d_array+indx-1, sizeof(CeedScalar),
+                      hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+    *norm = fabs(normNoAbs);
+    break;
+  }
+  }
+  ierr = CeedVectorRestoreArrayRead(vec, &d_array); CeedChk(ierr);
+
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Destroy the vector
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Hip(const CeedVector vec) {
@@ -387,6 +432,8 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
                                 CeedVectorRestoreArray_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
                                 CeedVectorRestoreArrayRead_Hip); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
+                                CeedVectorNorm_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Hip); CeedChk(ierr);
 

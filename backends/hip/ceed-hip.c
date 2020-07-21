@@ -52,12 +52,30 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
 }
 
 //------------------------------------------------------------------------------
+// Get hipBLAS handle
+//------------------------------------------------------------------------------
+int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
+  int ierr;
+  Ceed_Hip *data;
+  ierr = CeedGetData(ceed, (void *) &data); CeedChk(ierr);
+
+  if (!data->hipblasHandle) {
+    ierr = hipblasCreate(&data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
+  }
+  *handle = data->hipblasHandle;
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Backend Destroy
 //------------------------------------------------------------------------------
 int CeedDestroy_Hip(Ceed ceed) {
   int ierr;
   Ceed_Hip *data;
   ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  if (data->hipblasHandle) {
+    ierr = hipblasDestroy(data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
+  }
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }

@@ -19,6 +19,7 @@
 #include <ceed-backend.h>
 
 #include <hip/hip_runtime.h>
+#include <hipblas.h>
 
 #define HIP_MAX_PATH 256
 
@@ -31,13 +32,38 @@ do { \
   } \
 } while (0)
 
+#define CeedChk_Hipblas(ceed, x) \
+do { \
+  hipblasStatus_t result = x; \
+  if (result != HIPBLAS_STATUS_SUCCESS) { \
+    const char *msg = hipblasGetErrorName(result); \
+    return CeedError((ceed), (int)result, msg); \
+   } \
+} while (0)
+
 #define QUOTE(...) #__VA_ARGS__
 
-typedef enum {CEED_HIP_HOST_SYNC,
-              CEED_HIP_DEVICE_SYNC,
-              CEED_HIP_BOTH_SYNC,
-              CEED_HIP_NONE_SYNC
-             } CeedHipSyncState;
+#define CASE(name) case name: return #name
+static const char *hipblasGetErrorName(hipblasStatus_t error) {
+  switch (error) {
+    CASE(HIPBLAS_STATUS_SUCCESS);
+    CASE(HIPBLAS_STATUS_NOT_INITIALIZED);
+    CASE(HIPBLAS_STATUS_ALLOC_FAILED);
+    CASE(HIPBLAS_STATUS_INVALID_VALUE);
+    CASE(HIPBLAS_STATUS_ARCH_MISMATCH);
+    CASE(HIPBLAS_STATUS_MAPPING_ERROR);
+    CASE(HIPBLAS_STATUS_EXECUTION_FAILED);
+    CASE(HIPBLAS_STATUS_INTERNAL_ERROR);
+  default: return "HIPBLAS_STATUS_UNKNOWN_ERROR";
+  }
+}
+
+typedef enum {
+  CEED_HIP_HOST_SYNC,
+  CEED_HIP_DEVICE_SYNC,
+  CEED_HIP_BOTH_SYNC,
+  CEED_HIP_NONE_SYNC
+} CeedHipSyncState;
 
 typedef struct {
   CeedScalar *h_array;
@@ -121,6 +147,7 @@ typedef struct {
 typedef struct {
   int optblocksize;
   int deviceId;
+  hipblasHandle_t hipblasHandle;
 } Ceed_Hip;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
@@ -128,6 +155,8 @@ static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
 }
 
 CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource, int nrc);
+
+CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);
 
 CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
 
