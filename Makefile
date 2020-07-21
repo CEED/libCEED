@@ -115,7 +115,7 @@ OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-HIPCCFLAGS ?= -g -ffp-contract=fast $(OMP_SIMD_FLAG) -Wextra -Wno-unused-parameter -fno-gpu-rdc -fPIC
+HIPCCFLAGS ?= $(OPT) -Wno-unused-function -Wno-unused-parameter -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -371,17 +371,18 @@ HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
 ifneq ($(HIP_LIB_DIR),)
-  $(libceeds) : HIPCCFLAGS += -I$(HIP_DIR)/include -I./include -I$(ROCM_DIR)/include
+  $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
+  CPPFLAGS += -I$(ROCM_DIR)/hipblas/include
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
-  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc
+  $(libceeds) : LDFLAGS += -L$(ROCM_DIR)/hipblas/lib -Wl,-rpath,$(abspath $(ROCM_DIR)/hipblas/lib)
+  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
   $(libceeds) : LINK = $(CXX)
   libceed.hip += $(hip.hip)
   libceed.cpp += $(hip.cpp)
   libceed.c   += $(hip.c)
-  $(hip.c:%.c=$(OBJDIR)/%.o) $(hip.c:%=%.tidy) : CPPFLAGS += -I$(HIP_DIR)/include -I$(ROCM_DIR)/include
   BACKENDS += $(HIP_BACKENDS)
 endif
 
