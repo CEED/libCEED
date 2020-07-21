@@ -190,7 +190,7 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
 
   // Preallocate sparse matrix
   ierr = MatCreateBAIJ(comm, 2, PETSC_DECIDE, PETSC_DECIDE, 4*gdofs/ncomp,
-                      4*gdofs/ncomp, 2, NULL, 0, NULL, T); CHKERRQ(ierr);
+                       4*gdofs/ncomp, 2, NULL, 0, NULL, T); CHKERRQ(ierr);
   for (PetscInt i=0; i < 4*gdofs/ncomp; i++) {
     ierr = MatSetValue(*T, i, i, 1., INSERT_VALUES); CHKERRQ(ierr);
   }

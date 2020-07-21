@@ -30,12 +30,10 @@
 // Sample runs:
 //
 //     shallow-water
-//     shallow-water -ceed /cpu/self
-//     shallow-water -ceed /gpu/occa
-//     shallow-water -ceed /cpu/occa
-//     shallow-water -ceed /omp/occa
-//     shallow-water -ceed /ocl/occa
+//     shallow-water -ceed /cpu/self -dm_refine 1 snes_fd_color -ts_fd_color -degree 1
+//     shallow-water -ceed /gpu/occa -dm_refine 1 snes_fd_color -ts_fd_color -degree 1
 //
+//TESTARGS -ceed {ceed_resource} -test -dm_refine 1 snes_fd_color -ts_fd_color -degree 1
 
 /// @file
 /// Shallow-water equations example using PETSc
