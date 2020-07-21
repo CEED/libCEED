@@ -62,8 +62,6 @@ struct SetupContext_ {
 #define euler_context_struct
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
-  CeedScalar cv;
-  CeedScalar cp;
   CeedScalar rho_enter;
   CeedScalar u_enter[3];
   bool implicit;
@@ -106,13 +104,12 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
                            CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const SetupContext context = (SetupContext)ctx;
-  const CeedScalar cv = context->cv;
-  const CeedScalar cp = context->cp;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center;
-  const CeedScalar gamma = cp / cv;
 
   // Setup
+  const CeedScalar gamma = 1.4;
+  const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
   const CeedScalar x0 = x - center[0];
   const CeedScalar y0 = y - center[1];
@@ -205,11 +202,8 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  // Context
-  EulerContext context = (EulerContext)ctx;
-  const CeedScalar cv    = context->cv;
-  const CeedScalar cp    = context->cp;
-  const CeedScalar gamma = cp / cv;
+
+  const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -296,11 +290,10 @@ CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
   // *INDENT-ON*
     // Context
   EulerContext context = (EulerContext)ctx;
-  const CeedScalar cv        = context->cv;
-  const CeedScalar cp        = context->cp;
   const CeedScalar rho_enter = context->rho_enter;
   const CeedScalar *u_enter  = context->u_enter;
-  const CeedScalar gamma     = cp / cv;
+  const CeedScalar gamma = 1.4;
+  const CeedScalar cv    = 2.5;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -330,32 +323,33 @@ CEED_QFUNCTION(Euler_In)(void *ctx, CeedInt Q,
     // -- Inlet variables
     CeedScalar D, a, P_enter, T_enter, E_enter;
     if ( (u_enter_n - u_n) > -1E-5 ) {
-      D = 4 * rho * gamma * P + pow( rho * (gamma + 1) *
-             (u_n - u_enter_n) / 2. , 2 );  // Utility Coefficient
-      P_enter = (2. * P + (gamma - 1.) * P * (u_n - u_enter_n) *
-                (u_n - u_enter_n) / 2. + (u_n - u_enter_n) * sqrt(D)) / 2.;
-      T_enter = P_enter / rho_enter;
-      E_enter = rho_enter * ( cv * T_enter + (u_enter[0] * u_enter[0] +
-                u_enter[1] * u_enter[1] + u_enter[2] * u_enter[2]) / 2. );
+      a = sqrt(fabs(gamma * P / rho));  // Utility Coefficient
+      P_enter = P * pow(u_n - u_enter_n + 2.*a/(gamma - 1.) /
+               (2.*a/(gamma - 1.)), 2. * gamma / (gamma - 1.) );
     } else {
-      a = sqrt( gamma * P / rho );  // Utility Coefficient
-      P_enter = P * pow( ( u_n - u_enter_n + 2. * a / (gamma - 1.) /
-               (2. * a / (gamma - 1.) ) ) , 2 * gamma / (gamma - 1.) );
-      T_enter = P_enter / rho_enter;
-      E_enter = rho_enter * ( cv * T_enter + (u_enter[0] * u_enter[0] +
-                u_enter[1] * u_enter[1] + u_enter[2] * u_enter[2]) / 2. );
+      D = 4.*rho*gamma*P + pow(rho * (gamma + 1) *
+             (u_n - u_enter_n)/2., 2 );  // Utility Coefficient
+      P_enter = (2.*P + (gamma - 1.)*rho*(u_n - u_enter_n) *
+                (u_n - u_enter_n) / 2. + (u_n - u_enter_n) * sqrt(fabs(D))) / 2.;
     }
+    T_enter = P_enter / rho_enter;
+    E_enter = rho_enter * (cv*T_enter + (u_enter[0] * u_enter[0] +
+              u_enter[1] * u_enter[1] + u_enter[2] * u_enter[2]) / 2.);
 
     // The Physics
     // Zero v so all future terms can safely sum into it
     for (int j=0; j<5; j++) v[j][i] = 0;
+
     // -- Density
     v[0][i] -= wdetJb * rho_enter * u_enter_n;
+
     // -- Momentum
     for (int j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho_enter * u_enter_n * u_enter[j] + norm[j] * P_enter);
+
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_enter_n * (E_enter + P_enter);
+
   } // End Quadrature Point Loop
   return 0;
 }
@@ -378,11 +372,8 @@ CEED_QFUNCTION(Euler_Out)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
- // Context
-  EulerContext context = (EulerContext)ctx;
-  const CeedScalar cv    = context->cv;
-  const CeedScalar cp    = context->cp;
-  const CeedScalar gamma = cp / cv;
+
+  const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -397,11 +388,11 @@ CEED_QFUNCTION(Euler_Out)(void *ctx, CeedInt Q,
     const CeedScalar E          =    q[4][i];
 
     // -- Interp-to-Interp qdataSur
-    const CeedScalar wdetJb      =  qdataSur[0][i];
-    const CeedScalar norm[3]     = {qdataSur[1][i],
-                                    qdataSur[2][i],
-                                    qdataSur[3][i]
-                                   };
+    const CeedScalar wdetJb     =    qdataSur[0][i];
+    const CeedScalar norm[3]    =   {qdataSur[1][i],
+                                     qdataSur[2][i],
+                                     qdataSur[3][i]
+                                    };
 
     // u_n = normal velocity
     const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];

@@ -1043,7 +1043,7 @@ int main(int argc, char **argv) {
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
-            u_enter[3] = {2., 0, 0};
+            u_enter[3] = {1.2, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -1668,8 +1668,6 @@ int main(int argc, char **argv) {
     .implicit = implicit,
   };
   struct EulerContext_ ctxEuler = {
-    .cv = cv,
-    .cp = cp,
     .rho_enter = rho_enter,
     .u_enter[0] = u_enter[0],
     .u_enter[1] = u_enter[1],
@@ -1695,11 +1693,7 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxEuler,
-          sizeof ctxEuler);
     if (qf_applyIn) CeedQFunctionSetContext(qf_applyIn, &ctxEuler,
-          sizeof ctxEuler);
-    if (qf_applyOut) CeedQFunctionSetContext(qf_applyOut, &ctxEuler,
           sizeof ctxEuler);
   }
 
