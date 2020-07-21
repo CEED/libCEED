@@ -71,21 +71,38 @@ problemData problemOptions[] = {
 // Auxiliary function to determine if nodes belong to cube faces (panels)
 // -----------------------------------------------------------------------------
 
-PetscErrorCode FindPanelEdgeNodes(DM dm, PetscInt ncomp, PetscInt *nedgenodes,
-                                  EdgeNode *edgenodes) {
+PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
+                                  PetscInt ncomp, Mat *T) {
 
-  PetscInt ierr;
-  PetscInt cstart, cend, nstart, nend, nnodes, depth, edgenode = 0;
+  PetscInt ierr, rankid;
+  MPI_Comm comm;
+  PetscInt cstart, cend, nstart, nend, lnodes, gdofs, depth, edgenodecnt = 0;
   PetscSection section;
+  EdgeNode edgenodes;
+
   PetscFunctionBeginUser;
   // Get Nelem
-  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cstart, &cend); CHKERRQ(ierr);
   ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, depth, &nstart, &nend); CHKERRQ(ierr);
-  nnodes = nend - nstart;
-  unsigned int bitmap[nnodes];
+  lnodes = nend - nstart;
+
+  PetscSF sf;
+  Vec bitmapVec;
+  ierr = DMGetSectionSF(dm, &sf); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm, &bitmapVec); CHKERRQ(ierr);
+  ierr = VecGetSize(bitmapVec, &gdofs); CHKERRQ(ierr);
+  ierr = VecDestroy(&bitmapVec);
+
+  // Arrays for local and global bitmaps
+  unsigned int bitmaploc[lnodes * ncomp];
+  unsigned int bitmap[gdofs];
   ierr = PetscMemzero(bitmap, sizeof(bitmap)); CHKERRQ(ierr);
+
+  // Broadcast bitmap values to all ranks
+  ierr = PetscSFBcastBegin(sf, MPI_UNSIGNED, bitmap, bitmaploc); CHKERRQ(ierr);
+  ierr = PetscSFBcastEnd(sf, MPI_UNSIGNED, bitmap, bitmaploc); CHKERRQ(ierr);
 
   // Get indices
   for (PetscInt c = cstart; c < cend; c++) { // Traverse elements
@@ -96,48 +113,219 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PetscInt ncomp, PetscInt *nedgenodes,
                                    &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
     for (n = 0; n < numindices; n += ncomp) { // Traverse nodes per element
-      PetscInt  bitmapidx = indices[n] / ncomp;
-      bitmap[bitmapidx] |= (1 << panel);
+      PetscInt  bitmapidx = indices[n];
+      bitmaploc[bitmapidx] |= (1 << panel);
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
                                        &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
   }
-  // Read the 1's in the resulting bitmap and extract edge nodes only
-  ierr = PetscMalloc1(nnodes + 24, edgenodes); CHKERRQ(ierr);
-  for (PetscInt i = 0; i < nnodes; i++) {
-    PetscInt ones = 0, panels[3];
-    for (PetscInt p = 0; p < 6; p++) {
-      if (bitmap[i] & 1)
-        panels[ones++] = p;
-      bitmap[i] >>= 1;
+
+  // Reduce on all ranks
+  ierr = PetscSFReduceBegin(sf, MPI_UNSIGNED, bitmaploc, bitmap, MPI_BOR);
+  CHKERRQ(ierr);
+  ierr = PetscSFReduceEnd(sf, MPI_UNSIGNED, bitmaploc, bitmap, MPI_BOR);
+  CHKERRQ(ierr);
+
+  // Rank 0 reads the 1's in the resulting bitmap and extracts edge nodes only
+  PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+  MPI_Comm_rank(comm, &rankid);
+  if (rankid == 0) {
+    ierr = PetscMalloc1(gdofs + 24*ncomp, &edgenodes); CHKERRQ(ierr);
+    for (PetscInt i = 0; i < gdofs; i += ncomp) {
+      PetscInt ones = 0, panels[3];
+      for (PetscInt p = 0; p < 6; p++) {
+        if (bitmap[i] & 1)
+          panels[ones++] = p;
+        bitmap[i] >>= 1;
+      }
+      if (ones == 2) {
+        edgenodes[edgenodecnt].idx = i;
+        edgenodes[edgenodecnt].panelA = panels[0];
+        edgenodes[edgenodecnt].panelB = panels[1];
+        edgenodecnt++;
+      }
+      else if (ones == 3) {
+        edgenodes[edgenodecnt].idx = i;
+        edgenodes[edgenodecnt].panelA = panels[0];
+        edgenodes[edgenodecnt].panelB = panels[1];
+        edgenodecnt++;
+        edgenodes[edgenodecnt].idx = i;
+        edgenodes[edgenodecnt].panelA = panels[0];
+        edgenodes[edgenodecnt].panelB = panels[2];
+        edgenodecnt++;
+        edgenodes[edgenodecnt].idx = i;
+        edgenodes[edgenodecnt].panelA = panels[1];
+        edgenodes[edgenodecnt].panelB = panels[2];
+        edgenodecnt++;
+      }
     }
-    if (ones == 2) {
-      (*edgenodes)[edgenode].idx = i;
-      (*edgenodes)[edgenode].panelA = panels[0];
-      (*edgenodes)[edgenode].panelB = panels[1];
-      edgenode++;
-    }
-    else if (ones == 3) {
-      (*edgenodes)[edgenode].idx = i;
-      (*edgenodes)[edgenode].panelA = panels[0];
-      (*edgenodes)[edgenode].panelB = panels[1];
-      edgenode++;
-      (*edgenodes)[edgenode].idx = i;
-      (*edgenodes)[edgenode].panelA = panels[0];
-      (*edgenodes)[edgenode].panelB = panels[2];
-      edgenode++;
-      (*edgenodes)[edgenode].idx = i;
-      (*edgenodes)[edgenode].panelA = panels[1];
-      (*edgenodes)[edgenode].panelB = panels[2];
-      edgenode++;
-    }
+    ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, edgenodes,
+                                          edgenodecnt, T); CHKERRQ(ierr);
+    // Free edgenodes structure array
+    ierr = PetscFree(edgenodes); CHKERRQ(ierr);
   }
-  ierr = PetscRealloc(edgenode, edgenodes); CHKERRQ(ierr);
-  *nedgenodes = edgenode;
 
   PetscFunctionReturn(0);
 }
+
+// -----------------------------------------------------------------------------
+// Auxiliary function that sets up all corrdinate transformations between panels
+// -----------------------------------------------------------------------------
+PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
+                                              PetscInt ncomp,
+                                              EdgeNode edgenodes,
+                                              PetscInt nedgenodes, Mat *T) {
+  PetscInt ierr;
+  MPI_Comm comm;
+  Vec X;
+  PetscInt gdofs;
+  const PetscScalar *xarray;
+
+  PetscFunctionBeginUser;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  ierr = DMGetCoordinates(dm, &X); CHKERRQ(ierr);
+  ierr = VecGetSize(X, &gdofs); CHKERRQ(ierr);
+
+  // Preallocate sparse matrix
+  ierr = MatCreateBAIJ(comm, 2, PETSC_DECIDE, PETSC_DECIDE, 4*gdofs/ncomp,
+                      4*gdofs/ncomp, 2, NULL, 0, NULL, T); CHKERRQ(ierr);
+  for (PetscInt i=0; i < 4*gdofs/ncomp; i++) {
+    ierr = MatSetValue(*T, i, i, 1., INSERT_VALUES); CHKERRQ(ierr);
+  }
+
+  ierr = VecGetArrayRead(X, &xarray); CHKERRQ(ierr);
+  PetscScalar R = phys_ctx->R;
+  // Nodes loop
+  for (PetscInt i=0; i < gdofs; i += ncomp) {
+    // Read global Cartesian coordinates
+    PetscScalar x[3] = {xarray[i*ncomp + 0],
+                        xarray[i*ncomp + 1],
+                        xarray[i*ncomp + 2]
+                       };
+    // Normalize quadrature point coordinates to sphere
+    PetscScalar rad = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+    x[0] *= R / rad;
+    x[1] *= R / rad;
+    x[2] *= R / rad;
+    // Compute latitude and longitude
+    const PetscScalar theta  = asin(x[2] / R);    // latitude
+    const PetscScalar lambda = atan2(x[1], x[0]); // longitude
+
+    // For P_1 (east), P_3 (front), P_4 (west), P_5 (back):
+    PetscScalar T00 = cos(theta)*cos(lambda) * cos(lambda);
+    PetscScalar T01 = cos(theta)*cos(lambda) * 0.;
+    PetscScalar T10 = cos(theta)*cos(lambda) * -sin(theta)*sin(lambda);
+    PetscScalar T11 = cos(theta)*cos(lambda) * cos(theta);
+    const PetscScalar T_lateral[2][2] = {{T00,
+                                          T01},
+                                         {T10,
+                                          T11}
+                                        };
+    PetscScalar Tinv00 = 1./(cos(theta)*cos(lambda)) * (1./cos(lambda));
+    PetscScalar Tinv01 = 1./(cos(theta)*cos(lambda)) * 0.;
+    PetscScalar Tinv10 = 1./(cos(theta)*cos(lambda)) * tan(theta)*tan(lambda);
+    PetscScalar Tinv11 = 1./(cos(theta)*cos(lambda)) * (1./cos(theta));
+    const PetscScalar T_lateralinv[2][2] = {{Tinv00,
+                                             Tinv01},
+                                            {Tinv10,
+                                             Tinv11}
+                                           };
+    // For P2 (north):
+    T00 = sin(theta) * cos(lambda);
+    T01 = sin(theta) * sin(lambda);
+    T10 = sin(theta) * -sin(theta)*sin(lambda);
+    T11 = sin(theta) * sin(theta)*cos(lambda);
+    const PetscScalar T_top[2][2] = {{T00,
+                                      T01},
+                                     {T10,
+                                      T11}
+                                    };
+    Tinv00 = 1./(sin(theta)*sin(theta)) * sin(theta)*cos(lambda);
+    Tinv01 = 1./(sin(theta)*sin(theta)) * (-sin(lambda));
+    Tinv10 = 1./(sin(theta)*sin(theta)) * sin(theta)*sin(lambda);
+    Tinv11 = 1./(sin(theta)*sin(theta)) * cos(lambda);
+    const PetscScalar T_topinv[2][2] = {{Tinv00,
+                                         Tinv01},
+                                        {Tinv10,
+                                         Tinv11}
+                                       };
+
+    // For P0 (south):
+    T00 = sin(theta) * (-cos(theta));
+    T01 = sin(theta) * sin(lambda);
+    T10 = sin(theta) * sin(theta)*sin(lambda);
+    T11 = sin(theta) * sin(theta)*cos(lambda);
+    const PetscScalar T_bottom[2][2] = {{T00,
+                                         T01},
+                                        {T10,
+                                         T11}
+                                       };
+    Tinv00 = 1./(sin(theta)*sin(theta)) * (-sin(theta)*cos(lambda));
+    Tinv01 = 1./(sin(theta)*sin(theta)) * sin(lambda);
+    Tinv10 = 1./(sin(theta)*sin(theta)) * sin(theta)*sin(lambda);
+    Tinv11 = 1./(sin(theta)*sin(theta)) * cos(lambda);
+    const PetscScalar T_bottominv[2][2] = {{Tinv00,
+                                            Tinv01},
+                                           {Tinv10,
+                                            Tinv11}
+                                          };
+
+    const PetscScalar (*transforms[6])[2][2] = {&T_bottom,
+                                                &T_lateral,
+                                                &T_top,
+                                                &T_lateral,
+                                                &T_lateral,
+                                                &T_lateral
+                                               };
+
+    const PetscScalar (*inv_transforms[6])[2][2] = {&T_bottominv,
+                                                    &T_lateralinv,
+                                                    &T_topinv,
+                                                    &T_lateralinv,
+                                                    &T_lateralinv,
+                                                    &T_lateralinv
+                                                   };
+
+    for (PetscInt e = 0; e < nedgenodes; e++) {
+      if (edgenodes[e].idx == i) {
+        const PetscScalar (*matrixA)[2][2] = inv_transforms[edgenodes[e].panelA];
+        const PetscScalar (*matrixB)[2][2] = transforms[edgenodes[e].panelB];
+
+        // inv_transform * transform (A^{-1}*B)
+        // This product represents the mapping from coordinate system A
+        // to spherical coordinates and then to coordinate system B. Vice versa
+        // for transform * inv_transform (B^{-1}*A)
+        PetscScalar matrixAB[2][2], matrixBA[2][2];
+        for (int j=0; j<2; j++) {
+          for (int k=0; k<2; k++) {
+            matrixAB[j][k] = matrixBA[j][k] = 0;
+            for (int l=0; l<2; l++) {
+              matrixAB[j][k] += (*matrixA)[j][l] * (*matrixB)[l][k];
+              matrixBA[j][k] += (*matrixB)[j][l] * (*matrixA)[l][k];
+            }
+          }
+        }
+        PetscInt idxAB[2] = {4*i/ncomp + 0, 4*i/ncomp +1};
+        PetscInt idxBA[2] = {4*i/ncomp + 2, 4*i/ncomp +3};
+        ierr = MatSetValues(*T, 2, idxAB, 2, idxAB, (PetscScalar *)matrixAB,
+                            INSERT_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValues(*T, 2, idxBA, 2, idxBA, (PetscScalar *)matrixBA,
+                            INSERT_VALUES); CHKERRQ(ierr);
+      }
+    }
+  }
+  // Assemble matrix for all node transformations
+  ierr = MatAssemblyBegin(*T, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(*T, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+  // Restore array read
+  ierr = VecRestoreArrayRead(X, &xarray); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 
 // -----------------------------------------------------------------------------
 // Auxiliary function to create PETSc FE space for a given degree

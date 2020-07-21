@@ -119,7 +119,7 @@ struct Units_ {
 };
 
 struct EdgeNode_ {
-  PetscInt idx; // Node index
+  PetscInt idx;            // Node index
   PetscInt panelA, panelB; // Indices of panels sharing the edge node
 };
 
@@ -142,9 +142,15 @@ extern problemData problemOptions[];
 // Auxiliary functions for cube face (panel) charts
 // -----------------------------------------------------------------------------
 
-// Auxiliary function to determine if nodes belong to cube faces (panels)
-PetscErrorCode FindPanelEdgeNodes(DM dm, PetscInt ncomp, PetscInt *nedgenodes,
-                                  EdgeNode *edgenodes);
+// Auxiliary function to determine if nodes belong to cube face (panel) edges
+PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
+                                  PetscInt ncomp, Mat *T);
+
+// Auxiliary function that sets up all corrdinate transformations between panels
+PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
+                                              PetscInt ncomp,
+                                              EdgeNode edgenodes,
+                                              PetscInt nedgenodes, Mat *T);
 
 // -----------------------------------------------------------------------------
 // Setup DM functions

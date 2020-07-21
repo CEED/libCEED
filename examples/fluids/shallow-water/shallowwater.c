@@ -56,7 +56,6 @@ int main(int argc, char **argv) {
   Units units;
   problemType problemChoice;
   problemData *problem = NULL;
-  EdgeNode edgenodes;
   StabilizationType stab;
   PetscBool implicit;
   PetscInt degree, qextra, outputfreq, steps, contsteps;
@@ -66,7 +65,7 @@ int main(int argc, char **argv) {
   const CeedInt ncompx = 3;
   PetscInt viz_refine = 0;
   PetscBool read_mesh, simplex, test;
-  PetscInt topodim = 2, ncompq = 3, lnodes, nedgenodes;
+  PetscInt topodim = 2, ncompq = 3, lnodes;
   // libCEED context
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
                                           filename[PETSC_MAX_PATH_LEN];
@@ -369,14 +368,14 @@ int main(int argc, char **argv) {
                          cEnd - cStart, gdofs/ncompq, odofs/ncompq, ncompq,
                          gdofs, odofs); CHKERRQ(ierr);
     }
-
   }
 
   // Set up global mass vector
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
   // Setup global lat-long vector for different panels (charts) of the cube
-  ierr = FindPanelEdgeNodes(dm, ncompq, &nedgenodes, &edgenodes); CHKERRQ(ierr);
+  Mat T;
+  ierr = FindPanelEdgeNodes(dm, &phys_ctx, ncompq, &T); CHKERRQ(ierr);
 
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);

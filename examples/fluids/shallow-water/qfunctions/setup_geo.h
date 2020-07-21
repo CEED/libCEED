@@ -108,13 +108,13 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
                                    };
 
     CeedScalar dxdX[3][2];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<2; k++) {
+    for (CeedInt j=0; j<3; j++) {
+      for (CeedInt k=0; k<2; k++) {
         dxdX[j][k] = 0;
-        for (int l=0; l<3; l++)
+        for (CeedInt l=0; l<3; l++)
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
-
+    }
     // J is given by the cross product of the columns of dxdX
     const CeedScalar J[3] = {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
                              dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1],
@@ -129,13 +129,13 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
 
     // dxdX_k,j * dxdX_j,k
     CeedScalar dxdXTdxdX[2][2];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<2; k++) {
+    for (CeedInt j=0; j<2; j++) {
+      for (CeedInt k=0; k<2; k++) {
         dxdXTdxdX[j][k] = 0;
-        for (int l=0; l<3; l++)
+        for (CeedInt l=0; l<3; l++)
           dxdXTdxdX[j][k] += dxdX[l][j]*dxdX[l][k];
       }
-
+    }
     const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
 
@@ -151,12 +151,13 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
 
     // Compute the pseudo inverse of dxdX
     CeedScalar pseudodXdx[2][3];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<3; k++) {
+    for (CeedInt j=0; j<2; j++) {
+      for (CeedInt k=0; k<3; k++) {
         pseudodXdx[j][k] = 0;
-        for (int l=0; l<2; l++)
+        for (CeedInt l=0; l<2; l++)
           pseudodXdx[j][k] += dxdXTdxdXinv[j][l]*dxdX[k][l];
       }
+    }
 
     // Interp-to-Grad qdata
     // Pseudo inverse of dxdX: (x_i,j)+ = X_i,j
