@@ -61,13 +61,10 @@ XSMM_DIR ?= ../libxsmm
 OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
-#TODO: FIX THIS with hip detection...
-#MAGMA_DIR ?= ../magma
+MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
-#CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
+CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
-#TODO: FIX THIS to allow for systems with CUDA and HIP
-CUDA_DIR ?= .
 HIP_DIR ?= /opt/rocm/hip
 
 # Check for PETSc in ../petsc
@@ -274,7 +271,7 @@ info:
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,/gpu/magma /gpu/magma/det))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
-	$(info HIP_DIR      = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
+	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
