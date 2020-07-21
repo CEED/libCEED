@@ -1699,7 +1699,7 @@ def test_551(ceed_resource):
     p_coarse = 3
     p_fine = 5
     q = 8
-    ncomp = 1
+    ncomp = 2
     nx = nelem + 1
     nu_coarse = nelem * (p_coarse - 1) + 1
     nu_fine = nelem * (p_fine - 1) + 1
@@ -1746,26 +1746,35 @@ def test_551(ceed_resource):
 
     # Bases
     bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
-    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS) 
     bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
 
     # QFunctions
     file_dir = os.path.dirname(os.path.abspath(__file__))
     qfs = load_qfs_so()
 
-    qf_setup = ceed.QFunctionByName("Mass1DBuild")
-    qf_mass = ceed.QFunctionByName("MassApply")
+    qf_setup = ceed.QFunction(1, qfs.setup_mass,
+                              os.path.join(file_dir, "test-qfunctions.h:setup_mass"))
+    qf_setup.add_input("weights", 1, libceed.EVAL_WEIGHT)
+    qf_setup.add_input("dx", 1, libceed.EVAL_GRAD)
+    qf_setup.add_output("rho", 1, libceed.EVAL_NONE)
+
+    qf_mass = ceed.QFunction(1, qfs.apply_mass_two,
+                             os.path.join(file_dir, "test-qfunctions.h:apply_mass_two"))
+    qf_mass.add_input("rho", 1, libceed.EVAL_NONE)
+    qf_mass.add_input("u", ncomp, libceed.EVAL_INTERP)
+    qf_mass.add_output("v", ncomp, libceed.EVAL_INTERP)
 
     # Operators
     op_setup = ceed.Operator(qf_setup)
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("qdata", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                        libceed.VECTOR_ACTIVE)
 
     op_mass_fine = ceed.Operator(qf_mass)
-    op_mass_fine.set_field("qdata", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
     op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
     op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
 
@@ -1790,7 +1799,7 @@ def test_551(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 2.0) < 1E-13
 
     # Prolong coarse u
     op_prolong.apply(u_coarse, u_fine)
@@ -1803,7 +1812,7 @@ def test_551(ceed_resource):
         total = 0.0
         for i in range(nu_fine * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 2.0) < 1E-13
 
     # Restrict state to coarse grid
     op_restrict.apply(v_fine, v_coarse)
@@ -1813,7 +1822,7 @@ def test_551(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 2.0) < 1E-13
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with

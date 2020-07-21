@@ -23,8 +23,10 @@
       integer q,ierr
 
       do i=1,q
-        v1(i)=u2(i)*u1(i)
-        v1(q+i)=u2(q+i)*u1(i)
+        v1(0*q+i)=u2(0*q+i)*u1(i)
+        v1(1*q+i)=u2(1*q+i)*u1(i)
+        v1(2*q+i)=u2(2*q+i)*u1(i)
+        v1(3*q+i)=u2(3*q+i)*u1(i)
       enddo
 
       ierr=0
@@ -44,7 +46,7 @@
       integer op_prolong,op_restrict
       integer qdata,x,ucoarse,ufine,vcoarse,vfine,pmultfine
       integer nelem,pcoarse,pfine,q,ncomp
-      parameter(ncomp=2)
+      parameter(ncomp=4)
       parameter(nelem=15)
       parameter(pcoarse=3)
       parameter(pfine=5)
@@ -108,14 +110,14 @@
 
      call ceedqfunctioncreateinterior(ceed,1,setup,&
     &SOURCE_DIR&
-    &//'t502-operator.h:setup'//char(0),qf_setup,err)
+    &//'t550-operator.h:setup'//char(0),qf_setup,err)
      call ceedqfunctionaddinput(qf_setup,'weights',1,ceed_eval_weight,err)
      call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
      call ceedqfunctionaddoutput(qf_setup,'qdata',1,ceed_eval_none,err)
 
      call ceedqfunctioncreateinterior(ceed,1,mass,&
     &SOURCE_DIR&
-    &//'t502-operator.h:mass'//char(0),qf_mass,err)
+    &//'t550-operator.h:mass'//char(0),qf_mass,err)
      call ceedqfunctionaddinput(qf_mass,'qdata',1,ceed_eval_none,err)
      call ceedqfunctionaddinput(qf_mass,'u',ncomp,ceed_eval_interp,err)
      call ceedqfunctionaddoutput(qf_mass,'v',ncomp,ceed_eval_interp,err)
@@ -167,7 +169,7 @@
       do i=1,nucoarse*ncomp
         total=total+hv(voffset+i)
       enddo
-      if (abs(total-2.)>1.0d-10) then
+      if (abs(total-4.)>1.0d-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Computed Area: ',total,' != True Area: 1.0'
 ! LCOV_EXCL_STOP
@@ -190,7 +192,7 @@
       do i=1,nufine*ncomp
         total=total+hv(voffset+i)
       enddo
-      if (abs(total-2.)>1.0d-10) then
+      if (abs(total-4.)>1.0d-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Computed Area Fine Grid: ',total,' != True Area: 1.0'
 ! LCOV_EXCL_STOP
@@ -207,7 +209,7 @@
       do i=1,nucoarse*ncomp
         total=total+hv(voffset+i)
       enddo
-      if (abs(total-2.)>1.0d-10) then
+      if (abs(total-4.)>1.0d-10) then
 ! LCOV_EXCL_START
         write(*,*) 'Computed Area Coarse Grid: ',total,' != True Area: 1.0'
 ! LCOV_EXCL_STOP

@@ -312,6 +312,10 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict1", &qfRestrict);
     CeedChk(ierr);
     break;
+  case 2:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict2", &qfRestrict);
+    CeedChk(ierr);
+    break;
   case 3:
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Restrict3", &qfRestrict);
     CeedChk(ierr);
@@ -350,6 +354,10 @@ static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
   switch (ncomp) {
   case 1:
     ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong1", &qfProlong);
+    CeedChk(ierr);
+    break;
+  case 2:
+    ierr = CeedQFunctionCreateInteriorByName(ceed, "Prolong2", &qfProlong);
     CeedChk(ierr);
     break;
   case 3:
