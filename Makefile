@@ -212,8 +212,8 @@ cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cu       := $(sort $(wildcard backends/magma/*.cu))
-hip.hip        := $(sort $(wildcard backends/hip/*.hip))
-hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
+hip.hip        := $(sort $(wildcard backends/hip/*.hip.cpp))
+hip.cpp        := $(sort $(filter-out $(hip.hip),$(wildcard backends/hip/*.cpp)))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 
 # Output using the 216-color rules mode
@@ -406,7 +406,7 @@ endif
 
 export BACKENDS
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
@@ -421,7 +421,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/%.o : $(CURDIR)/%.hip | $$(@D)/.DIR
+$(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
