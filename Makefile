@@ -115,7 +115,7 @@ OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-HIPCCFLAGS ?= $(OPT) -Wno-unused-function -Wno-unused-parameter -fPIC
+HIPCCFLAGS ?= $(OPT) -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -375,7 +375,7 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(ROCM_DIR)/hipblas/include
+  CPPFLAGS += -I$(ROCM_DIR)/hipblas/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDFLAGS += -L$(ROCM_DIR)/hipblas/lib -Wl,-rpath,$(abspath $(ROCM_DIR)/hipblas/lib)
   $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
