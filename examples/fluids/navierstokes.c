@@ -1043,7 +1043,7 @@ int main(int argc, char **argv) {
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
-            u_enter[3] = {1.2, 0, 0};
+            u_enter[3] = {-1.2, 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
