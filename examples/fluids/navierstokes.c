@@ -231,7 +231,7 @@ problemData problemOptions[] = {
     .applyOut                  = Euler_Out,
     .applyOut_loc              = Euler_Out_loc,
     .bc                        = Exact_Euler,
-    .non_zero_time             = PETSC_FALSE,  // TODO: this needs to be true
+    .non_zero_time             = PETSC_TRUE,
   },
 };
 

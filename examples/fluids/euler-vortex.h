@@ -111,9 +111,9 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
-  const CeedScalar x0 = x - center[0];
-  const CeedScalar y0 = y - center[1];
-  const CeedScalar z0 = z - center[2];
+  const CeedScalar x0 = vortex_strength * time * (x - center[0]); // TODO: check the implementation
+  const CeedScalar y0 = vortex_strength * time * (y - center[1]);
+  const CeedScalar z0 = vortex_strength * time * (z - center[2]);
   const CeedScalar r = sqrt( x0*x0 + y0*y0 + z0*z0 );
   // Coefficient for computing perturbation in Velocity
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.)  / (2. * M_PI);
@@ -145,6 +145,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const SetupContext context = (SetupContext)ctx;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -152,7 +153,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5];
 
-    Exact_Euler(3, 0., x, 5, q, ctx);
+    Exact_Euler(3, context->time, x, 5, q, ctx);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
