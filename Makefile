@@ -374,9 +374,8 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(HIP_DIR)/hipblas/include -Wno-unused-function
+  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
-  $(libceeds) : LDFLAGS += -L$(HIP_DIR)/hipblas/lib -Wl,-rpath,$(abspath $(HIP_DIR)/hipblas/lib)
   $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
   $(libceeds) : LINK = $(CXX)
   libceed.hip += $(hip.hip)
