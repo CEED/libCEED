@@ -208,7 +208,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   @ ref Developer
 **/
 static int CeedOperatorGetActiveBasis(CeedOperator op,
-    CeedBasis *activeBasis) {
+                                      CeedBasis *activeBasis) {
   *activeBasis = NULL;
   for (int i = 0; i < op->qf->numinputfields; i++)
     if (op->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
@@ -273,7 +273,7 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
       rstrFine = opFine->inputfields[i]->Erestrict;
       ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
                                   rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE);
-       CeedChk(ierr);
+      CeedChk(ierr);
     } else {
       ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
                                   opFine->inputfields[i]->Erestrict,

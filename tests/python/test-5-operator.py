@@ -1746,7 +1746,7 @@ def test_551(ceed_resource):
 
     # Bases
     bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
-    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS) 
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
     bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
 
     # QFunctions
