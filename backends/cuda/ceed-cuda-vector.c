@@ -395,6 +395,62 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
 }
 
 //------------------------------------------------------------------------------
+// Take reciprocal of a vector on host
+//------------------------------------------------------------------------------
+static int CeedHostReciprocal_Cuda(CeedScalar *h_array, CeedInt length) {
+  for (int i = 0; i < length; i++)
+    if (fabs(h_array[i]) > CEED_EPSILON)
+      h_array[i] = 1./h_array[i];
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Take reciprocal of a vector on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceReciprocal_Cuda(CeedScalar *d_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Take reciprocal of a vector
+//------------------------------------------------------------------------------
+static int CeedVectorReciprocal_Cuda(CeedVector vec) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
+  CeedVector_Cuda *data;
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+
+  // Set value for synced device/host array
+  switch(data->memState) {
+  case CEED_CUDA_HOST_SYNC:
+    ierr = CeedHostReciprocal_Cuda(data->h_array, length); CeedChk(ierr);
+    break;
+  case CEED_CUDA_NONE_SYNC:
+    /*
+      Handles the case where SetValue is used without SetArray.
+      Default allocation then happens on the GPU.
+    */
+    if (data->d_array == NULL) {
+      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
+      CeedChk_Cu(ceed, ierr);
+      data->d_array = data->d_array_allocated;
+    }
+    data->memState = CEED_CUDA_DEVICE_SYNC;
+    ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
+    break;
+  case CEED_CUDA_DEVICE_SYNC:
+    ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
+    break;
+  case CEED_CUDA_BOTH_SYNC:
+    ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
+    ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChk(ierr);
+    break;
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Destroy the vector
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Cuda(const CeedVector vec) {
@@ -435,6 +491,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorRestoreArrayRead_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
                                 CeedVectorNorm_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",
+                                CeedVectorReciprocal_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Cuda); CeedChk(ierr);
 
