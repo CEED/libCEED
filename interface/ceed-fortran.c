@@ -211,6 +211,12 @@ void fCeedVectorNorm(int *vec, int *type, CeedScalar *norm, int *err) {
   *err = CeedVectorNorm(CeedVector_dict[*vec], (CeedNormType)*type, norm);
 }
 
+#define fCeedVectorReciprocal \
+    FORTRAN_NAME(ceedvectorreciprocal,CEEDVECTORRECIPROCAL)
+void fCeedVectorReciprocal(int *vec, int *err) {
+  *err = CeedVectorReciprocal(CeedVector_dict[*vec]);
+}
+
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)
 void fCeedVectorView(int *vec, int *err) {
   *err = CeedVectorView(CeedVector_dict[*vec], "%12.8f", stdout);
