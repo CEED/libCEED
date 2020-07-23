@@ -163,9 +163,13 @@ class _OperatorBase(ABC):
         opRestrictPointer = ffi.new("CeedOperator *")
 
         # libCEED call
-        lib.CeedOperatorMultigridLevelCreateTensorH1Lagrange(p_mult_fine._pointer[0],
-                                                             rstr_coarse._pointer[0], degree_coarse, self._pointer[0],
-                                                             opCoarsePointer, opProlongPointer, opRestrictPointer)
+        lib.CeedOperatorMultigridLevelCreateTensorH1Lagrange(self._pointer[0],
+                                                             p_mult_fine._pointer[0],
+                                                             rstr_coarse._pointer[0],
+                                                             degree_coarse,
+                                                             opCoarsePointer,
+                                                             opProlongPointer,
+                                                             opRestrictPointer)
 
         # Wrap operators
         opCoarse = _OperatorWrap(
@@ -202,10 +206,14 @@ class _OperatorBase(ABC):
         opRestrictPointer = ffi.new("CeedOperator *")
 
         # libCEED call
-        lib.CeedOperatorMultigridLevelCreateTensorH1(p_mult_fine._pointer[0],
-                                                     rstr_coarse._pointer[0], basis_coarse._pointer[0],
-                                                     interpCtoF_pointer, self._pointer[0],
-                                                     opCoarsePointer, opProlongPointer, opRestrictPointer)
+        lib.CeedOperatorMultigridLevelCreateTensorH1(self._pointer[0],
+                                                     p_mult_fine._pointer[0],
+                                                     rstr_coarse._pointer[0],
+                                                     basis_coarse._pointer[0],
+                                                     interpCtoF_pointer,
+                                                     opCoarsePointer,
+                                                     opProlongPointer,
+                                                     opRestrictPointer)
 
         # Wrap operators
         opCoarse = _OperatorWrap(
@@ -242,10 +250,14 @@ class _OperatorBase(ABC):
         opRestrictPointer = ffi.new("CeedOperator *")
 
         # libCEED call
-        lib.CeedOperatorMultigridLevelCreateH1(p_mult_fine._pointer[0],
-                                               rstr_coarse._pointer[0], basis_coarse._pointer[0],
-                                               interpCtoF_pointer, self._pointer[0],
-                                               opCoarsePointer, opProlongPointer, opRestrictPointer)
+        lib.CeedOperatorMultigridLevelCreateH1(self._pointer[0],
+                                               p_mult_fine._pointer[0],
+                                               rstr_coarse._pointer[0],
+                                               basis_coarse._pointer[0],
+                                               interpCtoF_pointer,
+                                               opCoarsePointer,
+                                               opProlongPointer,
+                                               opRestrictPointer)
 
         # Wrap operators
         opCoarse = _OperatorWrap(
