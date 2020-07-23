@@ -16,39 +16,32 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-multigrid3.h"
+#include "ceed-scale.h"
 
 /**
-  @brief Set fields for restriction QFunction that scales inputs for multiplicity
+  @brief  Set fields for vector scaling QFunction that scales inputs
 **/
-static int CeedQFunctionInit_Restrict3(Ceed ceed, const char *requested,
-                                       CeedQFunction qf) {
-  int ierr;
-
+static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
+                                   CeedQFunction qf) {
   // Check QFunction name
-  const char *name = "Restrict3";
+  const char *name = "ScaleN";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
   // LCOV_EXCL_STOP
 
-  // Add QFunction fields
-  const CeedInt size = 3;
-  ierr = CeedQFunctionAddInput(qf, "input", size, CEED_EVAL_NONE);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "mult", size, CEED_EVAL_NONE); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "output", size, CEED_EVAL_INTERP);
-  CeedChk(ierr);
+  // QFunction fields 'input' and 'output' with requested emodes added
+  //   by the library rather than being added here
 
   return 0;
 }
 
 /**
-  @brief Register restriction QFunction
+  @brief Register scaling QFunction
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("Restrict3", Multigrid3_loc, 1, Multigrid3,
-                        CeedQFunctionInit_Restrict3);
+  CeedQFunctionRegister("ScaleN", Scale_loc, 1, Scale,
+                        CeedQFunctionInit_Scale);
 }

@@ -15,33 +15,30 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief  Multigrid prolong/restrict QFunction that scales inputs for multiplicity
+  @brief  Scaling QFunction that scales inputs
 **/
 
-#ifndef multigrid3_h
-#define multigrid3_h
+#ifndef scale2_h
+#define scale2_h
 
-CEED_QFUNCTION(Multigrid3)(void *ctx, const CeedInt Q,
-                           const CeedScalar *const *in,
-                           CeedScalar *const *out) {
-  const CeedInt size = 3;
+CEED_QFUNCTION(Scale2)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                       CeedScalar *const *out) {
+  const CeedInt size = 2;
 
-  // in[0] is input, size (Q*3)
-  // in[1] is multiplicity, size (Q*3)
+  // in[0] is input, size (Q*2)
+  // in[1] is scaling factor, size (Q*2)
   const CeedScalar *input = in[0];
-  const CeedScalar *mult = in[1];
+  const CeedScalar *scale = in[1];
   // out[0] is output, size (Q*3)
   CeedScalar *output = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    for (CeedInt j=0; j<size; j++) {
-      output[i+Q*j] = input[i+Q*j] / mult[i+Q*j];
-    }
+  for (CeedInt i=0; i<Q*size; i++) {
+    output[i] = input[i] * scale[i];
   } // End of Quadrature Point Loop
 
   return 0;
 }
 
-#endif // multigrid3_h
+#endif // scale2_h

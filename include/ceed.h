@@ -251,6 +251,7 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
+CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);

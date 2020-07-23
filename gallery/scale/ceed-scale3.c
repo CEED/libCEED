@@ -16,39 +16,32 @@
 
 #include <string.h>
 #include "ceed-backend.h"
-#include "ceed-multigrid1.h"
+#include "ceed-scale3.h"
 
 /**
-  @brief Set fields for prolongation QFunction that scales inputs for multiplicity
+  @brief  Set fields for vector scaling QFunction that scales inputs
 **/
-static int CeedQFunctionInit_Prolong1(Ceed ceed, const char *requested,
-                                      CeedQFunction qf) {
-  int ierr;
-
+static int CeedQFunctionInit_Scale3(Ceed ceed, const char *requested,
+                                    CeedQFunction qf) {
   // Check QFunction name
-  const char *name = "Prolong1";
+  const char *name = "Scale3";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
                      name, requested);
   // LCOV_EXCL_STOP
 
-  // Add QFunction fields
-  const CeedInt size = 1;
-  ierr = CeedQFunctionAddInput(qf, "input", size, CEED_EVAL_INTERP);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "mult", size, CEED_EVAL_NONE); CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "output", size, CEED_EVAL_NONE);
-  CeedChk(ierr);
+  // QFunction fields 'input' and 'output' with requested emodes added
+  //   by the library rather than being added here
 
   return 0;
 }
 
 /**
-  @brief Register prolongation QFunction
+  @brief Register scaling QFunction
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("Prolong1", Multigrid1_loc, 1, Multigrid1,
-                        CeedQFunctionInit_Prolong1);
+  CeedQFunctionRegister("Scale3", Scale3_loc, 1, Scale3,
+                        CeedQFunctionInit_Scale3);
 }

@@ -482,6 +482,36 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
 }
 
 /**
+  @brief Take the reciprocal of a CeedVector.
+
+  @param vec           CeedVector to take reciprocal
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorReciprocal(CeedVector vec) {
+  int ierr;
+
+  // Backend impl for GPU, if added
+  if (vec->Reciprocal) {
+    ierr = vec->Reciprocal(vec); CeedChk(ierr);
+    return 0;
+  }
+
+  CeedInt len;
+  ierr = CeedVectorGetLength(vec, &len); CeedChk(ierr);
+  CeedScalar *array;
+  ierr = CeedVectorGetArray(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+  for (CeedInt i=0; i<len; i++)
+    if (fabs(array[i]) > CEED_EPSILON)
+      array[i] = 1./array[i];
+  ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
+
+  return 0;
+}
+
+/**
   @brief View a CeedVector
 
   @param[in] vec           CeedVector to view

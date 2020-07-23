@@ -14,35 +14,31 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
-#include "ceed-backend.h"
-#include "ceed-multigrid.h"
-
 /**
-  @brief  Set fields for multigrid prolong/restrict QFunction that scales inputs
-            for multiplicity
+  @brief  Scaling QFunction that scales inputs
 **/
-static int CeedQFunctionInit_Multigrid(Ceed ceed, const char *requested,
-                                       CeedQFunction qf) {
-  // Check QFunction name
-  const char *name = "Multigrid";
-  if (strcmp(name, requested))
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
-                     name, requested);
-  // LCOV_EXCL_STOP
 
-  // QFunction fields 'input' and 'output' with requested emodes added
-  //   by the library rather than being added here
+#ifndef scale3_h
+#define scale3_h
+
+CEED_QFUNCTION(Scale3)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                       CeedScalar *const *out) {
+  const CeedInt size = 3;
+
+  // in[0] is input, size (Q*3)
+  // in[1] is scaling factor, size (Q*3)
+  const CeedScalar *input = in[0];
+  const CeedScalar *scale = in[1];
+  // out[0] is output, size (Q*3)
+  CeedScalar *output = out[0];
+
+  // Quadrature point loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q*size; i++) {
+    output[i] = input[i] * scale[i];
+  } // End of Quadrature Point Loop
 
   return 0;
 }
 
-/**
-  @brief Register prolongation QFunction
-**/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Multigrid", Multigrid_loc, 1, Multigrid,
-                        CeedQFunctionInit_Multigrid);
-}
+#endif // scale3_h
