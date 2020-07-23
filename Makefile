@@ -65,7 +65,7 @@ MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
-HIP_DIR ?= /opt/rocm/hip
+HIP_DIR ?= /opt/rocm
 
 # Check for PETSc in ../petsc
 ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
@@ -366,7 +366,6 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-ROCM_DIR = $(HIP_DIR)/..
 HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
@@ -375,9 +374,9 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(ROCM_DIR)/hipblas/include -Wno-unused-function
+  CPPFLAGS += -I$(HIP_DIR)/hipblas/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
-  $(libceeds) : LDFLAGS += -L$(ROCM_DIR)/hipblas/lib -Wl,-rpath,$(abspath $(ROCM_DIR)/hipblas/lib)
+  $(libceeds) : LDFLAGS += -L$(HIP_DIR)/hipblas/lib -Wl,-rpath,$(abspath $(HIP_DIR)/hipblas/lib)
   $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
   $(libceeds) : LINK = $(CXX)
   libceed.hip += $(hip.hip)
