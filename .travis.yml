@@ -91,7 +91,7 @@ jobs:
      dist: bionic
      arch: amd64
      compiler: gcc
-     python: 3.8
+     python: 3.8-dev
      install:
        - pip install -r requirements.txt
        - pip install -r requirements-test.txt
@@ -111,10 +111,13 @@ install:
         && brew link --overwrite gcc;
     fi
 # OCCA (pinned before OCCA changed destructor syntax)
-  - git clone https://github.com/libocca/occa.git
+# Note: OCCA currently intermittantly failing on ARM and IBM
+  - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+        git clone https://github.com/libocca/occa.git
         && cd occa && git reset --hard 327badb && cd ..
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
+    fi
 # LIBXSMM v1.16.1
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         git clone --depth=1 --branch 1.16.1 https://github.com/hfp/libxsmm.git
