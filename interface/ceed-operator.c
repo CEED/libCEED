@@ -207,7 +207,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 
   @ ref Developer
 **/
-static inline int CeedOperatorGetActiveBasis(CeedOperator op,
+static int CeedOperatorGetActiveBasis(CeedOperator op,
     CeedBasis *activeBasis) {
   *activeBasis = NULL;
   for (int i = 0; i < op->qf->numinputfields; i++)
@@ -246,7 +246,7 @@ static inline int CeedOperatorGetActiveBasis(CeedOperator op,
 
   @ref Developer
 **/
-static inline int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
+static int CeedOperatorMultigridLevel_Core(CeedVector PMultFine,
     CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
     CeedBasis basisCtoF, CeedOperator opFine, CeedOperator *opCoarse,
     CeedOperator *opProlong, CeedOperator *opRestrict) {
