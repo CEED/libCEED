@@ -113,8 +113,8 @@
       do i=1,interpsize
         interpctof(i)=interp1d(ioffset+i)
       enddo
-      call ceedoperatormultigridlevelcreateh1(pmultfine,&
-     & erestrictucoarse,bucoarse,interpctof,op_massfine,op_masscoarse,&
+      call ceedoperatormultigridlevelcreateh1(op_massfine,pmultfine,&
+     & erestrictucoarse,bucoarse,interpctof,op_masscoarse,&
      & op_prolong,op_restrict,err)
 
 ! Coarse problem

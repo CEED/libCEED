@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
   // Create multigrid level
   CeedVectorCreate(ceed, ncomp*NuFine, &PMultFine);
   CeedVectorSetValue(PMultFine, 1.0);
-  CeedOperatorMultigridLevelCreateTensorH1Lagrange(PMultFine, ErestrictuCoarse,
-      Pcoarse, op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
+  CeedOperatorMultigridLevelCreateTensorH1Lagrange(op_massFine, PMultFine,
+      ErestrictuCoarse, Pcoarse, &op_massCoarse, &op_prolong, &op_restrict);
 
   // Coarse problem
   CeedVectorCreate(ceed, ncomp*NuCoarse, &Ucoarse);

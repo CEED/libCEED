@@ -108,8 +108,9 @@ int main(int argc, char **argv) {
                                   CEED_GAUSS_LOBATTO, &bCtoF);
   const CeedScalar *interpCtoF;
   CeedBasisGetInterp1D(bCtoF, &interpCtoF);
-  CeedOperatorMultigridLevelCreateTensorH1(PMultFine, ErestrictuCoarse, buCoarse,
-      interpCtoF, op_massFine, &op_massCoarse, &op_prolong, &op_restrict);
+  CeedOperatorMultigridLevelCreateTensorH1(op_massFine, PMultFine,
+      ErestrictuCoarse, buCoarse, interpCtoF, &op_massCoarse, &op_prolong,
+      &op_restrict);
 
   // Coarse problem
   CeedVectorCreate(ceed, ncomp*NuCoarse, &Ucoarse);

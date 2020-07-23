@@ -96,8 +96,8 @@ int main(int argc, char **argv) {
                                   &bCtoF);
   const CeedScalar *interpCtoF;
   CeedBasisGetInterp1D(bCtoF, &interpCtoF);
-  CeedOperatorMultigridLevelCreateH1(PMultFine, ErestrictuCoarse, buCoarse,
-                                     interpCtoF, op_massFine, &op_massCoarse,
+  CeedOperatorMultigridLevelCreateH1(op_massFine, PMultFine, ErestrictuCoarse,
+                                     buCoarse, interpCtoF, &op_massCoarse,
                                      &op_prolong, &op_restrict);
 
   // Coarse problem

@@ -516,16 +516,16 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1Lagrange(
-  CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedInt degreeCoarse,
-  CeedOperator opFine, CeedOperator *opCoarse, CeedOperator *opProlong,
+  CeedOperator opFine, CeedVector PMultFine, CeedElemRestriction rstrCoarse,
+  CeedInt degreeCoarse, CeedOperator *opCoarse, CeedOperator *opProlong,
   CeedOperator *opRestrict);
 CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1(
-  CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
-  const CeedScalar *interpCtoF, CeedOperator opFine, CeedOperator *opCoarse,
+  CeedOperator opFine, CeedVector PMultFine, CeedElemRestriction rstrCoarse,
+  CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator *opCoarse,
   CeedOperator *opProlong, CeedOperator *opRestrict);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedVector PMultFine,
-    CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
-    const CeedScalar *interpCtoF, CeedOperator opFine, CeedOperator *opCoarse,
+CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator opFine,
+    CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    const CeedScalar *interpCtoF, CeedOperator *opCoarse,
     CeedOperator *opProlong, CeedOperator *opRestrict);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdminv, CeedRequest *request);

@@ -653,9 +653,8 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   // Create the Operators that compute the prolongation and
   //   restriction between the p-multigrid levels and the coarse grid eval.
   // ---------------------------------------------------------------------------
-  CeedOperatorMultigridLevelCreateTensorH1Lagrange(fineMult,
-      data[level]->Erestrictu, P, data[level+1]->opJacob, &opJacob,
-      &opProlong, &opRestrict);
+  CeedOperatorMultigridLevelCreateTensorH1Lagrange(data[level+1]->opJacob,
+      fineMult, data[level]->Erestrictu, P, &opJacob, &opProlong, &opRestrict);
 
   // -- Save libCEED data
   data[level]->opJacob = opJacob;

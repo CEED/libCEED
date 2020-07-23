@@ -151,8 +151,8 @@
       call ceedvectorcreate(ceed,ncomp*nufine,pmultfine,err)
       val=1.0
       call ceedvectorsetvalue(pmultfine,val,err)
-      call ceedoperatormultigridlevelcreatetensorh1lagrange(pmultfine,&
-     & erestrictucoarse,pcoarse,op_massfine,op_masscoarse,op_prolong,&
+      call ceedoperatormultigridlevelcreatetensorh1lagrange(op_massfine,&
+     & pmultfine,erestrictucoarse,pcoarse,op_masscoarse,op_prolong,&
      & op_restrict,err)
 
 ! Coarse problem

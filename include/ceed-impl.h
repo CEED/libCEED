@@ -234,8 +234,8 @@ struct CeedQFunction_private {
   const char *qfname;
   bool fortranstatus;
   bool identity;
-  bool ownctx;
   void *ctx;      /* user context for function */
+  void *ctx_allocated;
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* place for the backend to store any data */
 };
