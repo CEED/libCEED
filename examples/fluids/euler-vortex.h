@@ -123,7 +123,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar P = 1.;
   const CeedScalar T = P / rho - (gamma - 1.) * vortex_strength *
                        vortex_strength * exp(1. - r*r) / (8.*gamma*M_PI*M_PI);
-  const CeedScalar u[3] = {1., 0, 0}; // {1. - C * y0, 1. + C * x0, 0}; // commenting it out for now
+  const CeedScalar u[3] = {-1. + C, 0, 0}; // {1. - C * y0, 1. + C * x0, 0};
 
   // Initial Conditions
   q[0] = rho;
