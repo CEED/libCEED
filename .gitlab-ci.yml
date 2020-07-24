@@ -17,11 +17,11 @@ noether-rocm:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
         lcov --gcov-tool /usr/bin/gcov-8 --directory . --capture --output-file coverage.info;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
       fi
   artifacts:
     paths:
