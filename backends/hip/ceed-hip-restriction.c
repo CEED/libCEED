@@ -165,10 +165,12 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
 int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block,
                                       CeedTransposeMode tmode, CeedVector u,
                                       CeedVector v, CeedRequest *request) {
+  // LCOV_EXCL_START
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
