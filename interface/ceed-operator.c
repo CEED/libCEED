@@ -312,27 +312,13 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basisCoarse, &ncomp); CeedChk(ierr);
   CeedQFunction qfRestrict;
-  switch (ncomp) {
-  case 1:
-  case 2:
-  case 3: {
-    char name[7] = "";
-    snprintf(name, sizeof name, "Scale%d", ncomp);
-    ierr = CeedQFunctionCreateInteriorByName(ceed, name, &qfRestrict);
-    CeedChk(ierr);
-    break;
-  }
-  default: {
-    ierr = CeedQFunctionCreateInteriorByName(ceed, "ScaleN", &qfRestrict);
-    CeedChk(ierr);
-    CeedInt *ctx;
-    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-    ctx[0] = ncomp;
-    ierr = CeedQFunctionSetContext(qfRestrict, ctx, sizeof(*ctx)); CeedChk(ierr);
-    qfRestrict->ctx_allocated = qfRestrict->ctx;
-    break;
-  }
-  }
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfRestrict);
+  CeedChk(ierr);
+  CeedInt *ctxR;
+  ierr = CeedCalloc(1, &ctxR); CeedChk(ierr);
+  ctxR[0] = ncomp;
+  ierr = CeedQFunctionSetContext(qfRestrict, ctxR, sizeof(*ctxR)); CeedChk(ierr);
+  qfRestrict->ctx_allocated = qfRestrict->ctx;
   ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfRestrict, "scale", ncomp, CEED_EVAL_NONE);
@@ -354,27 +340,13 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
 
   // Prolongation
   CeedQFunction qfProlong;
-  switch (ncomp) {
-  case 1:
-  case 2:
-  case 3: {
-    char name[7] = "";
-    snprintf(name, sizeof name, "Scale%d", ncomp);
-    ierr = CeedQFunctionCreateInteriorByName(ceed, name, &qfProlong);
-    CeedChk(ierr);
-    break;
-  }
-  default: {
-    ierr = CeedQFunctionCreateInteriorByName(ceed, "ScaleN", &qfProlong);
-    CeedChk(ierr);
-    CeedInt *ctx;
-    ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-    ctx[0] = ncomp;
-    ierr = CeedQFunctionSetContext(qfProlong, ctx, sizeof(*ctx)); CeedChk(ierr);
-    qfProlong->ctx_allocated = qfProlong->ctx;
-    break;
-  }
-  }
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfProlong);
+  CeedChk(ierr);
+  CeedInt *ctxP;
+  ierr = CeedCalloc(1, &ctxP); CeedChk(ierr);
+  ctxP[0] = ncomp;
+  ierr = CeedQFunctionSetContext(qfProlong, ctxP, sizeof(*ctxP)); CeedChk(ierr);
+  qfProlong->ctx_allocated = qfProlong->ctx;
   ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfProlong, "scale", ncomp, CEED_EVAL_NONE);

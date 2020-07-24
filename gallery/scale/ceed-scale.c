@@ -24,7 +24,7 @@
 static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
                                    CeedQFunction qf) {
   // Check QFunction name
-  const char *name = "ScaleN";
+  const char *name = "Scale";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
@@ -42,6 +42,6 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
 **/
 __attribute__((constructor))
 static void Register(void) {
-  CeedQFunctionRegister("ScaleN", Scale_loc, 1, Scale,
+  CeedQFunctionRegister("Scale", Scale_loc, 1, Scale,
                         CeedQFunctionInit_Scale);
 }
