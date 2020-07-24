@@ -1,0 +1,31 @@
+stages:
+  - test
+
+noether-rocm:
+  stage: test
+  tags:
+    - rocm
+  image: jedbrown/rocm:latest
+  script:
+    - export COVERAGE=1 gcov=gcov-8 CC=gcc-8 CXX=gcc-8 FC=gfortran-8
+    - make info
+    - make -j$(nproc)
+    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+    - make -k -j$(nproc) junit realsearch=%
+    - echo "SUCCESS" > .job_status
+  after_script:
+    - |
+      if [ $(cat .job_status) == "SUCCESS" ]; then
+        lcov --gcov-tool /usr/bin/gcov-8 --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+      performance: performance.json
