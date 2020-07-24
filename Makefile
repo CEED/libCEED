@@ -31,6 +31,7 @@ ifeq (,$(filter-out undefined default,$(origin LINK)))
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
+HIPCC ?= $(HIP_DIR)/bin/hipcc
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -64,6 +65,7 @@ MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+HIP_DIR ?= /opt/rocm
 
 # Check for PETSc in ../petsc
 ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
@@ -113,6 +115,7 @@ OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+HIPCCFLAGS ?= $(OPT) -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -209,6 +212,9 @@ cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cu       := $(sort $(wildcard backends/magma/*.cu))
+hip.hip        := $(sort $(wildcard backends/hip/*.hip.cpp))
+hip.cpp        := $(sort $(filter-out $(hip.hip),$(wildcard backends/hip/*.cpp)))
+hip.c          := $(sort $(wildcard backends/hip/*.c))
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
@@ -265,6 +271,7 @@ info:
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,/cpu/occa /gpu/occa /omp/occa))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,/gpu/magma /gpu/magma/det))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
+	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
@@ -358,6 +365,25 @@ ifneq ($(CUDA_LIB_DIR),)
   BACKENDS += $(CUDA_BACKENDS)
 endif
 
+# HIP Backends
+HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT}))
+HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
+HIP_BACKENDS = /gpu/hip/ref
+ifneq ($(HIP_LIB_DIR),)
+  $(libceeds) : HIPCCFLAGS += -I./include
+  ifneq ($(CXX), $(HIPCC))
+    CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
+  endif
+  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
+  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
+  $(libceeds) : LINK = $(CXX)
+  libceed.hip += $(hip.hip)
+  libceed.cpp += $(hip.cpp)
+  libceed.c   += $(hip.c)
+  BACKENDS += $(HIP_BACKENDS)
+endif
+
 # MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   ifneq ($(CUDA_LIB_DIR),)
@@ -378,7 +404,7 @@ endif
 
 export BACKENDS
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed) : $(libceed.o) | $$(@D)/.DIR
@@ -392,6 +418,9 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
+	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
@@ -597,10 +626,10 @@ print-% :
 #   make configure CC=/path/to/other/clang
 
 # All variables to consider for caching
-CONFIG_VARS = CC CXX FC NVCC NVCC_CXX \
-	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS \
+CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
+	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	LDFLAGS LDLIBS \
-	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR
+	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

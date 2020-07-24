@@ -171,6 +171,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/magma/det``         | CUDA MAGMA kernels                                | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
 
 The ``/cpu/self/*/serial`` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The ``/cpu/self/*/blocked`` backends process
@@ -206,6 +208,9 @@ MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
 By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
 with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
 directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
+
+The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on 
+the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 is required.
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as ``atomicAdd`` for increased performance.

@@ -13,9 +13,8 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
 #include "../include/ceed.h"
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 
 //------------------------------------------------------------------------------
 // Kernel for set value on device
@@ -31,14 +30,14 @@ __global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size,
 //------------------------------------------------------------------------------
 // Set value on device memory
 //------------------------------------------------------------------------------
-extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedInt length,
-                                       CeedScalar val) {
+extern "C" int CeedDeviceSetValue_Hip(CeedScalar* d_array, CeedInt length,
+                                      CeedScalar val) {
   const int bsize = 512;
   const int vecsize = length;
   int gridsize = vecsize / bsize;
 
   if (bsize * gridsize < vecsize)
     gridsize += 1;
-  setValueK<<<gridsize,bsize>>>(d_array, length, val);
+  hipLaunchKernelGGL(setValueK, dim3(gridsize), dim3(bsize), 0, 0, d_array, length, val);
   return 0;
 }

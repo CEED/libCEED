@@ -24,6 +24,10 @@ Interface changes
 * Added :cpp:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
   This function is recommended over :cpp:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :cpp:func:`CeedVectorSetArray`.
 
+New features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* New HIP backend: ``/gpu/hip/ref``.
+
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with strain energy computation and more flexible boundary conditions.
