@@ -1554,7 +1554,7 @@ def test_533(ceed_resource):
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with
-#   multigrid level, Lagrange basis
+#   multigrid level, tensor basis and interpolation basis generation
 # -------------------------------------------------------------------------------
 
 
@@ -1612,6 +1612,7 @@ def test_550(ceed_resource):
 
     # Bases
     bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
     bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
 
     # QFunctions
@@ -1649,8 +1650,9 @@ def test_550(ceed_resource):
     # Create multigrid level
     p_mult_fine = ceed.Vector(ncomp * nu_fine)
     p_mult_fine.set_value(1.0)
-    [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create_tensor_h1_lagrange(p_mult_fine,
-                                                                                                 ru_coarse, p_coarse)
+    [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create(p_mult_fine,
+                                                                              ru_coarse,
+                                                                              bu_coarse)
 
     # Apply coarse mass matrix
     u_coarse.set_value(1.0)
@@ -1692,7 +1694,7 @@ def test_550(ceed_resource):
 # -------------------------------------------------------------------------------
 
 
-def test_551(ceed_resource):
+def test_552(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     nelem = 15
@@ -1830,7 +1832,7 @@ def test_551(ceed_resource):
 # -------------------------------------------------------------------------------
 
 
-def test_552(ceed_resource):
+def test_553(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     nelem = 15

@@ -40,7 +40,7 @@
       integer stridesu(3)
       integer erestrictx,erestrictui
       integer erestrictucoarse,erestrictufine
-      integer bx,bufine
+      integer bx,bucoarse,bufine
       integer qf_setup,qf_mass
       integer op_setup,op_masscoarse,op_massfine
       integer op_prolong,op_restrict
@@ -107,6 +107,8 @@
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,2,q,ceed_gauss,bx,err)
       call ceedbasiscreatetensorh1lagrange(ceed,1,ncomp,pfine,q,ceed_gauss,&
      & bufine,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,ncomp,pcoarse,q,ceed_gauss,&
+     & bucoarse,err)
 
      call ceedqfunctioncreateinterior(ceed,1,setup,&
     &SOURCE_DIR&
@@ -151,9 +153,8 @@
       call ceedvectorcreate(ceed,ncomp*nufine,pmultfine,err)
       val=1.0
       call ceedvectorsetvalue(pmultfine,val,err)
-      call ceedoperatormultigridlevelcreatetensorh1lagrange(op_massfine,&
-     & pmultfine,erestrictucoarse,pcoarse,op_masscoarse,op_prolong,&
-     & op_restrict,err)
+      call ceedoperatormultigridlevelcreate(op_massfine,pmultfine,&
+     & erestrictucoarse,bucoarse,op_masscoarse,op_prolong,op_restrict,err)
 
 ! Coarse problem
       call ceedvectorcreate(ceed,ncomp*nucoarse,ucoarse,err)
@@ -230,6 +231,7 @@
       call ceedoperatordestroy(op_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
       call ceedqfunctiondestroy(qf_setup,err)
+      call ceedbasisdestroy(bucoarse,err)
       call ceedbasisdestroy(bufine,err)
       call ceedbasisdestroy(bx,err)
       call ceedelemrestrictiondestroy(erestrictucoarse,err)

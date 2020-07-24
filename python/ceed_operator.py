@@ -147,14 +147,13 @@ class _OperatorBase(ABC):
         self._ceed._check_error(err_code)
 
     # Create Multigrid Level
-    def multigrid_create_tensor_h1_lagrange(
-            self, p_mult_fine, rstr_coarse, degree_coarse):
+    def multigrid_create(self, p_mult_fine, rstr_coarse, basis_coarse):
         """ Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a Lagrange tensor basis for the active basis
 
            Args:
              p_mult_fine: L-vector multiplicity in parallel gather/scatter
-             rstr_coarse: Coarse grid restriction
+             basis_coarse: Coarse grid active vector basis
              degree_coarse: Coarse grid basis polynomial order"""
 
         # Operator pointers
@@ -163,13 +162,13 @@ class _OperatorBase(ABC):
         opRestrictPointer = ffi.new("CeedOperator *")
 
         # libCEED call
-        lib.CeedOperatorMultigridLevelCreateTensorH1Lagrange(self._pointer[0],
-                                                             p_mult_fine._pointer[0],
-                                                             rstr_coarse._pointer[0],
-                                                             degree_coarse,
-                                                             opCoarsePointer,
-                                                             opProlongPointer,
-                                                             opRestrictPointer)
+        lib.CeedOperatorMultigridLevelCreate(self._pointer[0],
+                                             p_mult_fine._pointer[0],
+                                             rstr_coarse._pointer[0],
+                                             basis_coarse._pointer[0],
+                                             opCoarsePointer,
+                                             opProlongPointer,
+                                             opRestrictPointer)
 
         # Wrap operators
         opCoarse = _OperatorWrap(

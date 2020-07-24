@@ -516,10 +516,9 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1Lagrange(
-  CeedOperator opFine, CeedVector PMultFine, CeedElemRestriction rstrCoarse,
-  CeedInt degreeCoarse, CeedOperator *opCoarse, CeedOperator *opProlong,
-  CeedOperator *opRestrict);
+CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator opFine,
+    CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
 CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1(
   CeedOperator opFine, CeedVector PMultFine, CeedElemRestriction rstrCoarse,
   CeedBasis basisCoarse, const CeedScalar *interpCtoF, CeedOperator *opCoarse,

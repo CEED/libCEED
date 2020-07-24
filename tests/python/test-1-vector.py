@@ -228,7 +228,7 @@ def test_119(ceed_resource):
 
     with x.array_read() as b:
         for i in range(n):
-            assert abs(b[i] - 1./(10 + i)) < 1e-15
+            assert abs(b[i] - 1. / (10 + i)) < 1e-15
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array

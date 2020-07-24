@@ -93,10 +93,10 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
 
   @ref Developer
 **/
-static int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
-                                 const CeedScalar *tau, CeedTransposeMode tmode,
-                                 CeedInt m, CeedInt n, CeedInt k,
-                                 CeedInt row, CeedInt col) {
+int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
+                          const CeedScalar *tau, CeedTransposeMode tmode,
+                          CeedInt m, CeedInt n, CeedInt k,
+                          CeedInt row, CeedInt col) {
   CeedScalar v[m];
   for (CeedInt ii=0; ii<k; ii++) {
     CeedInt i = tmode == CEED_TRANSPOSE ? ii : k-1-ii;

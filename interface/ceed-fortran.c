@@ -1038,18 +1038,19 @@ void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
   }
 }
 
-#define fCeedOperatorMultigridLevelCreateTensorH1Lagrange \
-    FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1lagrange, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1LAGRANGE)
-void fCeedOperatorMultigridLevelCreateTensorH1Lagrange(int *opFine,
-    int *pMultFine, int *rstrCoarse, int *degreeCoarse, int *opCoarse,
-    int *opProlong, int *opRestrict, int *err) {
+#define fCeedOperatorMultigridLevelCreate \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreate, CEEDOPERATORMULTIGRIDLEVELCREATE)
+void fCeedOperatorMultigridLevelCreate(int *opFine, int *pMultFine,
+                                       int *rstrCoarse, int *basisCoarse, int *opCoarse,
+                                       int *opProlong, int *opRestrict, int *err) {
   // Operators
   CeedOperator opCoarse_, opProlong_, opRestrict_;
 
   // C interface call
-  *err = CeedOperatorMultigridLevelCreateTensorH1Lagrange(
+  *err = CeedOperatorMultigridLevelCreate(
            CeedOperator_dict[*opFine], CeedVector_dict[*pMultFine],
-           CeedElemRestriction_dict[*rstrCoarse], *degreeCoarse,
+           CeedElemRestriction_dict[*rstrCoarse],
+           CeedBasis_dict[*basisCoarse],
            &opCoarse_, &opProlong_, &opRestrict_);
 
   if (*err) return;

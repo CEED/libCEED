@@ -1,24 +1,22 @@
 /// @file
-/// Test creation, action, and destruction for mass matrix operator with multigrid level, tensor basis and interpolation basis generation
-/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, tensor basis and interpolation basis generation
+/// Test creation, action, and destruction for mass matrix operator with multigrid level, nontensor basis
+/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, nontensor basis
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-
-#include "t550-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedElemRestriction Erestrictx, Erestrictui,
                       ErestrictuCoarse, ErestrictuFine;
-  CeedBasis bx, bCoarse, bFine;
+  CeedBasis bx, bu;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_massCoarse, op_massFine,
                op_prolong, op_restrict;
   CeedVector qdata, X, Ucoarse, Ufine,
              Vcoarse, Vfine, PMultFine;
   const CeedScalar *hv;
-  CeedInt nelem = 15, Pcoarse = 3, Pfine = 5, Q = 8, ncomp = 4;
+  CeedInt nelem = 15, Pcoarse = 3, Pfine = 5, Q = 8;
   CeedInt Nx = nelem+1, NuCoarse = nelem*(Pcoarse-1)+1,
           NuFine = nelem*(Pfine-1)+1;
   CeedInt induCoarse[nelem*Pcoarse], induFine[nelem*Pfine],
@@ -43,18 +41,16 @@ int main(int argc, char **argv) {
       induCoarse[Pcoarse*i+j] = i*(Pcoarse-1) + j;
     }
   }
-  CeedElemRestrictionCreate(ceed, nelem, Pcoarse, ncomp, NuCoarse,
-                            ncomp*NuCoarse, CEED_MEM_HOST, CEED_USE_POINTER,
-                            induCoarse, &ErestrictuCoarse);
+  CeedElemRestrictionCreate(ceed, nelem, Pcoarse, 1, 1, NuCoarse, CEED_MEM_HOST,
+                            CEED_USE_POINTER, induCoarse, &ErestrictuCoarse);
 
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<Pfine; j++) {
       induFine[Pfine*i+j] = i*(Pfine-1) + j;
     }
   }
-  CeedElemRestrictionCreate(ceed, nelem, Pfine, ncomp, NuFine,
-                            ncomp*NuFine, CEED_MEM_HOST, CEED_USE_POINTER,
-                            induFine, &ErestrictuFine);
+  CeedElemRestrictionCreate(ceed, nelem, Pfine, 1, 1, NuFine, CEED_MEM_HOST,
+                            CEED_USE_POINTER, induFine, &ErestrictuFine);
 
   CeedInt stridesu[3] = {1, Q, Q};
   CeedElemRestrictionCreateStrided(ceed, nelem, Q, 1, Q*nelem, stridesu,
@@ -62,20 +58,11 @@ int main(int argc, char **argv) {
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bx);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, ncomp, Pcoarse, Q, CEED_GAUSS,
-                                  &bCoarse);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, ncomp, Pfine, Q, CEED_GAUSS, &bFine);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pfine, Q, CEED_GAUSS, &bu);
 
   // QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setup, "dx", 1*1, CEED_EVAL_GRAD);
-  CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_NONE);
-
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_mass, "u", ncomp, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_mass, "v", ncomp, CEED_EVAL_INTERP);
+  CeedQFunctionCreateInteriorByName(ceed, "Mass1DBuild", &qf_setup);
+  CeedQFunctionCreateInteriorByName(ceed, "MassApply", &qf_mass);
 
   // Operators
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -95,50 +82,55 @@ int main(int argc, char **argv) {
 
   CeedOperatorSetField(op_massFine, "qdata", Erestrictui, CEED_BASIS_COLLOCATED,
                        qdata);
-  CeedOperatorSetField(op_massFine, "u", ErestrictuFine, bFine,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_massFine, "v", ErestrictuFine, bFine,
-                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_massFine, "u", ErestrictuFine, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_massFine, "v", ErestrictuFine, bu, CEED_VECTOR_ACTIVE);
 
   CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
 
   // Create multigrid level
-  CeedVectorCreate(ceed, ncomp*NuFine, &PMultFine);
+  CeedVectorCreate(ceed, NuFine, &PMultFine);
   CeedVectorSetValue(PMultFine, 1.0);
-  CeedOperatorMultigridLevelCreate(op_massFine, PMultFine, ErestrictuCoarse,
-                                   bCoarse, &op_massCoarse, &op_prolong, &op_restrict);
+  CeedBasis buCoarse, bCtoF;
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Q, CEED_GAUSS, &buCoarse);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Pcoarse, Pfine, CEED_GAUSS_LOBATTO,
+                                  &bCtoF);
+  const CeedScalar *interpCtoF;
+  CeedBasisGetInterp1D(bCtoF, &interpCtoF);
+  CeedOperatorMultigridLevelCreateH1(op_massFine, PMultFine, ErestrictuCoarse,
+                                     buCoarse, interpCtoF, &op_massCoarse,
+                                     &op_prolong, &op_restrict);
 
   // Coarse problem
-  CeedVectorCreate(ceed, ncomp*NuCoarse, &Ucoarse);
+  CeedVectorCreate(ceed, NuCoarse, &Ucoarse);
   CeedVectorSetValue(Ucoarse, 1.0);
-  CeedVectorCreate(ceed, ncomp*NuCoarse, &Vcoarse);
+  CeedVectorCreate(ceed, NuCoarse, &Vcoarse);
   CeedOperatorApply(op_massCoarse, Ucoarse, Vcoarse, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(Vcoarse, CEED_MEM_HOST, &hv);
   sum = 0.;
-  for (CeedInt i=0; i<ncomp*NuCoarse; i++) {
+  for (CeedInt i=0; i<NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-1.)>1e-10)
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
   // Prolong coarse u
-  CeedVectorCreate(ceed, ncomp*NuFine, &Ufine);
+  CeedVectorCreate(ceed, NuFine, &Ufine);
   CeedOperatorApply(op_prolong, Ucoarse, Ufine, CEED_REQUEST_IMMEDIATE);
 
   // Fine problem
-  CeedVectorCreate(ceed, ncomp*NuFine, &Vfine);
+  CeedVectorCreate(ceed, NuFine, &Vfine);
   CeedOperatorApply(op_massFine, Ufine, Vfine, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(Vfine, CEED_MEM_HOST, &hv);
   sum = 0.;
-  for (CeedInt i=0; i<ncomp*NuFine; i++) {
+  for (CeedInt i=0; i<NuFine; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-1.)>1e-10)
     printf("Computed Area Fine Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vfine, &hv);
 
@@ -148,10 +140,10 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(Vcoarse, CEED_MEM_HOST, &hv);
   sum = 0.;
-  for (CeedInt i=0; i<ncomp*NuCoarse; i++) {
+  for (CeedInt i=0; i<NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-1.)>1e-10)
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
@@ -167,8 +159,9 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&ErestrictuFine);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
-  CeedBasisDestroy(&bCoarse);
-  CeedBasisDestroy(&bFine);
+  CeedBasisDestroy(&bu);
+  CeedBasisDestroy(&buCoarse);
+  CeedBasisDestroy(&bCtoF);
   CeedBasisDestroy(&bx);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&Ucoarse);
