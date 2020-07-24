@@ -147,4 +147,8 @@ if __name__ == '__main__':
                   else args.output)
         with open(output, 'w') as fd:
             TestSuite.to_file(fd, [result])
-    
+        for t in result.test_cases:
+            failures = len([c for c in result.test_cases if c.is_failure()])
+            errors = len([c for c in result.test_cases if c.is_error()])
+            if failures + errors > 0:
+                sys.exit(1)
