@@ -7,6 +7,7 @@ noether-rocm:
     - rocm
   image: jedbrown/rocm:latest
   script:
+    - make info
     - make -j$(nproc)
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
     - make -k -j$(nproc) junit realsearch=%
