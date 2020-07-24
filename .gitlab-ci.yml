@@ -7,7 +7,7 @@ noether-rocm:
     - rocm
   image: jedbrown/rocm:latest
   script:
-    - export COVERAGE=1 gcov=gcov-8 CC=gcc-8 FC=gfortran-8
+    - export COVERAGE=1 gcov=gcov-8 CC=gcc-8 CXX=gcc-8 FC=gfortran-8
     - make info
     - make -j$(nproc)
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
