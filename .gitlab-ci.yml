@@ -15,12 +15,12 @@ noether-rocm:
   after_script:
     - >
       if [ -e success ]; then
-        lcov --directory . --capture --output-file coverage.info
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
+        lcov --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
       fi
   artifacts:
     paths:
