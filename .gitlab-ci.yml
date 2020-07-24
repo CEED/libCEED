@@ -20,7 +20,7 @@ noether-rocm:
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F backends
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F tests
-        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples
+        && bash <(curl -s https://codecov.io/bash) -f coverage.info -F examples;
       fi
   artifacts:
     paths:
