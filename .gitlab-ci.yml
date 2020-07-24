@@ -16,6 +16,7 @@ noether-rocm:
   after_script:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
+        export gcov=gcov-8;
         lcov --directory . --capture --output-file coverage.info;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery;
