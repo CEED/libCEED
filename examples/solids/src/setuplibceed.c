@@ -664,8 +664,8 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   //   restriction between the p-multigrid levels and the coarse grid eval.
   // ---------------------------------------------------------------------------
   CeedOperatorMultigridLevelCreate(data[level+1]->opJacob, fineMult,
-      data[level]->Erestrictu, data[level]->basisu, &opJacob, &opProlong,
-      &opRestrict);
+                                   data[level]->Erestrictu, data[level]->basisu,
+                                   &opJacob, &opProlong, &opRestrict);
 
   // -- Save libCEED data
   data[level]->opJacob = opJacob;
