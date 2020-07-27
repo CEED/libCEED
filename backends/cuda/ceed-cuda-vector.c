@@ -427,18 +427,6 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
     ierr = CeedHostReciprocal_Cuda(data->h_array, length); CeedChk(ierr);
     break;
   case CEED_CUDA_NONE_SYNC:
-    /*
-      Handles the case where SetValue is used without SetArray.
-      Default allocation then happens on the GPU.
-    */
-    if (data->d_array == NULL) {
-      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
-      CeedChk_Cu(ceed, ierr);
-      data->d_array = data->d_array_allocated;
-    }
-    data->memState = CEED_CUDA_DEVICE_SYNC;
-    ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
-    break;
   case CEED_CUDA_DEVICE_SYNC:
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
     break;

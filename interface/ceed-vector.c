@@ -493,6 +493,13 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
 int CeedVectorReciprocal(CeedVector vec) {
   int ierr;
 
+  // Check if vector data set
+  if (!vec->state)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, 1,
+                     "CeedVector must have data set to take reciprocal");
+  // LCOV_EXCL_STOP
+
   // Backend impl for GPU, if added
   if (vec->Reciprocal) {
     ierr = vec->Reciprocal(vec); CeedChk(ierr);

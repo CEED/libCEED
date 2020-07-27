@@ -425,19 +425,6 @@ static int CeedVectorReciprocal_Hip(CeedVector vec) {
   case CEED_HIP_HOST_SYNC:
     ierr = CeedHostReciprocal_Hip(data->h_array, length); CeedChk(ierr);
     break;
-  case CEED_HIP_NONE_SYNC:
-    /*
-      Handles the case where SetValue is used without SetArray.
-      Default allocation then happens on the GPU.
-    */
-    if (data->d_array == NULL) {
-      ierr = hipMalloc((void **)&data->d_array_allocated, bytes(vec));
-      CeedChk_Hip(ceed, ierr);
-      data->d_array = data->d_array_allocated;
-    }
-    data->memState = CEED_HIP_DEVICE_SYNC;
-    ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChk(ierr);
-    break;
   case CEED_HIP_DEVICE_SYNC:
     ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChk(ierr);
     break;
