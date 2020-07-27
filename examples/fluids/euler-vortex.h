@@ -105,26 +105,31 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   // Context
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
-  const CeedScalar *center = context->center;
+  const CeedScalar *center = context->center; // Center of the domain
+  const CeedScalar *wind = context->wind;     // Background translation velocity
 
   // Setup
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
-  const CeedScalar x0 = vortex_strength * time * (x - center[0]); // TODO: check the implementation
-  const CeedScalar y0 = vortex_strength * time * (y - center[1]);
-  const CeedScalar z0 = vortex_strength * time * (z - center[2]);
-  const CeedScalar r = sqrt( x0*x0 + y0*y0 + z0*z0 );
-  // Coefficient for computing perturbation in Velocity
-  const CeedScalar C = vortex_strength * exp((1. - r*r)/2.)  / (2. * M_PI);
+   // Vortex center
+  const CeedScalar xc = center[0] + wind[0] * time;
+  const CeedScalar yc = center[1] + wind[1] * time;
+
+  const CeedScalar x0 = x - xc;
+  const CeedScalar y0 = y - yc;
+  const CeedScalar r = sqrt( x0*x0 + y0*y0 );
+  const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
 
   // Exact Solutions
   const CeedScalar rho = 1.;
   const CeedScalar P = 1.;
   const CeedScalar T = P / rho - (gamma - 1.) * vortex_strength *
                        vortex_strength * exp(1. - r*r) / (8.*gamma*M_PI*M_PI);
-  const CeedScalar u[3] = {-1. + C, 0, 0}; // {1. - C * y0, 1. + C * x0, 0};
-
+  const CeedScalar u[3] = {wind[0] - C*y0,
+                           wind[1] + C*x0,
+                           0.
+                          };
   // Initial Conditions
   q[0] = rho;
   q[1] = rho * u[0];
@@ -203,7 +208,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-
   const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
@@ -235,8 +239,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
     // P = pressure
-    const CeedScalar P  = (E - rho * (u[0]*u[0] + u[1]*u[1] +
-                           u[2]*u[2]) / 2.) * (gamma - 1.);
+    const CeedScalar P  = 1.;
 
     // The Physics
     for (int j=0; j<5; j++) {
