@@ -212,9 +212,9 @@ cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.c         := $(sort $(wildcard backends/occa/*.c))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cu       := $(sort $(wildcard backends/magma/kernels/*.cu))
-hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
-hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
+hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
+hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
 
 # Output using the 216-color rules mode
 rule_file = $(notdir $(1))
