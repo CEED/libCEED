@@ -222,11 +222,6 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
-
-  // Exact Solutions
-  const CeedScalar rho = 1.;
-  const CeedScalar P = 1.;
-  const CeedScalar T = P / rho - S * exp(1. - r*r);
   const CeedScalar u[3] = {wind[0] - C*y0, wind[1] + C*x0, 0.};
 
   // Forcing term for Manufactured solution
@@ -234,10 +229,8 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   force[1] = C * ( 2*wind[1] + x0 *C );
   force[2] = -C*C*y0;
   force[3] = 0.;
-  force[4] = 2.*S*cv*(x0*wind[0] + y0*wind[1]) + x0*y0*C*(wind[0]*wind[0] -
-             wind[1]*wind[1]) * C*wind[0]*wind[1]*(y0*y0 - x0*x0) +
-             2.*C*wind[0]*wind[1];
-
+  force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
+             C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
   return 0;
 }
 // *****************************************************************************
