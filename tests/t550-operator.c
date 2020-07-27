@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "t550-operator.h"
+#include "t502-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   CeedVector qdata, X, Ucoarse, Ufine,
              Vcoarse, Vfine, PMultFine;
   const CeedScalar *hv;
-  CeedInt nelem = 15, Pcoarse = 3, Pfine = 5, Q = 8, ncomp = 4;
+  CeedInt nelem = 15, Pcoarse = 3, Pfine = 5, Q = 8, ncomp = 2;
   CeedInt Nx = nelem+1, NuCoarse = nelem*(Pcoarse-1)+1,
           NuFine = nelem*(Pfine-1)+1;
   CeedInt induCoarse[nelem*Pcoarse], induFine[nelem*Pfine],
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ncomp*NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-2.)>1e-10)
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ncomp*NuFine; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-2.)>1e-10)
     printf("Computed Area Fine Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vfine, &hv);
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<ncomp*NuCoarse; i++) {
     sum += hv[i];
   }
-  if (fabs(sum-4.)>1e-10)
+  if (fabs(sum-2.)>1e-10)
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
