@@ -104,6 +104,14 @@ jobs:
        - cd ../..
      after_success:
        - make style-py && git diff --exit-code;
+  allow_failures:
+# ARM - current intermittant issues passing with Travis
+   - name: "ARM"
+     os: linux
+     dist: bionic
+     arch: arm64
+     compiler: gcc
+     env: FC=gfortran
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
