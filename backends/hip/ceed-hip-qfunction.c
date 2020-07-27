@@ -51,18 +51,12 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
     CeedChk(ierr);
   }
 
-  // Copy context to device
-  // TODO find a way to avoid this systematic memCpy
-  size_t ctxsize;
-  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
-  if (ctxsize > 0) {
-    if(!data->d_c) {
-      ierr = hipMalloc(&data->d_c, ctxsize); CeedChk_Hip(ceed, ierr);
-    }
-    void *ctx;
-    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
-    ierr = hipMemcpy(data->d_c, ctx, ctxsize, hipMemcpyHostToDevice);
-    CeedChk_Hip(ceed, ierr);
+  // Get context data
+  CeedUserContext ctx;
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedUserContextGetData(ctx, CEED_MEM_DEVICE, &data->d_c);
+    CeedChk(ierr);
   }
 
   // Run kernel
@@ -70,13 +64,19 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   ierr = CeedRunKernelHip(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
                           blocksize, args); CeedChk(ierr);
 
-// Restore vectors
+  // Restore vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
     CeedChk(ierr);
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
+    CeedChk(ierr);
+  }
+
+  // Restore context
+  if (ctx) {
+    ierr = CeedUserContextRestoreData(ctx, &data->d_c);
     CeedChk(ierr);
   }
   return 0;
@@ -93,7 +93,6 @@ static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   if  (data->module)
     CeedChk_Hip(ceed, hipModuleUnload(data->module));
-  ierr = hipFree(data->d_c); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
 }
@@ -169,9 +168,6 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
-  size_t ctxsize;
-  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
-  ierr = hipMalloc(&data->d_c, ctxsize); CeedChk_Hip(ceed, ierr);
 
   // Read source
   char *source;

@@ -89,6 +89,8 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Occa); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "UserContextCreate",
+                                CeedUserContextCreate_Occa); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Occa); CeedChk(ierr);
   ierr = CeedCalloc(1,&data); CeedChk(ierr);

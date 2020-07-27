@@ -29,9 +29,10 @@ class CeedDiffusionOperator : public mfem::Operator {
   CeedBasis basis, mesh_basis;
   CeedElemRestriction restr, mesh_restr, restr_i, mesh_restr_i;
   CeedQFunction apply_qfunc, build_qfunc;
+  CeedUserContext build_ctx;
   CeedVector node_coords, qdata;
 
-  BuildContext build_ctx;
+  BuildContext build_ctx_data;
 
   CeedVector u, v;
 
@@ -140,8 +141,11 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedVectorCreate(ceed, nelem*nqpts*dim*(dim+1)/2, &qdata);
 
     // Context data to be passed to the 'f_build_diff' Q-function.
-    build_ctx.dim = mesh->Dimension();
-    build_ctx.space_dim = mesh->SpaceDimension();
+    build_ctx_data.dim = mesh->Dimension();
+    build_ctx_data.space_dim = dim;
+    CeedUserContextCreate(ceed, &build_ctx);
+    CeedUserContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
+                           sizeof(build_ctx_data), &build_ctx_data);
 
     // Create the Q-function that builds the diff operator (i.e. computes its
     // quadrature data) and set its context data.
@@ -150,7 +154,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
-    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+    CeedQFunctionSetContext(build_qfunc, build_ctx);
 
     // Create the operator that builds the quadrature data for the diff operator.
     CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
@@ -172,7 +176,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedQFunctionAddInput(apply_qfunc, "u", dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(apply_qfunc, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(apply_qfunc, "v", dim, CEED_EVAL_GRAD);
-    CeedQFunctionSetContext(apply_qfunc, &build_ctx, sizeof(build_ctx));
+    CeedQFunctionSetContext(apply_qfunc, build_ctx);
 
     // Create the diff operator.
     CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE,
@@ -197,6 +201,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedBasisDestroy(&basis);
     CeedBasisDestroy(&mesh_basis);
     CeedQFunctionDestroy(&build_qfunc);
+    CeedUserContextDestroy(&build_ctx);
     CeedOperatorDestroy(&build_oper);
     CeedQFunctionDestroy(&apply_qfunc);
     CeedOperatorDestroy(&oper);

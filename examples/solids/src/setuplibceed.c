@@ -200,12 +200,11 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
 // Set up libCEED for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
-                                     Ceed ceed, AppCtx appCtx, Physics phys,
+                                     Ceed ceed, AppCtx appCtx,
+                                     CeedUserContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
-                                     PetscInt Ulocsz, CeedVector forceCeed,
-                                     CeedQFunction qfRestrict,
-                                     CeedQFunction qfProlong) {
+                                     PetscInt Ulocsz, CeedVector forceCeed) {
   int           ierr;
   CeedInt       P = appCtx->levelDegrees[fineLevel] + 1;
   CeedInt       Q = appCtx->levelDegrees[fineLevel] + 1 + appCtx->qextra;
@@ -362,7 +361,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddOutput(qfApply, "dv", ncompu*dim, CEED_EVAL_GRAD);
   if (problemChoice != ELAS_LIN)
     CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(qfApply, phys, sizeof(*phys));
+  CeedQFunctionSetContext(qfApply, physCtx);
 
   // -- Operator
   CeedOperatorCreate(ceed, qfApply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -395,7 +394,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   if (problemChoice != ELAS_LIN)
     CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfJacob, "deltadv", ncompu*dim, CEED_EVAL_GRAD);
-  CeedQFunctionSetContext(qfJacob, phys, sizeof(*phys));
+  CeedQFunctionSetContext(qfJacob, physCtx);
 
   // -- Operator
   CeedOperatorCreate(ceed, qfJacob, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -432,11 +431,17 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
     CeedQFunctionAddInput(qfSetupForce, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qfSetupForce, "qdata", qdatasize, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qfSetupForce, "force", ncompu, CEED_EVAL_INTERP);
-    if (forcingChoice == FORCE_MMS)
-      CeedQFunctionSetContext(qfSetupForce, phys, sizeof(*phys));
-    else
-      CeedQFunctionSetContext(qfSetupForce, appCtx->forcingVector,
-                              sizeof(*appCtx->forcingVector));
+    if (forcingChoice == FORCE_MMS) {
+      CeedQFunctionSetContext(qfSetupForce, physCtx);
+    } else {
+      CeedUserContext ctxForcing;
+      CeedUserContextCreate(ceed, &ctxForcing);
+      CeedUserContextSetData(ctxForcing, CEED_MEM_HOST, CEED_USE_POINTER,
+                             sizeof(*appCtx->forcingVector),
+                             appCtx->forcingVector);
+      CeedQFunctionSetContext(qfSetupForce, ctxForcing);
+      CeedUserContextDestroy(&ctxForcing);
+    }
 
     // -- Operator
     CeedOperatorCreate(ceed, qfSetupForce, CEED_QFUNCTION_NONE,
@@ -527,7 +532,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddInput(qfEnergy, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfEnergy, "qdata", qdatasize, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfEnergy, "energy", ncompe, CEED_EVAL_INTERP);
-  CeedQFunctionSetContext(qfEnergy, phys, sizeof(*phys));
+  CeedQFunctionSetContext(qfEnergy, physCtx);
 
   // -- Operator
   CeedOperatorCreate(ceed, qfEnergy, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -590,7 +595,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddInput(qfDiagnostic, "qdata", qdatasize, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfDiagnostic, "diagnostic", ncompu + ncompd,
                          CEED_EVAL_NONE);
-  CeedQFunctionSetContext(qfDiagnostic, phys, sizeof(*phys));
+  CeedQFunctionSetContext(qfDiagnostic, physCtx);
 
   // -- Operator
   CeedOperatorCreate(ceed, qfDiagnostic, CEED_QFUNCTION_NONE,
@@ -619,12 +624,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
 
 // Set up libCEED multigrid level for a given degree
 //   Prolongation and Restriction are between level and level+1
-PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
+PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                  CeedData *data, PetscInt level,
                                  PetscInt ncompu, PetscInt Ugsz,
-                                 PetscInt Ulocsz, CeedVector fineMult,
-                                 CeedQFunction qfRestrict,
-                                 CeedQFunction qfProlong) {
+                                 PetscInt Ulocsz, CeedVector fineMult) {
   PetscErrorCode ierr;
   CeedInt        fineLevel = appCtx->numLevels - 1;
   CeedInt        P = appCtx->levelDegrees[level] + 1;

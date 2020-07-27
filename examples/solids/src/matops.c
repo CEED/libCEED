@@ -205,9 +205,8 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // -- Set physics context
-  if (user->physSmoother)
-    CeedQFunctionSetContext(user->qf, user->physSmoother,
-                            sizeof(*user->physSmoother));
+  if (user->ctxPhysSmoother)
+    CeedQFunctionSetContext(user->qf, user->ctxPhysSmoother);
 
   // Compute Diagonal via libCEED
   PetscScalar *x;
@@ -221,8 +220,8 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
                                      CEED_REQUEST_IMMEDIATE);
 
   // -- Reset physics context
-  if (user->physSmoother)
-    CeedQFunctionSetContext(user->qf, user->phys, sizeof(*user->phys));
+  if (user->ctxPhysSmoother)
+    CeedQFunctionSetContext(user->qf, user->ctxPhys);
 
   // -- Local-to-Global
   CeedVectorTakeArray(user->Xceed, user->memType, NULL);

@@ -105,6 +105,14 @@ typedef struct {
 } CeedQFunction_Occa;
 
 // *****************************************************************************
+// * CeedUserContext Occa struct
+// *****************************************************************************
+typedef struct {
+  CeedScalar *h_data;
+  CeedScalar *h_data_allocated;
+} CeedUserContext_Occa;
+
+// *****************************************************************************
 // * Ceed Occa struct
 // *****************************************************************************
 typedef struct {
@@ -144,6 +152,9 @@ CEED_INTERN int CeedOperatorCreate_Occa(CeedOperator op);
 
 // *****************************************************************************
 CEED_INTERN int CeedQFunctionCreate_Occa(CeedQFunction qf);
+
+// *****************************************************************************
+CEED_INTERN int CeedUserContextCreate_Occa(CeedUserContext ctx);
 
 // *****************************************************************************
 CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,

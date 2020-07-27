@@ -119,7 +119,9 @@ def test_401(ceed_resource):
     qf_mass.add_input("u", 1, libceed.EVAL_INTERP)
     qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
 
-    ctx = np.array([1., 2., 3., 4., 5.])
+    ctx_data = np.array([1., 2., 3., 4., 5.])
+    ctx = ceed.UserContext()
+    ctx.set_data(ctx_data)
     qf_mass.set_context(ctx)
 
     q = 8
@@ -181,6 +183,11 @@ def test_402(ceed_resource, capsys):
 
     print(qf_setup)
     print(qf_mass)
+
+    ctx_data = np.array([1., 2., 3., 4., 5.])
+    ctx = ceed.UserContext()
+    ctx.set_data(ctx_data)
+    print(ctx)
 
     stdout, stderr, ref_stdout = check.output(capsys)
     assert not stderr

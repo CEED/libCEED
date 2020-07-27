@@ -29,10 +29,11 @@ class CeedMassOperator : public mfem::Operator {
   CeedBasis basis, mesh_basis;
   CeedElemRestriction restr, mesh_restr, restr_i, mesh_restr_i;
   CeedQFunction apply_qfunc, build_qfunc;
+  CeedUserContext build_ctx;
   CeedVector node_coords, qdata;
   CeedVector u, v;
 
-  BuildContext build_ctx;
+  BuildContext build_ctx_data;
 
   static void FESpace2Ceed(const mfem::FiniteElementSpace *fes,
                            const mfem::IntegrationRule &ir,
@@ -138,8 +139,11 @@ class CeedMassOperator : public mfem::Operator {
     CeedVectorCreate(ceed, nelem*nqpts, &qdata);
 
     // Context data to be passed to the 'f_build_mass' Q-function.
-    build_ctx.dim = mesh->Dimension();
-    build_ctx.space_dim = dim;
+    build_ctx_data.dim = mesh->Dimension();
+    build_ctx_data.space_dim = dim;
+    CeedUserContextCreate(ceed, &build_ctx);
+    CeedUserContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
+                           sizeof(build_ctx_data), &build_ctx_data);
 
     // Create the Q-function that builds the mass operator (i.e. computes its
     // quadrature data) and set its context data.
@@ -149,7 +153,7 @@ class CeedMassOperator : public mfem::Operator {
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
-    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+    CeedQFunctionSetContext(build_qfunc, build_ctx);
 
     // Create the operator that builds the quadrature data for the mass operator.
     CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE,
@@ -193,6 +197,7 @@ class CeedMassOperator : public mfem::Operator {
     CeedQFunctionDestroy(&build_qfunc);
     CeedOperatorDestroy(&oper);
     CeedQFunctionDestroy(&apply_qfunc);
+    CeedUserContextDestroy(&build_ctx);
     CeedBasisDestroy(&basis);
     CeedBasisDestroy(&mesh_basis);
     CeedElemRestrictionDestroy(&restr);

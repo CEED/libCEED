@@ -34,8 +34,12 @@ int CeedQFunctionAllocNoOpIn_Occa(CeedQFunction qf, CeedInt Q,
   int nIn;
   ierr = CeedQFunctionGetNumArgs(qf, &nIn, NULL); CeedChk(ierr);
   assert(nIn<N_MAX_IDX);
-  size_t cbytes;
-  ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
+  size_t cbytes = 0;
+  CeedUserContext ctx = NULL;
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedUserContextGetContextSize(ctx, &cbytes); CeedChk(ierr);
+  }
   const CeedInt bytes = sizeof(CeedScalar);
   const CeedInt dim = 1; // !?
   // ***************************************************************************

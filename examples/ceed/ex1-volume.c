@@ -173,8 +173,12 @@ int main(int argc, const char *argv[]) {
   CeedScalar exact_vol = TransformMeshCoords(dim, mesh_size, mesh_coords);
 
   // Context data to be passed to the 'f_build_mass' Q-function.
-  struct BuildContext build_ctx;
-  build_ctx.dim = build_ctx.space_dim = dim;
+  CeedUserContext build_ctx;
+  struct BuildContext build_ctx_data;
+  build_ctx_data.dim = build_ctx_data.space_dim = dim;
+  CeedUserContextCreate(ceed, &build_ctx);
+  CeedUserContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
+                         sizeof(build_ctx_data), &build_ctx_data);
 
   // Create the Q-function that builds the mass operator (i.e. computes its
   // quadrature data) and set its context data.
@@ -187,7 +191,7 @@ int main(int argc, const char *argv[]) {
     CeedQFunctionAddInput(build_qfunc, "dx", ncompx*dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(build_qfunc, "qdata", 1, CEED_EVAL_NONE);
-    CeedQFunctionSetContext(build_qfunc, &build_ctx, sizeof(build_ctx));
+    CeedQFunctionSetContext(build_qfunc, build_ctx);
     break;
   case 1: {
     // This creates the QFunction via the gallery.
@@ -295,6 +299,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorDestroy(&mesh_coords);
   CeedOperatorDestroy(&oper);
   CeedQFunctionDestroy(&apply_qfunc);
+  CeedUserContextDestroy(&build_ctx);
   CeedOperatorDestroy(&build_oper);
   CeedQFunctionDestroy(&build_qfunc);
   CeedElemRestrictionDestroy(&sol_restr);

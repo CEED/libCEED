@@ -118,9 +118,6 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   CeedQFunction_Cuda_gen *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
-  size_t ctxsize;
-  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
-  ierr = cudaMalloc(&data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
 
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);

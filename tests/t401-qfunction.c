@@ -11,9 +11,10 @@ int main(int argc, char **argv) {
   CeedVector in[16], out[16];
   CeedVector Qdata, W, U, V;
   CeedQFunction qf_setup, qf_mass;
+  CeedUserContext ctx;
   CeedInt Q = 8;
   const CeedScalar *vv;
-  CeedScalar w[Q], u[Q], v[Q], ctx[5] = {1, 2, 3, 4, 5};
+  CeedScalar w[Q], u[Q], v[Q], ctxData[5] = {1, 2, 3, 4, 5};
 
 
   CeedInit(argv[1], &ceed);
@@ -27,7 +28,10 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
-  CeedQFunctionSetContext(qf_mass, &ctx, sizeof(ctx));
+  CeedUserContextCreate(ceed, &ctx);
+  CeedUserContextSetData(ctx, CEED_MEM_HOST, CEED_USE_POINTER,
+                         sizeof(ctxData), &ctxData);
+  CeedQFunctionSetContext(qf_mass, ctx);
 
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar x = 2.*i/(Q-1) - 1;
@@ -59,7 +63,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++)
-    if (fabs(ctx[4] * v[i] - vv[i]) > 1.e-14)
+    if (fabs(ctxData[4] * v[i] - vv[i]) > 1.e-14)
       // LCOV_EXCL_START
       printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
   // LCOV_EXCL_STOP
@@ -71,6 +75,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&Qdata);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
+  CeedUserContextDestroy(&ctx);
   CeedDestroy(&ceed);
   return 0;
 }

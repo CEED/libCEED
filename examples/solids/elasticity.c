@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   // libCEED objects
   Ceed           ceed;
   CeedData       *ceedData;
-  CeedQFunction  qfRestrict = NULL, qfProlong = NULL;
+  CeedUserContext ctxPhys, ctxPhysSmoother = NULL;
   // Parameters
   PetscInt       ncompu = 3;             // 3 DoFs in 3D
   PetscInt       ncompe = 1, ncompd = 5; // 1 energy output, 5 diagnostic
@@ -118,6 +118,16 @@ int main(int argc, char **argv) {
     SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
              "PETSc was not built with CUDA. "
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
+
+  // Wrap context in libCEED objects
+  CeedUserContextCreate(ceed, &ctxPhys);
+  CeedUserContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
+                         sizeof(*phys), phys);
+  if (physSmoother) {
+    CeedUserContextCreate(ceed, &ctxPhysSmoother);
+    CeedUserContextSetData(ctxPhysSmoother, CEED_MEM_HOST, CEED_USE_POINTER,
+                           sizeof(*physSmoother), physSmoother);
+  }
 
   // ---------------------------------------------------------------------------
   // Setup DM
@@ -242,23 +252,15 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(forceCeed, appCtx->memTypeRequested, CEED_USE_POINTER, f);
   }
 
-  // -- Restriction and prolongation QFunction
-  if (appCtx->multigridChoice != MULTIGRID_NONE) {
-    CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                                &qfRestrict);
-    CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                                &qfProlong);
-  }
-
   // -- Setup libCEED objects
   ierr = PetscMalloc1(numLevels, &ceedData); CHKERRQ(ierr);
   // ---- Setup residual, Jacobian evaluator and geometric information
   ierr = PetscCalloc1(1, &ceedData[fineLevel]); CHKERRQ(ierr);
   {
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
-                                 ceed, appCtx, phys, ceedData, fineLevel,
+                                 ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
-                                 forceCeed, qfRestrict, qfProlong);
+                                 forceCeed);
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction
@@ -284,10 +286,10 @@ int main(int argc, char **argv) {
                        CEED_USE_POINTER, (CeedScalar *)m);
 
     // Note: use high order ceed, if specified and degree > 4
-    ierr = SetupLibceedLevel(levelDMs[level], ceed, appCtx, phys,
+    ierr = SetupLibceedLevel(levelDMs[level], ceed, appCtx,
                              ceedData, level, ncompu, Ugsz[level],
-                             Ulocsz[level], ceedData[level+1]->xceed, qfRestrict,
-                             qfProlong); CHKERRQ(ierr);
+                             Ulocsz[level], ceedData[level+1]->xceed);
+    CHKERRQ(ierr);
 
     // Restore PETSc vector
     CeedVectorTakeArray(ceedData[level+1]->xceed, appCtx->memTypeRequested,
@@ -408,8 +410,8 @@ int main(int argc, char **argv) {
     // -- Jacobian context for level
     ierr = PetscMalloc1(1, &jacobCtx[level]); CHKERRQ(ierr);
     ierr = SetupJacobianCtx(comm, appCtx, levelDMs[level], Ug[level],
-                            Uloc[level], ceedData[level], ceed, phys,
-                            physSmoother, jacobCtx[level]); CHKERRQ(ierr);
+                            Uloc[level], ceedData[level], ceed, ctxPhys,
+                            ctxPhysSmoother, jacobCtx[level]); CHKERRQ(ierr);
 
     // -- Form Action of Jacobian on delta_u
     ierr = MatCreateShell(comm, Ulsz[level], Ulsz[level], Ugsz[level],
@@ -906,8 +908,8 @@ int main(int argc, char **argv) {
   ierr = PetscFree(ceedData); CHKERRQ(ierr);
 
   // libCEED objects
-  CeedQFunctionDestroy(&qfRestrict);
-  CeedQFunctionDestroy(&qfProlong);
+  CeedUserContextDestroy(&ctxPhys);
+  CeedUserContextDestroy(&ctxPhysSmoother);
   CeedDestroy(&ceed);
 
   // PETSc objects

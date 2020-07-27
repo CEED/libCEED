@@ -138,6 +138,9 @@ typedef struct CeedBasis_private *CeedBasis;
 /// Handle for object describing functions evaluated independently at quadrature points
 /// @ingroup CeedQFunctionUser
 typedef struct CeedQFunction_private *CeedQFunction;
+/// Handle for object describing context data for CeedQFunctions
+/// @ingroup CeedQFunctionUser
+typedef struct CeedUserContext_private *CeedUserContext;
 /// Handle for object describing FE-type operators acting on vectors
 ///
 /// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and
@@ -490,12 +493,21 @@ CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname,
                                       CeedInt size, CeedEvalMode emode);
 CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                                        CeedInt size, CeedEvalMode emode);
-CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, void *ctx,
-                                        size_t ctxsize);
+CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, CeedUserContext ctx);
 CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                                    CeedVector *u, CeedVector *v);
 CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
+
+CEED_EXTERN int CeedUserContextCreate(Ceed ceed, CeedUserContext *ctx);
+CEED_EXTERN int CeedUserContextSetData(CeedUserContext ctx, CeedMemType mtype,
+                                       CeedCopyMode cmode, size_t size,
+                                       void *data);
+CEED_EXTERN int CeedUserContextGetData(CeedUserContext ctx, CeedMemType mtype,
+                                       void **data);
+CEED_EXTERN int CeedUserContextRestoreData(CeedUserContext ctx, void **data);
+CEED_EXTERN int CeedUserContextView(CeedUserContext ctx, FILE *stream);
+CEED_EXTERN int CeedUserContextDestroy(CeedUserContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
                                    CeedQFunction dqf, CeedQFunction dqfT,

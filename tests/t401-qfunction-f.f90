@@ -11,6 +11,7 @@
       integer ceed,err
       integer qdata,w,u,v
       integer qf_setup,qf_mass
+      integer ctx
       integer q,i
       parameter(q=8)
       real*8 ww(q)
@@ -19,14 +20,14 @@
       real*8 vvv(q)
       integer ctxsize
       parameter(ctxsize=5)
-      real*8 ctx(5)
+      real*8 ctxdata(5)
       real*8 x
       character arg*32
-      integer*8 uoffset,voffset,woffset
+      integer*8 uoffset,voffset,woffset,coffset
 
       external setup,mass
 
-      ctx=(/1.d0,2.d0,3.d0,4.d0,5.d0/)
+      ctxdata=(/1.d0,2.d0,3.d0,4.d0,5.d0/)
 
       call getarg(1,arg)
       call ceedinit(trim(arg)//char(0),ceed,err)
@@ -44,7 +45,11 @@
       call ceedqfunctionaddinput(qf_mass,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
 
-      call ceedqfunctionsetcontext(qf_mass,ctx,ctxsize,err)
+      call ceedusercontextcreate(ceed,ctx,err)
+      coffset=0
+      call ceedusercontextsetdata(ctx,ceed_mem_host,ceed_use_pointer,ctxsize,&
+     & ctxdata,coffset,err)
+      call ceedqfunctionsetcontext(qf_mass,ctx,err)
 
       do i=0,q-1
         x=2.0*i/(q-1)-1
@@ -80,9 +85,9 @@
 
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
       do i=1,q
-        if (abs(vv(i+voffset)-ctx(5)*vvv(i)) > 1.0D-14) then
+        if (abs(vv(i+voffset)-ctxdata(5)*vvv(i)) > 1.0D-14) then
 ! LCOV_EXCL_START
-          write(*,*) 'v(i)=',vv(i+voffset),', 5*vv(i)=',ctx(5)*vvv(i)
+          write(*,*) 'v(i)=',vv(i+voffset),', 5*vv(i)=',ctxdata(5)*vvv(i)
 ! LCOV_EXCL_STOP
         endif
       enddo
@@ -94,6 +99,7 @@
       call ceedvectordestroy(qdata,err)
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
+      call ceedusercontextdestroy(ctx,err)
       call ceeddestroy(ceed,err)
       end
 !-----------------------------------------------------------------------

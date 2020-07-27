@@ -101,17 +101,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     }
   }
 
-  // Copy the context
-  size_t ctxsize;
-  ierr = CeedQFunctionGetContextSize(qf, &ctxsize); CeedChk(ierr);
-  if (ctxsize > 0) {
-    if (!qf_data->d_c) {
-      ierr = cudaMalloc(&qf_data->d_c, ctxsize); CeedChk_Cu(ceed, ierr);
-    }
-    void *ctx;
-    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
-    ierr = cudaMemcpy(qf_data->d_c, ctx, ctxsize, cudaMemcpyHostToDevice);
-    CeedChk_Cu(ceed, ierr);
+  // Get context data
+  CeedUserContext ctx;
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedUserContextGetData(ctx, CEED_MEM_DEVICE, &qf_data->d_c);
+    CeedChk(ierr);
   }
 
   // Apply operator
@@ -178,6 +173,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
         CeedChk(ierr);
       }
     }
+  }
+
+  // Restore context data
+  if (ctx) {
+    ierr = CeedUserContextRestoreData(ctx, &qf_data->d_c);
+    CeedChk(ierr);
   }
   return 0;
 }

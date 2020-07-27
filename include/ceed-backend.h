@@ -153,6 +153,7 @@ CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
                                       CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
+CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vlength);
@@ -162,14 +163,12 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     CeedQFunctionUser *f);
-CEED_EXTERN int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize);
-CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, void **ctx);
-CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx);
-CEED_EXTERN int CeedQFunctionIsFortran(CeedQFunction qf, bool *isfortran);
+CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, CeedUserContext *ctx);
+CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf,
+    CeedUserContext *ctx);
 CEED_EXTERN int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void **data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void **data);
-
 CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField **inputfields,
                                        CeedQFunctionField **outputfields);
@@ -179,6 +178,13 @@ CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qffield,
     CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
     CeedEvalMode *emode);
+
+CEED_EXTERN int CeedUserContextGetCeed(CeedUserContext cxt, Ceed *ceed);
+CEED_EXTERN int CeedUserContextGetState(CeedUserContext ctx, uint64_t *state);
+CEED_EXTERN int CeedUserContextGetContextSize(CeedUserContext ctx,
+    size_t *ctxsize);
+CEED_EXTERN int CeedUserContextGetBackendData(CeedUserContext ctx, void **data);
+CEED_EXTERN int CeedUserContextSetBackendData(CeedUserContext ctx, void **data);
 
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem);

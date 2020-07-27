@@ -160,16 +160,16 @@ extern forcingData forcingOptions[3];
 // Data for PETSc Matshell
 typedef struct UserMult_private *UserMult;
 struct UserMult_private {
-  MPI_Comm      comm;
-  DM            dm;
-  Vec           Xloc, Yloc;
-  CeedVector    Xceed, Yceed;
-  CeedOperator  op;
-  CeedQFunction qf;
-  Ceed          ceed;
-  PetscScalar   loadIncrement;
-  Physics       phys, physSmoother;
-  CeedMemType   memType;
+  MPI_Comm        comm;
+  DM              dm;
+  Vec             Xloc, Yloc;
+  CeedVector      Xceed, Yceed;
+  CeedOperator    op;
+  CeedQFunction   qf;
+  Ceed            ceed;
+  PetscScalar     loadIncrement;
+  CeedUserContext ctxPhys, ctxPhysSmoother;
+  CeedMemType     memType;
   int (*VecGetArray)(Vec, PetscScalar **);
   int (*VecGetArrayRead)(Vec, const PetscScalar **);
   int (*VecRestoreArray)(Vec, PetscScalar **);
@@ -254,25 +254,23 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 
 // Set up libCEED for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
-                                     Ceed ceed, AppCtx appCtx, Physics phys,
+                                     Ceed ceed, AppCtx appCtx,
+                                     CeedUserContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
-                                     PetscInt Ulocsz, CeedVector forceCeed,
-                                     CeedQFunction qfRestrict,
-                                     CeedQFunction qfProlong);
+                                     PetscInt Ulocsz, CeedVector forceCeed);
 
 // Set up libCEED multigrid level for a given degree
-PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
+PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                  CeedData *data, PetscInt level,
                                  PetscInt ncompu, PetscInt Ugsz,
-                                 PetscInt Ulocsz, CeedVector fineMult,
-                                 CeedQFunction qfRestrict,
-                                 CeedQFunction qfProlong);
+                                 PetscInt Ulocsz, CeedVector fineMult);
 
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
-                                Physics phys, Physics physSmoother,
+                                CeedUserContext ctxPhys,
+                                CeedUserContext ctxPhysSmoother,
                                 UserMult jacobianCtx);
 
 // Setup context data for prolongation and restriction operators
