@@ -13,37 +13,31 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-
-#include "../include/ceed.h"
-#include <cuda.h>
-
-const int sizeMax = 16;
-__constant__ double c_B[sizeMax*sizeMax];
-__constant__ double c_G[sizeMax*sizeMax];
+#include <ceed.h>
+#include <hip/hip_runtime.h>
 
 //------------------------------------------------------------------------------
-// Interp device initalization
+// Kernel for set value on device
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
-                                  CeedScalar **c_B_ptr) {
-  const int Bsize = P1d*Q1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_B_ptr, c_B);
-
-  return 0;
+__global__ static void setValueK(CeedScalar * __restrict__ vec, CeedInt size,
+                                 CeedScalar val) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  vec[idx] = val;
 }
 
 //------------------------------------------------------------------------------
-// Grad device initalization
+// Set value on device memory
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
-    CeedInt P1d, CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
-  const int Bsize = P1d*Q1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_B_ptr, c_B);
-  cudaMemcpyToSymbol(c_G, d_G, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_G_ptr, c_G);
+extern "C" int CeedDeviceSetValue_Hip(CeedScalar* d_array, CeedInt length,
+                                      CeedScalar val) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
 
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  hipLaunchKernelGGL(setValueK, dim3(gridsize), dim3(bsize), 0, 0, d_array, length, val);
   return 0;
 }
-//------------------------------------------------------------------------------
