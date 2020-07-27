@@ -923,7 +923,9 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   if (Q1d<P1d) {
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Backend does not implement underintegrated basis.");
+    // LCOV_EXCL_STOP
   }
   CeedBasis_Cuda_shared *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);

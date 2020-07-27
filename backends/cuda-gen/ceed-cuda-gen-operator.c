@@ -186,10 +186,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
 // Create FDM element inverse not supported
 //------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
+  // LCOV_EXCL_START
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------

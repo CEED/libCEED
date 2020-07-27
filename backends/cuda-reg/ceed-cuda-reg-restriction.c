@@ -408,7 +408,9 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
       ierr = CeedElemRestrictionOffset_Cuda_reg(r, indices); CeedChk(ierr);
     }
   } else {
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
+    // LCOV_EXCL_STOP
   }
 
   // Compile CUDA kernels
