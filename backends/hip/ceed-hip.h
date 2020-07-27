@@ -44,6 +44,7 @@ do { \
 #define QUOTE(...) #__VA_ARGS__
 
 #define CASE(name) case name: return #name
+// LCOV_EXCL_START
 static const char *hipblasGetErrorName(hipblasStatus_t error) {
   switch (error) {
     CASE(HIPBLAS_STATUS_SUCCESS);
@@ -57,6 +58,7 @@ static const char *hipblasGetErrorName(hipblasStatus_t error) {
   default: return "HIPBLAS_STATUS_UNKNOWN_ERROR";
   }
 }
+// LCOV_EXCL_STOP
 
 typedef enum {
   CEED_HIP_HOST_SYNC,

@@ -286,7 +286,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
       impl->d_ind = (CeedInt *)indices;
     }
   } else
+    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
+  // LCOV_EXCL_STOP
 
   // Compile CUDA kernels
   CeedInt ncomp;
