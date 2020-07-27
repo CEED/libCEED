@@ -209,7 +209,7 @@ By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
 with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
 directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
 
-The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on 
+The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
 the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 is required.
 
 Bit-for-bit reproducibility is important in some applications.
@@ -401,7 +401,20 @@ If you utilize libCEED please cite::
      year = 2020
    }
 
-The BiBTeX file for this reference can be found in the
+For libCEED's Python interface please cite::
+
+   @InProceedings{libceed-paper-proc-scipy-2020,
+     author    = {{V}aleria {B}arra and {J}ed {B}rown and {J}eremy {T}hompson and {Y}ohann {D}udouit},
+     title     = {{H}igh-performance operator evaluations with ease of use: lib{C}{E}{E}{D}'s {P}ython interface},
+     booktitle = {{P}roceedings of the 19th {P}ython in {S}cience {C}onference},
+     pages     = {85 - 90},
+     year      = {2020},
+     editor    = {{M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe},
+     doi       = {10.25080/Majora-342d178e-00c},
+     url       = {https://doi.org/10.25080/Majora-342d178e-00c}
+   }
+
+The BiBTeX entries for these references can be found in the
 `doc/bib/references.bib` file.
 
 
