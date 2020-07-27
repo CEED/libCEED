@@ -136,7 +136,9 @@ int main(int argc, char **argv) {
     sum += hv[i];
   }
   if (fabs(sum-2.)>1e-10)
+    // LCOV_EXCL_START
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
   // Prolong coarse u
@@ -154,7 +156,9 @@ int main(int argc, char **argv) {
     sum += hv[i];
   }
   if (fabs(sum-2.)>1e-10)
+    // LCOV_EXCL_START
     printf("Computed Area Fine Grid: %f != True Area: 1.0\n", sum);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Vfine, &hv);
 
   // Restrict state to coarse grid
@@ -167,7 +171,9 @@ int main(int argc, char **argv) {
     sum += hv[i];
   }
   if (fabs(sum-2.)>1e-10)
+    // LCOV_EXCL_START
     printf("Computed Area Coarse Grid: %f != True Area: 1.0\n", sum);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Vcoarse, &hv);
 
   // Cleanup
