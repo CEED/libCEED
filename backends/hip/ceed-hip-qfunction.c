@@ -138,9 +138,9 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
 
   // Copy the file into the buffer
   if(1!=fread(buffer, lSize, 1, fp)) {
+    // LCOV_EXCL_START
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChk(ierr);
-    // LCOV_EXCL_START
     return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
     // LCOV_EXCL_STOP
   }

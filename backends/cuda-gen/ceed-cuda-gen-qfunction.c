@@ -84,9 +84,9 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
 
   // Copy the file into the buffer
   if (1 != fread(buffer, lSize, 1, fp)) {
+    // LCOV_EXCL_START
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChk(ierr);
-    // LCOV_EXCL_START
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
     // LCOV_EXCL_STOP
   }
