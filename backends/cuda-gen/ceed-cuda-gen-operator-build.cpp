@@ -802,7 +802,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
       } else {
+        // LCOV_EXCL_START
         return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        // LCOV_EXCL_STOP
         }
     }
   }
@@ -819,7 +821,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
       } else {
+        // LCOV_EXCL_START
         return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        // LCOV_EXCL_STOP
         }
     }
   }
@@ -971,6 +975,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       }
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -982,6 +987,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break; // TODO: Not implemented
     case CEED_EVAL_CURL:
       break; // TODO: Not implemented
+      // LCOV_EXCL_STOP
     }
   }
   code << "\n  // -- Element loop --\n";
@@ -1284,6 +1290,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "    gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
       }
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -1295,6 +1302,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break; // TODO: Not implemented
     case CEED_EVAL_CURL:
       break; // TODO: Not implemented
+      // LCOV_EXCL_STOP
     }
     // Restriction
       bool isStrided;

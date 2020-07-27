@@ -461,6 +461,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
                             CEED_EVAL_GRAD, impl->qvecsout[i],
                             impl->evecs[i + impl->numein]); CeedChk(ierr);
       break;
+    // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
@@ -472,6 +473,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
       break; // TODO: Not implemented
     case CEED_EVAL_CURL:
       break; // TODO: Not implemented
+      // LCOV_EXCL_STOP
     }
   }
 
@@ -1183,10 +1185,12 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda(CeedOperator op,
 // Create FDM element inverse not supported
 //------------------------------------------------------------------------------
 static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
+  // LCOV_EXCL_START
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------

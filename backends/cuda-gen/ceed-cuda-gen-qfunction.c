@@ -70,7 +70,9 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   char *buffer;
   fp = fopen (cuda_file, "rb");
   if (!fp)
+    // LCOV_EXCL_START
     CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
+  // LCOV_EXCL_STOP
 
   // Compute size of source file
   fseek(fp, 0L, SEEK_END);
@@ -84,7 +86,9 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   if (1 != fread(buffer, lSize, 1, fp)) {
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChk(ierr);
+    // LCOV_EXCL_START
     CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
+    // LCOV_EXCL_STOP
   }
 
   // Append typedef and save source string
