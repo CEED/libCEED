@@ -53,6 +53,7 @@ do { \
 #define QUOTE(...) #__VA_ARGS__
 
 #define CASE(name) case name: return #name
+// LCOV_EXCL_START
 static const char *cublasGetErrorName(cublasStatus_t error) {
   switch (error) {
     CASE(CUBLAS_STATUS_SUCCESS);
@@ -66,6 +67,7 @@ static const char *cublasGetErrorName(cublasStatus_t error) {
   default: return "CUBLAS_STATUS_UNKNOWN_ERROR";
   }
 }
+// LCOV_EXCL_STOP
 
 typedef enum {
   CEED_CUDA_HOST_SYNC,
