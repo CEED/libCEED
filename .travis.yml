@@ -47,7 +47,7 @@ jobs:
        - CC=icc
        - CXX=icpc
      install:
-     - source /opt/intel/inteloneapi/setvars.sh
+     - source /opt/intel/oneapi/setvars.sh
      addons:
        apt:
          sources:
