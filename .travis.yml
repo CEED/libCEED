@@ -1,5 +1,7 @@
 language: c
 
+# Note: Travis and Noether must use the same compiler version
+#         for correctly merged code coverage reports on CodeCov
 os: linux
 dist: focal
 
@@ -161,21 +163,21 @@ install:
   - export PETSC_DIR=$PETSC_INSTALL
 
 script:
-  - if [[ "$CC" == "gcc" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+  - if [[ "$TRAVIS_JOB_NAME" == "Linux GCC + CodeCov" ]]; then
         export COVERAGE=1;
     fi
   - make info
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - if [[ "$CC" = "clang" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+  - if [[ "$TRAVIS_JOB_NAME" == "Linux GCC + CodeCov" ]]; then
         clang-tidy --version && TIDY_OPTS="-fix-errors" make -j2 tidy && git diff --exit-code;
     fi
-  - if [[ "$CC" = "clang" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+  - if [[ "$TRAVIS_JOB_NAME" == "Linux Clang + Tidy and Style" ]]; then
         make style-c && git diff --exit-code;
     fi
 
 after_success:
-  - if [[ "$CC" == "gcc" && "$TRAVIS_OS_NAME" == "linux" && "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
+  - if [[ "$TRAVIS_JOB_NAME" == "Linux GCC + CodeCov" ]]; then
         lcov --directory . --capture --output-file coverage.info
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F interface
         && bash <(curl -s https://codecov.io/bash) -f coverage.info -F gallery
