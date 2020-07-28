@@ -329,6 +329,16 @@ class Vector():
 
         return norm_pointer[0]
 
+    # Take the reciprocal of a vector
+    def reciprocal(self):
+        """Take the reciprocal of a Vector."""
+
+        # libCEED call
+        err_code = lib.CeedVectorReciprocal(self._pointer[0])
+        self._ceed._check_error(err_code)
+
+        return self
+
 # ------------------------------------------------------------------------------
 
 

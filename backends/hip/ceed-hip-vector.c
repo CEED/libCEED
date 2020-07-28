@@ -394,6 +394,49 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type,
 }
 
 //------------------------------------------------------------------------------
+// Take reciprocal of a vector on host
+//------------------------------------------------------------------------------
+static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedInt length) {
+  for (int i = 0; i < length; i++)
+    if (fabs(h_array[i]) > CEED_EPSILON)
+      h_array[i] = 1./h_array[i];
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Take reciprocal of a vector on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Take reciprocal of a vector
+//------------------------------------------------------------------------------
+static int CeedVectorReciprocal_Hip(CeedVector vec) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
+  CeedVector_Hip *data;
+  ierr = CeedVectorGetData(vec, (void *)&data); CeedChk(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
+
+  // Set value for synced device/host array
+  switch(data->memState) {
+  case CEED_HIP_HOST_SYNC:
+    ierr = CeedHostReciprocal_Hip(data->h_array, length); CeedChk(ierr);
+    break;
+  case CEED_HIP_DEVICE_SYNC:
+    ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChk(ierr);
+    break;
+  case CEED_HIP_BOTH_SYNC:
+    ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChk(ierr);
+    ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChk(ierr);
+    break;
+  }
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Destroy the vector
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Hip(const CeedVector vec) {
@@ -434,6 +477,8 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
                                 CeedVectorRestoreArrayRead_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
                                 CeedVectorNorm_Hip); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",
+                                CeedVectorReciprocal_Hip); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Hip); CeedChk(ierr);
 

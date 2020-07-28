@@ -211,6 +211,12 @@ void fCeedVectorNorm(int *vec, int *type, CeedScalar *norm, int *err) {
   *err = CeedVectorNorm(CeedVector_dict[*vec], (CeedNormType)*type, norm);
 }
 
+#define fCeedVectorReciprocal \
+    FORTRAN_NAME(ceedvectorreciprocal,CEEDVECTORRECIPROCAL)
+void fCeedVectorReciprocal(int *vec, int *err) {
+  *err = CeedVectorReciprocal(CeedVector_dict[*vec]);
+}
+
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview,CEEDVECTORVIEW)
 void fCeedVectorView(int *vec, int *err) {
   *err = CeedVectorView(CeedVector_dict[*vec], "%12.8f", stdout);
@@ -586,6 +592,16 @@ void fCeedBasisGetNumQuadraturePoints(int *basis, int *Q, int *err) {
   *err = CeedBasisGetNumQuadraturePoints(CeedBasis_dict[*basis], Q);
 }
 
+#define fCeedBasisGetInterp1D \
+    FORTRAN_NAME(ceedbasisgetinterp1d, CEEDBASISGETINTERP1D)
+void fCeedBasisGetInterp1D(int *basis, CeedScalar *interp1d, int64_t *offset,
+                           int *err) {
+  const CeedScalar *interp1d_;
+  CeedBasis basis_ = CeedBasis_dict[*basis];
+  *err = CeedBasisGetInterp1D(basis_, &interp1d_);
+  *offset = interp1d_ - interp1d;
+}
+
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)
 void fCeedBasisDestroy(int *basis, int *err) {
   if (*basis == FORTRAN_NULL) return;
@@ -942,7 +958,8 @@ void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
   if (*err) return;
 }
 
-#define fCeedOperatorLinearAssembleQFunction FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
+#define fCeedOperatorLinearAssembleQFunction \
+    FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
 void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
     int *assembledrstr, int *rqst, int *err) {
   // Vector
@@ -992,7 +1009,8 @@ void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec,
   }
 }
 
-#define fCeedOperatorLinearAssembleDiagonal FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
+#define fCeedOperatorLinearAssembleDiagonal \
+    FORTRAN_NAME(ceedoperatorlinearassemblediagonal, CEEDOPERATORLINEARASSEMBLEDIAGONAL)
 void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
     int *rqst, int *err) {
   int createRequest = 1;
@@ -1020,6 +1038,91 @@ void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
   }
 }
 
+#define fCeedOperatorMultigridLevelCreate \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreate, CEEDOPERATORMULTIGRIDLEVELCREATE)
+void fCeedOperatorMultigridLevelCreate(int *opFine, int *pMultFine,
+                                       int *rstrCoarse, int *basisCoarse, int *opCoarse,
+                                       int *opProlong, int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreate(
+           CeedOperator_dict[*opFine], CeedVector_dict[*pMultFine],
+           CeedElemRestriction_dict[*rstrCoarse],
+           CeedBasis_dict[*basisCoarse],
+           &opCoarse_, &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
+#define fCeedOperatorMultigridLevelCreateTensorH1 \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreatetensorh1, CEEDOPERATORMULTIGRIDLEVELCREATETENSORH1)
+void fCeedOperatorMultigridLevelCreateTensorH1(int *opFine, int *pMultFine,
+    int *rstrCoarse, int *basisCoarse, const CeedScalar *interpCtoF,
+    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreateTensorH1(
+           CeedOperator_dict[*opFine], CeedVector_dict[*pMultFine],
+           CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
+           interpCtoF, &opCoarse_, &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
+#define fCeedOperatorMultigridLevelCreateH1 \
+    FORTRAN_NAME(ceedoperatormultigridlevelcreateh1, CEEDOPERATORMULTIGRIDLEVELCREATEH1)
+void fCeedOperatorMultigridLevelCreateH1(int *opFine, int *pMultFine,
+    int *rstrCoarse, int *basisCoarse, const CeedScalar *interpCtoF,
+    int *opCoarse, int *opProlong, int *opRestrict, int *err) {
+  // Operators
+  CeedOperator opCoarse_, opProlong_, opRestrict_;
+
+  // C interface call
+  *err = CeedOperatorMultigridLevelCreateH1(
+           CeedOperator_dict[*opFine], CeedVector_dict[*pMultFine],
+           CeedElemRestriction_dict[*rstrCoarse], CeedBasis_dict[*basisCoarse],
+           interpCtoF, &opCoarse_, &opProlong_, &opRestrict_);
+
+  if (*err) return;
+  while (CeedOperator_count + 2 >= CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+  }
+  CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  CeedOperator_dict[CeedOperator_count] = opCoarse_;
+  *opCoarse = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opProlong_;
+  *opProlong = CeedOperator_count++;
+  CeedOperator_dict[CeedOperator_count] = opRestrict_;
+  *opRestrict = CeedOperator_count++;
+  CeedOperator_n += 3;
+}
+
 #define fCeedOperatorView \
     FORTRAN_NAME(ceedoperatorview,CEEDOPERATORVIEW)
 void fCeedOperatorView(int *op, int *err) {
@@ -1028,7 +1131,8 @@ void fCeedOperatorView(int *op, int *err) {
   *err = CeedOperatorView(op_, stdout);
 }
 
-#define fCeedOperatorCreateFDMElementInverse FORTRAN_NAME(ceedoperatorcreatefdmelementinverse, CEEDOPERATORCREATEFDMELEMENTINVERSE)
+#define fCeedOperatorCreateFDMElementInverse \
+    FORTRAN_NAME(ceedoperatorcreatefdmelementinverse, CEEDOPERATORCREATEFDMELEMENTINVERSE)
 void fCeedOperatorCreateFDMElementInverse(int *op, int *fdminv,
     int *rqst, int *err) {
   // Operator

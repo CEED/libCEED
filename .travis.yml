@@ -41,21 +41,25 @@ jobs:
      os: linux
      dist: bionic
      arch: amd64
-     compiler: clang
+     compiler: icc
      env:
        - FC=ifort
        - CC=icc
-       - CXX=icc
-     before_install:
-       - export DEBIAN_FRONTEND=noninteractive
-       - sudo apt-get -qqq update
-       - sudo apt-get install -y build-essential ca-certificates cmake gnupg man-db pkg-config wget
-       - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-       - sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
-       - echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee -a /etc/apt/sources.list.d/oneAPI.list
-       - sudo apt-get -qqq update
-       - sudo apt-get install -y intel-oneapi-icc intel-oneapi-ifort
-       - . /opt/intel/inteloneapi/setvars.sh
+       - CXX=ipp
+     install:
+     - source /opt/intel/oneapi/setvars.sh
+     addons:
+       apt:
+         sources:
+         - sourceline: 'deb https://apt.repos.intel.com/oneapi all main'
+           key_url: 'https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB'
+         packages:
+         - liblapack-dev
+         - libopenblas-dev
+         - valgrind-dbg
+         - intel-oneapi-icc
+         - intel-oneapi-ipp
+         - intel-oneapi-ifort
 # OSX GCC
    - name: "OSX GCC"
      os: osx
@@ -104,6 +108,14 @@ jobs:
        - cd ../..
      after_success:
        - make style-py && git diff --exit-code;
+  allow_failures:
+# ARM - current intermittant issues passing with Travis
+   - name: "ARM"
+     os: linux
+     dist: bionic
+     arch: arm64
+     compiler: gcc
+     env: FC=gfortran
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then

@@ -146,6 +146,130 @@ class _OperatorBase(ABC):
                                             request)
         self._ceed._check_error(err_code)
 
+    # Create Multigrid Level
+    def multigrid_create(self, p_mult_fine, rstr_coarse, basis_coarse):
+        """ Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator with a Lagrange tensor basis for the active basis
+
+           Args:
+             p_mult_fine: L-vector multiplicity in parallel gather/scatter
+             basis_coarse: Coarse grid active vector basis
+             degree_coarse: Coarse grid basis polynomial order"""
+
+        # Operator pointers
+        opCoarsePointer = ffi.new("CeedOperator *")
+        opProlongPointer = ffi.new("CeedOperator *")
+        opRestrictPointer = ffi.new("CeedOperator *")
+
+        # libCEED call
+        lib.CeedOperatorMultigridLevelCreate(self._pointer[0],
+                                             p_mult_fine._pointer[0],
+                                             rstr_coarse._pointer[0],
+                                             basis_coarse._pointer[0],
+                                             opCoarsePointer,
+                                             opProlongPointer,
+                                             opRestrictPointer)
+
+        # Wrap operators
+        opCoarse = _OperatorWrap(
+            self._ceed, opCoarsePointer)
+        opProlong = _OperatorWrap(
+            self._ceed, opProlongPointer)
+        opRestrict = _OperatorWrap(
+            self._ceed, opRestrictPointer)
+
+        # Return
+        return [opCoarse, opProlong, opRestrict]
+
+    # Create Multigrid Level
+    def multigrid_create_tensor_h1(self, p_mult_fine, rstr_coarse, basis_coarse,
+                                   interp_C_to_F):
+        """ Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator with a non-tensor basis for the active basis
+
+           Args:
+             p_mult_fine: L-vector multiplicity in parallel gather/scatter
+             rstr_coarse: Coarse grid restriction
+             basis_coarse: Coarse grid active vector basis
+             interp_C_to_F: Matrix for coarse to fine interpolation"""
+
+       # Setup arguments
+        interpCtoF_pointer = ffi.new("CeedScalar *")
+        interpCtoF_pointer = ffi.cast(
+            "CeedScalar *",
+            interp_C_to_F.__array_interface__['data'][0])
+
+        # Operator pointers
+        opCoarsePointer = ffi.new("CeedOperator *")
+        opProlongPointer = ffi.new("CeedOperator *")
+        opRestrictPointer = ffi.new("CeedOperator *")
+
+        # libCEED call
+        lib.CeedOperatorMultigridLevelCreateTensorH1(self._pointer[0],
+                                                     p_mult_fine._pointer[0],
+                                                     rstr_coarse._pointer[0],
+                                                     basis_coarse._pointer[0],
+                                                     interpCtoF_pointer,
+                                                     opCoarsePointer,
+                                                     opProlongPointer,
+                                                     opRestrictPointer)
+
+        # Wrap operators
+        opCoarse = _OperatorWrap(
+            self._ceed, opCoarsePointer)
+        opProlong = _OperatorWrap(
+            self._ceed, opProlongPointer)
+        opRestrict = _OperatorWrap(
+            self._ceed, opRestrictPointer)
+
+        # Return
+        return [opCoarse, opProlong, opRestrict]
+
+    # Create Multigrid Level
+    def multigrid_create_h1(self, p_mult_fine, rstr_coarse, basis_coarse,
+                            interp_C_to_F):
+        """ Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator with a Lagrange tensor basis for the active basis
+
+           Args:
+             p_mult_fine: L-vector multiplicity in parallel gather/scatter
+             rstr_coarse: Coarse grid restriction
+             basis_coarse: Coarse grid active vector basis
+             interp_C_to_F: Matrix for coarse to fine interpolation"""
+
+       # Setup arguments
+        interpCtoF_pointer = ffi.new("CeedScalar *")
+        interpCtoF_pointer = ffi.cast(
+            "CeedScalar *",
+            interp_C_to_F.__array_interface__['data'][0])
+
+        # Operator pointers
+        opCoarsePointer = ffi.new("CeedOperator *")
+        opProlongPointer = ffi.new("CeedOperator *")
+        opRestrictPointer = ffi.new("CeedOperator *")
+
+        # libCEED call
+        lib.CeedOperatorMultigridLevelCreateH1(self._pointer[0],
+                                               p_mult_fine._pointer[0],
+                                               rstr_coarse._pointer[0],
+                                               basis_coarse._pointer[0],
+                                               interpCtoF_pointer,
+                                               opCoarsePointer,
+                                               opProlongPointer,
+                                               opRestrictPointer)
+
+        # Wrap operators
+        opCoarse = _OperatorWrap(
+            self._ceed, opCoarsePointer)
+        opProlong = _OperatorWrap(
+            self._ceed, opProlongPointer)
+        opRestrict = _OperatorWrap(
+            self._ceed, opRestrictPointer)
+
+        # Return
+        return [opCoarse, opProlong, opRestrict]
+
+
 # ------------------------------------------------------------------------------
 
 
@@ -217,5 +341,19 @@ class CompositeOperator(_OperatorBase):
         err_code = lib.CeedCompositeOperatorAddSub(
             self._pointer[0], subop._pointer[0])
         self._ceed._check_error(err_code)
+
+# ------------------------------------------------------------------------------
+
+
+class _OperatorWrap(Operator):
+    """Wrap a CeedOperator pointer in a Operator object."""
+
+    # Constructor
+    def __init__(self, ceed, pointer):
+        # CeedOperator object
+        self._pointer = pointer
+
+        # Reference to Ceed
+        self._ceed = ceed
 
 # ------------------------------------------------------------------------------

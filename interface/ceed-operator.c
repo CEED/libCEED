@@ -197,6 +197,184 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   return 0;
 }
 
+/**
+  @brief Find the active vector basis for a CeedOperator
+
+  @param[in] op            CeedOperator to find active basis for
+  @param[out] activeBasis  Basis for active input vector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ ref Developer
+**/
+static int CeedOperatorGetActiveBasis(CeedOperator op,
+                                      CeedBasis *activeBasis) {
+  *activeBasis = NULL;
+  for (int i = 0; i < op->qf->numinputfields; i++)
+    if (op->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
+      *activeBasis = op->inputfields[i]->basis;
+      break;
+    }
+
+  if (!*activeBasis) {
+    // LCOV_EXCL_START
+    int ierr;
+    Ceed ceed;
+    ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+    return CeedError(ceed, 1,
+                     "No active basis found for automatic multigrid setup");
+    // LCOV_EXCL_STOP
+  }
+  return 0;
+}
+
+
+/**
+  @brief Common code for creating a multigrid coarse operator and level
+           transfer operators for a CeedOperator
+
+  @param[in] opFine       Fine grid operator
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
+  @param[in] rstrCoarse   Coarse grid restriction
+  @param[in] basisCoarse  Coarse grid active vector basis
+  @param[in] basisCtoF    Basis for coarse to fine interpolation
+  @param[out] opCoarse    Coarse grid operator
+  @param[out] opProlong   Coarse to fine operator
+  @param[out] opRestrict  Fine to coarse operator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
+    CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    CeedBasis basisCtoF, CeedOperator *opCoarse, CeedOperator *opProlong,
+    CeedOperator *opRestrict) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
+
+  // Check for composite operator
+  bool isComposite;
+  ierr = CeedOperatorIsComposite(opFine, &isComposite); CeedChk(ierr);
+  if (isComposite)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1,
+                     "Automatic multigrid setup for composite operators not supported");
+  // LCOV_EXCL_STOP
+
+  // Coarse Grid
+  ierr = CeedOperatorCreate(ceed, opFine->qf, opFine->dqf, opFine->dqfT,
+                            opCoarse); CeedChk(ierr);
+  CeedElemRestriction rstrFine = NULL;
+  // -- Clone input fields
+  for (int i = 0; i < opFine->qf->numinputfields; i++) {
+    if (opFine->inputfields[i]->vec == CEED_VECTOR_ACTIVE) {
+      rstrFine = opFine->inputfields[i]->Erestrict;
+      ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
+                                  rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE);
+      CeedChk(ierr);
+    } else {
+      ierr = CeedOperatorSetField(*opCoarse, opFine->inputfields[i]->fieldname,
+                                  opFine->inputfields[i]->Erestrict,
+                                  opFine->inputfields[i]->basis,
+                                  opFine->inputfields[i]->vec); CeedChk(ierr);
+    }
+  }
+  // -- Clone output fields
+  for (int i = 0; i < opFine->qf->numoutputfields; i++) {
+    if (opFine->outputfields[i]->vec == CEED_VECTOR_ACTIVE) {
+      ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
+                                  rstrCoarse, basisCoarse, CEED_VECTOR_ACTIVE);
+      CeedChk(ierr);
+    } else {
+      ierr = CeedOperatorSetField(*opCoarse, opFine->outputfields[i]->fieldname,
+                                  opFine->outputfields[i]->Erestrict,
+                                  opFine->outputfields[i]->basis,
+                                  opFine->outputfields[i]->vec); CeedChk(ierr);
+    }
+  }
+
+  // Multiplicity vector
+  CeedVector multVec, multE;
+  ierr = CeedElemRestrictionCreateVector(rstrFine, &multVec, &multE);
+  CeedChk(ierr);
+  ierr = CeedVectorSetValue(multE, 0.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstrFine, CEED_NOTRANSPOSE, PMultFine, multE,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  ierr = CeedVectorSetValue(multVec, 0.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstrFine, CEED_TRANSPOSE, multE, multVec,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&multE); CeedChk(ierr);
+  ierr = CeedVectorReciprocal(multVec); CeedChk(ierr);
+
+  // Restriction
+  CeedInt ncomp;
+  ierr = CeedBasisGetNumComponents(basisCoarse, &ncomp); CeedChk(ierr);
+  CeedQFunction qfRestrict;
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfRestrict);
+  CeedChk(ierr);
+  CeedInt *ctxR;
+  ierr = CeedCalloc(1, &ctxR); CeedChk(ierr);
+  ctxR[0] = ncomp;
+  ierr = CeedQFunctionSetContext(qfRestrict, ctxR, sizeof(*ctxR)); CeedChk(ierr);
+  qfRestrict->ctx_allocated = qfRestrict->ctx;
+  ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qfRestrict, "scale", ncomp, CEED_EVAL_NONE);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qfRestrict, "output", ncomp, CEED_EVAL_INTERP);
+  CeedChk(ierr);
+
+  ierr = CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
+                            CEED_QFUNCTION_NONE, opRestrict);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "input", rstrFine,
+                              CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "scale", rstrFine,
+                              CEED_BASIS_COLLOCATED, multVec);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opRestrict, "output", rstrCoarse, basisCtoF,
+                              CEED_VECTOR_ACTIVE); CeedChk(ierr);
+
+  // Prolongation
+  CeedQFunction qfProlong;
+  ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfProlong);
+  CeedChk(ierr);
+  CeedInt *ctxP;
+  ierr = CeedCalloc(1, &ctxP); CeedChk(ierr);
+  ctxP[0] = ncomp;
+  ierr = CeedQFunctionSetContext(qfProlong, ctxP, sizeof(*ctxP)); CeedChk(ierr);
+  qfProlong->ctx_allocated = qfProlong->ctx;
+  ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddInput(qfProlong, "scale", ncomp, CEED_EVAL_NONE);
+  CeedChk(ierr);
+  ierr = CeedQFunctionAddOutput(qfProlong, "output", ncomp, CEED_EVAL_NONE);
+  CeedChk(ierr);
+
+  ierr = CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
+                            CEED_QFUNCTION_NONE, opProlong);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opProlong, "input", rstrCoarse, basisCtoF,
+                              CEED_VECTOR_ACTIVE); CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opProlong, "scale", rstrFine,
+                              CEED_BASIS_COLLOCATED, multVec);
+  CeedChk(ierr);
+  ierr = CeedOperatorSetField(*opProlong, "output", rstrFine,
+                              CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedVectorDestroy(&multVec); CeedChk(ierr);
+  ierr = CeedBasisDestroy(&basisCtoF); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(&qfRestrict); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(&qfProlong); CeedChk(ierr);
+
+  return 0;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -712,6 +890,12 @@ found:
   if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE)
     v->refcount += 1;
   op->nfields += 1;
+
+  size_t len = strlen(fieldname);
+  char *tmp;
+  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
+  memcpy(tmp, fieldname, len+1);
+  (*ofield)->fieldname = tmp;
   return 0;
 }
 
@@ -984,6 +1168,244 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 }
 
 /**
+  @brief Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator, creating the prolongation basis from the
+           fine and coarse grid interpolation
+
+  @param[in] opFine       Fine grid operator
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
+  @param[in] rstrCoarse   Coarse grid restriction
+  @param[in] basisCoarse  Coarse grid active vector basis
+  @param[out] opCoarse    Coarse grid operator
+  @param[out] opProlong   Coarse to fine operator
+  @param[out] opRestrict  Fine to coarse operator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
+                                     CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+                                     CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
+
+  // Check for compatible quadrature spaces
+  CeedBasis basisFine;
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
+  CeedInt Qf, Qc;
+  ierr = CeedBasisGetNumQuadraturePoints(basisFine, &Qf); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
+  if (Qf != Qc)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+  // LCOV_EXCL_STOP
+
+  // Coarse to fine basis
+  CeedInt Pf, Pc, Q = Qf;
+  bool isTensorF, isTensorC;
+  ierr = CeedBasisIsTensor(basisFine, &isTensorF); CeedChk(ierr);
+  ierr = CeedBasisIsTensor(basisCoarse, &isTensorC); CeedChk(ierr);
+  CeedScalar *interpC, *interpF, *interpCtoF, *tau;
+  if (isTensorF && isTensorC) {
+    ierr = CeedBasisGetNumNodes1D(basisFine, &Pf); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basisCoarse, &Pc); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basisCoarse, &Q); CeedChk(ierr);
+  } else if (!isTensorF && !isTensorC) {
+    ierr = CeedBasisGetNumNodes(basisFine, &Pf); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes(basisCoarse, &Pc); CeedChk(ierr);
+  } else {
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Bases must both be tensor or non-tensor");
+    // LCOV_EXCL_STOP
+  }
+
+  ierr = CeedMalloc(Q*Pf, &interpF); CeedChk(ierr);
+  ierr = CeedMalloc(Q*Pc, &interpC); CeedChk(ierr);
+  ierr = CeedCalloc(Pc*Pf, &interpCtoF); CeedChk(ierr);
+  ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
+  if (isTensorF) {
+    memcpy(interpF, basisFine->interp1d, Q*Pf*sizeof basisFine->interp1d[0]);
+    memcpy(interpC, basisCoarse->interp1d, Q*Pc*sizeof basisCoarse->interp1d[0]);
+  } else {
+    memcpy(interpF, basisFine->interp, Q*Pf*sizeof basisFine->interp[0]);
+    memcpy(interpC, basisCoarse->interp, Q*Pc*sizeof basisCoarse->interp[0]);
+  }
+
+  // -- QR Factorization, interpF = Q R
+  ierr = CeedQRFactorization(ceed, interpF, tau, Q, Pf); CeedChk(ierr);
+
+  // -- Apply Qtranspose, interpC = Qtranspose interpC
+  CeedHouseholderApplyQ(interpC, interpF, tau, CEED_TRANSPOSE,
+                        Q, Pc, Pf, Pc, 1);
+
+  // -- Apply Rinv, interpCtoF = Rinv interpC
+  for (CeedInt j=0; j<Pc; j++) { // Column j
+    interpCtoF[j+Pc*(Pf-1)] = interpC[j+Pc*(Pf-1)]/interpF[Pf*Pf-1];
+    for (CeedInt i=Pf-2; i>=0; i--) { // Row i
+      interpCtoF[j+Pc*i] = interpC[j+Pc*i];
+      for (CeedInt k=i+1; k<Pf; k++)
+        interpCtoF[j+Pc*i] -= interpF[k+Pf*i]*interpCtoF[j+Pc*k];
+      interpCtoF[j+Pc*i] /= interpF[i+Pf*i];
+    }
+  }
+  ierr = CeedFree(&tau); CeedChk(ierr);
+  ierr = CeedFree(&interpC); CeedChk(ierr);
+  ierr = CeedFree(&interpF); CeedChk(ierr);
+
+  // Fallback to interpCtoF versions of code
+  if (isTensorF) {
+    ierr = CeedOperatorMultigridLevelCreateTensorH1(opFine, PMultFine,
+           rstrCoarse, basisCoarse, interpCtoF, opCoarse, opProlong, opRestrict);
+    CeedChk(ierr);
+  } else {
+    ierr = CeedOperatorMultigridLevelCreateH1(opFine, PMultFine,
+           rstrCoarse, basisCoarse, interpCtoF, opCoarse, opProlong, opRestrict);
+    CeedChk(ierr);
+  }
+
+  // Cleanup
+  ierr = CeedFree(&interpCtoF); CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator with a tensor basis for the active basis
+
+  @param[in] opFine       Fine grid operator
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
+  @param[in] rstrCoarse   Coarse grid restriction
+  @param[in] basisCoarse  Coarse grid active vector basis
+  @param[in] interpCtoF   Matrix for coarse to fine interpolation
+  @param[out] opCoarse    Coarse grid operator
+  @param[out] opProlong   Coarse to fine operator
+  @param[out] opRestrict  Fine to coarse operator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator opFine,
+    CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
+    const CeedScalar *interpCtoF, CeedOperator *opCoarse,
+    CeedOperator *opProlong, CeedOperator *opRestrict) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
+
+  // Check for compatible quadrature spaces
+  CeedBasis basisFine;
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
+  CeedInt Qf, Qc;
+  ierr = CeedBasisGetNumQuadraturePoints(basisFine, &Qf); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
+  if (Qf != Qc)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+  // LCOV_EXCL_STOP
+
+  // Coarse to fine basis
+  CeedInt dim, ncomp, nnodesCoarse, P1dFine, P1dCoarse;
+  ierr = CeedBasisGetDimension(basisFine, &dim); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basisFine, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes1D(basisFine, &P1dFine); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(rstrCoarse, &nnodesCoarse);
+  CeedChk(ierr);
+  P1dCoarse = dim == 1 ? nnodesCoarse :
+              dim == 2 ? sqrt(nnodesCoarse) :
+              cbrt(nnodesCoarse);
+  CeedScalar *qref, *qweight, *grad;
+  ierr = CeedCalloc(P1dFine, &qref); CeedChk(ierr);
+  ierr = CeedCalloc(P1dFine, &qweight); CeedChk(ierr);
+  ierr = CeedCalloc(P1dFine*P1dCoarse*dim, &grad); CeedChk(ierr);
+  CeedBasis basisCtoF;
+  ierr = CeedBasisCreateTensorH1(ceed, dim, ncomp, P1dCoarse, P1dFine,
+                                 interpCtoF, grad, qref, qweight, &basisCtoF);
+  CeedChk(ierr);
+  ierr = CeedFree(&qref); CeedChk(ierr);
+  ierr = CeedFree(&qweight); CeedChk(ierr);
+  ierr = CeedFree(&grad); CeedChk(ierr);
+
+  // Core code
+  ierr = CeedOperatorMultigridLevel_Core(opFine, PMultFine, rstrCoarse,
+                                         basisCoarse, basisCtoF, opCoarse,
+                                         opProlong, opRestrict);
+  CeedChk(ierr);
+  return 0;
+}
+
+/**
+  @brief Create a multigrid coarse operator and level transfer operators
+           for a CeedOperator with a non-tensor basis for the active vector
+
+  @param[in] opFine       Fine grid operator
+  @param[in] PMultFine    L-vector multiplicity in parallel gather/scatter
+  @param[in] rstrCoarse   Coarse grid restriction
+  @param[in] basisCoarse  Coarse grid active vector basis
+  @param[in] interpCtoF   Matrix for coarse to fine interpolation
+  @param[out] opCoarse    Coarse grid operator
+  @param[out] opProlong   Coarse to fine operator
+  @param[out] opRestrict  Fine to coarse operator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorMultigridLevelCreateH1(CeedOperator opFine,
+                                       CeedVector PMultFine,
+                                       CeedElemRestriction rstrCoarse,
+                                       CeedBasis basisCoarse,
+                                       const CeedScalar *interpCtoF,
+                                       CeedOperator *opCoarse,
+                                       CeedOperator *opProlong,
+                                       CeedOperator *opRestrict) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(opFine, &ceed); CeedChk(ierr);
+
+  // Check for compatible quadrature spaces
+  CeedBasis basisFine;
+  ierr = CeedOperatorGetActiveBasis(opFine, &basisFine); CeedChk(ierr);
+  CeedInt Qf, Qc;
+  ierr = CeedBasisGetNumQuadraturePoints(basisFine, &Qf); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
+  if (Qf != Qc)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+  // LCOV_EXCL_STOP
+
+  // Coarse to fine basis
+  CeedElemTopology topo;
+  ierr = CeedBasisGetTopology(basisFine, &topo); CeedChk(ierr);
+  CeedInt dim, ncomp, nnodesCoarse, nnodesFine;
+  ierr = CeedBasisGetDimension(basisFine, &dim); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basisFine, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basisFine, &nnodesFine); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(rstrCoarse, &nnodesCoarse);
+  CeedChk(ierr);
+  CeedScalar *qref, *qweight, *grad;
+  ierr = CeedCalloc(nnodesFine, &qref); CeedChk(ierr);
+  ierr = CeedCalloc(nnodesFine, &qweight); CeedChk(ierr);
+  ierr = CeedCalloc(nnodesFine*nnodesCoarse*dim, &grad); CeedChk(ierr);
+  CeedBasis basisCtoF;
+  ierr = CeedBasisCreateH1(ceed, topo, ncomp, nnodesCoarse, nnodesFine,
+                           interpCtoF, grad, qref, qweight, &basisCtoF);
+  CeedChk(ierr);
+  ierr = CeedFree(&qref); CeedChk(ierr);
+  ierr = CeedFree(&qweight); CeedChk(ierr);
+  ierr = CeedFree(&grad); CeedChk(ierr);
+
+  // Core code
+  ierr = CeedOperatorMultigridLevel_Core(opFine, PMultFine, rstrCoarse,
+                                         basisCoarse, basisCtoF, opCoarse,
+                                         opProlong, opRestrict);
+  CeedChk(ierr);
+  return 0;
+}
+
+/**
   @brief Build a FDM based approximate inverse for each element for a
            CeedOperator
 
@@ -1213,6 +1635,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
           (*op)->inputfields[i]->vec != CEED_VECTOR_NONE ) {
         ierr = CeedVectorDestroy(&(*op)->inputfields[i]->vec); CeedChk(ierr);
       }
+      ierr = CeedFree(&(*op)->inputfields[i]->fieldname); CeedChk(ierr);
       ierr = CeedFree(&(*op)->inputfields[i]); CeedChk(ierr);
     }
   for (int i=0; i<(*op)->nfields; i++)
@@ -1226,6 +1649,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
           (*op)->outputfields[i]->vec != CEED_VECTOR_NONE ) {
         ierr = CeedVectorDestroy(&(*op)->outputfields[i]->vec); CeedChk(ierr);
       }
+      ierr = CeedFree(&(*op)->outputfields[i]->fieldname); CeedChk(ierr);
       ierr = CeedFree(&(*op)->outputfields[i]); CeedChk(ierr);
     }
   // Destroy suboperators

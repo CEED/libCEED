@@ -38,13 +38,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                             sizeof(appCtx->ceedResource), &ceedFlag);
   CHKERRQ(ierr);
 
-  ierr = PetscOptionsString("-ceed_fine",
-                            "CEED resource specifier for high order elements",
-                            NULL, appCtx->ceedResourceFine,
-                            appCtx->ceedResourceFine,
-                            sizeof(appCtx->ceedResourceFine), NULL);
-  CHKERRQ(ierr);
-
   appCtx->degree         = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, appCtx->degree, &appCtx->degree, NULL);

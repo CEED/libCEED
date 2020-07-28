@@ -137,6 +137,7 @@ struct CeedVector_private {
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
+  int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
   int refcount;
   CeedInt length;
@@ -176,6 +177,7 @@ struct CeedBasis_private {
   int refcount;
   bool tensorbasis;      /* flag for tensor basis */
   CeedInt dim;           /* topological dimension */
+  CeedElemTopology topo; /* element topology */
   CeedInt ncomp;         /* number of field components (1 for scalar fields) */
   CeedInt P1d;           /* number of nodes in one dimension */
   CeedInt Q1d;           /* number of quadrature points in one dimension */
@@ -234,6 +236,7 @@ struct CeedQFunction_private {
   bool fortranstatus;
   bool identity;
   void *ctx;      /* user context for function */
+  void *ctx_allocated;
   size_t ctxsize; /* size of user context; may be used to copy to a device */
   void *data;     /* place for the backend to store any data */
 };
@@ -266,6 +269,7 @@ struct CeedOperatorField_private {
                                       collocated fields */
   CeedVector vec;                /* State vector for passive fields or
                                       CEED_VECTOR_NONE for no vector */
+  const char *fieldname;         /* matching QFunction field name */
 };
 
 struct CeedOperator_private {

@@ -1551,6 +1551,349 @@ def test_533(ceed_resource):
 
     # QFunctions
     qf_setup = ceed.QFunctionByName("Mass2DBuild")
+
+# -------------------------------------------------------------------------------
+# Test creation, action, and destruction for mass matrix operator with
+#   multigrid level, tensor basis and interpolation basis generation
+# -------------------------------------------------------------------------------
+
+
+def test_550(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    nelem = 15
+    p_coarse = 3
+    p_fine = 5
+    q = 8
+    ncomp = 2
+    nx = nelem + 1
+    nu_coarse = nelem * (p_coarse - 1) + 1
+    nu_fine = nelem * (p_fine - 1) + 1
+
+    # Vectors
+    x = ceed.Vector(nx)
+    x_array = np.zeros(nx)
+    for i in range(nx):
+        x_array[i] = i / (nx - 1.0)
+    x.set_array(x_array, cmode=libceed.USE_POINTER)
+
+    qdata = ceed.Vector(nelem * q)
+    u_coarse = ceed.Vector(ncomp * nu_coarse)
+    v_coarse = ceed.Vector(ncomp * nu_coarse)
+    u_fine = ceed.Vector(ncomp * nu_fine)
+    v_fine = ceed.Vector(ncomp * nu_fine)
+
+    # Restrictions
+    indx = np.zeros(nx * 2, dtype="int32")
+    for i in range(nx):
+        indx[2 * i + 0] = i
+        indx[2 * i + 1] = i + 1
+    rx = ceed.ElemRestriction(nelem, 2, 1, 1, nx, indx,
+                              cmode=libceed.USE_POINTER)
+
+    indu_coarse = np.zeros(nelem * p_coarse, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_coarse):
+            indu_coarse[p_coarse * i + j] = i * (p_coarse - 1) + j
+    ru_coarse = ceed.ElemRestriction(nelem, p_coarse, ncomp, nu_coarse,
+                                     ncomp * nu_coarse, indu_coarse,
+                                     cmode=libceed.USE_POINTER)
+
+    indu_fine = np.zeros(nelem * p_fine, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_fine):
+            indu_fine[p_fine * i + j] = i * (p_fine - 1) + j
+    ru_fine = ceed.ElemRestriction(nelem, p_fine, ncomp, nu_fine,
+                                   ncomp * nu_fine, indu_fine,
+                                   cmode=libceed.USE_POINTER)
+    strides = np.array([1, q, q], dtype="int32")
+
+    rui = ceed.StridedElemRestriction(nelem, q, 1, q * nelem, strides)
+
+    # Bases
+    bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
+    bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
+
+    # QFunctions
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    qfs = load_qfs_so()
+
+    qf_setup = ceed.QFunction(1, qfs.setup_mass,
+                              os.path.join(file_dir, "test-qfunctions.h:setup_mass"))
+    qf_setup.add_input("weights", 1, libceed.EVAL_WEIGHT)
+    qf_setup.add_input("dx", 1, libceed.EVAL_GRAD)
+    qf_setup.add_output("rho", 1, libceed.EVAL_NONE)
+
+    qf_mass = ceed.QFunction(1, qfs.apply_mass_two,
+                             os.path.join(file_dir, "test-qfunctions.h:apply_mass_two"))
+    qf_mass.add_input("rho", 1, libceed.EVAL_NONE)
+    qf_mass.add_input("u", ncomp, libceed.EVAL_INTERP)
+    qf_mass.add_output("v", ncomp, libceed.EVAL_INTERP)
+
+    # Operators
+    op_setup = ceed.Operator(qf_setup)
+    op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                       libceed.VECTOR_NONE)
+    op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
+    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+                       libceed.VECTOR_ACTIVE)
+
+    op_mass_fine = ceed.Operator(qf_mass)
+    op_mass_fine.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
+    op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
+
+    # Setup
+    op_setup.apply(x, qdata)
+
+    # Create multigrid level
+    p_mult_fine = ceed.Vector(ncomp * nu_fine)
+    p_mult_fine.set_value(1.0)
+    [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create(p_mult_fine,
+                                                                              ru_coarse,
+                                                                              bu_coarse)
+
+    # Apply coarse mass matrix
+    u_coarse.set_value(1.0)
+    op_mass_coarse.apply(u_coarse, v_coarse)
+
+    # Check
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+    # Prolong coarse u
+    op_prolong.apply(u_coarse, u_fine)
+
+    # Apply mass matrix
+    op_mass_fine.apply(u_fine, v_fine)
+
+    # Check
+    with v_fine.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_fine * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+    # Restrict state to coarse grid
+    op_restrict.apply(v_fine, v_coarse)
+
+    # Check
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+# -------------------------------------------------------------------------------
+# Test creation, action, and destruction for mass matrix operator with
+#   multigrid level, tensor basis
+# -------------------------------------------------------------------------------
+
+
+def test_552(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    nelem = 15
+    p_coarse = 3
+    p_fine = 5
+    q = 8
+    ncomp = 2
+    nx = nelem + 1
+    nu_coarse = nelem * (p_coarse - 1) + 1
+    nu_fine = nelem * (p_fine - 1) + 1
+
+    # Vectors
+    x = ceed.Vector(nx)
+    x_array = np.zeros(nx)
+    for i in range(nx):
+        x_array[i] = i / (nx - 1.0)
+    x.set_array(x_array, cmode=libceed.USE_POINTER)
+
+    qdata = ceed.Vector(nelem * q)
+    u_coarse = ceed.Vector(ncomp * nu_coarse)
+    v_coarse = ceed.Vector(ncomp * nu_coarse)
+    u_fine = ceed.Vector(ncomp * nu_fine)
+    v_fine = ceed.Vector(ncomp * nu_fine)
+
+    # Restrictions
+    indx = np.zeros(nx * 2, dtype="int32")
+    for i in range(nx):
+        indx[2 * i + 0] = i
+        indx[2 * i + 1] = i + 1
+    rx = ceed.ElemRestriction(nelem, 2, 1, 1, nx, indx,
+                              cmode=libceed.USE_POINTER)
+
+    indu_coarse = np.zeros(nelem * p_coarse, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_coarse):
+            indu_coarse[p_coarse * i + j] = i * (p_coarse - 1) + j
+    ru_coarse = ceed.ElemRestriction(nelem, p_coarse, ncomp, nu_coarse,
+                                     ncomp * nu_coarse, indu_coarse,
+                                     cmode=libceed.USE_POINTER)
+
+    indu_fine = np.zeros(nelem * p_fine, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_fine):
+            indu_fine[p_fine * i + j] = i * (p_fine - 1) + j
+    ru_fine = ceed.ElemRestriction(nelem, p_fine, ncomp, nu_fine,
+                                   ncomp * nu_fine, indu_fine,
+                                   cmode=libceed.USE_POINTER)
+    strides = np.array([1, q, q], dtype="int32")
+
+    rui = ceed.StridedElemRestriction(nelem, q, 1, q * nelem, strides)
+
+    # Bases
+    bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
+    bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
+
+    # QFunctions
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    qfs = load_qfs_so()
+
+    qf_setup = ceed.QFunction(1, qfs.setup_mass,
+                              os.path.join(file_dir, "test-qfunctions.h:setup_mass"))
+    qf_setup.add_input("weights", 1, libceed.EVAL_WEIGHT)
+    qf_setup.add_input("dx", 1, libceed.EVAL_GRAD)
+    qf_setup.add_output("rho", 1, libceed.EVAL_NONE)
+
+    qf_mass = ceed.QFunction(1, qfs.apply_mass_two,
+                             os.path.join(file_dir, "test-qfunctions.h:apply_mass_two"))
+    qf_mass.add_input("rho", 1, libceed.EVAL_NONE)
+    qf_mass.add_input("u", ncomp, libceed.EVAL_INTERP)
+    qf_mass.add_output("v", ncomp, libceed.EVAL_INTERP)
+
+    # Operators
+    op_setup = ceed.Operator(qf_setup)
+    op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
+                       libceed.VECTOR_NONE)
+    op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
+    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+                       libceed.VECTOR_ACTIVE)
+
+    op_mass_fine = ceed.Operator(qf_mass)
+    op_mass_fine.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
+    op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
+
+    # Setup
+    op_setup.apply(x, qdata)
+
+    # Create multigrid level
+    p_mult_fine = ceed.Vector(ncomp * nu_fine)
+    p_mult_fine.set_value(1.0)
+    b_c_to_f = ceed.BasisTensorH1Lagrange(
+        1, ncomp, p_coarse, p_fine, libceed.GAUSS_LOBATTO)
+    interp_C_to_F = b_c_to_f.get_interp1d()
+    [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create_tensor_h1(p_mult_fine,
+                                                                                        ru_coarse, bu_coarse, interp_C_to_F)
+
+    # Apply coarse mass matrix
+    u_coarse.set_value(1.0)
+    op_mass_coarse.apply(u_coarse, v_coarse)
+
+    # Check
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+    # Prolong coarse u
+    op_prolong.apply(u_coarse, u_fine)
+
+    # Apply mass matrix
+    op_mass_fine.apply(u_fine, v_fine)
+
+    # Check
+    with v_fine.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_fine * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+    # Restrict state to coarse grid
+    op_restrict.apply(v_fine, v_coarse)
+
+    # Check
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 2.0) < 1E-13
+
+# -------------------------------------------------------------------------------
+# Test creation, action, and destruction for mass matrix operator with
+#   multigrid level, non-tensor basis
+# -------------------------------------------------------------------------------
+
+
+def test_553(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    nelem = 15
+    p_coarse = 3
+    p_fine = 5
+    q = 8
+    ncomp = 1
+    nx = nelem + 1
+    nu_coarse = nelem * (p_coarse - 1) + 1
+    nu_fine = nelem * (p_fine - 1) + 1
+
+    # Vectors
+    x = ceed.Vector(nx)
+    x_array = np.zeros(nx)
+    for i in range(nx):
+        x_array[i] = i / (nx - 1.0)
+    x.set_array(x_array, cmode=libceed.USE_POINTER)
+
+    qdata = ceed.Vector(nelem * q)
+    u_coarse = ceed.Vector(ncomp * nu_coarse)
+    v_coarse = ceed.Vector(ncomp * nu_coarse)
+    u_fine = ceed.Vector(ncomp * nu_fine)
+    v_fine = ceed.Vector(ncomp * nu_fine)
+
+    # Restrictions
+    indx = np.zeros(nx * 2, dtype="int32")
+    for i in range(nx):
+        indx[2 * i + 0] = i
+        indx[2 * i + 1] = i + 1
+    rx = ceed.ElemRestriction(nelem, 2, 1, 1, nx, indx,
+                              cmode=libceed.USE_POINTER)
+
+    indu_coarse = np.zeros(nelem * p_coarse, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_coarse):
+            indu_coarse[p_coarse * i + j] = i * (p_coarse - 1) + j
+    ru_coarse = ceed.ElemRestriction(nelem, p_coarse, ncomp, nu_coarse,
+                                     ncomp * nu_coarse, indu_coarse,
+                                     cmode=libceed.USE_POINTER)
+
+    indu_fine = np.zeros(nelem * p_fine, dtype="int32")
+    for i in range(nelem):
+        for j in range(p_fine):
+            indu_fine[p_fine * i + j] = i * (p_fine - 1) + j
+    ru_fine = ceed.ElemRestriction(nelem, p_fine, ncomp, nu_fine,
+                                   ncomp * nu_fine, indu_fine,
+                                   cmode=libceed.USE_POINTER)
+    strides = np.array([1, q, q], dtype="int32")
+
+    rui = ceed.StridedElemRestriction(nelem, q, 1, q * nelem, strides)
+
+    # Bases
+    bx = ceed.BasisTensorH1Lagrange(1, 1, 2, q, libceed.GAUSS)
+    bu_coarse = ceed.BasisTensorH1Lagrange(1, ncomp, p_coarse, q, libceed.GAUSS)
+    bu_fine = ceed.BasisTensorH1Lagrange(1, ncomp, p_fine, q, libceed.GAUSS)
+
+    # QFunctions
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    qfs = load_qfs_so()
+
+    qf_setup = ceed.QFunctionByName("Mass1DBuild")
     qf_mass = ceed.QFunctionByName("MassApply")
 
     # Operators
@@ -1561,38 +1904,55 @@ def test_533(ceed_resource):
     op_setup.set_field("qdata", rui, libceed.BASIS_COLLOCATED,
                        libceed.VECTOR_ACTIVE)
 
-    op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("qdata", rui, libceed.BASIS_COLLOCATED, qdata)
-    op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
-    op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
+    op_mass_fine = ceed.Operator(qf_mass)
+    op_mass_fine.set_field("qdata", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
+    op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
 
     # Setup
     op_setup.apply(x, qdata)
 
-    # Assemble diagonal
-    d = ceed.Vector(ndofs)
-    op_mass.linear_assemble_diagonal(d)
+    # Create multigrid level
+    p_mult_fine = ceed.Vector(ncomp * nu_fine)
+    p_mult_fine.set_value(1.0)
+    b_c_to_f = ceed.BasisTensorH1Lagrange(
+        1, ncomp, p_coarse, p_fine, libceed.GAUSS_LOBATTO)
+    interp_C_to_F = b_c_to_f.get_interp1d()
+    [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create_h1(p_mult_fine,
+                                                                                 ru_coarse, bu_coarse, interp_C_to_F)
 
-    # Manually assemble diagonal
-    u.set_value(0.0)
-    d_true = np.zeros(ndofs)
-    for i in range(ndofs):
-        # Set input
-        with u.array() as u_array:
-            u_array[i] = 1.0
-            if (i):
-                u_array[i - 1] = 0.0
-
-        # Diagonal entry i
-        op_mass.apply(u, v)
-
-        # Retrieve entry
-        with v.array_read() as v_array:
-            d_true[i] = v_array[i]
+    # Apply coarse mass matrix
+    u_coarse.set_value(1.0)
+    op_mass_coarse.apply(u_coarse, v_coarse)
 
     # Check
-    with d.array_read() as d_array:
-        for i in range(ndofs):
-            assert abs(d_array[i] - d_true[i]) < TOL
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 1.0) < 1E-13
+
+    # Prolong coarse u
+    op_prolong.apply(u_coarse, u_fine)
+
+    # Apply mass matrix
+    op_mass_fine.apply(u_fine, v_fine)
+
+    # Check
+    with v_fine.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_fine * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 1.0) < 1E-13
+
+    # Restrict state to coarse grid
+    op_restrict.apply(v_fine, v_coarse)
+
+    # Check
+    with v_coarse.array_read() as v_array:
+        total = 0.0
+        for i in range(nu_coarse * ncomp):
+            total = total + v_array[i]
+        assert abs(total - 1.0) < 1E-13
 
 # -------------------------------------------------------------------------------

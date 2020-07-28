@@ -144,8 +144,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
       for (CeedInt add = 0; add <= 1; add++)
-        for (CeedInt tmode = 0; tmode <= 1; tmode++)
-          for (CeedInt grad = 1; grad <= impl->dim; grad+=impl->dim-1) {
+        for (CeedInt tmode = 0; tmode <= 1; tmode++) {
+          CeedInt gradstride = CeedIntMax(impl->dim-1, 1);
+          for (CeedInt grad = 1; grad <= impl->dim; grad+=gradstride) {
             const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
             CeedInt B = tmode ? grad*impl->Q : impl->P,
                     J = tmode ? impl->P : grad*impl->Q,
@@ -168,6 +169,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               kh_value(impl->lookup, k) = kernel;
             }
           }
+        }
   }
   ierr = CeedTensorContractSetData(contract, (void *)&impl); CeedChk(ierr);
 

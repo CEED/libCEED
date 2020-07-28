@@ -219,8 +219,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   PetscInt      cStart, cEnd, nelem;
   const PetscScalar *coordArray;
   CeedVector    xcoord;
-  CeedQFunction qfSetupGeo, qfApply, qfEnergy, qfDiagnostic;
-  CeedOperator  opSetupGeo, opApply, opEnergy, opDiagnostic;
+  CeedQFunction qfSetupGeo, qfApply, qfJacob, qfEnergy, qfDiagnostic;
+  CeedOperator  opSetupGeo, opApply, opJacob, opEnergy, opDiagnostic;
 
   PetscFunctionBeginUser;
 
@@ -311,6 +311,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // -- State gradient vector
   if (problemChoice != ELAS_LIN)
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+  // -- Operator action variables
+  CeedVectorCreate(ceed, Ulocsz, &data[fineLevel]->xceed);
+  CeedVectorCreate(ceed, Ulocsz, &data[fineLevel]->yceed);
 
   // ---------------------------------------------------------------------------
   // Geometric factor computation
@@ -376,6 +379,40 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // -- Save libCEED data
   data[fineLevel]->qfApply = qfApply;
   data[fineLevel]->opApply = opApply;
+
+  // ---------------------------------------------------------------------------
+  // Jacobian evaluator
+  // ---------------------------------------------------------------------------
+  // Create the QFunction and Operator that computes the action of the
+  //   Jacobian for each linear solve.
+  // ---------------------------------------------------------------------------
+  // -- QFunction
+  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].jacob,
+                              problemOptions[problemChoice].jacobfname,
+                              &qfJacob);
+  CeedQFunctionAddInput(qfJacob, "deltadu", ncompu*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qfJacob, "qdata", qdatasize, CEED_EVAL_NONE);
+  if (problemChoice != ELAS_LIN)
+    CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfJacob, "deltadv", ncompu*dim, CEED_EVAL_GRAD);
+  CeedQFunctionSetContext(qfJacob, phys, sizeof(*phys));
+
+  // -- Operator
+  CeedOperatorCreate(ceed, qfJacob, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opJacob);
+  CeedOperatorSetField(opJacob, "deltadu", data[fineLevel]->Erestrictu,
+                       data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opJacob, "qdata", data[fineLevel]->Erestrictqdi,
+                       CEED_BASIS_COLLOCATED, data[fineLevel]->qdata);
+  CeedOperatorSetField(opJacob, "deltadv", data[fineLevel]->Erestrictu,
+                       data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
+  if (problemChoice != ELAS_LIN)
+    CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+
+  // -- Save libCEED data
+  data[fineLevel]->qfJacob = qfJacob;
+  data[fineLevel]->opJacob = opJacob;
 
   // ---------------------------------------------------------------------------
   // Forcing term, if needed
@@ -580,11 +617,12 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   PetscFunctionReturn(0);
 };
 
-// Set up libCEED for a given degree
+// Set up libCEED multigrid level for a given degree
+//   Prolongation and Restriction are between level and level+1
 PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
                                  CeedData *data, PetscInt level,
                                  PetscInt ncompu, PetscInt Ugsz,
-                                 PetscInt Ulocsz, CeedVector forceCeed,
+                                 PetscInt Ulocsz, CeedVector fineMult,
                                  CeedQFunction qfRestrict,
                                  CeedQFunction qfProlong) {
   PetscErrorCode ierr;
@@ -592,10 +630,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   CeedInt        P = appCtx->levelDegrees[level] + 1;
   CeedInt        Q = appCtx->levelDegrees[fineLevel] + 1 + appCtx->qextra;
   CeedInt        dim;
-  CeedInt        qdatasize = problemOptions[appCtx->problemChoice].qdatasize;
-  problemType    problemChoice = appCtx->problemChoice;
-  CeedQFunction  qfJacob;
-  CeedOperator   opJacob, opProlong = NULL, opRestrict = NULL;
+  CeedOperator   opJacob, opProlong, opRestrict;
 
   PetscFunctionBeginUser;
 
@@ -604,27 +639,17 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   // ---------------------------------------------------------------------------
   // libCEED restrictions
   // ---------------------------------------------------------------------------
-  if (level != fineLevel) {
-    // -- Solution restriction
-    ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[level]->Erestrictu, dm);
-    CHKERRQ(ierr);
-  }
+  // -- Solution restriction
+  ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[level]->Erestrictu, dm);
+  CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // libCEED bases
   // ---------------------------------------------------------------------------
   // -- Solution basis
-  if (level != fineLevel)
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
-                                    problemOptions[problemChoice].qmode,
-                                    &data[level]->basisu);
-
-  // -- Prolongation basis
-  if (level != 0)
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu,
-                                    appCtx->levelDegrees[level-1] + 1, P,
-                                    CEED_GAUSS_LOBATTO,
-                                    &data[level]->basisCtoF);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompu, P, Q,
+                                  problemOptions[appCtx->problemChoice].qmode,
+                                  &data[level]->basisu);
 
   // ---------------------------------------------------------------------------
   // Persistent libCEED vectors
@@ -633,71 +658,19 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx, Physics phys,
   CeedVectorCreate(ceed, Ulocsz, &data[level]->yceed);
 
   // ---------------------------------------------------------------------------
-  // Jacobian evaluator
+  // Coarse Grid, Prolongation, and Restriction Operators
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the action of the
-  //   Jacobian for each linear solve.
+  // Create the Operators that compute the prolongation and
+  //   restriction between the p-multigrid levels and the coarse grid eval.
   // ---------------------------------------------------------------------------
-  // -- QFunction
-  CeedQFunctionCreateInterior(ceed, 1, problemOptions[problemChoice].jacob,
-                              problemOptions[problemChoice].jacobfname,
-                              &qfJacob);
-  CeedQFunctionAddInput(qfJacob, "deltadu", ncompu*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qfJacob, "qdata", qdatasize, CEED_EVAL_NONE);
-  if (problemChoice != ELAS_LIN)
-    CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qfJacob, "deltadv", ncompu*dim, CEED_EVAL_GRAD);
-  CeedQFunctionSetContext(qfJacob, phys, sizeof(*phys));
+  CeedOperatorMultigridLevelCreate(data[level+1]->opJacob, fineMult,
+                                   data[level]->Erestrictu, data[level]->basisu,
+                                   &opJacob, &opProlong, &opRestrict);
 
-  // -- Operator
-  CeedOperatorCreate(ceed, qfJacob, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &opJacob);
-  CeedOperatorSetField(opJacob, "deltadu", data[level]->Erestrictu,
-                       data[level]->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(opJacob, "qdata", data[fineLevel]->Erestrictqdi,
-                       CEED_BASIS_COLLOCATED, data[fineLevel]->qdata);
-  CeedOperatorSetField(opJacob, "deltadv", data[level]->Erestrictu,
-                       data[level]->basisu, CEED_VECTOR_ACTIVE);
-  if (problemChoice != ELAS_LIN)
-    CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
-                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
-
-  // ---------------------------------------------------------------------------
-  // Restriction and Prolongation
-  // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the prolongation and
-  //   restriction between the p-multigrid levels.
-  // ---------------------------------------------------------------------------
-  if ((level != 0) && appCtx->multigridChoice != MULTIGRID_NONE) {
-    // -- Restriction
-    CeedOperatorCreate(ceed, qfRestrict, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &opRestrict);
-    CeedOperatorSetField(opRestrict, "input", data[level]->Erestrictu,
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(opRestrict, "output", data[level-1]->Erestrictu,
-                         data[level]->basisCtoF, CEED_VECTOR_ACTIVE);
-
-    // -- Prolongation
-    CeedOperatorCreate(ceed, qfProlong, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &opProlong);
-    CeedOperatorSetField(opProlong, "input", data[level-1]->Erestrictu,
-                         data[level]->basisCtoF, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(opProlong, "output", data[level]->Erestrictu,
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Save libCEED data required for level
-  // ---------------------------------------------------------------------------
-  // -- QFunctions
-  data[level]->qfJacob = qfJacob;
-
-  // -- Operators
+  // -- Save libCEED data
   data[level]->opJacob = opJacob;
-  if (opProlong)
-    data[level]->opProlong = opProlong;
-  if (opRestrict)
-    data[level]->opRestrict = opRestrict;
+  data[level+1]->opProlong = opProlong;
+  data[level+1]->opRestrict = opRestrict;
 
   PetscFunctionReturn(0);
 };

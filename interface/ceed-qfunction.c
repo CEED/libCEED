@@ -579,6 +579,7 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
   ctx[0] = size;
   ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(*ctx)); CeedChk(ierr);
+  (*qf)->ctx_allocated = (*qf)->ctx;
 
   return 0;
 }
@@ -742,10 +743,8 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
-  // Free ctx if identity
-  if ((*qf)->identity) {
-    ierr = CeedFree(&(*qf)->ctx); CeedChk(ierr);
-  }
+  // Free ctx if owned by QFunction
+  ierr = CeedFree(&(*qf)->ctx_allocated); CeedChk(ierr);
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->qfname); CeedChk(ierr);

@@ -42,3 +42,28 @@ extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedInt length,
   setValueK<<<gridsize,bsize>>>(d_array, length, val);
   return 0;
 }
+
+//------------------------------------------------------------------------------
+// Kernel for taking reciprocal
+//------------------------------------------------------------------------------
+__global__ static void rcpValueK(CeedScalar * __restrict__ vec, CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  if (fabs(vec[idx]) > 1E-16)
+    vec[idx] = 1./vec[idx];
+}
+
+//------------------------------------------------------------------------------
+// Take vector reciprocal in device memory
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceReciprocal_Cuda(CeedScalar* d_array, CeedInt length) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  rcpValueK<<<gridsize,bsize>>>(d_array, length);
+  return 0;
+}
