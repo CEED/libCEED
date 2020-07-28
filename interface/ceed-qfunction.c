@@ -726,8 +726,7 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
-  if (!*qf || --(*qf)->refcount > 0)
-    return 0;
+  if (!*qf || --(*qf)->refcount > 0) return 0;
   // Backend destroy
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);

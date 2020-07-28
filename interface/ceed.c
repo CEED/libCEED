@@ -814,9 +814,7 @@ int CeedView(Ceed ceed, FILE *stream) {
 **/
 int CeedDestroy(Ceed *ceed) {
   int ierr;
-  if (!*ceed || --(*ceed)->refcount > 0)
-    return 0;
-
+  if (!*ceed || --(*ceed)->refcount > 0) return 0;
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
   }
