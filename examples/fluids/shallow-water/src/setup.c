@@ -213,7 +213,7 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
     const PetscScalar theta  = asin(x[2] / R);    // latitude
     const PetscScalar lambda = atan2(x[1], x[0]); // longitude
 
-    // For P_1 (east), P_3 (front), P_4 (west), P_5 (back):
+    // For P_0 (front), P_1 (east), P_2 (back), P_3 (west):
     PetscScalar T00 = cos(theta)*cos(lambda) * cos(lambda);
     PetscScalar T01 = cos(theta)*cos(lambda) * 0.;
     PetscScalar T10 = cos(theta)*cos(lambda) * -sin(theta)*sin(lambda);
@@ -232,7 +232,7 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
                                             {Tinv10,
                                              Tinv11}
                                            };
-    // For P2 (north):
+    // For P4 (north):
     T00 = sin(theta) * cos(lambda);
     T01 = sin(theta) * sin(lambda);
     T10 = sin(theta) * -sin(theta)*sin(lambda);
@@ -252,7 +252,7 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
                                          Tinv11}
                                        };
 
-    // For P0 (south):
+    // For P5 (south):
     T00 = sin(theta) * (-cos(theta));
     T01 = sin(theta) * sin(lambda);
     T10 = sin(theta) * sin(theta)*sin(lambda);
@@ -272,20 +272,20 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
                                             Tinv11}
                                           };
 
-    const PetscScalar (*transforms[6])[2][2] = {&T_bottom,
+    const PetscScalar (*transforms[6])[2][2] = {&T_lateral,
+                                                &T_lateral,
+                                                &T_lateral,
                                                 &T_lateral,
                                                 &T_top,
-                                                &T_lateral,
-                                                &T_lateral,
-                                                &T_lateral
+                                                &T_bottom
                                                };
 
-    const PetscScalar (*inv_transforms[6])[2][2] = {&T_bottominv,
+    const PetscScalar (*inv_transforms[6])[2][2] = {&T_lateralinv,
+                                                    &T_lateralinv,
+                                                    &T_lateralinv,
                                                     &T_lateralinv,
                                                     &T_topinv,
-                                                    &T_lateralinv,
-                                                    &T_lateralinv,
-                                                    &T_lateralinv
+                                                    &T_bottominv
                                                    };
 
     for (PetscInt e = 0; e < nedgenodes; e++) {

@@ -229,13 +229,13 @@ int main(int argc, char **argv) {
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
     // Define cube panels (charts)
     DMLabel label;
-    PetscInt c, cStart, cEnd, npanel;
+    PetscInt c, cStart, cEnd, npanel, permidx[6] = {5, 1, 4, 0, 3, 2};
     ierr = DMCreateLabel(dm, "panel");
     ierr = DMGetLabel(dm, "panel", &label);
     // Assign different panel (chart) values to the six faces of the cube
     ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
     for (c = cStart, npanel = 0; c < cEnd; c++) {
-      ierr = DMLabelSetValue(label, c, npanel++); CHKERRQ(ierr);
+      ierr = DMLabelSetValue(label, c, permidx[npanel++]); CHKERRQ(ierr);
     }
     // Distribute mesh over processes
     {
