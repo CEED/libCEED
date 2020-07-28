@@ -74,19 +74,18 @@ problemData problemOptions[] = {
 PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
                                   PetscInt ncomp, Mat *T) {
 
-  PetscInt ierr, rankid;
+  PetscInt ierr;
   MPI_Comm comm;
-  PetscInt cstart, cend, nstart, nend, lnodes, gdofs, depth, edgenodecnt = 0;
-  PetscSection section;
+  PetscInt cstart, cend, gdofs, depth, edgenodecnt = 0;
+  PetscSection section, sectionloc;
   EdgeNode edgenodes;
 
   PetscFunctionBeginUser;
   // Get Nelem
-  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetGlobalSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm, &sectionloc); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cstart, &cend); CHKERRQ(ierr);
   ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm, depth, &nstart, &nend); CHKERRQ(ierr);
-  lnodes = nend - nstart;
 
   PetscSF sf;
   Vec bitmapVec;
@@ -96,75 +95,70 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
   ierr = VecDestroy(&bitmapVec);
 
   // Arrays for local and global bitmaps
-  unsigned int bitmaploc[lnodes * ncomp];
-  unsigned int bitmap[gdofs];
-  ierr = PetscMemzero(bitmap, sizeof(bitmap)); CHKERRQ(ierr);
-
-  // Broadcast bitmap values to all ranks
-  ierr = PetscSFBcastBegin(sf, MPI_UNSIGNED, bitmap, bitmaploc); CHKERRQ(ierr);
-  ierr = PetscSFBcastEnd(sf, MPI_UNSIGNED, bitmap, bitmaploc); CHKERRQ(ierr);
+  unsigned int *bitmaploc;
+  unsigned int *bitmap;
+  ierr = PetscCalloc2(gdofs, &bitmaploc, gdofs, &bitmap);
+  CHKERRQ(ierr);
 
   // Get indices
   for (PetscInt c = cstart; c < cend; c++) { // Traverse elements
     PetscInt numindices, *indices, n, panel;
     // Query element panel
     ierr = DMGetLabelValue(dm, "panel", c, &panel); CHKERRQ(ierr);
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
+    ierr = DMPlexGetClosureIndices(dm, sectionloc, section, c, PETSC_TRUE,
                                    &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
     for (n = 0; n < numindices; n += ncomp) { // Traverse nodes per element
-      PetscInt  bitmapidx = indices[n];
+      PetscInt bitmapidx = indices[n];
       bitmaploc[bitmapidx] |= (1 << panel);
     }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
+    ierr = DMPlexRestoreClosureIndices(dm, sectionloc, section, c, PETSC_TRUE,
                                        &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
   }
 
-  // Reduce on all ranks
-  ierr = PetscSFReduceBegin(sf, MPI_UNSIGNED, bitmaploc, bitmap, MPI_BOR);
-  CHKERRQ(ierr);
-  ierr = PetscSFReduceEnd(sf, MPI_UNSIGNED, bitmaploc, bitmap, MPI_BOR);
-  CHKERRQ(ierr);
-
-  // Rank 0 reads the 1's in the resulting bitmap and extracts edge nodes only
+  // Reduce from all ranks
   PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-  MPI_Comm_rank(comm, &rankid);
-  if (rankid == 0) {
-    ierr = PetscMalloc1(gdofs + 24*ncomp, &edgenodes); CHKERRQ(ierr);
-    for (PetscInt i = 0; i < gdofs; i += ncomp) {
-      PetscInt ones = 0, panels[3];
-      for (PetscInt p = 0; p < 6; p++) {
-        if (bitmap[i] & 1)
-          panels[ones++] = p;
-        bitmap[i] >>= 1;
-      }
-      if (ones == 2) {
-        edgenodes[edgenodecnt].idx = i;
-        edgenodes[edgenodecnt].panelA = panels[0];
-        edgenodes[edgenodecnt].panelB = panels[1];
-        edgenodecnt++;
-      }
-      else if (ones == 3) {
-        edgenodes[edgenodecnt].idx = i;
-        edgenodes[edgenodecnt].panelA = panels[0];
-        edgenodes[edgenodecnt].panelB = panels[1];
-        edgenodecnt++;
-        edgenodes[edgenodecnt].idx = i;
-        edgenodes[edgenodecnt].panelA = panels[0];
-        edgenodes[edgenodecnt].panelB = panels[2];
-        edgenodecnt++;
-        edgenodes[edgenodecnt].idx = i;
-        edgenodes[edgenodecnt].panelA = panels[1];
-        edgenodes[edgenodecnt].panelB = panels[2];
-        edgenodecnt++;
-      }
+  MPI_Reduce(bitmaploc, bitmap, gdofs, MPI_UNSIGNED, MPI_BOR, 0, comm);
+
+  // Read the resulting bitmap and extract edge nodes only
+  ierr = PetscMalloc1(gdofs + 24*ncomp, &edgenodes); CHKERRQ(ierr);
+  for (PetscInt i = 0; i < gdofs; i += ncomp) {
+    PetscInt ones = 0, panels[3];
+    for (PetscInt p = 0; p < 6; p++) {
+      if (bitmap[i] & 1)
+        panels[ones++] = p;
+      bitmap[i] >>= 1;
     }
-    ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, edgenodes,
-                                          edgenodecnt, T); CHKERRQ(ierr);
-    // Free edgenodes structure array
-    ierr = PetscFree(edgenodes); CHKERRQ(ierr);
+    if (ones == 2) {
+      edgenodes[edgenodecnt].idx = i;
+      edgenodes[edgenodecnt].panelA = panels[0];
+      edgenodes[edgenodecnt].panelB = panels[1];
+      edgenodecnt++;
+    }
+    else if (ones == 3) {
+      edgenodes[edgenodecnt].idx = i;
+      edgenodes[edgenodecnt].panelA = panels[0];
+      edgenodes[edgenodecnt].panelB = panels[1];
+      edgenodecnt++;
+      edgenodes[edgenodecnt].idx = i;
+      edgenodes[edgenodecnt].panelA = panels[0];
+      edgenodes[edgenodecnt].panelB = panels[2];
+      edgenodecnt++;
+      edgenodes[edgenodecnt].idx = i;
+      edgenodes[edgenodecnt].panelA = panels[1];
+      edgenodes[edgenodecnt].panelB = panels[2];
+      edgenodecnt++;
+    }
   }
+  ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, edgenodes,
+                                        edgenodecnt, T); CHKERRQ(ierr);
+
+  // Free edgenodes structure array
+  ierr = PetscFree(edgenodes); CHKERRQ(ierr);
+  // Free heap
+  ierr = PetscFree(bitmap); CHKERRQ(ierr);
+  ierr = PetscFree(bitmaploc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

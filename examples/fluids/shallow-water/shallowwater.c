@@ -436,7 +436,7 @@ int main(int argc, char **argv) {
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // Set up the MatShell for the associated Jacobian operator
-  ierr = MatCreateShell(PETSC_COMM_SELF, ncompq*odofs, ncompq*odofs,
+  ierr = MatCreateShell(comm, ncompq*odofs, ncompq*odofs,
                         PETSC_DETERMINE, PETSC_DETERMINE, user, &J);
   CHKERRQ(ierr);
   // Set the MatShell operation needed for the Jacobian
