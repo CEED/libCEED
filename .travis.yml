@@ -45,7 +45,7 @@ jobs:
      env:
        - FC=ifort
        - CC=icc
-       - CXX=icpc
+       - CXX=ipp
      install:
      - source /opt/intel/oneapi/setvars.sh
      addons:
@@ -58,6 +58,8 @@ jobs:
          - libopenblas-dev
          - valgrind-dbg
          - intel-oneapi-icc
+         - intel-oneapi-ipp
+         - intel-oneapi-ifort
 # OSX GCC
    - name: "OSX GCC"
      os: osx
