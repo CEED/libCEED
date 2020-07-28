@@ -434,6 +434,10 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
     ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChk(ierr);
     break;
+  // LCOV_EXCL_START
+  case CEED_CUDA_NONE_SYNC:
+    break; // Not possible, but included for completness
+    // LCOV_EXCL_STOP
   }
   return 0;
 }
