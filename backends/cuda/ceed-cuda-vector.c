@@ -426,7 +426,6 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
   case CEED_CUDA_HOST_SYNC:
     ierr = CeedHostReciprocal_Cuda(data->h_array, length); CeedChk(ierr);
     break;
-  case CEED_CUDA_NONE_SYNC:
   case CEED_CUDA_DEVICE_SYNC:
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChk(ierr);
     break;
