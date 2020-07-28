@@ -967,8 +967,7 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d) {
 int CeedBasisDestroy(CeedBasis *basis) {
   int ierr;
 
-  if (!*basis || --(*basis)->refcount > 0)
-    return 0;
+  if (!*basis || --(*basis)->refcount > 0) return 0;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
   }

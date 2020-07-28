@@ -159,8 +159,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
   int ierr;
 
-  if (!*contract || --(*contract)->refcount > 0)
-    return 0;
+  if (!*contract || --(*contract)->refcount > 0) return 0;
   if ((*contract)->Destroy) {
     ierr = (*contract)->Destroy(*contract); CeedChk(ierr);
   }

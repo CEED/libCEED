@@ -581,7 +581,7 @@ doc : doc-html
 
 style-c :
 	@astyle --options=.astylerc \
-          $(filter-out include/ceedf.h tests/t320-basis-f.h, \
+          $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), \
             $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
               examples/*/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
 

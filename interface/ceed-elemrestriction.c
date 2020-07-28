@@ -869,8 +869,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
 int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   int ierr;
 
-  if (!*rstr || --(*rstr)->refcount > 0)
-    return 0;
+  if (!*rstr || --(*rstr)->refcount > 0) return 0;
   if ((*rstr)->numreaders)
     return CeedError((*rstr)->ceed, 1, "Cannot destroy CeedElemRestriction, "
                      "a process has read access to the offset data");
