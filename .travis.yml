@@ -1,7 +1,7 @@
 language: c
 
 os: linux
-dist: bionic
+dist: focal
 
 addons:
   apt:
@@ -25,21 +25,21 @@ jobs:
 # Linux GCC + Codecov
    - name: "Linux GCC + CodeCov"
      os: linux
-     dist: bionic
+     dist: focal
      arch: amd64
      compiler: gcc
      env: FC=gfortran
 # Linux Clang + Tidy and Style
    - name: "Linux Clang + Tidy and Style"
      os: linux
-     dist: bionic
+     dist: focal
      arch: amd64
      compiler: clang
      env: FC=gfortran
 # Linux ICC
    - name: "Linux ICC"
      os: linux
-     dist: bionic
+     dist: focal
      arch: amd64
      compiler: icc
      env:
@@ -77,14 +77,14 @@ jobs:
 # IBM Power
    - name: "IBM Power"
      os: linux
-     dist: bionic
+     dist: focal
      arch: ppc64le
      compiler: gcc
      env: FC=gfortran MFEM_USE_SIMD=NO
 # ARM
    - name: "ARM"
      os: linux
-     dist: bionic
+     dist: focal
      arch: arm64
      compiler: gcc
      env: FC=gfortran
@@ -92,7 +92,7 @@ jobs:
    - name: "Python"
      language: python
      os: linux
-     dist: bionic
+     dist: focal
      arch: amd64
      compiler: gcc
      python: 3.8-dev
@@ -112,7 +112,7 @@ jobs:
 # ARM - current intermittant issues passing with Travis
    - name: "ARM"
      os: linux
-     dist: bionic
+     dist: focal
      arch: arm64
      compiler: gcc
      env: FC=gfortran
@@ -141,9 +141,12 @@ install:
         && make -C mfem -j2 serial CXXFLAGS="-O -std=c++11" MFEM_USE_SIMD=${MFEM_USE_SIMD}
         && export MFEM_DIR=$PWD/mfem
 # Nek5k v19.0
-  - git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git
+# Note: gcov triggers internal compiler error for gfortran 9/10
+  - if [[ "$TRAVIS_JOB_NAME" != "Linux GCC + CodeCov" ]]; then
+        git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git
         && cd Nek5000/tools && ./maketools genbox genmap reatore2 && cd ../..
         && export NEK5K_DIR=$PWD/Nek5000 PATH=$PWD/Nek5000/bin:$PATH MPI=0;
+    fi
 # PETSc
   - PETSC_COMMIT=afc36f2e62dc81f9d8cae345c2c65c61f89b0500 # master 2020-05-13
   - export PETSC_INSTALL=$HOME/install/petsc-$PETSC_COMMIT
