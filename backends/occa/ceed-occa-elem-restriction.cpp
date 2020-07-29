@@ -260,8 +260,8 @@ namespace ceed {
 
       // Default strides
       ceedNodeStride      = 1;
-      ceedComponentStride = ceedElementSize * ceedElementCount;
-      ceedElementStride   = ceedElementSize;
+      ceedComponentStride = ceedElementSize;
+      ceedElementStride   = ceedElementSize * ceedComponentCount;
       ceedUnstridedComponentStride = 1;
 
       if (ceedStrideType == USER_STRIDES) {
@@ -365,6 +365,13 @@ namespace ceed {
       // Setup Ceed objects before setting up memory
       elemRestriction = ElemRestriction::from(r);
       elemRestriction->setup(memType, copyMode, indicesInput);
+
+      CeedInt defaultLayout[3] = {
+        elemRestriction->ceedNodeStride,
+        elemRestriction->ceedComponentStride,
+        elemRestriction->ceedElementStride
+      };
+      ierr = CeedElemRestrictionSetELayout(r, defaultLayout); CeedChk(ierr);
 
       CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
       CeedOccaRegisterFunction(r, "ApplyBlock", ElemRestriction::ceedApplyBlock);
