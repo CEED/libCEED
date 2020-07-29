@@ -258,6 +258,7 @@ info:
 	$(info CXXFLAGS      = $(value CXXFLAGS))
 	$(info FFLAGS        = $(value FFLAGS))
 	$(info NVCCFLAGS     = $(value NVCCFLAGS))
+	$(info HIPCCFLAGS    = $(value HIPCCFLAGS))
 	$(info LDFLAGS       = $(value LDFLAGS))
 	$(info LDLIBS        = $(LDLIBS))
 	$(info OPT           = $(OPT))
@@ -417,7 +418,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
-	$(call quiet,NVCC) $(CPPFLAGS) $(NVCCFLAGS) -c -o $@ $(abspath $<)
+	$(NVCC) $(filter-out -Wno-unused-function, $(CPPFLAGS)) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)

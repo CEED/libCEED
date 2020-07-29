@@ -66,6 +66,9 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   string qFunction(data->qFunctionSource);
   string qReadWriteS(qReadWrite);
   ostringstream code;
+  string qFunctionName(data->qFunctionName);
+  string kernelName;
+  kernelName = "CeedKernel_Hip_ref_" + qFunctionName;
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
@@ -74,7 +77,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;\n";
   code << qReadWriteS;
   code << qFunction;
-  code << "extern \"C\" __global__ void qfunction(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
+  code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
   
   // Inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -112,7 +115,6 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   }
   // QFunction
   code << "// QFunction\n";
-  string qFunctionName(data->qFunctionName);
   code << "    "<<qFunctionName<<"(ctx, 1, in, out);\n";
 
   // Write outputs
@@ -131,7 +133,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Compile kernel
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 0);
   CeedChk(ierr);
-  ierr = CeedGetKernelHip(ceed, data->module, "qfunction", &data->qFunction);
+  ierr = CeedGetKernelHip(ceed, data->module, kernelName.c_str(), &data->qFunction);
   CeedChk(ierr);
 
   // Cleanup
