@@ -72,7 +72,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   char buff[optslen];
   std::string gfxName = "gfx" + std::to_string(prop.gcnArch);
   std::string archArg = "--gpu-architecture="  + gfxName;
-  snprintf(buff, optslen, archArg.c_str());
+  snprintf(buff, optslen, "%s", archArg.c_str());
   opts[1] = buff;
 
   // Add string source argument provided in call
