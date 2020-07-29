@@ -83,6 +83,8 @@ namespace ceed {
       int setArray(CeedMemType mtype,
                    CeedCopyMode cmode, CeedScalar *array);
 
+      int takeArray(CeedMemType mtype, CeedScalar **array);
+
       int copyArrayValues(CeedMemType mtype, CeedScalar *array);
 
       int ownArrayPointer(CeedMemType mtype, CeedScalar *array);
@@ -117,6 +119,8 @@ namespace ceed {
 
       static int ceedSetArray(CeedVector vec, CeedMemType mtype,
                               CeedCopyMode cmode, CeedScalar *array);
+
+      static int ceedTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array);
 
       static int ceedGetArray(CeedVector vec, CeedMemType mtype,
                               CeedScalar **array);
