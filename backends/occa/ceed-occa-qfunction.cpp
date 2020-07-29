@@ -213,9 +213,7 @@ namespace ceed {
         if (!u) {
           return ceedError("Incorrect qFunction input field: U[" + ::occa::toString(i) + "]");
         }
-        CeedScalar *inputArg;
-        ierr = u->getReadOnlyArray(CEED_MEM_DEVICE, &inputArg); CeedChk(ierr);
-        qFunctionKernel.pushArg(arrayToMemory(inputArg));
+        qFunctionKernel.pushArg(u->getConstKernelArg());
       }
 
       for (CeedInt i = 0; i < args.outputCount(); i++) {
@@ -223,21 +221,12 @@ namespace ceed {
         if (!v) {
           return ceedError("Incorrect qFunction output field: V[" + ::occa::toString(i) + "]");
         }
-        CeedScalar *outputArg;
-        ierr = v->getArray(CEED_MEM_DEVICE, &outputArg); CeedChk(ierr);
-
-        outputArgs.push_back(outputArg);
-        qFunctionKernel.pushArg(arrayToMemory(outputArg));
+        qFunctionKernel.pushArg(v->getKernelArg());
       }
 
       qFunctionKernel.pushArg(qFunctionContext);
 
       qFunctionKernel.run();
-
-      for (CeedInt i = 0; i < args.outputCount(); i++) {
-        Vector *v = Vector::from(V[i]);
-        ierr = v->restoreArray(&outputArgs[i]); CeedChk(ierr);
-      }
 
       return 0;
     }

@@ -230,8 +230,12 @@ namespace ceed {
 
       addKernelSource(ss);
 
+      const std::string kernelSource = ss.str();
+
+      CeedDebug(kernelSource.c_str());
+
       // TODO: Store a kernel per Q
-      return getDevice().buildKernelFromString(ss.str(),
+      return getDevice().buildKernelFromString(kernelSource,
                                                "applyAdd",
                                                getKernelProps());
     }
@@ -523,10 +527,14 @@ namespace ceed {
       const OperatorField &opField = args.getOpField(isInput, index);
       CeedEvalMode evalMode = args.getEvalMode(isInput, index);
 
-      if (evalMode != CEED_EVAL_NONE) {
+      if (evalMode == CEED_EVAL_GRAD) {
         ss << "    CeedScalar " << indexedVar(name, index)
            << "[" << opField.getComponentCount() << "]"
            << "[" << opField.getDim() << "]"
+           << "[OCCA_Q];" << std::endl;
+      } else if (evalMode == CEED_EVAL_INTERP) {
+        ss << "    CeedScalar " << indexedVar(name, index)
+           << "[" << opField.getComponentCount() << "]"
            << "[OCCA_Q];" << std::endl;
       } else {
         const QFunctionField &qfField = args.getQfField(isInput, index);
@@ -731,7 +739,7 @@ namespace ceed {
       std::string output;
       if (isInput) {
         // TODO: Can the weight operator handle multiple components?
-        output = "(CeedScalar*) " + indexedVar("quadInput", index) + "[0]";
+        output = "(CeedScalar*) " + indexedVar("quadInput", index);
       } else {
         output = "&" + dofOutputVar(index) + "(0, element)";
       }
