@@ -1817,6 +1817,10 @@ int main(int argc, char **argv) {
   if (testChoice == TEST_NONE) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
+  // Get the current time
+  PetscReal timeNow;
+  ierr = TSGetTime(ts,&timeNow);CHKERRQ(ierr);
+  ctxSetup.time = timeNow;
 
   // Solve
   start = MPI_Wtime();
