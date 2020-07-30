@@ -729,51 +729,53 @@ __device__ void diagonalCore(const CeedInt nelem,
   const CeedScalar qfvaluebound = maxnorm*1e-12;
 
   // Compute the diagonal of B^T D B
-  // Each element
-  for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < nelem;
-       e += gridDim.x*blockDim.z) {
-    CeedInt dout = -1;
-    // Each basis eval mode pair
-    for (CeedInt eout = 0; eout < NUMEMODEOUT; eout++) {
-      const CeedScalar *bt = NULL;
-      if (emodeout[eout] == CEED_EVAL_GRAD)
-        dout += 1;
-      CeedOperatorGetBasisPointer_Cuda(&bt, emodeout[eout], identity, interpout,
-                                      &gradout[dout*NQPTS*NNODES]);
-      CeedInt din = -1;
-      for (CeedInt ein = 0; ein < NUMEMODEIN; ein++) {
-        const CeedScalar *b = NULL;
-        if (emodein[ein] == CEED_EVAL_GRAD)
-          din += 1;
-        CeedOperatorGetBasisPointer_Cuda(&b, emodein[ein], identity, interpin,
-                                        &gradin[din*NQPTS*NNODES]);
-        // Each component
-        for (CeedInt compOut = 0; compOut < NCOMP; compOut++) {
-          // Each qpoint/node pair
-          if (pointBlock) {
-            // Point Block Diagonal
-            for (CeedInt compIn = 0; compIn < NCOMP; compIn++) {
-              CeedScalar evalue = 0.;
-              for (CeedInt q = 0; q < NQPTS; q++) {
+  CeedInt dout = -1;
+  // Each basis eval mode pair
+  for (CeedInt eout = 0; eout < NUMEMODEOUT; eout++) {
+    const CeedScalar *bt = NULL;
+    if (emodeout[eout] == CEED_EVAL_GRAD)
+      dout += 1;
+    CeedOperatorGetBasisPointer_Cuda(&bt, emodeout[eout], identity, interpout,
+                                     &gradout[dout*NQPTS*NNODES]);
+    CeedInt din = -1;
+    for (CeedInt ein = 0; ein < NUMEMODEIN; ein++) {
+      const CeedScalar *b = NULL;
+      if (emodein[ein] == CEED_EVAL_GRAD)
+        din += 1;
+      CeedOperatorGetBasisPointer_Cuda(&b, emodein[ein], identity, interpin,
+                                       &gradin[din*NQPTS*NNODES]);
+      // Each component
+      for (CeedInt compOut = 0; compOut < NCOMP; compOut++) {
+        // Each qpoint/node pair
+        if (pointBlock) {
+          // Point Block Diagonal
+          for (CeedInt compIn = 0; compIn < NCOMP; compIn++) {
+            for (CeedInt q = 0; q < NQPTS; q++) {
+              const CeedScalar bt_q = bt[q*NNODES+tid], b_q = b[q*NNODES+tid];
+              // Each element
+              for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < nelem;
+                  e += gridDim.x*blockDim.z) {
                 const CeedScalar qfvalue =
                   assembledqfarray[((((ein*NCOMP+compIn)*NUMEMODEOUT+eout)*
                                      NCOMP+compOut)*nelem+e)*NQPTS+q];
                 if (abs(qfvalue) > qfvaluebound)
-                  evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
+                  elemdiagarray[((compOut*NCOMP+compIn)*nelem+e)*NNODES+tid] += bt_q * qfvalue * b_q;
               }
-              elemdiagarray[((compOut*NCOMP+compIn)*nelem+e)*NNODES+tid] += evalue;
             }
-          } else {
-            // Diagonal Only
-            CeedScalar evalue = 0.;
-            for (CeedInt q = 0; q < NQPTS; q++) {
+          }
+        } else {
+          // Diagonal Only
+          for (CeedInt q = 0; q < NQPTS; q++) {
+            const CeedScalar bt_q = bt[q*NNODES+tid], b_q = b[q*NNODES+tid];
+            // Each element
+            for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < nelem;
+                e += gridDim.x*blockDim.z) {
               const CeedScalar qfvalue =
                 assembledqfarray[((((ein*NCOMP+compOut)*NUMEMODEOUT+eout)*
                                    NCOMP+compOut)*nelem+e)*NQPTS+q];
               if (abs(qfvalue) > qfvaluebound)
-                evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
+                elemdiagarray[(compOut*nelem+e)*NNODES+tid] += bt_q * qfvalue * b_q;
             }
-            elemdiagarray[(compOut*nelem+e)*NNODES+tid] += evalue;
           }
         }
       }
