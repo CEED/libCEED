@@ -886,6 +886,8 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
+    if (problem->bc == Exact_Euler)
+      bc->nwall = bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
@@ -921,11 +923,16 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_DC || problem->bc == Exact_Euler) {
+      } else if (problem->bc == Exact_DC) {
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+      } else if (problem->bc == Exact_Euler) {
+        PetscInt bcMMS[4] = {1, 2, 3, 4};
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0,
+                             0, NULL, (void(*)(void))problem->bc,
+                             4, bcMMS, ctxSetup); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
