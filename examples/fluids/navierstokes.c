@@ -150,11 +150,11 @@ testData testOptions[] = {
 typedef struct {
   CeedInt dim, qdatasizeVol, qdatasizeSur;
   CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
-                    applySur, applyIn, applyOut;
+                    applySur;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                        PetscScalar[], void *);
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
-        *applyVol_ifunction_loc, *applySur_loc, *applyIn_loc, *applyOut_loc;
+        *applyVol_ifunction_loc, *applySur_loc;
   const bool non_zero_time;
 } problemData;
 
@@ -226,10 +226,8 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsEuler_loc,
     .applyVol_rhs              = Euler,
     .applyVol_rhs_loc          = Euler_loc,
-    .applyIn                   = Euler_In,
-    .applyIn_loc               = Euler_In_loc,
-    .applyOut                  = Euler_Out,
-    .applyOut_loc              = Euler_Out_loc,
+    .applySur                  = Euler_Sur,
+    .applySur_loc              = Euler_Sur_loc,
     .bc                        = Exact_Euler,
     .non_zero_time             = PETSC_TRUE,
   },
@@ -443,8 +441,7 @@ static PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 // Utility function to create CEED Composite Operator for the entire domain
 static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     problemType problemChoice, WindType wind_type, CeedOperator op_applyVol,
-    CeedQFunction qf_applySur, CeedQFunction qf_setupSur,
-    CeedQFunction qf_applyIn, CeedQFunction qf_applyOut, CeedInt height,
+    CeedQFunction qf_applySur, CeedQFunction qf_setupSur,CeedInt height,
     CeedInt numP_Sur, CeedInt numQ_Sur, CeedInt qdatasizeSur, CeedInt NqptsSur,
     CeedBasis basisxSur, CeedBasis basisqSur, CeedOperator *op_apply) {
 
@@ -524,10 +521,10 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
   if (problemChoice == NS_EULER_VORTEX) {
     // All faces are slip, except for 5 and 6
-    bc->nwall = 0;
-    bc->nslip[0] = 0;
-    bc->nslip[1] = 2;     bc->slips[1][0] = 3; bc->slips[1][1] = 4;
-    bc->nslip[2] = 2;     bc->slips[2][0] = 1; bc->slips[2][1] = 2;
+    //  bc->nwall = 0;
+    //  bc->nslip[0] = 0;
+    //  bc->nslip[1] = 2;     bc->slips[1][0] = 3; bc->slips[1][1] = 4;
+    //  bc->nslip[2] = 2;     bc->slips[2][0] = 1; bc->slips[2][1] = 2;
 
     // Create CEED Operator for each boundary face
     PetscInt localNelemSur[2];
@@ -537,8 +534,6 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     CeedElemRestriction restrictxSur[2], restrictqSur[2], restrictqdiSur[2];
 
     for (CeedInt i=0; i<2; i++) {
-      if (i == 0) qf_apply = qf_applyIn;  // Face 5: inflow
-      if (i == 1) qf_apply = qf_applyOut; // Face 6: outflow
       ierr = GetRestrictionForDomain(ceed, dm, height, domainLabel, i+5, numP_Sur,
                                      numQ_Sur, qdatasizeSur, &restrictqSur[i],
                                      &restrictxSur[i], &restrictqdiSur[i]);
@@ -556,7 +551,7 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedOperatorSetField(op_setupSur[i], "qdataSur", restrictqdiSur[i],
                            CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
       // Create Boundary operator
-      CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_applySur[i]);
+      CeedOperatorCreate(ceed, qf_applySur, NULL, NULL, &op_applySur[i]);
       CeedOperatorSetField(op_applySur[i], "q", restrictqSur[i], basisqSur,
                            CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_applySur[i], "qdataSur", restrictqdiSur[i],
@@ -913,7 +908,6 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
               SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
                        "Boundary condition already set on face %D!\n",
                        bc->walls[w]);
-
           }
         }
       }
@@ -1575,7 +1569,7 @@ int main(int argc, char **argv) {
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
   CeedBasis basisxSur, basisxcSur, basisqSur;
   CeedInt NqptsSur;
-  CeedQFunction qf_setupSur, qf_applySur, qf_applyIn, qf_applyOut;
+  CeedQFunction qf_setupSur, qf_applySur;
 
   // CEED bases for the boundaries
   CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompq, numP_Sur, numQ_Sur,
@@ -1605,40 +1599,19 @@ int main(int argc, char **argv) {
     CeedQFunctionAddInput(qf_applySur, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_applySur, "v", ncompq, CEED_EVAL_INTERP);
   }
-  // -- Defined for Euler Traveling Vortex test case
-  qf_applyIn = NULL;
-  if (problem->applyIn) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->applyIn,
-                                problem->applyIn_loc, &qf_applyIn);
-    CeedQFunctionAddInput(qf_applyIn, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_applyIn, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_applyIn, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_applyIn, "v", ncompq, CEED_EVAL_INTERP);
-  }
-  qf_applyOut = NULL;
-  if (problem->applyOut) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->applyOut,
-                                problem->applyOut_loc, &qf_applyOut);
-    CeedQFunctionAddInput(qf_applyOut, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_applyOut, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_applyOut, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_applyOut, "v", ncompq, CEED_EVAL_INTERP);
-  }
 
   // Create CEED Operator for the whole domain
   if (!implicit)
     ierr = CreateOperatorForDomain(ceed, dm, &bc, problemChoice, wind_type,
                                    user->op_rhs_vol, qf_applySur,
-                                   qf_setupSur, qf_applyIn, qf_applyOut,
-                                   height, numP_Sur, numQ_Sur,
+                                   qf_setupSur, height, numP_Sur, numQ_Sur,
                                    qdatasizeSur, NqptsSur, basisxSur,
                                    basisqSur, &user->op_rhs);
                                    CHKERRQ(ierr);
   if (implicit)
     ierr = CreateOperatorForDomain(ceed, dm, &bc, problemChoice, wind_type,
                                    user->op_ifunction_vol, qf_applySur,
-                                   qf_setupSur, NULL, NULL,
-                                   height, numP_Sur, numQ_Sur,
+                                   qf_setupSur, height, numP_Sur, numQ_Sur,
                                    qdatasizeSur, NqptsSur, basisxSur,
                                    basisqSur, &user->op_ifunction);
                                    CHKERRQ(ierr);
@@ -1693,8 +1666,8 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_applyIn) CeedQFunctionSetContext(qf_applyIn, &ctxEuler,
-          sizeof ctxEuler);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSetup,
+          sizeof ctxSetup);
   }
 
   // Set up PETSc context
@@ -1925,8 +1898,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basisxcSur);
   CeedQFunctionDestroy(&qf_setupSur);
   CeedQFunctionDestroy(&qf_applySur);
-  CeedQFunctionDestroy(&qf_applyIn);
-  CeedQFunctionDestroy(&qf_applyOut);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
 
