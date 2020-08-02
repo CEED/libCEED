@@ -1673,6 +1673,8 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS,
+          sizeof ctxNS);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSetup,
           sizeof ctxSetup);
   }
