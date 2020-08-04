@@ -30,6 +30,6 @@ User CeedQFunction
       Size: 1
       EvalMode: "interpolation"
 
-CeedUserContext
+CeedQFunctionContext
   Context Data Size: 40
 

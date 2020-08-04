@@ -548,13 +548,13 @@ static int SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
                          CEED_VECTOR_ACTIVE);
 
     // Set up the libCEED context
-    CeedUserContext rhsSetup;
-    CeedUserContextCreate(ceed, &rhsSetup);
+    CeedQFunctionContext rhsSetup;
+    CeedQFunctionContextCreate(ceed, &rhsSetup);
     CeedScalar rhsSetupData[2] = {R, l};
-    CeedUserContextSetData(rhsSetup, CEED_MEM_HOST, CEED_COPY_VALUES,
-                           sizeof rhsSetupData, &rhsSetupData);
+    CeedQFunctionContextSetData(rhsSetup, CEED_MEM_HOST, CEED_COPY_VALUES,
+                                sizeof rhsSetupData, &rhsSetupData);
     CeedQFunctionSetContext(qf_setuprhs, rhsSetup);
-    CeedUserContextDestroy(&rhsSetup);
+    CeedQFunctionContextDestroy(&rhsSetup);
 
     // Setup RHS and target
     CeedOperatorApply(op_setuprhs, xcoord, rhsceed, CEED_REQUEST_IMMEDIATE);

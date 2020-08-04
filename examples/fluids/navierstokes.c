@@ -707,15 +707,15 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
 static PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
     CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
-    CeedElemRestriction restrictq, CeedUserContext ctxSetup, CeedScalar time) {
+    CeedElemRestriction restrictq, CeedQFunctionContext ctxSetup, CeedScalar time) {
   PetscErrorCode ierr;
   CeedVector multlvec;
   Vec Multiplicity, MultiplicityLoc;
 
   SetupContext ctxSetupData;
-  CeedUserContextGetData(ctxSetup, CEED_MEM_HOST, (void **)&ctxSetupData);
+  CeedQFunctionContextGetData(ctxSetup, CEED_MEM_HOST, (void **)&ctxSetupData);
   ctxSetupData->time = time;
-  CeedUserContextRestoreData(ctxSetup, (void **)&ctxSetupData);
+  CeedQFunctionContextRestoreData(ctxSetup, (void **)&ctxSetupData);
 
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
   ierr = VectorPlacePetscVec(q0ceed, Qloc); CHKERRQ(ierr);
@@ -897,7 +897,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
-  CeedUserContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface;
+  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
@@ -1516,33 +1516,33 @@ int main(int argc, char **argv) {
                                    NqptsSur, basisxSur, basisqSur,
                                    &user->op_ifunction); CHKERRQ(ierr);
   // Set up contex for QFunctions
-  CeedUserContextCreate(ceed, &ctxSetup);
-  CeedUserContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof ctxSetupData, &ctxSetupData);
+  CeedQFunctionContextCreate(ceed, &ctxSetup);
+  CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxSetupData, &ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
   CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
-  CeedUserContextCreate(ceed, &ctxNS);
-  CeedUserContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof ctxNSData, &ctxNSData);
+  CeedQFunctionContextCreate(ceed, &ctxNS);
+  CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxNSData, &ctxNSData);
 
   struct Advection2dContext_ ctxAdvection2dData = {
     .CtauS = CtauS,
     .strong_form = strong_form,
     .stabilization = stab,
   };
-  CeedUserContextCreate(ceed, &ctxAdvection2d);
-  CeedUserContextSetData(ctxAdvection2d, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof ctxAdvection2dData, &ctxAdvection2dData);
+  CeedQFunctionContextCreate(ceed, &ctxAdvection2d);
+  CeedQFunctionContextSetData(ctxAdvection2d, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxAdvection2dData, &ctxAdvection2dData);
 
   struct SurfaceContext_ ctxSurfaceData = {
     .E_wind = E_wind,
     .strong_form = strong_form,
     .implicit = implicit,
   };
-  CeedUserContextCreate(ceed, &ctxSurface);
-  CeedUserContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof ctxSurfaceData, &ctxSurfaceData);
+  CeedQFunctionContextCreate(ceed, &ctxSurface);
+  CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxSurfaceData, &ctxSurfaceData);
 
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
@@ -1766,10 +1766,10 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhsVol);
   CeedQFunctionDestroy(&qf_ifunctionVol);
-  CeedUserContextDestroy(&ctxSetup);
-  CeedUserContextDestroy(&ctxNS);
-  CeedUserContextDestroy(&ctxAdvection2d);
-  CeedUserContextDestroy(&ctxSurface);
+  CeedQFunctionContextDestroy(&ctxSetup);
+  CeedQFunctionContextDestroy(&ctxNS);
+  CeedQFunctionContextDestroy(&ctxAdvection2d);
+  CeedQFunctionContextDestroy(&ctxSurface);
   CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);

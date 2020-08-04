@@ -45,7 +45,7 @@ typedef struct {
 typedef struct {
   void *data;
   void *data_allocated;
-} CeedUserContext_Ref;
+} CeedQFunctionContext_Ref;
 
 typedef struct {
   bool identityqf;
@@ -83,7 +83,7 @@ CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 
-CEED_INTERN int CeedUserContextCreate_Ref(CeedUserContext ctx);
+CEED_INTERN int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
 

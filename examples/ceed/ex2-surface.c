@@ -180,12 +180,12 @@ int main(int argc, const char *argv[]) {
   CeedScalar exact_sa = TransformMeshCoords(dim, mesh_size, mesh_coords);
 
   // Context data to be passed to the 'f_build_diff' Q-function.
-  CeedUserContext build_ctx;
+  CeedQFunctionContext build_ctx;
   struct BuildContext build_ctx_data;
   build_ctx_data.dim = build_ctx_data.space_dim = dim;
-  CeedUserContextCreate(ceed, &build_ctx);
-  CeedUserContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof(build_ctx_data), &build_ctx_data);
+  CeedQFunctionContextCreate(ceed, &build_ctx);
+  CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof(build_ctx_data), &build_ctx_data);
 
   // Create the Q-function that builds the diffusion operator (i.e. computes its
   // quadrature data) and set its context data.
@@ -322,7 +322,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorDestroy(&mesh_coords);
   CeedOperatorDestroy(&oper);
   CeedQFunctionDestroy(&apply_qfunc);
-  CeedUserContextDestroy(&build_ctx);
+  CeedQFunctionContextDestroy(&build_ctx);
   CeedOperatorDestroy(&build_oper);
   CeedQFunctionDestroy(&build_qfunc);
   CeedElemRestrictionDestroy(&sol_restr);

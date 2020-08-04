@@ -163,9 +163,10 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     CeedQFunctionUser *f);
-CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, CeedUserContext *ctx);
+CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf,
+                                        CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf,
-    CeedUserContext *ctx);
+    CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void **data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void **data);
@@ -179,12 +180,16 @@ CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qffield,
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
     CeedEvalMode *emode);
 
-CEED_EXTERN int CeedUserContextGetCeed(CeedUserContext cxt, Ceed *ceed);
-CEED_EXTERN int CeedUserContextGetState(CeedUserContext ctx, uint64_t *state);
-CEED_EXTERN int CeedUserContextGetContextSize(CeedUserContext ctx,
+CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext cxt,
+    Ceed *ceed);
+CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx,
+    uint64_t *state);
+CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctxsize);
-CEED_EXTERN int CeedUserContextGetBackendData(CeedUserContext ctx, void **data);
-CEED_EXTERN int CeedUserContextSetBackendData(CeedUserContext ctx, void **data);
+CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
+    void **data);
+CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
+    void **data);
 
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem);

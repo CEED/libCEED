@@ -17,17 +17,18 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
-// UserContext Set Data
+// QFunctionContext Set Data
 //------------------------------------------------------------------------------
-static int CeedUserContextSetData_Ref(CeedUserContext ctx, CeedMemType mtype,
-                                      CeedCopyMode cmode, CeedScalar *data) {
+static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
+    CeedMemType mtype,
+    CeedCopyMode cmode, CeedScalar *data) {
   int ierr;
-  CeedUserContext_Ref *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  CeedQFunctionContext_Ref *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
   size_t ctxsize;
-  ierr = CeedUserContextGetContextSize(ctx, &ctxsize); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChk(ierr);
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
@@ -51,15 +52,16 @@ static int CeedUserContextSetData_Ref(CeedUserContext ctx, CeedMemType mtype,
 }
 
 //------------------------------------------------------------------------------
-// UserContext Get Data
+// QFunctionContext Get Data
 //------------------------------------------------------------------------------
-static int CeedUserContextGetData_Ref(CeedUserContext ctx, CeedMemType mtype,
-                                      CeedScalar **data) {
+static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
+    CeedMemType mtype,
+    CeedScalar **data) {
   int ierr;
-  CeedUserContext_Ref *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  CeedQFunctionContext_Ref *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
@@ -74,19 +76,19 @@ static int CeedUserContextGetData_Ref(CeedUserContext ctx, CeedMemType mtype,
 }
 
 //------------------------------------------------------------------------------
-// UserContext Restore Data
+// QFunctionContext Restore Data
 //------------------------------------------------------------------------------
-static int CeedUserContextRestoreData_Ref(CeedUserContext ctx) {
+static int CeedQFunctionContextRestoreData_Ref(CeedQFunctionContext ctx) {
   return 0;
 }
 
 //------------------------------------------------------------------------------
-// UserContext Destroy
+// QFunctionContext Destroy
 //------------------------------------------------------------------------------
-static int CeedUserContextDestroy_Ref(CeedUserContext ctx) {
+static int CeedQFunctionContextDestroy_Ref(CeedQFunctionContext ctx) {
   int ierr;
-  CeedUserContext_Ref *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  CeedQFunctionContext_Ref *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->data_allocated); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
@@ -94,24 +96,24 @@ static int CeedUserContextDestroy_Ref(CeedUserContext ctx) {
 }
 
 //------------------------------------------------------------------------------
-// UserContext Create
+// QFunctionContext Create
 //------------------------------------------------------------------------------
-int CeedUserContextCreate_Ref(CeedUserContext ctx) {
+int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
   int ierr;
-  CeedUserContext_Ref *impl;
+  CeedQFunctionContext_Ref *impl;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "SetData",
-                                CeedUserContextSetData_Ref); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "GetData",
-                                CeedUserContextGetData_Ref); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "RestoreData",
-                                CeedUserContextRestoreData_Ref); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "Destroy",
-                                CeedUserContextDestroy_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
+                                CeedQFunctionContextSetData_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
+                                CeedQFunctionContextGetData_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
+                                CeedQFunctionContextRestoreData_Ref); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
+                                CeedQFunctionContextDestroy_Ref); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedUserContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

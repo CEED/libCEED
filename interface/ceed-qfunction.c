@@ -255,7 +255,7 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
 
   @ref Backend
 **/
-int CeedQFunctionGetContext(CeedQFunction qf, CeedUserContext *ctx) {
+int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   *ctx = qf->ctx;
   return 0;
 }
@@ -269,14 +269,14 @@ int CeedQFunctionGetContext(CeedQFunction qf, CeedUserContext *ctx) {
   @return An error code: 0 - success, otherwise - failure
   @ref Backend
 **/
-int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedUserContext *ctx) {
+int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   int ierr;
   if (qf->fortranstatus) {
     CeedFortranContext fctx = NULL;
-    ierr = CeedUserContextGetData(qf->ctx, CEED_MEM_HOST, (void *)&fctx);
+    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, (void *)&fctx);
     CeedChk(ierr);
     *ctx = fctx->innerctx;
-    ierr = CeedUserContextRestoreData(qf->ctx, (void *)&fctx); CeedChk(ierr);
+    ierr = CeedQFunctionContextRestoreData(qf->ctx, (void *)&fctx); CeedChk(ierr);
   } else {
     *ctx = qf->ctx;
   }
@@ -566,10 +566,10 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   CeedInt *sizeData;
   ierr = CeedCalloc(1, &sizeData); CeedChk(ierr);
   sizeData[0] = size;
-  CeedUserContext ctx;
-  ierr = CeedUserContextCreate(ceed, &ctx); CeedChk(ierr);
-  ierr = CeedUserContextSetData(ctx, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                sizeof(*sizeData), (void *)sizeData);
+  CeedQFunctionContext ctx;
+  ierr = CeedQFunctionContextCreate(ceed, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*sizeData), (void *)sizeData);
   CeedChk(ierr);
   ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
 
@@ -639,7 +639,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 
   @ref User
 **/
-int CeedQFunctionSetContext(CeedQFunction qf, CeedUserContext ctx) {
+int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   qf->ctx = ctx;
   ctx->refcount++;
   return 0;
@@ -735,7 +735,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
 
   // User context data object
-  ierr = CeedUserContextDestroy(&(*qf)->ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&(*qf)->ctx); CeedChk(ierr);
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->qfname); CeedChk(ierr);

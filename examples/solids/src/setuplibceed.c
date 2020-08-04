@@ -201,7 +201,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 // Set up libCEED for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      Ceed ceed, AppCtx appCtx,
-                                     CeedUserContext physCtx,
+                                     CeedQFunctionContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
                                      PetscInt Ulocsz, CeedVector forceCeed) {
@@ -434,13 +434,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
     if (forcingChoice == FORCE_MMS) {
       CeedQFunctionSetContext(qfSetupForce, physCtx);
     } else {
-      CeedUserContext ctxForcing;
-      CeedUserContextCreate(ceed, &ctxForcing);
-      CeedUserContextSetData(ctxForcing, CEED_MEM_HOST, CEED_USE_POINTER,
-                             sizeof(*appCtx->forcingVector),
-                             appCtx->forcingVector);
+      CeedQFunctionContext ctxForcing;
+      CeedQFunctionContextCreate(ceed, &ctxForcing);
+      CeedQFunctionContextSetData(ctxForcing, CEED_MEM_HOST, CEED_USE_POINTER,
+                                  sizeof(*appCtx->forcingVector),
+                                  appCtx->forcingVector);
       CeedQFunctionSetContext(qfSetupForce, ctxForcing);
-      CeedUserContextDestroy(&ctxForcing);
+      CeedQFunctionContextDestroy(&ctxForcing);
     }
 
     // -- Operator

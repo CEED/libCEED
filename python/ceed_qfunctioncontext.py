@@ -23,7 +23,7 @@ from .ceed_constants import MEM_HOST, COPY_VALUES
 # ------------------------------------------------------------------------------
 
 
-class UserContext():
+class QFunctionContext():
     """Ceed User Context: stores Ceed QFunction user context data."""
 
     # Attributes
@@ -32,26 +32,26 @@ class UserContext():
 
     # Constructor
     def __init__(self, ceed):
-        # CeedUserContext object
-        self._pointer = ffi.new("CeedUserContext *")
+        # CeedQFunctionContext object
+        self._pointer = ffi.new("CeedQFunctionContext *")
 
         # Reference to Ceed
         self._ceed = ceed
 
         # libCEED call
-        err_code = lib.CeedUserContextCreate(
+        err_code = lib.CeedQFunctionContextCreate(
             self._ceed._pointer[0], self._pointer)
         self._ceed._check_error(err_code)
 
     # Destructor
     def __del__(self):
         # libCEED call
-        err_code = lib.CeedUserContextDestroy(self._pointer)
+        err_code = lib.CeedQFunctionContextDestroy(self._pointer)
         self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
-        return "<CeedUserContext instance at " + hex(id(self)) + ">"
+        return "<CeedQFunctionContext instance at " + hex(id(self)) + ">"
 
     # String conversion for print() to stdout
     def __str__(self):
@@ -63,7 +63,8 @@ class UserContext():
             with open(key_file.name, 'r+') as stream_file:
                 stream = ffi.cast("FILE *", stream_file)
 
-                err_code = lib.CeedUserContextView(self._pointer[0], stream)
+                err_code = lib.CeedQFunctionContextView(
+                    self._pointer[0], stream)
                 self._ceed._check_error(err_code)
 
                 stream_file.seek(0)
@@ -93,11 +94,11 @@ class UserContext():
                 data.__cuda_array_interface__['data'][0])
 
         # libCEED call
-        err_code = lib.CeedUserContextSetData(
+        err_code = lib.CeedQFunctionContextSetData(
             self._pointer[0],
             memtype,
             cmode,
-            len(data)*ffi.sizeof("CeedScalar"),
+            len(data) * ffi.sizeof("CeedScalar"),
             data_pointer)
         self._ceed._check_error(err_code)
 
@@ -113,14 +114,15 @@ class UserContext():
 
         # Retrieve the length of the array
         size_pointer = ffi.new("CeedInt *")
-        err_code = lib.CeedUserContextGetContextSize(self._pointer[0], size_pointer)
+        err_code = lib.CeedQFunctionContextGetContextSize(
+            self._pointer[0], size_pointer)
         self._ceed._check_error(err_code)
 
         # Setup the pointer's pointer
         data_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedUserContextGetData(
+        err_code = lib.CeedQFunctionContextGetData(
             self._pointer[0], memtype, data_pointer)
         self._ceed._check_error(err_code)
 

@@ -317,13 +317,13 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   CeedInt *ncompRData;
   ierr = CeedCalloc(1, &ncompRData); CeedChk(ierr);
   ncompRData[0] = ncomp;
-  CeedUserContext ctxR;
-  ierr = CeedUserContextCreate(ceed, &ctxR); CeedChk(ierr);
-  ierr = CeedUserContextSetData(ctxR, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                sizeof(*ncompRData), ncompRData);
+  CeedQFunctionContext ctxR;
+  ierr = CeedQFunctionContextCreate(ceed, &ctxR); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctxR, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*ncompRData), ncompRData);
   CeedChk(ierr);
   ierr = CeedQFunctionSetContext(qfRestrict, ctxR); CeedChk(ierr);
-  ierr = CeedUserContextDestroy(&ctxR); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctxR); CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfRestrict, "scale", ncomp, CEED_EVAL_NONE);
@@ -350,13 +350,13 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   CeedInt *ncompPData;
   ierr = CeedCalloc(1, &ncompPData); CeedChk(ierr);
   ncompPData[0] = ncomp;
-  CeedUserContext ctxP;
-  ierr = CeedUserContextCreate(ceed, &ctxP); CeedChk(ierr);
-  ierr = CeedUserContextSetData(ctxP, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                sizeof(*ncompPData), ncompPData);
+  CeedQFunctionContext ctxP;
+  ierr = CeedQFunctionContextCreate(ceed, &ctxP); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctxP, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*ncompPData), ncompPData);
   CeedChk(ierr);
   ierr = CeedQFunctionSetContext(qfProlong, ctxP); CeedChk(ierr);
-  ierr = CeedUserContextDestroy(&ctxP); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctxP); CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfProlong, "scale", ncomp, CEED_EVAL_NONE);

@@ -109,7 +109,7 @@ typedef struct {
   CeedScalar *d_data;
   CeedScalar *d_data_allocated;
   CeedHipSyncState memState;
-} CeedUserContext_Hip;
+} CeedQFunctionContext_Hip;
 
 typedef struct {
   hipModule_t module;
@@ -200,7 +200,7 @@ CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology, CeedInt, CeedInt,
 
 CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
 
-CEED_INTERN int CeedUserContextCreate_Hip(CeedUserContext ctx);
+CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 

@@ -8,7 +8,7 @@
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunction qf_setup, qf_mass;
-  CeedUserContext ctx;
+  CeedQFunctionContext ctx;
 
   CeedInit(argv[1], &ceed);
 
@@ -24,15 +24,15 @@ int main(int argc, char **argv) {
   CeedQFunctionView(qf_setup, stdout);
   CeedQFunctionView(qf_mass, stdout);
 
-  CeedUserContextCreate(ceed, &ctx);
+  CeedQFunctionContextCreate(ceed, &ctx);
   CeedScalar ctxData[5] = {1, 2, 3, 4, 5};
-  CeedUserContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES,
-                         sizeof(ctxData), &ctxData);
-  CeedUserContextView(ctx, stdout);
+  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES,
+                              sizeof(ctxData), &ctxData);
+  CeedQFunctionContextView(ctx, stdout);
 
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
-  CeedUserContextDestroy(&ctx);
+  CeedQFunctionContextDestroy(&ctx);
   CeedDestroy(&ceed);
   return 0;
 }

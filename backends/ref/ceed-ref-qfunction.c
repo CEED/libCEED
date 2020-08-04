@@ -25,11 +25,11 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   CeedQFunction_Ref *impl;
   ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
 
-  CeedUserContext ctx;
+  CeedQFunctionContext ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
   void *ctxData = NULL;
   if (ctx) {
-    ierr = CeedUserContextGetData(ctx, CEED_MEM_HOST, &ctxData);
+    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxData);
     CeedChk(ierr);
   }
 
@@ -57,7 +57,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
     ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChk(ierr);
   }
   if (ctx) {
-    ierr = CeedUserContextRestoreData(ctx, &ctxData); CeedChk(ierr);
+    ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChk(ierr);
   }
 
   return 0;

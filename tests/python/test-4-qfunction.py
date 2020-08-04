@@ -120,7 +120,7 @@ def test_401(ceed_resource):
     qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
 
     ctx_data = np.array([1., 2., 3., 4., 5.])
-    ctx = ceed.UserContext()
+    ctx = ceed.QFunctionContext()
     ctx.set_data(ctx_data)
     qf_mass.set_context(ctx)
 
@@ -185,7 +185,7 @@ def test_402(ceed_resource, capsys):
     print(qf_mass)
 
     ctx_data = np.array([1., 2., 3., 4., 5.])
-    ctx = ceed.UserContext()
+    ctx = ceed.QFunctionContext()
     ctx.set_data(ctx_data)
     print(ctx)
 

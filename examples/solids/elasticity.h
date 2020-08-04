@@ -168,7 +168,7 @@ struct UserMult_private {
   CeedQFunction   qf;
   Ceed            ceed;
   PetscScalar     loadIncrement;
-  CeedUserContext ctxPhys, ctxPhysSmoother;
+  CeedQFunctionContext ctxPhys, ctxPhysSmoother;
   CeedMemType     memType;
   int (*VecGetArray)(Vec, PetscScalar **);
   int (*VecGetArrayRead)(Vec, const PetscScalar **);
@@ -255,7 +255,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
 // Set up libCEED for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      Ceed ceed, AppCtx appCtx,
-                                     CeedUserContext physCtx,
+                                     CeedQFunctionContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
                                      PetscInt Ulocsz, CeedVector forceCeed);
@@ -269,8 +269,8 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
-                                CeedUserContext ctxPhys,
-                                CeedUserContext ctxPhysSmoother,
+                                CeedQFunctionContext ctxPhys,
+                                CeedQFunctionContext ctxPhysSmoother,
                                 UserMult jacobianCtx);
 
 // Setup context data for prolongation and restriction operators

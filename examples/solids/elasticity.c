@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   // libCEED objects
   Ceed           ceed;
   CeedData       *ceedData;
-  CeedUserContext ctxPhys, ctxPhysSmoother = NULL;
+  CeedQFunctionContext ctxPhys, ctxPhysSmoother = NULL;
   // Parameters
   PetscInt       ncompu = 3;             // 3 DoFs in 3D
   PetscInt       ncompe = 1, ncompd = 5; // 1 energy output, 5 diagnostic
@@ -120,13 +120,13 @@ int main(int argc, char **argv) {
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // Wrap context in libCEED objects
-  CeedUserContextCreate(ceed, &ctxPhys);
-  CeedUserContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
-                         sizeof(*phys), phys);
+  CeedQFunctionContextCreate(ceed, &ctxPhys);
+  CeedQFunctionContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof(*phys), phys);
   if (physSmoother) {
-    CeedUserContextCreate(ceed, &ctxPhysSmoother);
-    CeedUserContextSetData(ctxPhysSmoother, CEED_MEM_HOST, CEED_USE_POINTER,
-                           sizeof(*physSmoother), physSmoother);
+    CeedQFunctionContextCreate(ceed, &ctxPhysSmoother);
+    CeedQFunctionContextSetData(ctxPhysSmoother, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*physSmoother), physSmoother);
   }
 
   // ---------------------------------------------------------------------------
@@ -908,8 +908,8 @@ int main(int argc, char **argv) {
   ierr = PetscFree(ceedData); CHKERRQ(ierr);
 
   // libCEED objects
-  CeedUserContextDestroy(&ctxPhys);
-  CeedUserContextDestroy(&ctxPhysSmoother);
+  CeedQFunctionContextDestroy(&ctxPhys);
+  CeedQFunctionContextDestroy(&ctxPhysSmoother);
   CeedDestroy(&ceed);
 
   // PETSc objects

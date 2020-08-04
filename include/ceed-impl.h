@@ -116,7 +116,7 @@ struct Ceed_private {
                        const CeedScalar *, CeedBasis);
   int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
-  int (*UserContextCreate)(CeedUserContext);
+  int (*QFunctionContextCreate)(CeedQFunctionContext);
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int refcount;
@@ -236,17 +236,17 @@ struct CeedQFunction_private {
   const char *qfname;
   bool identity;
   bool fortranstatus;
-  CeedUserContext ctx; /* user context for function */
+  CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
 
-struct CeedUserContext_private {
+struct CeedQFunctionContext_private {
   Ceed ceed;
   int refcount;
-  int (*SetData)(CeedUserContext, CeedMemType, CeedCopyMode, void *);
-  int (*GetData)(CeedUserContext, CeedMemType, void **);
-  int (*RestoreData)(CeedUserContext);
-  int (*Destroy)(CeedUserContext);
+  int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
+  int (*GetData)(CeedQFunctionContext, CeedMemType, void **);
+  int (*RestoreData)(CeedQFunctionContext);
+  int (*Destroy)(CeedQFunctionContext);
   uint64_t state;
   size_t ctxsize;
   void *data;
@@ -255,7 +255,7 @@ struct CeedUserContext_private {
 /// Struct to handle the context data to use the Fortran QFunction stub
 /// @ingroup CeedQFunction
 struct CeedFortranContext_private {
-  CeedUserContext innerctx;
+  CeedQFunctionContext innerctx;
   void (*f)(void *ctx, int *nq,
             const CeedScalar *u,const CeedScalar *u1,
             const CeedScalar *u2,const CeedScalar *u3,

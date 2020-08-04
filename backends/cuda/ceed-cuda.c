@@ -221,8 +221,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "UserContextCreate",
-                                CeedUserContextCreate_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
+                                CeedQFunctionContextCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",

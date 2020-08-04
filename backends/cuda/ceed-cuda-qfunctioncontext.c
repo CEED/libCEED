@@ -20,22 +20,22 @@
 //------------------------------------------------------------------------------
 // * Bytes used
 //------------------------------------------------------------------------------
-static inline size_t bytes(const CeedUserContext ctx) {
+static inline size_t bytes(const CeedQFunctionContext ctx) {
   int ierr;
   size_t ctxsize;
-  ierr = CeedUserContextGetContextSize(ctx, &ctxsize); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChk(ierr);
   return ctxsize;
 }
 
 //------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
-static inline int CeedSyncH2D_Cuda(const CeedUserContext ctx) {
+static inline int CeedSyncH2D_Cuda(const CeedQFunctionContext ctx) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   ierr = cudaMemcpy(impl->d_data, impl->h_data, bytes(ctx),
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
@@ -45,12 +45,12 @@ static inline int CeedSyncH2D_Cuda(const CeedUserContext ctx) {
 //------------------------------------------------------------------------------
 // Sync device to host
 //------------------------------------------------------------------------------
-static inline int CeedSyncD2H_Cuda(const CeedUserContext ctx) {
+static inline int CeedSyncD2H_Cuda(const CeedQFunctionContext ctx) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   ierr = cudaMemcpy(impl->h_data, impl->d_data, bytes(ctx),
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
@@ -60,12 +60,12 @@ static inline int CeedSyncD2H_Cuda(const CeedUserContext ctx) {
 //------------------------------------------------------------------------------
 // Set data from host
 //------------------------------------------------------------------------------
-static int CeedUserContextSetDataHost_Cuda(const CeedUserContext ctx,
+static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
     const CeedCopyMode cmode,
     CeedScalar *data) {
   int ierr;
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES: {
@@ -92,13 +92,14 @@ static int CeedUserContextSetDataHost_Cuda(const CeedUserContext ctx,
 //------------------------------------------------------------------------------
 // Set data from device
 //------------------------------------------------------------------------------
-static int CeedUserContextSetDataDevice_Cuda(const CeedUserContext ctx,
+static int CeedQFunctionContextSetDataDevice_Cuda(const CeedQFunctionContext
+    ctx,
     const CeedCopyMode cmode, CeedScalar *data) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES:
@@ -129,19 +130,19 @@ static int CeedUserContextSetDataDevice_Cuda(const CeedUserContext ctx,
 // Set the array used by a user context,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
-static int CeedUserContextSetData_Cuda(const CeedUserContext ctx,
-                                       const CeedMemType mtype,
-                                       const CeedCopyMode cmode,
-                                       CeedScalar *data) {
+static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx,
+    const CeedMemType mtype,
+    const CeedCopyMode cmode,
+    CeedScalar *data) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
-    return CeedUserContextSetDataHost_Cuda(ctx, cmode, data);
+    return CeedQFunctionContextSetDataHost_Cuda(ctx, cmode, data);
   case CEED_MEM_DEVICE:
-    return CeedUserContextSetDataDevice_Cuda(ctx, cmode, data);
+    return CeedQFunctionContextSetDataDevice_Cuda(ctx, cmode, data);
   }
   return 1;
 }
@@ -149,14 +150,14 @@ static int CeedUserContextSetData_Cuda(const CeedUserContext ctx,
 //------------------------------------------------------------------------------
 // Get array
 //------------------------------------------------------------------------------
-static int CeedUserContextGetData_Cuda(const CeedUserContext ctx,
-                                       const CeedMemType mtype,
-                                       CeedScalar **data) {
+static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
+    const CeedMemType mtype,
+    CeedScalar **data) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
   if(impl->h_data == NULL && impl->d_data == NULL)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "No context data set");
@@ -193,21 +194,22 @@ static int CeedUserContextGetData_Cuda(const CeedUserContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Restore data obtained using CeedUserContextGetData()
+// Restore data obtained using CeedQFunctionContextGetData()
 //------------------------------------------------------------------------------
-static int CeedUserContextRestoreData_Cuda(const CeedUserContext ctx) {
+static int CeedQFunctionContextRestoreData_Cuda(const CeedQFunctionContext
+    ctx) {
   return 0;
 }
 
 //------------------------------------------------------------------------------
 // Destroy the user context
 //------------------------------------------------------------------------------
-static int CeedUserContextDestroy_Cuda(const CeedUserContext ctx) {
+static int CeedQFunctionContextDestroy_Cuda(const CeedQFunctionContext ctx) {
   int ierr;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
-  CeedUserContext_Cuda *impl;
-  ierr = CeedUserContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
 
   ierr = cudaFree(impl->d_data_allocated); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&impl->h_data_allocated); CeedChk(ierr);
@@ -216,25 +218,25 @@ static int CeedUserContextDestroy_Cuda(const CeedUserContext ctx) {
 }
 
 //------------------------------------------------------------------------------
-// UserContext Create
+// QFunctionContext Create
 //------------------------------------------------------------------------------
-int CeedUserContextCreate_Cuda(CeedUserContext ctx) {
+int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
   int ierr;
-  CeedUserContext_Cuda *impl;
+  CeedQFunctionContext_Cuda *impl;
   Ceed ceed;
-  ierr = CeedUserContextGetCeed(ctx, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "SetData",
-                                CeedUserContextSetData_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "GetData",
-                                CeedUserContextGetData_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "RestoreData",
-                                CeedUserContextRestoreData_Cuda); CeedChk(ierr);
-  ierr = CeedSetBackendFunction(ceed, "UserContext", ctx, "Destroy",
-                                CeedUserContextDestroy_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
+                                CeedQFunctionContextSetData_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
+                                CeedQFunctionContextGetData_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
+                                CeedQFunctionContextRestoreData_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
+                                CeedQFunctionContextDestroy_Cuda); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->memState = CEED_CUDA_NONE_SYNC;
-  ierr = CeedUserContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

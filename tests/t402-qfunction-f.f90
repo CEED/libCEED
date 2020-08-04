@@ -43,11 +43,11 @@
       call ceedqfunctionview(qf_setup,err)
       call ceedqfunctionview(qf_mass,err)
 
-      call ceedusercontextcreate(ceed,ctx,err)
+      call ceedqfunctioncontextcreate(ceed,ctx,err)
       coffset=0
-      call ceedusercontextsetdata(ctx,ceed_mem_host,ceed_use_pointer,ctxsize,&
+      call ceedqfunctioncontextsetdata(ctx,ceed_mem_host,ceed_use_pointer,ctxsize,&
      & ctxdata,coffset,err)
-      call ceedusercontextview(ctx,err)
+      call ceedqfunctioncontextview(ctx,err)
 
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)

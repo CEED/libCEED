@@ -19,40 +19,40 @@
 #include <limits.h>
 
 /// @file
-/// Implementation of public CeedUserContext interfaces
+/// Implementation of public CeedQFunctionContext interfaces
 
 /// ----------------------------------------------------------------------------
-/// CeedUserContext Backend API
+/// CeedQFunctionContext Backend API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedQFunctionBackend
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedUserContext
+  @brief Get the Ceed associated with a CeedQFunctionContext
 
-  @param ctx             CeedUserContext
+  @param ctx             CeedQFunctionContext
   @param[out] ceed       Variable to store Ceed
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedUserContextGetCeed(CeedUserContext ctx, Ceed *ceed) {
+int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
   *ceed = ctx->ceed;
   return 0;
 }
 
 /**
-  @brief Get the state of a CeedUserContext
+  @brief Get the state of a CeedQFunctionContext
 
-  @param ctx           CeedUserContext to retrieve state
+  @param ctx           CeedQFunctionContext to retrieve state
   @param[out] state    Variable to store state
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedUserContextGetState(CeedUserContext ctx, uint64_t *state) {
+int CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state) {
   *state = ctx->state;
   return 0;
 }
@@ -60,44 +60,45 @@ int CeedUserContextGetState(CeedUserContext ctx, uint64_t *state) {
 /**
   @brief Get data size for a Context
 
-  @param ctx             CeedUserContext
+  @param ctx             CeedQFunctionContext
   @param[out] ctxsize    Variable to store size of context data values
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedUserContextGetContextSize(CeedUserContext ctx, size_t *ctxsize) {
+int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
+                                       size_t *ctxsize) {
   *ctxsize = ctx->ctxsize;
   return 0;
 }
 
 /**
-  @brief Get backend data of a CeedUserContext
+  @brief Get backend data of a CeedQFunctionContext
 
-  @param ctx             CeedUserContext
+  @param ctx             CeedQFunctionContext
   @param[out] data       Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedUserContextGetBackendData(CeedUserContext ctx, void **data) {
+int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void **data) {
   *data = ctx->data;
   return 0;
 }
 
 /**
-  @brief Set backend data of a CeedUserContext
+  @brief Set backend data of a CeedQFunctionContext
 
-  @param[out] ctx        CeedUserContext
+  @param[out] ctx        CeedQFunctionContext
   @param data            Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedUserContextSetBackendData(CeedUserContext ctx, void **data) {
+int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void **data) {
   ctx->data = *data;
   return 0;
 }
@@ -105,26 +106,26 @@ int CeedUserContextSetBackendData(CeedUserContext ctx, void **data) {
 /// @}
 
 /// ----------------------------------------------------------------------------
-/// CeedUserContext Public API
+/// CeedQFunctionContext Public API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedQFunctionUser
 /// @{
 
 /**
-  @brief Create a CeedUserContext for storing CeedQFunction user context data
+  @brief Create a CeedQFunctionContext for storing CeedQFunction user context data
 
-  @param ceed       A Ceed object where the CeedUserContext will be created
+  @param ceed       A Ceed object where the CeedQFunctionContext will be created
   @param[out] ctx   Address of the variable where the newly created
-                      CeedUserContext will be stored
+                      CeedQFunctionContext will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedUserContextCreate(Ceed ceed, CeedUserContext *ctx) {
+int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
   int ierr;
 
-  if (!ceed->UserContextCreate) {
+  if (!ceed->QFunctionContextCreate) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Context"); CeedChk(ierr);
 
@@ -133,7 +134,7 @@ int CeedUserContextCreate(Ceed ceed, CeedUserContext *ctx) {
       return CeedError(ceed, 1, "Backend does not support ContextCreate");
     // LCOV_EXCL_STOP
 
-    ierr = CeedUserContextCreate(delegate, ctx); CeedChk(ierr);
+    ierr = CeedQFunctionContextCreate(delegate, ctx); CeedChk(ierr);
     return 0;
   }
 
@@ -141,17 +142,17 @@ int CeedUserContextCreate(Ceed ceed, CeedUserContext *ctx) {
   (*ctx)->ceed = ceed;
   ceed->refcount++;
   (*ctx)->refcount = 1;
-  ierr = ceed->UserContextCreate(*ctx); CeedChk(ierr);
+  ierr = ceed->QFunctionContextCreate(*ctx); CeedChk(ierr);
   return 0;
 }
 
 /**
-  @brief Set the data used by a CeedUserContext, freeing any previously allocated
+  @brief Set the data used by a CeedQFunctionContext, freeing any previously allocated
            data if applicable. The backend may copy values to a different
            memtype, such as during @ref CeedQFunctionApply().
-           See also @ref CeedUserContextTakeData().
+           See also @ref CeedQFunctionContextTakeData().
 
-  @param ctx   CeedUserContext
+  @param ctx   CeedQFunctionContext
   @param mtype Memory type of the data being passed
   @param cmode Copy mode for the data
   @param data  Data to be used
@@ -160,9 +161,9 @@ int CeedUserContextCreate(Ceed ceed, CeedUserContext *ctx) {
 
   @ref User
 **/
-int CeedUserContextSetData(CeedUserContext ctx, CeedMemType mtype,
-                           CeedCopyMode cmode,
-                           size_t size, void *data) {
+int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
+                                CeedCopyMode cmode,
+                                size_t size, void *data) {
   int ierr;
 
   if (!ctx->SetData)
@@ -171,7 +172,8 @@ int CeedUserContextSetData(CeedUserContext ctx, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 == 1)
-    return CeedError(ctx->ceed, 1, "Cannot grant CeedUserContext data access, the "
+    return CeedError(ctx->ceed, 1,
+                     "Cannot grant CeedQFunctionContext data access, the "
                      "access lock is already in use");
 
   ctx->ctxsize = size;
@@ -182,15 +184,15 @@ int CeedUserContextSetData(CeedUserContext ctx, CeedMemType mtype,
 }
 
 /**
-  @brief Get read/write access to a CeedUserContext via the specified memory type.
-           Restore access with @ref CeedUserContextRestoreData().
+  @brief Get read/write access to a CeedQFunctionContext via the specified memory type.
+           Restore access with @ref CeedQFunctionContextRestoreData().
 
-  @param ctx        CeedUserContext to access
+  @param ctx        CeedQFunctionContext to access
   @param mtype      Memory type on which to access the data. If the backend
                     uses a different memory type, this will perform a copy.
   @param[out] data  Data on memory type mtype
 
-  @note The CeedUserContextGetData() and @ref CeedUserContextRestoreData() functions
+  @note The CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions
     provide access to array pointers in the desired memory space. Pairing
     get/restore allows the Context to track access.
 
@@ -198,8 +200,8 @@ int CeedUserContextSetData(CeedUserContext ctx, CeedMemType mtype,
 
   @ref User
 **/
-int CeedUserContextGetData(CeedUserContext ctx, CeedMemType mtype,
-                           void **data) {
+int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
+                                void **data) {
   int ierr;
 
   if (!ctx->GetData)
@@ -208,7 +210,8 @@ int CeedUserContextGetData(CeedUserContext ctx, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 == 1)
-    return CeedError(ctx->ceed, 1, "Cannot grant CeedUserContext data access, the "
+    return CeedError(ctx->ceed, 1,
+                     "Cannot grant CeedQFunctionContext data access, the "
                      "access lock is already in use");
 
   ierr = ctx->GetData(ctx, mtype, data); CeedChk(ierr);
@@ -218,16 +221,16 @@ int CeedUserContextGetData(CeedUserContext ctx, CeedMemType mtype,
 }
 
 /**
-  @brief Restore data obtained using @ref CeedUserContextGetData()
+  @brief Restore data obtained using @ref CeedQFunctionContextGetData()
 
-  @param ctx     CeedUserContext to restore
+  @param ctx     CeedQFunctionContext to restore
   @param data    Data to restore
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedUserContextRestoreData(CeedUserContext ctx, void **data) {
+int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void **data) {
   int ierr;
 
   if (!ctx->RestoreData)
@@ -236,7 +239,8 @@ int CeedUserContextRestoreData(CeedUserContext ctx, void **data) {
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 != 1)
-    return CeedError(ctx->ceed, 1, "Cannot restore CeedUserContext array access, "
+    return CeedError(ctx->ceed, 1,
+                     "Cannot restore CeedQFunctionContext array access, "
                      "access was not granted");
 
   ierr = ctx->RestoreData(ctx); CeedChk(ierr);
@@ -247,38 +251,39 @@ int CeedUserContextRestoreData(CeedUserContext ctx, void **data) {
 }
 
 /**
-  @brief View a CeedUserContext
+  @brief View a CeedQFunctionContext
 
-  @param[in] ctx           CeedUserContext to view
+  @param[in] ctx           CeedQFunctionContext to view
   @param[in] stream        Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedUserContextView(CeedUserContext ctx, FILE *stream) {
-  fprintf(stream, "CeedUserContext\n");
+int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
+  fprintf(stream, "CeedQFunctionContext\n");
   fprintf(stream, "  Context Data Size: %ld\n", ctx->ctxsize);
   return 0;
 }
 
 /**
-  @brief Destroy a CeedUserContext
+  @brief Destroy a CeedQFunctionContext
 
-  @param ctx   CeedUserContext to destroy
+  @param ctx   CeedQFunctionContext to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedUserContextDestroy(CeedUserContext *ctx) {
+int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
   int ierr;
 
   if (!*ctx || --(*ctx)->refcount > 0)
     return 0;
 
   if ((*ctx) && ((*ctx)->state % 2) == 1)
-    return CeedError((*ctx)->ceed, 1, "Cannot destroy CeedUserContext, the access "
+    return CeedError((*ctx)->ceed, 1,
+                     "Cannot destroy CeedQFunctionContext, the access "
                      "lock is in use");
 
   if ((*ctx)->Destroy) {

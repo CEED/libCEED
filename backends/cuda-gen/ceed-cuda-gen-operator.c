@@ -102,10 +102,10 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   }
 
   // Get context data
-  CeedUserContext ctx;
+  CeedQFunctionContext ctx;
   ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
   if (ctx) {
-    ierr = CeedUserContextGetData(ctx, CEED_MEM_DEVICE, &qf_data->d_c);
+    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_DEVICE, &qf_data->d_c);
     CeedChk(ierr);
   }
 
@@ -177,7 +177,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
 
   // Restore context data
   if (ctx) {
-    ierr = CeedUserContextRestoreData(ctx, &qf_data->d_c);
+    ierr = CeedQFunctionContextRestoreData(ctx, &qf_data->d_c);
     CeedChk(ierr);
   }
   return 0;
