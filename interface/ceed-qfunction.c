@@ -572,6 +572,7 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
                                      sizeof(*sizeData), (void *)sizeData);
   CeedChk(ierr);
   ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
 
   return 0;
 }
