@@ -172,9 +172,11 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 == 1)
+    // LCOV_EXCL_START
     return CeedError(ctx->ceed, 1,
                      "Cannot grant CeedQFunctionContext data access, the "
                      "access lock is already in use");
+  // LCOV_EXCL_STOP
 
   ctx->ctxsize = size;
   ierr = ctx->SetData(ctx, mtype, cmode, data); CeedChk(ierr);
@@ -210,9 +212,11 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 == 1)
+    // LCOV_EXCL_START
     return CeedError(ctx->ceed, 1,
                      "Cannot grant CeedQFunctionContext data access, the "
                      "access lock is already in use");
+  // LCOV_EXCL_STOP
 
   ierr = ctx->GetData(ctx, mtype, data); CeedChk(ierr);
   ctx->state += 1;
@@ -239,9 +243,11 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void **data) {
   // LCOV_EXCL_STOP
 
   if (ctx->state % 2 != 1)
+    // LCOV_EXCL_START
     return CeedError(ctx->ceed, 1,
                      "Cannot restore CeedQFunctionContext array access, "
                      "access was not granted");
+  // LCOV_EXCL_STOP
 
   ierr = ctx->RestoreData(ctx); CeedChk(ierr);
   *data = NULL;
@@ -282,9 +288,11 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
     return 0;
 
   if ((*ctx) && ((*ctx)->state % 2) == 1)
+    // LCOV_EXCL_START
     return CeedError((*ctx)->ceed, 1,
                      "Cannot destroy CeedQFunctionContext, the access "
                      "lock is in use");
+  // LCOV_EXCL_STOP
 
   if ((*ctx)->Destroy) {
     ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
