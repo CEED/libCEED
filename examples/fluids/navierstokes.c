@@ -520,11 +520,6 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   }
 
   if (problemChoice == NS_EULER_VORTEX) {
-    // All faces are slip, except for 5 and 6
-    //  bc->nwall = 0;
-    //  bc->nslip[0] = 0;
-    //  bc->nslip[1] = 2;     bc->slips[1][0] = 3; bc->slips[1][1] = 4;
-    //  bc->nslip[2] = 2;     bc->slips[2][0] = 1; bc->slips[2][1] = 2;
 
     // Create CEED Operator for each boundary face
     PetscInt localNelemSur[2];
