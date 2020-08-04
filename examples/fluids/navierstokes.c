@@ -56,6 +56,10 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
 #endif
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l) DMAddBoundary(a,b,c,d,e,f,g,h,j,k,l)
+#endif
+
 // MemType Options
 static const char *const memTypes[] = {
   "host",
@@ -803,15 +807,15 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[0],
+                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
                            bc->slips[0], ctxSetup); CHKERRQ(ierr);
       comps[0] = 2;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[1],
+                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
                            bc->slips[1], ctxSetup); CHKERRQ(ierr);
       comps[0] = 3;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, bc->nslip[2],
+                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
                            bc->slips[2], ctxSetup); CHKERRQ(ierr);
     }
     if (bc->userbc == PETSC_TRUE) {
@@ -834,12 +838,12 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
       if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
         PetscInt comps[1] = {4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                             1, comps, (void(*)(void))problem->bc,
+                             1, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
       } else if (problem->bc == Exact_DC) {
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                             3, comps, (void(*)(void))problem->bc,
+                             3, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,

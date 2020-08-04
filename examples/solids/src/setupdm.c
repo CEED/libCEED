@@ -166,7 +166,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
         ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
       }
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "marker", 0, 0, NULL,
-                           (void(*)(void))BCMMS, 1, marker_ids, NULL);
+                           (void(*)(void))BCMMS, NULL, 1, marker_ids, NULL);
       CHKERRQ(ierr);
     } else if (appCtx->forcingChoice == FORCE_MMS) {
       // -- ExodusII mesh with MMS
@@ -174,7 +174,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
       ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
       ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCMMS, numFaceSets, faceSetIds, NULL);
+                           (void(*)(void))BCMMS, NULL, numFaceSets, faceSetIds, NULL);
       CHKERRQ(ierr);
       ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
       ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
@@ -185,7 +185,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
         char bcName[25];
         snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0,
-                             NULL, (void(*)(void))BCClamp, 1,
+                             NULL, (void(*)(void))BCClamp, NULL, 1,
                              &appCtx->bcClampFaces[i],
                              (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
       }
