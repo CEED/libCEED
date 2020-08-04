@@ -30,7 +30,8 @@ static inline size_t bytes(const CeedQFunctionContext ctx) {
 //------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
-static inline int CeedSyncH2D_Hip(const CeedQFunctionContext ctx) {
+static inline int CeedQFunctionContextSyncH2D_Hip(
+  const CeedQFunctionContext ctx) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -45,7 +46,8 @@ static inline int CeedSyncH2D_Hip(const CeedQFunctionContext ctx) {
 //------------------------------------------------------------------------------
 // Sync device to host
 //------------------------------------------------------------------------------
-static inline int CeedSyncD2H_Hip(const CeedQFunctionContext ctx) {
+static inline int CeedQFunctionContextSyncD2H_Hip(
+  const CeedQFunctionContext ctx) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -171,7 +173,7 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
       impl->h_data = impl->h_data_allocated;
     }
     if (impl->memState == CEED_HIP_DEVICE_SYNC) {
-      ierr = CeedSyncD2H_Hip(ctx); CeedChk(ierr);
+      ierr = CeedQFunctionContextSyncD2H_Hip(ctx); CeedChk(ierr);
     }
     impl->memState = CEED_HIP_HOST_SYNC;
     *data = impl->h_data;
@@ -183,7 +185,7 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
       impl->d_data = impl->d_data_allocated;
     }
     if (impl->memState == CEED_HIP_HOST_SYNC) {
-      ierr = CeedSyncH2D_Hip(ctx); CeedChk(ierr);
+      ierr = CeedQFunctionContextSyncH2D_Hip(ctx); CeedChk(ierr);
     }
     impl->memState = CEED_HIP_DEVICE_SYNC;
     *data = impl->d_data;

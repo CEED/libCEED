@@ -30,7 +30,7 @@ static inline size_t bytes(const CeedVector vec) {
 //------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
-static inline int CeedSyncH2D_Hip(const CeedVector vec) {
+static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -45,7 +45,7 @@ static inline int CeedSyncH2D_Hip(const CeedVector vec) {
 //------------------------------------------------------------------------------
 // Sync device to host
 //------------------------------------------------------------------------------
-static inline int CeedSyncD2H_Hip(const CeedVector vec) {
+static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
@@ -165,7 +165,7 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
   switch(mtype) {
   case CEED_MEM_HOST:
     if (impl->memState == CEED_HIP_DEVICE_SYNC) {
-      ierr = CeedSyncD2H_Hip(vec); CeedChk(ierr);
+      ierr = CeedVectorSyncD2H_Hip(vec); CeedChk(ierr);
     }
     (*array) = impl->h_array;
     impl->h_array = NULL;
@@ -174,7 +174,7 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
     break;
   case CEED_MEM_DEVICE:
     if (impl->memState == CEED_HIP_HOST_SYNC) {
-      ierr = CeedSyncH2D_Hip(vec); CeedChk(ierr);
+      ierr = CeedVectorSyncH2D_Hip(vec); CeedChk(ierr);
     }
     (*array) = impl->d_array;
     impl->d_array = NULL;
@@ -267,7 +267,7 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
       data->h_array = data->h_array_allocated;
     }
     if(data->memState==CEED_HIP_DEVICE_SYNC) {
-      ierr = CeedSyncD2H_Hip(vec);
+      ierr = CeedVectorSyncD2H_Hip(vec);
       CeedChk(ierr);
       data->memState = CEED_HIP_BOTH_SYNC;
     }
@@ -280,7 +280,7 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
       data->d_array = data->d_array_allocated;
     }
     if (data->memState==CEED_HIP_HOST_SYNC) {
-      ierr = CeedSyncH2D_Hip(vec);
+      ierr = CeedVectorSyncH2D_Hip(vec);
       CeedChk(ierr);
       data->memState = CEED_HIP_BOTH_SYNC;
     }
@@ -313,7 +313,7 @@ static int CeedVectorGetArray_Hip(const CeedVector vec,
       data->h_array = data->h_array_allocated;
     }
     if(data->memState==CEED_HIP_DEVICE_SYNC) {
-      ierr = CeedSyncD2H_Hip(vec); CeedChk(ierr);
+      ierr = CeedVectorSyncD2H_Hip(vec); CeedChk(ierr);
     }
     data->memState = CEED_HIP_HOST_SYNC;
     *array = data->h_array;
@@ -325,7 +325,7 @@ static int CeedVectorGetArray_Hip(const CeedVector vec,
       data->d_array = data->d_array_allocated;
     }
     if (data->memState==CEED_HIP_HOST_SYNC) {
-      ierr = CeedSyncH2D_Hip(vec); CeedChk(ierr);
+      ierr = CeedVectorSyncH2D_Hip(vec); CeedChk(ierr);
     }
     data->memState = CEED_HIP_DEVICE_SYNC;
     *array = data->d_array;
