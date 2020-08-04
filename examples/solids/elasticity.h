@@ -27,6 +27,10 @@
 
 #include <ceed.h>
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l) DMAddBoundary(a,b,c,d,e,f,g,h,j,k,l)
+#endif
+
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
 typedef struct Physics_private *Physics;

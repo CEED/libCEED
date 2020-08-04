@@ -43,6 +43,10 @@
 #  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
 #endif
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l) DMAddBoundary(a,b,c,d,e,f,g,h,j,k,l)
+#endif
+
 // -----------------------------------------------------------------------------
 // PETSc Operator Structs
 // -----------------------------------------------------------------------------
@@ -396,7 +400,7 @@ static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu,
     DMHasLabel(dm, "marker", &hasLabel);
     if (!hasLabel) {CreateBCLabel(dm, "marker");}
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                         (void(*)(void))bpOptions[bpChoice].bcs_func,
+                         (void(*)(void))bpOptions[bpChoice].bcs_func, NULL,
                          1, marker_ids, NULL);
     CHKERRQ(ierr);
   }
