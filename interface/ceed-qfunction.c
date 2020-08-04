@@ -286,20 +286,6 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 }
 
 /**
-  @brief Determine if Fortran interface was used
-
-  @param qf                  CeedQFunction
-  @param[out] isfortran      Variable to store Fortran status
-
-  @return An error code: 0 - success, otherwise - failure
-  @ref Backend
-**/
-int CeedQFunctionIsFortran(CeedQFunction qf, bool *isfortran) {
-  *isfortran = qf->fortranstatus;
-  return 0;
-}
-
-/**
   @brief Determine if QFunction is identity
 
   @param qf               CeedQFunction
