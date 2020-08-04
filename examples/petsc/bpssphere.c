@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   } else {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
-    ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, &dm);
+    ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex, 1., &dm);
     CHKERRQ(ierr);
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
