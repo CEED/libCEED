@@ -215,6 +215,7 @@ struct User_ {
   Vec M;
   char outputdir[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
+  PetscReal currentTime;
 };
 
 struct Units_ {
@@ -580,6 +581,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-local
   PetscFunctionBeginUser;
+  user->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
@@ -1284,7 +1286,7 @@ int main(int argc, char **argv) {
     .wind[0] = wind[0],
     .wind[1] = wind[1],
     .wind[2] = wind[2],
-    .time = 0,
+    .time = user->currentTime,
     .vortex_strength = vortex_strength,
     .wind_type = wind_type,
   };
