@@ -34,6 +34,10 @@
 #  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
 #endif
 
+#if PETSC_VERSION_LT(3,14,0)
+#  define DMPlexCreateSphereMesh(a,b,c,d,e) DMPlexCreateSphereMesh(a,b,c,e)
+#endif
+
 problemData problemOptions[] = {
   [SWE_ADVECTION] = {
     .topodim                = 2,
