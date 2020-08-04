@@ -1317,7 +1317,7 @@ int main(int argc, char **argv) {
     .wind[0] = wind[0],
     .wind[1] = wind[1],
     .wind[2] = wind[2],
-    .time = user->currentTime,
+    .time = 0,
     .vortex_strength = vortex_strength,
     .wind_type = wind_type,
   };
@@ -1796,10 +1796,6 @@ int main(int argc, char **argv) {
   if (testChoice == TEST_NONE) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
-  // Get the current time
-  PetscReal timeNow;
-  ierr = TSGetTime(ts,&timeNow);CHKERRQ(ierr);
-  ctxSetup.time = timeNow;
 
   // Solve
   start = MPI_Wtime();
