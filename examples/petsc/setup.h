@@ -396,7 +396,7 @@ static int SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu,
     DMHasLabel(dm, "marker", &hasLabel);
     if (!hasLabel) {CreateBCLabel(dm, "marker");}
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "marker", 0, 0, NULL,
-                         (void(*)(void))bpOptions[bpChoice].bcs_func,
+                         (void(*)(void))bpOptions[bpChoice].bcs_func, NULL,
                          1, marker_ids, NULL);
     CHKERRQ(ierr);
   }
