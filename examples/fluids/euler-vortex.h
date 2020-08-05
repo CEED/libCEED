@@ -33,36 +33,15 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef setup_context_struct
-#define setup_context_struct
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar g;
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
-  CeedScalar time;
-  CeedScalar vortex_strength;
-  int wind_type;
-};
-#endif
-
 #ifndef euler_context_struct
 #define euler_context_struct
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
+  CeedScalar time;
+  CeedScalar wind[3];
+  CeedScalar center[3];
   CeedScalar currentTime;
+  CeedScalar vortex_strength;
 };
 #endif
 
@@ -101,7 +80,7 @@ struct EulerContext_ {
 static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
-  const SetupContext context = (SetupContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center; // Center of the domain
   const CeedScalar *wind = context->wind;     // Background translation velocity
@@ -147,7 +126,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const SetupContext context = (SetupContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -201,7 +180,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[],
                            CeedInt Nf, CeedScalar force[], void *ctx) {
   // Context
-  const SetupContext context = (SetupContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center; // Center of the domain
   const CeedScalar *wind = context->wind;     // Background translation velocity
@@ -244,7 +223,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // Context
-  EulerContext context = (EulerContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
   const CeedScalar currentTime = context->currentTime;
   const CeedScalar gamma  = 1.4;
 
@@ -326,7 +305,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   // Context
-  EulerContext context = (EulerContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
   const CeedScalar currentTime = context->currentTime;
 
   CeedPragmaSIMD
