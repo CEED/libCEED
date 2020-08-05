@@ -522,7 +522,7 @@ namespace ceed {
                                                         const int index,
                                                         const std::string &name) {
       // Output:
-      //   CeedScalar quadInput0[COMPONENTS][DIM][OCCA_Q];
+      //   CeedScalar quadInput0[DIM][COMPONENTS][OCCA_Q];
       //   CeedScalar quadInput0[OCCA_Q * SIZE];
 
       const OperatorField &opField = args.getOpField(isInput, index);
@@ -530,8 +530,8 @@ namespace ceed {
 
       if (evalMode == CEED_EVAL_GRAD) {
         ss << "    CeedScalar " << indexedVar(name, index)
-           << "[" << opField.getComponentCount() << "]"
            << "[" << opField.getDim() << "]"
+           << "[" << opField.getComponentCount() << "]"
            << "[OCCA_Q];" << std::endl;
       } else if (evalMode == CEED_EVAL_INTERP) {
         ss << "    CeedScalar " << indexedVar(name, index)
