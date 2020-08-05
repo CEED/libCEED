@@ -928,7 +928,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
       } else if (problem->bc == Exact_Euler) {
         PetscInt bcMMS[2] = {3, 4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0,
-                             0, NULL, (void(*)(void))problem->bc,
+                             0, NULL, (void(*)(void))problem->bc, NULL,
                              2, bcMMS, ctxSetup); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
