@@ -205,6 +205,14 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
   @restrict const CeedScalar *Ue_z @dim(Q1D, Q1D, Q1D),
   @restrict CeedScalar *Ve         @dim(P1D, P1D, P1D)
 ) {
+  for (int pz = 0; pz < P1D; ++pz) {
+    for (int py = 0; py < P1D; ++py) {
+      for (int px = 0; px < P1D; ++px) {
+        Ve(px, py, pz) = 0;
+      }
+    }
+  }
+
   for (int qz = 0; qz < Q1D; ++qz) {
     CeedScalar gradXY[P1D][P1D][4];
     for (int py = 0; py < P1D; ++py) {
