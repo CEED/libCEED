@@ -966,6 +966,7 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
+  EulerContext eulercontext;
   char ceedresource[4096] = "/cpu/self";
   PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
@@ -1049,6 +1050,7 @@ int main(int argc, char **argv) {
   // Allocate PETSc context
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &eulercontext); CHKERRQ(ierr);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -1666,8 +1668,10 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &eulerctx, sizeof eulerctx);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &eulerctx, sizeof eulerctx);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &eulercontext,
+          sizeof eulercontext);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &eulercontext,
+          sizeof eulercontext);
   }
 
   // Set up PETSc context
@@ -1906,6 +1910,7 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
+  ierr = PetscFree(eulercontext); CHKERRQ(ierr);
   return PetscFinalize();
 }
 
