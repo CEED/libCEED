@@ -674,7 +674,7 @@ namespace ceed {
             outputs += ",\n        ";
           }
           const std::string iStr = std::to_string(i);
-          outputs += "(CeedScalar*) " + indexedVar("quadInput", index) + "[component][" + iStr + "]";
+          outputs += "(CeedScalar*) " + indexedVar("quadInput", index) + "[" + iStr + "][component]";
         }
       } else {
         for (int i = 0; i < dim; ++i) {
@@ -682,7 +682,7 @@ namespace ceed {
             inputs += ",\n        ";
           }
           const std::string iStr = std::to_string(i);
-          inputs += "(CeedScalar*) " + indexedVar("quadOutput", index) + "[component][" + iStr + "]";
+          inputs += "(CeedScalar*) " + indexedVar("quadOutput", index) + "[" + iStr + "][component]";
         }
 
         outputs = "&" + dofOutputVar(index) + "(" + dimArgs + ", component, element)";
