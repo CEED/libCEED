@@ -245,9 +245,12 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // *INDENT-ON*
-  const SetupContext context = (SetupContext)ctx;
-  const CeedScalar gamma = 1.4;
+  // Context
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar cv     = context[3];
+  const CeedScalar cp     = context[4];
+  const CeedScalar time   = context[7];
+  const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -280,7 +283,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     const CeedScalar P  = 1.; // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar force[5];
-    MMSforce_Euler(3, context->time, X, 5, force, ctx);
+    MMSforce_Euler(3, time, X, 5, force, ctx);
 
     // The Physics
     for (int j=0; j<5; j++) {
