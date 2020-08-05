@@ -367,9 +367,9 @@ namespace ceed {
       elemRestriction->setup(memType, copyMode, indicesInput);
 
       CeedInt defaultLayout[3] = {
-        elemRestriction->ceedNodeStride,
-        elemRestriction->ceedComponentStride,
-        elemRestriction->ceedElementStride
+        1,
+        elemRestriction->ceedElementSize,
+        elemRestriction->ceedElementSize * elemRestriction->ceedComponentCount
       };
       ierr = CeedElemRestrictionSetELayout(r, defaultLayout); CeedChk(ierr);
 
