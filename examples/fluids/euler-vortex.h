@@ -62,9 +62,7 @@ struct SetupContext_ {
 #define euler_context_struct
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
-  CeedScalar rho_enter;
-  CeedScalar u_enter[3];
-  bool implicit;
+  CeedScalar currentTime;
 };
 #endif
 
@@ -246,11 +244,9 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar cv     = context[3];
-  const CeedScalar cp     = context[4];
-  const CeedScalar time   = context[7];
-  const CeedScalar gamma  = cp / cv;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar currentTime = context->currentTime;
+  const CeedScalar gamma  = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -283,7 +279,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     const CeedScalar P  = 1.; // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar force[5];
-    MMSforce_Euler(3, time, X, 5, force, ctx);
+    MMSforce_Euler(3, currentTime, X, 5, force, ctx);
 
     // The Physics
     for (int j=0; j<5; j++) {
@@ -330,8 +326,8 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar time   = context[7];
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar currentTime = context->currentTime;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -346,7 +342,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar q[5];
-    Exact_Euler(3, time, X, 5, q, ctx);
+    Exact_Euler(3, currentTime, X, 5, q, ctx);
     const CeedScalar rho  =  q[0];
     const CeedScalar u[3] = {q[1] / rho,
                              q[2] / rho,

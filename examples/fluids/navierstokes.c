@@ -250,7 +250,7 @@ struct User_ {
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
-  PetscReal currentTime;
+  EulerContext eulercontext;
 };
 
 struct Units_ {
@@ -616,7 +616,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-local
   PetscFunctionBeginUser;
-  user->currentTime = t;
+  user->eulercontext->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
@@ -1644,12 +1644,8 @@ int main(int argc, char **argv) {
     .strong_form = strong_form,
     .implicit = implicit,
   };
-  struct EulerContext_ ctxEuler = {
-    .rho_enter = rho_enter,
-    .u_enter[0] = u_enter[0],
-    .u_enter[1] = u_enter[1],
-    .u_enter[2] = u_enter[2],
-    .implicit = implicit,
+  struct EulerContext_ eulerctx = {
+    .currentTime = 0.,
   };
   CeedQFunctionContextCreate(ceed, &ctxSurface);
   CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
@@ -1670,8 +1666,8 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxNS, sizeof ctxNS);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &eulerctx, sizeof eulerctx);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &eulerctx, sizeof eulerctx);
   }
 
   // Set up PETSc context
