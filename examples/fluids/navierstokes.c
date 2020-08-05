@@ -250,7 +250,7 @@ struct User_ {
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
-  EulerContext eulercontext;
+  EulerContext ctxEulerData;
 };
 
 struct Units_ {
@@ -616,7 +616,7 @@ static PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-local
   PetscFunctionBeginUser;
-  user->eulercontext->currentTime = t;
+  user->ctxEulerData->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
@@ -869,7 +869,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 }
 
 static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                              SimpleBC bc, void *ctxSetupData) {
+                              SimpleBC bc, void *ctxSetupData, void *ctxMMS) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -929,7 +929,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         PetscInt bcMMS[2] = {3, 4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0,
                              0, NULL, (void(*)(void))problem->bc, NULL,
-                             2, bcMMS, ctxSetup); CHKERRQ(ierr);
+                             2, bcMMS, ctxMMS); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
@@ -966,7 +966,7 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
-  EulerContext eulercontext;
+  EulerContext ctxEulerData;
   char ceedresource[4096] = "/cpu/self";
   PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
@@ -979,7 +979,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
-  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface;
+  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface, ctxEuler;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv) {
   // Allocate PETSc context
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &eulercontext); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxEulerData); CHKERRQ(ierr);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
@@ -1350,7 +1350,8 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData, ctxEulerData);
+  CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -1370,8 +1371,8 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData);
-      CHKERRQ(ierr);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData,
+                     ctxEulerData); CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
       if (!i) interpviz = interp_next;
@@ -1625,9 +1626,10 @@ int main(int argc, char **argv) {
   CeedQFunctionContextCreate(ceed, &ctxSetup);
   CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxSetupData, &ctxSetupData);
-  CeedQFunctionSetContext(qf_ics, ctxSetup);
+  if (qf_ics && problemChoice != NS_EULER_VORTEX)
+    CeedQFunctionSetContext(qf_ics, ctxSetup);
 
-  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd, , user->currentTime};
+  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
   CeedQFunctionContextCreate(ceed, &ctxNS);
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxNSData, &ctxNSData);
@@ -1646,32 +1648,41 @@ int main(int argc, char **argv) {
     .strong_form = strong_form,
     .implicit = implicit,
   };
-  struct EulerContext_ eulerctx = {
-    .currentTime = 0.,
-  };
   CeedQFunctionContextCreate(ceed, &ctxSurface);
   CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxSurfaceData, &ctxSurfaceData);
 
+  // Set up ctxEulerData structure
+  ctxEulerData->time = 0.;
+  ctxEulerData->currentTime = 0.;
+  ctxEulerData->wind[0] = wind[0];
+  ctxEulerData->wind[1] = wind[1];
+  ctxEulerData->wind[2] = wind[2];
+  ctxEulerData->center[0] = center[0];
+  ctxEulerData->center[1] = center[1];
+  ctxEulerData->center[2] = center[2];
+  ctxEulerData->vortex_strength = vortex_strength;
+
+  user->ctxEulerData = ctxEulerData;
+
+  CeedQFunctionContextCreate(ceed, &ctxEuler);
+  CeedQFunctionContextSetData(ctxEuler, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof *ctxEulerData, ctxEulerData); // ToDo: check the pointer
+
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxNS,
-          sizeof ctxNS);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxAdvection2d,
-          sizeof ctxAdvection2d);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxAdvection2d,
-          sizeof ctxAdvection2d);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
-          sizeof ctxSurface);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, eulercontext,
-          sizeof *eulercontext);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, eulercontext,
-          sizeof *eulercontext);
+    if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler); // ToDo: check the pointer
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxEuler);
   }
 
   // Set up PETSc context
@@ -1910,7 +1921,7 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
-  ierr = PetscFree(eulercontext); CHKERRQ(ierr);
+  ierr = PetscFree(ctxEulerData); CHKERRQ(ierr);
   return PetscFinalize();
 }
 
