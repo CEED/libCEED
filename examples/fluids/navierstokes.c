@@ -1625,12 +1625,12 @@ int main(int argc, char **argv) {
                               sizeof ctxSetupData, &ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
-  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
+  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd, , user->currentTime};
   CeedQFunctionContextCreate(ceed, &ctxNS);
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxNSData, &ctxNSData);
 
-  struct Advection2dContext_ ctxAdvection2dData = {
+  struct Advection2dContext_ ctxAdvection2d = {
     .CtauS = CtauS,
     .strong_form = strong_form,
     .stabilization = stab,
@@ -1670,10 +1670,8 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxSetup,
-          sizeof ctxSetup);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSetup,
-          sizeof ctxSetup);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxNS, sizeof ctxNS);
   }
 
   // Set up PETSc context
