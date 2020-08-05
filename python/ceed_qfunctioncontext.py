@@ -24,7 +24,7 @@ from .ceed_constants import MEM_HOST, COPY_VALUES
 
 
 class QFunctionContext():
-    """Ceed User Context: stores Ceed QFunction user context data."""
+    """Ceed QFunction Context: stores Ceed QFunction user context data."""
 
     # Attributes
     _ceed = ffi.NULL
@@ -55,7 +55,7 @@ class QFunctionContext():
 
     # String conversion for print() to stdout
     def __str__(self):
-        """View a User Context via print()."""
+        """View a QFunction Context via print()."""
 
         # libCEED call
         fmt = ffi.new("char[]", "%f".encode('ascii'))
@@ -72,9 +72,9 @@ class QFunctionContext():
 
         return out_string
 
-    # Set User Context's data
+    # Set QFunction Context's data
     def set_data(self, data, memtype=MEM_HOST, cmode=COPY_VALUES):
-        """Set the data used by a User Context, freeing any previously allocated
+        """Set the data used by a QFunction Context, freeing any previously allocated
            data if applicable.
 
            Args:
@@ -102,9 +102,9 @@ class QFunctionContext():
             data_pointer)
         self._ceed._check_error(err_code)
 
-    # Get User Context's data
+    # Get QFunction Context's data
     def get_data(self, memtype=MEM_HOST):
-        """Get read/write access to a User Context via the specified memory type.
+        """Get read/write access to a QFunction Context via the specified memory type.
 
            Args:
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
@@ -148,7 +148,7 @@ class QFunctionContext():
             # return Numba array
             return nbcuda.from_cuda_array_interface(desc)
 
-    # Restore the User Context's data
+    # Restore the QFunction Context's data
     def restore_data(self):
         """Restore an array obtained using get_data()."""
 
@@ -156,7 +156,7 @@ class QFunctionContext():
         data_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedUserDataRestoreData(self._pointer[0], data_pointer)
+        err_code = lib.CeedQFunctionDataRestoreData(self._pointer[0], data_pointer)
         self._ceed._check_error(err_code)
 
     @contextlib.contextmanager
@@ -169,7 +169,7 @@ class QFunctionContext():
 
 
         Returns:
-          np.array: writable view of User Context
+          np.array: writable view of QFunction Context
         """
         x = self.get_data(memtype=memtype)
         if shape:

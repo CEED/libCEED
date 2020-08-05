@@ -342,10 +342,10 @@ class Ceed():
         return IdentityQFunction(self, size, inmode, outmode)
 
     def QFunctionContext(self):
-        """Ceed User Context: stores Ceed QFunction user context data.
+        """Ceed QFunction Context: stores Ceed QFunction user context data.
 
            Returns:
-             userContext: Ceed Identity QFunction"""
+             userContext: Ceed QFunction Context"""
 
         return QFunctionContext(self)
 
