@@ -329,8 +329,9 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-    // Context
-  const SetupContext context = (SetupContext)ctx;
+  // Context
+  const CeedScalar *context = (const CeedScalar *)ctx;
+  const CeedScalar time   = context[7];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -345,7 +346,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar q[5];
-    Exact_Euler(3, context->time, X, 5, q, ctx);
+    Exact_Euler(3, time, X, 5, q, ctx);
     const CeedScalar rho  =  q[0];
     const CeedScalar u[3] = {q[1] / rho,
                              q[2] / rho,
