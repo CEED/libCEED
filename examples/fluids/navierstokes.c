@@ -1668,10 +1668,10 @@ int main(int argc, char **argv) {
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
           sizeof ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &eulercontext,
-          sizeof eulercontext);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &eulercontext,
-          sizeof eulercontext);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, eulercontext,
+          sizeof *eulercontext);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, eulercontext,
+          sizeof *eulercontext);
   }
 
   // Set up PETSc context
