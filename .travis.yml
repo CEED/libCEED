@@ -111,8 +111,8 @@ jobs:
      after_success:
        - make style-py && git diff --exit-code;
 # Rust
-  - name: "Rust"
-    language: rust
+   - name: "Rust"
+     language: rust
      dist: focal
      arch: amd64
      compiler: gcc
