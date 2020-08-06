@@ -117,10 +117,12 @@ jobs:
      arch: amd64
      compiler: gcc
      rust: 1.45.2
+     install:
      script:
        - make info && make -j4
        - cd rust && cargo build
        - cd ..
+     after_success:
   allow_failures:
 # ARM - current intermittant issues passing with Travis
    - name: "ARM"
