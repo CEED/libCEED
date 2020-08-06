@@ -3,6 +3,7 @@ authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
 build = "build.rs"
 name = "libceed-rust"
 version = "0.6.0"
+links = "ceed"
 
 [build-dependencies]
 bindgen = "*"
