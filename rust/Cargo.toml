@@ -1,9 +1,16 @@
 [package]
-authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
+authors = ["Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+           "Yohann Dudouit <dudouit1@llnl.gov>"]
 build = "build.rs"
 name = "libceed-rust"
 version = "0.6.0"
 links = "ceed"
 
+[lib]
+name = "ceed"
+
 [build-dependencies]
 bindgen = "*"
+
+[dependencies]
+libc = "0.2"
