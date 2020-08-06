@@ -120,6 +120,7 @@ jobs:
      install:
      script:
        - make info && make -j4
+       - cd lib && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD && cd ..
        - cd rust && cargo build
        - cargo test
        - cd ..
