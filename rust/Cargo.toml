@@ -1,0 +1,8 @@
+[package]
+authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
+build = "build.rs"
+name = "libceed-rust"
+version = "0.6.0"
+
+[build-dependencies]
+bindgen = "*"
