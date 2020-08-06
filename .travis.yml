@@ -121,6 +121,7 @@ jobs:
      script:
        - make info && make -j4
        - cd rust && cargo build
+       - cargo test
        - cd ..
      after_success:
   allow_failures:
