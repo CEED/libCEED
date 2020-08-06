@@ -116,7 +116,7 @@ jobs:
      dist: focal
      arch: amd64
      compiler: gcc
-     rust: 1.1.0
+     rust: 1.45.2
      script:
        - make info && make -j4
        - cd rust && cargo build
