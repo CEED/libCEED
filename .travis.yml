@@ -110,6 +110,17 @@ jobs:
        - cd ../..
      after_success:
        - make style-py && git diff --exit-code;
+# Rust
+  - name: "Rust"
+    language: rust
+     dist: focal
+     arch: amd64
+     compiler: gcc
+     rust: 1.1.0
+     script:
+       - make info && make -j4
+       - cd rust && cargo build
+       - cd ..
   allow_failures:
 # ARM - current intermittant issues passing with Travis
    - name: "ARM"
