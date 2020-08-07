@@ -5,6 +5,7 @@
 
 use std::ffi::CString;
 use std::fmt;
+use ndarray;
 // use std::io::{self, Write};
 use crate::prelude::*;
 

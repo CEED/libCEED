@@ -74,23 +74,22 @@ impl<'a> Vector<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let vec = ceed.vector(4);
-    /// let mut array: [f64; 4] = [1., 2., 3., 4.];
-    /// vec.set_array(ceed::MemType::Host, ceed::CopyMode::OwnPointer, array.to_vec());
+    /// let mut array = ndarray::Array::range(1., 5., 1.);
+    /// vec.set_array(ceed::CopyMode::OwnPointer, array);
     /// let norm = vec.norm(ceed::NormType::Max);
     /// assert_eq!(norm, 4.0)
     /// ```
-    pub fn set_array(&self, mtype: crate::MemType, cmode: crate::CopyMode, mut vec: Vec<f64>) {
-        vec.shrink_to_fit();
+    pub fn set_array(&self, cmode: crate::CopyMode, mut array: ndarray::Array1<f64>) {
         unsafe {
             bind_ceed::CeedVectorSetArray(
                 self.ptr,
-                mtype as bind_ceed::CeedMemType,
+                crate::MemType::Host as bind_ceed::CeedMemType,
                 cmode as bind_ceed::CeedCopyMode,
-                vec.as_mut_ptr(),
+                array.as_mut_ptr(),
             )
         };
         if cmode == crate::CopyMode::OwnPointer {
-            std::mem::forget(vec);
+            std::mem::forget(array);
         }
     }
 
