@@ -5,7 +5,6 @@
 
 use std::ffi::CString;
 use std::fmt;
-use std::mem;
 // use std::io::{self, Write};
 use crate::prelude::*;
 
@@ -130,7 +129,7 @@ impl Ceed {
     /// * 'n' - Length of vector
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// ```
     pub fn vector(&self, n: usize) -> crate::vector::Vector {
@@ -144,7 +143,7 @@ impl Ceed {
     /// * 'slice' - Slice containing data
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector_from_slice(&[1., 2., 3.]);
     /// assert_eq!(vec.length(), 3);
     /// ```
@@ -199,7 +198,7 @@ impl Ceed {
     ///               accuracy for the quadrature)
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// ```
     pub fn basis_tensor_H1_Lagrange(
@@ -243,7 +242,7 @@ impl Ceed {
     /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let ctx = ceed.q_function_context();
     /// ```
     pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {

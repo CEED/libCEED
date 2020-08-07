@@ -27,7 +27,7 @@ impl<'a> Vector<'a> {
     /// * 'slice' values to initialize vector with
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let x = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
     /// assert_eq!(x.length(), 3);
     /// ```
@@ -40,7 +40,7 @@ impl<'a> Vector<'a> {
     /// Returns the length of a CeedVector
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// let n = vec.length();
     /// assert_eq!(n, 10);
@@ -54,7 +54,7 @@ impl<'a> Vector<'a> {
     /// Returns the length of a CeedVector
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// assert_eq!(vec.len(), 10);
     /// ```
@@ -72,7 +72,7 @@ impl<'a> Vector<'a> {
     /// * 'vec'   - Array to be used
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(4);
     /// let mut array: [f64; 4] = [1., 2., 3., 4.];
     /// vec.set_array(ceed::MemType::Host, ceed::CopyMode::OwnPointer, array.to_vec());
@@ -116,7 +116,7 @@ impl<'a> Vector<'a> {
     /// * 'slice' values to into self; length must match
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let mut x = ceed.vector(4);
     /// x.set_slice(&[10., 11., 12., 13.]);
     /// ```
@@ -139,7 +139,7 @@ impl<'a> Vector<'a> {
     /// * 'mtype' - Memtype to be synced
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// vec.sync(ceed::MemType::Host);
     /// ```
@@ -154,7 +154,7 @@ impl<'a> Vector<'a> {
     /// * 'ntype' - Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let mut x = ceed.vector(10);
     /// x.set_value(42.0);
     /// let norm = x.norm(ceed::NormType::Max);
