@@ -724,8 +724,6 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
   ierr = CeedOperatorLinearAssembleQFunction(op,  &assembledqf, &rstr, request);
   CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
-  CeedScalar maxnorm = 0;
-  ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm); CeedChk(ierr);
 
   // Determine active input basis
   CeedOperatorField *opfields;
@@ -861,7 +859,6 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChk(ierr);
   // Compute the diagonal of B^T D B
   // Each element
-  const CeedScalar qfvaluebound = maxnorm*1e-12;
   for (CeedInt e=0; e<nelem; e++) {
     CeedInt dout = -1;
     // Each basis eval mode pair
@@ -888,20 +885,18 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
                 const CeedScalar qfvalue =
                   assembledqfarray[((((e*numemodein+ein)*ncomp+compIn)*
                                      numemodeout+eout)*ncomp+compOut)*nqpts+q];
-                if (fabs(qfvalue) > qfvaluebound)
-                  for (CeedInt n=0; n<nnodes; n++)
-                    elemdiagarray[((e*ncomp+compOut)*ncomp+compIn)*nnodes+n] +=
-                      bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+                for (CeedInt n=0; n<nnodes; n++)
+                  elemdiagarray[((e*ncomp+compOut)*ncomp+compIn)*nnodes+n] +=
+                    bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
               }
             } else {
               // Diagonal Only
               const CeedScalar qfvalue =
                 assembledqfarray[((((e*numemodein+ein)*ncomp+compOut)*
                                    numemodeout+eout)*ncomp+compOut)*nqpts+q];
-              if (fabs(qfvalue) > qfvaluebound)
-                for (CeedInt n=0; n<nnodes; n++)
-                  elemdiagarray[(e*ncomp+compOut)*nnodes+n] +=
-                    bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
+              for (CeedInt n=0; n<nnodes; n++)
+                elemdiagarray[(e*ncomp+compOut)*nnodes+n] +=
+                  bt[q*nnodes+n] * qfvalue * b[q*nnodes+n];
             }
       }
     }
