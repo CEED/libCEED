@@ -16,6 +16,12 @@ use std::ffi::CString;
 // use std::io::{self, Write};
 use crate::prelude::*;
 
+mod vector;
+mod elem_restriction;
+mod basis;
+mod qfunction;
+mod operator;
+
 /// Ceed context wrapper
 pub struct Ceed {
   backend : String,
@@ -110,12 +116,6 @@ impl Ceed {
     todo!()
   }
 }
-    
-mod vector;
-mod elem_restriction;
-mod basis;
-mod qfunction;
-mod operator;
 
 #[cfg(test)]
 mod tests {
