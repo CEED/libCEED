@@ -9,6 +9,15 @@ pub enum QuadMode {
     Gauss,
     GaussLobatto,
 }
+pub enum ElemTopology {
+    Line,
+    Triangle,
+    Quad,
+    Tet,
+    Pyramid,
+    Prism,
+    Hex,
+}
 impl<'a> Basis<'a> {
     pub fn create_tensor_H1(
         ceed: &'a crate::Ceed,
@@ -63,4 +72,35 @@ impl<'a> Basis<'a> {
         }
         Self { ceed, ptr }
     }
+
+    pub fn create_H1(
+        ceed: &'a crate::Ceed,
+        topo: ElemTopology,
+        ncomp: i32,
+        nnodes: i32,
+        nqpts: i32,
+        interp: &Vec<f64>,
+        grad: &Vec<f64>,
+        qref: &Vec<f64>,
+        qweight: &Vec<f64>,
+     ) -> Self {
+        let mut ptr =
+            unsafe { libc::malloc(mem::size_of::<bind_ceed::CeedBasis>()) as bind_ceed::CeedBasis };
+        unsafe {
+            bind_ceed::CeedBasisCreateH1(
+                ceed.ptr,
+                topo as bind_ceed::CeedElemTopology,
+                ncomp,
+                nnodes,
+                nqpts,
+                interp.as_ptr(),
+                grad.as_ptr(),
+                qref.as_ptr(),
+                qweight.as_ptr(),
+                &mut ptr)
+        };
+        Self  { ceed, ptr }
+    }
+
+        
 }

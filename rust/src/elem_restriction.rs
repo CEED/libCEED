@@ -21,7 +21,19 @@ impl<'a> ElemRestriction<'a> {
             libc::malloc(mem::size_of::<bind_ceed::CeedElemRestriction>())
                 as bind_ceed::CeedElemRestriction
         };
-        unsafe { bind_ceed::CeedElemRestrictionCreate(ceed.ptr, nelem, elemsize, ncomp, compstride, lsize, mtype as bind_ceed::CeedMemType, cmode as bind_ceed::CeedCopyMode, offsets.as_ptr(), &mut ptr) };
+        unsafe {
+          bind_ceed::CeedElemRestrictionCreate(
+            ceed.ptr,
+            nelem,
+            elemsize,
+            ncomp,
+            compstride,
+            lsize,
+            mtype as bind_ceed::CeedMemType,
+            cmode as bind_ceed::CeedCopyMode,
+            offsets.as_ptr(),
+            &mut ptr)
+        };
         Self { ceed, ptr }
     }
 }
