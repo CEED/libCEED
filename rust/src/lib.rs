@@ -79,7 +79,16 @@ impl Ceed {
     Ceed { backend : resource.to_string(), ptr }
   }
   
-  /// Vector
+  /// Returns a CeedVector of the specified length (does not allocate memory)
+  ///
+  /// # arguments
+  ///
+  /// * 'n' - Length of vector
+  /// 
+  /// ```
+  /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+  /// let vec = ceed.vector(10);
+  /// ```
   pub fn vector(&self, n: i32) -> crate::vector::Vector {
     crate::vector::Vector::create(self, n)
   }
