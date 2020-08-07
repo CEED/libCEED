@@ -1,9 +1,11 @@
 use crate::prelude::*;
 
+/// CeedBasis context wrapper
 pub struct Basis<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedBasis,
 }
+
 pub enum QuadMode {
     Gauss,
     GaussLobatto,
@@ -25,7 +27,9 @@ pub enum EvalMode {
     Curl,
     Weight,
 }
+
 impl<'a> Basis<'a> {
+    /// Constructors
     pub fn create_tensor_H1(
         ceed: &'a crate::Ceed,
         dim: i32,

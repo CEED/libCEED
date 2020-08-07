@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+/// CeedElemRestriction context wrapper
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedElemRestriction,
@@ -51,9 +52,10 @@ impl<'a> ElemRestriction<'a> {
                 ncomp,
                 lsize,
                 strides.as_ptr(),
-                &mut ptr)
+                &mut ptr,
+            )
         };
-        Self { ceed, ptr}
+        Self { ceed, ptr }
     }
 
     pub fn create_blocked(
@@ -81,7 +83,8 @@ impl<'a> ElemRestriction<'a> {
                 mtype as bind_ceed::CeedMemType,
                 cmode as bind_ceed::CeedCopyMode,
                 offsets.as_ptr(),
-                &mut ptr)
+                &mut ptr,
+            )
         };
         Self { ceed, ptr }
     }
@@ -108,7 +111,7 @@ impl<'a> ElemRestriction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed,ptr }
+        Self { ceed, ptr }
     }
 
     pub fn apply(

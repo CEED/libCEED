@@ -13,6 +13,7 @@ pub enum NormType {
 }
 
 impl<'a> Vector<'a> {
+    /// Constructors
     pub fn create(ceed: &'a crate::Ceed, n: i32) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };

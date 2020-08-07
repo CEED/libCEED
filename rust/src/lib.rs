@@ -18,6 +18,7 @@ pub mod basis;
 pub mod elem_restriction;
 pub mod operator;
 pub mod qfunction;
+pub mod qfunction_context;
 pub mod vector;
 
 /// Ceed context wrapper
@@ -184,6 +185,12 @@ impl Ceed {
         f: bind_ceed::CeedQFunctionUser,
         source: impl Into<String>,
     ) -> crate::qfunction::QFunction {
+        //TODO
+        todo!()
+    }
+
+    /// QFunctionContext
+    pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {
         //TODO
         todo!()
     }
