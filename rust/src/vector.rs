@@ -11,18 +11,22 @@ use std::io::{BufReader, SeekFrom};
 use cfile;
 // use std::io::{self, Write};
 
-mod rust_ceed {
-  include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-}
+use crate::prelude::*;
 
 /// CeedVector context wrapper
-struct CeedVector {
-  ceed_reference : ceed::Ceed,
+pub struct Vector<'a> {
+  ceed_reference : &'a crate::ceed::Ceed,
   ceed_vec_ptr : rust_ceed::CeedVector,
 }
 
+impl<'a> Vector<'a> {
+  pub fn new(ceed_reference: &'a crate::ceed::Ceed, ceed_vec_ptr: rust_ceed::CeedVector) -> Self {
+    Self { ceed_reference , ceed_vec_ptr}
+  }
+}
+
 /// Destructor
-impl Drop for CeedVector {
+impl<'a> Drop for Vector<'a> {
   fn drop(&mut self) {
     unsafe {
       rust_ceed::CeedVectorDestroy(&mut self.ceed_vec_ptr);
