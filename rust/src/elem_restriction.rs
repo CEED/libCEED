@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::mem;
 
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
@@ -17,10 +16,7 @@ impl<'a> ElemRestriction<'a> {
         cmode: crate::CopyMode,
         offsets: &Vec<i32>,
     ) -> Self {
-        let mut ptr = unsafe {
-            libc::malloc(mem::size_of::<bind_ceed::CeedElemRestriction>())
-                as bind_ceed::CeedElemRestriction
-        };
+        let mut ptr = std::ptr::null_mut();
         unsafe {
           bind_ceed::CeedElemRestrictionCreate(
             ceed.ptr,

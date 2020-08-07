@@ -5,7 +5,6 @@
 
 use std::ffi::CString;
 use std::fmt;
-use std::mem;
 // use std::io::{self, Write};
 use crate::prelude::*;
 
@@ -73,7 +72,7 @@ impl Ceed {
         let c_resource = CString::new(resource).expect("CString::new failed");
 
         // Call to libCEED
-        let mut ptr = unsafe { libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed };
+        let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
         Ceed {
             backend: resource.to_string(),
@@ -188,14 +187,6 @@ mod tests {
     fn ceed_t000() {
         let ceed = Ceed::init("/cpu/self/ref/serial");
         println!("{}", ceed);
-        /*
-        unsafe {
-          let mut ceed: bind_ceed::Ceed = libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed;
-          let resource = "/cpu/self/ref/serial";
-          bind_ceed::CeedInit(resource.as_ptr() as *const i8, &mut  ceed);
-          bind_ceed::CeedDestroy(&mut ceed);
-        }
-        */
     }
 
     fn ceed_t001() {
