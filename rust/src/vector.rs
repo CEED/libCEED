@@ -38,6 +38,38 @@ impl<'a> Vector<'a> {
         n
     }
 
+    /// Set the array used by a CeedVector, freeing any previously allocated
+    ///   array if applicable
+    ///
+    /// # arguments
+    ///
+    /// * 'mtype' - Memory type of  the array being passed
+    /// * 'cmode' - Copy mode for the array
+    /// * 'vec'   - Array to be used
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let vec = ceed.vector(4);
+    /// let mut array: [f64; 4] = [1., 2., 3., 4.];
+    /// vec.set_array(ceed::MemType::Host, ceed::CopyMode::OwnPointer, array.to_vec());
+    /// let norm = vec.norm(ceed::vector::NormType::Max);
+    /// assert!(norm == 4.0)
+    /// ```
+    pub fn set_array(&self, mtype: crate::MemType, cmode: crate::CopyMode, mut vec: Vec<f64>) {
+        vec.shrink_to_fit();
+        unsafe {
+            bind_ceed::CeedVectorSetArray(
+                self.ptr,
+                mtype as bind_ceed::CeedMemType,
+                cmode as bind_ceed::CeedCopyMode,
+                vec.as_mut_ptr(),
+            )
+        };
+        if cmode == crate::CopyMode::OwnPointer {
+            std::mem::forget(vec);
+        }
+    }
+
     /// Set the CeedVector to a constant value
     ///
     /// # arguments

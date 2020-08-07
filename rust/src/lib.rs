@@ -5,6 +5,7 @@
 
 use std::ffi::CString;
 use std::fmt;
+use std::mem;
 // use std::io::{self, Write};
 use crate::prelude::*;
 
@@ -44,20 +45,20 @@ impl Drop for Ceed {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum MemType {
     Host,
     Device,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum CopyMode {
     CopyValues,
     UsePointer,
     OwnPointer,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum TransposeMode {
     NoTranspose,
     Transpose,

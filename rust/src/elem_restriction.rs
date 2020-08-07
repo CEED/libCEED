@@ -151,107 +151,50 @@ impl<'a> ElemRestriction<'a> {
         };
     }
 
-    pub fn get_comp_stride(
-        &self,
-    ) -> i32 {
+    pub fn get_comp_stride(&self) -> i32 {
         let mut compstride = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetCompStride(
-                self.ptr,
-                &mut compstride,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetCompStride(self.ptr, &mut compstride) };
         compstride
     }
 
-    pub fn get_num_elements(
-        &self,
-    ) -> i32 {
+    pub fn get_num_elements(&self) -> i32 {
         let mut numelem = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetNumElements(
-                self.ptr,
-                &mut numelem,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetNumElements(self.ptr, &mut numelem) };
         numelem
     }
 
-    pub fn get_elem_size(
-        &self,
-    ) -> i32 {
+    pub fn get_elem_size(&self) -> i32 {
         let mut elemsize = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetElementSize(
-                self.ptr,
-                &mut elemsize,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetElementSize(self.ptr, &mut elemsize) };
         elemsize
     }
 
-    pub fn get_Lvector_size(
-        &self,
-    ) -> i32 {
+    pub fn get_Lvector_size(&self) -> i32 {
         let mut lsize = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetLVectorSize(
-                self.ptr,
-                &mut lsize,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetLVectorSize(self.ptr, &mut lsize) };
         lsize
     }
 
-    pub fn get_num_components(
-        &self,
-    ) -> i32 {
+    pub fn get_num_components(&self) -> i32 {
         let mut numcomp = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetNumComponents(
-                self.ptr,
-                &mut numcomp,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetNumComponents(self.ptr, &mut numcomp) };
         numcomp
     }
 
-    pub fn get_num_blocks(
-        &self,
-    ) -> i32 {
+    pub fn get_num_blocks(&self) -> i32 {
         let mut numblock = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetNumBlocks(
-                self.ptr,
-                &mut numblock,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetNumBlocks(self.ptr, &mut numblock) };
         numblock
     }
 
-    pub fn get_block_size(
-        &self,
-    ) -> i32 {
+    pub fn get_block_size(&self) -> i32 {
         let mut blksize = 0;
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetBlockSize(
-                self.ptr,
-                &mut blksize,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionGetBlockSize(self.ptr, &mut blksize) };
         blksize
     }
 
-    pub fn get_multiplicity(
-        &self,
-        mult: &mut crate::vector::Vector,
-    ) {
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetMultiplicity(
-                self.ptr,
-                mult.ptr,
-            )
-        };
+    pub fn get_multiplicity(&self, mult: &mut crate::vector::Vector) {
+        unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };
     }
 }
 

@@ -19,9 +19,7 @@ impl<'a> Operator<'a> {
         Self { ceed, ptr }
     }
 
-    pub fn create_composite(
-        ceed: &'a crate::Ceed,
-    ) -> Self {
+    pub fn create_composite(ceed: &'a crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
         Self { ceed, ptr }
@@ -38,7 +36,9 @@ impl<'a> Operator<'a> {
             use std::ffi::CString;
             bind_ceed::CeedOperatorSetField(
                 self.ptr,
-                CString::new(fieldname).expect("CString::new failed").as_ptr() as *const i8,
+                CString::new(fieldname)
+                    .expect("CString::new failed")
+                    .as_ptr() as *const i8,
                 r.ptr,
                 b.ptr,
                 v.ptr,
@@ -46,13 +46,8 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn add_sub_operator(
-        &self,
-        subop: &Operator,
-    ) {
-        unsafe {
-            bind_ceed::CeedCompositeOperatorAddSub(self.ptr, subop.ptr)
-        };
+    pub fn add_sub_operator(&self, subop: &Operator) {
+        unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.ptr, subop.ptr) };
     }
 
     pub fn linear_assemble_qfunction(
@@ -70,10 +65,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn linear_asssemble_diagonal(
-        &self,
-        assembled: &mut crate::vector::Vector,
-    ) {
+    pub fn linear_asssemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleDiagonal(
                 self.ptr,
@@ -83,10 +75,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn linear_assemble_add_diagonal(
-        &self,
-        assembled: &mut crate::vector::Vector,
-    ) {
+    pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddDiagonal(
                 self.ptr,
@@ -96,10 +85,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn linear_assemble_point_block_diagonal(
-        &self,
-        assembled: &mut crate::vector::Vector,
-    ) {
+    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssemblePointBlockDiagonal(
                 self.ptr,
@@ -109,10 +95,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn linear_assemble_add_point_block_diagonal(
-        &self,
-        assembled: &mut crate::vector::Vector,
-    ) {
+    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddPointBlockDiagonal(
                 self.ptr,
