@@ -129,6 +129,35 @@ impl Ceed {
         )
     }
 
+    pub fn basis_tensor_H1_Lagrange(
+        &self,
+        dim: i32,
+        ncomp: i32,
+        P: i32,
+        Q: i32,
+        qmode: basis::QuadMode,
+    ) -> crate::basis::Basis {
+        crate::basis::Basis::create_tensor_H1_Lagrange(
+            self, dim, ncomp, P, Q, qmode,
+        )
+    }
+
+    pub fn basis_H1(
+        &self,
+        topo: basis::ElemTopology,
+        ncomp: i32,
+        nnodes: i32,
+        nqpts: i32,
+        interp: &Vec<f64>,
+        grad: &Vec<f64>,
+        qref: &Vec<f64>,
+        qweight: &Vec<f64>,
+    ) -> crate::basis::Basis {
+        crate::basis::Basis::create_H1(
+            self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
+        )
+    }
+
     /// QFunction
     pub fn q_function_interior(
         &self,
