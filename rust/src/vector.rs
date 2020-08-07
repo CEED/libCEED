@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use std::convert::TryFrom;
 
 /// CeedVector context wrapper
 pub struct Vector<'a> {
@@ -8,7 +9,8 @@ pub struct Vector<'a> {
 
 impl<'a> Vector<'a> {
     /// Constructors
-    pub fn create(ceed: &'a crate::Ceed, n: i32) -> Self {
+    pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
+        let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self { ceed, ptr }
@@ -16,6 +18,12 @@ impl<'a> Vector<'a> {
 
     pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedVector) -> Self {
         Self { ceed, ptr }
+    }
+
+    pub fn from_vec(ceed: &'a crate::Ceed, v: &std::vec::Vec<f64>) -> Self {
+        let x = Self::create(ceed, v.len());
+        x.set_vec(v);
+        x
     }
 
     /// Returns the length of a CeedVector
@@ -26,10 +34,10 @@ impl<'a> Vector<'a> {
     /// let n = vec.length();
     /// assert!(n == 10);
     /// ```
-    pub fn length(&self) -> i32 {
+    pub fn length(&self) -> usize {
         let mut n = 0;
         unsafe { bind_ceed::CeedVectorGetLength(self.ptr, &mut n) };
-        n
+        usize::try_from(n).unwrap()
     }
 
     /// Set the array used by a CeedVector, freeing any previously allocated

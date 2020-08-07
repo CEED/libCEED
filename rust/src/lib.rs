@@ -133,7 +133,7 @@ impl Ceed {
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// ```
-    pub fn vector(&self, n: i32) -> crate::vector::Vector {
+    pub fn vector(&self, n: usize) -> crate::vector::Vector {
         crate::vector::Vector::create(self, n)
     }
 
