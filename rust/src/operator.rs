@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::mem;
 
 pub struct Operator<'a> {
     ceed: &'a crate::Ceed,
@@ -12,9 +11,7 @@ impl<'a> Operator<'a> {
         dqf: &crate::qfunction::QFunction,
         dqfT: &crate::qfunction::QFunction,
     ) -> Self {
-        let mut ptr = unsafe {
-            libc::malloc(mem::size_of::<bind_ceed::CeedOperator>()) as bind_ceed::CeedOperator
-        };
+        let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.ptr, dqf.ptr, dqfT.ptr, &mut ptr) };
         Self { ceed, ptr }
     }

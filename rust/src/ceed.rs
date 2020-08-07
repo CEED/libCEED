@@ -3,7 +3,6 @@
 // #![allow(non_snake_case)]
 // // #[macro_use(s)]
 // // extern crate ndarray;
-// use std::mem;
 // use std::fmt;
 // use std::ffi::CString;
 // use std::io::prelude::*;

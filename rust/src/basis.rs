@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::mem;
 
 pub struct Basis<'a> {
     ceed: &'a crate::Ceed,
@@ -42,8 +41,7 @@ impl<'a> Basis<'a> {
         qref1d: &Vec<f64>,
         qweight1d: &Vec<f64>,
     ) -> Self {
-        let mut ptr =
-            unsafe { libc::malloc(mem::size_of::<bind_ceed::CeedBasis>()) as bind_ceed::CeedBasis };
+        let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
                 ceed.ptr,
@@ -69,8 +67,7 @@ impl<'a> Basis<'a> {
         Q: i32,
         qmode: QuadMode,
     ) -> Self {
-        let mut ptr =
-            unsafe { libc::malloc(mem::size_of::<bind_ceed::CeedBasis>()) as bind_ceed::CeedBasis };
+        let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(
                 ceed.ptr,
@@ -96,8 +93,7 @@ impl<'a> Basis<'a> {
         qref: &Vec<f64>,
         qweight: &Vec<f64>,
      ) -> Self {
-        let mut ptr =
-            unsafe { libc::malloc(mem::size_of::<bind_ceed::CeedBasis>()) as bind_ceed::CeedBasis };
+        let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateH1(
                 ceed.ptr,
