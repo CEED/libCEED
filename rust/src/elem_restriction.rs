@@ -10,7 +10,7 @@ impl<'a> ElemRestriction<'a> {
     compstride : i32, lsize : i32, mtype : crate::MemType, cmode : crate::CopyMode,
     offsets : &Vec<i32>) -> Self {
     let mut ptr = unsafe {libc::malloc(mem::size_of::<bind_ceed::CeedElemRestriction>()) as bind_ceed::CeedElemRestriction};
-    // unsafe { bind_ceed::CeedElemRestrictionCreate(ceed.ptr, nelem, elemsize, ncomp, compstride, lsize, mtype, cmode, offsets, &mut ptr) };
+    // unsafe { bind_ceed::CeedElemRestrictionCreate(ceed.ptr, nelem, elemsize, ncomp, compstride, lsize, mtype, cmode, offsets.as_mut_ptr(), &mut ptr) };
     Self { ceed, ptr }
   }
 }
