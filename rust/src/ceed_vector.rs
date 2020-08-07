@@ -14,9 +14,9 @@ use cfile;
 mod rust_ceed {
   include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
-mod ceed;
 
+/// CeedVector context wrapper
 struct CeedVector {
-  ceed_ptr : rust_ceed::Ceed,
+  ceed_reference : ceed::Ceed,
   ceed_vec_ptr : rust_ceed::CeedVector,
 }

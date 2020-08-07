@@ -16,10 +16,10 @@ mod rust_ceed {
 }
 mod ceed_vector;
 
-/// A Ceed context wrapper
+/// Ceed context wrapper
 pub struct Ceed {
-  // Pointer to C object
   backend : String,
+  // Pointer to C object
   ceed_ptr : rust_ceed::Ceed,
 }
 
@@ -49,7 +49,6 @@ impl fmt::Display for Ceed {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{}", self.backend)
 
-
     //let tmpout = cfile::tmpfile().unwrap();
     //rust_ceed::CeedView(self.ceed_ptr, libc::stdout);
     //tmpout.seek(SeekFrom::Start(0)).unwrap();
@@ -69,16 +68,23 @@ impl Drop for Ceed {
   }
 }
 
-
 // Object constructors
 impl Ceed {
+  /// Vector
   pub fn vector_create(&self, n: i32) -> ceed_vector::CeedVector {
     let mut vec_ptr = libc::malloc(mem::size_of::<rust_ceed::CeedVector>()) as rust_ceed::CeedVector;
     rust_ceed::CeedVectorCreate(self.ceed_ptr, n, &mut vec_ptr);
-    ceed_vector::CeedVector { ceed_ptr: self.ceed_ptr, ceed_vec_ptr: vec_ptr }
+    ceed_vector::CeedVector { ceed_reference: self, ceed_vec_ptr: vec_ptr }
   }
-}
 
+  /// Elem Restriction
+
+  /// Basis
+
+  /// QFunction
+
+  /// Operator
+}
 
 /*
 use std::io::prelude::*;
