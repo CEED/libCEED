@@ -137,6 +137,21 @@ impl Ceed {
         crate::vector::Vector::create(self, n)
     }
 
+    /// Create a Vector initialized with the data (copied) from a slice
+    ///
+    /// # arguments
+    ///
+    /// * 'slice' - Slice containing data
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let vec = ceed.vector_from_slice(&[1., 2., 3.]);
+    /// assert_eq!(vec.length(), 3);
+    /// ```
+    pub fn vector_from_slice(&self, slice: &[f64]) -> crate::vector::Vector {
+        crate::vector::Vector::from_slice(self, slice)
+    }
+
     /// Elem Restriction
     pub fn elem_restriction(
         &self,

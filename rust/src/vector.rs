@@ -20,9 +20,20 @@ impl<'a> Vector<'a> {
         Self { ceed, ptr }
     }
 
-    pub fn from_vec(ceed: &'a crate::Ceed, v: &std::vec::Vec<f64>) -> Self {
-        let x = Self::create(ceed, v.len());
-        x.set_vec(v);
+    /// Create a Vector from a slice
+    ///
+    /// # arguments
+    ///
+    /// * 'slice' values to initialize vector with
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let x = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// assert_eq!(x.length(), 3);
+    /// ```
+    pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> Self {
+        let mut x = Self::create(ceed, v.len());
+        x.set_slice(v);
         x
     }
 
@@ -80,11 +91,34 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let vec = ceed.vector(10);
-    /// vec.set_value(42.0);
+    /// let mut x = ceed.vector(10);
+    /// x.set_value(42.0);
     /// ```
-    pub fn set_value(&self, value: f64) {
+    pub fn set_value(&mut self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
+    }
+
+    /// Set values from a slice of the same length
+    ///
+    /// # arguments
+    ///
+    /// * 'slice' values to into self; length must match
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let mut x = ceed.vector(4);
+    /// x.set_slice(&[10., 11., 12., 13.]);
+    /// ```
+    pub fn set_slice(&mut self, slice: &[f64]) {
+        assert_eq!(self.length(), slice.len());
+        unsafe {
+            bind_ceed::CeedVectorSetArray(
+                self.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
+                slice.as_ptr() as *mut f64,
+            )
+        };
     }
 
     /// Sync the CeedVector to a specified memtype
@@ -110,10 +144,10 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let vec = ceed.vector(10);
-    /// vec.set_value(42.0);
-    /// let norm = vec.norm(ceed::NormType::Max);
-    /// assert!(norm == 42.0)
+    /// let mut x = ceed.vector(10);
+    /// x.set_value(42.0);
+    /// let norm = x.norm(ceed::NormType::Max);
+    /// assert_eq!(norm, 42.0)
     /// ```
     pub fn norm(&self, ntype: crate::NormType) -> f64 {
         let mut res: f64 = 0.0;
