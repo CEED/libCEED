@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use std::convert::TryFrom;
+use std::slice;
 
 /// CeedVector context wrapper
 pub struct Vector<'a> {
@@ -144,6 +145,44 @@ impl<'a> Vector<'a> {
     /// ```
     pub fn sync(&self, mtype: crate::MemType) {
         unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
+    }
+
+    /// Get read/write access to a CeedVector via the specified memory type
+    ///
+    /// # arguments
+    ///
+    /// * 'mtype' - Memory type on which to access the array
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let vec = ceed.vector(10);
+    /// let array = vec.get_array(ceed::MemType::Host);
+    /// vec.restore_array(array);
+    /// ```
+    pub fn get_array(&self, mtype: crate::MemType) -> ndarray::ArrayViewMut1<f64> {
+        let n = self.len();
+        let mut ptr = std::ptr::null_mut();
+        unsafe { bind_ceed::CeedVectorGetArray(self.ptr, mtype as bind_ceed::CeedMemType, &mut ptr) };
+        let mut ptr_slice: &mut[f64] = unsafe { slice::from_raw_parts_mut(ptr, n) };
+        ndarray::aview_mut1(ptr_slice)
+    }
+
+    /// Get read/write access to a CeedVector via the specified memory type
+    ///
+    /// # arguments
+    ///
+    /// * 'array' - Array of vector data
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let vec = ceed.vector(10);
+    /// let array = vec.get_array(ceed::MemType::Host);
+    /// vec.restore_array(array);
+    /// ```
+    pub fn restore_array(&self, array: ndarray::ArrayViewMut1<f64>) {
+        let mut ptr = std::ptr::null_mut();
+        unsafe { bind_ceed::CeedVectorRestoreArray(self.ptr, &mut ptr) };
+        drop(array);
     }
 
     /// Return the norm of a CeedVector
