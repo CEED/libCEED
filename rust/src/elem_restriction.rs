@@ -5,6 +5,7 @@ pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedElemRestriction,
 }
+
 impl<'a> ElemRestriction<'a> {
     pub fn create(
         ceed: &'a crate::Ceed,

@@ -189,10 +189,14 @@ impl Ceed {
         todo!()
     }
 
-    /// QFunctionContext
+    /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ctx = ceed.q_function_context();
+    /// ```
     pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {
-        //TODO
-        todo!()
+        crate::qfunction_context::QFunctionContext::create(self)
     }
 
     /// Operator
