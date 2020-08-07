@@ -201,8 +201,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
 
   Ceed_Cuda *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",

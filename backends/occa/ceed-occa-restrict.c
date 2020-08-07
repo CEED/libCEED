@@ -210,7 +210,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   for (int i = 0; i < CEED_OCCA_NUM_RESTRICTION_KERNELS; ++i) {
     data->kRestrict[i] = occaUndefined;
   }
-  ierr = CeedElemRestrictionSetData(r, (void *)&data); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, data); CeedChk(ierr);
   CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   CeedDebug("[CeedElemRestriction][Create] nelem=%d",nelem);

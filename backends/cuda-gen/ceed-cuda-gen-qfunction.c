@@ -116,8 +116,8 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
 
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);

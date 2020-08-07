@@ -164,7 +164,7 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Hip *data;
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);

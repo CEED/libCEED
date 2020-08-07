@@ -581,8 +581,8 @@ int CeedGetData(Ceed ceed, void **data) {
 
   @ref Backend
 **/
-int CeedSetData(Ceed ceed, void **data) {
-  ceed->data = *data;
+int CeedSetData(Ceed ceed, void *data) {
+  ceed->data = data;
   return 0;
 }
 

@@ -30,9 +30,7 @@ static inline size_t bytes(const CeedQFunctionContext ctx) {
 // * freeing any previously allocated data if applicable
 // *****************************************************************************
 static int CeedQFunctionContextSetData_Occa(const CeedQFunctionContext ctx,
-    const CeedMemType mtype,
-    const CeedCopyMode cmode,
-    CeedScalar *data) {
+    const CeedMemType mtype, const CeedCopyMode cmode, CeedScalar *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -76,8 +74,7 @@ static int CeedQFunctionContextSetData_Occa(const CeedQFunctionContext ctx,
 // * Get access to user context via the specified mtype memory type
 // *****************************************************************************
 static int CeedQFunctionContextGetData_Occa(const CeedQFunctionContext ctx,
-    const CeedMemType mtype,
-    const CeedScalar **data) {
+    const CeedMemType mtype, const CeedScalar **data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -141,6 +138,6 @@ int CeedQFunctionContextCreate_Occa(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextDestroy_Occa); CeedChk(ierr);
   // ***************************************************************************
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChk(ierr);
   return 0;
 }

@@ -98,8 +98,8 @@ int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void **data) {
 
   @ref Backend
 **/
-int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void **data) {
-  ctx->data = *data;
+int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
+  ctx->data = data;
   return 0;
 }
 

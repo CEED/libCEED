@@ -249,7 +249,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->nc = data->dim = 1;
   data->nelem = data->elemsize = 1;
   data->e = 0;
-  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
   // Locate last ':' character in qf->source ************************************
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);

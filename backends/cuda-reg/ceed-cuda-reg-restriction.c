@@ -359,7 +359,7 @@ int CeedElemRestrictionCreate_Cuda_reg(CeedMemType mtype, CeedCopyMode cmode,
   impl->d_tindices      = NULL;
   impl->d_toffsets      = NULL;
   impl->nnodes = size;
-  ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, impl); CeedChk(ierr);
   CeedInt layout[3] = {1, elemsize*nelem, elemsize};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
 

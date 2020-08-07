@@ -287,8 +287,8 @@ int CeedBasisGetData(CeedBasis basis, void **data) {
 
   @ref Backend
 **/
-int CeedBasisSetData(CeedBasis basis, void **data) {
-  basis->data = *data;
+int CeedBasisSetData(CeedBasis basis, void *data) {
+  basis->data = data;
   return 0;
 }
 

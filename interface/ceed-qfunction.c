@@ -331,8 +331,8 @@ int CeedQFunctionGetData(CeedQFunction qf, void **data) {
 
   @ref Backend
 **/
-int CeedQFunctionSetData(CeedQFunction qf, void **data) {
-  qf->data = *data;
+int CeedQFunctionSetData(CeedQFunction qf, void *data) {
+  qf->data = data;
   return 0;
 }
 

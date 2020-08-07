@@ -751,7 +751,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   CeedOperator_Opt *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, impl); CeedChk(ierr);
 
   if (blksize != 1 && blksize != 8)
     // LCOV_EXCL_START

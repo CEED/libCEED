@@ -386,7 +386,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
     ierr = CeedMalloc(Q1d*Q1d, &impl->collograd1d); CeedChk(ierr);
     ierr = CeedBasisGetCollocatedGrad(basis, impl->collograd1d); CeedChk(ierr);
   }
-  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
 
   Ceed parent;
   ierr = CeedGetParent(ceed, &parent); CeedChk(ierr);

@@ -104,7 +104,7 @@ static int CeedInit_Occa(const char *resource, Ceed ceed) {
     occaPropertiesSet(occaSettings(), "device/verbose", occaBool(1));
     occaPropertiesSet(occaSettings(), "kernel/verbose", occaBool(1));
   }
-  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   // Now that we can dbg, output resource and deviceID
   CeedDebug("[CeedInit] resource: %s", resource);
   CeedDebug("[CeedInit] deviceID: %d", deviceID);

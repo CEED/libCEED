@@ -113,7 +113,7 @@ int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Ref); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

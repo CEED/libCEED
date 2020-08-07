@@ -695,7 +695,7 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
-  ierr = CeedBasisSetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",

@@ -56,7 +56,7 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   Ceed_Opt *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   data->blksize = 1;
-  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
 
   return 0;
 }

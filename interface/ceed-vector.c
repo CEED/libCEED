@@ -113,8 +113,8 @@ int CeedVectorGetData(CeedVector vec, void **data) {
 
   @ref Backend
 **/
-int CeedVectorSetData(CeedVector vec, void **data) {
-  vec->data = *data;
+int CeedVectorSetData(CeedVector vec, void *data) {
+  vec->data = data;
   return 0;
 }
 

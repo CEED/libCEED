@@ -63,8 +63,7 @@ static inline int CeedQFunctionContextSyncD2H_Hip(
 // Set data from host
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetDataHost_Hip(const CeedQFunctionContext ctx,
-    const CeedCopyMode cmode,
-    CeedScalar *data) {
+    const CeedCopyMode cmode, CeedScalar *data) {
   int ierr;
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
@@ -132,9 +131,7 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx,
-    const CeedMemType mtype,
-    const CeedCopyMode cmode,
-    CeedScalar *data) {
+    const CeedMemType mtype, const CeedCopyMode cmode, CeedScalar *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -152,8 +149,7 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx,
 // Get array
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
-    const CeedMemType mtype,
-    CeedScalar **data) {
+    const CeedMemType mtype, CeedScalar **data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
@@ -236,7 +232,7 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextDestroy_Hip); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->memState = CEED_HIP_NONE_SYNC;
-  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

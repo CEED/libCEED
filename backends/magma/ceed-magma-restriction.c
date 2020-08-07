@@ -244,7 +244,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   } else
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
 
-  ierr = CeedElemRestrictionSetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, impl); CeedChk(ierr);
   CeedInt layout[3] = {1, elemsize*nelem, elemsize};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",

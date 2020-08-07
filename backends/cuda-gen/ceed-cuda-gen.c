@@ -34,8 +34,8 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   ierr = CeedSetDelegate(ceed, ceedshared); CeedChk(ierr);
 
   Ceed_Cuda_gen *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
   const char fallbackresource[] = "/gpu/cuda/ref";

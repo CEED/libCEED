@@ -397,7 +397,7 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   data->grad1d = occaDeviceMalloc(dev,P1d*Q1d*sizeof(CeedScalar),NULL,NO_PROPS);
   occaCopyPtrToMem(data->grad1d,grad1d,P1d*Q1d*sizeof(CeedScalar),NO_OFFSET,
                    NO_PROPS);
-  ierr = CeedBasisSetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
   // ***************************************************************************
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Occa); CeedChk(ierr);

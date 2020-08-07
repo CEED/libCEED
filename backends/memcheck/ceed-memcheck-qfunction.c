@@ -93,7 +93,7 @@ int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Memcheck); CeedChk(ierr);

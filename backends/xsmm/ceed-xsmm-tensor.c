@@ -171,7 +171,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
           }
         }
   }
-  ierr = CeedTensorContractSetData(contract, (void *)&impl); CeedChk(ierr);
+  ierr = CeedTensorContractSetData(contract, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
                                 CeedTensorContractApply_Xsmm); CeedChk(ierr);

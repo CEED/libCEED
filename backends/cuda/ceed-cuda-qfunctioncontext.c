@@ -238,7 +238,7 @@ int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextDestroy_Cuda); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->memState = CEED_CUDA_NONE_SYNC;
-  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

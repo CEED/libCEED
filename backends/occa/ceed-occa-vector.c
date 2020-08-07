@@ -223,6 +223,6 @@ int CeedVectorCreate_Occa(const CeedInt n, CeedVector vec) {
   // ***************************************************************************
   ierr = CeedCalloc(1,&data); CeedChk(ierr);
   data->d_array = occaDeviceMalloc(ceed_data->device, bytes(vec),NULL,NO_PROPS);
-  ierr = CeedVectorSetData(vec, (void *)&data); CeedChk(ierr);
+  ierr = CeedVectorSetData(vec, data); CeedChk(ierr);
   return 0;
 }

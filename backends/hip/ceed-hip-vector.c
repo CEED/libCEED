@@ -487,7 +487,7 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
                                 CeedVectorDestroy_Hip); CeedChk(ierr);
 
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  ierr = CeedVectorSetData(vec, (void *)&data); CeedChk(ierr);
+  ierr = CeedVectorSetData(vec, data); CeedChk(ierr);
   data->memState = CEED_HIP_NONE_SYNC;
   return 0;
 }

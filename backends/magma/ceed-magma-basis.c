@@ -381,7 +381,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                 CeedBasisDestroy_Magma); CeedChk(ierr);
 
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
 
   // Copy qref1d to the GPU
   ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
@@ -431,7 +431,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
                                 CeedBasisDestroyNonTensor_Magma); CeedChk(ierr);
 
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
 
   // Copy qref to the GPU
   ierr = magma_malloc((void **)&impl->dqref, nqpts*sizeof(qref[0]));

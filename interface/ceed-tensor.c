@@ -142,8 +142,8 @@ int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
 
   @ref Backend
 **/
-int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
-  contract->data = *data;
+int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
+  contract->data = data;
   return 0;
 }
 

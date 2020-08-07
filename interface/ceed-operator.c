@@ -594,8 +594,8 @@ int CeedOperatorGetData(CeedOperator op, void **data) {
   @ref Backend
 **/
 
-int CeedOperatorSetData(CeedOperator op, void **data) {
-  op->data = *data;
+int CeedOperatorSetData(CeedOperator op, void *data) {
+  op->data = data;
   return 0;
 }
 

@@ -93,8 +93,8 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
 
   Ceed_Hip *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedHipInit(ceed, resource, nrc); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
