@@ -665,7 +665,7 @@ void fCeedQFunctionContextSetData(int *ctx, int *memtype, int *copymode,
   *err = CeedQFunctionContextSetData(CeedQFunctionContext_dict[*ctx],
                                      (CeedMemType)*memtype,
                                      (CeedCopyMode)*copymode, ctxsize,
-                                     (CeedScalar *)(data + *offset));
+                                     data + *offset);
 }
 
 #define fCeedQFunctionContextGetData \
