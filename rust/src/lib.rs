@@ -83,9 +83,7 @@ impl Ceed {
   
   /// Vector
   pub fn vector(&self, n: i32) -> crate::vector::Vector {
-    let mut vec_ptr = unsafe { libc::malloc(mem::size_of::<rust_ceed::CeedVector>()) as rust_ceed::CeedVector };
-    unsafe { rust_ceed::CeedVectorCreate(self.ceed_ptr, n, &mut vec_ptr) };
-    crate::vector::Vector::new( self, vec_ptr )
+    crate::vector::Vector::create( self, n )
   }
   
   /// Elem Restriction
