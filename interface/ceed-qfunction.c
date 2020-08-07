@@ -246,10 +246,13 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
 }
 
 /**
-  @brief Get global context for a CeedQFunction
+  @brief Get global context for a CeedQFunction.
+         Note: For QFunctions from the Fortran interface, this
+               function will return the Fortran context
+               CeedQFunctionContext.
 
   @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data size
+  @param[out] ctx        Variable to store CeedQFunctionContext
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -262,9 +265,12 @@ int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 
 /**
   @brief Get true user context for a CeedQFunction
+         Note: For all QFunctions this function will return the user
+               CeedQFunctionContext and not interface context
+               CeedQFunctionContext, if any such object exists.
 
   @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data values
+  @param[out] ctx        Variable to store CeedQFunctionContext
 
   @return An error code: 0 - success, otherwise - failure
   @ref Backend
@@ -273,7 +279,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   int ierr;
   if (qf->fortranstatus) {
     CeedFortranContext fctx = NULL;
-    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, (void *)&fctx);
+    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fctx);
     CeedChk(ierr);
     *ctx = fctx->innerctx;
     ierr = CeedQFunctionContextRestoreData(qf->ctx, (void *)&fctx); CeedChk(ierr);
@@ -310,8 +316,8 @@ int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
 
   @ref Backend
 **/
-int CeedQFunctionGetData(CeedQFunction qf, void **data) {
-  *data = qf->data;
+int CeedQFunctionGetData(CeedQFunction qf, void *data) {
+  *(void **)data = qf->data;
   return 0;
 }
 
@@ -325,8 +331,8 @@ int CeedQFunctionGetData(CeedQFunction qf, void **data) {
 
   @ref Backend
 **/
-int CeedQFunctionSetData(CeedQFunction qf, void **data) {
-  qf->data = *data;
+int CeedQFunctionSetData(CeedQFunction qf, void *data) {
+  qf->data = data;
   return 0;
 }
 

@@ -53,7 +53,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   opts[numopts + 2] = "-default-device";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   CeedChk_Cu(ceed, ierr);
   char buff[optslen];
@@ -154,7 +154,7 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
 
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   data->deviceId = deviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
   return 0;
@@ -166,7 +166,7 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
 int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
   int ierr;
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, (void *) &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   if (!data->cublasHandle) {
     ierr = cublasCreate(&data->cublasHandle); CeedChk_Cublas(ceed, ierr);
@@ -181,7 +181,7 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
 int CeedDestroy_Cuda(Ceed ceed) {
   int ierr;
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   if (data->cublasHandle) {
     ierr = cublasDestroy(data->cublasHandle); CeedChk_Cublas(ceed, ierr);
   }
@@ -201,8 +201,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
 
   Ceed_Cuda *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",

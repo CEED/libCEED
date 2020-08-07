@@ -343,9 +343,9 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Cuda); CeedChk(ierr);
   CeedBasis_Cuda *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 32;
 
@@ -431,9 +431,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Cuda); CeedChk(ierr);
   CeedBasisNonTensor_Cuda *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   CeedInt nnodes, nqpt;
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
@@ -519,7 +519,7 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasis_Cuda *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module));
 
@@ -540,7 +540,7 @@ static int CeedBasisDestroyNonTensor_Cuda(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasisNonTensor_Cuda *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module));
 
@@ -601,7 +601,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedChk(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Cuda); CeedChk(ierr);
@@ -655,7 +655,7 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
   ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk_Cu(ceed, ierr);
 
-  ierr = CeedBasisSetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",

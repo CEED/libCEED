@@ -36,7 +36,7 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   ierr = cudaMemcpy(impl->d_data, impl->h_data, bytes(ctx),
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
@@ -52,7 +52,7 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   ierr = cudaMemcpy(impl->h_data, impl->d_data, bytes(ctx),
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
@@ -67,7 +67,7 @@ static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
     CeedScalar *data) {
   int ierr;
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES: {
@@ -101,7 +101,7 @@ static int CeedQFunctionContextSetDataDevice_Cuda(const CeedQFunctionContext
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   switch (cmode) {
   case CEED_COPY_VALUES:
@@ -153,13 +153,12 @@ static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx,
 // Get array
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
-    const CeedMemType mtype,
-    CeedScalar **data) {
+    const CeedMemType mtype, CeedScalar *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
   if(impl->h_data == NULL && impl->d_data == NULL)
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "No context data set");
@@ -177,7 +176,7 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
       ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChk(ierr);
     }
     impl->memState = CEED_CUDA_HOST_SYNC;
-    *data = impl->h_data;
+    *(void **)data = impl->h_data;
     break;
   case CEED_MEM_DEVICE:
     if (impl->d_data == NULL) {
@@ -189,7 +188,7 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
       ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChk(ierr);
     }
     impl->memState = CEED_CUDA_DEVICE_SYNC;
-    *data = impl->d_data;
+    *(void **)data = impl->d_data;
     break;
   }
   return 0;
@@ -211,7 +210,7 @@ static int CeedQFunctionContextDestroy_Cuda(const CeedQFunctionContext ctx) {
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
   CeedQFunctionContext_Cuda *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   ierr = cudaFree(impl->d_data_allocated); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&impl->h_data_allocated); CeedChk(ierr);
@@ -238,7 +237,7 @@ int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextDestroy_Cuda); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   impl->memState = CEED_CUDA_NONE_SYNC;
-  ierr = CeedQFunctionContextSetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------

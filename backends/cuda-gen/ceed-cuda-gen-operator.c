@@ -23,7 +23,7 @@
 static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda_gen *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
@@ -37,11 +37,11 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda_gen *data;
-  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &data); CeedChk(ierr);
   CeedQFunction qf;
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChk(ierr);
   CeedInt nelem, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumElements(op, &nelem); CeedChk(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -205,7 +205,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedOperator_Cuda_gen *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
                                 CeedOperatorCreateFDMElementInverse_Cuda);

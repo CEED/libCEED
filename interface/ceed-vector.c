@@ -98,8 +98,8 @@ int CeedVectorAddReference(CeedVector vec) {
 
   @ref Backend
 **/
-int CeedVectorGetData(CeedVector vec, void **data) {
-  *data = vec->data;
+int CeedVectorGetData(CeedVector vec, void *data) {
+  *(void **)data = vec->data;
   return 0;
 }
 
@@ -113,8 +113,8 @@ int CeedVectorGetData(CeedVector vec, void **data) {
 
   @ref Backend
 **/
-int CeedVectorSetData(CeedVector vec, void **data) {
-  vec->data = *data;
+int CeedVectorSetData(CeedVector vec, void *data) {
+  vec->data = data;
   return 0;
 }
 

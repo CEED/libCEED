@@ -22,7 +22,7 @@
 static int CeedOperatorDestroy_Occa(CeedOperator op) {
   int ierr;
   CeedOperator_Occa *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     if (impl->Evecs[i]) {
@@ -63,7 +63,7 @@ static int CeedOperatorSetupFields_Occa(CeedQFunction qf, CeedOperator op,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *qf_data;
-  ierr = CeedQFunctionGetData(qf, (void *)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChk(ierr);
   CeedBasis basis;
   CeedElemRestriction Erestrict;
   CeedOperatorField *opfields;
@@ -156,7 +156,7 @@ static int CeedOperatorSetup_Occa(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Occa *data;
-  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &data); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -223,7 +223,7 @@ static int SyncToHostPointer(CeedVector vec) {
   // and we should do better about avoiding copies.
   int ierr;
   CeedVector_Occa *outvdata;
-  ierr = CeedVectorGetData(vec, (void *)&outvdata); CeedChk(ierr);
+  ierr = CeedVectorGetData(vec, &outvdata); CeedChk(ierr);
   if (outvdata->h_array) {
     CeedInt length;
     ierr = CeedVectorGetLength(vec, &length); CeedChk(ierr);
@@ -245,7 +245,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedDebug("[CeedOperator][Apply]");
   CeedOperator_Occa *data;
-  ierr = CeedOperatorGetData(op, (void *)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &data); CeedChk(ierr);
   //CeedVector *E = data->Evecs, *D = data->D, outvec;
   CeedInt Q, elemsize, numelements, numinputfields, numoutputfields, ncomp, dim;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -271,7 +271,7 @@ static int CeedOperatorApply_Occa(CeedOperator op,
 
   // Tell CeedQFunction_Occa's structure we are coming from an operator ********
   CeedQFunction_Occa *qfd;
-  ierr = CeedQFunctionGetData(qf, (void *)&qfd); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &qfd); CeedChk(ierr);
   qfd->op = op;
 
   // Input Evecs and Restriction
@@ -543,7 +543,7 @@ int CeedOperatorCreate_Occa(CeedOperator op) {
 
   CeedDebug("[CeedOperator][Create]");
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Occa);

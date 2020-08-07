@@ -55,7 +55,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedScalar *restrict v) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
-  ierr = CeedTensorContractGetData(contract, (void *)&impl); CeedChk(ierr);
+  ierr = CeedTensorContractGetData(contract, &impl); CeedChk(ierr);
 
   // Get kernel
   libxsmm_dmmfunction kernel;
@@ -81,7 +81,7 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   CeedTensorContract_Xsmm *impl;
   libxsmm_dmmfunction kernel;
 
-  ierr = CeedTensorContractGetData(contract, (void *)&impl); CeedChk(ierr);
+  ierr = CeedTensorContractGetData(contract, &impl); CeedChk(ierr);
   // Free kernels
   kh_foreach_value(impl->lookup, kernel, libxsmm_release_kernel(&kernel));
   kh_destroy(m32, impl->lookup);
@@ -171,7 +171,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
           }
         }
   }
-  ierr = CeedTensorContractSetData(contract, (void *)&impl); CeedChk(ierr);
+  ierr = CeedTensorContractSetData(contract, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
                                 CeedTensorContractApply_Xsmm); CeedChk(ierr);
