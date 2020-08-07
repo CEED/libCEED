@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
-    ptr: bind_ceed::CeedElemRestriction,
+    pub ptr: bind_ceed::CeedElemRestriction,
 }
 impl<'a> ElemRestriction<'a> {
     pub fn create(
