@@ -31,9 +31,26 @@ navierstokes := $(navierstokes.c:%.c=%)
 all: $(navierstokes)
 $(navierstokes): | $(PETSc.pc) $(ceed.pc)
 
+# Output using the 216-color rules mode
+rule_file = $(notdir $(1))
+rule_path = $(patsubst %/,%,$(dir $(1)))
+last_path = $(notdir $(patsubst %/,%,$(dir $(1))))
+ansicolor = $(shell echo $(call last_path,$(1)) | cksum | cut -b1-2 | xargs -IS expr 2 \* S + 17)
+emacs_out = @printf "  %10s %s/%s\n" $(1) $(call rule_path,$(2)) $(call rule_file,$(2))
+color_out = @if [ -t 1 ]; then \
+				printf "  %10s \033[38;5;%d;1m%s\033[m/%s\n" \
+					$(1) $(call ansicolor,$(2)) \
+					$(call rule_path,$(2)) $(call rule_file,$(2)); else \
+				printf "  %10s %s\n" $(1) $(2); fi
+# if TERM=dumb, use it, otherwise switch to the term one
+output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
+
+# if V is set to non-nil, turn the verbose mode
+quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
+
 # Rules for building the example
 %: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
+	$(call quiet,CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
