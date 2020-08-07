@@ -1,10 +1,13 @@
 use crate::prelude::*;
 
+/// CeedOperator context wrapper
 pub struct Operator<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedOperator,
 }
+
 impl<'a> Operator<'a> {
+    /// Constructor
     pub fn create(
         ceed: &'a crate::Ceed,
         qf: &crate::qfunction::QFunction,
@@ -117,5 +120,14 @@ impl<'a> Operator<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
+    }
+}
+
+/// Destructor
+impl<'a> Drop for Operator<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedOperatorDestroy(&mut self.ptr);
+        }
     }
 }

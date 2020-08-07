@@ -18,6 +18,7 @@ pub mod basis;
 pub mod elem_restriction;
 pub mod operator;
 pub mod qfunction;
+pub mod qfunction_context;
 pub mod vector;
 
 /// Ceed context wrapper
@@ -186,6 +187,16 @@ impl Ceed {
     ) -> crate::qfunction::QFunction {
         //TODO
         todo!()
+    }
+
+    /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ctx = ceed.q_function_context();
+    /// ```
+    pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {
+        crate::qfunction_context::QFunctionContext::create(self)
     }
 
     /// Operator

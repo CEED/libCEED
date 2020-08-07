@@ -13,6 +13,7 @@ pub enum NormType {
 }
 
 impl<'a> Vector<'a> {
+    /// Constructors
     pub fn create(ceed: &'a crate::Ceed, n: i32) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
@@ -52,6 +53,17 @@ impl<'a> Vector<'a> {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
     }
 
+    /// Sync the CeedVector to a specified memtype
+    ///
+    /// # arguments
+    ///
+    /// * 'mtype' - Memtype to be synced
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let vec = ceed.vector(10);
+    /// vec.sync(ceed::MemType::Host);
+    /// ```
     pub fn sync(&self, mtype: crate::MemType) {
         unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
     }
@@ -66,8 +78,8 @@ impl<'a> Vector<'a> {
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// vec.set_value(42.0);
-    /// let n = vec.norm(ceed::vector::NormType::Max);
-    /// assert!(n == 42.0)
+    /// let norm = vec.norm(ceed::vector::NormType::Max);
+    /// assert!(norm == 42.0)
     /// ```
     pub fn norm(&self, ntype: NormType) -> f64 {
         let mut res: f64 = 0.0;
