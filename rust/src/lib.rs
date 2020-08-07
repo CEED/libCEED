@@ -19,10 +19,6 @@ pub mod ceed {
   use std::mem;
   use std::fmt;
   use std::ffi::CString;
-  use std::io::prelude::*;
-  use std::io::{BufReader, SeekFrom};
-  
-  use cfile;
   // use std::io::{self, Write};
   use crate::prelude::*;
   
@@ -37,14 +33,6 @@ pub mod ceed {
   impl fmt::Display for Ceed {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
       write!(f, "{}", self.backend)
-      
-      //let tmpout = cfile::tmpfile().unwrap();
-      //rust_ceed::CeedView(self.ceed_ptr, libc::stdout);
-      //tmpout.seek(SeekFrom::Start(0)).unwrap();
-      //let mut r = BufReader::new(tmpout);
-      //let mut s = String::new();
-      // r.read(&mut s).unwrap();
-      //write!(f, "{}", s)
     }
   }
   
