@@ -43,12 +43,23 @@ impl<'a> Vector<'a> {
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// let n = vec.length();
-    /// assert!(n == 10);
+    /// assert_eq!(n, 10);
     /// ```
     pub fn length(&self) -> usize {
         let mut n = 0;
         unsafe { bind_ceed::CeedVectorGetLength(self.ptr, &mut n) };
         usize::try_from(n).unwrap()
+    }
+
+    /// Returns the length of a CeedVector
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let vec = ceed.vector(10);
+    /// assert_eq!(vec.len(), 10);
+    /// ```
+    pub fn len(&self) -> usize {
+        self.length()
     }
 
     /// Set the array used by a CeedVector, freeing any previously allocated
@@ -66,7 +77,7 @@ impl<'a> Vector<'a> {
     /// let mut array: [f64; 4] = [1., 2., 3., 4.];
     /// vec.set_array(ceed::MemType::Host, ceed::CopyMode::OwnPointer, array.to_vec());
     /// let norm = vec.norm(ceed::NormType::Max);
-    /// assert!(norm == 4.0)
+    /// assert_eq!(norm, 4.0)
     /// ```
     pub fn set_array(&self, mtype: crate::MemType, cmode: crate::CopyMode, mut vec: Vec<f64>) {
         vec.shrink_to_fit();
