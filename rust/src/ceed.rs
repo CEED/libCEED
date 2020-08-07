@@ -23,27 +23,6 @@ pub struct Ceed {
   ceed_ptr : rust_ceed::Ceed,
 }
 
-/// Returns a Ceed context initalized with the specified resource
-///
-/// # arguments
-///
-/// * 'resource' - Resource to use, e.g., "/cpu/self"
-/// 
-/// 
-/// let ceed = init_ceed("/cpu/self/ref/serial");
-/// 
-pub fn init_ceed(resource: &str) -> Ceed {
-  // Convert to C string
-  let c_resource = CString::new(resource).expect("CString::new failed");
-  
-  // Call to libCEED
-  unsafe {
-    let mut ceed_ptr: rust_ceed::Ceed = libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed;
-    rust_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr);
-    Ceed { backend: resource.to_string(), ceed_ptr: ceed_ptr }
-  }
-}
-
 /// Display
 impl fmt::Display for Ceed {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -68,16 +47,49 @@ impl Drop for Ceed {
   }
 }
 
+enum MemType {
+  Host,
+  Device,
+}
+
+enum CopyMode {
+
+}
+
 // Object constructors
 impl Ceed {
+  /// Returns a Ceed context initalized with the specified resource
+  ///
+  /// # arguments
+  ///
+  /// * 'resource' - Resource to use, e.g., "/cpu/self"
+  /// 
+  /// 
+  /// let ceed = init_ceed("/cpu/self/ref/serial");
+  /// 
+  pub fn init(resource: &str) -> Self {
+    // Convert to C string
+    let c_resource = CString::new(resource).expect("CString::new failed");
+    
+    // Call to libCEED
+    unsafe {
+      let mut ceed_ptr: rust_ceed::Ceed = libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed;
+      rust_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr);
+      Ceed { backend: resource.to_string(), ceed_ptr: ceed_ptr }
+    }
+  }
+
   /// Vector
-  pub fn vector_create(&self, n: i32) -> ceed_vector::CeedVector {
+  pub fn vector(&self, n: i32) -> ceed_vector::CeedVector {
     let mut vec_ptr = libc::malloc(mem::size_of::<rust_ceed::CeedVector>()) as rust_ceed::CeedVector;
     rust_ceed::CeedVectorCreate(self.ceed_ptr, n, &mut vec_ptr);
     ceed_vector::CeedVector { ceed_reference: self, ceed_vec_ptr: vec_ptr }
   }
 
   /// Elem Restriction
+  pub fn elem_restriction(&self ceed, nelem : i32, elemsize : i32, ncomp : i32, 
+    compstride : i32, lsize : i32, mtype : MemType, cmode : CopyMode,
+    const CeedInt *offsets : , CeedElemRestriction *rstr)
 
   /// Basis
 

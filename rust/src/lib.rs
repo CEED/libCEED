@@ -16,7 +16,7 @@ mod tests {
 
   #[test]
   fn ceed_t000() {
-    let ceed = ceed::init_ceed("/cpu/self/ref/serial");
+    let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     println!("{}", ceed);
     /*
     unsafe {
@@ -29,7 +29,7 @@ mod tests {
   }
 
   fn ceed_t001() {
-    let ceed = ceed::init_ceed("/cpu/self/ref/serial");
-    let vec = ceed.vector_create(10);
+    let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    let vec = ceed.vector(10);
   }
 }
