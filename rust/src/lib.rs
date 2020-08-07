@@ -128,6 +128,22 @@ impl Ceed {
         )
     }
 
+    /// Returns aa tensor-product Lagrange basis
+    ///
+    /// # arguments
+    ///
+    /// * 'dim'   - Topological dimension of element
+    /// * 'ncomp' - Number of field components (1 for scalar fields)
+    /// * 'P'     - Number of Gauss-Lobatto nodes in one dimension.  The
+    ///               polynomial degree of the resulting Q_k element is k=P-1.
+    /// * 'Q'     - Number of quadrature points in one dimension
+    /// * 'qmode' - Distribution of the Q quadrature points (affects order of
+    ///               accuracy for the quadrature)
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
         dim: i32,
