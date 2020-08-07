@@ -76,12 +76,12 @@ impl Ceed {
     // Call to libCEED
     let mut ptr = unsafe {libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed};
     unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
-    Ceed { backend : resource.to_string(), ptr: ptr }
+    Ceed { backend : resource.to_string(), ptr }
   }
   
   /// Vector
   pub fn vector(&self, n: i32) -> crate::vector::Vector {
-    crate::vector::Vector::create( self, n )
+    crate::vector::Vector::create(self, n)
   }
   
   /// Elem Restriction
