@@ -45,6 +45,7 @@ impl Drop for Ceed {
     }
 }
 
+/// Enums for libCEED
 #[derive(Clone, Copy, PartialEq)]
 pub enum MemType {
     Host,
@@ -59,9 +60,43 @@ pub enum CopyMode {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+pub enum NormType {
+    One,
+    Two,
+    Max,
+}
+
+#[derive(Clone, Copy, PartialEq)]
 pub enum TransposeMode {
     NoTranspose,
     Transpose,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum QuadMode {
+    Gauss,
+    GaussLobatto,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum ElemTopology {
+    Line,
+    Triangle,
+    Quad,
+    Tet,
+    Pyramid,
+    Prism,
+    Hex,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum EvalMode {
+    None,
+    Interp,
+    Grad,
+    Div,
+    Curl,
+    Weight,
 }
 
 // Object constructors
@@ -150,7 +185,7 @@ impl Ceed {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
@@ -158,14 +193,14 @@ impl Ceed {
         ncomp: i32,
         P: i32,
         Q: i32,
-        qmode: basis::QuadMode,
+        qmode: QuadMode,
     ) -> crate::basis::Basis {
         crate::basis::Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
     pub fn basis_H1(
         &self,
-        topo: basis::ElemTopology,
+        topo: ElemTopology,
         ncomp: i32,
         nnodes: i32,
         nqpts: i32,

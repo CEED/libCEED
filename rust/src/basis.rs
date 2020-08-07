@@ -6,28 +6,6 @@ pub struct Basis<'a> {
     pub ptr: bind_ceed::CeedBasis,
 }
 
-pub enum QuadMode {
-    Gauss,
-    GaussLobatto,
-}
-pub enum ElemTopology {
-    Line,
-    Triangle,
-    Quad,
-    Tet,
-    Pyramid,
-    Prism,
-    Hex,
-}
-pub enum EvalMode {
-    None,
-    Interp,
-    Grad,
-    Div,
-    Curl,
-    Weight,
-}
-
 impl<'a> Basis<'a> {
     /// Constructors
     pub fn create_tensor_H1(
@@ -65,7 +43,7 @@ impl<'a> Basis<'a> {
         ncomp: i32,
         P: i32,
         Q: i32,
-        qmode: QuadMode,
+        qmode: crate::QuadMode,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
@@ -84,7 +62,7 @@ impl<'a> Basis<'a> {
 
     pub fn create_H1(
         ceed: &'a crate::Ceed,
-        topo: ElemTopology,
+        topo: crate::ElemTopology,
         ncomp: i32,
         nnodes: i32,
         nqpts: i32,
@@ -115,7 +93,7 @@ impl<'a> Basis<'a> {
         &self,
         nelem: i32,
         tmode: crate::TransposeMode,
-        emode: EvalMode,
+        emode: crate::EvalMode,
         u: &crate::vector::Vector,
         v: &mut crate::vector::Vector,
     ) {
@@ -135,7 +113,7 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let dim = b.get_dimension();
     /// assert!(dim == 2);
     /// ```
@@ -145,8 +123,8 @@ impl<'a> Basis<'a> {
         dim
     }
 
-    pub fn get_topology(&self) -> ElemTopology {
-        let mut topo = ElemTopology::Line;
+    pub fn get_topology(&self) -> crate::ElemTopology {
+        let mut topo = crate::ElemTopology::Line;
         unsafe {
             // bind_ceed::CeedBasisGetTopology(
             //     self.ptr,
@@ -160,7 +138,7 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_components();
     /// assert!(ncomp == 2);
     /// ```
@@ -174,7 +152,7 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let nqpts = b.get_num_nodes();
     /// assert!(nqpts == 3*3);
     /// ```
@@ -188,7 +166,7 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_quadrature_points();
     /// assert!(ncomp == 4*4);
     /// ```

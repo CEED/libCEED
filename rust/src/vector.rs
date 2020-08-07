@@ -6,12 +6,6 @@ pub struct Vector<'a> {
     pub ptr: bind_ceed::CeedVector,
 }
 
-pub enum NormType {
-    One,
-    Two,
-    Max,
-}
-
 impl<'a> Vector<'a> {
     /// Constructors
     pub fn create(ceed: &'a crate::Ceed, n: i32) -> Self {
@@ -52,7 +46,7 @@ impl<'a> Vector<'a> {
     /// let vec = ceed.vector(4);
     /// let mut array: [f64; 4] = [1., 2., 3., 4.];
     /// vec.set_array(ceed::MemType::Host, ceed::CopyMode::OwnPointer, array.to_vec());
-    /// let norm = vec.norm(ceed::vector::NormType::Max);
+    /// let norm = vec.norm(ceed::NormType::Max);
     /// assert!(norm == 4.0)
     /// ```
     pub fn set_array(&self, mtype: crate::MemType, cmode: crate::CopyMode, mut vec: Vec<f64>) {
@@ -110,10 +104,10 @@ impl<'a> Vector<'a> {
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// vec.set_value(42.0);
-    /// let norm = vec.norm(ceed::vector::NormType::Max);
+    /// let norm = vec.norm(ceed::NormType::Max);
     /// assert!(norm == 42.0)
     /// ```
-    pub fn norm(&self, ntype: NormType) -> f64 {
+    pub fn norm(&self, ntype: crate::NormType) -> f64 {
         let mut res: f64 = 0.0;
         unsafe { bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res) };
         res
