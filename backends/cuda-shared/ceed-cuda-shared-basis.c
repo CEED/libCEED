@@ -737,9 +737,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda_shared *ceed_Cuda;
-  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  CeedGetData(ceed, &ceed_Cuda); CeedChk(ierr);
   CeedBasis_Cuda_shared *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  CeedBasisGetData(basis, &data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   CeedInt dim, ncomp;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -894,7 +894,7 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasis_Cuda_shared *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module));
 

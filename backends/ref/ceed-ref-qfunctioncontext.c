@@ -55,8 +55,7 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mtype,
-    CeedScalar **data) {
+    CeedMemType mtype, CeedScalar *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
@@ -71,7 +70,7 @@ static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "No context data set");
   // LCOV_EXCL_STOP
-  *data = impl->data;
+  *(void **)data = impl->data;
   return 0;
 }
 
@@ -88,7 +87,7 @@ static int CeedQFunctionContextRestoreData_Ref(CeedQFunctionContext ctx) {
 static int CeedQFunctionContextDestroy_Ref(CeedQFunctionContext ctx) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
-  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->data_allocated); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);

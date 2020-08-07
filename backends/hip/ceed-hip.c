@@ -45,7 +45,7 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   ierr = hipGetDeviceProperties(&deviceProp, deviceID); CeedChk_Hip(ceed,ierr);
 
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   data->deviceId = deviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
   return 0;
@@ -57,7 +57,7 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
 int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
   int ierr;
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, (void *) &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   if (!data->hipblasHandle) {
     ierr = hipblasCreate(&data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
@@ -72,7 +72,7 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
 int CeedDestroy_Hip(Ceed ceed) {
   int ierr;
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   if (data->hipblasHandle) {
     ierr = hipblasDestroy(data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
   }

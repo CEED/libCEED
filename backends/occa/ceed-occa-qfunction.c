@@ -41,9 +41,9 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   const bool ocl = ceed_data->ocl;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
@@ -84,7 +84,7 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedDebug("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   const bool from_operator_apply = data->op;
   //Ceed_Occa *ceed_data = qf->ceed->data;
   //const occaDevice device = ceed_data->device;
@@ -211,7 +211,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   const bool operator_setup = data->op;
   free(data->oklPath);
   CeedDebug("[CeedQFunction][Destroy]");

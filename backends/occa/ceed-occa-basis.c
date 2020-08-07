@@ -24,10 +24,10 @@ static int CeedBasisBuildKernel(CeedBasis basis) {
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   const occaDevice dev = ceed_data->device;
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   // ***************************************************************************
   CeedInt dim, P1d, Q1d, ncomp;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -141,7 +141,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   const CeedInt ready =  data->ready;
   // ***************************************************************************
   // We were waiting for the CeedElemRestriction to fill nelem and elemsize
@@ -155,7 +155,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
   if (transpose) {
     CeedDebug("[CeedBasis][ApplyElems] transpose");
     CeedVector_Occa *v_data;
-    ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(v, &v_data); CeedChk(ierr);
     const occaMemory d_v = v_data->d_array;
     occaKernelRun(data->kZero, d_v);
   }
@@ -170,10 +170,10 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     const occaMemory d_tmp1 = data->tmp1;
     const occaMemory d_interp1d = data->interp1d;
     CeedVector_Occa *u_data;
-    ierr = CeedVectorGetData(u, (void *)&u_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(u, &u_data); CeedChk(ierr);
     assert(u_data);
     CeedVector_Occa *v_data;
-    ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(v, &v_data); CeedChk(ierr);
     assert(v_data);
     const occaMemory d_u = u_data->d_array;
     const occaMemory d_v = v_data->d_array;
@@ -190,10 +190,10 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     const occaMemory d_grad1d = data->grad1d;
     const occaMemory d_interp1d = data->interp1d;
     CeedVector_Occa *u_data;
-    ierr = CeedVectorGetData(u, (void *)&u_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(u, &u_data); CeedChk(ierr);
     assert(u_data);
     CeedVector_Occa *v_data;
-    ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(v, &v_data); CeedChk(ierr);
     assert(v_data);
     const occaMemory d_u = u_data->d_array;
     const occaMemory d_v = v_data->d_array;
@@ -212,7 +212,7 @@ int CeedBasisApplyElems_Occa(CeedBasis basis, CeedInt QnD,
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     const occaMemory d_qw = data->qweight1d;
     CeedVector_Occa *v_data;
-    ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
+    ierr = CeedVectorGetData(v, &v_data); CeedChk(ierr);
     assert(v_data);
     const occaMemory d_v = v_data->d_array;
     occaKernelRun(data->kWeight,occaInt(QnD),occaInt(Q1d),d_qw,d_v);
@@ -345,7 +345,7 @@ static int CeedBasisDestroy_Occa(CeedBasis basis) {
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   CeedBasis_Occa *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   CeedDebug("[CeedBasis][Destroy]");
   occaFree(data->kZero);
   occaFree(data->kInterp);
@@ -373,7 +373,7 @@ int CeedBasisCreateTensorH1_Occa(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   const occaDevice dev = ceed_data->device;
   CeedDebug("[CeedBasis][CreateTensorH1]");
   // ***************************************************************************

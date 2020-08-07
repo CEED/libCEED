@@ -272,8 +272,8 @@ int CeedBasisIsTensor(CeedBasis basis, bool *istensor) {
 
   @ref Backend
 **/
-int CeedBasisGetData(CeedBasis basis, void **data) {
-  *data = basis->data;
+int CeedBasisGetData(CeedBasis basis, void *data) {
+  *(void **)data = basis->data;
   return 0;
 }
 

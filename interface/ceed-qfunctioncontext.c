@@ -83,8 +83,8 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void **data) {
-  *data = ctx->data;
+int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data) {
+  *(void **)data = ctx->data;
   return 0;
 }
 
@@ -203,7 +203,7 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
   @ref User
 **/
 int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
-                                void **data) {
+                                void *data) {
   int ierr;
 
   if (!ctx->GetData)
@@ -234,7 +234,7 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
 
   @ref User
 **/
-int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void **data) {
+int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
   int ierr;
 
   if (!ctx->RestoreData)
@@ -250,7 +250,7 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void **data) {
   // LCOV_EXCL_STOP
 
   ierr = ctx->RestoreData(ctx); CeedChk(ierr);
-  *data = NULL;
+  *(void **)data = NULL;
   ctx->state += 1;
 
   return 0;

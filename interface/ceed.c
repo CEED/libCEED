@@ -566,8 +566,8 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
 
   @ref Backend
 **/
-int CeedGetData(Ceed ceed, void **data) {
-  *data = ceed->data;
+int CeedGetData(Ceed ceed, void *data) {
+  *(void **)data = ceed->data;
   return 0;
 }
 

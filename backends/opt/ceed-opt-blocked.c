@@ -23,7 +23,7 @@
 static int CeedDestroy_Opt(Ceed ceed) {
   int ierr;
   Ceed_Opt *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   ierr = CeedFree(&data); CeedChk(ierr);
 
   return 0;

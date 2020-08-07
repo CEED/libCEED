@@ -506,9 +506,9 @@ CEED_EXTERN int CeedQFunctionContextSetData(CeedQFunctionContext ctx,
     CeedMemType mtype, CeedCopyMode cmode, size_t size, void *data);
 CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
     CeedMemType mtype,
-    void **data);
+    void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
-    void **data);
+    void *data);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);

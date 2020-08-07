@@ -21,13 +21,13 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
   int ierr;
   CeedElemRestriction_Magma *impl;
-  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   CeedInt nelem;
   CeedElemRestrictionGetNumElements(r, &nelem);
@@ -122,7 +122,7 @@ static int CeedElemRestrictionGetOffsets_Magma(CeedElemRestriction rstr,
     CeedMemType mtype, const CeedInt **offsets) {
   int ierr;
   CeedElemRestriction_Magma *impl;
-  ierr = CeedElemRestrictionGetData(rstr, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(rstr, &impl); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
@@ -138,7 +138,7 @@ static int CeedElemRestrictionGetOffsets_Magma(CeedElemRestriction rstr,
 static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Magma *impl;
-  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
 
   // Free if we own the data
   if (impl->own_) {
@@ -158,7 +158,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   CeedInt elemsize, nelem;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);

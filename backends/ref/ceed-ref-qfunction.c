@@ -23,7 +23,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
                                   CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &impl); CeedChk(ierr);
 
   CeedQFunctionContext ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
@@ -69,7 +69,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Ref *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &impl); CeedChk(ierr);
 
   ierr = CeedFree(&impl->inputs); CeedChk(ierr);
   ierr = CeedFree(&impl->outputs); CeedChk(ierr);

@@ -243,8 +243,8 @@ int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
 
   @ref Backend
 **/
-int CeedElemRestrictionGetData(CeedElemRestriction rstr, void **data) {
-  *data = rstr->data;
+int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data) {
+  *(void **)data = rstr->data;
   return 0;
 }
 

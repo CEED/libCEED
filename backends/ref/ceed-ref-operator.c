@@ -99,7 +99,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -388,7 +388,7 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector invec,
                                     CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields, size;
@@ -487,7 +487,7 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields, size;
@@ -1184,7 +1184,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
   int ierr;
   CeedOperator_Ref *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChk(ierr);

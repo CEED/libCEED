@@ -578,8 +578,8 @@ int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   @ref Backend
 **/
 
-int CeedOperatorGetData(CeedOperator op, void **data) {
-  *data = op->data;
+int CeedOperatorGetData(CeedOperator op, void *data) {
+  *(void **)data = op->data;
   return 0;
 }
 

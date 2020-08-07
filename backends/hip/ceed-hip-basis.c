@@ -344,9 +344,9 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
   CeedBasis_Hip *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 64;
 
@@ -432,9 +432,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, (void *) &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
   CeedBasisNonTensor_Hip *data;
-  ierr = CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
   CeedInt nnodes, nqpt;
   ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
@@ -520,7 +520,7 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasis_Hip *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
@@ -541,7 +541,7 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasisNonTensor_Hip *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Hip(ceed, hipModuleUnload(data->module));
 

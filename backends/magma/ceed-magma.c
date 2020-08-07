@@ -19,7 +19,7 @@
 static int CeedDestroy_Magma(Ceed ceed) {
   int ierr;
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   magma_queue_destroy( data->queue );
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;

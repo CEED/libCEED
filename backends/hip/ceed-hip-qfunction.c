@@ -33,9 +33,9 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   ierr = CeedHipBuildQFunction(qf); CeedChk(ierr);
 
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, (void *)&ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChk(ierr);
@@ -88,7 +88,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   if  (data->module)
@@ -150,7 +150,7 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
 
   // Save QFunction source
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   data->qFunctionSource = buffer;
   return 0;
 }

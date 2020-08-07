@@ -23,7 +23,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
                                        CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Memcheck *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &impl); CeedChk(ierr);
 
   CeedQFunctionContext ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);

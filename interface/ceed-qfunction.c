@@ -279,7 +279,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   int ierr;
   if (qf->fortranstatus) {
     CeedFortranContext fctx = NULL;
-    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, (void *)&fctx);
+    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fctx);
     CeedChk(ierr);
     *ctx = fctx->innerctx;
     ierr = CeedQFunctionContextRestoreData(qf->ctx, (void *)&fctx); CeedChk(ierr);
@@ -316,8 +316,8 @@ int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
 
   @ref Backend
 **/
-int CeedQFunctionGetData(CeedQFunction qf, void **data) {
-  *data = qf->data;
+int CeedQFunctionGetData(CeedQFunction qf, void *data) {
+  *(void **)data = qf->data;
   return 0;
 }
 

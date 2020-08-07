@@ -35,7 +35,7 @@ static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
@@ -52,7 +52,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
 
   // Find source file
   char *cuda_file;

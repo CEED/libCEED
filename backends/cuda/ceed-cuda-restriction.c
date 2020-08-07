@@ -126,11 +126,11 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
-  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   // Get vectors
   const CeedScalar *d_u;
@@ -195,7 +195,7 @@ static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr,
     CeedMemType mtype, const CeedInt **offsets) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
-  ierr = CeedElemRestrictionGetData(rstr, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(rstr, &impl); CeedChk(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
@@ -214,7 +214,7 @@ static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr,
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Cuda *impl;
-  ierr = CeedElemRestrictionGetData(r, (void *)&impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
 
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);

@@ -62,7 +62,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
     // Interpolate to/from quadrature points
     case CEED_EVAL_INTERP: {
       CeedBasis_Ref *impl;
-      ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
       if (impl->collointerp) {
         memcpy(v, u, nelem*ncomp*nnodes*sizeof(u[0]));
       } else {
@@ -96,7 +96,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt nelem,
         P = Q1d, Q = Q1d;
       }
       CeedBasis_Ref *impl;
-      ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
       CeedInt pre = ncomp*CeedIntPow(P, dim-1), post = nelem;
       const CeedScalar *interp1d;
       ierr = CeedBasisGetInterp1D(basis, &interp1d); CeedChk(ierr);
@@ -349,7 +349,7 @@ static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
   ierr = CeedTensorContractDestroy(&contract); CeedChk(ierr);
 
   CeedBasis_Ref *impl;
-  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
   ierr = CeedFree(&impl->collograd1d); CeedChk(ierr);
   ierr = CeedFree(&impl); CeedChk(ierr);
 

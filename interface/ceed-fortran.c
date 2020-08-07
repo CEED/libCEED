@@ -674,7 +674,7 @@ void fCeedQFunctionContextGetData(int *ctx, int *memtype, CeedScalar *data,
                                   int64_t *offset, int *err) {
   CeedScalar *b;
   CeedQFunctionContext ctx_ = CeedQFunctionContext_dict[*ctx];
-  *err = CeedQFunctionContextGetData(ctx_, (CeedMemType)*memtype, (void **)&b);
+  *err = CeedQFunctionContextGetData(ctx_, (CeedMemType)*memtype, &b);
   *offset = b - data;
 }
 
@@ -730,7 +730,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
   //         single source files, so only Host backends need to
   //         use this Fortran stub.
   if (innerctx) {
-    ierr = CeedQFunctionContextGetData(innerctx, CEED_MEM_HOST, (void *)&ctx_);
+    ierr = CeedQFunctionContextGetData(innerctx, CEED_MEM_HOST, &ctx_);
     CeedChk(ierr);
   }
 
@@ -873,7 +873,7 @@ void fCeedQFunctionSetContext(int *qf, int *ctx, int *err) {
   *err = CeedQFunctionGetContext(qf_, &fctx);
   if (*err) return;
   CeedFortranContext fctxdata;
-  *err = CeedQFunctionContextGetData(fctx, CEED_MEM_HOST, (void **)&fctxdata);
+  *err = CeedQFunctionContextGetData(fctx, CEED_MEM_HOST, &fctxdata);
   if (*err) return;
   fctxdata->innerctx = ctx_;
   *err = CeedQFunctionContextRestoreData(fctx, (void **)&fctxdata);
