@@ -5,6 +5,10 @@ pub struct Basis<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedBasis,
 }
+pub enum QuadMode {
+    Gauss,
+    GaussLobatto,
+}
 impl<'a> Basis<'a> {
     pub fn create_tensor_H1(
         ceed: &'a crate::Ceed,
@@ -33,6 +37,30 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             )
         };
+        Self { ceed, ptr }
+    }
+
+    pub fn create_tensor_H1_Lagrange(
+        ceed: &'a crate::Ceed,
+        dim: i32,
+        ncomp: i32,
+        P: i32,
+        Q: i32,
+        qmode: QuadMode,
+    ) -> Self {
+        let mut ptr =
+            unsafe { libc::malloc(mem::size_of::<bind_ceed::CeedBasis>()) as bind_ceed::CeedBasis };
+        unsafe {
+            bind_ceed::CeedBasisCreateTensorH1Lagrange(
+                ceed.ptr,
+                dim,
+                ncomp,
+                P,
+                Q,
+                qmode as bind_ceed::CeedQuadMode,
+                &mut ptr,
+            );
+        }
         Self { ceed, ptr }
     }
 }
