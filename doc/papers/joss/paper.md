@@ -100,7 +100,7 @@ at run time). This easily allows $hp$-refinement studies (where $h$ commonly den
 elements with different topology. This sketch shows the independence of QFunctions
 (in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
-LibCEED is a C99 library with Fortran77 and Python interfaces. The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a ``CeedVector`` object is exposed as ``libceed.Vector`` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages, for handling host or device memory (when interested in GPU computations with CUDA). Flexible pointer handling in libCEED makes it easy to provide zero-copy host and (GPU) device support for any desired Python array container.
+LibCEED is a C99 library with Fortran77 and Python interfaces. The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a ``CeedVector`` object is exposed as ``libceed.Vector`` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages, for handling host or device memory (when interested in GPU computations with CUDA). Flexible pointer handling in libCEED makes it easy to provide zero-copy host and (GPU) device support for any desired Python array container. The interested reader can find more details on libCEED's Python interface in [@libceed-paper-proc-scipy-2020].
 
 To achieve high performance, libCEED can take advantage of a tensor-product
 finite-element basis and quadrature rule to apply the action of the basis
@@ -118,12 +118,12 @@ GPU implementations are available via pure CUDA [@CUDAwebsite] as well as the OC
 
 # Performance Benchmarks
 
-The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. We present here the performance of libCEED's LIBXSMM blocked backend on a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz. In Fig. \ref{fig:NoetherxsmmBP1}, we measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) for the mass operator and plot throughput, for different values of the polynomial degree $p$. In Fig. \ref{fig:NoetherxsmmBP3}, we show the measured performance to solve a Poisson's problem. For both problems the throughput is plotted versus execution time per iteration (on the left panel) and Finite Element points per compute node (on the right panel). For these tests, we use a 3D domain discretized with unstructured meshes. 
+The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. We present here the performance of libCEED's LIBXSMM blocked backend on a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz. In Fig. \ref{fig:NoetherxsmmBP1}, we measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) for the mass operator and plot throughput, for different values of the polynomial degree $p$. In Fig. \ref{fig:NoetherxsmmBP3}, we show the measured performance to solve a Poisson's problem. For both problems the throughput is plotted versus execution time per iteration (on the left panel) and Finite Element points per compute node (on the right panel). For these tests, we use a 3D domain discretized with unstructured meshes.
 
-![BP1 (mass operator) solved with the \texttt{xsmm/blocked} backend on 
+![BP1 (mass operator) solved with the \texttt{xsmm/blocked} backend on
 a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP1}](img/BP1.pdf)
 
-![BP3 (Poisson's problem) solved with the \texttt{xsmm/blocked} backend on 
+![BP3 (Poisson's problem) solved with the \texttt{xsmm/blocked} backend on
 a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP3}](img/BP3.pdf)
 
 # Applications
