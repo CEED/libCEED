@@ -88,7 +88,7 @@ impl Ceed {
   pub fn elem_restriction(&self, nelem : i32, elemsize : i32, ncomp : i32, 
     compstride : i32, lsize : i32, mtype : MemType, cmode : CopyMode,
     offsets : &Vec<i32>) -> crate::elem_restriction::ElemRestriction {
-    todo!()
+    crate::elem_restriction::ElemRestriction::create(self,nelem,elemsize,ncomp,compstride,lsize,mtype,cmode,offsets)
   }
     
   /// Basis
