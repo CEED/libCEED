@@ -47,7 +47,7 @@ impl<'a> Vector<'a> {
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
     /// let vec = ceed.vector(10);
     /// vec.set_value(42.0);
-    /// ```    
+    /// ```
     pub fn set_value(&self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
     }

@@ -134,7 +134,7 @@ impl<'a> Basis<'a> {
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
     /// let dim = b.get_dimension();
     /// assert!(dim == 2);
-    /// ```    
+    /// ```
     pub fn get_dimension(&self) -> i32 {
         let mut dim = 0;
         unsafe { bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim) };
@@ -173,7 +173,7 @@ impl<'a> Basis<'a> {
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
     /// let nqpts = b.get_num_nodes();
     /// assert!(nqpts == 3*3);
-    /// ```    
+    /// ```
     pub fn get_num_nodes(&self) -> i32 {
         let mut nnodes = 0;
         unsafe { bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes) };
@@ -187,7 +187,7 @@ impl<'a> Basis<'a> {
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
     /// let ncomp = b.get_num_quadrature_points();
     /// assert!(ncomp == 4*4);
-    /// ```    
+    /// ```
     pub fn get_num_quadrature_points(&self) -> i32 {
         let mut Q = 0;
         unsafe {
