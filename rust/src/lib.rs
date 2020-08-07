@@ -134,7 +134,7 @@ impl Ceed {
         )
     }
 
-    /// Returns aa tensor-product Lagrange basis
+    /// Returns a tensor-product Lagrange basis
     ///
     /// # arguments
     ///
@@ -158,9 +158,7 @@ impl Ceed {
         Q: i32,
         qmode: basis::QuadMode,
     ) -> crate::basis::Basis {
-        crate::basis::Basis::create_tensor_H1_Lagrange(
-            self, dim, ncomp, P, Q, qmode,
-        )
+        crate::basis::Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
     pub fn basis_H1(
