@@ -67,18 +67,16 @@ impl Ceed {
   /// * 'resource' - Resource to use, e.g., "/cpu/self"
   /// 
   /// ```
-  /// let ceed = ceed::ceed::Ceed::init("/cpu/self/ref/serial");
+  /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
   /// ``` 
   pub fn init(resource: &str) -> Self {
     // Convert to C string
     let c_resource = CString::new(resource).expect("CString::new failed");
     
     // Call to libCEED
-    unsafe {
-      let mut ceed_ptr: rust_ceed::Ceed = libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed;
-      rust_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr);
-      Ceed { backend : resource.to_string(), ceed_ptr: ceed_ptr }
-    }
+    let mut ceed_ptr = unsafe {libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed};
+    unsafe { rust_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr) };
+    Ceed { backend : resource.to_string(), ceed_ptr: ceed_ptr }
   }
   
   /// Vector
