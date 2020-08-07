@@ -129,4 +129,65 @@ impl<'a> Basis<'a> {
             ) 
         };
     }
+
+    pub fn get_dimension(
+        &self,
+    ) -> i32 {
+        let mut dim = 0;
+        unsafe {
+            bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim)
+        };
+        dim
+    }
+
+    pub fn get_topology(
+        &self,
+    ) -> ElemTopology {
+        let mut topo = ElemTopology::Line;
+        unsafe {
+            // bind_ceed::CeedBasisGetTopology(
+            //     self.ptr,
+            //     &mut topo as &mut bind_ceed::CeedElemTopology,
+            // )
+        };
+        topo
+    }
+
+    pub fn get_num_components(
+        &self,
+    ) -> i32 {
+        let mut ncomp = 0;
+        unsafe {
+            bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp)
+        };
+        ncomp
+    }
+
+    pub fn get_num_nodes(
+        &self,
+    ) -> i32 {
+        let mut nnodes = 0;
+        unsafe {
+            bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes)
+        };
+        nnodes
+    }
+
+    pub fn get_num_quadrature_points(
+        &self,
+    ) -> i32 {
+        let mut Q = 0;
+        unsafe {
+            bind_ceed::CeedBasisGetNumQuadraturePoints(self.ptr, &mut Q);
+        }
+        Q
+    }
 }
+
+impl<'a> Drop for Basis<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedBasisDestroy(&mut self.ptr);
+        }
+    }
+} 
