@@ -2,9 +2,10 @@
 authors = ["Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
            "Yohann Dudouit <dudouit1@llnl.gov>"]
 build = "build.rs"
-name = "libceed-rust"
+name = "ceed"
 version = "0.6.0"
 links = "ceed"
+edition = "2018"
 
 [lib]
 name = "ceed"
@@ -14,3 +15,4 @@ bindgen = "*"
 
 [dependencies]
 libc = "0.2"
+cfile = "0.5.1"

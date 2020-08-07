@@ -2,21 +2,34 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+#![allow(dead_code)]
+
+mod rust_ceed {
+  include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+mod ceed;
+mod ceed_vector;
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::mem;
 
   #[test]
-  fn ceed_init() {
+  fn ceed_t000() {
+    let ceed = ceed::init_ceed("/cpu/self/ref/serial");
+    println!("{}", ceed);
+    /*
     unsafe {
-      
-      let mut ceed: Ceed = libc::malloc(mem::size_of::<Ceed>()) as Ceed;
+      let mut ceed: rust_ceed::Ceed = libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed;
       let resource = "/cpu/self/ref/serial";
-      CeedInit(resource.as_ptr() as *const i8, &mut  ceed);
-      CeedDestroy(&mut ceed);
+      rust_ceed::CeedInit(resource.as_ptr() as *const i8, &mut  ceed);
+      rust_ceed::CeedDestroy(&mut ceed);
     }
+    */
+  }
+
+  fn ceed_t001() {
+    let ceed = ceed::init_ceed("/cpu/self/ref/serial");
+    let vec = ceed.vector_create(10);
   }
 }
