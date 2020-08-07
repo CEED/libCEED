@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 
 mod prelude {
-  pub mod rust_ceed {
+  pub mod bind_ceed {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
   }
 }
@@ -26,7 +26,7 @@ mod operator;
 pub struct Ceed {
   backend : String,
   // Pointer to C object
-  ceed_ptr : rust_ceed::Ceed,
+  ceed_ptr : bind_ceed::Ceed,
 }
 
 /// Display
@@ -40,7 +40,7 @@ impl fmt::Display for Ceed {
 impl Drop for Ceed {
   fn drop(&mut self) {
     unsafe {
-      rust_ceed::CeedDestroy(&mut self.ceed_ptr);
+      bind_ceed::CeedDestroy(&mut self.ceed_ptr);
     }
   }
 }
@@ -74,8 +74,8 @@ impl Ceed {
     let c_resource = CString::new(resource).expect("CString::new failed");
     
     // Call to libCEED
-    let mut ceed_ptr = unsafe {libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed};
-    unsafe { rust_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr) };
+    let mut ceed_ptr = unsafe {libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed};
+    unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr) };
     Ceed { backend : resource.to_string(), ceed_ptr: ceed_ptr }
   }
   
@@ -99,7 +99,7 @@ impl Ceed {
   }
       
   /// QFunction
-  pub fn q_function_interior(&self, vlength: i32, f: rust_ceed::CeedQFunctionUser,
+  pub fn q_function_interior(&self, vlength: i32, f: bind_ceed::CeedQFunctionUser,
     source: impl Into<String>) -> crate::qfunction::QFunction {
     todo!()
   }
@@ -123,10 +123,10 @@ mod tests {
     println!("{}", ceed);
     /*
     unsafe {
-      let mut ceed: rust_ceed::Ceed = libc::malloc(mem::size_of::<rust_ceed::Ceed>()) as rust_ceed::Ceed;
+      let mut ceed: bind_ceed::Ceed = libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed;
       let resource = "/cpu/self/ref/serial";
-      rust_ceed::CeedInit(resource.as_ptr() as *const i8, &mut  ceed);
-      rust_ceed::CeedDestroy(&mut ceed);
+      bind_ceed::CeedInit(resource.as_ptr() as *const i8, &mut  ceed);
+      bind_ceed::CeedDestroy(&mut ceed);
     }
     */
   }
