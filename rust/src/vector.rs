@@ -7,7 +7,9 @@ pub struct Vector<'a> {
     ptr: bind_ceed::CeedVector,
 }
 pub enum NormType {
-    
+    One,
+    Two,
+    Max,
 }
 impl<'a> Vector<'a> {
     pub fn create(ceed: &'a crate::Ceed, n: i32) -> Self {
@@ -28,19 +30,19 @@ impl<'a> Vector<'a> {
         n
     }
     
-    pub fn set_value(&mut self, value : f64) {
+    pub fn set_value(&mut self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
     }
     
-    // pub fn sync(&self, mtype: crate::MemType) {
-    //   unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype) };
-    // }
+    pub fn sync(&self, mtype: crate::MemType) {
+      unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
+    }
     
-    // pub fn norm(&self, type: NormType)  -> f64 {
-    //   let res :f64 = 0.0;
-    //   unsafe{ bind_ceed::CeedVectorNorm(self.ptr, type, &mut res) };
-    //   res
-    // }
+    pub fn norm(&self, ntype: NormType)  -> f64 {
+      let mut res :f64 = 0.0;
+      unsafe{ bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res) };
+      res
+    }
 }
         
 /// Destructor
