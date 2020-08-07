@@ -16,3 +16,4 @@ bindgen = "*"
 [dependencies]
 libc = "0.2"
 cfile = "0.5.1"
+ndarray = "*"
