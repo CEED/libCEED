@@ -16,11 +16,11 @@ mod prelude {
   }
 }
 
-mod vector;
-mod elem_restriction;
-mod basis;
-mod qfunction;
-mod operator;
+pub mod vector;
+pub mod elem_restriction;
+pub mod basis;
+pub mod qfunction;
+pub mod operator;
 
 /// Ceed context wrapper
 pub struct Ceed {
@@ -101,7 +101,8 @@ impl Ceed {
   /// QFunction
   pub fn q_function_interior(&self, vlength: i32, f: bind_ceed::CeedQFunctionUser,
     source: impl Into<String>) -> crate::qfunction::QFunction {
-    todo!()
+      //TODO
+      todo!()
   }
   
   /// Operator
@@ -109,7 +110,7 @@ impl Ceed {
     qf: &crate::qfunction::QFunction,
     dqf: &crate::qfunction::QFunction,
     dqfT: &crate::qfunction::QFunction) -> crate::operator::Operator {
-    todo!()
+    crate::operator::Operator::create(self,qf,dqf,dqfT)
   }
 }
 
