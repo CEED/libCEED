@@ -131,6 +131,14 @@ impl<'a> Basis<'a> {
         };
     }
 
+    /// Returns the dimension for given CeedBasis
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let dim = b.get_dimension();
+    /// assert!(dim == 2);
+    /// ```    
     pub fn get_dimension(&self) -> i32 {
         let mut dim = 0;
         unsafe { bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim) };
@@ -148,18 +156,42 @@ impl<'a> Basis<'a> {
         topo
     }
 
+    /// Returns number of components for given CeedBasis
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let ncomp = b.get_num_components();
+    /// assert!(ncomp == 2);
+    /// ```
     pub fn get_num_components(&self) -> i32 {
         let mut ncomp = 0;
         unsafe { bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp) };
         ncomp
     }
 
+    /// Returns total number of nodes (in dim dimensions) of a CeedBasis
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let nqpts = b.get_num_nodes();
+    /// assert!(nqpts == 3*3);
+    /// ```    
     pub fn get_num_nodes(&self) -> i32 {
         let mut nnodes = 0;
         unsafe { bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes) };
         nnodes
     }
 
+    /// Returns total number of quadrature points (in dim dimensions) of a CeedBasis
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::basis::QuadMode::Gauss);
+    /// let ncomp = b.get_num_quadrature_points();
+    /// assert!(ncomp == 4*4);
+    /// ```    
     pub fn get_num_quadrature_points(&self) -> i32 {
         let mut Q = 0;
         unsafe {
@@ -169,6 +201,7 @@ impl<'a> Basis<'a> {
     }
 }
 
+/// Destructor
 impl<'a> Drop for Basis<'a> {
     fn drop(&mut self) {
         unsafe {

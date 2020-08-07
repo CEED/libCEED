@@ -128,7 +128,7 @@ impl Ceed {
         )
     }
 
-    /// Returns aa tensor-product Lagrange basis
+    /// Returns a tensor-product Lagrange basis
     ///
     /// # arguments
     ///
