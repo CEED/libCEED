@@ -15,7 +15,6 @@ impl<'a> Operator<'a> {
         let mut ptr = unsafe {
             libc::malloc(mem::size_of::<bind_ceed::CeedOperator>()) as bind_ceed::CeedOperator
         };
-        pub use crate::qfunction::QFunction;
         unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.ptr, dqf.ptr, dqfT.ptr, &mut ptr) };
         Self { ceed, ptr }
     }

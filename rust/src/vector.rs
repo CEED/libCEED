@@ -4,7 +4,7 @@ use std::mem;
 /// CeedVector context wrapper
 pub struct Vector<'a> {
     ceed: &'a crate::Ceed,
-    ptr: bind_ceed::CeedVector,
+    pub ptr: bind_ceed::CeedVector,
 }
 pub enum NormType {
     One,
