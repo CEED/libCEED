@@ -56,6 +56,12 @@ pub enum CopyMode {
     OwnPointer,
 }
 
+#[derive(Clone, Copy)]
+pub enum TransposeMode {
+    NoTranspose,
+    Transpose,
+}
+
 // Object constructors
 impl Ceed {
     /// Returns a Ceed context initalized with the specified resource

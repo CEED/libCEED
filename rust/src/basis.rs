@@ -17,10 +17,6 @@ pub enum ElemTopology {
     Prism,
     Hex,
 }
-pub enum TransposeMode {
-    NoTranspose,
-    Transpose,
-}
 pub enum EvalMode {
     None,
     Interp,
@@ -114,7 +110,7 @@ impl<'a> Basis<'a> {
     pub fn apply(
         &self,
         nelem: i32,
-        tmode: TransposeMode,
+        tmode: crate::TransposeMode,
         emode: EvalMode,
         u: &crate::vector::Vector,
         v: &mut crate::vector::Vector,
