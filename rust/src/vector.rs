@@ -18,11 +18,11 @@ impl<'a> Vector<'a> {
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self { ceed, ptr }
     }
-    
+
     pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedVector) -> Self {
-        Self { ceed , ptr}
+        Self { ceed, ptr }
     }
-    
+
     /// Returns the length of a CeedVector
     ///
     /// ```
@@ -36,7 +36,7 @@ impl<'a> Vector<'a> {
         unsafe { bind_ceed::CeedVectorGetLength(self.ptr, &mut n) };
         n
     }
- 
+
     /// Set the CeedVector to a constant value
     ///
     /// # arguments
@@ -51,11 +51,11 @@ impl<'a> Vector<'a> {
     pub fn set_value(&self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
     }
-    
+
     pub fn sync(&self, mtype: crate::MemType) {
-      unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
+        unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
     }
- 
+
     /// Return the norm of a CeedVector
     ///
     /// # arguments
@@ -69,13 +69,13 @@ impl<'a> Vector<'a> {
     /// let n = vec.norm(ceed::vector::NormType::Max);
     /// assert!(n == 42.0)
     /// ```
-    pub fn norm(&self, ntype: NormType)  -> f64 {
-      let mut res :f64 = 0.0;
-      unsafe{ bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res) };
-      res
+    pub fn norm(&self, ntype: NormType) -> f64 {
+        let mut res: f64 = 0.0;
+        unsafe { bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res) };
+        res
     }
 }
-        
+
 /// Destructor
 impl<'a> Drop for Vector<'a> {
     fn drop(&mut self) {

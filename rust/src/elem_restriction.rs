@@ -18,17 +18,18 @@ impl<'a> ElemRestriction<'a> {
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
-          bind_ceed::CeedElemRestrictionCreate(
-            ceed.ptr,
-            nelem,
-            elemsize,
-            ncomp,
-            compstride,
-            lsize,
-            mtype as bind_ceed::CeedMemType,
-            cmode as bind_ceed::CeedCopyMode,
-            offsets.as_ptr(),
-            &mut ptr)
+            bind_ceed::CeedElemRestrictionCreate(
+                ceed.ptr,
+                nelem,
+                elemsize,
+                ncomp,
+                compstride,
+                lsize,
+                mtype as bind_ceed::CeedMemType,
+                cmode as bind_ceed::CeedCopyMode,
+                offsets.as_ptr(),
+                &mut ptr,
+            )
         };
         Self { ceed, ptr }
     }

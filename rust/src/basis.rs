@@ -92,7 +92,7 @@ impl<'a> Basis<'a> {
         grad: &Vec<f64>,
         qref: &Vec<f64>,
         qweight: &Vec<f64>,
-     ) -> Self {
+    ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateH1(
@@ -105,9 +105,10 @@ impl<'a> Basis<'a> {
                 grad.as_ptr(),
                 qref.as_ptr(),
                 qweight.as_ptr(),
-                &mut ptr)
+                &mut ptr,
+            )
         };
-        Self  { ceed, ptr }
+        Self { ceed, ptr }
     }
 
     pub fn apply(
@@ -126,23 +127,17 @@ impl<'a> Basis<'a> {
                 emode as bind_ceed::CeedEvalMode,
                 u.ptr,
                 v.ptr,
-            ) 
+            )
         };
     }
 
-    pub fn get_dimension(
-        &self,
-    ) -> i32 {
+    pub fn get_dimension(&self) -> i32 {
         let mut dim = 0;
-        unsafe {
-            bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim)
-        };
+        unsafe { bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim) };
         dim
     }
 
-    pub fn get_topology(
-        &self,
-    ) -> ElemTopology {
+    pub fn get_topology(&self) -> ElemTopology {
         let mut topo = ElemTopology::Line;
         unsafe {
             // bind_ceed::CeedBasisGetTopology(
@@ -153,29 +148,19 @@ impl<'a> Basis<'a> {
         topo
     }
 
-    pub fn get_num_components(
-        &self,
-    ) -> i32 {
+    pub fn get_num_components(&self) -> i32 {
         let mut ncomp = 0;
-        unsafe {
-            bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp)
-        };
+        unsafe { bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp) };
         ncomp
     }
 
-    pub fn get_num_nodes(
-        &self,
-    ) -> i32 {
+    pub fn get_num_nodes(&self) -> i32 {
         let mut nnodes = 0;
-        unsafe {
-            bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes)
-        };
+        unsafe { bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes) };
         nnodes
     }
 
-    pub fn get_num_quadrature_points(
-        &self,
-    ) -> i32 {
+    pub fn get_num_quadrature_points(&self) -> i32 {
         let mut Q = 0;
         unsafe {
             bind_ceed::CeedBasisGetNumQuadraturePoints(self.ptr, &mut Q);
@@ -190,4 +175,4 @@ impl<'a> Drop for Basis<'a> {
             bind_ceed::CeedBasisDestroy(&mut self.ptr);
         }
     }
-} 
+}

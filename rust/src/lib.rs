@@ -152,9 +152,7 @@ impl Ceed {
         Q: i32,
         qmode: basis::QuadMode,
     ) -> crate::basis::Basis {
-        crate::basis::Basis::create_tensor_H1_Lagrange(
-            self, dim, ncomp, P, Q, qmode,
-        )
+        crate::basis::Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
     pub fn basis_H1(
