@@ -112,7 +112,7 @@ impl<'a> Basis<'a> {
     /// Returns the dimension for given CeedBasis
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let dim = b.get_dimension();
     /// assert!(dim == 2);
@@ -137,7 +137,7 @@ impl<'a> Basis<'a> {
     /// Returns number of components for given CeedBasis
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_components();
     /// assert!(ncomp == 2);
@@ -151,7 +151,7 @@ impl<'a> Basis<'a> {
     /// Returns total number of nodes (in dim dimensions) of a CeedBasis
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let nqpts = b.get_num_nodes();
     /// assert!(nqpts == 3*3);
@@ -165,7 +165,7 @@ impl<'a> Basis<'a> {
     /// Returns total number of quadrature points (in dim dimensions) of a CeedBasis
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_quadrature_points();
     /// assert!(ncomp == 4*4);
