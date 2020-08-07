@@ -20,3 +20,12 @@ struct CeedVector {
   ceed_reference : ceed::Ceed,
   ceed_vec_ptr : rust_ceed::CeedVector,
 }
+
+/// Destructor
+impl Drop for CeedVector {
+  fn drop(&mut self) {
+    unsafe {
+      rust_ceed::CeedVectorDestroy(&mut self.ceed_vec_ptr);
+    }
+  }
+}
