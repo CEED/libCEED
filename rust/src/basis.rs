@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub struct Basis<'a> {
     ceed: &'a crate::Ceed,
-    ptr: bind_ceed::CeedBasis,
+    pub ptr: bind_ceed::CeedBasis,
 }
 pub enum QuadMode {
     Gauss,
