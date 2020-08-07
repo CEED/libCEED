@@ -4,17 +4,17 @@
 
 #![allow(dead_code)]
 
-mod prelude {
-  pub mod bind_ceed {
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-  }
-}
-
 use std::mem;
 use std::fmt;
 use std::ffi::CString;
 // use std::io::{self, Write};
 use crate::prelude::*;
+
+mod prelude {
+  pub mod bind_ceed {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+  }
+}
 
 mod vector;
 mod elem_restriction;
@@ -26,7 +26,7 @@ mod operator;
 pub struct Ceed {
   backend : String,
   // Pointer to C object
-  ceed_ptr : bind_ceed::Ceed,
+  ptr : bind_ceed::Ceed,
 }
 
 /// Display
@@ -40,7 +40,7 @@ impl fmt::Display for Ceed {
 impl Drop for Ceed {
   fn drop(&mut self) {
     unsafe {
-      bind_ceed::CeedDestroy(&mut self.ceed_ptr);
+      bind_ceed::CeedDestroy(&mut self.ptr);
     }
   }
 }
@@ -74,9 +74,9 @@ impl Ceed {
     let c_resource = CString::new(resource).expect("CString::new failed");
     
     // Call to libCEED
-    let mut ceed_ptr = unsafe {libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed};
-    unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ceed_ptr) };
-    Ceed { backend : resource.to_string(), ceed_ptr: ceed_ptr }
+    let mut ptr = unsafe {libc::malloc(mem::size_of::<bind_ceed::Ceed>()) as bind_ceed::Ceed};
+    unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
+    Ceed { backend : resource.to_string(), ptr: ptr }
   }
   
   /// Vector
