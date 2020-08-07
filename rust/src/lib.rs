@@ -93,9 +93,9 @@ impl Ceed {
     
   /// Basis
   pub fn basis_tensor_H1(&self, dim: i32, ncomp: i32, P1d: i32,
-    Q1d: i32, interp1d: Vec<u32> , grad1d: &Vec<u32>, qref1d: &Vec<u32>,
-    qweight1d: &Vec<u32>) -> crate::basis::Basis {
-    todo!()
+    Q1d: i32, interp1d: &Vec<f64> , grad1d: &Vec<f64>, qref1d: &Vec<f64>,
+    qweight1d: &Vec<f64>) -> crate::basis::Basis {
+    crate::basis::Basis::create_tensor_H1(self, dim, ncomp, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d)
   }
       
   /// QFunction
