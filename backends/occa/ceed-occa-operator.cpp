@@ -109,8 +109,8 @@ namespace ceed {
       ierr = CeedOperatorSetData(op, (void**) &operator_); CeedChk(ierr);
 
       CeedOccaRegisterFunction(op, "LinearAssembleQFunction", Operator::ceedLinearAssembleQFunction);
-      CeedOccaRegisterFunction(op, "LinearAssembleDiagonal", Operator::ceedLinearAssembleDiagonal);
-      CeedOccaRegisterFunction(op, "LinearAssemblePointBlockDiagonal", Operator::ceedLinearAssemblePointBlockDiagonal);
+      CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
+      CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
       CeedOccaRegisterFunction(op, "CreateFDMElementInverse", Operator::ceedCreateFDMElementInverse);
       CeedOccaRegisterFunction(op, "ApplyAdd", Operator::ceedApplyAdd);
       CeedOccaRegisterFunction(op, "Destroy", Operator::ceedDestroy);
@@ -118,15 +118,27 @@ namespace ceed {
       return 0;
     }
 
+    int Operator::ceedCreateComposite(CeedOperator op) {
+      int ierr;
+      Ceed ceed;
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+
+      CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
+      CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
+
+      return 0;
+    }
+
+
     int Operator::ceedLinearAssembleQFunction(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction");
     }
 
-    int Operator::ceedLinearAssembleDiagonal(CeedOperator op) {
+    int Operator::ceedLinearAssembleAddDiagonal(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleDiagonal");
     }
 
-    int Operator::ceedLinearAssemblePointBlockDiagonal(CeedOperator op) {
+    int Operator::ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssemblePointBlockDiagonal");
     }
 

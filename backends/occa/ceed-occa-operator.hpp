@@ -64,10 +64,11 @@ namespace ceed {
                                       const char *fname, ceed::occa::ceedFunction f);
 
       static int ceedCreate(CeedOperator op);
+      static int ceedCreateComposite(CeedOperator op);
 
       static int ceedLinearAssembleQFunction(CeedOperator op);
-      static int ceedLinearAssembleDiagonal(CeedOperator op);
-      static int ceedLinearAssemblePointBlockDiagonal(CeedOperator op);
+      static int ceedLinearAssembleAddDiagonal(CeedOperator op);
+      static int ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op);
       static int ceedCreateFDMElementInverse(CeedOperator op);
 
       static int ceedApplyAdd(CeedOperator op,

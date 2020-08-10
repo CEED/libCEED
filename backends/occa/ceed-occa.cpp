@@ -279,6 +279,7 @@ namespace ceed {
       CeedOccaRegisterBaseFunction("ElemRestrictionCreateBlocked", ceed::occa::ElemRestriction::ceedCreateBlocked);
       CeedOccaRegisterBaseFunction("QFunctionCreate", ceed::occa::QFunction::ceedCreate);
       CeedOccaRegisterBaseFunction("OperatorCreate", ceed::occa::Operator::ceedCreate);
+      CeedOccaRegisterBaseFunction("CompositeOperatorCreate", ceed::occa::Operator::ceedCreateComposite);
 
       return 0;
     }
