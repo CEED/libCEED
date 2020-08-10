@@ -118,11 +118,13 @@ inline void TENSOR_FUNCTION(gradElement)(
     }
 
     for (int qy = 0; qy < Q1D; ++qy) {
-      const CeedScalar wx  = B(py, qy);
-      const CeedScalar wDx = Bx(py, qy);
+      const CeedScalar wy  = B(py, qy);
+      const CeedScalar wDy = Bx(py, qy);
       for (int qx = 0; qx < Q1D; ++qx) {
-        grad[qy][qx][0] += gradX[qx][1] * wx;
-        grad[qy][qx][1] += gradX[qx][0] * wDx;
+        const CeedScalar wx  = gradX[qx][0];
+        const CeedScalar wDx = gradX[qx][1];
+        grad[qy][qx][0] += wDx * wy;
+        grad[qy][qx][1] += wx  * wDy;
       }
     }
   }
@@ -160,8 +162,8 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
       for (int px = 0; px < P1D; ++px) {
         const CeedScalar wx  = B(px, qx);
         const CeedScalar wDx = Bx(px, qx);
-        gradX[px][0] += Ux * wx;
-        gradX[px][1] += Uy * wDx;
+        gradX[px][0] += Ux * wDx;
+        gradX[px][1] += Uy * wx;
       }
     }
 
@@ -169,8 +171,8 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
       const CeedScalar wy  = B(py, qy);
       const CeedScalar wDy = Bx(py, qy);
       for (int px = 0; px < P1D; ++px) {
-        Ve(px, py) += ((gradX[px][1] * wy) +
-                       (gradX[px][0] * wDy));
+        Ve(px, py) += ((gradX[px][0] * wy) +
+                       (gradX[px][1] * wDy));
       }
     }
   }
