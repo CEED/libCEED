@@ -247,12 +247,7 @@ namespace ceed {
     }
 
     int Vector::restoreArray(CeedScalar **array) {
-      if (syncState == SyncState::host) {
-        return copyArrayValues(CEED_MEM_HOST, *array);
-      } else if (syncState == SyncState::device) {
-        return copyArrayValues(CEED_MEM_DEVICE, *array);
-      }
-      return ceedError("Ambiguous borrowed array sync state");
+      return 0;
     }
 
     int Vector::restoreReadOnlyArray(CeedScalar **array) {
