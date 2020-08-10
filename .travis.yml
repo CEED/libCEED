@@ -125,8 +125,9 @@ install:
         && brew link --overwrite gcc;
     fi
 # OCCA v1.1.0
-# TODO(dmed256): Use a specific commit/tag (cd occa && git reset --hard [COMMITISH] && cd ..)
+# ToDo: Use OCCA release
   - git clone https://github.com/libocca/occa.git
+        && make -C occa info
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
 # LIBXSMM v1.16.1
@@ -155,6 +156,7 @@ install:
         && tar xf petsc-$PETSC_COMMIT.tar.gz
         && cd petsc-$PETSC_COMMIT
         && ./configure --with-debugging=0 CC=$CC COPTFLAGS=-O --with-mpi=0 --with-fc=0 --with-cxx=0 --prefix=$PETSC_INSTALL
+        && make info
         && make
         && make install )
   - export PETSC_DIR=$PETSC_INSTALL
