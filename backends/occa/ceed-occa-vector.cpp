@@ -125,7 +125,10 @@ namespace ceed {
       switch (mtype) {
         case CEED_MEM_HOST:
           setCurrentHostBufferIfNeeded();
-
+          if (syncState == SyncState::device) {
+            setCurrentMemoryIfNeeded();
+            currentMemory.copyTo(currentHostBuffer);
+          }
           *array = currentHostBuffer;
           hostBuffer = NULL;
           currentHostBuffer = NULL;
@@ -134,7 +137,10 @@ namespace ceed {
           return 0;
         case CEED_MEM_DEVICE:
           setCurrentMemoryIfNeeded();
-
+          if (syncState == SyncState::host) {
+            setCurrentHostBufferIfNeeded();
+            currentMemory.copyFrom(currentHostBuffer);
+          }
           *array = memoryToArray<CeedScalar>(currentMemory);
           memory = ::occa::null;
           currentMemory = ::occa::null;
