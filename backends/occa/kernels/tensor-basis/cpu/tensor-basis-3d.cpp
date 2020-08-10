@@ -146,7 +146,7 @@ inline void TENSOR_FUNCTION(gradElement)(
   }
 
   for (int pz = 0; pz < P1D; ++pz) {
-    CeedScalar gradXY[Q1D][Q1D][4];
+    CeedScalar gradXY[Q1D][Q1D][3];
     for (int qy = 0; qy < Q1D; ++qy) {
       for (int qx = 0; qx < Q1D; ++qx) {
         gradXY[qy][qx][0] = 0;
@@ -214,7 +214,7 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
   }
 
   for (int qz = 0; qz < Q1D; ++qz) {
-    CeedScalar gradXY[P1D][P1D][4];
+    CeedScalar gradXY[P1D][P1D][3];
     for (int py = 0; py < P1D; ++py) {
       for (int px = 0; px < P1D; ++px) {
         gradXY[py][px][0] = 0;
@@ -224,7 +224,7 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
     }
 
     for (int qy = 0; qy < Q1D; ++qy) {
-      CeedScalar gradX[P1D][4];
+      CeedScalar gradX[P1D][3];
       for (int px = 0; px < P1D; ++px) {
         gradX[px][0] = 0;
         gradX[px][1] = 0;
