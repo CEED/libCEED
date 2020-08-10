@@ -340,16 +340,23 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
 endif
 
 # OCCA Backends
-OCCA_BACKENDS = /cpu/occa /*/occa
+OCCA_BACKENDS = /cpu/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|HIP" && echo 1)
-  ifeq ($(OCCA_GPU_MODE_FOUND),1)
-    OCCA_BACKENDS += /gpu/occa
+  OCCA_CUDA_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA" && echo 1)
+  ifeq ($(OCCA_CUDA_MODE_FOUND),1)
+    OCCA_BACKENDS += /gpu/occa/cuda
   endif
+
+  OCCA_HIP_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "HIP" && echo 1)
+  ifeq ($(OCCA_HIP_MODE_FOUND),1)
+    OCCA_BACKENDS += /gpu/occa/hip
+  endif
+
   OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenCL" && echo 1)
   ifeq ($(OCCA_OCL_MODE_FOUND),1)
     OCCA_BACKENDS += /opencl/occa
   endif
+
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceeds) : LDLIBS += -locca

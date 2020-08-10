@@ -131,6 +131,17 @@ namespace ceed {
       int wordStart = 1;
       std::string queryKey;
 
+      // Check for /gpu/occa/cuda and /gpu/occa/hip
+      // Note: added for matching style with other backends
+      if (resource == "/gpu/occa/cuda"){
+        match = "cuda";
+        return 0;
+      }
+      if (resource == "/gpu/occa/hip"){
+        match = "hip";
+        return 0;
+      }
+
       // Skip initial slash
       for (int i = 1; i <= charCount; ++i) {
         const char c = c_resource[i];
@@ -301,11 +312,14 @@ namespace ceed {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/*/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/gpu/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/cpu/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/cuda/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/opencl/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/openmp/occa", ceed::occa::registerBackend, 20);
+  CeedRegister("/*/occa", ceed::occa::registerBackend, 70);
+  CeedRegister("/cpu/occa", ceed::occa::registerBackend, 60);
+  CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
+  CeedRegister("/opencl/occa", ceed::occa::registerBackend, 40);
+  CeedRegister("/gpu/occa", ceed::occa::registerBackend, 30);
+  CeedRegister("/gpu/occa/hip", ceed::occa::registerBackend, 20);
   CeedRegister("/hip/occa", ceed::occa::registerBackend, 20);
+  CeedRegister("/gpu/occa/cuda", ceed::occa::registerBackend, 10);
+  CeedRegister("/cuda/occa", ceed::occa::registerBackend, 10);
+
 }
