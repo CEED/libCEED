@@ -357,6 +357,11 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
     OCCA_BACKENDS += /opencl/occa
   endif
 
+  OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenMP" && echo 1)
+  ifeq ($(OCCA_OMP_MODE_FOUND),1)
+    OCCA_BACKENDS += /openmp/occa
+  endif
+
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
   $(libceeds) : LDLIBS += -locca
