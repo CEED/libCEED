@@ -42,9 +42,9 @@ typedef CeedScalar *QuadVector @dim(ELEMENT_SIZE, COMPONENT_COUNT, elementCount)
 
 @kernel
 void applyRestriction(const CeedInt elementCount,
-                      @restrict const CeedInt *indices,
-                      @restrict const CeedScalar *u,
-                      @restrict QuadVector v) {
+                      const CeedInt *indices,
+                      CeedScalar *u,
+                      QuadVector v) {
 
   @tile(TILE_SIZE, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
@@ -84,11 +84,11 @@ void applyRestriction(const CeedInt elementCount,
 
 @kernel
 void applyRestrictionTranspose(const CeedInt elementCount,
-                               @restrict const CeedInt *quadIndices,
-                               @restrict const CeedInt *dofOffsets,
-                               @restrict const CeedInt *dofIndices,
-                               @restrict const QuadVector u,
-                               @restrict CeedScalar *v) {
+                               const CeedInt *quadIndices,
+                               const CeedInt *dofOffsets,
+                               const CeedInt *dofIndices,
+                               const QuadVector u,
+                               CeedScalar *v) {
   @tile(TILE_SIZE, @outer, @inner)
   for (int n = 0; n < NODE_COUNT; ++n) {
 
@@ -135,11 +135,11 @@ void applyRestrictionTranspose(const CeedInt elementCount,
 
 @kernel
 void applyRestrictionTranspose(const CeedInt elementCount,
-                               @restrict const CeedInt *quadIndices,
-                               @restrict const CeedInt *dofOffsets,
-                               @restrict const CeedInt *dofIndices,
-                               @restrict const QuadVector u,
-                               @restrict CeedScalar *v) {
+                               const CeedInt *quadIndices,
+                               const CeedInt *dofOffsets,
+                               const CeedInt *dofIndices,
+                               const QuadVector u,
+                               CeedScalar *v) {
   @tile(TILE_SIZE, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
 
