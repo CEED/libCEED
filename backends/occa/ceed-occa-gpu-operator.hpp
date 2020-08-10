@@ -32,7 +32,7 @@ namespace ceed {
 
       ::occa::kernel buildApplyAddKernel();
 
-      void applyAdd(Vector &in, Vector &out);
+      void applyAdd(Vector *in, Vector *out);
     };
   }
 }

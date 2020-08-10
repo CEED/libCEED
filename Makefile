@@ -342,7 +342,7 @@ endif
 # OCCA Backends
 OCCA_BACKENDS = /cpu/occa /*/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-	OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|OpenCL\|HIP" && echo 1)
+	OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|HIP" && echo 1)
   ifeq ($(OCCA_GPU_MODE_FOUND),1)
     OCCA_BACKENDS += /gpu/occa
   endif

@@ -28,7 +28,7 @@ namespace ceed {
       return ::occa::kernel();
     }
 
-    void GpuOperator::applyAdd(Vector &in, Vector &out) {
+    void GpuOperator::applyAdd(Vector *in, Vector *out) {
       // TODO: Implement
     }
   }
