@@ -172,12 +172,13 @@ int main(int argc, char *argv[]) {
   cg.Mult(B, X);
 
   // 9. Compute and print the L2 norm of the error.
+  double err_l2 = sol.ComputeL2Error(sol_coeff);
   if (!test) {
-    std::cout << "L2 projection error: " << sol.ComputeL2Error(sol_coeff)
+    std::cout << "L2 projection error: " << err_l2
               << std::endl;
   } else {
     if (fabs(sol.ComputeL2Error(sol_coeff))>2e-3) {
-      std::cout << "Error too large" << std::endl;
+      std::cout << "Error too large: " << err_l2 << std::endl;
     }
   }
 
