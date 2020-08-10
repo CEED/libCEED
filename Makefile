@@ -342,9 +342,13 @@ endif
 # OCCA Backends
 OCCA_BACKENDS = /cpu/occa /*/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-	OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|HIP" && echo 1)
+  OCCA_GPU_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA\|HIP" && echo 1)
   ifeq ($(OCCA_GPU_MODE_FOUND),1)
     OCCA_BACKENDS += /gpu/occa
+  endif
+  OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenCL" && echo 1)
+  ifeq ($(OCCA_OCL_MODE_FOUND),1)
+    OCCA_BACKENDS += /opencl/occa
   endif
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
