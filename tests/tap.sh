@@ -67,7 +67,7 @@ for ((i=0;i<${#backends[@]};++i)); do
     backend=${backends[$i]}
 
     # Fluids and Solids QFunctions use VLA; not currently supported in OCCA
-    if [[ "$backend" = *occa && \
+    if [[ "$backend" = *occa* && \
             ( "$1" = fluids-* || "$1" = solids-* || "$1" = t507* ) ]]; then
         printf "ok $i0 # SKIP - no support for VLA with $backend\n"
         printf "ok $i1 # SKIP - no support for VLA with $backend stdout\n"
