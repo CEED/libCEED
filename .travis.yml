@@ -126,7 +126,7 @@ install:
     fi
 # OCCA v1.1.0
 # ToDo: Use OCCA release
-  - git clone https://github.com/libocca/occa.git
+  - git clone https://github.com/jeremylt/occa.git
         && make -C occa info
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
