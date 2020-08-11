@@ -131,7 +131,7 @@ namespace ceed {
       int wordStart = 1;
       std::string queryKey;
 
-      // Check for /gpu/occa/cuda and /gpu/occa/hip
+      // Check for /gpu/occa/cuda, /gpu/occa/hip, /cpu/occa/serial, /cpu/occa/openmp
       // Note: added for matching style with other backends
       if (resource == "/gpu/occa/cuda"){
         match = "cuda";
@@ -139,6 +139,14 @@ namespace ceed {
       }
       if (resource == "/gpu/occa/hip"){
         match = "hip";
+        return 0;
+      }
+      if (resource == "/cpu/occa/serial"){
+        match = "serial";
+        return 0;
+      }
+      if (resource == "/cpu/occa/openmp"){
+        match = "openmp";
         return 0;
       }
 
@@ -312,9 +320,12 @@ namespace ceed {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/*/occa", ceed::occa::registerBackend, 70);
-  CeedRegister("/cpu/occa", ceed::occa::registerBackend, 60);
+  CeedRegister("/*/occa", ceed::occa::registerBackend, 80);
+  CeedRegister("/cpu/occa", ceed::occa::registerBackend, 70);
+  CeedRegister("/serial/occa", ceed::occa::registerBackend, 60);
+  CeedRegister("/cpu/occa/serial", ceed::occa::registerBackend, 60);
   CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
+  CeedRegister("/cpu/occa/openmp", ceed::occa::registerBackend, 50);
   CeedRegister("/opencl/occa", ceed::occa::registerBackend, 40);
   CeedRegister("/gpu/occa", ceed::occa::registerBackend, 30);
   CeedRegister("/gpu/occa/hip", ceed::occa::registerBackend, 20);
