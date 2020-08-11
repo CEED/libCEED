@@ -564,7 +564,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
-	  "$(libdir)" "$(pkgconfigdir)"
+	  "$(libdir)" "$(pkgconfigdir)"))
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
