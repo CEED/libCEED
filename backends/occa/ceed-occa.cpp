@@ -73,10 +73,6 @@ namespace ceed {
 
     static int getDeviceMode(const std::string &match,
                              std::string &mode) {
-      if (match == "openmp") {
-        mode = "OpenMP";
-        return 0;
-      }
       if (match == "cuda") {
         mode = "CUDA";
         return 0;
@@ -87,6 +83,14 @@ namespace ceed {
       }
       if (match == "opencl") {
         mode = "OpenCL";
+        return 0;
+      }
+      if (match == "openmp") {
+        mode = "OpenMP";
+        return 0;
+      }
+      if (match == "serial") {
+        mode = "Serial";
         return 0;
       }
 
