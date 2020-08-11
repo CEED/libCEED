@@ -324,13 +324,17 @@ namespace ceed {
 
 __attribute__((constructor))
 static void Register(void) {
+  // General mode
   CeedRegister("/*/occa", ceed::occa::registerBackend, 80);
+  // CPU Modes
   CeedRegister("/cpu/occa", ceed::occa::registerBackend, 70);
-  CeedRegister("/serial/occa", ceed::occa::registerBackend, 60);
   CeedRegister("/cpu/occa/serial", ceed::occa::registerBackend, 60);
-  CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
+  CeedRegister("/serial/occa", ceed::occa::registerBackend, 60);
   CeedRegister("/cpu/occa/openmp", ceed::occa::registerBackend, 50);
+  CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
+  // OpenCL Mode
   CeedRegister("/opencl/occa", ceed::occa::registerBackend, 40);
+  // GPU Modes
   CeedRegister("/gpu/occa", ceed::occa::registerBackend, 30);
   CeedRegister("/gpu/occa/hip", ceed::occa::registerBackend, 20);
   CeedRegister("/hip/occa", ceed::occa::registerBackend, 20);
