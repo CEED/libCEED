@@ -36,9 +36,9 @@ inline void readDofs(const int element,
                      const int px,
                      const int py,
                      const_dofArray U,
-                     CeedScalar &Up) {
+                     CeedScalar *Up) {
   // Zero out extra entries
-  Up = (
+  *Up = (
     (px < P1D) && (py < P1D)
     ? U(px, py, component, element)
     : 0.0
@@ -63,8 +63,8 @@ inline void readQuads(const int elementCount,
                       const int qy,
                       const int dim,
                       const_quadArray U,
-                      CeedScalar &Uq) {
-  Uq = U(qx, qy, element, component, dim);
+                      CeedScalar *Uq) {
+  *Uq = U(qx, qy, element, component, dim);
 }
 
 inline void writeQuads(const int elementCount,
@@ -84,12 +84,12 @@ inline void contractX(const int qx,
                       sharedBufferArray sharedBuffer,
                       quadToDof B,
                       const CeedScalar U,
-                      CeedScalar &V) {
+                      CeedScalar *V) {
   sharedBuffer(qx, qy, localElement) = U;
-  V = 0.0;
+  *V = 0.0;
   @barrier();
   for (int p = 0; p < P1D; ++p) {
-    V += B(p, qx) * sharedBuffer(p, qy, localElement);
+    *V += B(p, qx) * sharedBuffer(p, qy, localElement);
   }
   @barrier();
 }
@@ -99,13 +99,13 @@ inline void contractY(const int qx,
                       const int localElement,
                       sharedBufferArray sharedBuffer,
                       quadToDof B,
-                      const CeedScalar &U,
-                      CeedScalar &V) {
+                      const CeedScalar U,
+                      CeedScalar *V) {
   sharedBuffer(qx, qy, localElement) = U;
-  V = 0.0;
+  *V = 0.0;
   @barrier();
   for (int p = 0; p < P1D; ++p) {
-    V += B(p, qy) * sharedBuffer(qx, p, localElement);
+    *V += B(p, qy) * sharedBuffer(qx, p, localElement);
   }
   @barrier();
 }
@@ -116,12 +116,12 @@ inline void contractTransposeX(const int px,
                                sharedBufferArray sharedBuffer,
                                quadToDof B,
                                const CeedScalar U,
-                               CeedScalar &V) {
+                               CeedScalar *V) {
   sharedBuffer(px, py, localElement) = U;
-  V = 0.0;
+  *V = 0.0;
   @barrier();
   for (int q = 0; q < Q1D; ++q) {
-    V += B(px, q) * sharedBuffer(q, py, localElement);
+    *V += B(px, q) * sharedBuffer(q, py, localElement);
   }
   @barrier();
 }
@@ -132,12 +132,12 @@ inline void contractTransposeY(const int px,
                                sharedBufferArray sharedBuffer,
                                quadToDof B,
                                const CeedScalar U,
-                               CeedScalar &V) {
+                               CeedScalar *V) {
   sharedBuffer(px, py, localElement) = U;
-  V = 0.0;
+  *V = 0.0;
   @barrier();
   for (int q = 0; q < Q1D; ++q) {
-    V += B(py, q) * sharedBuffer(px, q, localElement);
+    *V += B(py, q) * sharedBuffer(px, q, localElement);
   }
   @barrier();
 }
@@ -160,14 +160,14 @@ inline void contractTransposeY(const int px,
             for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component) {
               CeedScalar r1, r2;
               if (!TRANSPOSE) {
-                readDofs(element, component, qx, qy, U, r1);
-                contractX(qx, qy, localElement, sharedBuffer, B, r1, r2);
-                contractY(qx, qy, localElement, sharedBuffer, B, r2, r1);
+                readDofs(element, component, qx, qy, U, &r1);
+                contractX(qx, qy, localElement, sharedBuffer, B, r1, &r2);
+                contractY(qx, qy, localElement, sharedBuffer, B, r2, &r1);
                 writeQuads(elementCount, element, component, qx, qy, 0, r1, V);
               } else {
-                readQuads(elementCount, element, component, qx, qy, 0, U, r1);
-                contractTransposeY(qx, qy, localElement, sharedBuffer, B, r1, r2);
-                contractTransposeX(qx, qy, localElement, sharedBuffer, B, r2, r1);
+                readQuads(elementCount, element, component, qx, qy, 0, U, &r1);
+                contractTransposeY(qx, qy, localElement, sharedBuffer, B, r1, &r2);
+                contractTransposeX(qx, qy, localElement, sharedBuffer, B, r2, &r1);
                 writeDofs(element, component, qx, qy, r1, V);
               }
             }
@@ -197,20 +197,20 @@ inline void contractTransposeY(const int px,
             for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component) {
               CeedScalar r1, r2, r3;
               if (!TRANSPOSE) {
-                readDofs(element, component, qx, qy, U, r1);
-                contractX(qx, qy, localElement, sharedBuffer, Bx, r1, r2);
-                contractY(qx, qy, localElement, sharedBuffer, B , r2, r3);
+                readDofs(element, component, qx, qy, U, &r1);
+                contractX(qx, qy, localElement, sharedBuffer, Bx, r1, &r2);
+                contractY(qx, qy, localElement, sharedBuffer, B , r2, &r3);
                 writeQuads(elementCount, element, component, qx, qy, 0, r3, V);
-                contractX(qx, qy, localElement, sharedBuffer, B , r1, r2);
-                contractY(qx, qy, localElement, sharedBuffer, Bx, r2, r3);
+                contractX(qx, qy, localElement, sharedBuffer, B , r1, &r2);
+                contractY(qx, qy, localElement, sharedBuffer, Bx, r2, &r3);
                 writeQuads(elementCount, element, component, qx, qy, 1, r3, V);
               } else {
-                readQuads(elementCount, element, component, qx, qy, 0, U, r1);
-                contractTransposeY(qx, qy, localElement, sharedBuffer, B , r1, r2);
-                contractTransposeX(qx, qy, localElement, sharedBuffer, Bx, r2, r3);
-                readQuads(elementCount, element, component, qx, qy, 1, U, r1);
-                contractTransposeY(qx, qy, localElement, sharedBuffer, Bx, r1, r2);
-                contractTransposeX(qx, qy, localElement, sharedBuffer, B , r2, r1);
+                readQuads(elementCount, element, component, qx, qy, 0, U, &r1);
+                contractTransposeY(qx, qy, localElement, sharedBuffer, B , r1, &r2);
+                contractTransposeX(qx, qy, localElement, sharedBuffer, Bx, r2, &r3);
+                readQuads(elementCount, element, component, qx, qy, 1, U, &r1);
+                contractTransposeY(qx, qy, localElement, sharedBuffer, Bx, r1, &r2);
+                contractTransposeX(qx, qy, localElement, sharedBuffer, B , r2, &r1);
                 writeDofs(element, component, qx, qy, r1 + r3, V);
               }
             }
