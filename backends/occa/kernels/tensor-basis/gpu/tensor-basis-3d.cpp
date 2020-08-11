@@ -199,9 +199,9 @@ inline void contractTransposeZ(const int px,
 
 //---[ Kernels ]------------------------
 @kernel void interp(const CeedInt elementCount,
-                    @restrict quadToDof B,
-                    @restrict const CeedScalar *U,
-                    @restrict CeedScalar *V) {
+                    quadToDof B,
+                    const CeedScalar *U,
+                    CeedScalar *V) {
 
   for (int element = 0; element < elementCount; ++element; @outer) {
     @shared CeedScalar sharedBuffer[MAX_PQ * MAX_PQ * BASIS_COMPONENT_COUNT];
@@ -239,10 +239,10 @@ inline void contractTransposeZ(const int px,
 }
 
 @kernel void grad(const CeedInt elementCount,
-                  @restrict quadToDof B,
-                  @restrict quadToDof Bx,
-                  @restrict const CeedScalar *U,
-                  @restrict CeedScalar *V) {
+                  quadToDof B,
+                  quadToDof Bx,
+                  const CeedScalar *U,
+                  CeedScalar *V) {
 
   for (int element = 0; element < elementCount; ++element; @outer) {
     @shared CeedScalar sharedBuffer[MAX_PQ * MAX_PQ * BASIS_COMPONENT_COUNT];
@@ -300,8 +300,8 @@ inline void contractTransposeZ(const int px,
 }
 
 @kernel void weight(const CeedInt elementCount,
-                    @restrict const CeedScalar *qWeights1D,
-                    @restrict elementWeightArray W) {
+                    const CeedScalar *qWeights1D,
+                    elementWeightArray W) {
   for (int element = 0; element < elementCount; ++element; @outer) {
     for (int qz = 0; qz < Q1D; ++qz; @inner) {
       for (int qy = 0; qy < Q1D; ++qy; @inner) {

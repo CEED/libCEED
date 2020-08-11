@@ -22,9 +22,9 @@ const char *occa_simplex_basis_cpu_function_source = STRINGIFY_SOURCE(
 @directive("#define SIMPLEX_FUNCTION(FUNCTION_NAME) simplex_ ## DIM ## d_ ## FUNCTION_NAME ## _Q ## Q ## _P ## P")
 
 inline void SIMPLEX_FUNCTION(interpElement)(
-  @restrict const CeedScalar *B @dim(P, Q),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B @dim(P, Q),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int q = 0; q < Q; ++q) {
     CeedScalar v = 0;
@@ -36,9 +36,9 @@ inline void SIMPLEX_FUNCTION(interpElement)(
 }
 
 inline void SIMPLEX_FUNCTION(interpElementTranspose)(
-  @restrict const CeedScalar *B @dim(P, Q),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B @dim(P, Q),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int p = 0; p < P; ++p) {
     CeedScalar v = 0;
@@ -50,9 +50,9 @@ inline void SIMPLEX_FUNCTION(interpElementTranspose)(
 }
 
 inline void SIMPLEX_FUNCTION(gradElement)(
-  @restrict const CeedScalar *Bx @dim(P, Q, DIM),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve,
+  const CeedScalar *Bx @dim(P, Q, DIM),
+  const CeedScalar *Ue,
+  CeedScalar *Ve,
 ) {
   for (int q = 0; q < Q; ++q) {
     CeedScalar v[DIM];
@@ -74,9 +74,9 @@ inline void SIMPLEX_FUNCTION(gradElement)(
 }
 
 inline void SIMPLEX_FUNCTION(gradElementTranspose)(
-  @restrict const CeedScalar *Bx @dim(P, Q, DIM),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *Bx @dim(P, Q, DIM),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int p = 0; p < P; ++p) {
     CeedScalar v = 0;
@@ -90,8 +90,8 @@ inline void SIMPLEX_FUNCTION(gradElementTranspose)(
 }
 
 inline void SIMPLEX_FUNCTION(weightElement)(
-  @restrict const CeedScalar *qWeights,
-  @restrict CeedScalar *We
+  const CeedScalar *qWeights,
+  CeedScalar *We
 ) {
   for (int q = 0; q < Q; ++q) {
     We[q] = qWeights[q];
@@ -103,9 +103,9 @@ inline void SIMPLEX_FUNCTION(weightElement)(
 const char *occa_simplex_basis_cpu_kernel_source = STRINGIFY_SOURCE(
 
 @kernel void interp(const CeedInt elementCount,
-                    @restrict const CeedScalar *B,
-                    @restrict const CeedScalar *U,
-                    @restrict CeedScalar *V) {
+                    const CeedScalar *B,
+                    const CeedScalar *U,
+                    CeedScalar *V) {
   for (int element = 0; element < elementCount; ++element; @outer) {
     for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component; @inner) {
       if (!TRANSPOSE) {
@@ -132,9 +132,9 @@ const char *occa_simplex_basis_cpu_kernel_source = STRINGIFY_SOURCE(
 }
 
 @kernel void grad(const CeedInt elementCount,
-                  @restrict const CeedScalar *Bx,
-                  @restrict const CeedScalar *U,
-                  @restrict CeedScalar *V) {
+                  const CeedScalar *Bx,
+                  const CeedScalar *U,
+                  CeedScalar *V) {
   for (int element = 0; element < elementCount; ++element; @outer) {
     for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component; @inner) {
       if (!TRANSPOSE) {
@@ -181,8 +181,8 @@ const char *occa_simplex_basis_cpu_kernel_source = STRINGIFY_SOURCE(
 }
 
 @kernel void weight(const CeedInt elementCount,
-                    @restrict const CeedScalar *qWeights,
-                    @restrict CeedScalar *W @dim(Q, elementCount)) {
+                    const CeedScalar *qWeights,
+                    CeedScalar *W @dim(Q, elementCount)) {
   @tile(32, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
     SIMPLEX_FUNCTION(weightElement)(

@@ -22,9 +22,9 @@ const char *occa_tensor_basis_1d_cpu_function_source = STRINGIFY_SOURCE(
 @directive("#define TENSOR_FUNCTION(FUNCTION_NAME) tensor_1d_ ## FUNCTION_NAME ## _Q ## Q1D ## _P ## P1D")
 
 inline void TENSOR_FUNCTION(interpElement)(
-  @restrict const CeedScalar *B @dim(P1D, Q1D),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B @dim(P1D, Q1D),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int q = 0; q < Q1D; ++q) {
     CeedScalar Vq = 0;
@@ -36,9 +36,9 @@ inline void TENSOR_FUNCTION(interpElement)(
 }
 
 inline void TENSOR_FUNCTION(interpElementTranspose)(
-  @restrict const CeedScalar *B @dim(P1D, Q1D),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B @dim(P1D, Q1D),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int p = 0; p < P1D; ++p) {
     CeedScalar Vp = 0;
@@ -50,10 +50,10 @@ inline void TENSOR_FUNCTION(interpElementTranspose)(
 }
 
 inline void TENSOR_FUNCTION(gradElement)(
-  @restrict const CeedScalar *B  @dim(P1D, Q1D),
-  @restrict const CeedScalar *Bx @dim(P1D, Q1D),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B  @dim(P1D, Q1D),
+  const CeedScalar *Bx @dim(P1D, Q1D),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int q = 0; q < Q1D; ++q) {
     CeedScalar Vq = 0;
@@ -65,10 +65,10 @@ inline void TENSOR_FUNCTION(gradElement)(
 }
 
 inline void TENSOR_FUNCTION(gradElementTranspose)(
-  @restrict const CeedScalar *B @dim(P1D, Q1D),
-  @restrict const CeedScalar *Bx @dim(P1D, Q1D),
-  @restrict const CeedScalar *Ue,
-  @restrict CeedScalar *Ve
+  const CeedScalar *B @dim(P1D, Q1D),
+  const CeedScalar *Bx @dim(P1D, Q1D),
+  const CeedScalar *Ue,
+  CeedScalar *Ve
 ) {
   for (int p = 0; p < P1D; ++p) {
     CeedScalar Vp = 0;
@@ -80,8 +80,8 @@ inline void TENSOR_FUNCTION(gradElementTranspose)(
 }
 
 inline void TENSOR_FUNCTION(weightElement)(
-  @restrict const CeedScalar *qWeights1D,
-  @restrict CeedScalar *We
+  const CeedScalar *qWeights1D,
+  CeedScalar *We
 ) {
   for (int q = 0; q < Q1D; ++q) {
     We[q] = qWeights1D[q];
@@ -93,9 +93,9 @@ inline void TENSOR_FUNCTION(weightElement)(
 const char *occa_tensor_basis_1d_cpu_kernel_source = STRINGIFY_SOURCE(
 
 @kernel void interp(const CeedInt elementCount,
-                    @restrict const CeedScalar *B,
-                    @restrict const CeedScalar *U,
-                    @restrict CeedScalar *V) {
+                    const CeedScalar *B,
+                    const CeedScalar *U,
+                    CeedScalar *V) {
   for (int element = 0; element < elementCount; ++element; @outer) {
     for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component; @inner) {
       if (!TRANSPOSE) {
@@ -122,10 +122,10 @@ const char *occa_tensor_basis_1d_cpu_kernel_source = STRINGIFY_SOURCE(
 }
 
 @kernel void grad(const CeedInt elementCount,
-                  @restrict const CeedScalar *B,
-                  @restrict const CeedScalar *Bx,
-                  @restrict const CeedScalar *U,
-                  @restrict CeedScalar *V) {
+                  const CeedScalar *B,
+                  const CeedScalar *Bx,
+                  const CeedScalar *U,
+                  CeedScalar *V) {
   for (int element = 0; element < elementCount; ++element; @outer) {
     for (int component = 0; component < BASIS_COMPONENT_COUNT; ++component; @inner) {
       if (!TRANSPOSE) {
@@ -154,8 +154,8 @@ const char *occa_tensor_basis_1d_cpu_kernel_source = STRINGIFY_SOURCE(
 }
 
 @kernel void weight(const CeedInt elementCount,
-                    @restrict const CeedScalar *qWeights1D,
-                    @restrict CeedScalar *W @dim(Q1D, elementCount)) {
+                    const CeedScalar *qWeights1D,
+                    CeedScalar *W @dim(Q1D, elementCount)) {
   @tile(32, @outer, @inner)
   for (int element = 0; element < elementCount; ++element) {
     TENSOR_FUNCTION(weightElement)(

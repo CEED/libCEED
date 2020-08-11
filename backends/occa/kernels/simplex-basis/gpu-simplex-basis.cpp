@@ -32,9 +32,9 @@ typedef CeedScalar* dQuadToDof         @dim(P, Q, DIM);
 typedef CeedScalar* elementWeightArray @dim(Q, elementCount);
 
 @kernel void interp(const CeedInt elementCount,
-                    @restrict const quadToDof B,
-                    @restrict const dofArray U,
-                    @restrict quadArray V) {
+                    const quadToDof B,
+                    const dofArray U,
+                    quadArray V) {
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     @shared CeedScalar s_B[P * Q] @dim(P, Q);
 
@@ -80,9 +80,9 @@ typedef CeedScalar* elementWeightArray @dim(Q, elementCount);
 }
 
 @kernel void grad(const CeedInt elementCount,
-                  @restrict const dQuadToDof Bx,
-                  @restrict const dofArray U,
-                  @restrict quadArray V) {
+                  const dQuadToDof Bx,
+                  const dofArray U,
+                  quadArray V) {
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     @shared CeedScalar s_Bx[Q * P * DIM] @dim(P, Q, DIM);
 
@@ -140,8 +140,8 @@ typedef CeedScalar* elementWeightArray @dim(Q, elementCount);
 }
 
 @kernel void weight(const CeedInt elementCount,
-                    @restrict const CeedScalar *qWeights,
-                    @restrict elementWeightArray W) {
+                    const CeedScalar *qWeights,
+                    elementWeightArray W) {
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     @shared CeedScalar s_qWeights[Q];
 

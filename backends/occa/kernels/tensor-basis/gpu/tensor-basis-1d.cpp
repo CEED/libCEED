@@ -98,9 +98,9 @@ inline void contractTransposeX(const int p,
 
 //---[ Kernels ]------------------------
 @kernel void interp(const CeedInt elementCount,
-                    @restrict quadToDof B,
-                    @restrict const CeedScalar *U,
-                    @restrict CeedScalar *V) {
+                    quadToDof B,
+                    const CeedScalar *U,
+                    CeedScalar *V) {
 
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     @shared CeedScalar sharedBuffer[MAX_PQ * ELEMENTS_PER_BLOCK];
@@ -130,10 +130,10 @@ inline void contractTransposeX(const int p,
 }
 
 @kernel void grad(const CeedInt elementCount,
-                  @restrict quadToDof B,
-                  @restrict quadToDof Bx,
-                  @restrict const CeedScalar *U,
-                  @restrict CeedScalar *V) {
+                  quadToDof B,
+                  quadToDof Bx,
+                  const CeedScalar *U,
+                  CeedScalar *V) {
 
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     @shared CeedScalar sharedBuffer[MAX_PQ * ELEMENTS_PER_BLOCK];
@@ -163,8 +163,8 @@ inline void contractTransposeX(const int p,
 }
 
 @kernel void weight(const CeedInt elementCount,
-                    @restrict const CeedScalar *qWeights1D,
-                    @restrict elementWeightArray W) {
+                    const CeedScalar *qWeights1D,
+                    elementWeightArray W) {
   for (int elementOffset = 0; elementOffset < elementCount; elementOffset += ELEMENTS_PER_BLOCK; @outer) {
     for (int element = elementOffset; element < (elementOffset + ELEMENTS_PER_BLOCK); ++element; @outer) {
       for (int q = 0; q < Q1D; ++q; @inner) {
