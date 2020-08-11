@@ -153,17 +153,18 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/*/occa``                | Selects backend based on available OCCA modes     | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/occa``              | Serial OCCA kernels                               | Yes                   |
+| ``/cpu/occa``              | Selects OCCA CPU backend                          | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/occa``              | CUDA OCCA kernels                                 | Yes                   |
+| ``/cpu/occa/serial``       | OCCA backend with serial CPU kernels              | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/openmp/occa``           | Selects OCCA backend with OpenMP kernels          | Yes                   |
+| ``/cpu/occa/openmp``       | OCCA backend with OpenMP kernels                  | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/cuda/occa``             | Selects OCCA backend with CUDA kernels            | Yes                   |
+| ``/opencl/occa``           | OCCA backend with OpenCL kernels                  | Yes                   |+----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/occa``              | Selects OCCA GPU backend                          | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/hip/occa``              | Selects OCCA backend with HIP kernels             | Yes                   |
+| ``/gpu/occa/hip``          | OCCA backend with HIP kernels                     | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/opencl/occa``           | Selects OCCA backend with OpenCL kernels          | Yes                   |
+| ``/gpu/occa/cuda``         | OCCA backend with CUDA kernels                    | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
