@@ -1758,7 +1758,7 @@ int main(int argc, char **argv) {
   }
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
-// Create and setup TS
+  // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
   if (implicit) {
