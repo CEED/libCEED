@@ -19,12 +19,12 @@ libCEED: the CEED Library
     :target: https://opensource.org/licenses/BSD-2-Clause
 
 .. |doc| image:: https://readthedocs.org/projects/libceed/badge/?version=latest
-    :alt: License
+    :alt: Read the Docs
     :scale: 100%
     :target: https://libceed.readthedocs.io/en/latest/?badge=latest
 
 .. |doxygen| image:: https://codedocs.xyz/CEED/libCEED.svg
-    :alt: License
+    :alt: Codedocs
     :scale: 100%
     :target: https://codedocs.xyz/CEED/libCEED/
 
