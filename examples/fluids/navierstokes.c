@@ -226,8 +226,6 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsEuler_loc,
     .applyVol_rhs              = Euler,
     .applyVol_rhs_loc          = Euler_loc,
-    .applySur                  = Euler_Sur,
-    .applySur_loc              = Euler_Sur_loc,
     .bc                        = Exact_Euler,
     .non_zero_time             = PETSC_TRUE,
   },
@@ -486,51 +484,6 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
     for (CeedInt i=0; i<nFace; i++) {
       ierr = GetRestrictionForDomain(ceed, dm, height, domainLabel, i+1, numP_Sur,
-                                     numQ_Sur, qdatasizeSur, &restrictqSur[i],
-                                     &restrictxSur[i], &restrictqdiSur[i]);
-      CHKERRQ(ierr);
-      // Create the CEED vectors that will be needed in Boundary setup
-      CeedElemRestrictionGetNumElements(restrictqSur[i], &localNelemSur[i]);
-      CeedVectorCreate(ceed, qdatasizeSur*localNelemSur[i]*NqptsSur,
-                       &qdataSur[i]);
-      // Create the operator that builds the quadrature data for the Boundary operator
-      CeedOperatorCreate(ceed, qf_setupSur, NULL, NULL, &op_setupSur[i]);
-      CeedOperatorSetField(op_setupSur[i], "dx", restrictxSur[i], basisxSur,
-                           CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_setupSur[i], "weight", CEED_ELEMRESTRICTION_NONE,
-                           basisxSur, CEED_VECTOR_NONE);
-      CeedOperatorSetField(op_setupSur[i], "qdataSur", restrictqdiSur[i],
-                           CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-      // Create Boundary operator
-      CeedOperatorCreate(ceed, qf_applySur, NULL, NULL, &op_applySur[i]);
-      CeedOperatorSetField(op_applySur[i], "q", restrictqSur[i], basisqSur,
-                           CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_applySur[i], "qdataSur", restrictqdiSur[i],
-                           CEED_BASIS_COLLOCATED, qdataSur[i]);
-      CeedOperatorSetField(op_applySur[i], "x", restrictxSur[i], basisxSur,
-                           xcorners);
-      CeedOperatorSetField(op_applySur[i], "v", restrictqSur[i], basisqSur,
-                           CEED_VECTOR_ACTIVE);
-      // Apply CEED operator for Boundary setup
-      CeedOperatorApply(op_setupSur[i], xcorners, qdataSur[i],
-                        CEED_REQUEST_IMMEDIATE);
-      // --Apply Sub-Operator for the Boundary
-      CeedCompositeOperatorAddSub(*op_apply, op_applySur[i]);
-    }
-    CeedVectorDestroy(&xcorners);
-  }
-
-  if (problemChoice == NS_EULER_VORTEX) {
-
-    // Create CEED Operator for each boundary face
-    PetscInt localNelemSur[2];
-    CeedVector qdataSur[2];
-    CeedQFunction qf_apply;
-    CeedOperator op_setupSur[2], op_applySur[2];
-    CeedElemRestriction restrictxSur[2], restrictqSur[2], restrictqdiSur[2];
-
-    for (CeedInt i=0; i<2; i++) {
-      ierr = GetRestrictionForDomain(ceed, dm, height, domainLabel, i+5, numP_Sur,
                                      numQ_Sur, qdatasizeSur, &restrictqSur[i],
                                      &restrictxSur[i], &restrictqdiSur[i]);
       CHKERRQ(ierr);
@@ -1021,7 +974,6 @@ int main(int argc, char **argv) {
   CeedScalar cv              = 717.;     // J/(kg K)
   CeedScalar cp              = 1004.;    // J/(kg K)
   CeedScalar vortex_strength = 5.;       // -
-  CeedScalar rho_enter       = 1.2;      // Kg/m^3
   CeedScalar g               = 9.81;     // m/s^2
   CeedScalar lambda          = -2./3.;   // -
   CeedScalar mu              = 75.;      // Pa s, dynamic viscosity
@@ -1041,8 +993,7 @@ int main(int argc, char **argv) {
   PetscInt degree            = 1;        // -
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
-  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
-            u_enter[3] = {-1.2, 0, 0};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -1090,9 +1041,6 @@ int main(int argc, char **argv) {
     SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
             "-problem_advection_wind translation is not defined for -problem density_current or -problem euler_vortex");
   }
-  ierr = PetscOptionsRealArray("-problem_euler_vortex_velocity",
-                               "Incoming velocity vector",
-                               NULL, u_enter, &n, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -1170,9 +1118,6 @@ int main(int argc, char **argv) {
                        "Warning! Use -vortex_strength only with -problem euler_vortex\n");
     CHKERRQ(ierr);
   }
-  ierr = PetscOptionsScalar("-problem_euler_vortex_rho", "Incoming density",
-                            NULL, rho_enter, &rho_enter, NULL);
-  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
@@ -1277,7 +1222,6 @@ int main(int argc, char **argv) {
   thetaC *= Kelvin;
   P0 *= Pascal;
   E_wind *= Joule;
-  rho_enter *= kgpercubicm;
   N *= (1./second);
   cv *= JperkgK;
   cp *= JperkgK;

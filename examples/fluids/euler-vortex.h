@@ -289,67 +289,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
-
-// *****************************************************************************
-// This QFunction implements inflow BCs for 3D Euler traveling vortex
-//
-// *****************************************************************************
-CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
-                          const CeedScalar *const *in,
-                          CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-  // Context
-  const EulerContext context = (EulerContext)ctx;
-  const CeedScalar currentTime = context->currentTime;
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJb     =    qdataSur[0][i];
-    const CeedScalar norm[3]    =   {qdataSur[1][i],
-                                     qdataSur[2][i],
-                                     qdataSur[3][i]
-                                    };
-
-    const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
-    CeedScalar q[5];
-    Exact_Euler(3, currentTime, X, 5, q, ctx);
-    const CeedScalar rho  =  q[0];
-    const CeedScalar u[3] = {q[1] / rho,
-                             q[2] / rho,
-                             q[3] / rho
-                            };
-    const CeedScalar E    =  q[4];
-    // P = Pressure
-    const CeedScalar P = 1.;
-    // u_n = Normal velocity
-    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +  norm[2]*u[2];
-
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0;
-
-    // -- Density
-    v[0][i] -= wdetJb * rho * u_n;
-
-    // -- Momentum
-    for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho * u_n * u[j] + norm[j] * P);
-
-    // -- Total Energy Density
-    v[4][i] -= wdetJb * u_n * (E + P);
-
-  } // End Quadrature Point Loop
-  return 0;
-}
 // *****************************************************************************
 
 #endif // eulervortex_h
