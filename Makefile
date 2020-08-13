@@ -347,10 +347,10 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
     OCCA_BACKENDS += /cpu/occa/openmp
   endif
 
-  OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenCL" && echo 1)
-  ifeq ($(OCCA_OCL_MODE_FOUND),1)
-    OCCA_BACKENDS += /opencl/occa
-  endif
+  #OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenCL" && echo 1)
+  #ifeq ($(OCCA_OCL_MODE_FOUND),1)
+  #  OCCA_BACKENDS += /opencl/occa
+  #endif
 
   OCCA_HIP_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "HIP" && echo 1)
   ifeq ($(OCCA_HIP_MODE_FOUND),1)

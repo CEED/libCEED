@@ -159,7 +159,6 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/occa/openmp``       | OCCA backend with OpenMP kernels                  | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/opencl/occa``           | OCCA backend with OpenCL kernels                  | Yes                   |+----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/occa``              | Selects OCCA GPU backend                          | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/occa/hip``          | OCCA backend with HIP kernels                     | Yes                   |

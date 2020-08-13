@@ -55,9 +55,11 @@ namespace ceed {
         if (::occa::modeIsEnabled("HIP")) {
           return "HIP";
         }
+        /* OpenCL not fully supported in OCCA
         if (::occa::modeIsEnabled("OpenCL")) {
           return "OpenCL";
         }
+        */
         // Metal doesn't support doubles
       }
 
@@ -81,10 +83,12 @@ namespace ceed {
         mode = "HIP";
         return 0;
       }
+      /* OpenCL not fully supported in OCCA
       if (match == "opencl") {
         mode = "OpenCL";
         return 0;
       }
+      */
       if (match == "openmp") {
         mode = "OpenMP";
         return 0;
@@ -212,20 +216,22 @@ namespace ceed {
       }
 
       // Set default device id
+      // Note: OpenCL not fully supported in OCCA
       if ((mode == "CUDA")
-          || (mode == "HIP")
-          || (mode == "OpenCL")) {
+          || (mode == "HIP")) {
         if (!deviceProps.has("device_id")) {
           deviceProps["device_id"] = 0;
         }
       }
 
       // Set default platform id
+      /* OpenCL not fully supported in OCCA
       if (mode == "OpenCL") {
         if (!deviceProps.has("platform_id")) {
           deviceProps["platform_id"] = 0;
         }
       }
+      */
     }
 
     static int initCeed(const char *c_resource, Ceed ceed) {
@@ -333,7 +339,9 @@ static void Register(void) {
   CeedRegister("/cpu/occa/openmp", ceed::occa::registerBackend, 50);
   CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
   // OpenCL Mode
+  /* OpenCL not fully supported in OCCA
   CeedRegister("/opencl/occa", ceed::occa::registerBackend, 40);
+  */
   // GPU Modes
   CeedRegister("/gpu/occa", ceed::occa::registerBackend, 30);
   CeedRegister("/gpu/occa/hip", ceed::occa::registerBackend, 20);
