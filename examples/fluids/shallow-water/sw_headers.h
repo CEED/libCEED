@@ -47,6 +47,7 @@ typedef struct {
   CeedScalar CtauS;
   CeedScalar strong_form;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+  Mat T;
 } ProblemContext_s;
 typedef ProblemContext_s *ProblemContext;
 
@@ -131,6 +132,7 @@ struct CeedData_ {
   CeedElemRestriction Erestrictx, Erestrictq, Erestrictqdi;
   CeedQFunction qf_setup, qf_mass, qf_ics, qf_explicit, qf_implicit,
                 qf_jacobian;
+  CeedQFunctionContext physCtx, problCtx;
   CeedOperator op_setup, op_mass, op_ics, op_explicit, op_implicit, op_jacobian;
   CeedVector xcorners, xceed, qdata, q0ceed, mceed, hsceed, H0ceed;
 };
@@ -144,13 +146,19 @@ extern problemData problemOptions[];
 
 // Auxiliary function to determine if nodes belong to cube face (panel) edges
 PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
-                                  PetscInt ncomp, Mat *T);
+                                  PetscInt ncomp, PetscInt *edgenodecnt,
+                                  EdgeNode *edgenodes, Mat *T);
 
-// Auxiliary function that sets up all corrdinate transformations between panels
+// Auxiliary function that sets up all coordinate transformations between panels
 PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
                                               PetscInt ncomp,
                                               EdgeNode edgenodes,
                                               PetscInt nedgenodes, Mat *T);
+
+// Auxiliary function that converts global 3D coors into local panel coords
+PetscErrorCode TransformCoords(DM dm, Vec Xloc, const PetscInt ncompx,
+                               EdgeNode edgenodes, const PetscInt nedgenodes,
+                               PhysicsContext phys_ctx, Vec *Xpanelsloc);
 
 // -----------------------------------------------------------------------------
 // Setup DM functions
@@ -162,7 +170,8 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
                                      PetscInt order, PetscFE *fem);
 
 // Auxiliary function to setup DM FE space and info
-PetscErrorCode SetupDM(DM dm, PetscInt degree, PetscInt ncompq, PetscInt dim);
+PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompq,
+                               PetscInt dim);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
@@ -174,9 +183,10 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P, CeedInt ncomp,
 
 // Auxiliary function to set up libCEED objects for a given degree
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
-                            PetscInt ncompx, PetscInt ncompq, User user,
-                            CeedData data, problemData *problem,
-                            PhysicsContext phys_ctx, ProblemContext probl_ctx);
+                            const PetscInt ncompx, PetscInt ncompq, User user,
+                            Vec Xloc, CeedData data, problemData *problem,
+                            PhysicsContext physCtxData,
+                            ProblemContext problCtxData);
 
 // -----------------------------------------------------------------------------
 // RHS (Explicit part in time-stepper) function setup

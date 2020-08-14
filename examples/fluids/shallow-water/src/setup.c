@@ -27,7 +27,7 @@
 #include "../sw_headers.h"               // Function prototytes
 #include "../qfunctions/setup_geo.h"     // Geometric factors
 #include "../qfunctions/advection.h"     // Physics point-wise functions
-#include "../qfunctions/geostrophic.h"  // Physics point-wise functions
+#include "../qfunctions/geostrophic.h"   // Physics point-wise functions
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
@@ -76,20 +76,19 @@ problemData problemOptions[] = {
 // -----------------------------------------------------------------------------
 
 PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
-                                  PetscInt ncomp, Mat *T) {
+                                  PetscInt ncomp, PetscInt *edgenodecnt,
+                                  EdgeNode *edgenodes, Mat *T) {
 
   PetscInt ierr;
   MPI_Comm comm;
-  PetscInt cstart, cend, gdofs, depth, edgenodecnt = 0;
+  PetscInt cstart, cend, gdofs;
   PetscSection section, sectionloc;
-  EdgeNode edgenodes;
 
   PetscFunctionBeginUser;
   // Get Nelem
   ierr = DMGetGlobalSection(dm, &section); CHKERRQ(ierr);
   ierr = DMGetLocalSection(dm, &sectionloc); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cstart, &cend); CHKERRQ(ierr);
-  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
 
   PetscSF sf;
   Vec bitmapVec;
@@ -126,7 +125,7 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
   MPI_Reduce(bitmaploc, bitmap, gdofs, MPI_UNSIGNED, MPI_BOR, 0, comm);
 
   // Read the resulting bitmap and extract edge nodes only
-  ierr = PetscMalloc1(gdofs + 24*ncomp, &edgenodes); CHKERRQ(ierr);
+  ierr = PetscMalloc1(gdofs + 24*ncomp, edgenodes); CHKERRQ(ierr);
   for (PetscInt i = 0; i < gdofs; i += ncomp) {
     PetscInt ones = 0, panels[3];
     for (PetscInt p = 0; p < 6; p++) {
@@ -135,31 +134,29 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
       bitmap[i] >>= 1;
     }
     if (ones == 2) {
-      edgenodes[edgenodecnt].idx = i;
-      edgenodes[edgenodecnt].panelA = panels[0];
-      edgenodes[edgenodecnt].panelB = panels[1];
-      edgenodecnt++;
+      (*edgenodes)[*edgenodecnt].idx = i;
+      (*edgenodes)[*edgenodecnt].panelA = panels[0];
+      (*edgenodes)[*edgenodecnt].panelB = panels[1];
+      (*edgenodecnt)++;
     }
     else if (ones == 3) {
-      edgenodes[edgenodecnt].idx = i;
-      edgenodes[edgenodecnt].panelA = panels[0];
-      edgenodes[edgenodecnt].panelB = panels[1];
-      edgenodecnt++;
-      edgenodes[edgenodecnt].idx = i;
-      edgenodes[edgenodecnt].panelA = panels[0];
-      edgenodes[edgenodecnt].panelB = panels[2];
-      edgenodecnt++;
-      edgenodes[edgenodecnt].idx = i;
-      edgenodes[edgenodecnt].panelA = panels[1];
-      edgenodes[edgenodecnt].panelB = panels[2];
-      edgenodecnt++;
+      (*edgenodes)[*edgenodecnt].idx = i;
+      (*edgenodes)[*edgenodecnt].panelA = panels[0];
+      (*edgenodes)[*edgenodecnt].panelB = panels[1];
+      (*edgenodecnt)++;
+      (*edgenodes)[*edgenodecnt].idx = i;
+      (*edgenodes)[*edgenodecnt].panelA = panels[0];
+      (*edgenodes)[*edgenodecnt].panelB = panels[2];
+      (*edgenodecnt)++;
+      (*edgenodes)[*edgenodecnt].idx = i;
+      (*edgenodes)[*edgenodecnt].panelA = panels[1];
+      (*edgenodes)[*edgenodecnt].panelB = panels[2];
+      (*edgenodecnt)++;
     }
   }
-  ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, edgenodes,
-                                        edgenodecnt, T); CHKERRQ(ierr);
+  ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, *edgenodes,
+                                        *edgenodecnt, T); CHKERRQ(ierr);
 
-  // Free edgenodes structure array
-  ierr = PetscFree(edgenodes); CHKERRQ(ierr);
   // Free heap
   ierr = PetscFree(bitmap); CHKERRQ(ierr);
   ierr = PetscFree(bitmaploc); CHKERRQ(ierr);
@@ -168,7 +165,7 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
 }
 
 // -----------------------------------------------------------------------------
-// Auxiliary function that sets up all corrdinate transformations between panels
+// Auxiliary function that sets up all coordinate transformations between panels
 // -----------------------------------------------------------------------------
 PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
                                               PetscInt ncomp,
@@ -324,6 +321,103 @@ PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
   PetscFunctionReturn(0);
 }
 
+// -----------------------------------------------------------------------------
+// Auxiliary function that converts global 3D coors into local panel coords
+// -----------------------------------------------------------------------------
+
+PetscErrorCode TransformCoords(DM dm, Vec Xloc, const PetscInt ncompx,
+                               EdgeNode edgenodes, const PetscInt nedgenodes,
+                               PhysicsContext phys_ctx, Vec *Xpanelsloc) {
+
+  PetscInt ierr;
+  PetscInt lsize, depth, nstart, nend;
+  const PetscScalar *xlocarray;
+  PetscScalar *xpanelslocarray;
+
+  PetscFunctionBeginUser;
+  ierr = VecGetArrayRead(Xloc, &xlocarray); CHKERRQ(ierr);
+  ierr = VecGetSize(Xloc, &lsize); CHKERRQ(ierr);
+  ierr = VecGetArray(*Xpanelsloc, &xpanelslocarray); CHKERRQ(ierr);
+
+  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, depth, &nstart, &nend); CHKERRQ(ierr);
+
+  for (PetscInt n = 0; n < (nend - nstart); n++) { // Traverse nodes
+    // Query element panel
+    PetscInt panel;
+    PetscSection sectionloc;
+    ierr = DMGetLocalSection(dm, &sectionloc); CHKERRQ(ierr);
+    ierr = DMGetLabelValue(dm, "panel", n + nstart, &panel); CHKERRQ(ierr);
+
+    PetscScalar X = xlocarray[n*ncompx+0];
+    PetscScalar Y = xlocarray[n*ncompx+1];
+    PetscScalar Z = xlocarray[n*ncompx+2];
+
+    // Normalize quadrature point coordinates to sphere
+    CeedScalar rad = sqrt(X*X + Y*Y + Z*Z);
+    X *= phys_ctx->R / rad;
+    Y *= phys_ctx->R / rad;
+    Z *= phys_ctx->R / rad;
+
+    PetscScalar x, y;
+    PetscScalar l = phys_ctx->R/sqrt(3.);
+    PetscBool isedgenode = PETSC_FALSE;
+
+    // Determine if this node is an edge node
+    for (PetscInt e = 0; e < nedgenodes; e++) {
+      if (n * ncompx == edgenodes[e].idx) {
+        isedgenode = PETSC_TRUE; break;
+      }
+    }
+
+    if (isedgenode) {
+      // Compute latitude and longitude
+      const CeedScalar theta  = asin(Z / phys_ctx->R); // latitude
+      const CeedScalar lambda = atan2(Y, X);           // longitude
+      xpanelslocarray[n*ncompx+0] = theta;
+      xpanelslocarray[n*ncompx+1] = lambda;
+      xpanelslocarray[n*ncompx+2] = -1;
+    }
+
+    else {
+
+      switch (panel) {
+      case 0:
+        x = l * (Y / X);
+        y = l * (Z / X);
+        break;
+      case 1:
+        x = l * (-X / Y);
+        y = l * (Z / Y);
+        break;
+      case 2:
+        x = l * (Y / X);
+        y = l * (-Z / X);
+        break;
+      case 3:
+        x = l * (-X / Y);
+        y = l * (-Z / Y);
+        break;
+      case 4:
+        x = l * (Y / Z);
+        y = l * (-X / Z);
+        break;
+      case 5:
+        x = l * (-Y / Z);
+        y = l * (-X / Z);
+        break;
+      }
+      xpanelslocarray[n*ncompx+0] = x;
+      xpanelslocarray[n*ncompx+1] = y;
+      xpanelslocarray[n*ncompx+2] = panel;
+    }
+  } // End of nodes for loop
+
+  ierr = VecRestoreArrayRead(Xloc, &xlocarray); CHKERRQ(ierr);
+  ierr = VecRestoreArray(*Xpanelsloc, &xpanelslocarray); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
 
 // -----------------------------------------------------------------------------
 // Auxiliary function to create PETSc FE space for a given degree
@@ -400,8 +494,8 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 // Auxiliary function to setup DM FE space and info
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SetupDM(DM dm, PetscInt degree, PetscInt ncompq,
-                       PetscInt dim) {
+PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompq,
+                               PetscInt dim) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -558,11 +652,11 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p) {
 
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                             PetscInt ncompx, PetscInt ncompq, User user,
-                            CeedData data, problemData *problem,
-                            PhysicsContext phys_ctx, ProblemContext probl_ctx) {
+                            Vec Xloc, CeedData data, problemData *problem,
+                            PhysicsContext physCtxData,
+                            ProblemContext problCtxData) {
   int ierr;
   DM dmcoord;
-  Vec Xloc;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction Erestrictx, Erestrictq, Erestrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_explicit, qf_implicit,
@@ -729,10 +823,16 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   user->op_jacobian = op_jacobian;
 
   // Set up the libCEED context
-  CeedQFunctionSetContext(qf_ics, phys_ctx, sizeof *phys_ctx);
-  CeedQFunctionSetContext(qf_explicit, probl_ctx, sizeof *probl_ctx);
-  CeedQFunctionSetContext(qf_implicit, probl_ctx, sizeof *probl_ctx);
-  CeedQFunctionSetContext(qf_jacobian, probl_ctx, sizeof *probl_ctx);
+  CeedQFunctionContextCreate(ceed, &data->physCtx);
+  CeedQFunctionContextSetData(data->physCtx, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof physCtxData, &physCtxData);
+  CeedQFunctionSetContext(qf_ics, data->physCtx);
+  CeedQFunctionContextCreate(ceed, &data->problCtx);
+  CeedQFunctionContextSetData(data->problCtx, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof problCtxData, &problCtxData);
+  CeedQFunctionSetContext(qf_explicit, data->problCtx);
+  CeedQFunctionSetContext(qf_implicit, data->problCtx);
+  CeedQFunctionSetContext(qf_jacobian, data->problCtx);
 
   // Save libCEED data required for level // TODO: check how many of these are really needed outside
   data->basisx = basisx;
