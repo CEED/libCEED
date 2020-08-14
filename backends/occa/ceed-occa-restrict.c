@@ -42,14 +42,14 @@ int CeedElemRestrictionApply_Occa(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   CeedDebug("[CeedElemRestriction][Apply]");
   CeedElemRestriction_Occa *data;
-  ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &data); CeedChk(ierr);
   const occaMemory id = data->d_indices;
   const occaMemory tid = data->d_tindices;
   const occaMemory od = data->d_toffsets;
   CeedVector_Occa *u_data;
-  ierr = CeedVectorGetData(u, (void *)&u_data); CeedChk(ierr);
+  ierr = CeedVectorGetData(u, &u_data); CeedChk(ierr);
   CeedVector_Occa *v_data;
-  ierr = CeedVectorGetData(v, (void *)&v_data); CeedChk(ierr);
+  ierr = CeedVectorGetData(v, &v_data); CeedChk(ierr);
   const occaMemory ud = u_data->d_array;
   const occaMemory vd = v_data->d_array;
   const bool strided = data->strided;
@@ -109,7 +109,7 @@ static int CeedElemRestrictionDestroy_Occa(CeedElemRestriction r) {
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   CeedElemRestriction_Occa *data;
-  ierr = CeedElemRestrictionGetData(r, (void *)&data); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &data); CeedChk(ierr);
   CeedDebug("[CeedElemRestriction][Destroy]");
   for (int i=0; i<6; i++) {
     occaFree(data->kRestrict[i]);
@@ -167,7 +167,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   CeedDebug("[CeedElemRestriction][Create]");
   CeedElemRestriction_Occa *data;
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   const bool ocl = ceed_data->ocl;
   const occaDevice dev = ceed_data->device;
   // ***************************************************************************
@@ -210,7 +210,7 @@ int CeedElemRestrictionCreate_Occa(const CeedMemType mtype,
   for (int i = 0; i < CEED_OCCA_NUM_RESTRICTION_KERNELS; ++i) {
     data->kRestrict[i] = occaUndefined;
   }
-  ierr = CeedElemRestrictionSetData(r, (void *)&data); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, data); CeedChk(ierr);
   CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
   ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   CeedDebug("[CeedElemRestriction][Create] nelem=%d",nelem);

@@ -112,15 +112,12 @@ class QFunction(_QFunctionBase):
         """Set global context for a QFunction.
 
            Args:
-             *ctx: Numpy array holding context data to set"""
-
-        # Setup the numpy array for the libCEED call
-        ctx_pointer = ffi.new("CeedScalar *")
-        ctx_pointer = ffi.cast("void *", ctx.__array_interface__['data'][0])
+             ctx: Ceed User Context object holding context data"""
 
         # libCEED call
         err_code = lib.CeedQFunctionSetContext(
-            self._pointer[0], ctx_pointer, len(ctx))
+            self._pointer[0],
+            ctx._pointer[0])
         self._ceed._check_error(err_code)
 
     # Add fields to CeedQFunction

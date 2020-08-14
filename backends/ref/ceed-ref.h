@@ -43,6 +43,11 @@ typedef struct {
 } CeedQFunction_Ref;
 
 typedef struct {
+  void *data;
+  void *data_allocated;
+} CeedQFunctionContext_Ref;
+
+typedef struct {
   bool identityqf;
   CeedVector
   *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
@@ -77,6 +82,8 @@ CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,
     CeedTensorContract contract);
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
+
+CEED_INTERN int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
 

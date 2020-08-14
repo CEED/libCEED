@@ -538,9 +538,9 @@ int CeedBasisApply_Cuda_reg(CeedBasis basis, const CeedInt nelem,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
   Ceed_Cuda_reg *ceed_Cuda;
-  CeedGetData(ceed, (void *) &ceed_Cuda); CeedChk(ierr);
+  CeedGetData(ceed, &ceed_Cuda); CeedChk(ierr);
   CeedBasis_Cuda_reg *data;
-  CeedBasisGetData(basis, (void *)&data); CeedChk(ierr);
+  CeedBasisGetData(basis, &data); CeedChk(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int warpsize  = 32;
   const int blocksize = warpsize;
@@ -628,7 +628,7 @@ static int CeedBasisDestroy_Cuda_reg(CeedBasis basis) {
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   CeedBasis_Cuda_reg *data;
-  ierr = CeedBasisGetData(basis, (void *) &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
 
   CeedChk_Cu(ceed, cuModuleUnload(data->module));
 
@@ -695,7 +695,7 @@ int CeedBasisCreateTensorH1_Cuda_reg(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedGetKernelCuda(ceed, data->module, "weight", &data->weight);
   CeedChk(ierr);
 
-  ierr = CeedBasisSetData(basis, (void *)&data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",

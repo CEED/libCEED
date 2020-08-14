@@ -24,6 +24,7 @@ from .ceed_vector import Vector
 from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1
 from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
+from .ceed_qfunctioncontext import QFunctionContext
 from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
 
@@ -339,6 +340,14 @@ class Ceed():
              qfunction: Ceed Identity QFunction"""
 
         return IdentityQFunction(self, size, inmode, outmode)
+
+    def QFunctionContext(self):
+        """Ceed QFunction Context: stores Ceed QFunction user context data.
+
+           Returns:
+             userContext: Ceed QFunction Context"""
+
+        return QFunctionContext(self)
 
     # CeedOperator
     def Operator(self, qf, dqf=None, qdfT=None):

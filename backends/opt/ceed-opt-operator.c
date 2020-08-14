@@ -137,10 +137,10 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   Ceed_Opt *ceedimpl;
-  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceedimpl); CeedChk(ierr);
   const CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields;
@@ -453,10 +453,10 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector invec,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   Ceed_Opt *ceedimpl;
-  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceedimpl); CeedChk(ierr);
   CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields, numelements;
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -537,10 +537,10 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   Ceed_Opt *ceedimpl;
-  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceedimpl); CeedChk(ierr);
   const CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedInt Q, numinputfields, numoutputfields, numelements, size;
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -709,7 +709,7 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
 static int CeedOperatorDestroy_Opt(CeedOperator op) {
   int ierr;
   CeedOperator_Opt *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
 
   for (CeedInt i=0; i<impl->numein+impl->numeout; i++) {
     ierr = CeedElemRestrictionDestroy(&impl->blkrestr[i]); CeedChk(ierr);
@@ -746,12 +746,12 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   Ceed_Opt *ceedimpl;
-  ierr = CeedGetData(ceed, (void *)&ceedimpl); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceedimpl); CeedChk(ierr);
   CeedInt blksize = ceedimpl->blksize;
   CeedOperator_Opt *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, impl); CeedChk(ierr);
 
   if (blksize != 1 && blksize != 8)
     // LCOV_EXCL_START

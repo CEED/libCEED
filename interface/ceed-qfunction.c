@@ -45,6 +45,12 @@ static struct {
 static size_t num_qfunctions;
 /// @endcond
 
+/// ----------------------------------------------------------------------------
+/// CeedQFunction Library Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedQFunctionDeveloper
+/// @{
+
 /**
   @brief Register a gallery QFunction
 
@@ -137,6 +143,22 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
   return 0;
 }
 
+
+/**
+  @brief Set flag to determine if Fortran interface is used
+
+  @param qf                  CeedQFunction
+  @param status              Boolean value to set as Fortran status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status) {
+  qf->fortranstatus = status;
+  return 0;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -155,7 +177,6 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
 
   @ref Backend
 **/
-
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
   *ceed = qf->ceed;
   return 0;
@@ -171,7 +192,6 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 
   @ref Backend
 **/
-
 int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
   *vlength = qf->vlength;
   return 0;
@@ -188,7 +208,6 @@ int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
 
   @ref Backend
 **/
-
 int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
                             CeedInt *numoutput) {
   if (numinput) *numinput = qf->numinputfields;
@@ -206,7 +225,6 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 
   @ref Backend
 **/
-
 int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
   *source = (char *) qf->sourcepath;
   return 0;
@@ -222,85 +240,54 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
 
   @ref Backend
 **/
-
 int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
   *f = qf->function;
   return 0;
 }
 
 /**
-  @brief Get global context size for a CeedQFunction
+  @brief Get global context for a CeedQFunction.
+         Note: For QFunctions from the Fortran interface, this
+               function will return the Fortran context
+               CeedQFunctionContext.
 
   @param qf              CeedQFunction
-  @param[out] ctxsize    Variable to store size of context data values
+  @param[out] ctx        Variable to store CeedQFunctionContext
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-
-int CeedQFunctionGetContextSize(CeedQFunction qf, size_t *ctxsize) {
-  if (qf->fortranstatus) {
-    fContext *fctx = qf->ctx;
-    *ctxsize = fctx->innerctxsize;
-  } else {
-    *ctxsize = qf->ctxsize;
-  }
-  return 0;
-}
-
-/**
-  @brief Get global context for a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data values
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedQFunctionGetContext(CeedQFunction qf, void **ctx) {
+int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   *ctx = qf->ctx;
   return 0;
 }
 
 /**
   @brief Get true user context for a CeedQFunction
+         Note: For all QFunctions this function will return the user
+               CeedQFunctionContext and not interface context
+               CeedQFunctionContext, if any such object exists.
 
   @param qf              CeedQFunction
-  @param[out] ctx        Variable to store context data values
+  @param[out] ctx        Variable to store CeedQFunctionContext
 
   @return An error code: 0 - success, otherwise - failure
-
   @ref Backend
 **/
-
-int CeedQFunctionGetInnerContext(CeedQFunction qf, void **ctx) {
+int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
+  int ierr;
   if (qf->fortranstatus) {
-    fContext *fctx = qf->ctx;
+    CeedFortranContext fctx = NULL;
+    ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fctx);
+    CeedChk(ierr);
     *ctx = fctx->innerctx;
+    ierr = CeedQFunctionContextRestoreData(qf->ctx, (void *)&fctx); CeedChk(ierr);
   } else {
     *ctx = qf->ctx;
   }
 
 
-  return 0;
-}
-
-/**
-  @brief Determine if Fortran interface was used
-
-  @param qf                  CeedQFunction
-  @param[out] isfortran      Variable to store Fortran status
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedQFunctionIsFortran(CeedQFunction qf, bool *isfortran) {
-  *isfortran = qf->fortranstatus;
   return 0;
 }
 
@@ -314,7 +301,6 @@ int CeedQFunctionIsFortran(CeedQFunction qf, bool *isfortran) {
 
   @ref Backend
 **/
-
 int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
   *isidentity = qf->identity;
   return 0;
@@ -330,9 +316,8 @@ int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
 
   @ref Backend
 **/
-
-int CeedQFunctionGetData(CeedQFunction qf, void **data) {
-  *data = qf->data;
+int CeedQFunctionGetData(CeedQFunction qf, void *data) {
+  *(void **)data = qf->data;
   return 0;
 }
 
@@ -346,9 +331,8 @@ int CeedQFunctionGetData(CeedQFunction qf, void **data) {
 
   @ref Backend
 **/
-
-int CeedQFunctionSetData(CeedQFunction qf, void **data) {
-  qf->data = *data;
+int CeedQFunctionSetData(CeedQFunction qf, void *data) {
+  qf->data = data;
   return 0;
 }
 
@@ -363,7 +347,6 @@ int CeedQFunctionSetData(CeedQFunction qf, void **data) {
 
   @ref Backend
 **/
-
 int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
                            CeedQFunctionField **outputfields) {
   if (inputfields)
@@ -383,7 +366,6 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
 
   @ref Backend
 **/
-
 int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
   *fieldname = (char *)qffield->fieldname;
   return 0;
@@ -399,7 +381,6 @@ int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
 
   @ref Backend
 **/
-
 int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
   *size = qffield->size;
   return 0;
@@ -415,7 +396,6 @@ int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
 
   @ref Backend
 **/
-
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
                                   CeedEvalMode *emode) {
   *emode = qffield->emode;
@@ -575,11 +555,16 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   ierr = CeedQFunctionAddOutput(*qf, "output", size, outmode); CeedChk(ierr);
 
   (*qf)->identity = 1;
-  CeedInt *ctx;
-  ierr = CeedCalloc(1, &ctx); CeedChk(ierr);
-  ctx[0] = size;
-  ierr = CeedQFunctionSetContext(*qf, ctx, sizeof(*ctx)); CeedChk(ierr);
-  (*qf)->ctx_allocated = (*qf)->ctx;
+  CeedInt *sizeData;
+  ierr = CeedCalloc(1, &sizeData); CeedChk(ierr);
+  sizeData[0] = size;
+  CeedQFunctionContext ctx;
+  ierr = CeedQFunctionContextCreate(ceed, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*sizeData), (void *)sizeData);
+  CeedChk(ierr);
+  ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
 
   return 0;
 }
@@ -642,15 +627,14 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 
   @param qf       CeedQFunction
   @param ctx      Context data to set
-  @param ctxsize  Size of context data values
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedQFunctionSetContext(CeedQFunction qf, void *ctx, size_t ctxsize) {
+int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   qf->ctx = ctx;
-  qf->ctxsize = ctxsize;
+  ctx->refcount++;
   return 0;
 }
 
@@ -742,8 +726,9 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   }
   ierr = CeedFree(&(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->outputfields); CeedChk(ierr);
-  // Free ctx if owned by QFunction
-  ierr = CeedFree(&(*qf)->ctx_allocated); CeedChk(ierr);
+
+  // User context data object
+  ierr = CeedQFunctionContextDestroy(&(*qf)->ctx); CeedChk(ierr);
 
   ierr = CeedFree(&(*qf)->sourcepath); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->qfname); CeedChk(ierr);

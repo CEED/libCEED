@@ -113,6 +113,14 @@ typedef struct {
 } CeedQFunction_Cuda;
 
 typedef struct {
+  CeedScalar *h_data;
+  CeedScalar *h_data_allocated;
+  CeedScalar *d_data;
+  CeedScalar *d_data_allocated;
+  CeedCudaSyncState memState;
+} CeedQFunctionContext_Cuda;
+
+typedef struct {
   CUmodule module;
   CUfunction interp;
   CUfunction grad;
@@ -233,6 +241,8 @@ CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
                                        const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
+
+CEED_INTERN int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
 

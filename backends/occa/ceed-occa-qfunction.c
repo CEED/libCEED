@@ -41,9 +41,9 @@ static int CeedQFunctionBuildKernel(CeedQFunction qf, const CeedInt Q) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   Ceed_Occa *ceed_data;
-  ierr = CeedGetData(ceed, (void *)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   const bool ocl = ceed_data->ocl;
   assert(ceed_data);
   const occaDevice dev = ceed_data->device;
@@ -84,15 +84,19 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedDebug("[CeedQFunction][Apply]");
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   const bool from_operator_apply = data->op;
   //Ceed_Occa *ceed_data = qf->ceed->data;
   //const occaDevice device = ceed_data->device;
   const CeedInt bytes = sizeof(CeedScalar);
   const CeedInt ready =  data->ready;
-  size_t cbytes;
+  size_t cbytes = 0;
   CeedInt vlength;
-  ierr = CeedQFunctionGetContextSize(qf, &cbytes); CeedChk(ierr);
+  CeedQFunctionContext ctx = NULL;
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionContextGetContextSize(ctx, &cbytes); CeedChk(ierr);
+  }
   ierr = CeedQFunctionGetVectorLength(qf, &vlength); CeedChk(ierr);
   assert((Q%vlength)==0); // Q must be a multiple of vlength
   const CeedInt nelem = 1; // !?
@@ -133,10 +137,11 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
   }
 
   // ***************************************************************************
-  void *ctx;
+  void *ctx_data;
   if (cbytes>0) {
-    ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
-    occaCopyPtrToMem(d_ctx,ctx,cbytes,0,NO_PROPS);
+    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctx_data);
+    CeedChk(ierr);
+    occaCopyPtrToMem(d_ctx,ctx_data,cbytes,0,NO_PROPS);
   }
 
   // ***************************************************************************
@@ -148,7 +153,8 @@ static int CeedQFunctionApply_Occa(CeedQFunction qf, CeedInt Q,
 
   // ***************************************************************************
   if (cbytes>0) {
-    occaCopyMemToPtr(ctx,d_ctx,cbytes,0,NO_PROPS);
+    occaCopyMemToPtr(ctx_data,d_ctx,cbytes,0,NO_PROPS);
+    ierr = CeedQFunctionContextRestoreData(ctx, &ctx_data); CeedChk(ierr);
   }
 
   // ***************************************************************************
@@ -205,7 +211,7 @@ static int CeedQFunctionDestroy_Occa(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
   CeedQFunction_Occa *data;
-  ierr = CeedQFunctionGetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   const bool operator_setup = data->op;
   free(data->oklPath);
   CeedDebug("[CeedQFunction][Destroy]");
@@ -243,7 +249,7 @@ int CeedQFunctionCreate_Occa(CeedQFunction qf) {
   data->nc = data->dim = 1;
   data->nelem = data->elemsize = 1;
   data->e = 0;
-  ierr = CeedQFunctionSetData(qf, (void *)&data); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
   // Locate last ':' character in qf->source ************************************
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);

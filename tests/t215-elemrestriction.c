@@ -25,6 +25,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&r);
   // LCOV_EXCL_START
   CeedDestroy(&ceed);
-  // LCOV_EXCL_STOP
   return 0;
+  // LCOV_EXCL_STOP
 }

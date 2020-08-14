@@ -314,11 +314,16 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   CeedQFunction qfRestrict;
   ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfRestrict);
   CeedChk(ierr);
-  CeedInt *ctxR;
-  ierr = CeedCalloc(1, &ctxR); CeedChk(ierr);
-  ctxR[0] = ncomp;
-  ierr = CeedQFunctionSetContext(qfRestrict, ctxR, sizeof(*ctxR)); CeedChk(ierr);
-  qfRestrict->ctx_allocated = qfRestrict->ctx;
+  CeedInt *ncompRData;
+  ierr = CeedCalloc(1, &ncompRData); CeedChk(ierr);
+  ncompRData[0] = ncomp;
+  CeedQFunctionContext ctxR;
+  ierr = CeedQFunctionContextCreate(ceed, &ctxR); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctxR, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*ncompRData), ncompRData);
+  CeedChk(ierr);
+  ierr = CeedQFunctionSetContext(qfRestrict, ctxR); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctxR); CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfRestrict, "input", ncomp, CEED_EVAL_NONE);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfRestrict, "scale", ncomp, CEED_EVAL_NONE);
@@ -342,11 +347,16 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   CeedQFunction qfProlong;
   ierr = CeedQFunctionCreateInteriorByName(ceed, "Scale", &qfProlong);
   CeedChk(ierr);
-  CeedInt *ctxP;
-  ierr = CeedCalloc(1, &ctxP); CeedChk(ierr);
-  ctxP[0] = ncomp;
-  ierr = CeedQFunctionSetContext(qfProlong, ctxP, sizeof(*ctxP)); CeedChk(ierr);
-  qfProlong->ctx_allocated = qfProlong->ctx;
+  CeedInt *ncompPData;
+  ierr = CeedCalloc(1, &ncompPData); CeedChk(ierr);
+  ncompPData[0] = ncomp;
+  CeedQFunctionContext ctxP;
+  ierr = CeedQFunctionContextCreate(ceed, &ctxP); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctxP, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*ncompPData), ncompPData);
+  CeedChk(ierr);
+  ierr = CeedQFunctionSetContext(qfProlong, ctxP); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctxP); CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfProlong, "input", ncomp, CEED_EVAL_INTERP);
   CeedChk(ierr);
   ierr = CeedQFunctionAddInput(qfProlong, "scale", ncomp, CEED_EVAL_NONE);
@@ -568,8 +578,8 @@ int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   @ref Backend
 **/
 
-int CeedOperatorGetData(CeedOperator op, void **data) {
-  *data = op->data;
+int CeedOperatorGetData(CeedOperator op, void *data) {
+  *(void **)data = op->data;
   return 0;
 }
 
@@ -584,8 +594,8 @@ int CeedOperatorGetData(CeedOperator op, void **data) {
   @ref Backend
 **/
 
-int CeedOperatorSetData(CeedOperator op, void **data) {
-  op->data = *data;
+int CeedOperatorSetData(CeedOperator op, void *data) {
+  op->data = data;
   return 0;
 }
 

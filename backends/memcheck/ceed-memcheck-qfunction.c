@@ -23,10 +23,15 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
                                        CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Memcheck *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &impl); CeedChk(ierr);
 
-  void *ctx;
+  CeedQFunctionContext ctx;
   ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+  void *ctxData = NULL;
+  if (ctx) {
+    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxData);
+    CeedChk(ierr);
+  }
 
   CeedQFunctionUser f = NULL;
   ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChk(ierr);
@@ -46,13 +51,16 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
   }
 
-  ierr = f(ctx, Q, impl->inputs, impl->outputs); CeedChk(ierr);
+  ierr = f(ctxData, Q, impl->inputs, impl->outputs); CeedChk(ierr);
 
   for (int i = 0; i<nIn; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChk(ierr);
   }
   for (int i = 0; i<nOut; i++) {
     ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChk(ierr);
+  }
+  if (ctx) {
+    ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChk(ierr);
   }
 
   return 0;
@@ -85,7 +93,7 @@ int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
   ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionSetData(qf, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Memcheck); CeedChk(ierr);

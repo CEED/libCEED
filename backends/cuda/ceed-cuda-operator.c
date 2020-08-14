@@ -24,7 +24,7 @@
 static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   int ierr;
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
 
   // Apply data
   for (CeedInt i = 0; i < impl->numein + impl->numeout; i++) {
@@ -186,7 +186,7 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields;
@@ -382,7 +382,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
                                      CeedVector outvec, CeedRequest *request) {
   int ierr;
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, elemsize, numinputfields, numoutputfields, size;
@@ -515,7 +515,7 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int ierr;
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields, size;
@@ -961,7 +961,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
 
   // Operator data struct
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
   ierr = CeedCalloc(1, &impl->diag); CeedChk(ierr);
   CeedOperatorDiag_Cuda *diag = impl->diag;
   diag->basisin = basisin;
@@ -1057,7 +1057,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda *impl;
-  ierr = CeedOperatorGetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &impl); CeedChk(ierr);
 
   // Assemble QFunction
   CeedVector assembledqf;
@@ -1203,7 +1203,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   CeedOperator_Cuda *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedOperatorSetData(op, (void *)&impl); CeedChk(ierr);
+  ierr = CeedOperatorSetData(op, impl); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Cuda);
