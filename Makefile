@@ -16,6 +16,8 @@
 
 CONFIG ?= config.mk
 -include $(CONFIG)
+COMMON ?= common.mk
+-include $(COMMON)
 
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
@@ -215,22 +217,8 @@ hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
 
-# Output using the 216-color rules mode
-rule_file = $(notdir $(1))
-rule_path = $(patsubst %/,%,$(dir $(1)))
-last_path = $(notdir $(patsubst %/,%,$(dir $(1))))
-ansicolor = $(shell echo $(call last_path,$(1)) | cksum | cut -b1-2 | xargs -IS expr 2 \* S + 17)
-emacs_out = @printf "  %10s %s/%s\n" $(1) $(call rule_path,$(2)) $(call rule_file,$(2))
-color_out = @if [ -t 1 ]; then \
-				printf "  %10s \033[38;5;%d;1m%s\033[m/%s\n" \
-					$(1) $(call ansicolor,$(2)) \
-					$(call rule_path,$(2)) $(call rule_file,$(2)); else \
-				printf "  %10s %s\n" $(1) $(2); fi
-# if TERM=dumb, use it, otherwise switch to the term one
-output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
-
-# if V is set to non-nil, turn the verbose mode
-quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
+# Quiet, color output
+quiet ?= $($(1))
 
 # Cancel built-in and old-fashioned implicit rules which we don't use
 .SUFFIXES:
@@ -438,7 +426,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
-	$(NVCC) $(filter-out -Wno-unused-function, $(CPPFLAGS)) $(NVCCFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,NVCC) $(filter-out -Wno-unused-function, $(CPPFLAGS)) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)

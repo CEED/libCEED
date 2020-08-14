@@ -35,8 +35,8 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   ierr = CeedSetDelegate(ceed, ceedreg); CeedChk(ierr);
 
   Ceed_Cuda_shared *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedSetData(ceed,(void *)&data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",

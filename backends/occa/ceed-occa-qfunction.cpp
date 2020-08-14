@@ -24,7 +24,7 @@ namespace ceed {
   namespace occa {
     QFunction::QFunction(const std::string &source) :
         ceedIsIdentity(false),
-        qFunctionContext(::occa::null) {
+        qFunctionContextData(::occa::null) {
 
       const size_t colonIndex = source.find(':');
       filename = source.substr(0, colonIndex);
@@ -39,16 +39,13 @@ namespace ceed {
       int ierr;
       QFunction *qFunction;
 
-      ierr = CeedQFunctionGetData(qf, (void**) &qFunction);
+      ierr = CeedQFunctionGetData(qf, &qFunction);
       CeedOccaFromChk(ierr);
 
       ierr = CeedQFunctionGetCeed(qf, &qFunction->ceed);
       CeedOccaFromChk(ierr);
 
-      ierr = CeedQFunctionGetContextSize(qf, &qFunction->ceedContextSize);
-      CeedOccaFromChk(ierr);
-
-      ierr = CeedQFunctionGetInnerContext(qf, &qFunction->ceedContext);
+      ierr = CeedQFunctionGetInnerContext(qf, &qFunction->qFunctionContext);
       CeedOccaFromChk(ierr);
 
       ierr = CeedQFunctionIsIdentity(qf, &qFunction->ceedIsIdentity);
@@ -183,26 +180,28 @@ namespace ceed {
       return ss.str();
     }
 
-    ::occa::memory QFunction::getContext() {
-      syncContext();
-      return qFunctionContext;
+    int QFunction::getContextData() {
+      if (qFunctionContext) {
+        int ierr;
+        ierr = CeedQFunctionContextGetData(qFunctionContext, CEED_MEM_DEVICE,
+                                           &qFunctionContextData);
+        CeedOccaFromChk(ierr);
+      }
+      return 0;
     }
 
-    void QFunction::syncContext() {
-      if (!ceedContextSize) {
-        return;
+    int QFunction::restoreContextData() {
+      if (qFunctionContext) {
+        int ierr;
+        ierr = CeedQFunctionContextRestoreData(qFunctionContext, &qFunctionContextData);
+        CeedOccaFromChk(ierr);
       }
-
-      if (!qFunctionContext.isInitialized() || qFunctionContext.size() != ceedContextSize) {
-        qFunctionContext = getDevice().malloc(ceedContextSize);
-      }
-      qFunctionContext.copyFrom(ceedContext);
+      return 0;
     }
 
     int QFunction::apply(CeedInt Q, CeedVector *U, CeedVector *V) {
       int ierr;
       ierr = buildKernel(Q); CeedChk(ierr);
-      syncContext();
 
       std::vector<CeedScalar*> outputArgs;
 
@@ -224,9 +223,11 @@ namespace ceed {
         qFunctionKernel.pushArg(v->getKernelArg());
       }
 
-      qFunctionKernel.pushArg(qFunctionContext);
+      getContextData();
+      qFunctionKernel.pushArg(qFunctionContextData);
 
       qFunctionKernel.run();
+      restoreContextData();
 
       return 0;
     }
@@ -242,12 +243,12 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
       Context *context;
-      ierr = CeedGetData(ceed, (void**) &context); CeedChk(ierr);
+      ierr = CeedGetData(ceed, &context); CeedChk(ierr);
       char *source;
       ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
 
       QFunction *qFunction = new QFunction(source);
-      ierr = CeedQFunctionSetData(qf, (void**) &qFunction); CeedChk(ierr);
+      ierr = CeedQFunctionSetData(qf, &qFunction); CeedChk(ierr);
 
       CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
       CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);

@@ -707,12 +707,16 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
 static PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
     CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
-    CeedElemRestriction restrictq, SetupContext ctxSetup, CeedScalar time) {
+    CeedElemRestriction restrictq, CeedQFunctionContext ctxSetup, CeedScalar time) {
   PetscErrorCode ierr;
   CeedVector multlvec;
   Vec Multiplicity, MultiplicityLoc;
 
-  ctxSetup->time = time;
+  SetupContext ctxSetupData;
+  CeedQFunctionContextGetData(ctxSetup, CEED_MEM_HOST, (void **)&ctxSetupData);
+  ctxSetupData->time = time;
+  CeedQFunctionContextRestoreData(ctxSetup, (void **)&ctxSetupData);
+
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
   ierr = VectorPlacePetscVec(q0ceed, Qloc); CHKERRQ(ierr);
   CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
@@ -790,7 +794,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 }
 
 static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                              SimpleBC bc, void *ctxSetup) {
+                              SimpleBC bc, void *ctxSetupData) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -808,15 +812,15 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
-                           bc->slips[0], ctxSetup); CHKERRQ(ierr);
+                           bc->slips[0], ctxSetupData); CHKERRQ(ierr);
       comps[0] = 2;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
-                           bc->slips[1], ctxSetup); CHKERRQ(ierr);
+                           bc->slips[1], ctxSetupData); CHKERRQ(ierr);
       comps[0] = 3;
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
                            1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
-                           bc->slips[2], ctxSetup); CHKERRQ(ierr);
+                           bc->slips[2], ctxSetupData); CHKERRQ(ierr);
     }
     if (bc->userbc == PETSC_TRUE) {
       for (PetscInt c = 0; c < 3; c++) {
@@ -839,12 +843,12 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         PetscInt comps[1] = {4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else if (problem->bc == Exact_DC) {
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
@@ -893,6 +897,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
+  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
@@ -1189,7 +1194,7 @@ int main(int argc, char **argv) {
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
   // Set up the libCEED context
-  struct SetupContext_ ctxSetup = {
+  struct SetupContext_ ctxSetupData = {
     .theta0 = theta0,
     .thetaC = thetaC,
     .P0 = P0,
@@ -1241,7 +1246,7 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetup); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData); CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -1261,7 +1266,7 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetup);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData);
       CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
@@ -1511,32 +1516,44 @@ int main(int argc, char **argv) {
                                    NqptsSur, basisxSur, basisqSur,
                                    &user->op_ifunction); CHKERRQ(ierr);
   // Set up contex for QFunctions
-  CeedQFunctionSetContext(qf_ics, &ctxSetup, sizeof ctxSetup);
-  CeedScalar ctxNS[8] = {lambda, mu, k, cv, cp, g, Rd};
-  struct Advection2dContext_ ctxAdvection2d = {
+  CeedQFunctionContextCreate(ceed, &ctxSetup);
+  CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxSetupData, &ctxSetupData);
+  CeedQFunctionSetContext(qf_ics, ctxSetup);
+
+  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
+  CeedQFunctionContextCreate(ceed, &ctxNS);
+  CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxNSData, &ctxNSData);
+
+  struct Advection2dContext_ ctxAdvection2dData = {
     .CtauS = CtauS,
     .strong_form = strong_form,
     .stabilization = stab,
   };
-  struct SurfaceContext_ ctxSurface = {
+  CeedQFunctionContextCreate(ceed, &ctxAdvection2d);
+  CeedQFunctionContextSetData(ctxAdvection2d, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxAdvection2dData, &ctxAdvection2dData);
+
+  struct SurfaceContext_ ctxSurfaceData = {
     .E_wind = E_wind,
     .strong_form = strong_form,
     .implicit = implicit,
   };
+  CeedQFunctionContextCreate(ceed, &ctxSurface);
+  CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxSurfaceData, &ctxSurfaceData);
+
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxNS, sizeof ctxNS);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxNS,
-          sizeof ctxNS);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
     break;
   case NS_ADVECTION:
   case NS_ADVECTION2D:
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, &ctxAdvection2d,
-                                             sizeof ctxAdvection2d);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, &ctxAdvection2d,
-          sizeof ctxAdvection2d);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, &ctxSurface,
-          sizeof ctxSurface);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
   }
 
   // Set up PETSc context
@@ -1577,7 +1594,7 @@ int main(int argc, char **argv) {
                                  user->M); CHKERRQ(ierr);
 
   ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
-                             &ctxSetup, 0.0); CHKERRQ(ierr);
+                             ctxSetup, 0.0); CHKERRQ(ierr);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -1683,7 +1700,7 @@ int main(int argc, char **argv) {
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
     ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                               restrictq, &ctxSetup, ftime); CHKERRQ(ierr);
+                               restrictq, ctxSetup, ftime); CHKERRQ(ierr);
 
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
@@ -1749,6 +1766,10 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_ics);
   CeedQFunctionDestroy(&qf_rhsVol);
   CeedQFunctionDestroy(&qf_ifunctionVol);
+  CeedQFunctionContextDestroy(&ctxSetup);
+  CeedQFunctionContextDestroy(&ctxNS);
+  CeedQFunctionContextDestroy(&ctxAdvection2d);
+  CeedQFunctionContextDestroy(&ctxSurface);
   CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);

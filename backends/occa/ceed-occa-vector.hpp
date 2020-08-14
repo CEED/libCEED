@@ -36,13 +36,6 @@ namespace ceed {
       return (TM*) memory.getModeMemory();
     }
 
-    namespace SyncState {
-      static const int none   = 0;
-      static const int host   = (1 << 0);
-      static const int device = (1 << 1);
-      static const int all    = host | device;
-    }
-
     class Vector : public CeedObject {
      public:
       // Owned resources

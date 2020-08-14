@@ -104,6 +104,14 @@ typedef struct {
 } CeedQFunction_Hip;
 
 typedef struct {
+  CeedScalar *h_data;
+  CeedScalar *h_data_allocated;
+  CeedScalar *d_data;
+  CeedScalar *d_data_allocated;
+  CeedHipSyncState memState;
+} CeedQFunctionContext_Hip;
+
+typedef struct {
   hipModule_t module;
   hipFunction_t interp;
   hipFunction_t grad;
@@ -191,6 +199,8 @@ CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology, CeedInt, CeedInt,
                                       const CeedScalar *, CeedBasis);
 
 CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
+
+CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 

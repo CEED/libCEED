@@ -22,6 +22,7 @@
 #include "ceed-occa-elem-restriction.hpp"
 #include "ceed-occa-operator.hpp"
 #include "ceed-occa-qfunction.hpp"
+#include "ceed-occa-qfunctioncontext.hpp"
 #include "ceed-occa-simplex-basis.hpp"
 #include "ceed-occa-tensor-basis.hpp"
 #include "ceed-occa-types.hpp"
@@ -307,6 +308,7 @@ namespace ceed {
       CeedOccaRegisterBaseFunction("ElemRestrictionCreate", ceed::occa::ElemRestriction::ceedCreate);
       CeedOccaRegisterBaseFunction("ElemRestrictionCreateBlocked", ceed::occa::ElemRestriction::ceedCreateBlocked);
       CeedOccaRegisterBaseFunction("QFunctionCreate", ceed::occa::QFunction::ceedCreate);
+      CeedOccaRegisterBaseFunction("QFunctionContextCreate", ceed::occa::QFunctionContext::ceedCreate);
       CeedOccaRegisterBaseFunction("OperatorCreate", ceed::occa::Operator::ceedCreate);
       CeedOccaRegisterBaseFunction("CompositeOperatorCreate", ceed::occa::Operator::ceedCreateComposite);
 

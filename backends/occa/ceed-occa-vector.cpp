@@ -39,7 +39,7 @@ namespace ceed {
       int ierr;
 
       Vector *vector = NULL;
-      ierr = CeedVectorGetData(vec, (void**) &vector); CeedOccaFromChk(ierr);
+      ierr = CeedVectorGetData(vec, &vector); CeedOccaFromChk(ierr);
 
       if (vector != NULL) {
         ierr = CeedVectorGetCeed(vec, &vector->ceed); CeedOccaFromChk(ierr);
@@ -344,7 +344,7 @@ namespace ceed {
       CeedOccaRegisterFunction(vec, "Destroy", Vector::ceedDestroy);
 
       Vector *vector = new Vector();
-      ierr = CeedVectorSetData(vec, (void**) &vector); CeedChk(ierr);
+      ierr = CeedVectorSetData(vec, &vector); CeedChk(ierr);
 
       return 0;
     }

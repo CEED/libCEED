@@ -36,7 +36,7 @@ namespace ceed {
       int ierr;
       Basis *basis_;
 
-      ierr = CeedBasisGetData(basis, (void**) &basis_); CeedOccaFromChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_); CeedOccaFromChk(ierr);
       if (!basis_) {
         return NULL;
       }

@@ -41,6 +41,9 @@ namespace ceed {
       ::occa::kernel applyAddKernel;
       bool needsInitialSetup;
 
+      // Reference to other memory
+      ::occa::memory qFunctionContextData;
+
       Operator();
       virtual ~Operator();
 
@@ -48,7 +51,8 @@ namespace ceed {
 
       bool isApplyingIdentityFunction();
 
-      ::occa::memory getQFunctionContext();
+      int getQFunctionContextData();
+      int restoreQFunctionContextData();
 
       int applyAdd(Vector *in, Vector *out, CeedRequest *request);
 

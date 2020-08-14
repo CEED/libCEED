@@ -566,8 +566,8 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
 
   @ref Backend
 **/
-int CeedGetData(Ceed ceed, void **data) {
-  *data = ceed->data;
+int CeedGetData(Ceed ceed, void *data) {
+  *(void **)data = ceed->data;
   return 0;
 }
 
@@ -581,8 +581,8 @@ int CeedGetData(Ceed ceed, void **data) {
 
   @ref Backend
 **/
-int CeedSetData(Ceed ceed, void **data) {
-  ceed->data = *data;
+int CeedSetData(Ceed ceed, void *data) {
+  ceed->data = data;
   return 0;
 }
 
@@ -658,6 +658,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
     CEED_FTABLE_ENTRY(Ceed, TensorContractCreate),
     CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
+    CEED_FTABLE_ENTRY(Ceed, QFunctionContextCreate),
     CEED_FTABLE_ENTRY(Ceed, OperatorCreate),
     CEED_FTABLE_ENTRY(Ceed, CompositeOperatorCreate),
     CEED_FTABLE_ENTRY(CeedVector, SetArray),
@@ -680,6 +681,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedTensorContract, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunction, Apply),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, SetData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, GetData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddDiagonal),

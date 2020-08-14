@@ -25,7 +25,8 @@
 // Setup context data for Jacobian evaluation
 PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
                                 Vec Vloc, CeedData ceedData, Ceed ceed,
-                                Physics phys, Physics physSmoother,
+                                CeedQFunctionContext ctxPhys,
+                                CeedQFunctionContext ctxPhysSmoother,
                                 UserMult jacobianCtx) {
   PetscErrorCode ierr;
 
@@ -49,8 +50,8 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx appCtx, DM dm, Vec V,
   jacobianCtx->ceed = ceed;
 
   // Physics
-  jacobianCtx->phys = phys;
-  jacobianCtx->physSmoother = physSmoother;
+  jacobianCtx->ctxPhys = ctxPhys;
+  jacobianCtx->ctxPhysSmoother = ctxPhysSmoother;
 
   // Get/Restore Array
   jacobianCtx->memType = appCtx->memTypeRequested;

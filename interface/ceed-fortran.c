@@ -633,6 +633,85 @@ void fCeedLobattoQuadrature(int *Q, CeedScalar *qref1d, CeedScalar *qweight1d,
 }
 
 // -----------------------------------------------------------------------------
+// CeedQFunctionContext
+// -----------------------------------------------------------------------------
+static CeedQFunctionContext *CeedQFunctionContext_dict = NULL;
+static int CeedQFunctionContext_count = 0;
+static int CeedQFunctionContext_n = 0;
+static int CeedQFunctionContext_count_max = 0;
+
+#define fCeedQFunctionContextCreate \
+    FORTRAN_NAME(ceedqfunctioncontextcreate,CEEDQFUNCTIONCONTEXTCREATE)
+void fCeedQFunctionContextCreate(int *ceed, int *ctx, int *err) {
+  if (CeedQFunctionContext_count == CeedQFunctionContext_count_max) {
+    CeedQFunctionContext_count_max += CeedQFunctionContext_count_max/2 + 1;
+    CeedRealloc(CeedQFunctionContext_count_max, &CeedQFunctionContext_dict);
+  }
+
+  CeedQFunctionContext *ctx_ =
+    &CeedQFunctionContext_dict[CeedQFunctionContext_count];
+
+  *err = CeedQFunctionContextCreate(Ceed_dict[*ceed], ctx_);
+  if (*err) return;
+  *ctx = CeedQFunctionContext_count++;
+  CeedQFunctionContext_n++;
+}
+
+#define fCeedQFunctionContextSetData \
+    FORTRAN_NAME(ceedqfunctioncontextsetdata,CEEDQFUNCTIONCONTEXTSETDATA)
+void fCeedQFunctionContextSetData(int *ctx, int *memtype, int *copymode,
+                                  CeedInt *n,
+                                  CeedScalar *data, int64_t *offset, int *err) {
+  size_t ctxsize = ((size_t) *n)*sizeof(CeedScalar);
+  *err = CeedQFunctionContextSetData(CeedQFunctionContext_dict[*ctx],
+                                     (CeedMemType)*memtype,
+                                     (CeedCopyMode)*copymode, ctxsize,
+                                     data + *offset);
+}
+
+#define fCeedQFunctionContextGetData \
+    FORTRAN_NAME(ceedqfunctioncontextgetdata,CEEDQFUNCTIONCONTEXTGETDATA)
+void fCeedQFunctionContextGetData(int *ctx, int *memtype, CeedScalar *data,
+                                  int64_t *offset, int *err) {
+  CeedScalar *b;
+  CeedQFunctionContext ctx_ = CeedQFunctionContext_dict[*ctx];
+  *err = CeedQFunctionContextGetData(ctx_, (CeedMemType)*memtype, &b);
+  *offset = b - data;
+}
+
+#define fCeedQFunctionContextRestoreData \
+    FORTRAN_NAME(ceedqfunctioncontextrestoredata,CEEDQFUNCTIONCONTEXTRESTOREDATA)
+void fCeedQFunctionContextRestoreData(int *ctx, CeedScalar *data,
+                                      int64_t *offset, int *err) {
+  *err = CeedQFunctionContextRestoreData(CeedQFunctionContext_dict[*ctx],
+                                         (void **)&data);
+  *offset = 0;
+}
+
+#define fCeedQFunctionContextView \
+    FORTRAN_NAME(ceedqfunctioncontextview,CEEDQFUNCTIONCONTEXTVIEW)
+void fCeedQFunctionContextView(int *ctx, int *err) {
+  *err = CeedQFunctionContextView(CeedQFunctionContext_dict[*ctx], stdout);
+}
+
+#define fCeedQFunctionContextDestroy \
+    FORTRAN_NAME(ceedqfunctioncontextdestroy,CEEDQFUNCTIONCONTEXTDESTROY)
+void fCeedQFunctionContextDestroy(int *ctx, int *err) {
+  if (*ctx == FORTRAN_NULL) return;
+  *err = CeedQFunctionContextDestroy(&CeedQFunctionContext_dict[*ctx]);
+
+  if (*err == 0) {
+    *ctx = FORTRAN_NULL;
+    CeedQFunctionContext_n--;
+    if (CeedQFunctionContext_n == 0) {
+      CeedFree(&CeedQFunctionContext_dict);
+      CeedQFunctionContext_count = 0;
+      CeedQFunctionContext_count_max = 0;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 // CeedQFunction
 // -----------------------------------------------------------------------------
 static CeedQFunction *CeedQFunction_dict = NULL;
@@ -643,14 +722,29 @@ static int CeedQFunction_count_max = 0;
 static int CeedQFunctionFortranStub(void *ctx, int nq,
                                     const CeedScalar *const *u,
                                     CeedScalar *const *v) {
-  fContext *fctx = ctx;
+  CeedFortranContext fctx = ctx;
+  CeedQFunctionContext innerctx = fctx->innerctx;
   int ierr;
 
-  CeedScalar *ctx_ = (CeedScalar *) fctx->innerctx;
+  CeedScalar *ctx_ = NULL;
+  // Note: Device backends are generating their own kernels from
+  //         single source files, so only Host backends need to
+  //         use this Fortran stub.
+  if (innerctx) {
+    ierr = CeedQFunctionContextGetData(innerctx, CEED_MEM_HOST, &ctx_);
+    CeedChk(ierr);
+  }
+
   fctx->f((void *)ctx_,&nq,u[0],u[1],u[2],u[3],u[4],u[5],u[6],
           u[7],u[8],u[9],u[10],u[11],u[12],u[13],u[14],u[15],
           v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
           v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
+
+  if (innerctx) {
+    ierr = CeedQFunctionContextRestoreData(innerctx, (void *)&ctx_);
+    CeedChk(ierr);
+  }
+
   return ierr;
 }
 
@@ -691,14 +785,22 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vlength,
     CeedQFunction_n++;
   }
 
-  fContext *fctx;
-  *err = CeedMalloc(1, &fctx);
+  CeedFortranContext fctxdata;
+  *err = CeedCalloc(1, &fctxdata);
   if (*err) return;
-  fctx->f = f; fctx->innerctx = NULL; fctx->innerctxsize = 0;
+  fctxdata->f = f; fctxdata->innerctx = NULL;
+  CeedQFunctionContext fctx;
+  *err = CeedQFunctionContextCreate(Ceed_dict[*ceed], &fctx);
+  if (*err) return;
+  *err = CeedQFunctionContextSetData(fctx, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*fctxdata), fctxdata);
+  if (*err) return;
+  *err = CeedQFunctionSetContext(*qf_, fctx);
+  if (*err) return;
+  CeedQFunctionContextDestroy(&fctx);
+  if (*err) return;
 
-  *err = CeedQFunctionSetContext(*qf_, fctx, sizeof(fContext));
-
-  (*qf_)->fortranstatus = true;
+  *err = CeedQFunctionSetFortranStatus(*qf_, true);
 }
 
 #define fCeedQFunctionCreateInteriorByName \
@@ -764,12 +866,18 @@ void fCeedQFunctionAddOutput(int *qf, const char *fieldname,
 
 #define fCeedQFunctionSetContext \
     FORTRAN_NAME(ceedqfunctionsetcontext,CEEDQFUNCTIONSETCONTEXT)
-void fCeedQFunctionSetContext(int *qf, CeedScalar *ctx, CeedInt *n, int *err) {
+void fCeedQFunctionSetContext(int *qf, int *ctx, int *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
+  CeedQFunctionContext ctx_ = CeedQFunctionContext_dict[*ctx];
 
-  fContext *fctx = qf_->ctx;
-  fctx->innerctx = ctx;
-  fctx->innerctxsize = ((size_t) *n)*sizeof(CeedScalar);
+  CeedQFunctionContext fctx;
+  *err = CeedQFunctionGetContext(qf_, &fctx);
+  if (*err) return;
+  CeedFortranContext fctxdata;
+  *err = CeedQFunctionContextGetData(fctx, CEED_MEM_HOST, &fctxdata);
+  if (*err) return;
+  fctxdata->innerctx = ctx_;
+  *err = CeedQFunctionContextRestoreData(fctx, (void **)&fctxdata);
 }
 
 #define fCeedQFunctionView \
@@ -843,14 +951,6 @@ void fCeedQFunctionApply(int *qf, int *Q,
     FORTRAN_NAME(ceedqfunctiondestroy,CEEDQFUNCTIONDESTROY)
 void fCeedQFunctionDestroy(int *qf, int *err) {
   if (*qf == FORTRAN_NULL) return;
-  bool fstatus;
-  *err = CeedQFunctionIsFortran(CeedQFunction_dict[*qf], &fstatus);
-  if (*err) return;
-  if (fstatus) {
-    fContext *fctx = CeedQFunction_dict[*qf]->ctx;
-    *err = CeedFree(&fctx);
-    if (*err) return;
-  }
 
   *err = CeedQFunctionDestroy(&CeedQFunction_dict[*qf]);
   if (*err == 0) {
@@ -876,10 +976,10 @@ static int CeedOperator_count_max = 0;
     FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
 void fCeedOperatorCreate(int *ceed,
                          int *qf, int *dqf, int *dqfT, int *op, int *err) {
-  if (CeedOperator_count == CeedOperator_count_max)
-    CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-                              CeedOperator_dict = realloc(CeedOperator_dict,
-                                  sizeof(CeedOperator)*CeedOperator_count_max);
+  if (CeedOperator_count == CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+    CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  }
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
@@ -897,10 +997,10 @@ void fCeedOperatorCreate(int *ceed,
 #define fCeedCompositeOperatorCreate \
     FORTRAN_NAME(ceedcompositeoperatorcreate, CEEDCOMPOSITEOPERATORCREATE)
 void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
-  if (CeedOperator_count == CeedOperator_count_max)
-    CeedOperator_count_max += CeedOperator_count_max/2 + 1,
-                              CeedOperator_dict = realloc(CeedOperator_dict,
-                                  sizeof(CeedOperator)*CeedOperator_count_max);
+  if (CeedOperator_count == CeedOperator_count_max) {
+    CeedOperator_count_max += CeedOperator_count_max/2 + 1;
+    CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
+  }
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 

@@ -19,7 +19,7 @@
 static int CeedDestroy_Magma(Ceed ceed) {
   int ierr;
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   magma_queue_destroy( data->queue );
   ierr = CeedFree(&data); CeedChk(ierr);
   return 0;
@@ -46,7 +46,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   Ceed_Magma *data;
   ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
-  ierr = CeedSetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChk(ierr);
 
   // kernel selection
   data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;

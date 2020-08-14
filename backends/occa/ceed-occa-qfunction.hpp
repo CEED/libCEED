@@ -26,15 +26,14 @@ namespace ceed {
     class QFunction : public CeedObject {
      public:
       // Ceed object information
-      size_t ceedContextSize;
-      void *ceedContext;
       bool ceedIsIdentity;
 
       // Owned resources
       std::string filename;
       std::string qFunctionName;
       ::occa::kernel qFunctionKernel;
-      ::occa::memory qFunctionContext;
+      CeedQFunctionContext qFunctionContext;
+      ::occa::memory qFunctionContextData;
       QFunctionArgs args;
 
       QFunction(const std::string &source);
@@ -48,9 +47,8 @@ namespace ceed {
       std::string getKernelSource(const std::string &kernelName,
                                   const CeedInt Q);
 
-      ::occa::memory getContext();
-
-      void syncContext();
+      int getContextData();
+      int restoreContextData();
 
       int apply(CeedInt Q, CeedVector *U, CeedVector *V);
 

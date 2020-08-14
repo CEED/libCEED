@@ -14,6 +14,9 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+COMMON ?= ../../common.mk
+-include $(COMMON)
+
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
@@ -31,9 +34,12 @@ navierstokes := $(navierstokes.c:%.c=%)
 all: $(navierstokes)
 $(navierstokes): | $(PETSc.pc) $(ceed.pc)
 
+# Quiet, color output
+quiet ?= $($(1))
+
 # Rules for building the example
 %: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
+	$(call quiet,CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))

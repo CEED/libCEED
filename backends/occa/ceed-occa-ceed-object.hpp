@@ -39,6 +39,13 @@ namespace ceed {
       int ceedError(const std::string &message) const;
       static int staticCeedError(const std::string &message);
     };
+
+    namespace SyncState {
+      static const int none   = 0;
+      static const int host   = (1 << 0);
+      static const int device = (1 << 1);
+      static const int all    = host | device;
+    }
   }
 }
 

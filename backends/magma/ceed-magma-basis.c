@@ -31,7 +31,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   const CeedScalar *u;
   CeedScalar *v;
@@ -46,7 +46,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
 
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
 
   CeedInt P1d, Q1d;
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
@@ -213,7 +213,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   CeedInt dim, ncomp, ndof, nqpt;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -233,7 +233,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
 
   CeedBasisNonTensor_Magma *impl;
-  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
 
   CeedDebug("\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
             ncomp*ndof, ncomp);
@@ -329,7 +329,7 @@ CEED_INTERN "C"
 int CeedBasisDestroy_Magma(CeedBasis basis) {
   int ierr;
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
 
   ierr = magma_free(impl->dqref1d); CeedChk(ierr);
   ierr = magma_free(impl->dinterp1d); CeedChk(ierr);
@@ -347,7 +347,7 @@ CEED_INTERN "C"
 int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
   int ierr;
   CeedBasisNonTensor_Magma *impl;
-  ierr = CeedBasisGetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
 
   ierr = magma_free(impl->dqref); CeedChk(ierr);
   ierr = magma_free(impl->dinterp); CeedChk(ierr);
@@ -373,7 +373,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Magma); CeedChk(ierr);
@@ -381,7 +381,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                 CeedBasisDestroy_Magma); CeedChk(ierr);
 
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
 
   // Copy qref1d to the GPU
   ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
@@ -423,7 +423,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, (void *)&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApplyNonTensor_Magma); CeedChk(ierr);
@@ -431,7 +431,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
                                 CeedBasisDestroyNonTensor_Magma); CeedChk(ierr);
 
   ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, (void *)&impl); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
 
   // Copy qref to the GPU
   ierr = magma_malloc((void **)&impl->dqref, nqpts*sizeof(qref[0]));

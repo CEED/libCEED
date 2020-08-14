@@ -127,8 +127,8 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 
   @ref Backend
 **/
-int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
-  *data = contract->data;
+int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
+  *(void **)data = contract->data;
   return 0;
 }
 
@@ -142,8 +142,8 @@ int CeedTensorContractGetData(CeedTensorContract contract, void **data) {
 
   @ref Backend
 **/
-int CeedTensorContractSetData(CeedTensorContract contract, void **data) {
-  contract->data = *data;
+int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
+  contract->data = data;
   return 0;
 }
 

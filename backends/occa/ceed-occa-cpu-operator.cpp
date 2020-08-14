@@ -117,7 +117,8 @@ namespace ceed {
     }
 
     void CpuOperator::applyQFunction() {
-      applyAddKernel.pushArg(getQFunctionContext());
+      getQFunctionContextData();
+      applyAddKernel.pushArg(qFunctionContextData);
       applyAddKernel.pushArg(ceedElementCount);
 
       for (int i = 0; i < args.inputCount(); ++i) {
@@ -131,6 +132,7 @@ namespace ceed {
       }
 
       applyAddKernel.run();
+      restoreQFunctionContextData();
     }
 
     void CpuOperator::pushKernelArgs(Vector *vec,
