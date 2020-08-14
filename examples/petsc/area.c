@@ -42,7 +42,7 @@
 //   The above example runs use 2 levels of refinement for the mesh.
 //   Use -dm_refine k, for k levels of uniform refinement.
 //
-//TESTARGS -ceed {ceed_resource} -test -petscspace_degree 3
+//TESTARGS -ceed {ceed_resource} -test -degree 3 -dm_refine 1
 
 /// @file
 /// libCEED example using the mass operator to compute a cube or a cubed-sphere surface area using PETSc with DMPlex
@@ -225,13 +225,15 @@ int main(int argc, char **argv) {
     exact_surfarea = 6 * (2*l) * (2*l);
   }
 
-  if (!test_mode) {
+  PetscReal error = fabs(area - exact_surfarea);
+  PetscReal tol = 5e-6;
+  if (!test_mode || error > tol) {
     ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
                        exact_surfarea); CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area);
     CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Area error                 : % .14g\n",
-                       fabs(area - exact_surfarea)); CHKERRQ(ierr);
+                       (double)error); CHKERRQ(ierr);
   }
 
   // Cleanup

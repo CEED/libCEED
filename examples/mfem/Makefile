@@ -14,6 +14,9 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+COMMON ?= ../../common.mk
+-include $(COMMON)
+
 OPT ?= -O -g
 
 # Ceed directory
@@ -38,11 +41,12 @@ MFEM_EXAMPLES =  bp1 bp3
 
 all: $(MFEM_EXAMPLES)
 
-# Remove built-in rules
+# Quiet, color output
+quiet ?= $($(1))
 
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
-	$(MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ \
+	$(call quiet,MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ \
 	  $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit

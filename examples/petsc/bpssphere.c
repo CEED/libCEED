@@ -35,7 +35,7 @@
 //     bpssphere -problem bp5 -ceed /cpu/occa -degree 3
 //     bpssphere -problem bp6 -ceed /cpu/self -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -dm_refine 2
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -319,7 +319,7 @@ int main(int argc, char **argv) {
       PetscReal maxerror;
       ierr = ComputeErrorMax(userO, op_error, X, target, &maxerror);
       CHKERRQ(ierr);
-      PetscReal tol = 6e-2;
+      PetscReal tol = 5e-4;
       if (!test_mode || maxerror > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
