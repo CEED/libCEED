@@ -879,10 +879,10 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                              3, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else if (problem->bc == Exact_Euler) {
-        PetscInt bcMMS[2] = {3, 4};
+        PetscInt bcMMS[4] = {3, 4, 5, 6};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0,
                              0, NULL, (void(*)(void))problem->bc, NULL,
-                             2, bcMMS, ctxMMS); CHKERRQ(ierr);
+                             4, bcMMS, ctxMMS); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
@@ -994,6 +994,9 @@ int main(int argc, char **argv) {
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
+  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
+                                  DM_BOUNDARY_NONE
+                                 };
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -1268,11 +1271,18 @@ int main(int argc, char **argv) {
     .wind_type = wind_type,
   };
 
+  // Periodicity for EULER_VORTEX test case
+  if (problemChoice == NS_EULER_VORTEX) {
+    periodicity[0] = PETSC_TRUE;
+    periodicity[1] = PETSC_TRUE;
+    periodicity[2] = PETSC_FALSE;
+  }
+
   // Create the mesh
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               NULL, PETSC_TRUE, &dm);
+                               periodicity, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
 
