@@ -73,7 +73,7 @@ typedef struct _CeedHashIJKey { CeedInt i, j; } CeedHashIJKey;
   CeedHashCombine(CeedHashInt((key).i),CeedHashInt((key).j))
 
 #define CeedHashIJKeyEqual(k1,k2) \
-  (((k1).i==(k2).i) ? ((k1).j==(k2).j) : 0)
+  ((k1).i==(k2).i && (k1).j==(k2).j)
 
 #define CeedHashIJInit(name, value)										\
 	KHASH_INIT(name,CeedHashIJKey,value,1,CeedHashIJKeyHash,CeedHashIJKeyEqual)
@@ -85,7 +85,7 @@ typedef struct _CeedHashIJKKey { CeedInt i, j, k; } CeedHashIJKKey;
 
 // IJK - three keys
 #define CeedHashIJKKeyEqual(k1,k2) \
-  (((k1).i==(k2).i) ? ((k1).j==(k2).j) ? ((k1).k==(k2).k) : 0 : 0)
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k)
 
 #define CeedHashIJKInit(name, value)										\
 	KHASH_INIT(name,CeedHashIJKKey,value,1,CeedHashIJKKeyHash,CeedHashIJKKeyEqual)
@@ -97,8 +97,7 @@ typedef struct _CeedHashIJKLKey { CeedInt i, j, k, l; } CeedHashIJKLKey;
                   CeedHashCombine(CeedHashInt((key).k),CeedHashInt((key).l)))
 
 #define CeedHashIJKLKeyEqual(k1,k2) \
-  (((k1).i==(k2).i) ? ((k1).j==(k2).j) ? ((k1).k==(k2).k) ? ((k1).l==(k2).l) \
-    : 0 : 0 : 0)
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k && (k1).l==(k2).l)
 
 #define CeedHashIJKLInit(name, value)										\
 	KHASH_INIT(name,CeedHashIJKLKey,value,1,CeedHashIJKLKeyHash,CeedHashIJKLKeyEqual)
@@ -112,8 +111,7 @@ typedef struct _CeedHashIJKLMKey { CeedInt i, j, k, l, m; } CeedHashIJKLMKey;
                   CeedHashInt((key).m))
 
 #define CeedHashIJKLMKeyEqual(k1,k2) \
-  (((k1).i==(k2).i) ? ((k1).j==(k2).j) ? ((k1).k==(k2).k) ? ((k1).l==(k2).l) ? \
-   ((k1).m==(k2).m) : 0 : 0 : 0 : 0)
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k && (k1).l==(k2).l && (k1).m==(k2).m)
 
 #define CeedHashIJKLMInit(name, value)										\
 	KHASH_INIT(name,CeedHashIJKLMKey,value,1,CeedHashIJKLMKeyHash,CeedHashIJKLMKeyEqual)
