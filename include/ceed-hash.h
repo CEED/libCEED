@@ -67,6 +67,42 @@ static inline CeedHash_t CeedHashCombine(CeedHash_t seed, CeedHash_t hash) {
   return seed ^ (hash + (seed << 6) + (seed >> 2));
 }
 
+// IJ - two keys
+typedef struct _CeedHashIJKey { CeedInt i, j; } CeedHashIJKey;
+#define CeedHashIJKeyHash(key) \
+  CeedHashCombine(CeedHashInt((key).i),CeedHashInt((key).j))
+
+#define CeedHashIJKeyEqual(k1,k2) \
+  ((k1).i==(k2).i && (k1).j==(k2).j)
+
+#define CeedHashIJInit(name, value)										\
+	KHASH_INIT(name,CeedHashIJKey,value,1,CeedHashIJKeyHash,CeedHashIJKeyEqual)
+
+typedef struct _CeedHashIJKKey { CeedInt i, j, k; } CeedHashIJKKey;
+#define CeedHashIJKKeyHash(key) \
+  CeedHashCombine(CeedHashCombine(CeedHashInt((key).i),CeedHashInt((key).j)), \
+                  CeedHashInt((key).k))
+
+// IJK - three keys
+#define CeedHashIJKKeyEqual(k1,k2) \
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k)
+
+#define CeedHashIJKInit(name, value)										\
+	KHASH_INIT(name,CeedHashIJKKey,value,1,CeedHashIJKKeyHash,CeedHashIJKKeyEqual)
+
+// IJKL - four keys
+typedef struct _CeedHashIJKLKey { CeedInt i, j, k, l; } CeedHashIJKLKey;
+#define CeedHashIJKLKeyHash(key) \
+  CeedHashCombine(CeedHashCombine(CeedHashInt((key).i),CeedHashInt((key).j)), \
+                  CeedHashCombine(CeedHashInt((key).k),CeedHashInt((key).l)))
+
+#define CeedHashIJKLKeyEqual(k1,k2) \
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k && (k1).l==(k2).l)
+
+#define CeedHashIJKLInit(name, value)										\
+	KHASH_INIT(name,CeedHashIJKLKey,value,1,CeedHashIJKLKeyHash,CeedHashIJKLKeyEqual)
+
+// IJKLM - five keys
 typedef struct _CeedHashIJKLMKey { CeedInt i, j, k, l, m; } CeedHashIJKLMKey;
 #define CeedHashIJKLMKeyHash(key) \
   CeedHashCombine( \
@@ -75,8 +111,7 @@ typedef struct _CeedHashIJKLMKey { CeedInt i, j, k, l, m; } CeedHashIJKLMKey;
                   CeedHashInt((key).m))
 
 #define CeedHashIJKLMKeyEqual(k1,k2) \
-  (((k1).i==(k2).i) ? ((k1).j==(k2).j) ? ((k1).k==(k2).k) ? ((k1).l==(k2).l) ? \
-   ((k1).m==(k2).m) : 0 : 0 : 0 : 0)
+  ((k1).i==(k2).i && (k1).j==(k2).j && (k1).k==(k2).k && (k1).l==(k2).l && (k1).m==(k2).m)
 
 #define CeedHashIJKLMInit(name, value)										\
 	KHASH_INIT(name,CeedHashIJKLMKey,value,1,CeedHashIJKLMKeyHash,CeedHashIJKLMKeyEqual)
