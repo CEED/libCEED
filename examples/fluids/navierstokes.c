@@ -993,11 +993,11 @@ int main(int argc, char **argv) {
   PetscInt degree            = 1;        // -
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
-  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
+  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
+            etv_mean_velocity[3] = {1., 1., 0}; // etv: euler traveling vortex
   DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                                   DM_BOUNDARY_NONE
                                  };
-
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
@@ -1044,6 +1044,10 @@ int main(int argc, char **argv) {
     SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
             "-problem_advection_wind translation is not defined for -problem density_current or -problem euler_vortex");
   }
+  ierr = PetscOptionsRealArray("-problem_euler_mean_velocity",
+                               "Mean velocity vector",
+                               NULL, etv_mean_velocity, &n, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
