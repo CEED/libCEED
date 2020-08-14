@@ -202,6 +202,7 @@ namespace ceed {
     int QFunction::apply(CeedInt Q, CeedVector *U, CeedVector *V) {
       int ierr;
       ierr = buildKernel(Q); CeedChk(ierr);
+      getContextData();
 
       std::vector<CeedScalar*> outputArgs;
 
@@ -222,8 +223,6 @@ namespace ceed {
         }
         qFunctionKernel.pushArg(v->getKernelArg());
       }
-
-      getContextData();
       qFunctionKernel.pushArg(qFunctionContextData);
 
       qFunctionKernel.run();
@@ -248,7 +247,7 @@ namespace ceed {
       ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
 
       QFunction *qFunction = new QFunction(source);
-      ierr = CeedQFunctionSetData(qf, &qFunction); CeedChk(ierr);
+      ierr = CeedQFunctionSetData(qf, qFunction); CeedChk(ierr);
 
       CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
       CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);

@@ -266,7 +266,7 @@ namespace ceed {
       setDefaultProps(deviceProps, mode);
 
       ceed::occa::Context *context = new Context(::occa::device(deviceProps));
-      ierr = CeedSetData(ceed, (void**) &context); CeedChk(ierr);
+      ierr = CeedSetData(ceed, context); CeedChk(ierr);
 
       return 0;
     }

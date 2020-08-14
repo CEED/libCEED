@@ -63,10 +63,8 @@ namespace ceed {
     }
 
     void QFunctionContext::resizeHostCtxBuffer(const size_t ctxSize_) {
-      if (ctxSize_ != ctxSize) {
-        CeedFree(&hostBuffer);
-        CeedMallocArray(1, ctxSize, &hostBuffer);
-      }
+      CeedFree(&hostBuffer);
+      CeedMallocArray(1, ctxSize, &hostBuffer);
     }
 
     void QFunctionContext::setCurrentCtxMemoryIfNeeded() {
@@ -198,7 +196,7 @@ namespace ceed {
       CeedOccaRegisterFunction(ctx, "Destroy", QFunctionContext::ceedDestroy);
 
       QFunctionContext *ctx_ = new QFunctionContext();
-      ierr = CeedQFunctionContextSetBackendData(ctx, &ctx_); CeedChk(ierr);
+      ierr = CeedQFunctionContextSetBackendData(ctx, ctx_); CeedChk(ierr);
 
       return 0;
     }
@@ -208,6 +206,7 @@ namespace ceed {
       QFunctionContext *ctx_ = QFunctionContext::from(ctx);
       int ierr;
       ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_->ctxSize);
+      CeedOccaFromChk(ierr);
       if (!ctx_) {
         return staticCeedError("Invalid CeedQFunctionContext passed");
       }

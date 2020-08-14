@@ -312,7 +312,7 @@ namespace ceed {
                                             dim,
                                             P1D, Q1D,
                                             interp1D, grad1D, qWeight1D);
-      ierr = CeedBasisSetData(basis, (void**) &basis_); CeedChk(ierr);
+      ierr = CeedBasisSetData(basis, basis_); CeedChk(ierr);
 
       CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
       CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);

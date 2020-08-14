@@ -360,7 +360,7 @@ namespace ceed {
       }
 
       ElemRestriction *elemRestriction = new ElemRestriction();
-      ierr = CeedElemRestrictionSetData(r, (void**) &elemRestriction); CeedChk(ierr);
+      ierr = CeedElemRestrictionSetData(r, elemRestriction); CeedChk(ierr);
 
       // Setup Ceed objects before setting up memory
       elemRestriction = ElemRestriction::from(r);

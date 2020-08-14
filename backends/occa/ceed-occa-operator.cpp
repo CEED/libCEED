@@ -115,7 +115,7 @@ namespace ceed {
       );
 #endif
 
-      ierr = CeedOperatorSetData(op, (void**) &operator_); CeedChk(ierr);
+      ierr = CeedOperatorSetData(op, operator_); CeedChk(ierr);
 
       CeedOccaRegisterFunction(op, "LinearAssembleQFunction", Operator::ceedLinearAssembleQFunction);
       CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);

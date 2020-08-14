@@ -344,7 +344,7 @@ namespace ceed {
       CeedOccaRegisterFunction(vec, "Destroy", Vector::ceedDestroy);
 
       Vector *vector = new Vector();
-      ierr = CeedVectorSetData(vec, &vector); CeedChk(ierr);
+      ierr = CeedVectorSetData(vec, vector); CeedChk(ierr);
 
       return 0;
     }

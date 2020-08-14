@@ -238,7 +238,7 @@ namespace ceed {
                                               dim,
                                               ndof, nquad,
                                               interp, grad, qWeight);
-      ierr = CeedBasisSetData(basis, (void**) &basis_); CeedChk(ierr);
+      ierr = CeedBasisSetData(basis, basis_); CeedChk(ierr);
 
       CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
       CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);
