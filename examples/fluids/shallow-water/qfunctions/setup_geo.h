@@ -26,35 +26,44 @@
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations
+//   coordinate transformations. See ref: "A Discontinuous Galerkin Transport
+//   Scheme on the Cubed Sphere", by Nair et al. (2004).
 //
-// Reference (parent) 2D coordinates: X \in [-1, 1]^2
+// Reference (parent) 2D coordinates: X \in [-1, 1]^2.
 //
-// Global 3D physical coordinates given by the mesh: xx \in [-R, R]^3
-//   with R radius of the sphere
+// Local 2D physical coordinates on the 2D manifold: x \in [-l, l]^2
+//   with l half edge of the cube inscribed in the sphere. These coordinate
+//   systems vary locally on each face (or panel) of the cube.
 //
-// Local 3D physical coordinates on the 2D manifold: x \in [-l, l]^3
-//   with l half edge of the cube inscribed in the sphere
+// (theta, lambda) represnt latitude and longitude coordinates.
 //
-// Change of coordinates matrix computed by the library:
-//   (physical 3D coords relative to reference 2D coords)
-//   dxx_j/dX_i (indicial notation) [3 * 2]
+// Change of coordinates from x (on the 2D manifold) to xx (phyisical 3D on
+//   the sphere), i.e., "cube-to-sphere" A, with equidistant central projection:
 //
-// Change of coordinates x (on the 2D manifold) relative to xx (phyisical 3D):
-//   dx_i/dxx_j (indicial notation) [3 * 3]
+//   For lateral panels (P0-P3):
+//   A = R cos(theta)cos(lambda) / l * [cos(lambda)                       0]
+//                                     [-sin(theta)sin(lambda)   cos(theta)]
 //
-// Change of coordinates x (on the 2D manifold) relative to X (reference 2D):
-//   (by chain rule)
-//   dx_i/dX_j [3 * 2] = dx_i/dxx_k [3 * 3] * dxx_k/dX_j [3 * 2]
+//   For top panel (P4):
+//   A = R sin(theta) / l * [cos(lambda)                        sin(lambda)]
+//                          [-sin(theta)sin(lambda)   sin(theta)cos(lambda)]
 //
-// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
+//   For bottom panel(P5):
+//   A = R sin(theta) / l * [-cos(lambda)                       sin(lambda)]
+//                          [sin(theta)sin(lambda)    sin(theta)cos(lambda)]
+//
+// The inverse of A, A^{-1}, is the "sphere-to-cube" change of coordinates.
+//
+// The metric tensor g_{ij} = A^TA, and its inverse,
+// g^{ij} = g_{ij}^{-1} = A^{-1}A^{-T}
+//
+// modJ represents the magnitude of the cross product of the columns of A, i.e.,
+// J = det(g_{ij})
 //
 // The quadrature data is stored in the array qdata.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( u v )
-//
-// Qdata: modJ * w
+//   the form: int( u v ).
 //
 // *****************************************************************************
 CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
@@ -69,13 +78,25 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   CeedPragmaSIMD
-  // Quadrature Point Loop
+  // Quadrature Point Loop to determine on which panel the element belongs to
   for (CeedInt i=0; i<Q; i++) {
-    // Read global Cartesian coordinates
-    const CeedScalar xx[3] = {X[0][i],
-                              X[1][i],
-                              X[2][i]
-                             };
+    // Read local panel coordinates and relative panel index
+    const CeedScalar x[2] = {X[0][i],
+                             X[1][i]
+                            };
+    const CeedScalar pidx = X[2][i];
+    if (pidx )
+    break;
+  }
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop for metric factors
+  for (CeedInt i=0; i<Q; i++) {
+    // Read local panel coordinates and relative panel index
+    const CeedScalar x[2] = {X[0][i],
+                             X[1][i]
+                            };
+    const CeedScalar pidx = X[2][i];
     // Read dxxdX Jacobian entries, stored in columns
     // J_00 J_10
     // J_01 J_11
@@ -90,11 +111,11 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
     // Setup
     // x = xx (xx^T xx)^{-1/2}
     // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
-    const CeedScalar modxxsq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
+    const CeedScalar modxxsq = x[0]*x[0]+x[1]*x[1];
     CeedScalar xxsq[3][3];
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
-        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
+        xxsq[j][k] = x[j]*x[k] / (sqrt(modxxsq) * modxxsq);
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
                                      -xxsq[0][1],
@@ -174,7 +195,7 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
     qdata[9][i] = dxdXTdxdXinv[0][1];
 
     // Terrain topography, hs
-    qdata[10][i] = sin(xx[0]) + cos(xx[1]); // put 0 for constant flat topography
+    qdata[10][i] = sin(x[0]) + cos(x[1]); // put 0 for constant flat topography
   } // End of Quadrature Point Loop
 
   // Return
