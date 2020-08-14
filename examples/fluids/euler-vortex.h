@@ -38,10 +38,10 @@
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
   CeedScalar time;
-  CeedScalar wind[3];
   CeedScalar center[3];
   CeedScalar currentTime;
   CeedScalar vortex_strength;
+  CeedScalar etv_mean_velocity[3];
 };
 #endif
 
@@ -83,15 +83,15 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center; // Center of the domain
-  const CeedScalar *wind = context->wind;     // Background translation velocity
+  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
 
   // Setup
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
    // Vortex center
-  const CeedScalar xc = center[0] + wind[0] * time;
-  const CeedScalar yc = center[1] + wind[1] * time;
+  const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
+  const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
 
   const CeedScalar x0 = x - xc;
   const CeedScalar y0 = y - yc;
@@ -104,8 +104,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar rho = 1.;
   const CeedScalar P = 1.;
   const CeedScalar T = P / rho - S * exp(1. - r*r);
-  const CeedScalar u[3] = {wind[0] - C*y0, wind[1] + C*x0, 0.};
-
+  const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
+                           C*x0, 0.};
   // Initial Conditions
   q[0] = rho;
   q[1] = rho * u[0];
@@ -183,15 +183,15 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center; // Center of the domain
-  const CeedScalar *wind = context->wind;     // Background translation velocity
+  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
 
   // Setup
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
    // Vortex center
-  const CeedScalar xc = center[0] + wind[0] * time;
-  const CeedScalar yc = center[1] + wind[1] * time;
+  const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
+  const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
 
   const CeedScalar x0 = x - xc;
   const CeedScalar y0 = y - yc;
@@ -199,11 +199,12 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
-  const CeedScalar u[3] = {wind[0] - C*y0, wind[1] + C*x0, 0.};
+  const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
+                           C*x0, 0.};
 
   // Forcing term for Manufactured solution
   force[0] = 0.;
-  force[1] = C * ( 2*wind[1] + x0 *C );
+  force[1] = C * ( 2*etv_mean_velocity[1] + x0 *C );
   force[2] = -C*C*y0;
   force[3] = 0.;
   force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
