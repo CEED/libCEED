@@ -56,11 +56,11 @@ int main(int argc, char **argv) {
   problemData *problem = NULL;
   StabilizationType stab;
   PetscBool implicit;
-  PetscInt degree, qextra, outputfreq, steps, contsteps;
+  PetscInt degree, qextra, outputfreq, steps, contsteps, nedgenodes = 0;
   PetscMPIInt rank;
   PetscScalar ftime;
-  Vec Q, Qloc, Xloc;
-  const CeedInt ncompx = 3;
+  Vec Q, Qloc, Xloc, Xpanelsloc;
+  const PetscInt ncompx = 3;
   PetscInt viz_refine = 0;
   PetscBool read_mesh, simplex, test;
   PetscInt topodim = 2, ncompq = 3, lnodes;
@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
   g *= mpersquareds;
 
   // Set up the libCEED context
-  PhysicsContext_s phys_ctx =  {
+  PhysicsContext_s physCtxData =  {
     .u0 = 0.,
     .v0 = 0.,
     .h0 = .1,
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
     .time = 0.
   };
 
-  ProblemContext_s probl_ctx =  {
+  ProblemContext_s problCtxData =  {
     .g = g,
     .H0 = H0,
     .CtauS = CtauS,
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
     .stabilization = stab
   };
 
-  // Setup DM
+  // Create DM
   if (read_mesh) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
@@ -224,11 +224,11 @@ int main(int argc, char **argv) {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box.
     PetscBool simplex = PETSC_FALSE;
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topodim, simplex,
-                                  phys_ctx.R, &dm);
+                                  physCtxData.R, &dm);
     CHKERRQ(ierr);
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
-    // Define cube panels (charts)
+    // Define cube panels
     DMLabel label;
     PetscInt c, cStart, cEnd, npanel, permidx[6] = {5, 1, 4, 0, 3, 2};
     ierr = DMCreateLabel(dm, "panel");
@@ -238,6 +238,7 @@ int main(int argc, char **argv) {
     for (c = cStart, npanel = 0; c < cEnd; c++) {
       ierr = DMLabelSetValue(label, c, permidx[npanel++]); CHKERRQ(ierr);
     }
+    ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
     // Distribute mesh over processes
     {
       DM dmDist = NULL;
@@ -259,11 +260,8 @@ int main(int argc, char **argv) {
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
 
-  // Create DM
-  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetupDM(dm, degree, ncompq, topodim);
-  CHKERRQ(ierr);
+  // Setup DM
+  ierr = SetupDMByDegree(dm, degree, ncompq, topodim); CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -283,7 +281,8 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetupDM(dmhierarchy[i+1], degree, ncompq, topodim); CHKERRQ(ierr);
+      ierr = SetupDMByDegree(dmhierarchy[i+1], degree, ncompq, topodim);
+      CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
       if (!i) interpviz = interp_next;
@@ -296,7 +295,7 @@ int main(int argc, char **argv) {
         interpviz = C;
       }
     }
-    for (PetscInt i=1; i<viz_refine; i++) {
+    for (PetscInt i = 1; i < viz_refine; i++) {
       ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
     }
     dmviz = dmhierarchy[viz_refine];
@@ -372,14 +371,30 @@ int main(int argc, char **argv) {
   // Set up global mass vector
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
-  // Setup global lat-long vector for different panels (charts) of the cube
+  // Setup transformation matrix different panels of the cube
   Mat T;
-  ierr = FindPanelEdgeNodes(dm, &phys_ctx, ncompq, &T); CHKERRQ(ierr);
+  EdgeNode edgenodes;
+  ierr = FindPanelEdgeNodes(dm, &physCtxData, ncompq, &nedgenodes, &edgenodes,
+                            &T);
+  CHKERRQ(ierr);
+
+  // Pass transformation matrix to context for setup operator
+  problCtxData.T = T;
+
+  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
+  ierr = VecDuplicate(Xloc, &Xpanelsloc); CHKERRQ(ierr);
+  // Transform coordinate according to their panel systems
+  ierr = TransformCoords(dm, Xloc, ncompx, edgenodes, nedgenodes, &physCtxData,
+                         &Xpanelsloc); CHKERRQ(ierr);
+
+  // Free edgenodes structure array
+  ierr = PetscFree(edgenodes); CHKERRQ(ierr);
 
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
-  ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user, ceeddata,
-                      problem, &phys_ctx, &probl_ctx); CHKERRQ(ierr);
+  ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user,
+                      Xpanelsloc, ceeddata, problem, &physCtxData, &problCtxData);
+  CHKERRQ(ierr);
 
   // Set up PETSc context
   // Set up units structure
@@ -402,9 +417,11 @@ int main(int argc, char **argv) {
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
   ierr = VectorPlacePetscVec(user->q0ceed, Qloc); CHKERRQ(ierr);
 
+  // Set up contex for QFunctions
+  CeedQFunctionSetContext(ceeddata->qf_setup, ceeddata->physCtx);
+
   // Apply Setup Ceed Operators
-  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
-  ierr = VectorPlacePetscVec(ceeddata->xcorners, Xloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceeddata->xcorners, Xpanelsloc); CHKERRQ(ierr);
   CeedOperatorApply(ceeddata->op_setup, ceeddata->xcorners, ceeddata->qdata,
                     CEED_REQUEST_IMMEDIATE);
   ierr = ComputeLumpedMassMatrix(ceed, dm, ceeddata->Erestrictq,
@@ -414,7 +431,7 @@ int main(int argc, char **argv) {
   // Apply IC operator and fix multiplicity of initial state vector
   ierr = ICs_FixMultiplicity(ceeddata->op_ics, ceeddata->xcorners, user->q0ceed,
                              dm, Qloc, Q, ceeddata->Erestrictq,
-                             &phys_ctx, 0.0); CHKERRQ(ierr);
+                             &physCtxData, 0.0); CHKERRQ(ierr);
 
   MPI_Comm_rank(comm, &rank);
   if (!rank) {
@@ -524,6 +541,8 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&ceeddata->qf_explicit);
   CeedQFunctionDestroy(&ceeddata->qf_implicit);
   CeedQFunctionDestroy(&ceeddata->qf_jacobian);
+  CeedQFunctionContextDestroy(&ceeddata->physCtx);
+  CeedQFunctionContextDestroy(&ceeddata->problCtx);
   CeedOperatorDestroy(&ceeddata->op_setup);
   CeedOperatorDestroy(&ceeddata->op_ics);
   CeedOperatorDestroy(&ceeddata->op_explicit);
