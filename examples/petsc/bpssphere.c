@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  // Setup DM
+  // Create DM
   if (read_mesh) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
 
-  // Create DM
+  // Setup DM
   ierr = SetupDMByDegree(dm, degree, ncompu, topodim); CHKERRQ(ierr);
 
   // Create vectors
