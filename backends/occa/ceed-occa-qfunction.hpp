@@ -33,7 +33,6 @@ namespace ceed {
       std::string qFunctionName;
       ::occa::kernel qFunctionKernel;
       CeedQFunctionContext qFunctionContext;
-      ::occa::memory qFunctionContextData;
       QFunctionArgs args;
 
       QFunction(const std::string &source);
@@ -46,9 +45,6 @@ namespace ceed {
       int buildKernel(const CeedInt Q);
       std::string getKernelSource(const std::string &kernelName,
                                   const CeedInt Q);
-
-      int getContextData();
-      int restoreContextData();
 
       int apply(CeedInt Q, CeedVector *U, CeedVector *V);
 

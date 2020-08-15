@@ -63,19 +63,6 @@ namespace ceed {
       return qfunction->ceedIsIdentity;
     }
 
-    int Operator::getQFunctionContextData() {
-      int ierr;
-      ierr = qfunction->getContextData(); CeedOccaFromChk(ierr);
-      qFunctionContextData = qfunction->qFunctionContextData;
-      return 0;
-    }
-
-    int Operator::restoreQFunctionContextData() {
-      int ierr;
-      ierr = qfunction->restoreContextData(); CeedOccaFromChk(ierr);
-      return 0;
-    }
-
     int Operator::applyAdd(Vector *in, Vector *out, CeedRequest *request) {
       // TODO: Cache kernel objects rather than relying on OCCA kernel caching
       applyAddKernel = buildApplyAddKernel();

@@ -51,9 +51,6 @@ namespace ceed {
 
       bool isApplyingIdentityFunction();
 
-      int getQFunctionContextData();
-      int restoreQFunctionContextData();
-
       int applyAdd(Vector *in, Vector *out, CeedRequest *request);
 
       //---[ Virtual Methods ]----------

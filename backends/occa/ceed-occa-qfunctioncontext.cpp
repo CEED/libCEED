@@ -178,6 +178,16 @@ namespace ceed {
       return 0;
     }
 
+    ::occa::memory QFunctionContext::getKernelArg() {
+      setCurrentCtxMemoryIfNeeded();
+      if (syncState == SyncState::host) {
+        setCurrentHostCtxBufferIfNeeded();
+        currentMemory.copyFrom(currentHostBuffer);
+      }
+      syncState = SyncState::device;
+      return currentMemory;
+    }
+
     //---[ Ceed Callbacks ]-----------
     int QFunctionContext::registerCeedFunction(Ceed ceed, CeedQFunctionContext ctx,
                                      const char *fname, ceed::occa::ceedFunction f) {

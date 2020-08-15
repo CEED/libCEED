@@ -18,6 +18,7 @@
 #include "ceed-occa-cpu-operator.hpp"
 #include "ceed-occa-elem-restriction.hpp"
 #include "ceed-occa-qfunction.hpp"
+#include "ceed-occa-qfunctioncontext.hpp"
 #include "ceed-occa-simplex-basis.hpp"
 #include "ceed-occa-tensor-basis.hpp"
 
@@ -117,8 +118,12 @@ namespace ceed {
     }
 
     void CpuOperator::applyQFunction() {
-      getQFunctionContextData();
-      applyAddKernel.pushArg(qFunctionContextData);
+      if (qfunction->qFunctionContext) {
+      QFunctionContext *ctx = QFunctionContext::from(qfunction->qFunctionContext);
+        applyAddKernel.pushArg(ctx->getKernelArg());
+      } else {
+        applyAddKernel.pushArg(::occa::null);
+      }
       applyAddKernel.pushArg(ceedElementCount);
 
       for (int i = 0; i < args.inputCount(); ++i) {
@@ -132,7 +137,6 @@ namespace ceed {
       }
 
       applyAddKernel.run();
-      restoreQFunctionContextData();
     }
 
     void CpuOperator::pushKernelArgs(Vector *vec,
