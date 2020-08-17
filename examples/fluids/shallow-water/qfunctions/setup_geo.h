@@ -26,44 +26,35 @@
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations. See ref: "A Discontinuous Galerkin Transport
-//   Scheme on the Cubed Sphere", by Nair et al. (2004).
+//   coordinate transformations
 //
-// Reference (parent) 2D coordinates: X \in [-1, 1]^2.
+// Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
-// Local 2D physical coordinates on the 2D manifold: x \in [-l, l]^2
-//   with l half edge of the cube inscribed in the sphere. These coordinate
-//   systems vary locally on each face (or panel) of the cube.
+// Global 3D physical coordinates given by the mesh: xx \in [-R, R]^3
+//   with R radius of the sphere
 //
-// (theta, lambda) represnt latitude and longitude coordinates.
+// Local 3D physical coordinates on the 2D manifold: x \in [-l, l]^3
+//   with l half edge of the cube inscribed in the sphere
 //
-// Change of coordinates from x (on the 2D manifold) to xx (phyisical 3D on
-//   the sphere), i.e., "cube-to-sphere" A, with equidistant central projection:
+// Change of coordinates matrix computed by the library:
+//   (physical 3D coords relative to reference 2D coords)
+//   dxx_j/dX_i (indicial notation) [3 * 2]
 //
-//   For lateral panels (P0-P3):
-//   A = R cos(theta)cos(lambda) / l * [cos(lambda)                       0]
-//                                     [-sin(theta)sin(lambda)   cos(theta)]
+// Change of coordinates x (on the 2D manifold) relative to xx (phyisical 3D):
+//   dx_i/dxx_j (indicial notation) [3 * 3]
 //
-//   For top panel (P4):
-//   A = R sin(theta) / l * [cos(lambda)                        sin(lambda)]
-//                          [-sin(theta)sin(lambda)   sin(theta)cos(lambda)]
+// Change of coordinates x (on the 2D manifold) relative to X (reference 2D):
+//   (by chain rule)
+//   dx_i/dX_j [3 * 2] = dx_i/dxx_k [3 * 3] * dxx_k/dX_j [3 * 2]
 //
-//   For bottom panel(P5):
-//   A = R sin(theta) / l * [-cos(lambda)                       sin(lambda)]
-//                          [sin(theta)sin(lambda)    sin(theta)cos(lambda)]
-//
-// The inverse of A, A^{-1}, is the "sphere-to-cube" change of coordinates.
-//
-// The metric tensor g_{ij} = A^TA, and its inverse,
-// g^{ij} = g_{ij}^{-1} = A^{-1}A^{-T}
-//
-// modJ represents the magnitude of the cross product of the columns of A, i.e.,
-// J = det(g_{ij})
+// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
 // The quadrature data is stored in the array qdata.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( u v ).
+//   the form: int( u v )
+//
+// Qdata: modJ * w
 //
 // *****************************************************************************
 CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
@@ -77,92 +68,113 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
   CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
-  CeedInt panel = -1;
-
   CeedPragmaSIMD
-  // Quadrature point loop to determine which panel the element belongs to
+  // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar pidx = X[2][i];
-    if (pidx != -1)
-      panel = pidx;
-    break;
-  }
-
-  // Check that we found nodes panel
-  if (panel == -1)
-    return -1;
-
-  CeedPragmaSIMD
-  // Quadrature point loop for metric factors
-  for (CeedInt i=0; i<Q; i++) {
-    // Read local panel coordinates and relative panel index
-    CeedScalar x[2] = {X[0][i],
-                       X[1][i]
-                      };
-    const CeedScalar pidx = X[2][i];
-
-    if (pidx != panel) {
-      const CeedScalar theta  = X[0][i];
-      const CeedScalar lambda = X[1][i];
-
-      CeedScalar T_inv[2][2];
-
-      switch (panel) {
-      case 0:
-      case 1:
-      case 2:
-      case 3:
-        // For P_0 (front), P_1 (east), P_2 (back), P_3 (west):
-        T_inv[0][0] = 1./(cos(theta)*cos(lambda)) * (1./cos(lambda));
-        T_inv[0][1] = 1./(cos(theta)*cos(lambda)) * 0.;
-        T_inv[1][0] = 1./(cos(theta)*cos(lambda)) * tan(theta)*tan(lambda);
-        T_inv[1][1] = 1./(cos(theta)*cos(lambda)) * (1./cos(theta));
-        break;
-      case 4:
-        // For P4 (north):
-        T_inv[0][0] = 1./(sin(theta)*sin(theta)) * sin(theta)*cos(lambda);
-        T_inv[0][1] = 1./(sin(theta)*sin(theta)) * (-sin(lambda));
-        T_inv[1][0] = 1./(sin(theta)*sin(theta)) * sin(theta)*sin(lambda);
-        T_inv[1][1] = 1./(sin(theta)*sin(theta)) * cos(lambda);
-        break;
-      case 5:
-        // For P5 (south):
-        T_inv[0][0] = 1./(sin(theta)*sin(theta)) * (-sin(theta)*cos(lambda));
-        T_inv[0][1] = 1./(sin(theta)*sin(theta)) * sin(lambda);
-        T_inv[1][0] = 1./(sin(theta)*sin(theta)) * sin(theta)*sin(lambda);
-        T_inv[1][1] = 1./(sin(theta)*sin(theta)) * cos(lambda);
-        break;
-      }
-      x[0] = T_inv[0][0]*theta + T_inv[0][1]*lambda;
-      x[1] = T_inv[1][0]*theta + T_inv[1][1]*lambda;
-    }
-
-    const CeedScalar xxT[2][2] = {{x[0]*x[0],
-                                   x[0]*x[1]},
-                                  {x[1]*x[0],
-                                   x[1]*x[1]}
-                                  };
-
-    // Read dxdX Jacobian entries, stored in columns
+    // Read global Cartesian coordinates
+    const CeedScalar xx[3] = {X[0][i],
+                              X[1][i],
+                              X[2][i]
+                             };
+    // Read dxxdX Jacobian entries, stored in columns
     // J_00 J_10
     // J_01 J_11
-    const CeedScalar dxdX[2][2] = {{J[0][0][i],
-                                    J[1][0][i]},
-                                   {J[0][1][i],
-                                    J[1][1][i]}
+    // J_02 J_12
+    const CeedScalar dxxdX[3][2] = {{J[0][0][i],
+                                     J[1][0][i]},
+                                    {J[0][1][i],
+                                     J[1][1][i]},
+                                    {J[0][2][i],
+                                     J[1][2][i]}
+                                   };
+    // Setup
+    // x = xx (xx^T xx)^{-1/2}
+    // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
+    const CeedScalar modxxsq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
+    CeedScalar xxsq[3][3];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
+
+    const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
+                                     -xxsq[0][1],
+                                     -xxsq[0][2]},
+                                    {-xxsq[1][0],
+                                     1./sqrt(modxxsq) - xxsq[1][1],
+                                     -xxsq[1][2]},
+                                    {-xxsq[2][0],
+                                     -xxsq[2][1],
+                                     1./sqrt(modxxsq) - xxsq[2][2]}
                                    };
 
-    CeedScalar dxxdX[2][2];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<2; k++) {
-        dxxdX[j][k] = 0;
-        for (int l=0; l<2; l++)
-          dxxdX[j][k] += xxT[j][l]*dxdX[l][k];
+    CeedScalar dxdX[3][2];
+    for (CeedInt j=0; j<3; j++) {
+      for (CeedInt k=0; k<2; k++) {
+        dxdX[j][k] = 0;
+        for (CeedInt l=0; l<3; l++)
+          dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
+    }
+    // J is given by the cross product of the columns of dxdX
+    const CeedScalar J[3] = {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
+                             dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1],
+                             dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]
+                            };
+
+    // Use the magnitude of J as our detJ (volume scaling factor)
+    const CeedScalar modJ = sqrt(J[0]*J[0]+J[1]*J[1]+J[2]*J[2]);
 
     // Interp-to-Interp qdata
-    qdata[0][i] = (dxxdX[0][0]*dxxdX[1][1] - dxxdX[0][1]*dxxdX[1][0]) * w[i];
+    qdata[0][i] = modJ * w[i];
 
+    // dxdX_k,j * dxdX_j,k
+    CeedScalar dxdXTdxdX[2][2];
+    for (CeedInt j=0; j<2; j++) {
+      for (CeedInt k=0; k<2; k++) {
+        dxdXTdxdX[j][k] = 0;
+        for (CeedInt l=0; l<3; l++)
+          dxdXTdxdX[j][k] += dxdX[l][j]*dxdX[l][k];
+      }
+    }
+    const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
+                                    -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
+
+    // Compute inverse of dxdXTdxdX, needed for the pseudoinverse. This is also
+    // equivalent to the 2x2 metric tensor g^{ij}, needed for the
+    // Grad-to-Grad qdata (pseudodXdx * pseudodXdxT, which simplifies to
+    // dxdXTdxdXinv)
+    CeedScalar dxdXTdxdXinv[2][2];
+    dxdXTdxdXinv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
+    dxdXTdxdXinv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;
+    dxdXTdxdXinv[1][0] = -dxdXTdxdX[1][0] / detdxdXTdxdX;
+    dxdXTdxdXinv[1][1] =  dxdXTdxdX[0][0] / detdxdXTdxdX;
+
+    // Compute the pseudo inverse of dxdX
+    CeedScalar pseudodXdx[2][3];
+    for (CeedInt j=0; j<2; j++) {
+      for (CeedInt k=0; k<3; k++) {
+        pseudodXdx[j][k] = 0;
+        for (CeedInt l=0; l<2; l++)
+          pseudodXdx[j][k] += dxdXTdxdXinv[j][l]*dxdX[k][l];
+      }
+    }
+
+    // Interp-to-Grad qdata
+    // Pseudo inverse of dxdX: (x_i,j)+ = X_i,j
+    qdata[1][i] = pseudodXdx[0][0];
+    qdata[2][i] = pseudodXdx[0][1];
+    qdata[3][i] = pseudodXdx[0][2];
+    qdata[4][i] = pseudodXdx[1][0];
+    qdata[5][i] = pseudodXdx[1][1];
+    qdata[6][i] = pseudodXdx[1][2];
+
+    // Grad-to-Grad qdata stored in Voigt convention
+    qdata[7][i] = dxdXTdxdXinv[0][0];
+    qdata[8][i] = dxdXTdxdXinv[1][1];
+    qdata[9][i] = dxdXTdxdXinv[0][1];
+
+    // Terrain topography, hs
+    qdata[10][i] = sin(xx[0]) + cos(xx[1]); // put 0 for constant flat topography
   } // End of Quadrature Point Loop
 
   // Return
