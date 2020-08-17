@@ -40,6 +40,9 @@ namespace ceed {
       QFunctionContext *ctx_ = NULL;
       ierr = CeedQFunctionContextGetBackendData(ctx, &ctx_); CeedOccaFromChk(ierr);
 
+      ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_->ctxSize);
+      CeedOccaFromChk(ierr);
+
       if (ctx_ != NULL) {
         ierr = CeedQFunctionContextGetCeed(ctx, &ctx_->ceed); CeedOccaFromChk(ierr);
       }
@@ -214,9 +217,6 @@ namespace ceed {
     int QFunctionContext::ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
                                       CeedCopyMode cmode, void *data) {
       QFunctionContext *ctx_ = QFunctionContext::from(ctx);
-      int ierr;
-      ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_->ctxSize);
-      CeedOccaFromChk(ierr);
       if (!ctx_) {
         return staticCeedError("Invalid CeedQFunctionContext passed");
       }
