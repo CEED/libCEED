@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   const PetscInt ncompx = 3;
   PetscInt viz_refine = 0;
   PetscBool read_mesh, simplex, test;
-  PetscInt topodim = 2, dim = 3, ncompq = 3, lnodes;
+  PetscInt topodim = 2, ncompq = 3, lnodes;
   // libCEED context
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
                                           filename[PETSC_MAX_PATH_LEN];
