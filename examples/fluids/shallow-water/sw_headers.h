@@ -47,7 +47,6 @@ typedef struct {
   CeedScalar CtauS;
   CeedScalar strong_form;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-  Mat T;
 } ProblemContext_s;
 typedef ProblemContext_s *ProblemContext;
 
@@ -101,7 +100,7 @@ struct User_ {
   PetscInt outputfreq;
   DM dm;
   DM dmviz;
-  Mat interpviz;
+  Mat interpviz, T;
   Ceed ceed;
   Units units;
   CeedVector qceed, q0ceed, qdotceed, fceed, gceed, jceed;
@@ -184,7 +183,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P, CeedInt ncomp,
 // Auxiliary function to set up libCEED objects for a given degree
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                             const PetscInt ncompx, PetscInt ncompq, User user,
-                            Vec Xloc, CeedData data, problemData *problem,
+                            CeedData data, problemData *problem,
                             PhysicsContext physCtxData,
                             ProblemContext problCtxData);
 

@@ -59,11 +59,11 @@ int main(int argc, char **argv) {
   PetscInt degree, qextra, outputfreq, steps, contsteps, nedgenodes = 0;
   PetscMPIInt rank;
   PetscScalar ftime;
-  Vec Q, Qloc, Xloc, Xpanelsloc;
+  Vec Q, Qloc, Xloc;
   const PetscInt ncompx = 3;
   PetscInt viz_refine = 0;
   PetscBool read_mesh, simplex, test;
-  PetscInt topodim = 2, ncompq = 3, lnodes;
+  PetscInt topodim = 2, dim = 3, ncompq = 3, lnodes;
   // libCEED context
   char ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self",
                                           filename[PETSC_MAX_PATH_LEN];
@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
   g *= mpersquareds;
 
   // Set up the libCEED context
-  PhysicsContext_s physCtxData =  {
+  PhysicsContext_s physCtxData = {
     .u0 = 0.,
     .v0 = 0.,
     .h0 = .1,
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
     .time = 0.
   };
 
-  ProblemContext_s problCtxData =  {
+  ProblemContext_s problCtxData = {
     .g = g,
     .H0 = H0,
     .CtauS = CtauS,
@@ -378,14 +378,9 @@ int main(int argc, char **argv) {
                             &T);
   CHKERRQ(ierr);
 
-  // Pass transformation matrix to context for setup operator
-  problCtxData.T = T;
-
-  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
-  ierr = VecDuplicate(Xloc, &Xpanelsloc); CHKERRQ(ierr);
   // Transform coordinate according to their panel systems
-  ierr = TransformCoords(dm, Xloc, ncompx, edgenodes, nedgenodes, &physCtxData,
-                         &Xpanelsloc); CHKERRQ(ierr);
+//  ierr = TransformCoords(dm, Xloc, ncompx, edgenodes, nedgenodes, &physCtxData,
+//                         &Xpanelsloc); CHKERRQ(ierr);
 
   // Free edgenodes structure array
   ierr = PetscFree(edgenodes); CHKERRQ(ierr);
@@ -393,7 +388,7 @@ int main(int argc, char **argv) {
   // Setup libCEED's objects
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user,
-                      Xpanelsloc, ceeddata, problem, &physCtxData, &problCtxData);
+                      ceeddata, problem, &physCtxData, &problCtxData);
   CHKERRQ(ierr);
 
   // Set up PETSc context
@@ -411,6 +406,7 @@ int main(int argc, char **argv) {
   user->dmviz = dmviz;
   user->interpviz = interpviz;
   user->ceed = ceed;
+  user->T = T;
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -421,7 +417,8 @@ int main(int argc, char **argv) {
   CeedQFunctionSetContext(ceeddata->qf_setup, ceeddata->physCtx);
 
   // Apply Setup Ceed Operators
-  ierr = VectorPlacePetscVec(ceeddata->xcorners, Xpanelsloc); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceeddata->xcorners, Xloc); CHKERRQ(ierr);
   CeedOperatorApply(ceeddata->op_setup, ceeddata->xcorners, ceeddata->qdata,
                     CEED_REQUEST_IMMEDIATE);
   ierr = ComputeLumpedMassMatrix(ceed, dm, ceeddata->Erestrictq,

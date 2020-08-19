@@ -46,9 +46,17 @@ PetscErrorCode FormRHSFunction_SW(TS ts, PetscReal t, Vec Q, Vec G,
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations
+
   // Apply CEED operator
   CeedOperatorApply(user->op_explicit, user->qceed, user->gceed,
                     CEED_REQUEST_IMMEDIATE);
+
+  // TODO:
+  // E-vector to L-vector:
+  // Apply transpose of user-defined restriction
 
   // Restore vectors
   ierr = VecRestoreArrayRead(Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
@@ -101,9 +109,18 @@ PetscErrorCode FormIFunction_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
                      (PetscScalar *)qdot);
   CeedVectorSetArray(user->fceed, CEED_MEM_HOST, CEED_USE_POINTER, f);
 
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations
+
+
   // Apply CEED operator
   CeedOperatorApply(user->op_implicit, user->qceed, user->fceed,
                     CEED_REQUEST_IMMEDIATE);
+
+  // TODO:
+  // E-vector to L-vector:
+  // Apply transpose of user-defined restriction
 
   // Restore vectors
   ierr = VecRestoreArrayRead(Qloc, &q); CHKERRQ(ierr);
@@ -179,10 +196,18 @@ PetscErrorCode ApplyJacobian_SW(Mat mat, Vec Q, Vec JVec) {
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->jceed, CEED_MEM_HOST, CEED_USE_POINTER, j);
 
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations
+
   // Apply the CEED operator for the dF/dQ terms
   CeedOperatorApply(user->op_jacobian, user->qceed, user->jceed,
                     CEED_REQUEST_IMMEDIATE);
   CeedVectorSyncArray(user->jceed, CEED_MEM_HOST);
+
+  // TODO:
+  // E-vector to L-vector:
+  // Apply transpose of user-defined restriction
 
   // Restore PETSc vectors
   ierr = VecRestoreArrayRead(Qloc, (const PetscScalar **)&q);
