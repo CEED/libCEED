@@ -154,8 +154,8 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
       (*edgenodecnt)++;
     }
   }
-  ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, *edgenodes,
-                                        *edgenodecnt, T); CHKERRQ(ierr);
+//  ierr = SetupPanelCoordTransformations(dm, phys_ctx, ncomp, *edgenodes,
+//                                        *edgenodecnt, T); CHKERRQ(ierr);
 
   // Free heap
   ierr = PetscFree(bitmap); CHKERRQ(ierr);
@@ -494,7 +494,7 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 // Auxiliary function to setup DM FE space and info
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompq,
+PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncomp,
                                PetscInt dim) {
   PetscErrorCode ierr;
 
@@ -502,10 +502,10 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompq,
   {
     // Configure the finite element space
     PetscFE fe;
-    ierr = PetscFECreateByDegree(dm, dim, ncompq, PETSC_FALSE, NULL, degree,
+    ierr = PetscFECreateByDegree(dm, dim, ncomp, PETSC_FALSE, NULL, degree,
                                  &fe);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
-    ierr = DMAddField(dm,NULL,(PetscObject)fe); CHKERRQ(ierr);
+    ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
 
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
@@ -652,11 +652,12 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p) {
 
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                             PetscInt ncompx, PetscInt ncompq, User user,
-                            Vec Xloc, CeedData data, problemData *problem,
+                            CeedData data, problemData *problem,
                             PhysicsContext physCtxData,
                             ProblemContext problCtxData) {
   int ierr;
   DM dmcoord;
+  Vec Xloc;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction Erestrictx, Erestrictq, Erestrictqdi;
   CeedQFunction qf_setup, qf_ics, qf_explicit, qf_implicit,
@@ -682,7 +683,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CHKERRQ(ierr);
 
   // CEED restrictions
-  ierr = CreateRestrictionPlex(ceed, dm, numP, ncompq, &Erestrictq);
+  // TODO: After the resitrction matrix is implemented comment the following line
+  ierr = CreateRestrictionPlex(ceed, dmcoord, numP, ncompq, &Erestrictq);
   CHKERRQ(ierr);
   ierr = CreateRestrictionPlex(ceed, dmcoord, 2, ncompx, &Erestrictx);
   CHKERRQ(ierr);
@@ -692,6 +694,13 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   CeedElemRestrictionCreateStrided(ceed, nelem, numQ*numQ, qdatasize,
                                    qdatasize*nelem*numQ*numQ,
                                    CEED_STRIDES_BACKEND, &Erestrictqdi);
+  // Solution vec restriction is a strided (identity) because we use a user
+  // mat mult before and after operator apply
+  // TODO: After the restriction matrix for the solution vector is implemented,
+  // decomment the following line
+//  CeedElemRestrictionCreateStrided(ceed, nelem, numP*numP, ncompq,
+//                                   ncompq*nelem*numP*numP,
+//                                   CEED_STRIDES_BACKEND, &Erestrictq);
 
   // Element coordinates
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
