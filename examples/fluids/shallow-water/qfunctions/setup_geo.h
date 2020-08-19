@@ -20,6 +20,8 @@
 #ifndef setupgeo_h
 #define setupgeo_h
 
+#include "../sw_headers.h"
+
 #ifndef __CUDACC__
 #  include <math.h>
 #endif
@@ -67,15 +69,23 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
+  // Context
+  const PhysicsContext context = (PhysicsContext)ctx;
+  const CeedScalar R           = context->R;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Read global Cartesian coordinates
-    const CeedScalar xx[3] = {X[0][i],
-                              X[1][i],
-                              X[2][i]
-                             };
+    CeedScalar xx[3] = {X[0][i],
+                        X[1][i],
+                        X[2][i]
+                       };
+    // Project quadrature point coordinates to sphere
+    CeedScalar rad = sqrt(xx[0]*xx[0] + xx[1]*xx[1] + xx[2]*xx[2]);
+    xx[0] *= R / rad;
+    xx[1] *= R / rad;
+    xx[2] *= R / rad;
     // Read dxxdX Jacobian entries, stored in columns
     // J_00 J_10
     // J_01 J_11
