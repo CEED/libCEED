@@ -158,7 +158,39 @@ impl Ceed {
         crate::vector::Vector::from_slice(self, slice)
     }
 
-    /// Elem Restriction
+    /// Returns a ElemRestriction
+    ///
+    /// # arguments
+    ///
+    /// * 'nelem'      - Number of elements described in the @a offsets array
+    /// * 'elemsize'   - Size (number of "nodes") per element
+    /// * 'ncomp'      - Number of field components per interpolation node
+    ///                    (1 for scalar fields)
+    /// * 'compstride' - Stride between components for the same L-vector "node".
+    ///                    Data for node i, component j, element k can be found in
+    ///                    the L-vector at index
+    ///                    offsets[i + k*elemsize] + j*compstride.
+    /// * 'lsize'      - The size of the L-vector. This vector may be larger than
+    ///                    the elements and fields given by this restriction.
+    /// *  'mtype'     - Memory type of the @a offsets array, see CeedMemType
+    /// * 'cmode'      - Copy mode for the @a offsets array, see CeedCopyMode
+    /// * 'offsets'    - Array of shape [@a nelem, @a elemsize]. Row i holds the
+    ///                    ordered list of the offsets (into the input CeedVector)
+    ///                    for the unknowns corresponding to element i, where
+    ///                    0 <= i < @a nelem. All offsets must be in the range
+    ///                    [0, @a lsize - 1].
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 3;
+    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// ```
     pub fn elem_restriction(
         &self,
         nelem: i32,
@@ -172,6 +204,47 @@ impl Ceed {
     ) -> crate::elem_restriction::ElemRestriction {
         crate::elem_restriction::ElemRestriction::create(
             self, nelem, elemsize, ncomp, compstride, lsize, mtype, cmode, offsets,
+        )
+    }
+
+    /// Returns a ElemRestriction
+    ///
+    /// # arguments
+    ///
+    /// * 'nelem'      - Number of elements described in the @a offsets array
+    /// * 'elemsize'   - Size (number of "nodes") per element
+    /// * 'ncomp'      - Number of field components per interpolation node
+    ///                    (1 for scalar fields)
+    /// * 'compstride' - Stride between components for the same L-vector "node".
+    ///                    Data for node i, component j, element k can be found in
+    ///                    the L-vector at index
+    ///                    offsets[i + k*elemsize] + j*compstride.
+    /// * 'lsize'      - The size of the L-vector. This vector may be larger than
+    ///                    the elements and fields given by this restriction.
+    /// *  'mtype'     - Memory type of the @a offsets array, see CeedMemType
+    /// * 'cmode'      - Copy mode for the @a offsets array, see CeedCopyMode
+    /// * 'offsets'    - Array of shape [@a nelem, @a elemsize]. Row i holds the
+    ///                    ordered list of the offsets (into the input CeedVector)
+    ///                    for the unknowns corresponding to element i, where
+    ///                    0 <= i < @a nelem. All offsets must be in the range
+    ///                    [0, @a lsize - 1].
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 3;
+    /// let strides : [i32; 3] = [1, 2, 2];
+    /// let r = ceed.strided_elem_restriction(ne as i32, 2, 1, (ne*2) as i32, strides);
+    /// ```
+    pub fn strided_elem_restriction(
+        &self,
+        nelem: i32,
+        elemsize: i32,
+        ncomp: i32,
+        lsize: i32,
+        strides: [i32; 3],
+    ) -> crate::elem_restriction::ElemRestriction {
+        crate::elem_restriction::ElemRestriction::create_strided(
+            self, nelem, elemsize, ncomp, lsize, strides,
         )
     }
 
