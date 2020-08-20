@@ -330,25 +330,11 @@ endif
 # OCCA Backends
 OCCA_BACKENDS = /cpu/occa/serial
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_OMP_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenMP" && echo 1)
-  ifeq ($(OCCA_OMP_MODE_FOUND),1)
-    OCCA_BACKENDS += /cpu/occa/openmp
-  endif
-
-  #OCCA_OCL_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "OpenCL" && echo 1)
-  #ifeq ($(OCCA_OCL_MODE_FOUND),1)
-  #  OCCA_BACKENDS += /opencl/occa
-  #endif
-
-  OCCA_HIP_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "HIP" && echo 1)
-  ifeq ($(OCCA_HIP_MODE_FOUND),1)
-    OCCA_BACKENDS += /gpu/occa/hip
-  endif
-
-  OCCA_CUDA_MODE_FOUND := $(shell $(OCCA_DIR)/bin/occa modes | grep -q "CUDA" && echo 1)
-  ifeq ($(OCCA_CUDA_MODE_FOUND),1)
-    OCCA_BACKENDS += /gpu/occa/cuda
-  endif
+  OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
+  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/occa/openmp)
+# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/opencl/occa)
+  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/occa/hip)
+  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/occa/cuda)
 
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
