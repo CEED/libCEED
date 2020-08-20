@@ -86,7 +86,7 @@ int CeedDestroy_Hip(Ceed ceed) {
 //------------------------------------------------------------------------------
 static int CeedInit_Hip(const char *resource, Ceed ceed) {
   int ierr;
-  const int nrc = 9; // number of characters in resource
+  const int nrc = 8; // number of characters in resource
   if (strncmp(resource, "/gpu/hip/ref", nrc))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Hip backend cannot use resource: %s", resource);
