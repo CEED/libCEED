@@ -138,13 +138,13 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]);
     /// let mut y = ceed.vector(ne*2);
     /// y.set_value(0.0);
-    /// 
+    ///
     /// r.apply(ceed::TransposeMode::NoTranspose, &x, &mut y);
-    /// 
+    ///
     /// let array = y.get_array_read(ceed::MemType::Host);
     /// for i in 0..(ne*2) {
     ///   assert_eq!(array[i], ((i+1)/2) as f64);
@@ -201,7 +201,7 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let compstride = r.get_comp_stride();
     /// assert_eq!(compstride, 1);
     /// ```
@@ -223,7 +223,7 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let nelem = r.get_num_elements();
     /// assert_eq!(nelem, ne as i32);
     /// ```
@@ -245,7 +245,7 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let esize = r.get_elem_size();
     /// assert_eq!(esize, 2);
     /// ```
@@ -267,7 +267,7 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let lsize = r.get_Lvector_size();
     /// assert_eq!(lsize, (ne+1) as i32);
     /// ```
@@ -289,7 +289,7 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 42, 1, 42*(ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let ncomp = r.get_num_components();
     /// assert_eq!(ncomp, 42);
     /// ```
@@ -326,12 +326,12 @@ impl<'a> ElemRestriction<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
-    /// 
+    ///
     /// let mut mult = ceed.vector(ne+1);
     /// mult.set_value(0.0);
-    /// 
+    ///
     /// r.get_multiplicity(&mut mult);
-    /// 
+    ///
     /// let array = mult.get_array_read(ceed::MemType::Host);
     /// for i in 0..(ne+1) {
     ///   assert_eq!(if (i == 0 || i == ne) { 1. } else { 2. }, array[i]);

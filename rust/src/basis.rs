@@ -89,6 +89,47 @@ impl<'a> Basis<'a> {
         Self { ceed, ptr }
     }
 
+    /// Apply basis evaluation from nodes to quadrature points or vice versa
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// const q : i32 = 6;
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, q, q, ceed::QuadMode::GaussLobatto);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    ///
+    /// let x_corners = ceed.vector_from_slice(&[-1., 1.]);
+    /// let mut x_qpts = ceed.vector(q as usize);
+    /// let mut x_nodes = ceed.vector(q as usize);
+    /// bx.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///          &x_corners, &mut x_nodes);
+    /// bu.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///          &x_nodes, &mut x_qpts);
+    ///
+    /// // Create function x^3 + 1 on Gauss Lobatto points
+    /// let mut u_arr = [0.; q as usize];
+    /// let x_nodes_arr = x_nodes.get_array_read(ceed::MemType::Host);
+    /// for i in 0..q as usize {
+    ///   u_arr[i] = x_nodes_arr[i]*x_nodes_arr[i]*x_nodes_arr[i] + 1.;
+    /// }
+    /// x_nodes.restore_array_read(x_nodes_arr);
+    /// let u = ceed.vector_from_slice(&u_arr);
+    ///
+    /// // Map function to Gauss points
+    /// let mut v = ceed.vector(q as usize);
+    /// v.set_value(0.);
+    /// bu.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///          &u, &mut v);
+    ///
+    /// // Verify results
+    /// let v_arr = v.get_array_read(ceed::MemType::Host);
+    /// let x_qpts_arr = x_qpts.get_array_read(ceed::MemType::Host);
+    /// for i in 0..q as usize {
+    ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
+    ///   assert_eq!(v_arr[i], true_value);
+    /// }
+    /// v.restore_array_read(v_arr);
+    /// x_qpts.restore_array_read(x_qpts_arr);
+    /// ```
     pub fn apply(
         &self,
         nelem: i32,
@@ -115,7 +156,7 @@ impl<'a> Basis<'a> {
     /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let dim = b.get_dimension();
-    /// assert!(dim == 2);
+    /// assert_eq!(dim, 2);
     /// ```
     pub fn get_dimension(&self) -> i32 {
         let mut dim = 0;
@@ -140,7 +181,7 @@ impl<'a> Basis<'a> {
     /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_components();
-    /// assert!(ncomp == 2);
+    /// assert_eq!(ncomp, 2);
     /// ```
     pub fn get_num_components(&self) -> i32 {
         let mut ncomp = 0;
@@ -154,7 +195,7 @@ impl<'a> Basis<'a> {
     /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let nqpts = b.get_num_nodes();
-    /// assert!(nqpts == 3*3);
+    /// assert_eq!(nqpts, 3*3);
     /// ```
     pub fn get_num_nodes(&self) -> i32 {
         let mut nnodes = 0;
@@ -168,7 +209,7 @@ impl<'a> Basis<'a> {
     /// # let ceed = ceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
     /// let ncomp = b.get_num_quadrature_points();
-    /// assert!(ncomp == 4*4);
+    /// assert_eq!(ncomp, 4*4);
     /// ```
     pub fn get_num_quadrature_points(&self) -> i32 {
         let mut Q = 0;

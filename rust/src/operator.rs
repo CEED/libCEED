@@ -19,11 +19,7 @@ impl<'a> Operator<'a> {
         Self { ceed, ptr }
     }
 
-    pub fn apply(
-        &self,
-        input: &crate::vector::Vector,
-        output: &mut crate::vector::Vector,
-    ) {
+    pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorApply(
                 self.ptr,
@@ -34,11 +30,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn apply_add(
-        &self,
-        input: &crate::vector::Vector,
-        output: &mut crate::vector::Vector,
-    ) {
+    pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorApplyAdd(
                 self.ptr,
@@ -49,9 +41,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn create_composite(
-        ceed: &'a crate::Ceed,
-    ) -> Self {
+    pub fn create_composite(ceed: &'a crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
         Self { ceed, ptr }
@@ -139,12 +129,12 @@ impl<'a> Operator<'a> {
 
     pub fn create_multigrid_level(
         &self,
-        p_mult_fine : &crate::vector::Vector,
-        rstr_coarse : &crate::elem_restriction::ElemRestriction,
+        p_mult_fine: &crate::vector::Vector,
+        rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
-        op_coarse   : &mut crate::operator::Operator,
-        op_prolong  : &mut crate::operator::Operator,
-        op_restrict : &mut crate::operator::Operator,
+        op_coarse: &mut crate::operator::Operator,
+        op_prolong: &mut crate::operator::Operator,
+        op_restrict: &mut crate::operator::Operator,
     ) {
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreate(
@@ -161,13 +151,13 @@ impl<'a> Operator<'a> {
 
     pub fn create_multigrid_level_tensor_H1(
         &self,
-        p_mult_fine : &crate::vector::Vector,
-        rstr_coarse : &crate::elem_restriction::ElemRestriction,
+        p_mult_fine: &crate::vector::Vector,
+        rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
-        interpCtoF  : &Vec<f64>,
-        op_coarse   : &mut crate::operator::Operator,
-        op_prolong  : &mut crate::operator::Operator,
-        op_restrict : &mut crate::operator::Operator,
+        interpCtoF: &Vec<f64>,
+        op_coarse: &mut crate::operator::Operator,
+        op_prolong: &mut crate::operator::Operator,
+        op_restrict: &mut crate::operator::Operator,
     ) {
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateTensorH1(
@@ -185,13 +175,13 @@ impl<'a> Operator<'a> {
 
     pub fn create_multigrid_level_H1(
         &self,
-        p_mult_fine : &crate::vector::Vector,
-        rstr_coarse : &crate::elem_restriction::ElemRestriction,
+        p_mult_fine: &crate::vector::Vector,
+        rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
-        interpCtoF  : &Vec<f64>,
-        op_coarse   : &mut crate::operator::Operator,
-        op_prolong  : &mut crate::operator::Operator,
-        op_restrict : &mut crate::operator::Operator,
+        interpCtoF: &Vec<f64>,
+        op_coarse: &mut crate::operator::Operator,
+        op_prolong: &mut crate::operator::Operator,
+        op_restrict: &mut crate::operator::Operator,
     ) {
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateH1(
@@ -207,10 +197,7 @@ impl<'a> Operator<'a> {
         };
     }
 
-    pub fn create_FDME_element_inverse(
-        &self,
-        fdminv : &mut crate::operator::Operator,
-    ) {
+    pub fn create_FDME_element_inverse(&self, fdminv: &mut crate::operator::Operator) {
         unsafe {
             bind_ceed::CeedOperatorCreateFDMElementInverse(
                 self.ptr,
