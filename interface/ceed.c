@@ -680,6 +680,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedTensorContract, Apply),
     CEED_FTABLE_ENTRY(CeedTensorContract, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunction, Apply),
+    CEED_FTABLE_ENTRY(CeedQFunction, SetCUDAUserFunction),
+    CEED_FTABLE_ENTRY(CeedQFunction, SetHIPUserFunction),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, SetData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetData),

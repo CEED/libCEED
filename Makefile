@@ -348,7 +348,7 @@ CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_ENABLED
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
@@ -367,7 +367,7 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function -DCEED_HIP_ENABLED
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)

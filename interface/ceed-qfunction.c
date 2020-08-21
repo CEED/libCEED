@@ -18,6 +18,12 @@
 #include <ceed-backend.h>
 #include <string.h>
 #include <limits.h>
+#ifdef CEED_CUDA_ENABLED
+#  include <ceed-cuda.h>
+#endif
+#ifdef CEED_HIP_ENABLED
+#  include <ceed-hip.h>
+#endif
 
 /// @file
 /// Implementation of public CeedQFunction interfaces
@@ -621,6 +627,54 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
   qf->numoutputfields++;
   return 0;
 }
+
+#ifdef CEED_CUDA_ENABLED
+/**
+  @brief Set CUDA function pointer to evaluate action at quadrature points
+
+  @param qf CeedQFunction to set device pointer
+  @param f  Device function pointer to evaluate action at quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
+  int ierr;
+  if (!qf->SetCUDAUserFunction) {
+    Ceed ceed;
+    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+    CeedDebug("Backend does not support CUfunction pointers for QFunctions.");
+  } else {
+    ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
+  }
+  return 0;
+}
+#endif
+
+#ifdef CEED_HIP_ENABLED
+/**
+  @brief Set HIP function pointer to evaluate action at quadrature points
+
+  @param qf CeedQFunction to set device pointer
+  @param f  Device function pointer to evaluate action at quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f) {
+  int ierr;
+  if (!qf->SetHIPUserFunction) {
+    Ceed ceed;
+    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+    CeedDebug("Backend does not support hipFunction_t pointers for QFunctions.");
+  } else {
+    ierr = qf->SetHIPUserFunction(qf, f); CeedChk(ierr);
+  }
+  return 0;
+}
+#endif
 
 /**
   @brief Set global context for a CeedQFunction
