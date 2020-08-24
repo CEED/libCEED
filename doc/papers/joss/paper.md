@@ -114,7 +114,7 @@ optimizations.
 (backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.pdf)
 
 Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations (backends) available in libCEED and its role, as a low-level library that allows a wide variety of applications to share highly optimized discretization kernels.
-GPU implementations are available via pure CUDA [@CUDAwebsite] as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends.
+GPU implementations are available via pure CUDA [@CUDAwebsite] and pure HIP [@HIPwebsite] as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends.
 
 # Performance Benchmarks
 
