@@ -30,6 +30,10 @@ New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
 
+Performance Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* OCCA backend rebuilt to facilitate future performance enhancements.
+
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with strain energy computation and more flexible boundary conditions.
