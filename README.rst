@@ -43,7 +43,7 @@ While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
 explained in the `user manual <https://libceed.readthedocs.io/en/latest/>`_ and
 API implementation portion of the
-`documentation <https://libceed.readthedocs.io/en/latest/libCEEDapi.html>`_.
+`documentation <https://libceed.readthedocs.io/en/latest/api/>`_.
 
 One of the challenges with high-order methods is that a global sparse matrix is
 no longer a good representation of a high-order linear operator, both with
