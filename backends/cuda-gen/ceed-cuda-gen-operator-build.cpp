@@ -834,7 +834,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
       // Check for collocated gradient
       if (emode == CEED_EVAL_GRAD)
-        collograd = collograd && !!basis_data->d_collograd1d; 
+        collograd = collograd && basis_data->d_collograd1d; 
     }
   }
   data->dim = dim;
