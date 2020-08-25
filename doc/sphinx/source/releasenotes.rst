@@ -23,10 +23,16 @@ Interface changes
 * Added :cpp:func:`CeedOperatorLinearAssembleAddDiagonal` and :cpp:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
 * Added :cpp:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
   This function is recommended over :cpp:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :cpp:func:`CeedVectorSetArray`.
+* Added :code:`CeedQFunctionContext` object to manage user QFunction context data and reduce copies between device and host memory.
+* Added :cpp:func:`CeedOperatorMultigridLevelCreate`, :cpp:func:`CeedOperatorMultigridLevelCreateTensorH1`, and :cpp:func:`CeedOperatorMultigridLevelCreateH1` to facilitate creation of multigrid prolongation, restriction, and coarse grid operators using a common quadrature space.
 
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
+
+Performance Improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* OCCA backend rebuilt to facilitate future performance enhancements.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

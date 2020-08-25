@@ -66,38 +66,8 @@ for ((i=0;i<${#backends[@]};++i)); do
     i2=$(($i0+2))  # stderr
     backend=${backends[$i]}
 
-    # Skip ElemRestriction get offsets test for OCCA
-    #  This exception will be removed with the OCCA backend overhaul
-    if [[ "$backend" = *"occa" && \
-            ( "$1" = t214* || "$1" = t215* ) ]] ; then
-        printf "ok $i0 # SKIP - GetOffsets not supported by $backend\n"
-        printf "ok $i1 # SKIP - GetOffsets not supported by $backend stdout\n"
-        printf "ok $i2 # SKIP - GetOffsets not supported by $backend stderr\n"
-        continue
-    fi
-
-    # Skip multigrid test for OCCA
-    #  This exception will be removed with the OCCA backend overhaul
-    if [[ "$backend" = *"occa" && \
-            ( "$1" = "petsc-multigrid" || "$1" = t506* ) ]] ; then
-        printf "ok $i0 # SKIP - QFunction reuse not supported by $backend\n"
-        printf "ok $i1 # SKIP - QFunction reuse not supported by $backend stdout\n"
-        printf "ok $i2 # SKIP - QFunction reuse not supported by $backend stderr\n"
-        continue
-    fi
-
-    # Skip tests t41*, t538, t540, t55*, ex1, and ex2 for OCCA
-    #  This exception will be removed with the OCCA backend overhaul
-    if [[ "$backend" = *occa && \
-            ( "$1" = t41* || "$1" = t538* || "$1" = t540* || "$1" = t55* || "$1" = ex* ) ]] ; then
-        printf "ok $i0 # SKIP - gallery not supported by $1 $backend\n"
-        printf "ok $i1 # SKIP - gallery not supported by $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - gallery not supported by $1 $backend stderr\n"
-        continue
-    fi
-
     # Fluids and Solids QFunctions use VLA; not currently supported in OCCA
-    if [[ "$backend" = *occa && \
+    if [[ "$backend" = *occa* && \
             ( "$1" = fluids-* || "$1" = solids-* || "$1" = t507* ) ]]; then
         printf "ok $i0 # SKIP - no support for VLA with $backend\n"
         printf "ok $i1 # SKIP - no support for VLA with $backend stdout\n"
@@ -117,14 +87,6 @@ for ((i=0;i<${#backends[@]};++i)); do
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
-
-    # grep to skip test if backend cannot handle resource
-    if grep -F -q -e 'OCCA backend failed to use' ${output}.err; then
-        printf "ok $i0 # SKIP - occa mode not supported $1 $backend\n"
-        printf "ok $i1 # SKIP - occa mode not supported $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - occa mode not supported $1 $backend stderr\n"
-        continue
-    fi
 
     # grep to skip test if backend chooses to whitelist test
     if grep -F -q -e 'Backend does not implement' \
