@@ -1,11 +1,39 @@
 use crate::prelude::*;
 use std::convert::TryFrom;
 use std::slice;
+use std::ffi::CString;
+use std::fmt;
+use std::os::raw::c_char;
 
 /// CeedVector context wrapper
 pub struct Vector<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedVector,
+}
+
+/// Display
+impl<'a> fmt::Display for Vector<'a> {
+    /// View a Vector
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let x = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// println!("{}", x);
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut ptr = std::ptr::null_mut();
+        let mut sizeloc = 202020;
+        unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            let format = CString::new("%12.8f").expect("CString::new failed");
+            let format_c : *const c_char = format.into_raw();
+            bind_ceed::CeedVectorView(self.ptr, format_c, file);
+            bind_ceed::fclose(file);
+            let cstring = CString::from_raw(ptr);
+            let s = cstring.to_string_lossy().into_owned();
+            write!(f, "{}", s)
+        }
+    }
 }
 
 impl<'a> Vector<'a> {

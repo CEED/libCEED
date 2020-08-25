@@ -1,9 +1,34 @@
 use crate::prelude::*;
+use std::ffi::CString;
+use std::fmt;
 
 /// CeedElemRestriction context wrapper
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedElemRestriction,
+}
+
+/// Display
+impl<'a> fmt::Display for ElemRestriction<'a> {
+    /// View a Basis
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
+    /// println!("{}", b);
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut ptr = std::ptr::null_mut();
+        let mut sizeloc = 202020;
+        unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedElemRestrictionView(self.ptr, file);
+            bind_ceed::fclose(file);
+            let cstring = CString::from_raw(ptr);
+            let s = cstring.to_string_lossy().into_owned();
+            write!(f, "{}", s)
+        }
+    }
 }
 
 impl<'a> ElemRestriction<'a> {

@@ -3,11 +3,9 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use ndarray;
+use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
-// use std::io::{self, Write};
-use crate::prelude::*;
 
 mod prelude {
     pub mod bind_ceed {
@@ -31,8 +29,23 @@ pub struct Ceed {
 
 /// Display
 impl fmt::Display for Ceed {
+    /// View a Ceed
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// println!("{}", ceed);
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.backend)
+        let mut ptr = std::ptr::null_mut();
+        let mut sizeloc = 202020;
+        unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedView(self.ptr, file);
+            bind_ceed::fclose(file);
+            let cstring = CString::from_raw(ptr);
+            let s = cstring.to_string_lossy().into_owned();
+            write!(f, "{}", s)
+        }
     }
 }
 
@@ -109,6 +122,7 @@ impl Ceed {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// println!("{}", ceed);
     /// ```
     pub fn init(resource: &str) -> Self {
         // Convert to C string
