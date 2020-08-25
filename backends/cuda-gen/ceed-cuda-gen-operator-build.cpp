@@ -739,11 +739,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   CeedOperator_Cuda_gen *data;
-  ierr = CeedOperatorGetData(op, (void**)&data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &data); CeedChk(ierr);
   CeedQFunction qf;
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  ierr = CeedQFunctionGetData(qf, (void **)&qf_data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChk(ierr);
   CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
           numoutputfields, ncomp, dim = 0, lsize;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
@@ -768,7 +768,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   // Add atomicAdd function for old NVidia architectures
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  ierr = CeedGetData(ceed, (void **)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
   if (prop.major<6){
     code << atomicAdd;
@@ -789,7 +789,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
 
       // Check for collocated gradient
       if (basis_data->d_collograd1d)
@@ -813,7 +813,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
       bool isTensor;
@@ -897,13 +897,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       data->B.in[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       data->B.in[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
@@ -955,13 +955,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       break; // No action
     case CEED_EVAL_INTERP:
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       data->B.out[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       data->B.out[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
@@ -1022,7 +1022,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         CeedInt compstride;
         ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
         code << "    // CompStride: "<<compstride<<"\n";
-        ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
+        ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
         data->indices.in[i] = restr_data->d_ind;
         code << "    readDofsOffset"<<dim<<"d<ncomp_in_"<<i<<", "<<compstride<<", P_in_"<<i<<">(data, lsize_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       } else {
@@ -1066,7 +1066,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_WEIGHT:
       code << "    CeedScalar r_t"<<i<<"[Q1d];\n";
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-      ierr = CeedBasisGetData(basis, (void **)&basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
       data->W = basis_data->d_qweight1d;
       code << "    weight"<<dim<<"d<Q1d>(data, W, r_t"<<i<<");\n";
       break; // No action
@@ -1130,7 +1130,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           CeedInt compstride;
           ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
           code << "      // CompStride: "<<compstride<<"\n";
-          ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
+          ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
           data->indices.in[i] = restr_data->d_ind;
           code << "      readSliceQuadsOffset"<<"3d<ncomp_in_"<<i<<", "<<compstride<<", Q1d>(data, lsize_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
@@ -1315,7 +1315,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedInt compstride;
       ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
       code << "    // CompStride: "<<compstride<<"\n";
-      ierr = CeedElemRestrictionGetData(Erestrict, (void **)&restr_data); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
       data->indices.out[i] = restr_data->d_ind;
       code << "    writeDofsOffset"<<dim<<"d<ncomp_out_"<<i<<", "<<compstride<<", P_out_"<<i<<">(data, lsize_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
     } else {
