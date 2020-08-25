@@ -872,7 +872,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         PetscInt comps[1] = {4};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetup); CHKERRQ(ierr);
+                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else if (problem->bc == Exact_DC) {
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
@@ -1592,7 +1592,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxNSData, &ctxNSData);
 
-  struct Advection2dContext_ ctxAdvection2d = {
+  struct Advection2dContext_ ctxAdvection2dData = {
     .CtauS = CtauS,
     .strong_form = strong_form,
     .stabilization = stab,
@@ -1613,19 +1613,18 @@ int main(int argc, char **argv) {
   // Set up ctxEulerData structure
   ctxEulerData->time = 0.;
   ctxEulerData->currentTime = 0.;
-  ctxEulerData->wind[0] = wind[0];
-  ctxEulerData->wind[1] = wind[1];
-  ctxEulerData->wind[2] = wind[2];
   ctxEulerData->center[0] = center[0];
   ctxEulerData->center[1] = center[1];
   ctxEulerData->center[2] = center[2];
   ctxEulerData->vortex_strength = vortex_strength;
-
+  ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
+  ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
+  ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
   user->ctxEulerData = ctxEulerData;
 
   CeedQFunctionContextCreate(ceed, &ctxEuler);
   CeedQFunctionContextSetData(ctxEuler, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof *ctxEulerData, ctxEulerData); // ToDo: check the pointer
+                              sizeof *ctxEulerData, ctxEulerData);
 
   switch (problemChoice) {
   case NS_DENSITY_CURRENT:
@@ -1638,7 +1637,7 @@ int main(int argc, char **argv) {
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
   case NS_EULER_VORTEX:
-    if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler); // ToDo: check the pointer
+    if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxEuler);
   }
@@ -1857,6 +1856,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextDestroy(&ctxNS);
   CeedQFunctionContextDestroy(&ctxAdvection2d);
   CeedQFunctionContextDestroy(&ctxSurface);
+  CeedQFunctionContextDestroy(&ctxEuler);
   CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);
