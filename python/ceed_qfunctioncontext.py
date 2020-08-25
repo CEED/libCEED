@@ -156,7 +156,8 @@ class QFunctionContext():
         data_pointer = ffi.new("CeedScalar **")
 
         # libCEED call
-        err_code = lib.CeedQFunctionDataRestoreData(self._pointer[0], data_pointer)
+        err_code = lib.CeedQFunctionDataRestoreData(
+            self._pointer[0], data_pointer)
         self._ceed._check_error(err_code)
 
     @contextlib.contextmanager
