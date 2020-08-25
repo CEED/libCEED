@@ -1120,6 +1120,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "      CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
 
         bool isStrided;
+        ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict); CeedChk(ierr);
         ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChk(ierr);
         ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
         if (!isStrided) {
