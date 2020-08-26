@@ -399,6 +399,16 @@ impl Ceed {
         todo!()
     }
 
+    /// Returns a CeedQFunction for evaluating interior (volumetric) terms created by name
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// ```
+    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunctionByName {
+        crate::qfunction::QFunctionByName::create(self, name)
+    }
+
     /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
     ///
     /// ```
@@ -418,6 +428,11 @@ impl Ceed {
     ) -> crate::operator::Operator {
         crate::operator::Operator::create(self, qf, dqf, dqfT)
     }
+
+    /// Operator
+    pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
+        crate::operator::CompositeOperator::create(self)
+    }
 }
 
 #[cfg(test)]
@@ -428,10 +443,5 @@ mod tests {
     fn ceed_t000() {
         let ceed = Ceed::init("/cpu/self/ref/serial");
         println!("{}", ceed);
-    }
-
-    fn ceed_t001() {
-        let ceed = Ceed::init("/cpu/self/ref/serial");
-        let vec = ceed.vector(10);
     }
 }

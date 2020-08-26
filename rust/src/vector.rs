@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use std::convert::TryFrom;
-use std::slice;
 use std::ffi::CString;
 use std::fmt;
 use std::os::raw::c_char;
+use std::slice;
 
 /// CeedVector context wrapper
 pub struct Vector<'a> {
@@ -26,7 +26,7 @@ impl<'a> fmt::Display for Vector<'a> {
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             let format = CString::new("%12.8f").expect("CString::new failed");
-            let format_c : *const c_char = format.into_raw();
+            let format_c: *const c_char = format.into_raw();
             bind_ceed::CeedVectorView(self.ptr, format_c, file);
             bind_ceed::fclose(file);
             let cstring = CString::from_raw(ptr);
