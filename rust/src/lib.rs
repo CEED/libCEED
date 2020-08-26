@@ -43,50 +43,6 @@ pub mod qfunction_context;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
-// Ceed context wrapper
-// -----------------------------------------------------------------------------
-pub struct Ceed {
-    backend: String,
-    // Pointer to C object
-    ptr: bind_ceed::Ceed,
-}
-
-// -----------------------------------------------------------------------------
-// Destructor
-// -----------------------------------------------------------------------------
-impl Drop for Ceed {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedDestroy(&mut self.ptr);
-        }
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Display
-// -----------------------------------------------------------------------------
-impl fmt::Display for Ceed {
-    /// View a Ceed
-    ///
-    /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// println!("{}", ceed);
-    /// ```
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            bind_ceed::CeedView(self.ptr, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
-    }
-}
-
-// -----------------------------------------------------------------------------
 // Enums for libCEED
 // -----------------------------------------------------------------------------
 #[derive(Clone, Copy, PartialEq)]
@@ -140,6 +96,50 @@ pub enum EvalMode {
     Div,
     Curl,
     Weight,
+}
+
+// -----------------------------------------------------------------------------
+// Ceed context wrapper
+// -----------------------------------------------------------------------------
+pub struct Ceed {
+    backend: String,
+    // Pointer to C object
+    ptr: bind_ceed::Ceed,
+}
+
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl Drop for Ceed {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
+impl fmt::Display for Ceed {
+    /// View a Ceed
+    ///
+    /// ```
+    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// println!("{}", ceed);
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut ptr = std::ptr::null_mut();
+        let mut sizeloc = 202020;
+        unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedView(self.ptr, file);
+            bind_ceed::fclose(file);
+            let cstring = CString::from_raw(ptr);
+            let s = cstring.to_string_lossy().into_owned();
+            write!(f, "{}", s)
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

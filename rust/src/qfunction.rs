@@ -91,22 +91,17 @@ impl<'a> QFunctionCore<'a> {
     }
 
     // Common implementation
-    pub fn apply(
-        &self,
-        Q: i32,
-        input: [crate::vector::Vector; 16],
-        output: [crate::vector::Vector; 16],
-    ) {
+    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
         unsafe {
-            let mut input_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, input.len()) {
-                input_c[i] = input[i].ptr;
+            let mut u_c = [std::ptr::null_mut(); 16];
+            for i in 0..std::cmp::min(16, u.len()) {
+                u_c[i] = u[i].ptr;
             }
-            let mut output_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, output.len()) {
-                output_c[i] = output[i].ptr;
+            let mut v_c = [std::ptr::null_mut(); 16];
+            for i in 0..std::cmp::min(16, v.len()) {
+                v_c[i] = v[i].ptr;
             }
-            bind_ceed::CeedQFunctionApply(self.ptr, Q, &mut input_c[0], &mut output_c[0]);
+            bind_ceed::CeedQFunctionApply(self.ptr, Q, &mut u_c[0], &mut v_c[0]);
         }
     }
 }
@@ -120,13 +115,67 @@ impl<'a> QFunction<'a> {
     //
     //}
 
-    pub fn apply(
-        &self,
-        Q: i32,
-        input: [crate::vector::Vector; 16],
-        output: [crate::vector::Vector; 16],
-    ) {
-        self.qf_core.apply(Q, input, output);
+    /// Apply the action of a QFunction
+    ///
+    /// * 'Q'      - The number of quadrature points
+    /// * 'input'  - Array of input Vectors
+    /// * 'output' - Array of output Vectors
+    ///
+    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+        self.qf_core.apply(Q, u, v);
+    }
+
+    /// Add a QFunction input
+    ///
+    /// * 'fieldname' - Name of QFunction field
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
+    /// * 'emode'     - EvalMode::None to use values directly,
+    ///                   EvalMode::Interp to use interpolated values,
+    ///                   EvalMode::Grad to use gradients,
+    ///                   EvalMode::Weight to use quadrature weights
+    ///
+    pub fn add_input(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
+        unsafe {
+            bind_ceed::CeedQFunctionAddInput(
+                self.qf_core.ptr,
+                name_c.as_ptr(),
+                size,
+                emode as bind_ceed::CeedEvalMode,
+            );
+        }
+    }
+
+    /// Add a QFunction output
+    ///
+    /// * 'fieldname' - Name of QFunction field
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
+    /// * 'emode'     - EvalMode::None to use values directly,
+    ///                   EvalMode::Interp to use interpolated values,
+    ///                   EvalMode::Grad to use gradients
+    ///
+    pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
+        unsafe {
+            bind_ceed::CeedQFunctionAddOutput(
+                self.qf_core.ptr,
+                name_c.as_ptr(),
+                size,
+                emode as bind_ceed::CeedEvalMode,
+            );
+        }
+    }
+
+    /// Set global context for a QFunction
+    ///
+    /// * 'ctx' - Context data to set
+    ///
+    pub fn set_context(&self, ctx: crate::qfunction_context::QFunctionContext) {
+        unsafe {
+            bind_ceed::CeedQFunctionSetContext(self.qf_core.ptr, ctx.ptr);
+        }
     }
 }
 
@@ -145,13 +194,61 @@ impl<'a> QFunctionByName<'a> {
         Self { qf_core }
     }
 
-    pub fn apply(
-        &self,
-        Q: i32,
-        input: [crate::vector::Vector; 16],
-        output: [crate::vector::Vector; 16],
-    ) {
-        self.qf_core.apply(Q, input, output);
+    /// Apply the action of a QFunction
+    ///
+    /// * 'Q'      - The number of quadrature points
+    /// * 'input'  - Array of input Vectors
+    /// * 'output' - Array of output Vectors
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// const Q : usize = 8;
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    ///
+    /// let mut j = [0.; Q];
+    /// let mut w = [0.; Q];
+    /// let mut u = [0.; Q];
+    /// let mut v = [0.; Q];
+    ///
+    /// for i in 0..Q as usize {
+    ///   let x = 2.*(i as f64)/((Q as f64) - 1.) - 1.;
+    ///   j[i] = 1.;
+    ///   w[i] = 1. - x*x;
+    ///   u[i] = 2. + 3.*x + 5.*x*x;
+    ///   v[i] = w[i] * u[i];
+    /// }
+    ///
+    /// let J = ceed.vector_from_slice(&j);
+    /// let W = ceed.vector_from_slice(&w);
+    /// let U = ceed.vector_from_slice(&u);
+    /// let mut V = ceed.vector(Q);
+    /// V.set_value(0.0);
+    /// let mut Qdata = ceed.vector(Q);
+    /// Qdata.set_value(0.0);
+    ///
+    /// {
+    ///   let mut input = vec![J, W];
+    ///   let mut output = vec![Qdata];
+    ///   qf_build.apply(Q as i32, &input, &output);
+    ///   Qdata = output.remove(0);
+    /// }
+    ///
+    /// {
+    ///   let mut input = vec![Qdata, U];
+    ///   let mut output = vec![V];
+    ///   qf_mass.apply(Q as i32, &input, &output);
+    ///   V = output.remove(0);
+    /// }
+    ///
+    /// let array = V.get_array(ceed::MemType::Host);
+    /// for i in 0..Q {
+    ///   assert_eq!(array[i], v[i]);
+    /// }
+    /// V.restore_array(array);
+    /// ```
+    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+        self.qf_core.apply(Q, u, v);
     }
 }
 

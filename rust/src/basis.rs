@@ -149,6 +149,17 @@ impl<'a> Basis<'a> {
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa
     ///
+    /// * 'nelem' - The number of elements to apply the basis evaluation to
+    /// * 'tmode' - tmode=noTranspose to evaluate from nodes to quadrature
+    ///               points, tmode=transpose to apply the transpose, mapping
+    ///               from quadrature points to nodes
+    /// * 'emode' - EvalMode::None to use values directly,
+    ///               EvalMode::Interp to use interpolated values,
+    ///               EvalMode::Grad to use gradients,
+    ///               EvalMode::Weight to use quadrature weights
+    /// * 'u'     - Input Vector
+    /// * 'v'     - Output Vector
+    ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// const q : i32 = 6;
