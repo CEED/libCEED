@@ -785,7 +785,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "\n#define CeedPragmaSIMD\n";
 
   // Find dim and Q1d
-  bool collograd = true;
+  bool useCollograd = true;
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
@@ -795,7 +795,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
       // Check for collocated gradient
       if (emode == CEED_EVAL_GRAD)
-        collograd = collograd && !!basis_data->d_collograd1d; 
+        useCollograd = useCollograd && !!basis_data->d_collograd1d; 
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -834,14 +834,14 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
       // Check for collocated gradient
       if (emode == CEED_EVAL_GRAD)
-        collograd = collograd && basis_data->d_collograd1d; 
+        useCollograd = useCollograd && basis_data->d_collograd1d; 
     }
   }
   data->dim = dim;
   data->Q1d = Q1d;
 
   // Define CEED_Q_VLA
-  if (dim != 3 || collograd) {
+  if (dim != 3 || useCollograd) {
     code << "\n#define CEED_Q_VLA 1\n\n";
   } else {
     code << "\n#define CEED_Q_VLA "<<Q1d<<"\n\n";
@@ -917,7 +917,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       data->B.in[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
-      if (collograd) {
+      if (useCollograd) {
         data->G.in[i] = basis_data->d_collograd1d;
         code << "  __shared__ double s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
@@ -975,7 +975,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       data->B.out[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
-      if (collograd) {
+      if (useCollograd) {
         data->G.out[i] = basis_data->d_collograd1d;
         code << "  __shared__ double s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
@@ -1020,7 +1020,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
     // Restriction
     if (emode != CEED_EVAL_WEIGHT &&
-        !((emode == CEED_EVAL_NONE) && collograd)) {
+        !((emode == CEED_EVAL_NONE) && useCollograd)) {
       code << "    CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
       
       bool isStrided;
@@ -1056,7 +1056,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << "    // EvalMode: "<<CeedEvalModes[emode]<<"\n";
     switch (emode) {
     case CEED_EVAL_NONE:
-      if (!collograd) {
+      if (!useCollograd) {
         code << "    CeedScalar* r_t"<<i<<" = r_u"<<i<<";\n";
       }
       break;
@@ -1065,7 +1065,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "    interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", r_t"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
-      if (collograd) {
+      if (useCollograd) {
         code << "    CeedScalar r_t"<<i<<"[ncomp_in_"<<i<<"*Q1d];\n";
         code << "    interp"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<",Q1d>(data, r_u"<<i<<", s_B_in_"<<i<<", r_t"<<i<<");\n";
       } else {
@@ -1095,7 +1095,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChk(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
-      if (collograd) {
+      if (useCollograd) {
         //Accumulator for gradient slices
         code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
         code << "    for (CeedInt i = 0; i < ncomp_out_"<<i<<"; ++i) {\n";
@@ -1113,7 +1113,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
   // We treat quadrature points per slice in 3d to save registers
-  if (collograd) {
+  if (useCollograd) {
     code << "\n    // Note: Collocated Gradient\n";
     code << "#pragma unroll\n";
     code << "    for (CeedInt q=0; q<Q1d; q++) {\n";
@@ -1229,13 +1229,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   code << "\n      // -- Apply QFunction --\n";
   code << "      "<<qFunctionName<<"(ctx, ";
-  if (dim != 3 || collograd) {
+  if (dim != 3 || useCollograd) {
     code << "1";
   } else {
     code << "Q1d";
   }
   code << ", in, out);\n";
-  if (collograd) {
+  if (useCollograd) {
     code << "\n      // Note: Collocated Gradient\n";
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < numoutputfields; i++) {
@@ -1295,7 +1295,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_GRAD:
       code << "    CeedScalar r_v"<<i<<"[ncomp_out_"<<i<<"*P_out_"<<i<<"];\n";
-      if (collograd) {
+      if (useCollograd) {
         code << "    interpTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", r_v"<<i<<");\n";
       } else {
         code << "    gradTranspose"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<",Q1d>(data, r_tt"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v"<<i<<");\n";
