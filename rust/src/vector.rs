@@ -19,13 +19,18 @@ use std::ffi::CString;
 use std::fmt;
 use std::os::raw::c_char;
 use std::slice;
+use std::cell::RefCell;
+use std::rc::{Rc,Weak};
+use std::ops::Deref;
 
 // -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
 pub struct Vector<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedVector,
+    array_weak: RefCell<Weak<*const f64>>,
 }
 
 // -----------------------------------------------------------------------------
@@ -75,11 +80,19 @@ impl<'a> Vector<'a> {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
-        Self { ceed, ptr }
+        Self {
+            ceed: ceed,
+            ptr: ptr,
+            array_weak: RefCell::new(Weak::new()),
+        }
     }
 
     pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedVector) -> Self {
-        Self { ceed, ptr }
+        Self {
+            ceed: ceed,
+            ptr: ptr,
+            array_weak: RefCell::new(Weak::new()),
+        }
     }
 
     /// Create a Vector from a slice
@@ -228,7 +241,7 @@ impl<'a> Vector<'a> {
         unsafe {
             bind_ceed::CeedVectorGetArray(self.ptr, mtype as bind_ceed::CeedMemType, &mut ptr)
         };
-        let mut ptr_slice: &mut [f64] = unsafe { slice::from_raw_parts_mut(ptr, n) };
+        let ptr_slice: &mut [f64] = unsafe { slice::from_raw_parts_mut(ptr, n) };
         ndarray::aview_mut1(ptr_slice)
     }
 
@@ -292,6 +305,21 @@ impl<'a> Vector<'a> {
         drop(array);
     }
 
+    /// Create an immutable view
+    ///
+    /// ```
+    /// # let ceed= ceed::Ceed::default_init();
+    /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
+    /// let v = vec.view();
+    /// assert_eq!(v[0..2], [10., 11.]);
+    /// // It is valid to have multiple immutable views
+    /// let w = vec.view();
+    /// assert_eq!(v[1..], w[1..]);
+    /// ```
+    pub fn view(&self) -> VectorView {
+        VectorView::new(self)
+    }
+
     /// Return the norm of a CeedVector
     ///
     /// # arguments
@@ -313,3 +341,58 @@ impl<'a> Vector<'a> {
 }
 
 // -----------------------------------------------------------------------------
+
+/// A (host) view of a Vector with Deref to slice.  We can't make
+/// Vector itself Deref to slice because we can't handle the drop to
+/// call bind_ceed::CeedVectorRestoreArrayRead().
+#[derive(Debug)]
+pub struct VectorView<'a> {
+    vec: &'a Vector<'a>,
+    array: Rc<*const f64>,
+}
+
+impl<'a> VectorView<'a> {
+    fn new(vec: &'a Vector) -> Self {
+        if let Some(array) = vec.array_weak.borrow().upgrade() {
+            return Self {
+                vec: vec,
+                array: Rc::clone(&array),
+            }
+        }
+        let mut ptr = std::ptr::null();
+        unsafe {
+            bind_ceed::CeedVectorGetArrayRead(vec.ptr, crate::MemType::Host as bind_ceed::CeedMemType, &mut ptr);
+        }
+        let array = std::rc::Rc::new(ptr);
+        vec.array_weak.replace(Rc::downgrade(&array));
+        Self {
+            vec: vec,
+            array: array,
+        }
+    }
+}
+
+impl<'a> Drop for VectorView<'a> {
+    fn drop(&mut self) {
+        if let Some(ptr) = Rc::get_mut(&mut self.array) {
+            unsafe {
+                bind_ceed::CeedVectorRestoreArrayRead(self.vec.ptr, &mut *ptr);
+            }
+        }
+    }
+}
+
+impl<'a> Deref for VectorView<'a> {
+    type Target = [f64];
+    fn deref(&self) -> &[f64] {
+        unsafe {
+            std::slice::from_raw_parts(*self.array, self.vec.len())
+        }
+    }
+}
+
+impl<'a> fmt::Display for VectorView<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "VectorView({:?})", self.deref())
+    }
+}

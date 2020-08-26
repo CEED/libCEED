@@ -101,6 +101,7 @@ pub enum EvalMode {
 // -----------------------------------------------------------------------------
 // Ceed context wrapper
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
 pub struct Ceed {
     backend: String,
     // Pointer to C object
