@@ -2,13 +2,28 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
-/// CeedElemRestriction context wrapper
+// -----------------------------------------------------------------------------
+// CeedElemRestriction context wrapper
+// -----------------------------------------------------------------------------
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedElemRestriction,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for ElemRestriction<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedElemRestrictionDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl<'a> fmt::Display for ElemRestriction<'a> {
     /// View a Basis
     ///
@@ -31,7 +46,11 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Implementations
+// -----------------------------------------------------------------------------
 impl<'a> ElemRestriction<'a> {
+    // Constructors
     pub fn create(
         ceed: &'a crate::Ceed,
         nelem: i32,
@@ -368,11 +387,4 @@ impl<'a> ElemRestriction<'a> {
     }
 }
 
-/// Destructor
-impl<'a> Drop for ElemRestriction<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedElemRestrictionDestroy(&mut self.ptr);
-        }
-    }
-}
+// -----------------------------------------------------------------------------

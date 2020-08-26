@@ -2,13 +2,28 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
-/// CeedBasis context wrapper
+// -----------------------------------------------------------------------------
+// CeedBasis context wrapper
+// -----------------------------------------------------------------------------
 pub struct Basis<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedBasis,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for Basis<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedBasisDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl<'a> fmt::Display for Basis<'a> {
     /// View a Basis
     ///
@@ -31,6 +46,9 @@ impl<'a> fmt::Display for Basis<'a> {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Implementations
+// -----------------------------------------------------------------------------
 impl<'a> Basis<'a> {
     /// Constructors
     pub fn create_tensor_H1(
@@ -245,11 +263,4 @@ impl<'a> Basis<'a> {
     }
 }
 
-/// Destructor
-impl<'a> Drop for Basis<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedBasisDestroy(&mut self.ptr);
-        }
-    }
-}
+// -----------------------------------------------------------------------------

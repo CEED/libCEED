@@ -1,3 +1,6 @@
+// -----------------------------------------------------------------------------
+// Exceptions
+// -----------------------------------------------------------------------------
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
@@ -13,6 +16,9 @@ mod prelude {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Modules
+// -----------------------------------------------------------------------------
 pub mod basis;
 pub mod elem_restriction;
 pub mod operator;
@@ -20,14 +26,29 @@ pub mod qfunction;
 pub mod qfunction_context;
 pub mod vector;
 
-/// Ceed context wrapper
+// -----------------------------------------------------------------------------
+// Ceed context wrapper
+// -----------------------------------------------------------------------------
 pub struct Ceed {
     backend: String,
     // Pointer to C object
     ptr: bind_ceed::Ceed,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl Drop for Ceed {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl fmt::Display for Ceed {
     /// View a Ceed
     ///
@@ -49,16 +70,9 @@ impl fmt::Display for Ceed {
     }
 }
 
-/// Destructor
-impl Drop for Ceed {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedDestroy(&mut self.ptr);
-        }
-    }
-}
-
-/// Enums for libCEED
+// -----------------------------------------------------------------------------
+// Enums for libCEED
+// -----------------------------------------------------------------------------
 #[derive(Clone, Copy, PartialEq)]
 pub enum MemType {
     Host,
@@ -112,7 +126,9 @@ pub enum EvalMode {
     Weight,
 }
 
+// -----------------------------------------------------------------------------
 // Object constructors
+// -----------------------------------------------------------------------------
 impl Ceed {
     /// Returns a Ceed context initalized with the specified resource
     ///
@@ -137,6 +153,7 @@ impl Ceed {
         }
     }
 
+    /// Default initalizer for testing
     pub fn default_init() -> Self {
         // Convert to C string
         let resource = "/cpu/self/ref/serial";
@@ -429,19 +446,24 @@ impl Ceed {
         crate::operator::Operator::create(self, qf, dqf, dqfT)
     }
 
-    /// Operator
+    /// Composite Operator
     pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
         crate::operator::CompositeOperator::create(self)
     }
 }
 
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    // ToDo: Make single example test like t501
     #[test]
     fn ceed_t000() {
         let ceed = Ceed::init("/cpu/self/ref/serial");
         println!("{}", ceed);
     }
 }
+
+// -----------------------------------------------------------------------------

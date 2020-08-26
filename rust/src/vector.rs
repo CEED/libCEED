@@ -5,13 +5,28 @@ use std::fmt;
 use std::os::raw::c_char;
 use std::slice;
 
-/// CeedVector context wrapper
+// -----------------------------------------------------------------------------
+// CeedVector context wrapper
+// -----------------------------------------------------------------------------
 pub struct Vector<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedVector,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for Vector<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedVectorDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl<'a> fmt::Display for Vector<'a> {
     /// View a Vector
     ///
@@ -36,6 +51,9 @@ impl<'a> fmt::Display for Vector<'a> {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Implementations
+// -----------------------------------------------------------------------------
 impl<'a> Vector<'a> {
     /// Constructors
     pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
@@ -279,11 +297,4 @@ impl<'a> Vector<'a> {
     }
 }
 
-/// Destructor
-impl<'a> Drop for Vector<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedVectorDestroy(&mut self.ptr);
-        }
-    }
-}
+// -----------------------------------------------------------------------------

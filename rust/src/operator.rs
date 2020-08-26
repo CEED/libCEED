@@ -2,19 +2,36 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
-/// CeedOperator context wrapper
+// -----------------------------------------------------------------------------
+// CeedOperator context wrapper
+// -----------------------------------------------------------------------------
 pub struct OperatorCore<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedOperator,
 }
+
 pub struct Operator<'a> {
     op_core: OperatorCore<'a>,
 }
+
 pub struct CompositeOperator<'a> {
     op_core: OperatorCore<'a>,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for OperatorCore<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedOperatorDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl<'a> fmt::Display for OperatorCore<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -29,23 +46,29 @@ impl<'a> fmt::Display for OperatorCore<'a> {
         }
     }
 }
+
 impl<'a> fmt::Display for Operator<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)
     }
 }
+
 impl<'a> fmt::Display for CompositeOperator<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)
     }
 }
 
-/// Core functionality
+// -----------------------------------------------------------------------------
+// Core functionality
+// -----------------------------------------------------------------------------
 impl<'a> OperatorCore<'a> {
+    // Constructor
     pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedOperator) -> Self {
         Self { ceed, ptr }
     }
 
+    // Common implementations
     pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorApply(
@@ -179,7 +202,9 @@ impl<'a> OperatorCore<'a> {
     }
 }
 
-/// Operator
+// -----------------------------------------------------------------------------
+// Operator
+// -----------------------------------------------------------------------------
 impl<'a> Operator<'a> {
     /// Constructor
     pub fn create(
@@ -334,7 +359,9 @@ impl<'a> Operator<'a> {
     }
 }
 
-/// Composite Operator
+// -----------------------------------------------------------------------------
+// Composite Operator
+// -----------------------------------------------------------------------------
 impl<'a> CompositeOperator<'a> {
     /// Constructor
     pub fn create(ceed: &'a crate::Ceed) -> Self {
@@ -434,11 +461,4 @@ impl<'a> CompositeOperator<'a> {
     }
 }
 
-/// Destructor
-impl<'a> Drop for OperatorCore<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedOperatorDestroy(&mut self.ptr);
-        }
-    }
-}
+// -----------------------------------------------------------------------------

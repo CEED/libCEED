@@ -2,19 +2,36 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
-/// CeedQFunction context wrapper
+// -----------------------------------------------------------------------------
+// CeedQFunction context wrapper
+// -----------------------------------------------------------------------------
 pub struct QFunctionCore<'a> {
     ceed: &'a crate::Ceed,
     pub ptr: bind_ceed::CeedQFunction,
 }
+
 pub struct QFunction<'a> {
     pub qf_core: QFunctionCore<'a>,
 }
+
 pub struct QFunctionByName<'a> {
     pub qf_core: QFunctionCore<'a>,
 }
 
-/// Display
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for QFunctionCore<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedQFunctionDestroy(&mut self.ptr);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Display
+// -----------------------------------------------------------------------------
 impl<'a> fmt::Display for QFunctionCore<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -29,11 +46,13 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
         }
     }
 }
+
 impl<'a> fmt::Display for QFunction<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.qf_core.fmt(f)
     }
 }
+
 /// View a QFunction created by name
 ///
 /// ```
@@ -47,12 +66,16 @@ impl<'a> fmt::Display for QFunctionByName<'a> {
     }
 }
 
-/// Core functionality
+// -----------------------------------------------------------------------------
+// Core functionality
+// -----------------------------------------------------------------------------
 impl<'a> QFunctionCore<'a> {
+    // Constructor
     pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedQFunction) -> Self {
         Self { ceed, ptr }
     }
 
+    // Common implementation
     pub fn apply(
         &self,
         Q: i32,
@@ -73,7 +96,9 @@ impl<'a> QFunctionCore<'a> {
     }
 }
 
-/// QFunction
+// -----------------------------------------------------------------------------
+// QFunction
+// -----------------------------------------------------------------------------
 impl<'a> QFunction<'a> {
     /// Constructor
     //pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
@@ -90,7 +115,9 @@ impl<'a> QFunction<'a> {
     }
 }
 
-/// QFunction by Name
+// -----------------------------------------------------------------------------
+// QFunction by Name
+// -----------------------------------------------------------------------------
 impl<'a> QFunctionByName<'a> {
     /// Constructor
     pub fn create(ceed: &'a crate::Ceed, name: String) -> Self {
@@ -113,11 +140,4 @@ impl<'a> QFunctionByName<'a> {
     }
 }
 
-/// Destructor
-impl<'a> Drop for QFunctionCore<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            bind_ceed::CeedQFunctionDestroy(&mut self.ptr);
-        }
-    }
-}
+// -----------------------------------------------------------------------------
