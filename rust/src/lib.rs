@@ -425,9 +425,9 @@ impl Ceed {
     /// QFunction
     pub fn q_function_interior(
         &self,
-        vlength: i32,
-        f: bind_ceed::CeedQFunctionUser,
-        source: impl Into<String>,
+        _vlength: i32,
+        _f: bind_ceed::CeedQFunctionUser,
+        _source: impl Into<String>,
     ) -> crate::qfunction::QFunction {
         //TODO
         todo!()

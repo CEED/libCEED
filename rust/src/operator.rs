@@ -209,7 +209,6 @@ impl<'a> Operator<'a> {
         v: &crate::vector::Vector,
     ) {
         unsafe {
-            use std::ffi::CString;
             bind_ceed::CeedOperatorSetField(
                 self.op_core.ptr,
                 CString::new(fieldname)

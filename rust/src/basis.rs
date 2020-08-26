@@ -234,13 +234,13 @@ impl<'a> Basis<'a> {
     }
 
     pub fn get_topology(&self) -> crate::ElemTopology {
-        let mut topo = crate::ElemTopology::Line;
-        unsafe {
-            // bind_ceed::CeedBasisGetTopology(
-            //     self.ptr,
-            //     &mut topo as &mut bind_ceed::CeedElemTopology,
-            // )
-        };
+        let topo = crate::ElemTopology::Line;
+        // unsafe {
+        //     bind_ceed::CeedBasisGetTopology(
+        //         self.ptr,
+        //         &mut topo as &mut bind_ceed::CeedElemTopology,
+        //     )
+        // };
         topo
     }
 
