@@ -119,7 +119,7 @@ impl<'a> QFunction<'a> {
 // QFunction by Name
 // -----------------------------------------------------------------------------
 impl<'a> QFunctionByName<'a> {
-    /// Constructor
+    // Constructor
     pub fn create(ceed: &'a crate::Ceed, name: String) -> Self {
         let name_c = CString::new(name).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();

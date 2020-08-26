@@ -206,7 +206,7 @@ impl<'a> OperatorCore<'a> {
 // Operator
 // -----------------------------------------------------------------------------
 impl<'a> Operator<'a> {
-    /// Constructor
+    // Constructor
     pub fn create(
         ceed: &'a crate::Ceed,
         qf: &crate::qfunction::QFunction,
@@ -363,7 +363,7 @@ impl<'a> Operator<'a> {
 // Composite Operator
 // -----------------------------------------------------------------------------
 impl<'a> CompositeOperator<'a> {
-    /// Constructor
+    // Constructor
     pub fn create(ceed: &'a crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };

@@ -55,7 +55,7 @@ impl<'a> fmt::Display for Vector<'a> {
 // Implementations
 // -----------------------------------------------------------------------------
 impl<'a> Vector<'a> {
-    /// Constructors
+    // Constructors
     pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();

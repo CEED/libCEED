@@ -153,7 +153,7 @@ impl Ceed {
         }
     }
 
-    /// Default initalizer for testing
+    // Default initalizer for testing
     pub fn default_init() -> Self {
         // Convert to C string
         let resource = "/cpu/self/ref/serial";

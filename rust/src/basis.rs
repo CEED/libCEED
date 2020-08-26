@@ -50,7 +50,7 @@ impl<'a> fmt::Display for Basis<'a> {
 // Implementations
 // -----------------------------------------------------------------------------
 impl<'a> Basis<'a> {
-    /// Constructors
+    // Constructors
     pub fn create_tensor_H1(
         ceed: &'a crate::Ceed,
         dim: i32,
