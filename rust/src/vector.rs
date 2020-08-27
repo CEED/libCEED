@@ -14,14 +14,14 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
+use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::ffi::CString;
 use std::fmt;
-use std::os::raw::c_char;
-use std::slice;
-use std::cell::RefCell;
-use std::rc::{Rc,Weak};
 use std::ops::Deref;
+use std::os::raw::c_char;
+use std::rc::{Rc, Weak};
+use std::slice;
 
 // -----------------------------------------------------------------------------
 // CeedVector context wrapper
@@ -357,11 +357,15 @@ impl<'a> VectorView<'a> {
             return Self {
                 vec: vec,
                 array: Rc::clone(&array),
-            }
+            };
         }
         let mut ptr = std::ptr::null();
         unsafe {
-            bind_ceed::CeedVectorGetArrayRead(vec.ptr, crate::MemType::Host as bind_ceed::CeedMemType, &mut ptr);
+            bind_ceed::CeedVectorGetArrayRead(
+                vec.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                &mut ptr,
+            );
         }
         let array = std::rc::Rc::new(ptr);
         vec.array_weak.replace(Rc::downgrade(&array));
@@ -385,9 +389,7 @@ impl<'a> Drop for VectorView<'a> {
 impl<'a> Deref for VectorView<'a> {
     type Target = [f64];
     fn deref(&self) -> &[f64] {
-        unsafe {
-            std::slice::from_raw_parts(*self.array, self.vec.len())
-        }
+        unsafe { std::slice::from_raw_parts(*self.array, self.vec.len()) }
     }
 }
 

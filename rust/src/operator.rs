@@ -240,7 +240,7 @@ impl<'a> Operator<'a> {
     ///                   quadrature points
     /// * 'rstr'      - ElemRestriction for Vector containing assembled
     ///                   QFunction
-    /// 
+    ///
     pub fn linear_assemble_qfunction(
         &self,
         assembled: &mut crate::vector::Vector,
@@ -262,7 +262,7 @@ impl<'a> Operator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
@@ -276,7 +276,7 @@ impl<'a> Operator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
@@ -290,7 +290,7 @@ impl<'a> Operator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
@@ -309,7 +309,7 @@ impl<'a> Operator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
@@ -447,7 +447,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
@@ -462,7 +462,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
@@ -476,7 +476,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
@@ -495,7 +495,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
-    /// 
+    ///
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
