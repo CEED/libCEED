@@ -159,15 +159,7 @@ impl<'a> Operator<'a> {
         dqfT: &crate::qfunction::QFunction,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedOperatorCreate(
-                ceed.ptr,
-                qf.qf_core.ptr,
-                dqf.qf_core.ptr,
-                dqfT.qf_core.ptr,
-                &mut ptr,
-            )
-        };
+        unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.ptr, dqf.ptr, dqfT.ptr, &mut ptr) };
         let op_core = OperatorCore::new(ceed, ptr);
         Self { op_core }
     }

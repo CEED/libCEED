@@ -189,15 +189,13 @@ lazy_static! {
     };
 }
 
-unsafe impl<'a> Sync for crate::qfunction::QFunctionCore<'a> {}
+unsafe impl<'a> Sync for crate::qfunction::QFunction<'a> {}
 // CEED_QFUNCTION_NONE
 lazy_static! {
     pub static ref qfunction_none: crate::qfunction::QFunction<'static> =
         crate::qfunction::QFunction {
-            qf_core: crate::qfunction::QFunctionCore {
-                ceed: &ceed_for_static,
-                ptr: unsafe { bind_ceed::CEED_QFUNCTION_NONE }
-            }
+            ceed: &ceed_for_static,
+            ptr: unsafe { bind_ceed::CEED_QFUNCTION_NONE }
         };
 }
 
@@ -494,8 +492,8 @@ impl Ceed {
     /// # let ceed = ceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// ```
-    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunctionByName {
-        crate::qfunction::QFunctionByName::create(self, name)
+    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunction {
+        crate::qfunction::QFunction::create_by_name(self, name)
     }
 
     /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
@@ -508,7 +506,13 @@ impl Ceed {
         crate::qfunction_context::QFunctionContext::create(self)
     }
 
-    /// Operator
+    /// Returns a CeedQFunction for evaluating interior (volumetric) terms created by name
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// ```
     pub fn operator(
         &self,
         qf: &crate::qfunction::QFunction,
