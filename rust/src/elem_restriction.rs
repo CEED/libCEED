@@ -31,7 +31,9 @@ pub struct ElemRestriction<'a> {
 impl<'a> Drop for ElemRestriction<'a> {
     fn drop(&mut self) {
         unsafe {
-            bind_ceed::CeedElemRestrictionDestroy(&mut self.ptr);
+            if self.ptr != bind_ceed::CEED_ELEMRESTRICTION_NONE {
+                bind_ceed::CeedElemRestrictionDestroy(&mut self.ptr);
+            }
         }
     }
 }

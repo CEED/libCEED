@@ -39,7 +39,10 @@ pub struct Vector<'a> {
 impl<'a> Drop for Vector<'a> {
     fn drop(&mut self) {
         unsafe {
-            bind_ceed::CeedVectorDestroy(&mut self.ptr);
+            if self.ptr != bind_ceed::CEED_VECTOR_NONE && self.ptr != bind_ceed::CEED_VECTOR_ACTIVE
+            {
+                bind_ceed::CeedVectorDestroy(&mut self.ptr);
+            }
         }
     }
 }

@@ -31,7 +31,9 @@ pub struct QFunction<'a> {
 impl<'a> Drop for QFunction<'a> {
     fn drop(&mut self) {
         unsafe {
-            bind_ceed::CeedQFunctionDestroy(&mut self.ptr);
+            if self.ptr != bind_ceed::CEED_QFUNCTION_NONE {
+                bind_ceed::CeedQFunctionDestroy(&mut self.ptr);
+            }
         }
     }
 }

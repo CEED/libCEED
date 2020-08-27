@@ -31,7 +31,9 @@ pub struct Basis<'a> {
 impl<'a> Drop for Basis<'a> {
     fn drop(&mut self) {
         unsafe {
-            bind_ceed::CeedBasisDestroy(&mut self.ptr);
+            if self.ptr != bind_ceed::CEED_BASIS_COLLOCATED {
+                bind_ceed::CeedBasisDestroy(&mut self.ptr);
+            }
         }
     }
 }
