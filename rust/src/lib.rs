@@ -22,6 +22,9 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
+#[macro_use]
+extern crate lazy_static;
+
 use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
@@ -103,8 +106,6 @@ pub enum EvalMode {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Ceed {
-    backend: String,
-    // Pointer to C object
     ptr: bind_ceed::Ceed,
 }
 
@@ -144,6 +145,63 @@ impl fmt::Display for Ceed {
 }
 
 // -----------------------------------------------------------------------------
+// Static arguments
+// -----------------------------------------------------------------------------
+unsafe impl Sync for Ceed {}
+static ceed_for_static: crate::Ceed = crate::Ceed {
+    ptr: std::ptr::null_mut(),
+};
+
+unsafe impl<'a> Sync for crate::vector::Vector<'a> {}
+// CEED_VECTOR_NONE
+lazy_static! {
+    pub static ref vector_none: crate::vector::Vector<'static> = crate::vector::Vector {
+        ceed: &ceed_for_static,
+        ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
+        array_weak: std::cell::RefCell::new(std::rc::Weak::new())
+    };
+}
+// CEED_VECTOR_ACTIVE
+lazy_static! {
+    pub static ref vector_active: crate::vector::Vector<'static> = crate::vector::Vector {
+        ceed: &ceed_for_static,
+        ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
+        array_weak: std::cell::RefCell::new(std::rc::Weak::new())
+    };
+}
+
+unsafe impl<'a> Sync for crate::elem_restriction::ElemRestriction<'a> {}
+// CEED_ELEMRESTRICTION_NONE
+lazy_static! {
+    pub static ref elem_restriction_none: crate::elem_restriction::ElemRestriction<'static> =
+        crate::elem_restriction::ElemRestriction {
+            ceed: &ceed_for_static,
+            ptr: unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE }
+        };
+}
+
+unsafe impl<'a> Sync for crate::basis::Basis<'a> {}
+// CEED_BASIS_COLLOCATED
+lazy_static! {
+    pub static ref basis_collocated: crate::basis::Basis<'static> = crate::basis::Basis {
+        ceed: &ceed_for_static,
+        ptr: unsafe { bind_ceed::CEED_BASIS_COLLOCATED }
+    };
+}
+
+unsafe impl<'a> Sync for crate::qfunction::QFunctionCore<'a> {}
+// CEED_QFUNCTION_NONE
+lazy_static! {
+    pub static ref qfunction_none: crate::qfunction::QFunction<'static> =
+        crate::qfunction::QFunction {
+            qf_core: crate::qfunction::QFunctionCore {
+                ceed: &ceed_for_static,
+                ptr: unsafe { bind_ceed::CEED_QFUNCTION_NONE }
+            }
+        };
+}
+
+// -----------------------------------------------------------------------------
 // Object constructors
 // -----------------------------------------------------------------------------
 impl Ceed {
@@ -164,10 +222,7 @@ impl Ceed {
         // Call to libCEED
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
-        Ceed {
-            backend: resource.to_string(),
-            ptr,
-        }
+        Ceed { ptr }
     }
 
     // Default initalizer for testing

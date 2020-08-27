@@ -21,8 +21,8 @@ use std::fmt;
 // CeedQFunctionContext context wrapper
 // -----------------------------------------------------------------------------
 pub struct QFunctionContext<'a> {
-    ceed: &'a crate::Ceed,
-    pub ptr: bind_ceed::CeedQFunctionContext,
+    pub(crate) ceed: &'a crate::Ceed,
+    pub(crate) ptr: bind_ceed::CeedQFunctionContext,
 }
 
 // -----------------------------------------------------------------------------

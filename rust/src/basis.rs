@@ -21,8 +21,8 @@ use std::fmt;
 // CeedBasis context wrapper
 // -----------------------------------------------------------------------------
 pub struct Basis<'a> {
-    ceed: &'a crate::Ceed,
-    pub ptr: bind_ceed::CeedBasis,
+    pub(crate) ceed: &'a crate::Ceed,
+    pub(crate) ptr: bind_ceed::CeedBasis,
 }
 
 // -----------------------------------------------------------------------------

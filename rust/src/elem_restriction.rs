@@ -21,8 +21,8 @@ use std::fmt;
 // CeedElemRestriction context wrapper
 // -----------------------------------------------------------------------------
 pub struct ElemRestriction<'a> {
-    ceed: &'a crate::Ceed,
-    pub ptr: bind_ceed::CeedElemRestriction,
+    pub(crate) ceed: &'a crate::Ceed,
+    pub(crate) ptr: bind_ceed::CeedElemRestriction,
 }
 
 // -----------------------------------------------------------------------------

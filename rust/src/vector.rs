@@ -28,9 +28,9 @@ use std::slice;
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Vector<'a> {
-    ceed: &'a crate::Ceed,
-    pub ptr: bind_ceed::CeedVector,
-    array_weak: RefCell<Weak<*const f64>>,
+    pub(crate) ceed: &'a crate::Ceed,
+    pub(crate) ptr: bind_ceed::CeedVector,
+    pub(crate) array_weak: RefCell<Weak<*const f64>>,
 }
 
 // -----------------------------------------------------------------------------

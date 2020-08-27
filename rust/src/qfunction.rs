@@ -21,16 +21,16 @@ use std::fmt;
 // CeedQFunction context wrapper
 // -----------------------------------------------------------------------------
 pub struct QFunctionCore<'a> {
-    ceed: &'a crate::Ceed,
-    pub ptr: bind_ceed::CeedQFunction,
+    pub(crate) ceed: &'a crate::Ceed,
+    pub(crate) ptr: bind_ceed::CeedQFunction,
 }
 
 pub struct QFunction<'a> {
-    pub qf_core: QFunctionCore<'a>,
+    pub(crate) qf_core: QFunctionCore<'a>,
 }
 
 pub struct QFunctionByName<'a> {
-    pub qf_core: QFunctionCore<'a>,
+    pub(crate) qf_core: QFunctionCore<'a>,
 }
 
 // -----------------------------------------------------------------------------
