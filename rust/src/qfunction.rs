@@ -39,14 +39,14 @@ impl<'a> Drop for QFunction<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-/// View a QFunction created by name
-///
-/// ```
-/// # let ceed = ceed::Ceed::default_init();
-/// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-/// println!("{}", qf);
-/// ```
 impl<'a> fmt::Display for QFunction<'a> {
+    /// View a QFunction
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// println!("{}", qf);
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = 202020;

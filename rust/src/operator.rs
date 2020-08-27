@@ -62,12 +62,27 @@ impl<'a> fmt::Display for OperatorCore<'a> {
     }
 }
 
+/// View an Operator
+///
+/// ```
+/// # let ceed = ceed::Ceed::default_init();
+/// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+/// let op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+/// println!("{}", op);
+/// ```
 impl<'a> fmt::Display for Operator<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)
     }
 }
 
+/// View a composite Operator
+///
+/// ```
+/// # let ceed = ceed::Ceed::default_init();
+/// let op = ceed.composite_operator();
+/// println!("{}", op);
+/// ```
 impl<'a> fmt::Display for CompositeOperator<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)

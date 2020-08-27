@@ -506,7 +506,14 @@ impl Ceed {
         crate::qfunction_context::QFunctionContext::create(self)
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms created by name
+    /// Returns a Operator and associate a QFunction. A Basis and ElemRestriction can be
+    ///   associated with QFunction fields with set_field().
+    ///
+    /// * 'qf'   - QFunction defining the action of the operator at quadrature points
+    /// * 'dqf'  - QFunction defining the action of the Jacobian of the qf
+    ///              (or qfunction_none)
+    /// * 'dqfT' - QFunction defining teh action of the transpose of the Jacobian
+    ///              of the qf (or qfunction_none)
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -522,7 +529,13 @@ impl Ceed {
         crate::operator::Operator::create(self, qf, dqf, dqfT)
     }
 
-    /// Composite Operator
+    /// Returns an Operator that composes the action of several Operators
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let op = ceed.composite_operator();
+    /// ```
     pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
         crate::operator::CompositeOperator::create(self)
     }
