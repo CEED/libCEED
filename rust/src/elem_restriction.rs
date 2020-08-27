@@ -150,6 +150,7 @@ impl<'a> ElemRestriction<'a> {
     ///   assert_eq!(array[i], ((i+1)/2) as f64);
     /// }
     /// y.restore_array_read(array);
+    /// ```
     pub fn apply(
         &self,
         tmode: crate::TransposeMode,
