@@ -67,7 +67,28 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 /// ```
 /// # let ceed = ceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-/// let op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+/// let mut op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+///
+/// // Operator field arguments
+/// let ne = 3;
+/// let q = 4;
+/// let mut ind : Vec<i32> = vec![0; 2*ne];
+/// for i in 0..ne {
+///   ind[2*i+0] = i as i32;
+///   ind[2*i+1] = (i+1) as i32;
+/// }
+/// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+///                               ceed::CopyMode::CopyValues, &ind);
+/// let strides : [i32; 3] = [1, q, q];
+/// let rq = ceed.strided_elem_restriction(ne as i32, 2, 1, q*ne as i32, strides);
+///
+/// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+///
+/// // Operator fields
+/// op.set_field("dx", &r, &b, &ceed::vector_active);
+/// op.set_field("weights", &ceed::elem_restriction_none, &b, &ceed::vector_none);
+/// op.set_field("qdata", &r, &ceed::basis_collocated, &ceed::vector_active);
+///
 /// println!("{}", op);
 /// ```
 impl<'a> fmt::Display for Operator<'a> {
@@ -208,6 +229,28 @@ impl<'a> Operator<'a> {
     ///                   field is active or VectorNone if using
     ///                   Weight is the QFunction
     ///
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let mut op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4;
+    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    ///                               ceed::CopyMode::CopyValues, &ind);
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    ///
+    /// // Operator field
+    /// op.set_field("dx", &r, &b, &ceed::vector_active);
+    /// ```
     pub fn set_field(
         &mut self,
         fieldname: &str,

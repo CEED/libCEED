@@ -533,7 +533,6 @@ impl Ceed {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// let op = ceed.composite_operator();
     /// ```
     pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
