@@ -400,7 +400,6 @@ impl<'a> VectorViewMut<'a> {
 
 impl<'a> Drop for VectorViewMut<'a> {
     fn drop(&mut self) {
-        println!("HERE");
         unsafe {
             bind_ceed::CeedVectorRestoreArray(self.vec.ptr, &mut self.array);
         }
