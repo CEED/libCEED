@@ -195,7 +195,7 @@ impl<'a> Basis<'a> {
     /// let x_qpts_arr = x_qpts.view();
     /// for i in 0..q {
     ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
-    ///   assert_eq!(v_arr[i], true_value);
+    ///   assert_eq!(v_arr[i], true_value, "Incorrect basis application");
     /// }
     /// ```
     pub fn apply(
@@ -222,9 +222,11 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
-    /// let dim = b.get_dimension();
-    /// assert_eq!(dim, 2);
+    /// let dim = 2;
+    /// let b = ceed.basis_tensor_H1_Lagrange(dim, 1, 3, 4, ceed::QuadMode::Gauss);
+    ///
+    /// let d = b.get_dimension();
+    /// assert_eq!(d, dim as i32, "Incorrect dimension");
     /// ```
     pub fn get_dimension(&self) -> i32 {
         let mut dim = 0;
@@ -247,9 +249,11 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
-    /// let ncomp = b.get_num_components();
-    /// assert_eq!(ncomp, 2);
+    /// let ncomp = 2;
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, ncomp, 3, 4, ceed::QuadMode::Gauss);
+    ///
+    /// let n = b.get_num_components();
+    /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
     /// ```
     pub fn get_num_components(&self) -> i32 {
         let mut ncomp = 0;
@@ -261,9 +265,11 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
-    /// let nqpts = b.get_num_nodes();
-    /// assert_eq!(nqpts, 3*3);
+    /// let p = 3;
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, p, 4, ceed::QuadMode::Gauss);
+    ///
+    /// let nnodes = b.get_num_nodes();
+    /// assert_eq!(nnodes, (p*p) as i32, "Incorrect number of nodes");
     /// ```
     pub fn get_num_nodes(&self) -> i32 {
         let mut nnodes = 0;
@@ -275,9 +281,11 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
-    /// let ncomp = b.get_num_quadrature_points();
-    /// assert_eq!(ncomp, 4*4);
+    /// let q = 4;
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, q, ceed::QuadMode::Gauss);
+    ///
+    /// let nqpts = b.get_num_quadrature_points();
+    /// assert_eq!(nqpts, (q*q) as i32, "Incorrect number of quadrature points");
     /// ```
     pub fn get_num_quadrature_points(&self) -> i32 {
         let mut Q = 0;

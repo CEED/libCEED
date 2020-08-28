@@ -146,7 +146,7 @@ impl<'a> QFunction<'a> {
     ///
     /// let array = V.view();
     /// for i in 0..Q {
-    ///   assert_eq!(array[i], v[i]);
+    ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
     /// ```
     pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {

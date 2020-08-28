@@ -269,7 +269,7 @@ impl<'a> Operator<'a> {
     /// for i in 0..ndofs {
     ///   sum += array[i];
     /// }
-    /// assert!((sum - 2.0).abs() < 1e-15);
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         self.op_core.apply(input, output)
@@ -343,7 +343,7 @@ impl<'a> Operator<'a> {
     /// for i in 0..ndofs {
     ///   sum += array[i];
     /// }
-    /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15);
+    /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15, "Incorrect interval length computed and added");
     /// ```
     pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         self.op_core.apply_add(input, output)

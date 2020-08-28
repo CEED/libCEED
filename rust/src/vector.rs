@@ -55,8 +55,8 @@ impl<'a> fmt::Display for Vector<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let x = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
-    /// println!("{}", x);
+    /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// println!("{}", vec);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -106,8 +106,8 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let x = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
-    /// assert_eq!(x.length(), 3);
+    /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
     pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> Self {
         let mut x = Self::create(ceed, v.len());
@@ -120,8 +120,9 @@ impl<'a> Vector<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
+    ///
     /// let n = vec.length();
-    /// assert_eq!(n, 10);
+    /// assert_eq!(n, 10, "Incorrect length");
     /// ```
     pub fn length(&self) -> usize {
         let mut n = 0;
@@ -134,7 +135,7 @@ impl<'a> Vector<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
-    /// assert_eq!(vec.len(), 10);
+    /// assert_eq!(vec.len(), 10, "Incorrect length");
     /// ```
     pub fn len(&self) -> usize {
         self.length()
@@ -154,8 +155,9 @@ impl<'a> Vector<'a> {
     /// let vec = ceed.vector(4);
     /// let mut array = ndarray::Array::range(1., 5., 1.);
     /// vec.set_array(ceed::CopyMode::OwnPointer, array);
-    /// let norm = vec.norm(ceed::NormType::Max);
-    /// assert_eq!(norm, 4.0)
+    ///
+    /// let max_norm = vec.norm(ceed::NormType::Max);
+    /// assert_eq!(max_norm, 4.0, "Incorrect max norm");
     /// ```
     pub fn set_array(&self, cmode: crate::CopyMode, mut array: ndarray::Array1<f64>) {
         unsafe {
@@ -179,8 +181,16 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// let ceed = ceed::Ceed::default_init();
-    /// let mut x = ceed.vector(10);
-    /// x.set_value(42.0);
+    /// let len = 10;
+    /// let mut vec = ceed.vector(len);
+    ///
+    /// let val = 42.0;
+    /// vec.set_value(val);
+    ///
+    /// let v = vec.view();
+    /// for i in 0..len {
+    ///   assert_eq!(v[i], val, "Value not set correctly");
+    /// }
     /// ```
     pub fn set_value(&mut self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
@@ -194,8 +204,13 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let mut x = ceed.vector(4);
-    /// x.set_slice(&[10., 11., 12., 13.]);
+    /// let mut vec = ceed.vector(4);
+    /// vec.set_slice(&[10., 11., 12., 13.]);
+    ///
+    /// let v = vec.view();
+    /// for i in 0..4 {
+    ///   assert_eq!(v[i], 10. + i as f64, "Slice not set correctly");
+    /// }
     /// ```
     pub fn set_slice(&mut self, slice: &[f64]) {
         assert_eq!(self.length(), slice.len());
@@ -217,8 +232,17 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let vec = ceed.vector(10);
+    /// let len = 10;
+    /// let mut vec = ceed.vector(len);
+    ///
+    /// let val = 42.0;
+    /// vec.set_value(val);
     /// vec.sync(ceed::MemType::Host);
+    ///
+    /// let v = vec.view();
+    /// for i in 0..len {
+    ///   assert_eq!(v[i], val, "Value not set correctly");
+    /// }
     /// ```
     pub fn sync(&self, mtype: crate::MemType) {
         unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
@@ -229,6 +253,7 @@ impl<'a> Vector<'a> {
     /// ```
     /// # let ceed= ceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
+    ///
     /// let v = vec.view();
     /// assert_eq!(v[0..2], [10., 11.]);
     ///
@@ -245,13 +270,14 @@ impl<'a> Vector<'a> {
     /// ```
     /// # let ceed= ceed::Ceed::default_init();
     /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
+    ///
     /// {
     ///   let mut v = vec.view_mut();
     ///   v[2] = 9.;
     /// }
     ///
     /// let w = vec.view();
-    /// assert_eq!(w[2], 9.);
+    /// assert_eq!(w[2], 9., "View did not mutate data");
     /// ```
     pub fn view_mut(&mut self) -> VectorViewMut {
         VectorViewMut::new(self)
@@ -261,14 +287,20 @@ impl<'a> Vector<'a> {
     ///
     /// # arguments
     ///
-    /// * 'ntype' - Norm type CEED_NORM_1, CEED_NORM_2, or CEED_NORM_MAX
+    /// * 'ntype' - Norm type One, Two, or Max
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let mut x = ceed.vector(10);
-    /// x.set_value(42.0);
-    /// let norm = x.norm(ceed::NormType::Max);
-    /// assert_eq!(norm, 42.0)
+    /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.]);
+    ///
+    /// let max_norm = vec.norm(ceed::NormType::Max);
+    /// assert_eq!(max_norm, 4.0, "Incorrect Max norm");
+    ///
+    /// let l1_norm = vec.norm(ceed::NormType::One);
+    /// assert_eq!(l1_norm, 10., "Incorrect L1 norm");
+    ///
+    /// let l2_norm = vec.norm(ceed::NormType::Two);
+    /// assert!((l2_norm - 5.477) < 1e-3, "Incorrect L2 norm");
     /// ```
     pub fn norm(&self, ntype: crate::NormType) -> f64 {
         let mut res: f64 = 0.0;

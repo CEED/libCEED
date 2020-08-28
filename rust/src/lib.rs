@@ -633,7 +633,10 @@ mod tests {
         for i in 0..ndofs {
             sum += array[i];
         }
-        assert!((sum - 2.0).abs() < 1e-15);
+        assert!(
+            (sum - 2.0).abs() < 1e-15,
+            "Incorrect interval length computed"
+        );
     }
 }
 

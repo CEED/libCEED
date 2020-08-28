@@ -46,14 +46,13 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     /// println!("{}", r);
     /// ```
@@ -140,24 +139,24 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]);
-    /// let mut y = ceed.vector(ne*2);
+    /// let mut y = ceed.vector(nelem*2);
     /// y.set_value(0.0);
     ///
     /// r.apply(ceed::TransposeMode::NoTranspose, &x, &mut y);
     ///
     /// let array = y.view();
-    /// for i in 0..(ne*2) {
-    ///   assert_eq!(array[i], ((i+1)/2) as f64);
+    /// for i in 0..(nelem*2) {
+    ///   assert_eq!(array[i], ((i+1)/2) as f64, "Incorrect value in restricted vector");
     /// }
     /// ```
     pub fn apply(
@@ -181,17 +180,18 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let compstride = 1;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
-    /// let compstride = r.get_comp_stride();
-    /// assert_eq!(compstride, 1);
+    /// let c = r.get_comp_stride();
+    /// assert_eq!(c, compstride as i32, "Incorrect component stride");
     /// ```
     pub fn get_comp_stride(&self) -> i32 {
         let mut compstride = 0;
@@ -203,17 +203,17 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
-    /// let nelem = r.get_num_elements();
-    /// assert_eq!(nelem, ne as i32);
+    /// let n = r.get_num_elements();
+    /// assert_eq!(n, nelem as i32, "Incorrect number of elements");
     /// ```
     pub fn get_num_elements(&self) -> i32 {
         let mut numelem = 0;
@@ -225,17 +225,18 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let elem_size = 2;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
-    /// let esize = r.get_elem_size();
-    /// assert_eq!(esize, 2);
+    /// let e = r.get_elem_size();
+    /// assert_eq!(e, elem_size as i32, "Incorrect element size");
     /// ```
     pub fn get_elem_size(&self) -> i32 {
         let mut elemsize = 0;
@@ -247,17 +248,17 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let mut ind : Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let lsize = r.get_Lvector_size();
-    /// assert_eq!(lsize, (ne+1) as i32);
+    /// assert_eq!(lsize, (nelem+1) as i32);
     /// ```
     pub fn get_Lvector_size(&self) -> i32 {
         let mut lsize = 0;
@@ -269,17 +270,18 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let ncomp = 42;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 42, 1, 42*(ne+1), ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
-    /// let ncomp = r.get_num_components();
-    /// assert_eq!(ncomp, 42);
+    /// let n = r.get_num_components();
+    /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
     /// ```
     pub fn get_num_components(&self) -> i32 {
         let mut numcomp = 0;
@@ -291,23 +293,23 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let ne = 3;
-    /// let mut ind: Vec<i32> = vec![0; 2*ne];
-    /// for i in 0..ne {
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
-    /// let mut mult = ceed.vector(ne+1);
+    /// let mut mult = ceed.vector(nelem+1);
     /// mult.set_value(0.0);
     ///
     /// r.get_multiplicity(&mut mult);
     ///
     /// let array = mult.view();
-    /// for i in 0..(ne+1) {
-    ///   assert_eq!(if (i == 0 || i == ne) { 1. } else { 2. }, array[i]);
+    /// for i in 0..(nelem+1) {
+    ///   assert_eq!(if (i == 0 || i == nelem) { 1. } else { 2. }, array[i], "Incorrect multiplicity array");
     /// }
     /// ```
     pub fn get_multiplicity(&self, mult: &mut crate::vector::Vector) {
