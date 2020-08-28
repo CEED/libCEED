@@ -125,14 +125,6 @@ jobs:
        - cargo test
        - cd ..
      after_success:
-  allow_failures:
-# ARM - current intermittant issues passing with Travis
-   - name: "ARM"
-     os: linux
-     dist: focal
-     arch: arm64
-     compiler: gcc
-     env: FC=gfortran
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -141,10 +133,12 @@ install:
     fi
 # OCCA v1.1.0
 # ToDo: Use OCCA release
-  - git clone https://github.com/libocca/occa.git
+  - if [[ "$TRAVIS_CPU_ARCH" != "arm64" ]]; then
+        git clone https://github.com/libocca/occa.git
         && make -C occa info
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
+    fi
 # LIBXSMM v1.16.1
   - if [[ "$TRAVIS_CPU_ARCH" == "amd64" ]]; then
         git clone --depth=1 --branch 1.16.1 https://github.com/hfp/libxsmm.git
