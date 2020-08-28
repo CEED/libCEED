@@ -31,6 +31,7 @@ pub struct Vector<'a> {
     pub(crate) ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedVector,
     pub(crate) array_weak: RefCell<Weak<*const f64>>,
+    pub(crate) used_array_ref: &'a mut [f64],
 }
 
 // -----------------------------------------------------------------------------
@@ -87,6 +88,7 @@ impl<'a> Vector<'a> {
             ceed: ceed,
             ptr: ptr,
             array_weak: RefCell::new(Weak::new()),
+            used_array_ref: &mut [0.; 0],
         }
     }
 
@@ -95,6 +97,7 @@ impl<'a> Vector<'a> {
             ceed: ceed,
             ptr: ptr,
             array_weak: RefCell::new(Weak::new()),
+            used_array_ref: &mut [0.; 0],
         }
     }
 
@@ -112,6 +115,33 @@ impl<'a> Vector<'a> {
     pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> Self {
         let mut x = Self::create(ceed, v.len());
         x.set_slice(v);
+        x
+    }
+
+    /// Create a Vector from a mutable array reference
+    ///
+    /// # arguments
+    ///
+    /// * 'slice' values to initialize vector with
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let mut rust_vec = vec![1., 2., 3.];
+    /// let vec = ceed::vector::Vector::from_array(&ceed, &mut rust_vec);
+    /// 
+    /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
+    /// ```
+    pub fn from_array(ceed: &'a crate::Ceed, v: &'a mut [f64]) -> Self {
+        let mut x = Self::create(ceed, v.len());
+        unsafe {
+            bind_ceed::CeedVectorSetArray(
+                x.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+                v.as_ptr() as *mut f64,
+            )
+        };
+        x.used_array_ref = v;
         x
     }
 
@@ -139,38 +169,6 @@ impl<'a> Vector<'a> {
     /// ```
     pub fn len(&self) -> usize {
         self.length()
-    }
-
-    /// Set the array used by a CeedVector, freeing any previously allocated
-    ///   array if applicable
-    ///
-    /// # arguments
-    ///
-    /// * 'mtype' - Memory type of  the array being passed
-    /// * 'cmode' - Copy mode for the array
-    /// * 'vec'   - Array to be used
-    ///
-    /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let vec = ceed.vector(4);
-    /// let mut array = ndarray::Array::range(1., 5., 1.);
-    /// vec.set_array(ceed::CopyMode::OwnPointer, array);
-    ///
-    /// let max_norm = vec.norm(ceed::NormType::Max);
-    /// assert_eq!(max_norm, 4.0, "Incorrect max norm");
-    /// ```
-    pub fn set_array(&self, cmode: crate::CopyMode, mut array: ndarray::Array1<f64>) {
-        unsafe {
-            bind_ceed::CeedVectorSetArray(
-                self.ptr,
-                crate::MemType::Host as bind_ceed::CeedMemType,
-                cmode as bind_ceed::CeedCopyMode,
-                array.as_mut_ptr(),
-            )
-        };
-        if cmode == crate::CopyMode::OwnPointer {
-            std::mem::forget(array);
-        }
     }
 
     /// Set the CeedVector to a constant value

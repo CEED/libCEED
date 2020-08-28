@@ -164,6 +164,7 @@ lazy_static! {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
         array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
+        used_array_ref: &mut [0.; 0],
     };
 }
 // CEED_VECTOR_ACTIVE
@@ -172,6 +173,7 @@ lazy_static! {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
         array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
+        used_array_ref: &mut [0.; 0],
     };
 }
 
