@@ -19,6 +19,7 @@ use std::convert::TryFrom;
 use std::ffi::CString;
 use std::fmt;
 use std::ops::Deref;
+use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::rc::{Rc, Weak};
 
@@ -230,12 +231,30 @@ impl<'a> Vector<'a> {
     /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
     /// let v = vec.view();
     /// assert_eq!(v[0..2], [10., 11.]);
+    ///
     /// // It is valid to have multiple immutable views
     /// let w = vec.view();
     /// assert_eq!(v[1..], w[1..]);
     /// ```
     pub fn view(&self) -> VectorView {
         VectorView::new(self)
+    }
+
+    /// Create an mutable view
+    ///
+    /// ```
+    /// # let ceed= ceed::Ceed::default_init();
+    /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
+    /// {
+    ///   let mut v = vec.view_mut();
+    ///   v[2] = 9.;
+    /// }
+    ///
+    /// let w = vec.view();
+    /// assert_eq!(w[2], 9.);
+    /// ```
+    pub fn view_mut(&mut self) -> VectorViewMut {
+        VectorViewMut::new(self)
     }
 
     /// Return the norm of a CeedVector
@@ -259,6 +278,8 @@ impl<'a> Vector<'a> {
 }
 
 // -----------------------------------------------------------------------------
+// Vector Viewer
+// -----------------------------------------------------------------------------
 
 /// A (host) view of a Vector with Deref to slice.  We can't make
 /// Vector itself Deref to slice because we can't handle the drop to
@@ -270,6 +291,7 @@ pub struct VectorView<'a> {
 }
 
 impl<'a> VectorView<'a> {
+    // Constructor
     fn new(vec: &'a Vector) -> Self {
         if let Some(array) = vec.array_weak.borrow().upgrade() {
             return Self {
@@ -316,3 +338,62 @@ impl<'a> fmt::Display for VectorView<'a> {
         write!(f, "VectorView({:?})", self.deref())
     }
 }
+
+// -----------------------------------------------------------------------------
+// Vector Viewer Mutable
+// -----------------------------------------------------------------------------
+
+/// A mutable (host) view of a Vector with Deref to slice.
+#[derive(Debug)]
+pub struct VectorViewMut<'a> {
+    vec: &'a Vector<'a>,
+    array: *mut f64,
+}
+
+impl<'a> VectorViewMut<'a> {
+    // Constructor
+    fn new(vec: &'a mut Vector) -> Self {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedVectorGetArray(
+                vec.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                &mut ptr,
+            );
+        }
+        Self {
+            vec: vec,
+            array: ptr,
+        }
+    }
+}
+
+impl<'a> Drop for VectorViewMut<'a> {
+    fn drop(&mut self) {
+        println!("HERE");
+        unsafe {
+            bind_ceed::CeedVectorRestoreArray(self.vec.ptr, &mut self.array);
+        }
+    }
+}
+
+impl<'a> Deref for VectorViewMut<'a> {
+    type Target = [f64];
+    fn deref(&self) -> &[f64] {
+        unsafe { std::slice::from_raw_parts(self.array, self.vec.len()) }
+    }
+}
+
+impl<'a> DerefMut for VectorViewMut<'a> {
+    fn deref_mut(&mut self) -> &mut [f64] {
+        unsafe { std::slice::from_raw_parts_mut(self.array, self.vec.len()) }
+    }
+}
+
+impl<'a> fmt::Display for VectorViewMut<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "VectorViewMut({:?})", self.deref())
+    }
+}
+
+// -----------------------------------------------------------------------------

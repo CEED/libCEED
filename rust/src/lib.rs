@@ -163,7 +163,7 @@ lazy_static! {
     pub static ref vector_none: crate::vector::Vector<'static> = crate::vector::Vector {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new())
+        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
     };
 }
 // CEED_VECTOR_ACTIVE
@@ -171,7 +171,7 @@ lazy_static! {
     pub static ref vector_active: crate::vector::Vector<'static> = crate::vector::Vector {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new())
+        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
     };
 }
 

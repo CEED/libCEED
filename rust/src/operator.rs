@@ -262,7 +262,7 @@ impl<'a> Operator<'a> {
     ///
     /// v.set_value(0.0);
     /// op_mass.apply(&u, &mut v);
-    /// 
+    ///
     /// // Check
     /// let array = v.view();
     /// let mut sum = 0.0;
