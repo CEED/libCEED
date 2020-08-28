@@ -97,6 +97,18 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 }
 
 //------------------------------------------------------------------------------
+// Set User QFunction
+//------------------------------------------------------------------------------
+static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
+                                                 CUfunction f) {
+  int ierr;
+  CeedQFunction_Cuda *data;
+  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  data->qFunction = f;
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Load QFunction source file
 //------------------------------------------------------------------------------
 static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
@@ -151,6 +163,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
   data->qFunctionSource = buffer;
+  data->qFunction = NULL;
   return 0;
 }
 
@@ -164,26 +177,34 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedQFunction_Cuda *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
-  CeedInt numinputfields, numoutputfields;
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
 
   // Read source
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
-  const char *funname = strrchr(source, ':') + 1;
-  data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - source;
-  char filename[filenamelen];
-  memcpy(filename, source, filenamelen - 1);
-  filename[filenamelen - 1] = '\0';
-  ierr = CeedCudaLoadQFunction(qf, filename); CeedChk(ierr);
+  // Empty source path indicates user must supply Q-Function
+  if (source[0] != '\0') {
+    const char *funname = strrchr(source, ':') + 1;
+    data->qFunctionName = (char *)funname;
+    const int filenamelen = funname - source;
+    char filename[filenamelen];
+    memcpy(filename, source, filenamelen - 1);
+    filename[filenamelen - 1] = '\0';
+    ierr = CeedCudaLoadQFunction(qf, filename); CeedChk(ierr);
+  } else {
+    data->module = NULL;
+    data->qFunctionName = "";
+    data->qFunctionSource = "";
+    data->qFunction = NULL;
+  }
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
                                 CeedQFunctionDestroy_Cuda); CeedChk(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction",
+                                CeedQFunctionSetCUDAUserFunction_Cuda);
+  CeedChk(ierr);
   return 0;
 }
 //------------------------------------------------------------------------------
