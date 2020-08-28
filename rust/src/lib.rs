@@ -555,14 +555,14 @@ mod tests {
     #[test]
     fn ceed_t501() {
         let ceed = Ceed::default_init();
-        let ne = 4;
+        let nelem = 4;
         let p = 3;
         let q = 4;
-        let ndofs = p * ne - ne + 1;
+        let ndofs = p * nelem - nelem + 1;
 
         // Vectors
         let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
-        let mut qdata = ceed.vector(ne * q);
+        let mut qdata = ceed.vector(nelem * q);
         qdata.set_value(0.0);
         let mut u = ceed.vector(ndofs);
         u.set_value(1.0);
@@ -570,29 +570,29 @@ mod tests {
         v.set_value(0.0);
 
         // Restrictions
-        let mut indx: Vec<i32> = vec![0; 2 * ne];
-        for i in 0..ne {
+        let mut indx: Vec<i32> = vec![0; 2 * nelem];
+        for i in 0..nelem {
             indx[2 * i + 0] = i as i32;
             indx[2 * i + 1] = (i + 1) as i32;
         }
         let rx = ceed.elem_restriction(
-            ne,
+            nelem,
             2,
             1,
             1,
-            ne + 1,
+            nelem + 1,
             MemType::Host,
             CopyMode::CopyValues,
             &indx,
         );
-        let mut indu: Vec<i32> = vec![0; p * ne];
-        for i in 0..ne {
+        let mut indu: Vec<i32> = vec![0; p * nelem];
+        for i in 0..nelem {
             indu[p * i + 0] = i as i32;
             indu[p * i + 1] = (i + 1) as i32;
             indu[p * i + 2] = (i + 2) as i32;
         }
         let ru = ceed.elem_restriction(
-            ne,
+            nelem,
             3,
             1,
             1,
@@ -602,7 +602,7 @@ mod tests {
             &indu,
         );
         let strides: [i32; 3] = [1, q as i32, q as i32];
-        let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
+        let rq = ceed.strided_elem_restriction(nelem, q, 1, q * nelem, strides);
 
         // Bases
         let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
