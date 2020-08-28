@@ -60,7 +60,7 @@ pub enum MemType {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub enum CopyMode {
+pub(crate) enum CopyMode {
     CopyValues,
     UsePointer,
     OwnPointer,
@@ -280,7 +280,6 @@ impl Ceed {
     /// * 'lsize'      - The size of the L-vector. This vector may be larger than
     ///                    the elements and fields given by this restriction.
     /// *  'mtype'     - Memory type of the @a offsets array, see CeedMemType
-    /// * 'cmode'      - Copy mode for the @a offsets array, see CeedCopyMode
     /// * 'offsets'    - Array of shape [@a nelem, @a elemsize]. Row i holds the
     ///                    ordered list of the offsets (into the input CeedVector)
     ///                    for the unknowns corresponding to element i, where
@@ -295,8 +294,7 @@ impl Ceed {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
@@ -306,11 +304,10 @@ impl Ceed {
         compstride: usize,
         lsize: usize,
         mtype: MemType,
-        cmode: CopyMode,
         offsets: &Vec<i32>,
     ) -> crate::elem_restriction::ElemRestriction {
         crate::elem_restriction::ElemRestriction::create(
-            self, nelem, elemsize, ncomp, compstride, lsize, mtype, cmode, offsets,
+            self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets,
         )
     }
 
@@ -328,13 +325,12 @@ impl Ceed {
     ///                    offsets[i + k*elemsize] + j*compstride.
     /// * 'lsize'      - The size of the L-vector. This vector may be larger than
     ///                    the elements and fields given by this restriction.
-    /// *  'mtype'     - Memory type of the @a offsets array, see CeedMemType
-    /// * 'cmode'      - Copy mode for the @a offsets array, see CeedCopyMode
-    /// * 'offsets'    - Array of shape [@a nelem, @a elemsize]. Row i holds the
-    ///                    ordered list of the offsets (into the input CeedVector)
-    ///                    for the unknowns corresponding to element i, where
-    ///                    0 <= i < @a nelem. All offsets must be in the range
-    ///                    [0, @a lsize - 1].
+    /// *  'strides'   - Array for strides between [nodes, components, elements].
+    ///                    Data for node i, component j, element k can be found in
+    ///                    the L-vector at index
+    ///                      i*strides[0] + j*strides[1] + k*strides[2].
+    ///                    CEED_STRIDES_BACKEND may be used with vectors created
+    ///                    by a Ceed backend.
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -577,32 +573,14 @@ mod tests {
             indx[2 * i + 0] = i as i32;
             indx[2 * i + 1] = (i + 1) as i32;
         }
-        let rx = ceed.elem_restriction(
-            nelem,
-            2,
-            1,
-            1,
-            nelem + 1,
-            MemType::Host,
-            CopyMode::CopyValues,
-            &indx,
-        );
+        let rx = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &indx);
         let mut indu: Vec<i32> = vec![0; p * nelem];
         for i in 0..nelem {
             indu[p * i + 0] = i as i32;
             indu[p * i + 1] = (i + 1) as i32;
             indu[p * i + 2] = (i + 2) as i32;
         }
-        let ru = ceed.elem_restriction(
-            nelem,
-            3,
-            1,
-            1,
-            ndofs,
-            MemType::Host,
-            CopyMode::CopyValues,
-            &indu,
-        );
+        let ru = ceed.elem_restriction(nelem, 3, 1, 1, ndofs, MemType::Host, &indu);
         let strides: [i32; 3] = [1, q as i32, q as i32];
         let rq = ceed.strided_elem_restriction(nelem, q, 1, q * nelem, strides);
 

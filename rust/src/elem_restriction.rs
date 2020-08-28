@@ -52,8 +52,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     /// println!("{}", r);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -83,7 +82,6 @@ impl<'a> ElemRestriction<'a> {
         compstride: usize,
         lsize: usize,
         mtype: crate::MemType,
-        cmode: crate::CopyMode,
         offsets: &Vec<i32>,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
@@ -96,7 +94,7 @@ impl<'a> ElemRestriction<'a> {
                 compstride as i32,
                 lsize as i32,
                 mtype as bind_ceed::CeedMemType,
-                cmode as bind_ceed::CeedCopyMode,
+                crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
                 offsets.as_ptr(),
                 &mut ptr,
             )
@@ -145,8 +143,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]);
     /// let mut y = ceed.vector(nelem*2);
@@ -187,8 +184,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let c = r.get_comp_stride();
     /// assert_eq!(c, compstride as i32, "Incorrect component stride");
@@ -209,8 +205,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let n = r.get_num_elements();
     /// assert_eq!(n, nelem as i32, "Incorrect number of elements");
@@ -232,8 +227,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let e = r.get_elem_size();
     /// assert_eq!(e, elem_size as i32, "Incorrect element size");
@@ -254,8 +248,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let lsize = r.get_Lvector_size();
     /// assert_eq!(lsize, (nelem+1) as i32);
@@ -277,8 +270,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), ceed::MemType::Host, &ind);
     ///
     /// let n = r.get_num_components();
     /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
@@ -299,8 +291,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
     /// let mut mult = ceed.vector(nelem+1);
     /// mult.set_value(0.0);

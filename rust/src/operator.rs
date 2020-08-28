@@ -77,8 +77,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///   ind[2*i+0] = i as i32;
 ///   ind[2*i+1] = (i+1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
-///                               ceed::CopyMode::CopyValues, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
 /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
@@ -227,16 +226,14 @@ impl<'a> Operator<'a> {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
-    ///                                ceed::CopyMode::CopyValues, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host,
-    ///                                ceed::CopyMode::CopyValues, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
@@ -301,16 +298,14 @@ impl<'a> Operator<'a> {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
-    ///                                ceed::CopyMode::CopyValues, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host,
-    ///                                ceed::CopyMode::CopyValues, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
@@ -374,8 +369,7 @@ impl<'a> Operator<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
-    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &ind);
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
     ///

@@ -128,7 +128,7 @@ impl<'a> Vector<'a> {
     /// # let ceed = ceed::Ceed::default_init();
     /// let mut rust_vec = vec![1., 2., 3.];
     /// let vec = ceed::vector::Vector::from_array(&ceed, &mut rust_vec);
-    /// 
+    ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
     pub fn from_array(ceed: &'a crate::Ceed, v: &'a mut [f64]) -> Self {
