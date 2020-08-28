@@ -100,7 +100,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 // Set User QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
-                                                 CUfunction f) {
+    CUfunction f) {
   int ierr;
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
