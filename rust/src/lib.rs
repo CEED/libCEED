@@ -628,13 +628,12 @@ mod tests {
         op_mass.apply(&u, &mut v);
 
         // Check
-        let array = v.get_array(MemType::Host);
+        let array = v.view();
         let mut sum = 0.0;
         for i in 0..ndofs {
             sum += array[i];
         }
         assert!((sum - 2.0).abs() < 1e-15);
-        v.restore_array(array);
     }
 }
 

@@ -178,11 +178,10 @@ impl<'a> Basis<'a> {
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
     /// let mut u_arr = [0.; q];
-    /// let x_nodes_arr = x_nodes.get_array_read(ceed::MemType::Host);
+    /// let x_nodes_arr = x_nodes.view();
     /// for i in 0..q {
     ///   u_arr[i] = x_nodes_arr[i]*x_nodes_arr[i]*x_nodes_arr[i] + 1.;
     /// }
-    /// x_nodes.restore_array_read(x_nodes_arr);
     /// let u = ceed.vector_from_slice(&u_arr);
     ///
     /// // Map function to Gauss points
@@ -192,14 +191,12 @@ impl<'a> Basis<'a> {
     ///          &u, &mut v);
     ///
     /// // Verify results
-    /// let v_arr = v.get_array_read(ceed::MemType::Host);
-    /// let x_qpts_arr = x_qpts.get_array_read(ceed::MemType::Host);
+    /// let v_arr = v.view();
+    /// let x_qpts_arr = x_qpts.view();
     /// for i in 0..q {
     ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
     ///   assert_eq!(v_arr[i], true_value);
     /// }
-    /// v.restore_array_read(v_arr);
-    /// x_qpts.restore_array_read(x_qpts_arr);
     /// ```
     pub fn apply(
         &self,

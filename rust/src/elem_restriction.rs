@@ -155,11 +155,10 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.apply(ceed::TransposeMode::NoTranspose, &x, &mut y);
     ///
-    /// let array = y.get_array_read(ceed::MemType::Host);
+    /// let array = y.view();
     /// for i in 0..(ne*2) {
     ///   assert_eq!(array[i], ((i+1)/2) as f64);
     /// }
-    /// y.restore_array_read(array);
     /// ```
     pub fn apply(
         &self,
@@ -306,11 +305,10 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.get_multiplicity(&mut mult);
     ///
-    /// let array = mult.get_array_read(ceed::MemType::Host);
+    /// let array = mult.view();
     /// for i in 0..(ne+1) {
     ///   assert_eq!(if (i == 0 || i == ne) { 1. } else { 2. }, array[i]);
     /// }
-    /// mult.restore_array_read(array);
     /// ```
     pub fn get_multiplicity(&self, mult: &mut crate::vector::Vector) {
         unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };

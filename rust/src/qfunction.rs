@@ -144,11 +144,10 @@ impl<'a> QFunction<'a> {
     ///   V = output.remove(0);
     /// }
     ///
-    /// let array = V.get_array(ceed::MemType::Host);
+    /// let array = V.view();
     /// for i in 0..Q {
     ///   assert_eq!(array[i], v[i]);
     /// }
-    /// V.restore_array(array);
     /// ```
     pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
         unsafe {

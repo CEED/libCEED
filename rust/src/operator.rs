@@ -262,15 +262,14 @@ impl<'a> Operator<'a> {
     ///
     /// v.set_value(0.0);
     /// op_mass.apply(&u, &mut v);
-    ///
+    /// 
     /// // Check
-    /// let array = v.get_array(ceed::MemType::Host);
+    /// let array = v.view();
     /// let mut sum = 0.0;
     /// for i in 0..ndofs {
     ///   sum += array[i];
     /// }
     /// assert!((sum - 2.0).abs() < 1e-15);
-    /// v.restore_array(array);
     /// ```
     pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         self.op_core.apply(input, output)
@@ -339,13 +338,12 @@ impl<'a> Operator<'a> {
     /// op_mass.apply_add(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.get_array(ceed::MemType::Host);
+    /// let array = v.view();
     /// let mut sum = 0.0;
     /// for i in 0..ndofs {
     ///   sum += array[i];
     /// }
     /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15);
-    /// v.restore_array(array);
     /// ```
     pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         self.op_core.apply_add(input, output)
