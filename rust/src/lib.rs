@@ -546,11 +546,90 @@ impl Ceed {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // ToDo: Make single example test like t501
+
     #[test]
-    fn ceed_t000() {
-        let ceed = Ceed::init("/cpu/self/ref/serial");
-        println!("{}", ceed);
+    fn ceed_t501() {
+        let ceed = Ceed::default_init();
+        let ne = 4;
+        let p = 3;
+        let q = 4;
+        let ndofs = p * ne - ne + 1;
+
+        // Vectors
+        let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
+        let mut qdata = ceed.vector(ne * q);
+        qdata.set_value(0.0);
+        let mut u = ceed.vector(ndofs);
+        u.set_value(1.0);
+        let mut v = ceed.vector(ndofs);
+        v.set_value(0.0);
+
+        // Restrictions
+        let mut indx: Vec<i32> = vec![0; 2 * ne];
+        for i in 0..ne {
+            indx[2 * i + 0] = i as i32;
+            indx[2 * i + 1] = (i + 1) as i32;
+        }
+        let rx = ceed.elem_restriction(
+            ne as i32,
+            2,
+            1,
+            1,
+            (ne + 1) as i32,
+            MemType::Host,
+            CopyMode::CopyValues,
+            &indx,
+        );
+        let mut indu: Vec<i32> = vec![0; p * ne];
+        for i in 0..ne {
+            indu[p * i + 0] = i as i32;
+            indu[p * i + 1] = (i + 1) as i32;
+            indu[p * i + 2] = (i + 2) as i32;
+        }
+        let ru = ceed.elem_restriction(
+            ne as i32,
+            3,
+            1,
+            1,
+            ndofs as i32,
+            MemType::Host,
+            CopyMode::CopyValues,
+            &indu,
+        );
+        let strides: [i32; 3] = [1, q as i32, q as i32];
+        let rq = ceed.strided_elem_restriction(ne as i32, q as i32, 1, (q * ne) as i32, strides);
+
+        // Bases
+        let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q as i32, QuadMode::Gauss);
+        let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p as i32, q as i32, QuadMode::Gauss);
+
+        // Set up operator
+        let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+        let mut op_build = ceed.operator(&qf_build, &qfunction_none, &qfunction_none);
+        op_build.set_field("dx", &rx, &bx, &vector_active);
+        op_build.set_field("weights", &elem_restriction_none, &bx, &vector_none);
+        op_build.set_field("qdata", &rq, &basis_collocated, &vector_active);
+
+        op_build.apply(&x, &mut qdata);
+
+        // Mass operator
+        let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+        let mut op_mass = ceed.operator(&qf_mass, &qfunction_none, &qfunction_none);
+        op_mass.set_field("u", &ru, &bu, &vector_active);
+        op_mass.set_field("qdata", &rq, &basis_collocated, &qdata);
+        op_mass.set_field("v", &ru, &bu, &vector_active);
+
+        v.set_value(0.0);
+        op_mass.apply(&u, &mut v);
+
+        // Check
+        let array = v.get_array(MemType::Host);
+        let mut sum = 0.0;
+        for i in 0..ndofs {
+            sum += array[i];
+        }
+        assert!((sum - 2.0).abs() < 1e-15);
+        v.restore_array(array);
     }
 }
 
