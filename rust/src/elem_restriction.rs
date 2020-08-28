@@ -46,12 +46,20 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, ceed::QuadMode::Gauss);
-    /// println!("{}", b);
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
+    ///                               ceed::CopyMode::CopyValues, &ind);
+    /// println!("{}", r);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
+        let mut sizeloc = crate::max_buffer_length;
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedElemRestrictionView(self.ptr, file);
@@ -70,11 +78,11 @@ impl<'a> ElemRestriction<'a> {
     // Constructors
     pub fn create(
         ceed: &'a crate::Ceed,
-        nelem: i32,
-        elemsize: i32,
-        ncomp: i32,
-        compstride: i32,
-        lsize: i32,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
         mtype: crate::MemType,
         cmode: crate::CopyMode,
         offsets: &Vec<i32>,
@@ -83,11 +91,11 @@ impl<'a> ElemRestriction<'a> {
         unsafe {
             bind_ceed::CeedElemRestrictionCreate(
                 ceed.ptr,
-                nelem,
-                elemsize,
-                ncomp,
-                compstride,
-                lsize,
+                nelem as i32,
+                elemsize as i32,
+                ncomp as i32,
+                compstride as i32,
+                lsize as i32,
                 mtype as bind_ceed::CeedMemType,
                 cmode as bind_ceed::CeedCopyMode,
                 offsets.as_ptr(),
@@ -99,20 +107,20 @@ impl<'a> ElemRestriction<'a> {
 
     pub fn create_strided(
         ceed: &'a crate::Ceed,
-        nelem: i32,
-        elemsize: i32,
-        ncomp: i32,
-        lsize: i32,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        lsize: usize,
         strides: [i32; 3],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(
                 ceed.ptr,
-                nelem,
-                elemsize,
-                ncomp,
-                lsize,
+                nelem as i32,
+                elemsize as i32,
+                ncomp as i32,
+                lsize as i32,
                 strides.as_ptr(),
                 &mut ptr,
             )
@@ -133,12 +141,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]);
@@ -175,12 +183,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let compstride = r.get_comp_stride();
@@ -197,12 +205,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let nelem = r.get_num_elements();
@@ -219,12 +227,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let esize = r.get_elem_size();
@@ -246,7 +254,7 @@ impl<'a> ElemRestriction<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let lsize = r.get_Lvector_size();
@@ -263,12 +271,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 42, 1, 42*(ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 42, 1, 42*(ne+1), ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let ncomp = r.get_num_components();
@@ -285,12 +293,12 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind: Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let mut mult = ceed.vector(ne+1);

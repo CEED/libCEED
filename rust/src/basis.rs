@@ -51,7 +51,7 @@ impl<'a> fmt::Display for Basis<'a> {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
+        let mut sizeloc = crate::max_buffer_length;
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedBasisView(self.ptr, file);
@@ -70,10 +70,10 @@ impl<'a> Basis<'a> {
     // Constructors
     pub fn create_tensor_H1(
         ceed: &'a crate::Ceed,
-        dim: i32,
-        ncomp: i32,
-        P1d: i32,
-        Q1d: i32,
+        dim: usize,
+        ncomp: usize,
+        P1d: usize,
+        Q1d: usize,
         interp1d: &Vec<f64>,
         grad1d: &Vec<f64>,
         qref1d: &Vec<f64>,
@@ -83,10 +83,10 @@ impl<'a> Basis<'a> {
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
                 ceed.ptr,
-                dim,
-                ncomp,
-                P1d,
-                Q1d,
+                dim as i32,
+                ncomp as i32,
+                P1d as i32,
+                Q1d as i32,
                 interp1d.as_ptr(),
                 grad1d.as_ptr(),
                 qref1d.as_ptr(),
@@ -99,20 +99,20 @@ impl<'a> Basis<'a> {
 
     pub fn create_tensor_H1_Lagrange(
         ceed: &'a crate::Ceed,
-        dim: i32,
-        ncomp: i32,
-        P: i32,
-        Q: i32,
+        dim: usize,
+        ncomp: usize,
+        P: usize,
+        Q: usize,
         qmode: crate::QuadMode,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(
                 ceed.ptr,
-                dim,
-                ncomp,
-                P,
-                Q,
+                dim as i32,
+                ncomp as i32,
+                P as i32,
+                Q as i32,
                 qmode as bind_ceed::CeedQuadMode,
                 &mut ptr,
             );
@@ -123,9 +123,9 @@ impl<'a> Basis<'a> {
     pub fn create_H1(
         ceed: &'a crate::Ceed,
         topo: crate::ElemTopology,
-        ncomp: i32,
-        nnodes: i32,
-        nqpts: i32,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
         interp: &Vec<f64>,
         grad: &Vec<f64>,
         qref: &Vec<f64>,
@@ -136,9 +136,9 @@ impl<'a> Basis<'a> {
             bind_ceed::CeedBasisCreateH1(
                 ceed.ptr,
                 topo as bind_ceed::CeedElemTopology,
-                ncomp,
-                nnodes,
-                nqpts,
+                ncomp as i32,
+                nnodes as i32,
+                nqpts as i32,
                 interp.as_ptr(),
                 grad.as_ptr(),
                 qref.as_ptr(),
@@ -164,29 +164,29 @@ impl<'a> Basis<'a> {
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
-    /// const q : i32 = 6;
+    /// const q: usize = 6;
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, q, q, ceed::QuadMode::GaussLobatto);
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
     ///
     /// let x_corners = ceed.vector_from_slice(&[-1., 1.]);
-    /// let mut x_qpts = ceed.vector(q as usize);
-    /// let mut x_nodes = ceed.vector(q as usize);
+    /// let mut x_qpts = ceed.vector(q);
+    /// let mut x_nodes = ceed.vector(q);
     /// bx.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
     ///          &x_corners, &mut x_nodes);
     /// bu.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
     ///          &x_nodes, &mut x_qpts);
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
-    /// let mut u_arr = [0.; q as usize];
+    /// let mut u_arr = [0.; q];
     /// let x_nodes_arr = x_nodes.get_array_read(ceed::MemType::Host);
-    /// for i in 0..q as usize {
+    /// for i in 0..q {
     ///   u_arr[i] = x_nodes_arr[i]*x_nodes_arr[i]*x_nodes_arr[i] + 1.;
     /// }
     /// x_nodes.restore_array_read(x_nodes_arr);
     /// let u = ceed.vector_from_slice(&u_arr);
     ///
     /// // Map function to Gauss points
-    /// let mut v = ceed.vector(q as usize);
+    /// let mut v = ceed.vector(q);
     /// v.set_value(0.);
     /// bu.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
     ///          &u, &mut v);
@@ -194,7 +194,7 @@ impl<'a> Basis<'a> {
     /// // Verify results
     /// let v_arr = v.get_array_read(ceed::MemType::Host);
     /// let x_qpts_arr = x_qpts.get_array_read(ceed::MemType::Host);
-    /// for i in 0..q as usize {
+    /// for i in 0..q {
     ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
     ///   assert_eq!(v_arr[i], true_value);
     /// }

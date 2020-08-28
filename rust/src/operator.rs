@@ -50,7 +50,7 @@ impl<'a> Drop for OperatorCore<'a> {
 impl<'a> fmt::Display for OperatorCore<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
+        let mut sizeloc = crate::max_buffer_length;
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedOperatorView(self.ptr, file);
@@ -71,16 +71,16 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///
 /// // Operator field arguments
 /// let ne = 3;
-/// let q = 4;
+/// let q = 4 as usize;
 /// let mut ind : Vec<i32> = vec![0; 2*ne];
 /// for i in 0..ne {
 ///   ind[2*i+0] = i as i32;
 ///   ind[2*i+1] = (i+1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
 ///                               ceed::CopyMode::CopyValues, &ind);
-/// let strides : [i32; 3] = [1, q, q];
-/// let rq = ceed.strided_elem_restriction(ne as i32, 2, 1, q*ne as i32, strides);
+/// let strides : [i32; 3] = [1, q as i32, q as i32];
+/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
 ///
@@ -227,7 +227,7 @@ impl<'a> Operator<'a> {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                                ceed::CopyMode::CopyValues, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
@@ -235,14 +235,14 @@ impl<'a> Operator<'a> {
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne as i32, 3, 1, 1, ndofs as i32, ceed::MemType::Host,
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host,
     ///                                ceed::CopyMode::CopyValues, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne as i32, q as i32, 1, (q*ne) as i32, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q as i32, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p as i32, q as i32, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -302,7 +302,7 @@ impl<'a> Operator<'a> {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                                ceed::CopyMode::CopyValues, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
@@ -310,14 +310,14 @@ impl<'a> Operator<'a> {
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne as i32, 3, 1, 1, ndofs as i32, ceed::MemType::Host,
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host,
     ///                                ceed::CopyMode::CopyValues, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne as i32, q as i32, 1, (q*ne) as i32, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q as i32, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p as i32, q as i32, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -376,7 +376,7 @@ impl<'a> Operator<'a> {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);

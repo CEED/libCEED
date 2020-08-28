@@ -46,6 +46,11 @@ pub mod qfunction_context;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
+// Constants for library interally
+// -----------------------------------------------------------------------------
+const max_buffer_length: u64 = 4096;
+
+// -----------------------------------------------------------------------------
 // Enums for libCEED
 // -----------------------------------------------------------------------------
 #[derive(Clone, Copy, PartialEq)]
@@ -132,7 +137,7 @@ impl fmt::Display for Ceed {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
+        let mut sizeloc = crate::max_buffer_length;
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedView(self.ptr, file);
@@ -211,7 +216,6 @@ impl Ceed {
     ///
     /// ```
     /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
-    /// println!("{}", ceed);
     /// ```
     pub fn init(resource: &str) -> Self {
         // Convert to C string
@@ -289,16 +293,16 @@ impl Ceed {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne as i32, 2, 1, 1, (ne+1) as i32, ceed::MemType::Host,
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host,
     ///                               ceed::CopyMode::CopyValues, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
-        nelem: i32,
-        elemsize: i32,
-        ncomp: i32,
-        compstride: i32,
-        lsize: i32,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
         mtype: MemType,
         cmode: CopyMode,
         offsets: &Vec<i32>,
@@ -334,14 +338,14 @@ impl Ceed {
     /// # let ceed = ceed::Ceed::default_init();
     /// let ne = 3;
     /// let strides : [i32; 3] = [1, 2, 2];
-    /// let r = ceed.strided_elem_restriction(ne as i32, 2, 1, (ne*2) as i32, strides);
+    /// let r = ceed.strided_elem_restriction(ne, 2, 1, ne*2, strides);
     /// ```
     pub fn strided_elem_restriction(
         &self,
-        nelem: i32,
-        elemsize: i32,
-        ncomp: i32,
-        lsize: i32,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        lsize: usize,
         strides: [i32; 3],
     ) -> crate::elem_restriction::ElemRestriction {
         crate::elem_restriction::ElemRestriction::create_strided(
@@ -383,10 +387,10 @@ impl Ceed {
     /// ```
     pub fn basis_tensor_H1(
         &self,
-        dim: i32,
-        ncomp: i32,
-        P1d: i32,
-        Q1d: i32,
+        dim: usize,
+        ncomp: usize,
+        P1d: usize,
+        Q1d: usize,
         interp1d: &Vec<f64>,
         grad1d: &Vec<f64>,
         qref1d: &Vec<f64>,
@@ -415,10 +419,10 @@ impl Ceed {
     /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
-        dim: i32,
-        ncomp: i32,
-        P: i32,
-        Q: i32,
+        dim: usize,
+        ncomp: usize,
+        P: usize,
+        Q: usize,
         qmode: QuadMode,
     ) -> crate::basis::Basis {
         crate::basis::Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
@@ -462,9 +466,9 @@ impl Ceed {
     pub fn basis_H1(
         &self,
         topo: ElemTopology,
-        ncomp: i32,
-        nnodes: i32,
-        nqpts: i32,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
         interp: &Vec<f64>,
         grad: &Vec<f64>,
         qref: &Vec<f64>,
@@ -501,6 +505,7 @@ impl Ceed {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let ctx = ceed.q_function_context();
+    /// println!("{}", ctx);
     /// ```
     pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {
         crate::qfunction_context::QFunctionContext::create(self)
@@ -571,11 +576,11 @@ mod tests {
             indx[2 * i + 1] = (i + 1) as i32;
         }
         let rx = ceed.elem_restriction(
-            ne as i32,
+            ne,
             2,
             1,
             1,
-            (ne + 1) as i32,
+            ne + 1,
             MemType::Host,
             CopyMode::CopyValues,
             &indx,
@@ -587,21 +592,21 @@ mod tests {
             indu[p * i + 2] = (i + 2) as i32;
         }
         let ru = ceed.elem_restriction(
-            ne as i32,
+            ne,
             3,
             1,
             1,
-            ndofs as i32,
+            ndofs,
             MemType::Host,
             CopyMode::CopyValues,
             &indu,
         );
         let strides: [i32; 3] = [1, q as i32, q as i32];
-        let rq = ceed.strided_elem_restriction(ne as i32, q as i32, 1, (q * ne) as i32, strides);
+        let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
 
         // Bases
-        let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q as i32, QuadMode::Gauss);
-        let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p as i32, q as i32, QuadMode::Gauss);
+        let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+        let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
 
         // Set up operator
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());

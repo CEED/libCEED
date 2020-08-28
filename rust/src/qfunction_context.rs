@@ -42,7 +42,7 @@ impl<'a> Drop for QFunctionContext<'a> {
 impl<'a> fmt::Display for QFunctionContext<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = 202020;
+        let mut sizeloc = crate::max_buffer_length;
         unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedQFunctionContextView(self.ptr, file);
