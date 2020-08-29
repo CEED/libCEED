@@ -42,11 +42,12 @@ pub struct Vector<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> Drop for Vector<'a> {
     fn drop(&mut self) {
-        unsafe {
-            if self.ptr != bind_ceed::CEED_VECTOR_NONE && self.ptr != bind_ceed::CEED_VECTOR_ACTIVE
-            {
-                bind_ceed::CeedVectorDestroy(&mut self.ptr);
-            }
+        let not_none_and_active =
+            self.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE } &&
+            self.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE };
+
+        if not_none_and_active {
+            unsafe { bind_ceed::CeedVectorDestroy(&mut self.ptr) };
         }
     }
 }
@@ -65,16 +66,13 @@ impl<'a> fmt::Display for Vector<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            let format = CString::new("%12.8f").expect("CString::new failed");
-            let format_c: *const c_char = format.into_raw();
-            bind_ceed::CeedVectorView(self.ptr, format_c, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        let format = CString::new("%12.8f").expect("CString::new failed");
+        let format_c: *const c_char = format.into_raw();
+        unsafe { bind_ceed::CeedVectorView(self.ptr, format_c, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
