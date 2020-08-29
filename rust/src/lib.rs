@@ -142,8 +142,7 @@ impl fmt::Display for Ceed {
         unsafe { bind_ceed::CeedView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };
         let cstring = unsafe { CString::from_raw(ptr) };
-        let s = cstring.to_string_lossy();
-        write!(f, "{}", s)
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
@@ -161,8 +160,6 @@ lazy_static! {
     pub static ref vector_none: crate::vector::Vector<'static> = crate::vector::Vector {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
-        used_array_ref: &mut [0.; 0],
     };
 }
 // CEED_VECTOR_ACTIVE
@@ -170,8 +167,6 @@ lazy_static! {
     pub static ref vector_active: crate::vector::Vector<'static> = crate::vector::Vector {
         ceed: &ceed_for_static,
         ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
-        used_array_ref: &mut [0.; 0],
     };
 }
 
