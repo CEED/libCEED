@@ -20,6 +20,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![allow(dead_code)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -52,39 +53,39 @@ const max_buffer_length: u64 = 4096;
 // -----------------------------------------------------------------------------
 // Enums for libCEED
 // -----------------------------------------------------------------------------
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MemType {
     Host,
     Device,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CopyMode {
     CopyValues,
     UsePointer,
     OwnPointer,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum NormType {
     One,
     Two,
     Max,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TransposeMode {
     NoTranspose,
     Transpose,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum QuadMode {
     Gauss,
     GaussLobatto,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ElemTopology {
     Line,
     Triangle,
@@ -95,7 +96,7 @@ pub enum ElemTopology {
     Hex,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum EvalMode {
     None,
     Interp,
