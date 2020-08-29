@@ -13,15 +13,18 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+use std::{
+    cell::RefCell,
+    convert::TryFrom,
+    ffi::CString,
+    fmt,
+    ops::{Deref, DerefMut},
+    os::raw::c_char,
+    rc::{Rc, Weak},
+};
+
 use crate::prelude::*;
-use std::cell::RefCell;
-use std::convert::TryFrom;
-use std::ffi::CString;
-use std::fmt;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::os::raw::c_char;
-use std::rc::{Rc, Weak};
 
 // -----------------------------------------------------------------------------
 // CeedVector context wrapper
