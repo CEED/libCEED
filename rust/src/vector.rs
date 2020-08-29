@@ -15,13 +15,11 @@
 // testbed platforms, in support of the nation's exascale computing imperative
 
 use std::{
-    cell::RefCell,
     convert::TryFrom,
     ffi::CString,
     fmt,
     ops::{Deref, DerefMut},
     os::raw::c_char,
-    rc::{Rc, Weak},
 };
 
 use crate::prelude::*;
@@ -33,8 +31,6 @@ use crate::prelude::*;
 pub struct Vector<'a> {
     pub(crate) ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedVector,
-    pub(crate) array_weak: RefCell<Weak<*const f64>>,
-    pub(crate) used_array_ref: &'a mut [f64],
 }
 
 // -----------------------------------------------------------------------------
@@ -88,8 +84,6 @@ impl<'a> Vector<'a> {
         Self {
             ceed: ceed,
             ptr: ptr,
-            array_weak: RefCell::new(Weak::new()),
-            used_array_ref: &mut [0.; 0],
         }
     }
 
@@ -97,8 +91,6 @@ impl<'a> Vector<'a> {
         Self {
             ceed: ceed,
             ptr: ptr,
-            array_weak: RefCell::new(Weak::new()),
-            used_array_ref: &mut [0.; 0],
         }
     }
 
@@ -133,7 +125,7 @@ impl<'a> Vector<'a> {
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
     pub fn from_array(ceed: &'a crate::Ceed, v: &'a mut [f64]) -> Self {
-        let mut x = Self::create(ceed, v.len());
+        let x = Self::create(ceed, v.len());
         unsafe {
             bind_ceed::CeedVectorSetArray(
                 x.ptr,
@@ -142,7 +134,6 @@ impl<'a> Vector<'a> {
                 v.as_ptr() as *mut f64,
             )
         };
-        x.used_array_ref = v;
         x
     }
 
@@ -318,28 +309,20 @@ impl<'a> Vector<'a> {
 #[derive(Debug)]
 pub struct VectorView<'a> {
     vec: &'a Vector<'a>,
-    array: Rc<*const f64>,
+    array: *const f64,
 }
 
 impl<'a> VectorView<'a> {
     // Constructor
     fn new(vec: &'a Vector) -> Self {
-        if let Some(array) = vec.array_weak.borrow().upgrade() {
-            return Self {
-                vec: vec,
-                array: Rc::clone(&array),
-            };
-        }
-        let mut ptr = std::ptr::null();
+        let mut array = std::ptr::null();
         unsafe {
             bind_ceed::CeedVectorGetArrayRead(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
-                &mut ptr,
+                &mut array,
             );
         }
-        let array = std::rc::Rc::new(ptr);
-        vec.array_weak.replace(Rc::downgrade(&array));
         Self {
             vec: vec,
             array: array,
@@ -349,10 +332,8 @@ impl<'a> VectorView<'a> {
 
 impl<'a> Drop for VectorView<'a> {
     fn drop(&mut self) {
-        if let Some(ptr) = Rc::get_mut(&mut self.array) {
-            unsafe {
-                bind_ceed::CeedVectorRestoreArrayRead(self.vec.ptr, &mut *ptr);
-            }
+        unsafe {
+            bind_ceed::CeedVectorRestoreArrayRead(self.vec.ptr, &mut self.array);
         }
     }
 }
@@ -360,7 +341,7 @@ impl<'a> Drop for VectorView<'a> {
 impl<'a> Deref for VectorView<'a> {
     type Target = [f64];
     fn deref(&self) -> &[f64] {
-        unsafe { std::slice::from_raw_parts(*self.array, self.vec.len()) }
+        unsafe { std::slice::from_raw_parts(self.array, self.vec.len()) }
     }
 }
 
