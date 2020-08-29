@@ -142,7 +142,7 @@ impl fmt::Display for Ceed {
         unsafe { bind_ceed::CeedView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };
         let cstring = unsafe { CString::from_raw(ptr) };
-        let s = cstring.to_string_lossy().into_owned();
+        let s = cstring.to_string_lossy();
         write!(f, "{}", s)
     }
 }
