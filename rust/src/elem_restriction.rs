@@ -15,6 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
 
+// -----------------------------------------------------------------------------
+// CeedElemRestriction option
+// -----------------------------------------------------------------------------
 #[derive(Clone, Copy)]
 pub enum ElemRestrictionOpt<'a> {
     Some(&'a ElemRestriction),
@@ -37,7 +40,7 @@ impl<'a> ElemRestrictionOpt<'a> {
 
 // -----------------------------------------------------------------------------
 // CeedElemRestriction context wrapper
-// ----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 pub struct ElemRestriction {
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
 }

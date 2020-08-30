@@ -15,6 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
 
+// -----------------------------------------------------------------------------
+// CeedQFunction option
+// -----------------------------------------------------------------------------
 #[derive(Clone, Copy)]
 pub enum QFunctionOpt<'a> {
     Some(&'a QFunction),
