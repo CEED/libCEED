@@ -39,21 +39,6 @@ impl<'a> From<&'a Vector> for VectorOpt<'a> {
     }
 }
 impl<'a> VectorOpt<'a> {
-    pub fn active() -> Self {
-        Self::Active
-    }
-    pub fn none() -> Self {
-        Self::None
-    }
-
-    pub fn as_ref(self) -> Option<&'a Vector> {
-        match self {
-            Self::Some(vec) => Some(vec),
-            Self::Active | Self::None => None,
-        }
-    }
-}
-impl<'a> VectorOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
         match self {
             Self::Some(vec) => vec.ptr,

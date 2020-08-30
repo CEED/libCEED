@@ -29,18 +29,6 @@ impl<'a> From<&'a Basis> for BasisOpt<'a> {
     }
 }
 impl<'a> BasisOpt<'a> {
-    pub fn Collocated() -> Self {
-        Self::Collocated
-    }
-
-    pub fn as_ref(self) -> Option<&'a Basis> {
-        match self {
-            Self::Some(vec) => Some(vec),
-            Self::Collocated => None,
-        }
-    }
-}
-impl<'a> BasisOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
         match self {
             Self::Some(vec) => vec.ptr,

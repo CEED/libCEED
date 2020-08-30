@@ -29,18 +29,6 @@ impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     }
 }
 impl<'a> ElemRestrictionOpt<'a> {
-    pub fn none() -> Self {
-        Self::None
-    }
-
-    pub fn as_ref(self) -> Option<&'a ElemRestriction> {
-        match self {
-            Self::Some(restr) => Some(restr),
-            Self::None => None,
-        }
-    }
-}
-impl<'a> ElemRestrictionOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
         match self {
             Self::Some(restr) => restr.ptr,

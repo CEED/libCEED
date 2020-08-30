@@ -29,18 +29,6 @@ impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
     }
 }
 impl<'a> QFunctionOpt<'a> {
-    pub fn none() -> Self {
-        Self::None
-    }
-
-    pub fn as_ref(self) -> Option<&'a QFunction> {
-        match self {
-            Self::Some(qfunc) => Some(qfunc),
-            Self::None => None,
-        }
-    }
-}
-impl<'a> QFunctionOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedQFunction {
         match self {
             Self::Some(qfunc) => qfunc.ptr,
