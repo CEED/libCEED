@@ -25,14 +25,14 @@ pub enum BasisOpt<'a> {
 }
 
 impl<'a> From<&'a Basis> for BasisOpt<'a> {
-    fn from(restr: &'a Basis) -> Self {
-        Self::Some(restr)
+    fn from(basis: &'a Basis) -> Self {
+        Self::Some(basis)
     }
 }
 impl<'a> BasisOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
         match self {
-            Self::Some(vec) => vec.ptr,
+            Self::Some(basis) => basis.ptr,
             Self::Collocated => unsafe { bind_ceed::CEED_BASIS_COLLOCATED },
         }
     }
