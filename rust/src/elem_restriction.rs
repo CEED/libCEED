@@ -89,14 +89,11 @@ impl fmt::Display for ElemRestriction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            bind_ceed::CeedElemRestrictionView(self.ptr, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        unsafe { bind_ceed::CeedElemRestrictionView(self.ptr, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
