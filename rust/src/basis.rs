@@ -17,18 +17,49 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
+#[derive(Clone, Copy)]
+pub enum BasisOpt<'a> {
+    Some(&'a Basis),
+    Collocated,
+}
+
+impl<'a> From<&'a Basis> for BasisOpt<'a> {
+    fn from(restr: &'a Basis) -> Self {
+        Self::Some(restr)
+    }
+}
+impl<'a> BasisOpt<'a> {
+    pub fn Collocated() -> Self {
+        Self::Collocated
+    }
+
+    pub fn as_ref(self) -> Option<&'a Basis> {
+        match self {
+            Self::Some(vec) => Some(vec),
+            Self::Collocated => None,
+        }
+    }
+}
+impl<'a> BasisOpt<'a> {
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
+        match self {
+            Self::Some(vec) => vec.ptr,
+            Self::Collocated => unsafe { bind_ceed::CEED_BASIS_COLLOCATED },
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // CeedBasis context wrapper
 // -----------------------------------------------------------------------------
-pub struct Basis<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct Basis {
     pub(crate) ptr: bind_ceed::CeedBasis,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for Basis<'a> {
+impl Drop for Basis {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_BASIS_COLLOCATED {
@@ -41,7 +72,7 @@ impl<'a> Drop for Basis<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for Basis<'a> {
+impl fmt::Display for Basis {
     /// View a Basis
     ///
     /// ```
@@ -65,10 +96,10 @@ impl<'a> fmt::Display for Basis<'a> {
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> Basis<'a> {
+impl Basis {
     // Constructors
     pub fn create_tensor_H1(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         dim: usize,
         ncomp: usize,
         P1d: usize,
@@ -93,11 +124,11 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_tensor_H1_Lagrange(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         dim: usize,
         ncomp: usize,
         P: usize,
@@ -116,11 +147,11 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             );
         }
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_H1(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         topo: crate::ElemTopology,
         ncomp: usize,
         nnodes: usize,
@@ -145,7 +176,7 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa

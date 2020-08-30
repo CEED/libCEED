@@ -17,18 +17,49 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
+#[derive(Clone, Copy)]
+pub enum ElemRestrictionOpt<'a> {
+    Some(&'a ElemRestriction),
+    None,
+}
+
+impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
+    fn from(restr: &'a ElemRestriction) -> Self {
+        Self::Some(restr)
+    }
+}
+impl<'a> ElemRestrictionOpt<'a> {
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn as_ref(self) -> Option<&'a ElemRestriction> {
+        match self {
+            Self::Some(restr) => Some(restr),
+            Self::None => None,
+        }
+    }
+}
+impl<'a> ElemRestrictionOpt<'a> {
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
+        match self {
+            Self::Some(restr) => restr.ptr,
+            Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // CeedElemRestriction context wrapper
-// -----------------------------------------------------------------------------
-pub struct ElemRestriction<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+// ----------------------------------------------------------------------------
+pub struct ElemRestriction {
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for ElemRestriction<'a> {
+impl Drop for ElemRestriction {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_ELEMRESTRICTION_NONE {
@@ -41,7 +72,7 @@ impl<'a> Drop for ElemRestriction<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for ElemRestriction<'a> {
+impl fmt::Display for ElemRestriction {
     /// View a Basis
     ///
     /// ```
@@ -72,10 +103,10 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> ElemRestriction<'a> {
+impl ElemRestriction {
     // Constructors
     pub fn create(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -99,11 +130,11 @@ impl<'a> ElemRestriction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_strided(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -122,7 +153,7 @@ impl<'a> ElemRestriction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     /// Restrict an L-vector to an E-vector or apply its transpose

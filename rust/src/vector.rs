@@ -31,18 +31,10 @@ pub enum VectorOpt<'a> {
     None,
 }
 
-impl<'a> From<VectorOpt<'a>> for bind_ceed::CeedVector {
-    fn from(vec_opt: VectorOpt<'a>) -> Self {
-        match vec_opt {
-            VectorOpt::Some(vec) => vec.ptr,
-            VectorOpt::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
-            VectorOpt::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
-        }
-    }
-}
-
 impl<'a> From<&'a Vector> for VectorOpt<'a> {
     fn from(vec: &'a Vector) -> Self {
+        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_NONE});
+        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_ACTIVE});
         Self::Some(vec)
     }
 }

@@ -20,23 +20,22 @@ use std::fmt;
 // -----------------------------------------------------------------------------
 // CeedOperator context wrapper
 // -----------------------------------------------------------------------------
-pub struct OperatorCore<'a> {
-    ceed: &'a crate::Ceed,
+pub struct OperatorCore { 
     ptr: bind_ceed::CeedOperator,
 }
 
-pub struct Operator<'a> {
-    op_core: OperatorCore<'a>,
+pub struct Operator {
+    op_core: OperatorCore,
 }
 
-pub struct CompositeOperator<'a> {
-    op_core: OperatorCore<'a>,
+pub struct CompositeOperator {
+    op_core: OperatorCore,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for OperatorCore<'a> {
+impl Drop for OperatorCore {
     fn drop(&mut self) {
         unsafe {
             bind_ceed::CeedOperatorDestroy(&mut self.ptr);
@@ -47,7 +46,7 @@ impl<'a> Drop for OperatorCore<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for OperatorCore<'a> {
+impl fmt::Display for OperatorCore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::max_buffer_length;
@@ -68,7 +67,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 /// # use ceed::prelude::*;
 /// # let ceed = ceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-/// let mut op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+/// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
 ///
 /// // Operator field arguments
 /// let ne = 3;
@@ -86,12 +85,12 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///
 /// // Operator fields
 /// op.set_field("dx", &r, &b, VectorOpt::Active);
-/// op.set_field("weights", &ceed::elem_restriction_none, &b, VectorOpt::None);
-/// op.set_field("qdata", &rq, &ceed::basis_collocated, VectorOpt::Active);
+/// op.set_field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None);
+/// op.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
 ///
 /// println!("{}", op);
 /// ```
-impl<'a> fmt::Display for Operator<'a> {
+impl fmt::Display for Operator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)
     }
@@ -104,7 +103,7 @@ impl<'a> fmt::Display for Operator<'a> {
 /// let op = ceed.composite_operator();
 /// println!("{}", op);
 /// ```
-impl<'a> fmt::Display for CompositeOperator<'a> {
+impl fmt::Display for CompositeOperator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.op_core.fmt(f)
     }
@@ -113,12 +112,7 @@ impl<'a> fmt::Display for CompositeOperator<'a> {
 // -----------------------------------------------------------------------------
 // Core functionality
 // -----------------------------------------------------------------------------
-impl<'a> OperatorCore<'a> {
-    // Constructor
-    pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedOperator) -> Self {
-        Self { ceed, ptr }
-    }
-
+impl OperatorCore {
     // Common implementations
     pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         unsafe {
@@ -186,17 +180,17 @@ impl<'a> OperatorCore<'a> {
 // -----------------------------------------------------------------------------
 // Operator
 // -----------------------------------------------------------------------------
-impl<'a> Operator<'a> {
+impl Operator {
     // Constructor
-    pub fn create(
-        ceed: &'a crate::Ceed,
-        qf: &crate::qfunction::QFunction,
-        dqf: &crate::qfunction::QFunction,
-        dqfT: &crate::qfunction::QFunction,
+    pub fn create<'b>(
+        ceed: & crate::Ceed,
+        qf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
+        dqf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
+        dqfT: impl Into<crate::qfunction::QFunctionOpt<'b>>,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.ptr, dqf.ptr, dqfT.ptr, &mut ptr) };
-        let op_core = OperatorCore::new(ceed, ptr);
+        unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.into().to_raw(), dqf.into().to_raw(), dqfT.into().to_raw(), &mut ptr) };
+        let op_core = OperatorCore { ptr };
         Self { op_core }
     }
 
@@ -245,18 +239,18 @@ impl<'a> Operator<'a> {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// let mut op_build = ceed.operator(&qf_build, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
     /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", &ceed::elem_restriction_none, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, &ceed::basis_collocated, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
-    /// let mut op_mass = ceed.operator(&qf_mass, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, &ceed::basis_collocated, &qdata);
+    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
     /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// v.set_value(0.0);
@@ -318,18 +312,18 @@ impl<'a> Operator<'a> {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// let mut op_build = ceed.operator(&qf_build, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
     /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", &ceed::elem_restriction_none, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, &ceed::basis_collocated, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
-    /// let mut op_mass = ceed.operator(&qf_mass, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, &ceed::basis_collocated, &qdata);
+    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
     /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// v.set_value(1.0);
@@ -363,7 +357,7 @@ impl<'a> Operator<'a> {
     /// # use ceed::prelude::*;
     /// # let ceed = ceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// let mut op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
     ///
     /// // Operator field arguments
     /// let ne = 3;
@@ -380,12 +374,12 @@ impl<'a> Operator<'a> {
     /// // Operator field
     /// op.set_field("dx", &r, &b, VectorOpt::Active);
     /// ```
-    pub fn set_field(
+    pub fn set_field<'b>(
         &mut self,
         fieldname: &str,
-        r: &crate::elem_restriction::ElemRestriction,
-        b: &crate::basis::Basis,
-        v: impl Into<crate::vector::VectorOpt<'a>>,
+        r: impl Into<crate::elem_restriction::ElemRestrictionOpt<'b>>,
+        b: impl Into<crate::basis::BasisOpt<'b>>,
+        v: impl Into<crate::vector::VectorOpt<'b>>,
     ) {
         unsafe {
             bind_ceed::CeedOperatorSetField(
@@ -393,8 +387,8 @@ impl<'a> Operator<'a> {
                 CString::new(fieldname)
                     .expect("CString::new failed")
                     .as_ptr() as *const i8,
-                r.ptr,
-                b.ptr,
+                r.into().to_raw(),
+                b.into().to_raw(),
                 v.into().to_raw(),
             )
         };
@@ -585,12 +579,12 @@ impl<'a> Operator<'a> {
 // -----------------------------------------------------------------------------
 // Composite Operator
 // -----------------------------------------------------------------------------
-impl<'a> CompositeOperator<'a> {
+impl CompositeOperator {
     // Constructor
-    pub fn create(ceed: &'a crate::Ceed) -> Self {
+    pub fn create(ceed: & crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
-        let op_core = OperatorCore::new(ceed, ptr);
+        let op_core = OperatorCore { ptr };
         Self { op_core }
     }
 
