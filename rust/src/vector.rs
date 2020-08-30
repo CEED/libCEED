@@ -24,19 +24,71 @@ use std::{
 
 use crate::prelude::*;
 
+#[derive(Debug, Clone, Copy)]
+pub enum VectorOpt<'a> {
+    Some(&'a Vector),
+    Active,
+    None,
+}
+
+impl<'a> From<VectorOpt<'a>> for bind_ceed::CeedVector {
+    fn from(vec_opt: VectorOpt<'a>) -> Self {
+        match vec_opt {
+            VectorOpt::Some(vec) => vec.ptr,
+            VectorOpt::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
+            VectorOpt::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
+        }
+    }
+}
+
+impl<'a> From<&'a Vector> for VectorOpt<'a> {
+    fn from(vec: &'a Vector) -> Self {
+        Self::Some(vec)
+    }
+}
+impl<'a> VectorOpt<'a> {
+    pub fn active() -> Self {
+        Self::Active
+    }
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn as_ref(self) -> Option<&'a Vector> {
+        match self {
+            Self::Some(vec) => Some(vec),
+            Self::Active | Self::None => None,
+        }
+    }
+}
+impl<'a> VectorOpt<'a> {
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
+        match self {
+            Self::Some(vec) => vec.ptr,
+            Self::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
+            Self::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
-pub struct Vector<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct Vector {
     pub(crate) ptr: bind_ceed::CeedVector,
+    // pub(crate) ceed: Rc<Ceed>,
+}
+impl From<&'_ Vector> for bind_ceed::CeedVector {
+    fn from(vec: &Vector) -> Self {
+        vec.ptr
+    }
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for Vector<'a> {
+impl Drop for Vector {
     fn drop(&mut self) {
         let not_none_and_active =
             self.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE } &&
@@ -51,13 +103,17 @@ impl<'a> Drop for Vector<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for Vector<'a> {
+impl fmt::Display for Vector {
     /// View a Vector
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
-    /// println!("{}", vec);
+    /// assert_eq!(vec.to_string(), "CeedVector length 3
+    ///     1.00000000
+    ///     2.00000000
+    ///     3.00000000
+    /// ")
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -75,21 +131,13 @@ impl<'a> fmt::Display for Vector<'a> {
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> Vector<'a> {
+impl Vector {
     // Constructors
-    pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
+    pub fn create(ceed: &crate::Ceed, n: usize) -> Self {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self {
-            ceed: ceed,
-            ptr: ptr,
-        }
-    }
-
-    pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedVector) -> Self {
-        Self {
-            ceed: ceed,
             ptr: ptr,
         }
     }
@@ -105,7 +153,7 @@ impl<'a> Vector<'a> {
     /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> Self {
+    pub fn from_slice(ceed: &crate::Ceed, v: &[f64]) -> Self {
         let mut x = Self::create(ceed, v.len());
         x.set_slice(v);
         x
@@ -124,7 +172,7 @@ impl<'a> Vector<'a> {
     ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_array(ceed: &'a crate::Ceed, v: &'a mut [f64]) -> Self {
+    pub fn from_array(ceed: &crate::Ceed, v: &mut [f64]) -> Self {
         let x = Self::create(ceed, v.len());
         unsafe {
             bind_ceed::CeedVectorSetArray(
@@ -308,7 +356,7 @@ impl<'a> Vector<'a> {
 /// call bind_ceed::CeedVectorRestoreArrayRead().
 #[derive(Debug)]
 pub struct VectorView<'a> {
-    vec: &'a Vector<'a>,
+    vec: &'a Vector,
     array: *const f64,
 }
 
@@ -358,7 +406,7 @@ impl<'a> fmt::Display for VectorView<'a> {
 /// A mutable (host) view of a Vector with Deref to slice.
 #[derive(Debug)]
 pub struct VectorViewMut<'a> {
-    vec: &'a Vector<'a>,
+    vec: &'a Vector,
     array: *mut f64,
 }
 

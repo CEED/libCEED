@@ -29,10 +29,11 @@ use crate::prelude::*;
 use std::ffi::CString;
 use std::fmt;
 
-mod prelude {
-    pub mod bind_ceed {
+pub mod prelude {
+    pub(crate) mod bind_ceed {
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
+    pub use crate::vector::{self, VectorOpt};
 }
 
 // -----------------------------------------------------------------------------
@@ -154,21 +155,7 @@ static ceed_for_static: crate::Ceed = crate::Ceed {
     ptr: std::ptr::null_mut(),
 };
 
-unsafe impl<'a> Sync for crate::vector::Vector<'a> {}
-// CEED_VECTOR_NONE
-lazy_static! {
-    pub static ref vector_none: crate::vector::Vector<'static> = crate::vector::Vector {
-        ceed: &ceed_for_static,
-        ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
-    };
-}
-// CEED_VECTOR_ACTIVE
-lazy_static! {
-    pub static ref vector_active: crate::vector::Vector<'static> = crate::vector::Vector {
-        ceed: &ceed_for_static,
-        ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
-    };
-}
+unsafe impl Sync for crate::vector::Vector {}
 
 unsafe impl<'a> Sync for crate::elem_restriction::ElemRestriction<'a> {}
 // CEED_ELEMRESTRICTION_NONE
@@ -584,18 +571,18 @@ mod tests {
         // Set up operator
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
         let mut op_build = ceed.operator(&qf_build, &qfunction_none, &qfunction_none);
-        op_build.set_field("dx", &rx, &bx, &vector_active);
-        op_build.set_field("weights", &elem_restriction_none, &bx, &vector_none);
-        op_build.set_field("qdata", &rq, &basis_collocated, &vector_active);
+        op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+        op_build.set_field("weights", &elem_restriction_none, &bx, VectorOpt::None);
+        op_build.set_field("qdata", &rq, &basis_collocated, VectorOpt::Active);
 
         op_build.apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
         let mut op_mass = ceed.operator(&qf_mass, &qfunction_none, &qfunction_none);
-        op_mass.set_field("u", &ru, &bu, &vector_active);
+        op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
         op_mass.set_field("qdata", &rq, &basis_collocated, &qdata);
-        op_mass.set_field("v", &ru, &bu, &vector_active);
+        op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
 
         v.set_value(0.0);
         op_mass.apply(&u, &mut v);
