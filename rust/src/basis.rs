@@ -14,9 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
 
+// -----------------------------------------------------------------------------
+// CeedBasis option
+// -----------------------------------------------------------------------------
 #[derive(Clone, Copy)]
 pub enum BasisOpt<'a> {
     Some(&'a Basis),

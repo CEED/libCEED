@@ -16,8 +16,6 @@
 
 use std::{
     convert::TryFrom,
-    ffi::CString,
-    fmt,
     ops::{Deref, DerefMut},
     os::raw::c_char,
 };

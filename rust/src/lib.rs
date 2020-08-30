@@ -23,13 +23,13 @@
 #![allow(dead_code)]
 
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
 
 pub mod prelude {
     pub(crate) mod bind_ceed {
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
+    pub(crate) use std::ffi::CString;
+    pub(crate) use std::fmt;
     pub use crate::vector::{self, VectorOpt};
     pub use crate::elem_restriction::{self, ElemRestrictionOpt};
     pub use crate::basis::{self, BasisOpt};
