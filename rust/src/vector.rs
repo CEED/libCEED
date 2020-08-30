@@ -95,7 +95,7 @@ impl fmt::Display for Vector {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
         let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         let format = CString::new("%12.8f").expect("CString::new failed");
         let format_c: *const c_char = format.into_raw();

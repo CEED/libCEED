@@ -71,7 +71,7 @@ impl fmt::Display for QFunction {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
         let file = unsafe {bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         unsafe { bind_ceed::CeedQFunctionView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };

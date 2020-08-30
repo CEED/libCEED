@@ -17,14 +17,14 @@
 // -----------------------------------------------------------------------------
 // Exceptions
 // -----------------------------------------------------------------------------
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
 use crate::prelude::*;
 
 pub mod prelude {
     pub(crate) mod bind_ceed {
+        #![allow(non_upper_case_globals)]
+        #![allow(non_camel_case_types)]
         #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
@@ -49,7 +49,7 @@ pub mod vector;
 // -----------------------------------------------------------------------------
 // Constants for library interally
 // -----------------------------------------------------------------------------
-const max_buffer_length: u64 = 4096;
+const MAX_BUFFER_LENGTH: u64 = 4096;
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED
@@ -138,7 +138,7 @@ impl fmt::Display for Ceed {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
         let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         unsafe { bind_ceed::CeedView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };
