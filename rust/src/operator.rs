@@ -18,7 +18,7 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 // CeedOperator context wrapper
 // -----------------------------------------------------------------------------
-pub struct OperatorCore { 
+pub(crate) struct OperatorCore { 
     ptr: bind_ceed::CeedOperator,
 }
 
