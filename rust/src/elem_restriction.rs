@@ -43,6 +43,7 @@ impl<'a> ElemRestrictionOpt<'a> {
 // -----------------------------------------------------------------------------
 pub struct ElemRestriction {
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
+    pub(crate) ceed: crate::Ceed,
 }
 
 // -----------------------------------------------------------------------------
@@ -104,7 +105,7 @@ impl ElemRestriction {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedElemRestrictionCreate(
-                ceed.ptr,
+                ceed.core.ptr,
                 nelem as i32,
                 elemsize as i32,
                 ncomp as i32,
@@ -116,7 +117,7 @@ impl ElemRestriction {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     pub fn create_strided(
@@ -130,7 +131,7 @@ impl ElemRestriction {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(
-                ceed.ptr,
+                ceed.core.ptr,
                 nelem as i32,
                 elemsize as i32,
                 ncomp as i32,
@@ -139,7 +140,7 @@ impl ElemRestriction {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     /// Restrict an L-vector to an E-vector or apply its transpose

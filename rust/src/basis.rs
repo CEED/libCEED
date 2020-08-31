@@ -43,6 +43,7 @@ impl<'a> BasisOpt<'a> {
 // -----------------------------------------------------------------------------
 pub struct Basis {
     pub(crate) ptr: bind_ceed::CeedBasis,
+    pub(crate) ceed: crate::Ceed,
 }
 
 // -----------------------------------------------------------------------------
@@ -101,7 +102,7 @@ impl Basis {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
-                ceed.ptr,
+                ceed.core.ptr,
                 dim as i32,
                 ncomp as i32,
                 P1d as i32,
@@ -113,7 +114,7 @@ impl Basis {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     pub fn create_tensor_H1_Lagrange(
@@ -127,7 +128,7 @@ impl Basis {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(
-                ceed.ptr,
+                ceed.core.ptr,
                 dim as i32,
                 ncomp as i32,
                 P as i32,
@@ -136,7 +137,7 @@ impl Basis {
                 &mut ptr,
             );
         }
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     pub fn create_H1(
@@ -153,7 +154,7 @@ impl Basis {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedBasisCreateH1(
-                ceed.ptr,
+                ceed.core.ptr,
                 topo as bind_ceed::CeedElemTopology,
                 ncomp as i32,
                 nnodes as i32,
@@ -165,7 +166,7 @@ impl Basis {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa

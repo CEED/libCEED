@@ -43,6 +43,7 @@ impl<'a> QFunctionOpt<'a> {
 // -----------------------------------------------------------------------------
 pub struct QFunction {
     pub(crate) ptr: bind_ceed::CeedQFunction,
+    pub(crate) ceed: crate::Ceed,
 }
 
 // -----------------------------------------------------------------------------
@@ -95,23 +96,23 @@ impl QFunction {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
-                ceed.ptr,
+                ceed.core.ptr,
                 vlength,
                 f,
                 source_c.as_ptr(),
                 &mut ptr,
             )
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     pub fn create_by_name(ceed: & crate::Ceed, name: impl Into<String>) -> Self {
         let name_c = CString::new(name.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         unsafe {
-            bind_ceed::CeedQFunctionCreateInteriorByName(ceed.ptr, name_c.as_ptr(), &mut ptr)
+            bind_ceed::CeedQFunctionCreateInteriorByName(ceed.core.ptr, name_c.as_ptr(), &mut ptr)
         };
-        Self { ptr }
+        Self { ptr, ceed: ceed.clone() }
     }
 
     /// Apply the action of a QFunction
