@@ -20,7 +20,6 @@
 #![allow(non_snake_case)]
 
 use crate::prelude::*;
-use std::rc::Rc;
 
 pub mod prelude {
     pub(crate) mod bind_ceed {
@@ -111,20 +110,15 @@ pub enum EvalMode {
 // -----------------------------------------------------------------------------
 // Ceed context wrapper
 // -----------------------------------------------------------------------------
-#[derive(Clone, Debug)]
-pub struct Ceed {
-    core: Rc<CeedCore>,
-}
-
 #[derive(Debug)]
-pub(crate) struct CeedCore {
+pub struct Ceed {
     ptr: bind_ceed::Ceed,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl Drop for CeedCore {
+impl Drop for Ceed {
     fn drop(&mut self) {
         unsafe {
             bind_ceed::CeedDestroy(&mut self.ptr);
@@ -146,7 +140,7 @@ impl fmt::Display for Ceed {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
         let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
-        unsafe { bind_ceed::CeedView(self.core.ptr, file) };
+        unsafe { bind_ceed::CeedView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };
         let cstring = unsafe { CString::from_raw(ptr) };
         cstring.to_string_lossy().fmt(f)
@@ -173,8 +167,7 @@ impl Ceed {
         // Call to libCEED
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
-        let core = Rc::new( CeedCore { ptr } );
-        Ceed { core }
+        Ceed { ptr }
     }
 
     // Default initalizer for testing

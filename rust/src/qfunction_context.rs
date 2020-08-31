@@ -20,7 +20,6 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 pub struct QFunctionContext {
     pub(crate) ptr: bind_ceed::CeedQFunctionContext,
-    pub(crate) ceed: crate::Ceed,
 }
 
 // -----------------------------------------------------------------------------
@@ -56,8 +55,8 @@ impl QFunctionContext {
     // Constructor
     pub fn create(ceed: & crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
-        unsafe { bind_ceed::CeedQFunctionContextCreate(ceed.core.ptr, &mut ptr) };
-        Self { ptr, ceed: ceed.clone() }
+        unsafe { bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut ptr) };
+        Self { ptr }
     }
 }
 

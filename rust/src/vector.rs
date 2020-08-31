@@ -55,7 +55,7 @@ impl<'a> VectorOpt<'a> {
 #[derive(Debug)]
 pub struct Vector {
     pub(crate) ptr: bind_ceed::CeedVector,
-    pub(crate) ceed: crate::Ceed,
+    // pub(crate) ceed: Rc<Ceed>,
 }
 impl From<&'_ Vector> for bind_ceed::CeedVector {
     fn from(vec: &Vector) -> Self {
@@ -114,10 +114,9 @@ impl Vector {
     pub fn create(ceed: &crate::Ceed, n: usize) -> Self {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
-        unsafe { bind_ceed::CeedVectorCreate(ceed.core.ptr, n, &mut ptr) };
+        unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self {
             ptr: ptr,
-            ceed: ceed.clone(),
         }
     }
 
