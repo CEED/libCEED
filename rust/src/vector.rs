@@ -55,7 +55,6 @@ impl<'a> VectorOpt<'a> {
 #[derive(Debug)]
 pub struct Vector {
     pub(crate) ptr: bind_ceed::CeedVector,
-    // pub(crate) ceed: Rc<Ceed>,
 }
 impl From<&'_ Vector> for bind_ceed::CeedVector {
     fn from(vec: &Vector) -> Self {
