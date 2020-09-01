@@ -23,13 +23,14 @@ pub enum BasisOpt<'a> {
     Some(&'a Basis),
     Collocated,
 }
-
+/// Contruct a BasisOpt reference from a Basis reference
 impl<'a> From<&'a Basis> for BasisOpt<'a> {
     fn from(basis: &'a Basis) -> Self {
         Self::Some(basis)
     }
 }
 impl<'a> BasisOpt<'a> {
+    /// Transform a Rust libCEED Basis into C libCEED CeedBasis
     pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
         match self {
             Self::Some(basis) => basis.ptr,

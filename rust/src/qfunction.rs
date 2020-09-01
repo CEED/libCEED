@@ -23,13 +23,14 @@ pub enum QFunctionOpt<'a> {
     Some(&'a QFunction),
     None,
 }
-
+/// Contruct a QFunctionOpt reference from a QFunction reference
 impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunction) -> Self {
         Self::Some(qfunc)
     }
 }
 impl<'a> QFunctionOpt<'a> {
+    /// Transform a Rust libCEED QFunction into C libCEED CeedQFunction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedQFunction {
         match self {
             Self::Some(qfunc) => qfunc.ptr,

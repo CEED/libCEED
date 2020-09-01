@@ -31,7 +31,7 @@ pub enum VectorOpt<'a> {
     Active,
     None,
 }
-
+/// Contruct a VectorOpt reference from a Vector reference
 impl<'a> From<&'a Vector> for VectorOpt<'a> {
     fn from(vec: &'a Vector) -> Self {
         debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_NONE});
@@ -40,6 +40,7 @@ impl<'a> From<&'a Vector> for VectorOpt<'a> {
     }
 }
 impl<'a> VectorOpt<'a> {
+    /// Transform a Rust libCEED Vector into C libCEED CeedVector
     pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
         match self {
             Self::Some(vec) => vec.ptr,

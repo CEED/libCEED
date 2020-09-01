@@ -23,13 +23,14 @@ pub enum ElemRestrictionOpt<'a> {
     Some(&'a ElemRestriction),
     None,
 }
-
+/// Contruct a ElemRestrictionOpt reference from a ElemRestriction reference
 impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     fn from(restr: &'a ElemRestriction) -> Self {
         Self::Some(restr)
     }
 }
 impl<'a> ElemRestrictionOpt<'a> {
+    /// Transform a Rust libCEED ElemRestriction into C libCEED CeedElemRestriction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
         match self {
             Self::Some(restr) => restr.ptr,
