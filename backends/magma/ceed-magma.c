@@ -35,7 +35,11 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
+  #if HAVE_HIP
+  CeedInit("/gpu/hip/ref", &ceedref);
+  #else
   CeedInit("/gpu/cuda/ref", &ceedref);
+  #endif
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = magma_init();
@@ -58,7 +62,11 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   // create a queue that uses the null stream
   magma_getdevice( &(data->device) );
+  #if HAVE_HIP
+  magma_queue_create_from_hip(data->device, NULL, NULL, NULL, &(data->queue));
+  #else
   magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
+  #endif
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Magma); CeedChk(ierr);
