@@ -14,21 +14,42 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
+
+// -----------------------------------------------------------------------------
+// CeedBasis option
+// -----------------------------------------------------------------------------
+#[derive(Clone, Copy)]
+pub enum BasisOpt<'a> {
+    Some(&'a Basis),
+    Collocated,
+}
+/// Contruct a BasisOpt reference from a Basis reference
+impl<'a> From<&'a Basis> for BasisOpt<'a> {
+    fn from(basis: &'a Basis) -> Self {
+        Self::Some(basis)
+    }
+}
+impl<'a> BasisOpt<'a> {
+    /// Transform a Rust libCEED Basis into C libCEED CeedBasis
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
+        match self {
+            Self::Some(basis) => basis.ptr,
+            Self::Collocated => unsafe { bind_ceed::CEED_BASIS_COLLOCATED },
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // CeedBasis context wrapper
 // -----------------------------------------------------------------------------
-pub struct Basis<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct Basis {
     pub(crate) ptr: bind_ceed::CeedBasis,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for Basis<'a> {
+impl Drop for Basis {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_BASIS_COLLOCATED {
@@ -41,7 +62,7 @@ impl<'a> Drop for Basis<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for Basis<'a> {
+impl fmt::Display for Basis {
     /// View a Basis
     ///
     /// ```
@@ -51,25 +72,24 @@ impl<'a> fmt::Display for Basis<'a> {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedBasisView(self.ptr, file);
             bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> Basis<'a> {
+impl Basis {
     // Constructors
     pub fn create_tensor_H1(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         dim: usize,
         ncomp: usize,
         P1d: usize,
@@ -94,11 +114,11 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_tensor_H1_Lagrange(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         dim: usize,
         ncomp: usize,
         P: usize,
@@ -117,11 +137,11 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             );
         }
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_H1(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         topo: crate::ElemTopology,
         ncomp: usize,
         nnodes: usize,
@@ -146,7 +166,7 @@ impl<'a> Basis<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa

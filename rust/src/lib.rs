@@ -17,22 +17,23 @@
 // -----------------------------------------------------------------------------
 // Exceptions
 // -----------------------------------------------------------------------------
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![allow(dead_code)]
-
-#[macro_use]
-extern crate lazy_static;
 
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
 
-mod prelude {
-    pub mod bind_ceed {
+pub mod prelude {
+    pub(crate) mod bind_ceed {
+        #![allow(non_upper_case_globals)]
+        #![allow(non_camel_case_types)]
+        #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
+    pub(crate) use std::ffi::CString;
+    pub(crate) use std::fmt;
+    pub use crate::vector::{self, VectorOpt};
+    pub use crate::elem_restriction::{self, ElemRestrictionOpt};
+    pub use crate::basis::{self, BasisOpt};
+    pub use crate::qfunction::{self, QFunctionOpt};
 }
 
 // -----------------------------------------------------------------------------
@@ -48,44 +49,44 @@ pub mod vector;
 // -----------------------------------------------------------------------------
 // Constants for library interally
 // -----------------------------------------------------------------------------
-const max_buffer_length: u64 = 4096;
+const MAX_BUFFER_LENGTH: u64 = 4096;
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED
 // -----------------------------------------------------------------------------
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MemType {
     Host,
     Device,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CopyMode {
     CopyValues,
     UsePointer,
     OwnPointer,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum NormType {
     One,
     Two,
     Max,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TransposeMode {
     NoTranspose,
     Transpose,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum QuadMode {
     Gauss,
     GaussLobatto,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ElemTopology {
     Line,
     Triangle,
@@ -96,7 +97,7 @@ pub enum ElemTopology {
     Hex,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum EvalMode {
     None,
     Interp,
@@ -137,73 +138,13 @@ impl fmt::Display for Ceed {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            bind_ceed::CeedView(self.ptr, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        unsafe { bind_ceed::CeedView(self.ptr, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
-}
-
-// -----------------------------------------------------------------------------
-// Static arguments
-// -----------------------------------------------------------------------------
-unsafe impl Sync for Ceed {}
-static ceed_for_static: crate::Ceed = crate::Ceed {
-    ptr: std::ptr::null_mut(),
-};
-
-unsafe impl<'a> Sync for crate::vector::Vector<'a> {}
-// CEED_VECTOR_NONE
-lazy_static! {
-    pub static ref vector_none: crate::vector::Vector<'static> = crate::vector::Vector {
-        ceed: &ceed_for_static,
-        ptr: unsafe { bind_ceed::CEED_VECTOR_NONE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
-        used_array_ref: &mut [0.; 0],
-    };
-}
-// CEED_VECTOR_ACTIVE
-lazy_static! {
-    pub static ref vector_active: crate::vector::Vector<'static> = crate::vector::Vector {
-        ceed: &ceed_for_static,
-        ptr: unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
-        array_weak: std::cell::RefCell::new(std::rc::Weak::new()),
-        used_array_ref: &mut [0.; 0],
-    };
-}
-
-unsafe impl<'a> Sync for crate::elem_restriction::ElemRestriction<'a> {}
-// CEED_ELEMRESTRICTION_NONE
-lazy_static! {
-    pub static ref elem_restriction_none: crate::elem_restriction::ElemRestriction<'static> =
-        crate::elem_restriction::ElemRestriction {
-            ceed: &ceed_for_static,
-            ptr: unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE }
-        };
-}
-
-unsafe impl<'a> Sync for crate::basis::Basis<'a> {}
-// CEED_BASIS_COLLOCATED
-lazy_static! {
-    pub static ref basis_collocated: crate::basis::Basis<'static> = crate::basis::Basis {
-        ceed: &ceed_for_static,
-        ptr: unsafe { bind_ceed::CEED_BASIS_COLLOCATED }
-    };
-}
-
-unsafe impl<'a> Sync for crate::qfunction::QFunction<'a> {}
-// CEED_QFUNCTION_NONE
-lazy_static! {
-    pub static ref qfunction_none: crate::qfunction::QFunction<'static> =
-        crate::qfunction::QFunction {
-            ceed: &ceed_for_static,
-            ptr: unsafe { bind_ceed::CEED_QFUNCTION_NONE }
-        };
 }
 
 // -----------------------------------------------------------------------------
@@ -519,15 +460,16 @@ impl Ceed {
     ///              of the qf (or qfunction_none)
     ///
     /// ```
+    /// # use ceed::prelude::*;
     /// # let ceed = ceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// let op = ceed.operator(&qf, &ceed::qfunction_none, &ceed::qfunction_none);
+    /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
     /// ```
-    pub fn operator(
+    pub fn operator<'b>(
         &self,
-        qf: &crate::qfunction::QFunction,
-        dqf: &crate::qfunction::QFunction,
-        dqfT: &crate::qfunction::QFunction,
+        qf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
+        dqf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
+        dqfT: impl Into<crate::qfunction::QFunctionOpt<'b>>,
     ) -> crate::operator::Operator {
         crate::operator::Operator::create(self, qf, dqf, dqfT)
     }
@@ -590,19 +532,19 @@ mod tests {
 
         // Set up operator
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-        let mut op_build = ceed.operator(&qf_build, &qfunction_none, &qfunction_none);
-        op_build.set_field("dx", &rx, &bx, &vector_active);
-        op_build.set_field("weights", &elem_restriction_none, &bx, &vector_none);
-        op_build.set_field("qdata", &rq, &basis_collocated, &vector_active);
+        let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
+        op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+        op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+        op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
 
         op_build.apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
-        let mut op_mass = ceed.operator(&qf_mass, &qfunction_none, &qfunction_none);
-        op_mass.set_field("u", &ru, &bu, &vector_active);
-        op_mass.set_field("qdata", &rq, &basis_collocated, &qdata);
-        op_mass.set_field("v", &ru, &bu, &vector_active);
+        let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
+        op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
+        op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
+        op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
 
         v.set_value(0.0);
         op_mass.apply(&u, &mut v);

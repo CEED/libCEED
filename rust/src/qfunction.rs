@@ -14,21 +14,42 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
+
+// -----------------------------------------------------------------------------
+// CeedQFunction option
+// -----------------------------------------------------------------------------
+#[derive(Clone, Copy)]
+pub enum QFunctionOpt<'a> {
+    Some(&'a QFunction),
+    None,
+}
+/// Contruct a QFunctionOpt reference from a QFunction reference
+impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
+    fn from(qfunc: &'a QFunction) -> Self {
+        Self::Some(qfunc)
+    }
+}
+impl<'a> QFunctionOpt<'a> {
+    /// Transform a Rust libCEED QFunction into C libCEED CeedQFunction
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedQFunction {
+        match self {
+            Self::Some(qfunc) => qfunc.ptr,
+            Self::None => unsafe { bind_ceed::CEED_QFUNCTION_NONE },
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // CeedQFunction context wrapper
 // -----------------------------------------------------------------------------
-pub struct QFunction<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct QFunction {
     pub(crate) ptr: bind_ceed::CeedQFunction,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for QFunction<'a> {
+impl Drop for QFunction {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_QFUNCTION_NONE {
@@ -41,7 +62,7 @@ impl<'a> Drop for QFunction<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for QFunction<'a> {
+impl fmt::Display for QFunction {
     /// View a QFunction
     ///
     /// ```
@@ -51,25 +72,22 @@ impl<'a> fmt::Display for QFunction<'a> {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            bind_ceed::CeedQFunctionView(self.ptr, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
+        let file = unsafe {bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        unsafe { bind_ceed::CeedQFunctionView(self.ptr, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
 // -----------------------------------------------------------------------------
 // QFunction
 // -----------------------------------------------------------------------------
-impl<'a> QFunction<'a> {
+impl QFunction {
     // Constructors
     pub fn create(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         vlength: i32,
         f: bind_ceed::CeedQFunctionUser,
         source: impl Into<String>,
@@ -85,16 +103,16 @@ impl<'a> QFunction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
-    pub fn create_by_name(ceed: &'a crate::Ceed, name: impl Into<String>) -> Self {
+    pub fn create_by_name(ceed: & crate::Ceed, name: impl Into<String>) -> Self {
         let name_c = CString::new(name.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedQFunctionCreateInteriorByName(ceed.ptr, name_c.as_ptr(), &mut ptr)
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     /// Apply the action of a QFunction

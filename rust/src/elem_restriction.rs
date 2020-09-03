@@ -14,21 +14,42 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
-use std::ffi::CString;
-use std::fmt;
+
+// -----------------------------------------------------------------------------
+// CeedElemRestriction option
+// -----------------------------------------------------------------------------
+#[derive(Clone, Copy)]
+pub enum ElemRestrictionOpt<'a> {
+    Some(&'a ElemRestriction),
+    None,
+}
+/// Contruct a ElemRestrictionOpt reference from a ElemRestriction reference
+impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
+    fn from(restr: &'a ElemRestriction) -> Self {
+        Self::Some(restr)
+    }
+}
+impl<'a> ElemRestrictionOpt<'a> {
+    /// Transform a Rust libCEED ElemRestriction into C libCEED CeedElemRestriction
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
+        match self {
+            Self::Some(restr) => restr.ptr,
+            Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // CeedElemRestriction context wrapper
 // -----------------------------------------------------------------------------
-pub struct ElemRestriction<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct ElemRestriction {
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for ElemRestriction<'a> {
+impl Drop for ElemRestriction {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_ELEMRESTRICTION_NONE {
@@ -41,7 +62,7 @@ impl<'a> Drop for ElemRestriction<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for ElemRestriction<'a> {
+impl fmt::Display for ElemRestriction {
     /// View a Basis
     ///
     /// ```
@@ -57,25 +78,22 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            bind_ceed::CeedElemRestrictionView(self.ptr, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        unsafe { bind_ceed::CeedElemRestrictionView(self.ptr, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> ElemRestriction<'a> {
+impl ElemRestriction {
     // Constructors
     pub fn create(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -99,11 +117,11 @@ impl<'a> ElemRestriction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     pub fn create_strided(
-        ceed: &'a crate::Ceed,
+        ceed: & crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -122,7 +140,7 @@ impl<'a> ElemRestriction<'a> {
                 &mut ptr,
             )
         };
-        Self { ceed, ptr }
+        Self { ptr }
     }
 
     /// Restrict an L-vector to an E-vector or apply its transpose

@@ -13,37 +13,67 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+use std::{
+    convert::TryFrom,
+    ops::{Deref, DerefMut},
+    os::raw::c_char,
+};
+
 use crate::prelude::*;
-use std::cell::RefCell;
-use std::convert::TryFrom;
-use std::ffi::CString;
-use std::fmt;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::os::raw::c_char;
-use std::rc::{Rc, Weak};
+
+// -----------------------------------------------------------------------------
+// CeedVector option
+// -----------------------------------------------------------------------------
+#[derive(Debug, Clone, Copy)]
+pub enum VectorOpt<'a> {
+    Some(&'a Vector),
+    Active,
+    None,
+}
+/// Contruct a VectorOpt reference from a Vector reference
+impl<'a> From<&'a Vector> for VectorOpt<'a> {
+    fn from(vec: &'a Vector) -> Self {
+        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_NONE});
+        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_ACTIVE});
+        Self::Some(vec)
+    }
+}
+impl<'a> VectorOpt<'a> {
+    /// Transform a Rust libCEED Vector into C libCEED CeedVector
+    pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
+        match self {
+            Self::Some(vec) => vec.ptr,
+            Self::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
+            Self::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
-pub struct Vector<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
+pub struct Vector {
     pub(crate) ptr: bind_ceed::CeedVector,
-    pub(crate) array_weak: RefCell<Weak<*const f64>>,
-    pub(crate) used_array_ref: &'a mut [f64],
+}
+impl From<&'_ Vector> for bind_ceed::CeedVector {
+    fn from(vec: &Vector) -> Self {
+        vec.ptr
+    }
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for Vector<'a> {
+impl Drop for Vector {
     fn drop(&mut self) {
-        unsafe {
-            if self.ptr != bind_ceed::CEED_VECTOR_NONE && self.ptr != bind_ceed::CEED_VECTOR_ACTIVE
-            {
-                bind_ceed::CeedVectorDestroy(&mut self.ptr);
-            }
+        let not_none_and_active =
+            self.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE } &&
+            self.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE };
+
+        if not_none_and_active {
+            unsafe { bind_ceed::CeedVectorDestroy(&mut self.ptr) };
         }
     }
 }
@@ -51,53 +81,42 @@ impl<'a> Drop for Vector<'a> {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl<'a> fmt::Display for Vector<'a> {
+impl fmt::Display for Vector {
     /// View a Vector
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
-    /// println!("{}", vec);
+    /// assert_eq!(vec.to_string(), "CeedVector length 3
+    ///     1.00000000
+    ///     2.00000000
+    ///     3.00000000
+    /// ")
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
-        let mut sizeloc = crate::max_buffer_length;
-        unsafe {
-            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
-            let format = CString::new("%12.8f").expect("CString::new failed");
-            let format_c: *const c_char = format.into_raw();
-            bind_ceed::CeedVectorView(self.ptr, format_c, file);
-            bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+        let mut sizeloc = crate::MAX_BUFFER_LENGTH;
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        let format = CString::new("%12.8f").expect("CString::new failed");
+        let format_c: *const c_char = format.into_raw();
+        unsafe { bind_ceed::CeedVectorView(self.ptr, format_c, file) };
+        unsafe { bind_ceed::fclose(file) };
+        let cstring = unsafe { CString::from_raw(ptr) };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl<'a> Vector<'a> {
+impl Vector {
     // Constructors
-    pub fn create(ceed: &'a crate::Ceed, n: usize) -> Self {
+    pub fn create(ceed: &crate::Ceed, n: usize) -> Self {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self {
-            ceed: ceed,
             ptr: ptr,
-            array_weak: RefCell::new(Weak::new()),
-            used_array_ref: &mut [0.; 0],
-        }
-    }
-
-    pub fn new(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedVector) -> Self {
-        Self {
-            ceed: ceed,
-            ptr: ptr,
-            array_weak: RefCell::new(Weak::new()),
-            used_array_ref: &mut [0.; 0],
         }
     }
 
@@ -112,7 +131,7 @@ impl<'a> Vector<'a> {
     /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> Self {
+    pub fn from_slice(ceed: &crate::Ceed, v: &[f64]) -> Self {
         let mut x = Self::create(ceed, v.len());
         x.set_slice(v);
         x
@@ -131,8 +150,8 @@ impl<'a> Vector<'a> {
     ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_array(ceed: &'a crate::Ceed, v: &'a mut [f64]) -> Self {
-        let mut x = Self::create(ceed, v.len());
+    pub fn from_array(ceed: &crate::Ceed, v: &mut [f64]) -> Self {
+        let x = Self::create(ceed, v.len());
         unsafe {
             bind_ceed::CeedVectorSetArray(
                 x.ptr,
@@ -141,7 +160,6 @@ impl<'a> Vector<'a> {
                 v.as_ptr() as *mut f64,
             )
         };
-        x.used_array_ref = v;
         x
     }
 
@@ -316,29 +334,21 @@ impl<'a> Vector<'a> {
 /// call bind_ceed::CeedVectorRestoreArrayRead().
 #[derive(Debug)]
 pub struct VectorView<'a> {
-    vec: &'a Vector<'a>,
-    array: Rc<*const f64>,
+    vec: &'a Vector,
+    array: *const f64,
 }
 
 impl<'a> VectorView<'a> {
     // Constructor
     fn new(vec: &'a Vector) -> Self {
-        if let Some(array) = vec.array_weak.borrow().upgrade() {
-            return Self {
-                vec: vec,
-                array: Rc::clone(&array),
-            };
-        }
-        let mut ptr = std::ptr::null();
+        let mut array = std::ptr::null();
         unsafe {
             bind_ceed::CeedVectorGetArrayRead(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
-                &mut ptr,
+                &mut array,
             );
         }
-        let array = std::rc::Rc::new(ptr);
-        vec.array_weak.replace(Rc::downgrade(&array));
         Self {
             vec: vec,
             array: array,
@@ -348,10 +358,8 @@ impl<'a> VectorView<'a> {
 
 impl<'a> Drop for VectorView<'a> {
     fn drop(&mut self) {
-        if let Some(ptr) = Rc::get_mut(&mut self.array) {
-            unsafe {
-                bind_ceed::CeedVectorRestoreArrayRead(self.vec.ptr, &mut *ptr);
-            }
+        unsafe {
+            bind_ceed::CeedVectorRestoreArrayRead(self.vec.ptr, &mut self.array);
         }
     }
 }
@@ -359,7 +367,7 @@ impl<'a> Drop for VectorView<'a> {
 impl<'a> Deref for VectorView<'a> {
     type Target = [f64];
     fn deref(&self) -> &[f64] {
-        unsafe { std::slice::from_raw_parts(*self.array, self.vec.len()) }
+        unsafe { std::slice::from_raw_parts(self.array, self.vec.len()) }
     }
 }
 
@@ -376,7 +384,7 @@ impl<'a> fmt::Display for VectorView<'a> {
 /// A mutable (host) view of a Vector with Deref to slice.
 #[derive(Debug)]
 pub struct VectorViewMut<'a> {
-    vec: &'a Vector<'a>,
+    vec: &'a Vector,
     array: *mut f64,
 }
 
