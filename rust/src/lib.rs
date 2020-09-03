@@ -61,6 +61,8 @@ pub enum MemType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+// OwnPointer will not be used but is included for completeness
+#[allow(dead_code)]
 pub(crate) enum CopyMode {
     CopyValues,
     UsePointer,
