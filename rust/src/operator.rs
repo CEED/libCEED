@@ -134,7 +134,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn linear_asssemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleDiagonal(
                 self.ptr,
@@ -445,8 +445,92 @@ impl Operator {
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
-    pub fn linear_asssemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
-        self.op_core.linear_assemble_add_diagonal(assembled)
+    /// ```
+    /// # use ceed::prelude::*;
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 4;
+    /// let p = 3;
+    /// let q = 4;
+    /// let ndofs = p*ne-ne+1;
+    ///
+    /// // Vectors
+    /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
+    /// let mut qdata = ceed.vector(ne*q);
+    /// qdata.set_value(0.0);
+    /// let mut u = ceed.vector(ndofs);
+    /// u.set_value(1.0);
+    /// let mut v = ceed.vector(ndofs);
+    /// v.set_value(0.0);
+    ///
+    /// // Restrictions
+    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   indx[2*i+0] = i as i32;
+    ///   indx[2*i+1] = (i+1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// for i in 0..ne {
+    ///   indu[p*i+0] = i as i32;
+    ///   indu[p*i+1] = (i+1) as i32;
+    ///   indu[p*i+2] = (i+2) as i32;
+    /// }
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let strides : [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    ///
+    /// // Set up operator
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    ///
+    /// op_build.apply(&x, &mut qdata);
+    ///
+    /// // Mass operator
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
+    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
+    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// 
+    /// // Diagonal
+    /// let mut diag = ceed.vector(ndofs);
+    /// diag.set_value(0.0);
+    /// op_mass.linear_assemble_diagonal(&mut diag);
+    /// 
+    /// // Manual diagonal computation
+    /// let mut true_diag = ceed.vector(ndofs);
+    /// for i in 0..ndofs {
+    ///   u.set_value(0.0);
+    ///   {
+    ///     let mut u_array = u.view_mut();
+    ///     u_array[i] = 1.;
+    ///   }
+    /// 
+    ///   op_mass.apply(&u, &mut v);
+    /// 
+    ///   {
+    ///     let v_array = v.view_mut();
+    ///     let mut true_array = true_diag.view_mut();
+    ///     true_array[i] = v_array[i];
+    ///   }
+    /// }
+    ///
+    /// // Check
+    /// let diag_array = diag.view();
+    /// let true_array = true_diag.view();
+    /// for i in 0..ndofs {
+    ///   assert!((diag_array[i] - true_array[i]).abs() < 1e-15, "Diagonal entry incorrect");
+    /// }
+    /// ```
+    pub fn linear_assemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
+        self.op_core.linear_assemble_diagonal(assembled)
     }
 
     /// Assemble the diagonal of a square linear Operator
@@ -459,13 +543,98 @@ impl Operator {
     /// * 'op'        -     Operator to assemble QFunction
     /// * 'assembled' - Vector to store assembled Operator diagonal
     ///
+    ///
+    /// ```
+    /// # use ceed::prelude::*;
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 4;
+    /// let p = 3;
+    /// let q = 4;
+    /// let ndofs = p*ne-ne+1;
+    ///
+    /// // Vectors
+    /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
+    /// let mut qdata = ceed.vector(ne*q);
+    /// qdata.set_value(0.0);
+    /// let mut u = ceed.vector(ndofs);
+    /// u.set_value(1.0);
+    /// let mut v = ceed.vector(ndofs);
+    /// v.set_value(0.0);
+    ///
+    /// // Restrictions
+    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   indx[2*i+0] = i as i32;
+    ///   indx[2*i+1] = (i+1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// for i in 0..ne {
+    ///   indu[p*i+0] = i as i32;
+    ///   indu[p*i+1] = (i+1) as i32;
+    ///   indu[p*i+2] = (i+2) as i32;
+    /// }
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let strides : [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    ///
+    /// // Set up operator
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    ///
+    /// op_build.apply(&x, &mut qdata);
+    ///
+    /// // Mass operator
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
+    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
+    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// 
+    /// // Diagonal
+    /// let mut diag = ceed.vector(ndofs);
+    /// diag.set_value(1.0);
+    /// op_mass.linear_assemble_add_diagonal(&mut diag);
+    /// 
+    /// // Manual diagonal computation
+    /// let mut true_diag = ceed.vector(ndofs);
+    /// for i in 0..ndofs {
+    ///   u.set_value(0.0);
+    ///   {
+    ///     let mut u_array = u.view_mut();
+    ///     u_array[i] = 1.;
+    ///   }
+    /// 
+    ///   op_mass.apply(&u, &mut v);
+    /// 
+    ///   {
+    ///     let v_array = v.view_mut();
+    ///     let mut true_array = true_diag.view_mut();
+    ///     true_array[i] = v_array[i] + 1.0;
+    ///   }
+    /// }
+    ///
+    /// // Check
+    /// let diag_array = diag.view();
+    /// let true_array = true_diag.view();
+    /// for i in 0..ndofs {
+    ///   assert!((diag_array[i] - true_array[i]).abs() < 1e-15, "Diagonal entry incorrect");
+    /// }
+    /// ```
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
-    /// Assemble the diagonal of a square linear Operator
+    /// Assemble the point block diagonal of a square linear Operator
     ///
-    /// This overwrites a Vector with the diagonal of a linear Operator.
+    /// This overwrites a Vector with the point block diagonal of a linear Operator.
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
@@ -482,9 +651,9 @@ impl Operator {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
-    /// Assemble the diagonal of a square linear Operator
+    /// Assemble the point block diagonal of a square linear Operator
     ///
-    /// This sums into a Vector with the diagonal of a linear Operator.
+    /// This sums into a Vector with the point block diagonal of a linear Operator.
     ///
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
