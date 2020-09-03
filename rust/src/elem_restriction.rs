@@ -93,7 +93,7 @@ impl fmt::Display for ElemRestriction {
 impl ElemRestriction {
     // Constructors
     pub fn create(
-        ceed: & crate::Ceed,
+        ceed: &crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -121,7 +121,7 @@ impl ElemRestriction {
     }
 
     pub fn create_strided(
-        ceed: & crate::Ceed,
+        ceed: &crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,

@@ -18,7 +18,7 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 // CeedOperator context wrapper
 // -----------------------------------------------------------------------------
-pub(crate) struct OperatorCore { 
+pub(crate) struct OperatorCore {
     ptr: bind_ceed::CeedOperator,
 }
 
@@ -181,13 +181,21 @@ impl OperatorCore {
 impl Operator {
     // Constructor
     pub fn create<'b>(
-        ceed: & crate::Ceed,
+        ceed: &crate::Ceed,
         qf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
         dqf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
         dqfT: impl Into<crate::qfunction::QFunctionOpt<'b>>,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        unsafe { bind_ceed::CeedOperatorCreate(ceed.ptr, qf.into().to_raw(), dqf.into().to_raw(), dqfT.into().to_raw(), &mut ptr) };
+        unsafe {
+            bind_ceed::CeedOperatorCreate(
+                ceed.ptr,
+                qf.into().to_raw(),
+                dqf.into().to_raw(),
+                dqfT.into().to_raw(),
+                &mut ptr,
+            )
+        };
         let op_core = OperatorCore { ptr };
         Self { op_core }
     }
@@ -579,7 +587,7 @@ impl Operator {
 // -----------------------------------------------------------------------------
 impl CompositeOperator {
     // Constructor
-    pub fn create(ceed: & crate::Ceed) -> Self {
+    pub fn create(ceed: &crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
         let op_core = OperatorCore { ptr };

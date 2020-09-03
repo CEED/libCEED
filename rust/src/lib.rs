@@ -28,12 +28,12 @@ pub mod prelude {
         #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
+    pub use crate::basis::{self, BasisOpt};
+    pub use crate::elem_restriction::{self, ElemRestrictionOpt};
+    pub use crate::qfunction::{self, QFunctionOpt};
+    pub use crate::vector::{self, VectorOpt};
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
-    pub use crate::vector::{self, VectorOpt};
-    pub use crate::elem_restriction::{self, ElemRestrictionOpt};
-    pub use crate::basis::{self, BasisOpt};
-    pub use crate::qfunction::{self, QFunctionOpt};
 }
 
 // -----------------------------------------------------------------------------

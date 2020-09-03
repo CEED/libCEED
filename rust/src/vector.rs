@@ -34,8 +34,8 @@ pub enum VectorOpt<'a> {
 /// Contruct a VectorOpt reference from a Vector reference
 impl<'a> From<&'a Vector> for VectorOpt<'a> {
     fn from(vec: &'a Vector) -> Self {
-        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_NONE});
-        debug_assert!(vec.ptr!=unsafe{bind_ceed::CEED_VECTOR_ACTIVE});
+        debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE });
+        debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE });
         Self::Some(vec)
     }
 }
@@ -68,9 +68,8 @@ impl From<&'_ Vector> for bind_ceed::CeedVector {
 // -----------------------------------------------------------------------------
 impl Drop for Vector {
     fn drop(&mut self) {
-        let not_none_and_active =
-            self.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE } &&
-            self.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE };
+        let not_none_and_active = self.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE }
+            && self.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE };
 
         if not_none_and_active {
             unsafe { bind_ceed::CeedVectorDestroy(&mut self.ptr) };
@@ -115,9 +114,7 @@ impl Vector {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
-        Self {
-            ptr: ptr,
-        }
+        Self { ptr: ptr }
     }
 
     /// Create a Vector from a slice

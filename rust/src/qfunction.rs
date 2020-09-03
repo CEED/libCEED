@@ -73,7 +73,7 @@ impl fmt::Display for QFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe {bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
+        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         unsafe { bind_ceed::CeedQFunctionView(self.ptr, file) };
         unsafe { bind_ceed::fclose(file) };
         let cstring = unsafe { CString::from_raw(ptr) };
@@ -87,7 +87,7 @@ impl fmt::Display for QFunction {
 impl QFunction {
     // Constructors
     pub fn create(
-        ceed: & crate::Ceed,
+        ceed: &crate::Ceed,
         vlength: i32,
         f: bind_ceed::CeedQFunctionUser,
         source: impl Into<String>,
@@ -106,7 +106,7 @@ impl QFunction {
         Self { ptr }
     }
 
-    pub fn create_by_name(ceed: & crate::Ceed, name: impl Into<String>) -> Self {
+    pub fn create_by_name(ceed: &crate::Ceed, name: impl Into<String>) -> Self {
         let name_c = CString::new(name.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         unsafe {

@@ -53,7 +53,7 @@ impl fmt::Display for QFunctionContext {
 // -----------------------------------------------------------------------------
 impl QFunctionContext {
     // Constructor
-    pub fn create(ceed: & crate::Ceed) -> Self {
+    pub fn create(ceed: &crate::Ceed) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut ptr) };
         Self { ptr }
