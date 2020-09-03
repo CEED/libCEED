@@ -361,7 +361,7 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libhiprtc.${SO_EXT}))
+HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref
 ifneq ($(HIP_LIB_DIR),)
@@ -371,7 +371,7 @@ ifneq ($(HIP_LIB_DIR),)
   endif
   CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
-  $(libceeds) : LDLIBS += -lhip_hcc -lhiprtc -lhipblas
+  $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)
   libceed.hip += $(hip.hip)
   libceed.cpp += $(hip.cpp)
