@@ -158,8 +158,7 @@ PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
 //                                        *edgenodecnt, T); CHKERRQ(ierr);
 
   // Free heap
-  ierr = PetscFree(bitmap); CHKERRQ(ierr);
-  ierr = PetscFree(bitmaploc); CHKERRQ(ierr);
+  ierr = PetscFree2(bitmaploc, bitmap); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

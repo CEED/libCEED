@@ -18,7 +18,7 @@ COMMON ?= ../../common.mk
 -include $(COMMON)
 
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
-CEED_DIR ?= ../..
+CEED_DIR ?= ../../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
