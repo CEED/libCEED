@@ -125,6 +125,7 @@ jobs:
        - cargo test
        - cd ..
      after_success:
+       - cd rust && cargo fmt && cd .. && git diff --exit-code;
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
