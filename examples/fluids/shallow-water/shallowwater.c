@@ -385,10 +385,19 @@ int main(int argc, char **argv) {
   // Free edgenodes structure array
   ierr = PetscFree(edgenodes); CHKERRQ(ierr);
 
-  // Setup libCEED's objects
+  // Setup libCEED's objects and contexts
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
+  CeedQFunctionContextCreate(ceed, &ceeddata->physCtx);
+  CeedQFunctionContextSetData(ceeddata->physCtx, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof physCtxData,
+                              &physCtxData);
+  CeedQFunctionContextCreate(ceed, &ceeddata->problCtx);
+  CeedQFunctionContextSetData(ceeddata->problCtx, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof problCtxData,
+                              &problCtxData);
+
   ierr = SetupLibceed(dm, ceed, degree, qextra, ncompx, ncompq, user,
-                      ceeddata, problem, &physCtxData, &problCtxData);
+                      ceeddata, problem);
   CHKERRQ(ierr);
 
   // Set up PETSc context
