@@ -498,12 +498,12 @@ impl Operator {
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
     /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
     /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
-    /// 
+    ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
     /// diag.set_value(0.0);
     /// op_mass.linear_assemble_diagonal(&mut diag);
-    /// 
+    ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ndofs);
     /// for i in 0..ndofs {
@@ -512,9 +512,9 @@ impl Operator {
     ///     let mut u_array = u.view_mut();
     ///     u_array[i] = 1.;
     ///   }
-    /// 
+    ///
     ///   op_mass.apply(&u, &mut v);
-    /// 
+    ///
     ///   {
     ///     let v_array = v.view_mut();
     ///     let mut true_array = true_diag.view_mut();
@@ -597,12 +597,12 @@ impl Operator {
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
     /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
     /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
-    /// 
+    ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
     /// diag.set_value(1.0);
     /// op_mass.linear_assemble_add_diagonal(&mut diag);
-    /// 
+    ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ndofs);
     /// for i in 0..ndofs {
@@ -611,9 +611,9 @@ impl Operator {
     ///     let mut u_array = u.view_mut();
     ///     u_array[i] = 1.;
     ///   }
-    /// 
+    ///
     ///   op_mass.apply(&u, &mut v);
-    /// 
+    ///
     ///   {
     ///     let v_array = v.view_mut();
     ///     let mut true_array = true_diag.view_mut();

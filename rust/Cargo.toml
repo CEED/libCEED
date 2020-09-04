@@ -13,6 +13,3 @@ name = "ceed"
 
 [build-dependencies]
 bindgen = "*"
-
-[dependencies]
-lazy_static = "*"
