@@ -118,6 +118,8 @@ jobs:
      compiler: gcc
      rust: 1.45.2
      install:
+     before_script:
+       - rustup component add rustfmt
      script:
        - make info && make -j4
        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
@@ -125,7 +127,7 @@ jobs:
        - cargo test
        - cd ..
      after_success:
-       - cd rust && cargo fmt && cd .. && git diff --exit-code;
+       - cd rust && cargo fmt -- --check;
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
