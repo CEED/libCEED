@@ -651,9 +651,7 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p) {
 
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                             PetscInt ncompx, PetscInt ncompq, User user,
-                            CeedData data, problemData *problem,
-                            PhysicsContext physCtxData,
-                            ProblemContext problCtxData) {
+                            CeedData data, problemData *problem) {
   int ierr;
   DM dmcoord;
   Vec Xloc;
@@ -831,13 +829,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
   user->op_jacobian = op_jacobian;
 
   // Set up the libCEED context
-  CeedQFunctionContextCreate(ceed, &data->physCtx);
-  CeedQFunctionContextSetData(data->physCtx, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof physCtxData, &physCtxData);
   CeedQFunctionSetContext(qf_ics, data->physCtx);
-  CeedQFunctionContextCreate(ceed, &data->problCtx);
-  CeedQFunctionContextSetData(data->problCtx, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof problCtxData, &problCtxData);
   CeedQFunctionSetContext(qf_explicit, data->problCtx);
   CeedQFunctionSetContext(qf_implicit, data->problCtx);
   CeedQFunctionSetContext(qf_jacobian, data->problCtx);

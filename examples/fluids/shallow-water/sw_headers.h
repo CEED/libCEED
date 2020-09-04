@@ -183,9 +183,7 @@ PetscErrorCode CreateRestrictionPlex(Ceed ceed, DM dm, CeedInt P, CeedInt ncomp,
 // Auxiliary function to set up libCEED objects for a given degree
 PetscErrorCode SetupLibceed(DM dm, Ceed ceed, CeedInt degree, CeedInt qextra,
                             const PetscInt ncompx, PetscInt ncompq, User user,
-                            CeedData data, problemData *problem,
-                            PhysicsContext physCtxData,
-                            ProblemContext problCtxData);
+                            CeedData data, problemData *problem);
 
 // -----------------------------------------------------------------------------
 // RHS (Explicit part in time-stepper) function setup
