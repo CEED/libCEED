@@ -128,7 +128,13 @@ a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP3}](img/BP3.pdf
 
 # Applications
 
-To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and continuum mechanics communities.
+To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and continuum mechanics communities. In Fig. \ref{fig:NSdensitycurrent} we show a numerical simulation of the 3D compressible gas dynamics for the density current example [@straka1993numerical], solved with high-order ($p = 10$) spectral elements. When the cold air bubble reaches the ground, it separates exhibiting swirls (see Fig. \ref{fig:NSvortices}). Fig. \ref{fig:Solids} shows an example for continuum mechanics applications with linear or neo-Hookean (both at small and finite strain) constitutive models.
+
+![Density current example for compressible gas dynamics in 3D on an unstructured grid, computed via the Navier-Stokes miniapp in libCEED.\label{fig:NSdensitycurrent}](img/Navier-Stokes.png)
+
+![When a cold air bubble drops to the ground, it develops swirls.\label{fig:NSvortices}](img/Vortices.png)
+
+![An example of a twisted solid, obtained via the continuum mechanics miniapp in libCEED.\label{fig:Solids}](img/SolidTwistExample.jpeg)
 
 Examples of integration of libCEED with other packages in the co-design Center for Efficient Exascale Discretizations (CEED) [@CEEDwebsite], such as PETSc, MFEM, and Nek5000, can be found in the CEED distribution, which provides the full CEED software ecosystem [@CEEDMS25; @CEEDMS34].
 
