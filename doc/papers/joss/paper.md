@@ -98,7 +98,7 @@ at run time). This easily allows $hp$-refinement studies (where $h$ commonly den
 
 ![A schematic of element restriction and basis applicator operators for
 elements with different topology. This sketch shows the independence of QFunctions
-(in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf =320x185)
+(in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
 LibCEED is a C99 library with Fortran77 and Python interfaces. The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a ``CeedVector`` object is exposed as ``libceed.Vector`` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages, for handling host or device memory (when interested in GPU computations with CUDA). Flexible pointer handling in libCEED makes it easy to provide zero-copy host and (GPU) device support for any desired Python array container. The interested reader can find more details on libCEED's Python interface in [@libceed-paper-proc-scipy-2020].
 
@@ -111,7 +111,7 @@ symmetric/asymmetric operators and exposes opportunities for device-specific
 optimizations.
 
 ![libCEED is a low-level API for finite element codes, that has specialized implementations
-(backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.png =1373x645)
+(backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.png)
 
 Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations (backends) available in libCEED and its role as a low-level library that allows a wide variety of applications to share highly optimized discretization kernels.
 GPU implementations are available via pure CUDA [@CUDAwebsite] and pure HIP [@HIPwebsite] as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends.
