@@ -16,7 +16,7 @@
 
 #include "ceed-magma.h"
 
-#if HAVE_HIP
+#ifdef HAVE_HIP
 // TODO: Tune for HIP
 int
 magma_dgemm_nontensor(
@@ -40,21 +40,22 @@ magma_dgemm_nontensor(
   magma_int_t n1 = n;
   bool use_magmablas = false;
 
+  // Always use hipblas for now, pending further tuning
   if ( NN ) {
     if     (m <=   2 && k <=    3) { use_magmablas = false; n1 = 128;}
     else if (m <=   3 && k <=    4) { use_magmablas = false; n1 = 128;}
     else if (m <=   4 && k <=    5) { use_magmablas = false; n1 = 128;}
-    else if (m <=   4 && k <=    9) { use_magmablas = true;  n1 =  16;}
+    else if (m <=   4 && k <=    9) { use_magmablas = false;  n1 =  16;}
     else if (m <=   5 && k <=    6) { use_magmablas = false; n1 = 128;}
     else if (m <=   6 && k <=    7) { use_magmablas = false; n1 = 128;}
     else if (m <=   7 && k <=    8) { use_magmablas = false; n1 = 128;}
-    else if (m <=   8 && k <=    9) { use_magmablas = true;  n1 =  16;}
-    else if (m <=   8 && k <=   27) { use_magmablas = true;  n1 =  16;}
-    else if (m <=   9 && k <=   10) { use_magmablas = true;  n1 = 128;}
+    else if (m <=   8 && k <=    9) { use_magmablas = false;  n1 =  16;}
+    else if (m <=   8 && k <=   27) { use_magmablas = false;  n1 =  16;}
+    else if (m <=   9 && k <=   10) { use_magmablas = false;  n1 = 128;}
     else if (m <=   9 && k <=   16) { use_magmablas = false; n1 = 128;}
-    else if (m <=  16 && k <=   25) { use_magmablas = true;  n1 =  16;}
-    else if (m <=  25 && k <=   36) { use_magmablas = true;  n1 = 128;}
-    else if (m <=  27 && k <=   64) { use_magmablas = true;  n1 = 128;}
+    else if (m <=  16 && k <=   25) { use_magmablas = false;  n1 =  16;}
+    else if (m <=  25 && k <=   36) { use_magmablas = false;  n1 = 128;}
+    else if (m <=  27 && k <=   64) { use_magmablas = false;  n1 = 128;}
     else if (m <=  36 && k <=   49) { use_magmablas = false; n1 = 128;}
     else if (m <=  49 && k <=   64) { use_magmablas = false; n1 = 128;}
     else if (m <=  64 && k <=   81) { use_magmablas = false; n1 = 128;}
@@ -74,14 +75,14 @@ magma_dgemm_nontensor(
     else if (m <=   5 && k <=    6) { use_magmablas = false; n1 = 128;}
     else if (m <=   6 && k <=    7) { use_magmablas = false; n1 = 128;}
     else if (m <=   7 && k <=    8) { use_magmablas = false; n1 = 128;}
-    else if (m <=   8 && k <=    9) { use_magmablas = true;  n1 = 128;}
-    else if (m <=   8 && k <=   27) { use_magmablas = true;  n1 = 128;}
-    else if (m <=   9 && k <=   10) { use_magmablas = true;  n1 = 128;}
+    else if (m <=   8 && k <=    9) { use_magmablas = false;  n1 = 128;}
+    else if (m <=   8 && k <=   27) { use_magmablas = false;  n1 = 128;}
+    else if (m <=   9 && k <=   10) { use_magmablas = false;  n1 = 128;}
     else if (m <=   9 && k <=   16) { use_magmablas = false; n1 = 128;}
-    else if (m <=  16 && k <=   25) { use_magmablas = true;  n1 = 128;}
-    else if (m <=  25 && k <=   36) { use_magmablas = true;  n1 = 128;}
-    else if (m <=  27 && k <=   64) { use_magmablas = true;  n1 = 128;}
-    else if (m <=  36 && k <=   49) { use_magmablas = true;  n1 = 128;}
+    else if (m <=  16 && k <=   25) { use_magmablas = false;  n1 = 128;}
+    else if (m <=  25 && k <=   36) { use_magmablas = false;  n1 = 128;}
+    else if (m <=  27 && k <=   64) { use_magmablas = false;  n1 = 128;}
+    else if (m <=  36 && k <=   49) { use_magmablas = false;  n1 = 128;}
     else if (m <=  49 && k <=   64) { use_magmablas = false; n1 = 128;}
     else if (m <=  64 && k <=   81) { use_magmablas = false; n1 = 128;}
     else if (m <=  64 && k <=  125) { use_magmablas = false; n1 = 128;}

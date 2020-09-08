@@ -17,8 +17,8 @@
 #include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
 #include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "grad_device.cuh"
+#include "../common/magma_common_device.h"
+#include "../common/grad_device.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern __shared__ CeedScalar shared_data[];

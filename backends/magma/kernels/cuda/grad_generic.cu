@@ -16,8 +16,8 @@
 
 #include <ceed.h>
 #include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "grad_device.cuh"
+#include "../common/magma_common_device.h"
+#include "../common/grad_device.h"
 
 #define cu_ipow(a,b) ( (int)(__powf( (float)(a), (float)(b) ) ) )
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )

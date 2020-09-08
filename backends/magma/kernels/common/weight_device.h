@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_WEIGHT_DEVICE_HIP_H
-#define MAGMA_WEIGHT_DEVICE_HIP_H
+#ifndef MAGMA_WEIGHT_DEVICE_H
+#define MAGMA_WEIGHT_DEVICE_H
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 1D
@@ -100,7 +100,6 @@ magma_weight_generic_device(
 
     // read qweight1d into shared memory
     int i = 0;
-    #pragma unroll
     for(i = 0; i < Q-nthreads; i += nthreads) {
         sqweight1d[i+tx] = dqweight1d[i+tx];
     }
@@ -119,7 +118,6 @@ magma_weight_generic_device(
     __syncthreads();
     
     // rest of iterations
-    #pragma unroll
     for(int d = 1; d < dim; d++) {
         // remapping
         pre  /= Q;
@@ -143,4 +141,4 @@ magma_weight_generic_device(
     }
 }
 
-#endif    // MAGMA_WEIGHT_DEVICE_CUH
+#endif    // MAGMA_WEIGHT_DEVICE_H

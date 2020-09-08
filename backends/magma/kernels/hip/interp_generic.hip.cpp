@@ -17,8 +17,8 @@
 #include <ceed.h>
 #include "hip/hip_runtime.h"
 #include <magma_v2.h>
-#include "magma_common_device.hip.h"
-#include "interp_device.hip.h"
+#include "../common/magma_common_device.h"
+#include "../common/interp_device.h"
 
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )
 

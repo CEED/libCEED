@@ -14,23 +14,22 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_GRAD_DEVICE_HIP_H
-#define MAGMA_GRAD_DEVICE_HIP_H
+#ifndef MAGMA_INTERP_DEVICE_H
+#define MAGMA_INTERP_DEVICE_H
 
 #define maxpq(p,q)    (p > q ? p : q)
 
 // macros to abstract access of shared memory and reg. file
-#define sT(i,j)           sT[(j) * P + (i)]
-#define sTmp(i,j,ldw)     sTmp[(j)*(ldw) + (i)]
-#define sTmp2(i,j,ldw)    sTmp2[(j)*(ldw) + (i)]
+#define sT(i,j)          sT[(j) * P + (i)]
+#define sTmp(i,j,ldw)    sTmp[(j)*(ldw) + (i)]
 #define rU(idim,icomp,i) rU[(idim)*NCOMP*P + (icomp)*P + (i)]
 #define rV(idim,icomp,i) rV[(idim)*NCOMP*Q + (icomp)*Q + (i)]
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// grad basis action (1D)
+// interp basis action (1D)
 template<typename T, int DIM, int NCOMP, int P, int Q>
 static __device__ __inline__ void
-magma_grad_1d_device( 
+magma_interp_1d_device( 
     const T *sT, magma_trans_t transT, 
     T* sU[NCOMP], T* sV[NCOMP], const int tx)
 {
@@ -48,7 +47,7 @@ magma_grad_1d_device(
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             rv = (transT == MagmaTrans) ? sV[icomp][tx] : make_zero<T>();
             for(int i = 0; i < P; i++) {
-                rv += sU[icomp][i] * sT(i,tx);	
+                rv += sU[icomp][i] * sT(i,tx); //sT[tx * P + i];	
             }
             sV[icomp][tx] = rv;
         }
@@ -56,31 +55,23 @@ magma_grad_1d_device(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// grad basis action (2D)
-// This function is called two times at a higher level for 2D
-// DIMU  -- for the size of rU[DIMU * NCOMP * MAXPQ]
-// DIMV  -- for the size of rV[DIMV * NCOMP * MAXPQ]
-// iDIM  -- the index of the outermost loop over dimensions in grad 
-// iDIMU -- which dim index of rU is accessed (always 0 for notrans, 0 or 1 for trans)
-// iDIMV -- which dim index of rV is accessed (0 or 1 for notrans, always 0 for trans)
-// the scalar beta is used to specify whether to accumulate to rV, or overwrite it
-template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize, int iDIM, int iDIMU, int iDIMV>
+// interp basis action (2D)
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize>
 static __device__ __inline__ void
-magma_grad_2d_device( 
-    const T *sTinterp, const T *sTgrad, 
+magma_interp_2d_device( 
+    const T *sT, magma_trans_t transT, 
     T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
-    T beta, const int tx, T rTmp, T* swork)
+    const int tx, T rTmp, T* swork)
 {
     // Assumptions
-    // 0. This device routine applies grad for one dim only (iDIM), so it should be called twice for 2D
     // 1. 1D threads of size max(P,Q)
-    // 2. input:  rU[DIMU x NCOMP x P] in registers (per thread)
-    // 3. output: rV[DIMV x NCOMP x Q] in registers (per thread)
-    // 4. Two products per each (dim,component) pair
+    // 2. input:  rU[DIMU x NCOMP x rUsize] in registers (per thread)
+    // 3. output: rV[DIMV x NCOMP x rVsize] in registers (per thread)
+    // 4. Two products per component
     //  4.1 Batch P of (1xP) matrices times (PxQ) matrix => Batch P of (1xQ) matrices
     //  4.2 Batch 1 of (QxP) matrix   times (PxQ) matrix => (QxQ) matrix
-    // 6. Each thread computes one row of the output of each product
-    // 7. Sync is recommended before and after the call
+    // 5. Each thread computes one row of the output of each product
+    // 6. Sync is recommended before and after the call
 
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // 1st product -- Batch P of (1xP) matrices [reg] x (PxQ) [shmem] => Batch P of (1xQ) matrices
@@ -88,12 +79,11 @@ magma_grad_2d_device(
         if (tx < P) {
             const int batchid = tx;
             const int sld     = 1;
-            const T *sT = (iDIM == 0) ? sTgrad : sTinterp;
             T* sTmp = swork + batchid * (1 * Q);
             for(int j = 0; j < Q; j++){
                 rTmp = make_zero<T>();
                 for(int i = 0; i < P; i++){
-                    rTmp += rU[iDIMU][icomp][i] * sT(i,j);
+                    rTmp += rU[0][icomp][i] * sT(i,j);
                 }
                 sTmp(0,j,sld) = rTmp;
             }
@@ -104,65 +94,51 @@ magma_grad_2d_device(
         if (tx < Q) {
             const int batchid = 0;
             const int sld     = Q;
-            const T *sT = (iDIM == 1) ? sTgrad : sTinterp;
             T* sTmp = swork + batchid * (Q*P);
             for(int j = 0; j < Q; j++){
                 rTmp = make_zero<T>();
                 for(int i = 0; i < P; i++){
                     rTmp += sTmp(tx,i,sld) * sT(i,j);
                 }
-                rV[iDIMV][icomp][j] *= beta;
-                rV[iDIMV][icomp][j] += rTmp;
+                rV[0][icomp][j] += rTmp;
             }
         }
         __syncthreads();
-    }  // loop over NCOMP
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// grad basis action (3D)
-// This function is called three times at a higher level for 3D
-// DIMU  -- for the size of rU[DIMU * NCOMP * MAXPQ]
-// DIMV  -- for the size of rV[DIMV * NCOMP * MAXPQ]
-// iDIM  -- the index of the outermost loop over dimensions in grad 
-// iDIMU -- which dim index of rU is accessed (always 0 for notrans, 0, 1, or 2 for trans)
-// iDIMV -- which dim index of rV is accessed (0, 1, or 2 for notrans, always 0 for trans)
-// the scalar beta is used to specify whether to accumulate to rV, or overwrite it
-template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize, int iDIM, int iDIMU, int iDIMV>
+// interp basis action (3D)
+template<typename T, int DIMU, int DIMV, int NCOMP, int P, int Q, int rUsize, int rVsize>
 static __device__ __inline__ void
-magma_grad_3d_device( 
-    const T *sTinterp, const T *sTgrad, 
+magma_interp_3d_device( 
+    const T *sT, magma_trans_t transT, 
     T rU[DIMU][NCOMP][rUsize] , T rV[DIMV][NCOMP][rVsize], 
-    T beta, const int tx, T rTmp, T* swork)
+    const int tx, T rTmp[Q], T* swork)
 {
     // Assumptions
-    // 0. This device routine applies grad for one dim only (iDIM), so it should be thrice for 3D
     // 1. 1D threads of size max(P,Q)^2
     // 2. input:  rU[DIMU x NCOMP x rUsize] in registers (per thread)
     // 3. output: rV[DIMV x NCOMP x rVsize] in registers (per thread)
-    // 4. Three products per each (dim,component) pair
+    // 4. Three products per component
     //  4.1 Batch P^2 of (1xP) matrices times (PxQ) matrix => Batch P^2 of (1xQ) matrices
     //  4.2 Batch P   of (QxP) matrices times (PxQ) matrix => Batch P   of (QxQ) matrices
     //  4.3 Batch 1   of (Q^2xP) matrix times (PxQ) matrix => (Q^2xQ) matrix
-    // 6. Each thread computes one row of the output of each product
-    // 7. Sync is recommended before and after the call
+    // 5. Each thread computes one row of the output of each product
+    // 6. Sync is recommended before and after the call
 
-    T* sW1 = swork;
-    T* sW2 = sW1 + P*P*Q;
     for(int icomp = 0; icomp < NCOMP; icomp++){
         // Batch P^2 of (1xP) matrices [reg] times (PxQ) matrix [shmem] => Batch P^2 of (1xQ) matrices [shmem]
         if (tx < (P*P)) {
             const int batchid = tx;
             const int sld     = 1;
-            const T *sT = (iDIM == 0) ? sTgrad : sTinterp;
-            T* sTmp = sW1 + batchid * (1*Q);
+            T* sTmp = swork + batchid * (1*Q);
             for(int j = 0; j < Q; j++){
-                rTmp = make_zero<T>();
+                rTmp[0] = make_zero<T>();
                 for(int i = 0; i < P; i++){
-                    //rTmp += rU(iDIMU,icomp,i) * sT(i,j);
-                    rTmp += rU[iDIMU][icomp][i] * sT(i,j);
+                    rTmp[0] += rU[0][icomp][i] * sT(i,j);
                 }
-                sTmp(0,j,sld) = rTmp;
+                sTmp(0,j,sld) = rTmp[0];
             }
         }    // end of: if (tx < P*P)
         __syncthreads();
@@ -172,15 +148,24 @@ magma_grad_3d_device(
             const int batchid = tx / Q;
             const int tx_     = tx % Q;
             const int sld     = Q;
-            const T *sT = (iDIM == 1) ? sTgrad : sTinterp;
-            T* sTmp  = sW1 + batchid * (Q*P); // sTmp is input
-            T* sTmp2 = sW2 + batchid * (Q*Q); // sTmp2 is output
+            T* sTmp = swork + batchid * (Q*P); // sTmp is input
             for(int j = 0; j < Q; j++){
-                rTmp = make_zero<T>();
+                rTmp[j] = make_zero<T>();
                 for(int i = 0; i < P; i++){
-                    rTmp += sTmp(tx_,i,sld) * sT(i,j);
+                    rTmp[j] += sTmp(tx_,i,sld) * sT(i,j);
                 }
-                sTmp2(tx_,j,sld) = rTmp;
+            }
+        }
+        __syncthreads();
+
+        // write rTmp[] into shmem as batch P of QxQ matrices
+        if (tx < (P*Q)){
+            const int batchid = tx / Q;
+            const int tx_     = tx % Q;
+            const int sld     = Q;
+            T* sTmp = swork + batchid * (Q*Q);
+            for(int j = 0; j < Q; j++){
+                sTmp(tx_, j, sld) = rTmp[j];
             }
         }
         __syncthreads();
@@ -189,33 +174,29 @@ magma_grad_3d_device(
        if (tx < (Q*Q)) {
            // No need to declare batchid = (tx  / Q^2) = always zero
            // No need to declare tx_     = (tx_ % Q^2) = always tx
-           const int sld = Q*Q;
-           const T *sT   = (iDIM == 2) ? sTgrad : sTinterp;
-           T* sTmp = sW2;  // sTmp is input
+           const int sld     = Q*Q;
+           T* sTmp = swork;
            for(int j = 0; j < Q; j++) {
-               rTmp = make_zero<T>();
+               rTmp[0] = make_zero<T>();
                for(int i = 0; i < P; i++) {
-                   rTmp += sTmp(tx,i,sld) * sT(i,j);
+                   rTmp[0] += sTmp(tx,i,sld) * sT(i,j);
                }
-               //rV(iDIMV,icomp,j) *= beta;
-               //rV(iDIMV,icomp,j) += rTmp;
-               rV[iDIMV][icomp][j] *= beta;
-               rV[iDIMV][icomp][j] += rTmp;
+               rV[0][icomp][j] += rTmp[0];
            }
        }
        __syncthreads();
-    }  // loop over NCOMP
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int P, int Q>
+// interp basis action -- dim and ncomp are run-time variables
+template<int P, int Q>
 static __device__ __inline__ void
-magma_grad_generic_device( 
-    const int p, 
+magma_interp_generic_device( 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
-    const T *sTinterp, const T *sTgrad, magma_trans_t transT,
-    const T *dU, T *dV, 
-    T* shared_data )
+    const double *dT, magma_trans_t transT,
+    const double *dU, double *dV, 
+    double* shared_data )
 {
 #define B    (P)
 #define J    (Q)
@@ -233,11 +214,15 @@ magma_grad_generic_device(
 
     const magma_int_t add = (transT == MagmaTrans);
     
-    T* sTmp1 = (T*)shared_data;
-    T* sTmp2 = sTmp1 + tmp_size; 
-    T rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
-    T rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
-    T *sU, *sV, *sT; 
+    double* sT    = (double*)shared_data;
+    double* sTmp1 = sT + B * J;
+    double* sTmp2 = sTmp1 + tmp_size; 
+    double rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
+    double rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
+    double *sU, *sV; 
+
+    // read T in shared memory
+    dread_T_gm2sm<B, J>(tx, transT, dT, sT );    
 
     sU = sTmp1; 
     sV = sTmp2;
@@ -245,9 +230,7 @@ magma_grad_generic_device(
     // read U in sTmp1 (AC x B)
     sU += slice_id * C * B;
     dU += slice_id * C * B;
-    #pragma unroll
     for(i = 0; i < A-nslices; i+=nslices) {
-        #pragma unroll
         for(int b = 0; b < B; b++) {
             sU[b * C + tx_] = dU[b * C + tx_];
         }
@@ -256,24 +239,20 @@ magma_grad_generic_device(
     }
     
     if (slice_id < A-i) {
-        #pragma unroll
         for(int b = 0; b < B; b++) {
             //printf("tx = %d, tx_ = %d, accessing b * C + tx_ = %d\n", tx, tx_, b * C + tx_);
             sU[b * C + tx_] = dU[b * C + tx_];
         }
     }
     __syncthreads();
-    
+
     int d = 0; 
-    #pragma unroll
     for(d = 0; d < dim-1; d++) {
-        sT = (p == d) ? (T*)sTgrad : (T*)sTinterp;
         sU = (d % 2 == 0) ? sTmp1 : sTmp2;
         sV = (d % 2 == 0) ? sTmp2 : sTmp1;
         
         sU += slice_id * C * B;
         sV += slice_id * C * J; 
-        #pragma unroll
         for(i = 0; i < A-nslices; i+=nslices) {
             dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
             dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, MAGMA_D_ZERO, rV); // multiply
@@ -289,6 +268,21 @@ magma_grad_generic_device(
         }
         __syncthreads(); 
         
+        
+        #if 0 
+        __syncthreads();
+        if (tx == 0) {
+            printf("GPU,dim = %d \n", d);
+            for(int i = 0; i < pre * post; i++) {
+                for(int j = 0; j < Q; j++) {
+                    printf("%5.2f ", sV[j * (pre*post) + i]);
+                }
+                printf("\n");
+            }
+        }
+        __syncthreads();
+        #endif
+
         // adjust dimensions and re-calculate the thread indices 
         pre     /= P;
         post    *= Q;
@@ -299,14 +293,12 @@ magma_grad_generic_device(
     
     // handle last iteration (d = dim-1) with dV and beta
     // no need for sV in the last iteration, just use sU and write directly into dV
-    sT = (p == d) ? (T*)sTgrad : (T*)sTinterp;
     sU = (d % 2 == 0) ? sTmp1 : sTmp2;
     //sV = (d % 2 == 0) ? sTmp2 : sTmp1; 
-    T beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
+    double beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
         
     sU += slice_id * C * B;
     dV += slice_id * C * J;
-    #pragma unroll
     for(i = 0; i < A-nslices; i+=nslices) {
         dread_U_gsm2reg<B>(C, tx_, sU, rU);   // read U
         if ( add ) {
@@ -326,7 +318,23 @@ magma_grad_generic_device(
         dgemm_slice<B, J>(MAGMA_D_ONE, sT, rU, beta, rV); // multiply
         dwrite_V_reg2gsm<J>(C, tx_, rV, dV ); // write V back
     }
+    
+    
+    #if 0
+    __syncthreads();
+    if (tx == 0) {
+        printf("GPU,dim = %d \n", d);
+        for(int i = 0; i < pre * post; i++) {
+            for(int j = 0; j < Q; j++) {
+                printf("%5.2f ", dV[j * (pre*post) + i]);
+            }
+            printf("\n");
+        }
+    }
+    __syncthreads();
+    #endif
 
+    
     pre     /= P;
     post    *= Q;
 #undef B
@@ -335,4 +343,5 @@ magma_grad_generic_device(
 #undef C
 }
 
-#endif    // MAGMA_BASIS_APPLY_GRAD_DEVICE_CUH
+
+#endif    // MAGMA_INTERP_DEVICE_H

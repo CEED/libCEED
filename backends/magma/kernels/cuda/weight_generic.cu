@@ -17,8 +17,8 @@
 #include <ceed.h>
 #include <magma.h>
 #include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "weight_device.cuh"
+#include "../common/magma_common_device.h"
+#include "../common/weight_device.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////

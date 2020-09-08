@@ -17,8 +17,8 @@
 #include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
 #include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "interp_device.cuh"
+#include "../common/magma_common_device.h"
+#include "../common/interp_device.h"
 
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )
 

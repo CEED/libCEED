@@ -17,9 +17,6 @@
 #ifndef ATOMICS_HIP_H
 #define ATOMICS_HIP_H
 
-
-// TODO: Do we need this file anymore?
-// Will need changes to work for HIP complex
 #include "magma_internal.h"
 /******************************************************************************/
 // Atomic adds 
@@ -37,23 +34,4 @@ magmablas_datomic_add(double* address, double val)
    return atomicAdd(address, val);
 }
 
-/******************************************************************************/
-__device__ static __inline__ magmaFloatComplex 
-magmablas_catomic_add(magmaFloatComplex* address, magmaFloatComplex val)
-{
-//    float re = magmablas_satomic_add( (float*) (&(*address).x) ,val.x);
-//    float im = magmablas_satomic_add( (float*) (&(*address).y) ,val.y);
-//    return make_hipFloatComplex(re, im);
-}
-
-/******************************************************************************/
-__device__ static __inline__ magmaDoubleComplex 
-magmablas_zatomic_add(magmaDoubleComplex* address, magmaDoubleComplex val)
-{
-//    double re = magmablas_datomic_add( (double*) (&(*address).x) ,val.x);
-//    double im = magmablas_datomic_add( (double*) (&(*address).y) ,val.y);
-//    return make_hipDoubleComplex(re, im);
-}
-
-/******************************************************************************/
 #endif // ATOMICS_HIP_H
