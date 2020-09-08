@@ -321,7 +321,7 @@ CEED_QFUNCTION(SWImplicit_Advection)(void *ctx, CeedInt Q,
        u_dot_grad_h += u[j] * dhdx_j;
      }
      CeedScalar strongConv = (h + H0) *div_u + u_dot_grad_h;
-     CeedScalar strongResid = qdot[4][i] + strongConv;
+     CeedScalar strongResid = qdot[2][i] + strongConv;
 
      v[2][i] = wdetJ * qdot[2][i]; // transient part (ALWAYS)
 
