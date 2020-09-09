@@ -68,6 +68,8 @@ inline __device__ void readQuads1d(const int elem, const int tidx,
   for (int i = 0; i < Q1D; i++)
     slice[i + tidz*Q1D] = d_U[i + elem*Q1D + comp*Q1D*nelem +
                             dim*BASIS_NCOMP*nelem*Q1D];
+  for (int i = Q1D; i < P1D; i++)
+    slice[i + tidz*Q1D] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -77,7 +79,8 @@ inline __device__ void writeQuads1d(const int elem, const int tidx,
                                     const int tidy, const int comp,
                                     const int dim, const int nelem,
                                     const CeedScalar &r_V, CeedScalar *d_V) {
-  d_V[tidx + elem*Q1D + comp*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D] = r_V;
+  if (tidx<Q1D)
+    d_V[tidx + elem*Q1D + comp*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D] = r_V;
 }
 
 //------------------------------------------------------------------------------
@@ -216,8 +219,9 @@ inline __device__ void readQuads2d(const int elem, const int tidx,
                                    const int tidy, const int comp,
                                    const int dim, const int nelem,
                                    const CeedScalar *d_U, CeedScalar &U ) {
-  U = d_U[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
-               dim*BASIS_NCOMP*nelem*Q1D*Q1D];
+  U = (tidx<Q1D && tidy<Q1D) ?
+      d_U[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
+      dim*BASIS_NCOMP*nelem*Q1D*Q1D] : 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -227,8 +231,9 @@ inline __device__ void writeQuads2d(const int elem, const int tidx,
                                     const int tidy, const int comp,
                                     const int dim, const int nelem,
                                     const CeedScalar &r_V, CeedScalar *d_V) {
-  d_V[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
-           dim*BASIS_NCOMP*nelem*Q1D*Q1D] = r_V;
+  if (tidx<Q1D && tidy<Q1D)
+    d_V[tidx + tidy*Q1D + elem*Q1D*Q1D + comp*Q1D*Q1D*nelem +
+    dim*BASIS_NCOMP*nelem*Q1D*Q1D] = r_V;
 }
 
 //------------------------------------------------------------------------------
@@ -432,6 +437,8 @@ inline __device__ void readQuads3d(const int elem, const int tidx,
   for (int i = 0; i < Q1D; i++)
     r_U[i] = d_U[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D +
                  comp*Q1D*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D];
+  for (int i = Q1D; i < P1D; i++)
+    r_U[i] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -441,9 +448,11 @@ inline __device__ void writeQuads3d(const int elem, const int tidx,
                                     const int tidy, const int comp,
                                     const int dim, const int nelem,
                                     const CeedScalar *r_V, CeedScalar *d_V) {
-  for (int i = 0; i < Q1D; i++)
-    d_V[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D + comp*Q1D*Q1D*Q1D*nelem +
-        dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D] = r_V[i];
+  if (tidx < Q1D && tidy < Q1D) {
+    for (int i = 0; i < Q1D; i++)
+      d_V[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D + comp*Q1D*Q1D*Q1D*nelem +
+          dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D] = r_V[i];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -775,8 +784,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, Q1d, 1,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, 1,
                                         elemsPerBlock, sharedMem,
                                         interpargs); CeedChk(ierr);
     } else if (dim == 2) {
@@ -785,16 +795,18 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = CeedIntMax(Q1d < 7 ? optElems[Q1d]/ncomp : 1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, Q1d, Q1d,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
                                         interpargs); CeedChk(ierr);
     } else if (dim == 3) {
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, Q1d, Q1d,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
                                         interpargs); CeedChk(ierr);
     }
@@ -813,8 +825,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, Q1d, 1,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, thread1d, 1,
                                         elemsPerBlock, sharedMem, gradargs);
       CeedChk(ierr);
     } else if (dim == 2) {
@@ -823,16 +836,18 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = CeedIntMax(Q1d < 7 ? optElems[Q1d]/ncomp : 1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, Q1d, Q1d,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
                                         gradargs); CeedChk(ierr);
     } else if (dim == 3) {
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
+      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*Q1d*Q1d*sizeof(CeedScalar);
-      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, Q1d, Q1d,
+      ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
                                         gradargs); CeedChk(ierr);
     }
@@ -920,11 +935,6 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  if (Q1d<P1d) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Backend does not implement underintegrated basis.");
-    // LCOV_EXCL_STOP
-  }
   CeedBasis_Cuda_shared *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
 
