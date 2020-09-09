@@ -382,20 +382,23 @@ endif
 
 # MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  ifneq ($(CUDA_LIB_DIR),)
-  cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
-  omp_link = -fopenmp
-  magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-  magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
-  magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  $(libceeds)          : LDLIBS += $(magma_link)
-  $(tests) $(examples) : LDLIBS += $(magma_link)
-  libceed.c  += $(magma.c)
-  libceed.cu += $(magma.cu)
-  $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
-  BACKENDS += /gpu/magma /gpu/magma/det
-  else
+  MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
+  ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
+    ifneq ($(CUDA_LIB_DIR),)
+    cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+    omp_link = -fopenmp
+    magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
+    magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+    magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+    $(libceeds)          : LDLIBS += $(magma_link)
+    $(tests) $(examples) : LDLIBS += $(magma_link)
+    libceed.c  += $(magma.c)
+    libceed.cu += $(magma.cu)
+    $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+    $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+    BACKENDS += /gpu/magma /gpu/magma/det
+    endif
+  else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
       hip_link = -Wl,-rpath,$(HIP_LIB_DIR) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
       omp_link = -fopenmp
