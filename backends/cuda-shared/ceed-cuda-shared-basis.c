@@ -26,7 +26,7 @@ static const char *kernelsShared = QUOTE(
 // Sum input into output
 //------------------------------------------------------------------------------
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
-  for (int i = 0; i < Q1D; i++)
+  for (int i = 0; i < P1D; i++)
     r_V[i] += r_U[i];
 }
 
