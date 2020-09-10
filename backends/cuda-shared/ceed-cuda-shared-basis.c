@@ -437,8 +437,9 @@ inline __device__ void readQuads3d(const int elem, const int tidx,
                                    const int dim, const int nelem,
                                    const CeedScalar *d_U, CeedScalar *r_U) {
   for (int i = 0; i < Q1D; i++)
-    r_U[i] = d_U[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D +
-                 comp*Q1D*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D];
+    r_U[i] = (tidx < Q1D && tidy < Q1D) ? 
+              d_U[tidx + tidy*Q1D + i*Q1D*Q1D + elem*Q1D*Q1D*Q1D +
+              comp*Q1D*Q1D*Q1D*nelem + dim*BASIS_NCOMP*nelem*Q1D*Q1D*Q1D] : 0.0;
   for (int i = Q1D; i < P1D; i++)
     r_U[i] = 0.0;
 }
