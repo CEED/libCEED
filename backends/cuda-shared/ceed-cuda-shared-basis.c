@@ -42,9 +42,9 @@ inline __device__ void readDofs1d(const int elem, const int tidx,
                                   const int nelem, const CeedScalar *d_U,
                                   CeedScalar *slice) {
   for (int i = 0; i < P1D; i++)
-    slice[i + tidz*Q1D] = d_U[i + elem*P1D + comp*P1D*nelem];
+    slice[i + tidz*T1D] = d_U[i + elem*P1D + comp*P1D*nelem];
   for (int i = P1D; i < Q1D; i++)
-    slice[i + tidz*Q1D] = 0.0;
+    slice[i + tidz*T1D] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -66,10 +66,10 @@ inline __device__ void readQuads1d(const int elem, const int tidx,
                                    const int dim, const int nelem,
                                    const CeedScalar *d_U, CeedScalar *slice) {
   for (int i = 0; i < Q1D; i++)
-    slice[i + tidz*Q1D] = d_U[i + elem*Q1D + comp*Q1D*nelem +
+    slice[i + tidz*T1D] = d_U[i + elem*Q1D + comp*Q1D*nelem +
                             dim*BASIS_NCOMP*nelem*Q1D];
   for (int i = Q1D; i < P1D; i++)
-    slice[i + tidz*Q1D] = 0.0;
+    slice[i + tidz*T1D] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ inline __device__ void ContractX1d(CeedScalar *slice, const int tidx,
                                    CeedScalar &V) {
   V = 0.0;
   for (int i = 0; i < P1D; ++i)
-    V += B[i + tidx*P1D] * slice[i + tidz*Q1D]; // Contract x direction
+    V += B[i + tidx*P1D] * slice[i + tidz*T1D]; // Contract x direction
 }
 
 //------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ inline __device__ void ContractTransposeX1d(CeedScalar *slice, const int tidx,
     const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
   V = 0.0;
   for (int i = 0; i < Q1D; ++i)
-    V += B[tidx + i*P1D] * slice[i + tidz*Q1D]; // Contract x direction
+    V += B[tidx + i*P1D] * slice[i + tidz*T1D]; // Contract x direction
 }
 
 //------------------------------------------------------------------------------
@@ -243,12 +243,12 @@ inline __device__ void ContractX2d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
                                    const CeedScalar &U, const CeedScalar *B,
                                    CeedScalar &V) {
-  slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
+  slice[tidx + tidy*T1D + tidz*T1D*T1D] = U;
   __syncthreads();
   V = 0.0;
   if (tidx < Q1D)
     for (int i = 0; i < P1D; ++i)
-      V += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+      V += B[i + tidx*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
   __syncthreads();
 }
 
@@ -259,12 +259,12 @@ inline __device__ void ContractY2d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
                                    const CeedScalar &U, const CeedScalar *B,
                                    CeedScalar &V) {
-  slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
+  slice[tidx + tidy*T1D + tidz*T1D*T1D] = U;
   __syncthreads();
   V = 0.0;
   if (tidy < Q1D)
     for (int i = 0; i < P1D; ++i)
-      V += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+      V += B[i + tidy*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
   __syncthreads();
 }
 
@@ -274,12 +274,12 @@ inline __device__ void ContractY2d(CeedScalar *slice, const int tidx,
 inline __device__ void ContractTransposeY2d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
-  slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
+  slice[tidx + tidy*T1D + tidz*T1D*T1D] = U;
   __syncthreads();
   V = 0.0;
   if (tidy < P1D)
     for (int i = 0; i < Q1D; ++i)
-      V += B[tidy + i*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+      V += B[tidy + i*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
   __syncthreads();
 }
 
@@ -289,12 +289,12 @@ inline __device__ void ContractTransposeY2d(CeedScalar *slice, const int tidx,
 inline __device__ void ContractTransposeX2d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
-  slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
+  slice[tidx + tidy*T1D + tidz*T1D*T1D] = U;
   __syncthreads();
   V = 0.0;
   if (tidx < P1D)
     for (int i = 0; i < Q1D; ++i)
-      V += B[tidx + i*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+      V += B[tidx + i*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
   __syncthreads();
 }
 
@@ -465,12 +465,12 @@ inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
                                    const CeedScalar *U, const CeedScalar *B,
                                    CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
+    slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidx < Q1D)
       for (int i = 0; i < P1D; ++i)
-        V[k] += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+        V[k] += B[i + tidx*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
     __syncthreads();
   }
 }
@@ -483,12 +483,12 @@ inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
                                    const CeedScalar *U, const CeedScalar *B,
                                    CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
+    slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidy < Q1D)
       for (int i = 0; i < P1D; ++i)
-        V[k] += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+        V[k] += B[i + tidy*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
     __syncthreads();
   }
 }
@@ -529,12 +529,12 @@ inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
+    slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidy < P1D)
       for (int i = 0; i < Q1D; ++i)
-        V[k] += B[tidy + i*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+        V[k] += B[tidy + i*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
     __syncthreads();
   }
 }
@@ -546,12 +546,12 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
-    slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
+    slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (tidx < P1D)
       for (int i = 0; i < Q1D; ++i)
-        V[k] += B[tidx + i*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+        V[k] += B[tidx + i*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
     __syncthreads();
   }
 }
@@ -790,7 +790,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
-      CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
+      CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, 1,
                                         elemsPerBlock, sharedMem,
                                         interpargs); CeedChk(ierr);
@@ -970,9 +970,10 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   // Compile basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 7,
+  ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 8,
                          "Q1D", Q1d,
                          "P1D", P1d,
+                         "T1D", Q1d>P1d?Q1d:P1d,
                          "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
                              Q1d : P1d, dim),
                          "BASIS_DIM", dim,
