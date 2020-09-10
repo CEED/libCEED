@@ -816,7 +816,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     } else if (dim == 2) {
       const CeedInt optElems[7] = {0,32,8,6,4,2,8};
       // elemsPerBlock must be at least 1
-      CeedInt elemsPerBlock = CeedIntMax(thread1d < 7 ? optElems[thread1d]/ncomp : 1, 1);
+      CeedInt elemsPerBlock = CeedIntMax(thread1d<7?optElems[thread1d]/ncomp:1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
@@ -855,7 +855,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     } else if (dim == 2) {
       const CeedInt optElems[7] = {0,32,8,6,4,2,8};
       // elemsPerBlock must be at least 1
-      CeedInt elemsPerBlock = CeedIntMax(thread1d < 7 ? optElems[thread1d]/ncomp : 1, 1);
+      CeedInt elemsPerBlock = CeedIntMax(thread1d<7?optElems[thread1d]/ncomp:1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);

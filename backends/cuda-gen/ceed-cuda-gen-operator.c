@@ -122,8 +122,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
     CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, thread1d, 1, elemsPerBlock,
-                                      sharedMem, opargs);
+    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, thread1d, 1,
+                                      elemsPerBlock, sharedMem, opargs);
   } else if (dim==2) {
     const CeedInt elemsPerBlock = thread1d<4? 16 : 2;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
