@@ -718,7 +718,7 @@ inline __device__ void gradColloTranspose3d(BackendData& data, const CeedInt q, 
 //------------------------------------------------------------------------------
 template <int Q1d>
 inline __device__ void weight1d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
-  *w = (data.tidx < Q1d) ? qweight1d[data.tidx] 0.0;
+  *w = (data.tidx < Q1d) ? qweight1d[data.tidx] : 0.0;
 }
 
 //------------------------------------------------------------------------------
