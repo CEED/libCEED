@@ -622,6 +622,11 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
 
   for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
        elem += gridDim.x*elemsPerBlock) {
+    for (int i = 0; i < T1D; ++i) {
+      r_U[i] = 0.0;
+      r_V[i] = 0.0;
+      r_t[i] = 0.0;
+    }
     if (!transpose) {
       readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_U);
       ContractX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
