@@ -799,7 +799,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-    CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
+    CeedInt thread1d = CeedIntMax(Q1d, P1d);
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
@@ -837,7 +837,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-    CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
+    CeedInt thread1d = CeedIntMax(Q1d, P1d);
     ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d,
                                   Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
@@ -992,7 +992,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 8,
                          "Q1D", Q1d,
                          "P1D", P1d,
-                         "T1D", Q1d>P1d?Q1d:P1d,
+                         "T1D", CeedIntMax(Q1d, P1d),
                          "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
                              Q1d : P1d, dim),
                          "BASIS_DIM", dim,

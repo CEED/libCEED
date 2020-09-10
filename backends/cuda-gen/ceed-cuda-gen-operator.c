@@ -116,7 +116,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   const CeedInt dim = data->dim;
   const CeedInt Q1d = data->Q1d;
   const CeedInt P1d = data->maxP1d;
-  const CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
+  const CeedInt thread1d = CeedIntMax(Q1d, P1d);
   if (dim==1) {
     const CeedInt elemsPerBlock = 32;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
