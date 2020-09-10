@@ -26,8 +26,10 @@ static const char *kernelsShared = QUOTE(
 // Sum input into output
 //------------------------------------------------------------------------------
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
-  for (int i = 0; i < Q1D; i++)
-    r_V[i] += r_U[i];
+  if (tidx < P1D && tidy < P1D) {
+    for (int i = 0; i < Q1D; i++)
+      r_V[i] += r_U[i];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -463,7 +465,8 @@ inline __device__ void writeQuads3d(const int elem, const int tidx,
 //------------------------------------------------------------------------------
 inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B,
+                                   const CeedScalar *U,
+                                   const CeedScalar *B,
                                    CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
@@ -481,7 +484,8 @@ inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
 //------------------------------------------------------------------------------
 inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B,
+                                   const CeedScalar *U,
+                                   const CeedScalar *B,
                                    CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
@@ -499,42 +503,43 @@ inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
 //------------------------------------------------------------------------------
 inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
-                                   const CeedScalar *U, const CeedScalar *B,
+                                   const CeedScalar *U,
+                                   const CeedScalar *B,
                                    CeedScalar *V) {
-  if (tidx < Q1D && tidy <Q1D) {
-    for (int k = 0; k < Q1D; ++k) {
-      V[k] = 0.0;
-      for (int i = 0; i < P1D; ++i)
-        V[k] += B[i + k*P1D] * U[i]; // Contract z direction
-    }
-    for (int k = Q1D; k < P1D; ++k)
-      V[k] = 0.0;
+  for (int k = 0; k < Q1D; ++k) {
+    V[k] = 0.0;
+    for (int i = 0; i < P1D; ++i)
+      V[k] += B[i + k*P1D] * U[i]; // Contract z direction
   }
+  for (int k = Q1D; k < P1D; ++k)
+    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract z
 //------------------------------------------------------------------------------
 inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
-    const int tidy, const int tidz,
-    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  if (tidx < Q1D && tidy <Q1D) {
-    for (int k = 0; k < P1D; ++k) {
-      V[k] = 0.0;
-      for (int i = 0; i < Q1D; ++i)
-        V[k] += B[k + i*P1D] * U[i]; // Contract z direction
-    }
-    for (int k = P1D; k < Q1D; ++k)
-      V[k] = 0.0;
+                                            const int tidy, const int tidz,
+                                            const CeedScalar *U,
+                                            const CeedScalar *B,
+                                            CeedScalar *V) {
+  for (int k = 0; k < P1D; ++k) {
+    V[k] = 0.0;
+    for (int i = 0; i < Q1D; ++i)
+      V[k] += B[k + i*P1D] * U[i]; // Contract z direction
   }
+  for (int k = P1D; k < Q1D; ++k)
+    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract y
 //------------------------------------------------------------------------------
 inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
-    const int tidy, const int tidz,
-    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                            const int tidy, const int tidz,
+                                            const CeedScalar *U,
+                                            const CeedScalar *B,
+                                            CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
@@ -550,8 +555,10 @@ inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
 // 3D transpose tensor contract x
 //------------------------------------------------------------------------------
 inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
-    const int tidy, const int tidz,
-    const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                            const int tidy, const int tidz,
+                                            const CeedScalar *U,
+                                            const CeedScalar *B,
+                                            CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
