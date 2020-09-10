@@ -130,8 +130,9 @@ inline __device__ void ContractX1d(BackendData& data, const CeedScalar *U, const
   data.slice[data.tidx] = *U;
   __syncthreads();
   *V = 0.0;
-  for (CeedInt i = 0; i < P1d; ++i)
-    *V += B[i + data.tidx*P1d] * data.slice[i]; // Contract x direction
+  if (data.tidx < Q1d)
+    for (CeedInt i = 0; i < P1d; ++i)
+      *V += B[i + data.tidx*P1d] * data.slice[i]; // Contract x direction
   __syncthreads();
 }
 
@@ -143,8 +144,9 @@ inline __device__ void ContractTransposeX1d(BackendData& data, const CeedScalar 
   data.slice[data.tidx] = *U;
   __syncthreads();
   *V = 0.0;
-  for (CeedInt i = 0; i < Q1d; ++i)
-    *V += B[data.tidx + i*P1d] * data.slice[i]; // Contract x direction
+  if (data.tidx < P1d)
+    for (CeedInt i = 0; i < Q1d; ++i)
+      *V += B[data.tidx + i*P1d] * data.slice[i]; // Contract x direction
   __syncthreads();
 }
 
