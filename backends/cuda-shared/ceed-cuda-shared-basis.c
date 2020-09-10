@@ -246,8 +246,9 @@ inline __device__ void ContractX2d(CeedScalar *slice, const int tidx,
   slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
   __syncthreads();
   V = 0.0;
-  for (int i = 0; i < P1D; ++i)
-    V += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+  if (tidx < Q1D)
+    for (int i = 0; i < P1D; ++i)
+      V += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
   __syncthreads();
 }
 
@@ -261,8 +262,9 @@ inline __device__ void ContractY2d(CeedScalar *slice, const int tidx,
   slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U;
   __syncthreads();
   V = 0.0;
-  for (int i = 0; i < P1D; ++i)
-    V += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+  if (tidy < Q1D)
+    for (int i = 0; i < P1D; ++i)
+      V += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
   __syncthreads();
 }
 
@@ -466,8 +468,9 @@ inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    for (int i = 0; i < P1D; ++i)
-      V[k] += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
+    if (tidx < Q1D)
+      for (int i = 0; i < P1D; ++i)
+        V[k] += B[i + tidx*P1D] * slice[i + tidy*Q1D + tidz*Q1D*Q1D]; // Contract x direction
     __syncthreads();
   }
 }
@@ -483,8 +486,9 @@ inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*Q1D + tidz*Q1D*Q1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    for (int i = 0; i < P1D; ++i)
-      V[k] += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
+    if (tidy < Q1D)
+      for (int i = 0; i < P1D; ++i)
+        V[k] += B[i + tidy*P1D] * slice[tidx + i*Q1D + tidz*Q1D*Q1D]; // Contract y direction
     __syncthreads();
   }
 }
@@ -498,8 +502,9 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
-    for (int i = 0; i < P1D; ++i)
-      V[k] += B[i + k*P1D] * U[i]; // Contract z direction
+    if (k < Q1D)
+      for (int i = 0; i < P1D; ++i)
+        V[k] += B[i + k*P1D] * U[i]; // Contract z direction
   }
 }
 
