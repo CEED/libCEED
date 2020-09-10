@@ -506,7 +506,7 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
     for (int i = 0; i < P1D; ++i)
       V[k] += B[i + k*P1D] * U[i]; // Contract z direction
   }
-  for (int Q1D = 0; k < P1D; ++k)
+  for (int k = Q1D; k < P1D; ++k)
     V[k] = 0.0;
 }
 
