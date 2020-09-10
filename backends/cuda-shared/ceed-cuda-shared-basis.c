@@ -489,7 +489,7 @@ inline __device__ void ContractY3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (tidy < Q1D)
+    if (tidx < Q1D && tidy < Q1D)
       for (int i = 0; i < P1D; ++i)
         V[k] += B[i + tidy*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
     __syncthreads();
@@ -506,8 +506,9 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
-    for (int i = 0; i < P1D; ++i)
-      V[k] += B[i + k*P1D] * U[i]; // Contract z direction
+    if (tidx < Q1D && tidy < Q1D)
+      for (int i = 0; i < P1D; ++i)
+        V[k] += B[i + k*P1D] * U[i]; // Contract z direction
   }
   for (int k = Q1D; k < P1D; ++k)
     V[k] = 0.0;
@@ -523,8 +524,9 @@ inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
                                             CeedScalar *V) {
   for (int k = 0; k < P1D; ++k) {
     V[k] = 0.0;
-    for (int i = 0; i < Q1D; ++i)
-      V[k] += B[k + i*P1D] * U[i]; // Contract z direction
+    if (tidx < Q1D && tidy < Q1D)
+      for (int i = 0; i < Q1D; ++i)
+        V[k] += B[k + i*P1D] * U[i]; // Contract z direction
   }
   for (int k = P1D; k < Q1D; ++k)
     V[k] = 0.0;
@@ -542,7 +544,7 @@ inline __device__ void ContractTransposeY3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (tidy < P1D)
+    if (tidx < Q1D && tidy < P1D)
       for (int i = 0; i < Q1D; ++i)
         V[k] += B[tidy + i*P1D] * slice[tidx + i*T1D + tidz*T1D*T1D]; // Contract y direction
     __syncthreads();
@@ -561,7 +563,7 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (tidx < P1D)
+    if (tidx < P1D && tidy < P1D)
       for (int i = 0; i < Q1D; ++i)
         V[k] += B[tidx + i*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
     __syncthreads();
