@@ -775,6 +775,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
     ierr = CeedCudaInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
     CeedChk(ierr);
     void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
@@ -784,7 +785,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = elemsPerBlock*Q1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, 1,
                                         elemsPerBlock, sharedMem,
@@ -792,7 +792,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     } else if (dim == 2) {
       const CeedInt optElems[7] = {0,32,8,6,4,2,8};
       // elemsPerBlock must be at least 1
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt elemsPerBlock = CeedIntMax(thread1d < 7 ? optElems[thread1d]/ncomp : 1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
@@ -804,7 +803,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedCuda(ceed, data->interp, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
@@ -815,6 +813,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     CeedInt P1d, Q1d;
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
     ierr = CeedCudaInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d,
                                   Q1d, &data->c_B, &data->c_G);
     CeedChk(ierr);
@@ -825,7 +824,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 32;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, thread1d, 1,
                                         elemsPerBlock, sharedMem, gradargs);
@@ -833,7 +831,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
     } else if (dim == 2) {
       const CeedInt optElems[7] = {0,32,8,6,4,2,8};
       // elemsPerBlock must be at least 1
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt elemsPerBlock = CeedIntMax(thread1d < 7 ? optElems[thread1d]/ncomp : 1, 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
@@ -845,7 +842,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
-      CeedInt thread1d = Q1d > P1d ? Q1d : P1d;
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedCuda(ceed, data->grad, grid, thread1d, thread1d,
                                         ncomp*elemsPerBlock, sharedMem,
