@@ -501,13 +501,15 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    const int tidy, const int tidz,
                                    const CeedScalar *U, const CeedScalar *B,
                                    CeedScalar *V) {
-  for (int k = 0; k < Q1D; ++k) {
-    V[k] = 0.0;
-    for (int i = 0; i < P1D; ++i)
-      V[k] += B[i + k*P1D] * U[i]; // Contract z direction
+  if (tidx < Q1D && tidy <Q1D) {
+    for (int k = 0; k < Q1D; ++k) {
+      V[k] = 0.0;
+      for (int i = 0; i < P1D; ++i)
+        V[k] += B[i + k*P1D] * U[i]; // Contract z direction
+    }
+    for (int k = Q1D; k < P1D; ++k)
+      V[k] = 0.0;
   }
-  for (int k = Q1D; k < P1D; ++k)
-    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -516,13 +518,15 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
 inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  for (int k = 0; k < P1D; ++k) {
-    V[k] = 0.0;
-    for (int i = 0; i < Q1D; ++i)
-      V[k] += B[k + i*P1D] * U[i]; // Contract z direction
+  if (tidx < Q1D && tidy <Q1D) {
+    for (int k = 0; k < P1D; ++k) {
+      V[k] = 0.0;
+      for (int i = 0; i < Q1D; ++i)
+        V[k] += B[k + i*P1D] * U[i]; // Contract z direction
+    }
+    for (int k = P1D; k < Q1D; ++k)
+      V[k] = 0.0;
   }
-  for (int k = P1D; k < Q1D; ++k)
-    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
