@@ -290,7 +290,7 @@ inline __device__ void ContractXTranspose2d(BackendData& data, const CeedScalar 
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < P1d && data.tidx < P1d)
+  if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt i = 0; i < Q1d; ++i)
       *V += B[data.tidx + i*P1d] * data.slice[i + data.tidy*T1d]; // Contract x direction
   __syncthreads();
@@ -303,7 +303,7 @@ template <int NCOMP, int P1d, int Q1d>
 inline __device__ void ContractXTransposeAdd2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
-  if (data.tidx < P1d && data.tidx < P1d)
+  if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt i = 0; i < Q1d; ++i)
       *V += B[data.tidx + i*P1d] * data.slice[i + data.tidy*T1d]; // Contract x direction
   __syncthreads();
@@ -511,8 +511,6 @@ inline __device__ void ContractTransposeZ3d(BackendData& data, const CeedScalar 
       for (CeedInt i = 0; i < Q1d; ++i)
         V[k] += B[k + i*P1d] * U[i]; // Contract z direction
   }
-  for (int k = P1d; k < Q1d; ++k)
-    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
