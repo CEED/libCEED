@@ -718,8 +718,7 @@ inline __device__ void gradColloTranspose3d(BackendData& data, const CeedInt q, 
 //------------------------------------------------------------------------------
 template <int Q1d>
 inline __device__ void weight1d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
-  if (data.tidx < Q1d)
-    *w = qweight1d[data.tidx];
+  *w = (data.tidx < Q1d) ? qweight1d[data.tidx] 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -727,8 +726,8 @@ inline __device__ void weight1d(BackendData& data, const CeedScalar *qweight1d, 
 //------------------------------------------------------------------------------
 template <int Q1d>
 inline __device__ void weight2d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
-  if (data.tidx < Q1d && data.tidy < Q1d)
-    *w = qweight1d[data.tidx]*qweight1d[data.tidy];
+  *w = (data.tidx < Q1d && data.tidy < Q1d) ?
+        qweight1d[data.tidx]*qweight1d[data.tidy] : 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -736,11 +735,10 @@ inline __device__ void weight2d(BackendData& data, const CeedScalar *qweight1d, 
 //------------------------------------------------------------------------------
 template <int Q1d>
 inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
-  if (data.tidx < Q1d && data.tidy < Q1d) {
-    const CeedScalar pw = qweight1d[data.tidx]*qweight1d[data.tidy];
-    for (CeedInt z = 0; z < Q1d; ++z)
-      w[z] = pw*qweight1d[z];
-  }
+  const bool quad = (data.tidx < Q1d && data.tidy < Q1d);
+  const CeedScalar pw = quad ? qweight1d[data.tidx]*qweight1d[data.tidy] : 0.0;
+  for (CeedInt z = 0; z < Q1d; ++z)
+    w[z] = quad ? pw*qweight1d[z] : 0.0;
 }
 
 );
