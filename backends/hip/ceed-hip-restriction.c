@@ -19,85 +19,97 @@
 
 // *INDENT-OFF*
 static const char *restrictionkernels = QUOTE(
+
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
-
-extern "C" __global__
-void noTrStrided(const CeedInt nelem,
-                                       const CeedInt *__restrict__ indices,
+extern "C" __global__ void noTrStrided(const CeedInt nelem,
                                        const CeedScalar *__restrict__ u,
                                        CeedScalar *__restrict__ v) {
-  const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
+  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x;
+      node < nelem*RESTRICTION_ELEMSIZE;
+      node += blockDim.x * gridDim.x) {
+    const CeedInt locNode = node % RESTRICTION_ELEMSIZE;
+    const CeedInt elem = node / RESTRICTION_ELEMSIZE;
 
-  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
-       i += blockDim.x * gridDim.x) {
-    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
-    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
-    const CeedInt n = i % RESTRICTION_ELEMSIZE;
-
-    v[i] = u[n*STRIDE_NODES + c*STRIDE_COMP + e*STRIDE_ELEM];
+    for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+      v[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+        elem*RESTRICTION_ELEMSIZE] =
+          u[locNode*STRIDE_NODES + comp*STRIDE_COMP + elem*STRIDE_ELEM];
   }
 }
 
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
-extern "C" __global__
-void noTrOffset(const CeedInt nelem,
+extern "C" __global__ void noTrOffset(const CeedInt nelem,
                                       const CeedInt *__restrict__ indices,
                                       const CeedScalar *__restrict__ u,
                                       CeedScalar *__restrict__ v) {
-  const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
+  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x;
+      node < nelem*RESTRICTION_ELEMSIZE;
+      node += blockDim.x * gridDim.x) {
+    const CeedInt ind = indices[node];
+    const CeedInt locNode = node % RESTRICTION_ELEMSIZE;
+    const CeedInt elem = node / RESTRICTION_ELEMSIZE;
 
-  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
-       i += blockDim.x * gridDim.x) {
-    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
-    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
-    const CeedInt n = i % RESTRICTION_ELEMSIZE;
-
-    v[i] = u[indices[n + e*RESTRICTION_ELEMSIZE] + c*RESTRICTION_COMPSTRIDE];
+    for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+      v[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+        elem*RESTRICTION_ELEMSIZE] =
+          u[ind + comp*RESTRICTION_COMPSTRIDE];
   }
 }
 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
-extern "C" __global__
-void trStrided(const CeedInt nelem,
-                                     const CeedInt *__restrict__ indices,
-                                     const CeedScalar *__restrict__ u,
-                                     CeedScalar *__restrict__ v) {
-  const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
+extern "C" __global__ void trStrided(const CeedInt nelem,
+    const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x;
+      node < nelem*RESTRICTION_ELEMSIZE;
+      node += blockDim.x * gridDim.x) {
+    const CeedInt locNode = node % RESTRICTION_ELEMSIZE;
+    const CeedInt elem = node / RESTRICTION_ELEMSIZE;
 
-  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
-       i += blockDim.x * gridDim.x) {
-    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
-    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
-    const CeedInt n = i % RESTRICTION_ELEMSIZE;
-
-    v[n*STRIDE_NODES + c*STRIDE_COMP + e*STRIDE_ELEM] += u[i];
+    for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+      v[locNode*STRIDE_NODES + comp*STRIDE_COMP + elem*STRIDE_ELEM] +=
+          u[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+            elem*RESTRICTION_ELEMSIZE];
   }
 }
 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
-extern "C" __global__
-void trOffset(const CeedInt nelem,
-                                   const CeedInt *__restrict__ indices,
+extern "C" __global__ void trOffset(const CeedInt *__restrict__ lvec_indices,
+                                    const CeedInt *__restrict__ tindices,
+                                    const CeedInt *__restrict__ toffsets,
                                     const CeedScalar *__restrict__ u,
                                     CeedScalar *__restrict__ v) {
-  const CeedInt esize = RESTRICTION_ELEMSIZE * RESTRICTION_NCOMP * nelem;
+  CeedScalar value[RESTRICTION_NCOMP];
 
-  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < esize;
+  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x;
+       i < RESTRICTION_NNODES;
        i += blockDim.x * gridDim.x) {
-    const CeedInt e = (i / RESTRICTION_ELEMSIZE) % RESTRICTION_NELEM;
-    const CeedInt c = i / (RESTRICTION_ELEMSIZE * RESTRICTION_NELEM);
-    const CeedInt n = i % RESTRICTION_ELEMSIZE;
+    const CeedInt ind = lvec_indices[i];
+    const CeedInt rng1 = toffsets[i];
+    const CeedInt rngN = toffsets[i+1];
 
-    atomicAdd(v + (indices[n + e*RESTRICTION_ELEMSIZE] +
-                   c*RESTRICTION_COMPSTRIDE), u[i]);
+    for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+      value[comp] = 0.0;
+
+    for (CeedInt j = rng1; j < rngN; ++j) {
+      const CeedInt tind = tindices[j];
+      CeedInt locNode = tind % RESTRICTION_ELEMSIZE;
+      CeedInt elem = tind / RESTRICTION_ELEMSIZE;
+
+      for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+        value[comp] += u[locNode + comp*RESTRICTION_ELEMSIZE*RESTRICTION_NELEM +
+                         elem*RESTRICTION_ELEMSIZE];
+    }
+
+    for (CeedInt comp = 0; comp < RESTRICTION_NCOMP; ++comp)
+      v[ind + comp*RESTRICTION_COMPSTRIDE] += value[comp];
   }
 }
 
@@ -108,7 +120,7 @@ void trOffset(const CeedInt nelem,
 // Apply restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
-                                        CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
+    CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Hip *impl;
   ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
@@ -116,6 +128,12 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   Ceed_Hip *data;
   ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  const CeedInt blocksize = 64;
+  const CeedInt nnodes = impl->nnodes;
+  CeedInt nelem, elemsize;
+  CeedElemRestrictionGetNumElements(r, &nelem);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  hipFunction_t kernel;
 
   // Get vectors
   const CeedScalar *d_u;
@@ -124,32 +142,42 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
 
   // Restrict
-  hipFunction_t kernel;
   if (tmode == CEED_NOTRANSPOSE) {
     // L-vector -> E-vector
-    if (!impl->d_ind) {
-      // -- Strided restriction
-      kernel = impl->noTrStrided;
-    } else {
+    if (impl->d_ind) {
       // -- Offsets provided
       kernel = impl->noTrOffset;
+      void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
+      CeedInt blocksize = elemsize<1024?(elemsize>64?elemsize:64):1024;
+      ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
+                               blocksize, args); CeedChk(ierr);
+    } else {
+      // -- Strided restriction
+      kernel = impl->noTrStrided;
+      void *args[] = {&nelem, &d_u, &d_v};
+      CeedInt blocksize = elemsize<1024?(elemsize>64?elemsize:64):1024;
+      ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
+                               blocksize, args); CeedChk(ierr);
     }
   } else {
     // E-vector -> L-vector
-    if (!impl->d_ind) {
-      // -- Strided restriction
-      kernel = impl->trStrided;
-    } else {
+    if (impl->d_ind) {
       // -- Offsets provided
       kernel = impl->trOffset;
+      void *args[] = {&impl->d_lvec_indices, &impl->d_tindices,
+                      &impl->d_toffsets, &d_u, &d_v
+                     };
+      ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
+                               blocksize, args); CeedChk(ierr);
+    } else {
+      // -- Strided restriction
+      kernel = impl->trStrided;
+      void *args[] = {&nelem, &d_u, &d_v};
+      ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
+                               blocksize, args); CeedChk(ierr);
     }
   }
-  const CeedInt blocksize = data->optblocksize;
-  CeedInt nelem;
-  CeedElemRestrictionGetNumElements(r, &nelem);
-  void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
-  ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nelem, blocksize),
-                          blocksize, args); CeedChk(ierr);
+
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
 
@@ -163,8 +191,8 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
 // Blocked not supported
 //------------------------------------------------------------------------------
 int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block,
-                                      CeedTransposeMode tmode, CeedVector u,
-                                      CeedVector v, CeedRequest *request) {
+                                       CeedTransposeMode tmode, CeedVector u,
+                                       CeedVector v, CeedRequest *request) {
   // LCOV_EXCL_START
   int ierr;
   Ceed ceed;
@@ -194,7 +222,7 @@ static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr,
 }
 
 //------------------------------------------------------------------------------
-// Destroy
+// Destroy restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
   int ierr;
@@ -206,23 +234,119 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
   ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
   ierr = CeedFree(&impl->h_ind_allocated); CeedChk(ierr);
   ierr = hipFree(impl->d_ind_allocated); CeedChk_Hip(ceed, ierr);
+  ierr = hipFree(impl->d_toffsets); CeedChk_Hip(ceed, ierr);
+  ierr = hipFree(impl->d_tindices); CeedChk_Hip(ceed, ierr);
+  ierr = hipFree(impl->d_lvec_indices); CeedChk_Hip(ceed, ierr);
+
   ierr = CeedFree(&impl); CeedChk(ierr);
   return 0;
 }
 
 //------------------------------------------------------------------------------
-// Create Restriction
+// Create transpose offsets and indices
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
-                                  CeedCopyMode cmode, const CeedInt *indices,
-                                  CeedElemRestriction r) {
+static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r,
+    const CeedInt *indices) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  CeedElemRestriction_Hip *impl;
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
+  CeedInt nelem, elemsize, lsize, ncomp;
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
+
+  // Count nnodes
+  bool *isNode;
+  ierr = CeedCalloc(lsize, &isNode); CeedChk(ierr);
+  const CeedInt sizeIndices = nelem * elemsize;
+  for (CeedInt i = 0; i < sizeIndices; i++)
+    isNode[indices[i]] = 1;
+  CeedInt nnodes = 0;
+  for (CeedInt i = 0; i < lsize; i++)
+    nnodes += isNode[i];
+  impl->nnodes = nnodes;
+
+  // L-vector offsets array
+  CeedInt *ind_to_offset, *lvec_indices;
+  ierr = CeedCalloc(lsize, &ind_to_offset); CeedChk(ierr);
+  ierr = CeedCalloc(nnodes, &lvec_indices); CeedChk(ierr);
+  CeedInt j = 0;
+  for (CeedInt i = 0; i < lsize; i++)
+    if (isNode[i]) {
+      lvec_indices[j] = i;
+      ind_to_offset[i] = j++;
+    }
+  ierr = CeedFree(&isNode); CeedChk(ierr);
+
+  // Compute transpose offsets and indices
+  const CeedInt sizeOffsets = nnodes + 1;
+  CeedInt *toffsets;
+  ierr = CeedCalloc(sizeOffsets, &toffsets); CeedChk(ierr);
+  CeedInt *tindices;
+  ierr = CeedMalloc(sizeIndices, &tindices); CeedChk(ierr);
+  // Count node multiplicity
+  for (CeedInt e = 0; e < nelem; ++e)
+    for (CeedInt i = 0; i < elemsize; ++i)
+      ++toffsets[ind_to_offset[indices[elemsize*e + i]] + 1];
+  // Convert to running sum
+  for (CeedInt i = 1; i < sizeOffsets; ++i)
+    toffsets[i] += toffsets[i-1];
+  // List all E-vec indices associated with L-vec node
+  for (CeedInt e = 0; e < nelem; ++e) {
+    for (CeedInt i = 0; i < elemsize; ++i) {
+      const CeedInt lid = elemsize*e + i;
+      const CeedInt gid = indices[lid];
+      tindices[toffsets[ind_to_offset[gid]]++] = lid;
+    }
+  }
+  // Reset running sum
+  for (int i = sizeOffsets - 1; i > 0; --i)
+    toffsets[i] = toffsets[i - 1];
+  toffsets[0] = 0;
+
+  // Copy data to device
+  // -- L-vector indices
+  ierr = hipMalloc((void **)&impl->d_lvec_indices, nnodes*sizeof(CeedInt));
+  CeedChk_Hip(ceed, ierr);
+  ierr = hipMemcpy(impl->d_lvec_indices, lvec_indices,
+                    nnodes*sizeof(CeedInt), hipMemcpyHostToDevice);
+  CeedChk_Hip(ceed, ierr);
+  // -- Transpose offsets
+  ierr = hipMalloc((void **)&impl->d_toffsets, sizeOffsets*sizeof(CeedInt));
+  CeedChk_Hip(ceed, ierr);
+  ierr = hipMemcpy(impl->d_toffsets, toffsets, sizeOffsets*sizeof(CeedInt),
+                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  // -- Transpose indices
+  ierr = hipMalloc((void **)&impl->d_tindices, sizeIndices*sizeof(CeedInt));
+  CeedChk_Hip(ceed, ierr);
+  ierr = hipMemcpy(impl->d_tindices, tindices, sizeIndices*sizeof(CeedInt),
+                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+
+  // Cleanup
+  ierr = CeedFree(&ind_to_offset); CeedChk(ierr);
+  ierr = CeedFree(&lvec_indices); CeedChk(ierr);
+  ierr = CeedFree(&toffsets); CeedChk(ierr);
+  ierr = CeedFree(&tindices); CeedChk(ierr);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Create restriction
+//------------------------------------------------------------------------------
+int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
+                                       const CeedInt *indices,
+                                       CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
   CeedElemRestriction_Hip *impl;
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  CeedInt nelem, elemsize;
+  CeedInt nelem, ncomp, elemsize;
   ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
   CeedInt size = nelem * elemsize;
   CeedInt strides[3] = {1, size, elemsize};
@@ -246,6 +370,12 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
   impl->h_ind_allocated = NULL;
   impl->d_ind           = NULL;
   impl->d_ind_allocated = NULL;
+  impl->d_tindices      = NULL;
+  impl->d_toffsets      = NULL;
+  impl->nnodes = size;
+  ierr = CeedElemRestrictionSetData(r, impl); CeedChk(ierr);
+  CeedInt layout[3] = {1, elemsize*nelem, elemsize};
+  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
 
   // Set up device indices/offset arrays
   if (mtype == CEED_MEM_HOST) {
@@ -263,9 +393,11 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
     if (indices != NULL) {
       ierr = hipMalloc( (void **)&impl->d_ind, size * sizeof(CeedInt));
       CeedChk_Hip(ceed, ierr);
-      impl->d_ind_allocated = impl->d_ind;//We own the device memory
+      impl->d_ind_allocated = impl->d_ind; // We own the device memory
       ierr = hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
-                       hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+                        hipMemcpyHostToDevice);
+      CeedChk_Hip(ceed, ierr);
+      ierr = CeedElemRestrictionOffset_Hip(r, indices); CeedChk(ierr);
     }
   } else if (mtype == CEED_MEM_DEVICE) {
     switch (cmode) {
@@ -273,9 +405,10 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
       if (indices != NULL) {
         ierr = hipMalloc( (void **)&impl->d_ind, size * sizeof(CeedInt));
         CeedChk_Hip(ceed, ierr);
-        impl->d_ind_allocated = impl->d_ind;//We own the device memory
+        impl->d_ind_allocated = impl->d_ind; // We own the device memory
         ierr = hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt),
-                         hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
+                          hipMemcpyDeviceToDevice);
+        CeedChk_Hip(ceed, ierr);
       }
       break;
     case CEED_OWN_POINTER:
@@ -285,24 +418,28 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
     case CEED_USE_POINTER:
       impl->d_ind = (CeedInt *)indices;
     }
-  } else
+    if (indices != NULL) {
+      ierr = CeedElemRestrictionOffset_Hip(r, indices); CeedChk(ierr);
+    }
+  } else {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  }
 
-  // Compile CUDA kernels
-  CeedInt ncomp;
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedCompileHip(ceed, restrictionkernels, &impl->module, 7,
-                        "RESTRICTION_ELEMSIZE", elemsize,
-                        "RESTRICTION_NELEM", nelem,
-                        "RESTRICTION_NCOMP", ncomp,
-                        "RESTRICTION_COMPSTRIDE", compstride,
-                        "STRIDE_NODES", strides[0],
-                        "STRIDE_COMP", strides[1],
-                        "STRIDE_ELEM", strides[2]); CeedChk(ierr);
+  // Compile HIP kernels
+  CeedInt nnodes = impl->nnodes;
+  ierr = CeedCompileHip(ceed, restrictionkernels, &impl->module, 8,
+                         "RESTRICTION_ELEMSIZE", elemsize,
+                         "RESTRICTION_NELEM", nelem,
+                         "RESTRICTION_NCOMP", ncomp,
+                         "RESTRICTION_NNODES", nnodes,
+                         "RESTRICTION_COMPSTRIDE", compstride,
+                         "STRIDE_NODES", strides[0],
+                         "STRIDE_COMP", strides[1],
+                         "STRIDE_ELEM", strides[2]); CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "noTrStrided",
-                          &impl->noTrStrided); CeedChk(ierr);
+                           &impl->noTrStrided); CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "noTrOffset", &impl->noTrOffset);
   CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "trStrided", &impl->trStrided);
@@ -311,11 +448,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
   CeedChk(ierr);
 
   // Register backend functions
-  ierr = CeedElemRestrictionSetData(r, impl); CeedChk(ierr);
-  CeedInt layout[3] = {1, elemsize*nelem, elemsize};
-  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
-                                CeedElemRestrictionApply_Hip); CeedChk(ierr);
+                                CeedElemRestrictionApply_Hip);
+  CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
                                 CeedElemRestrictionApplyBlock_Hip);
   CeedChk(ierr);
@@ -323,16 +458,16 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
                                 CeedElemRestrictionGetOffsets_Hip);
   CeedChk(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
-                                CeedElemRestrictionDestroy_Hip); CeedChk(ierr);
+                                CeedElemRestrictionDestroy_Hip);
+  CeedChk(ierr);
   return 0;
 }
 
 //------------------------------------------------------------------------------
-// No blocked restrictions
+// Blocked not supported
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype,
-    const CeedCopyMode cmode, const CeedInt *indices,
-    const CeedElemRestriction r) {
+    const CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
