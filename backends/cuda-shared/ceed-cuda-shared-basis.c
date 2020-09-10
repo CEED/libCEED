@@ -470,7 +470,7 @@ inline __device__ void ContractX3d(CeedScalar *slice, const int tidx,
     slice[tidx + tidy*T1D + tidz*T1D*T1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (tidx < Q1D)
+    if (tidx < Q1D && tidy < P1D)
       for (int i = 0; i < P1D; ++i)
         V[k] += B[i + tidx*P1D] * slice[i + tidy*T1D + tidz*T1D*T1D]; // Contract x direction
     __syncthreads();
