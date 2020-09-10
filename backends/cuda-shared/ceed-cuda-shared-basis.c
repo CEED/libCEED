@@ -503,10 +503,11 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
                                    CeedScalar *V) {
   for (int k = 0; k < Q1D; ++k) {
     V[k] = 0.0;
-    if (k < Q1D)
-      for (int i = 0; i < P1D; ++i)
-        V[k] += B[i + k*P1D] * U[i]; // Contract z direction
+    for (int i = 0; i < P1D; ++i)
+      V[k] += B[i + k*P1D] * U[i]; // Contract z direction
   }
+  for (int Q1D = 0; k < P1D; ++k)
+    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -515,12 +516,13 @@ inline __device__ void ContractZ3d(CeedScalar *slice, const int tidx,
 inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const int tidx,
     const int tidy, const int tidz,
     const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  for (int k = 0; k < Q1D; ++k) {
+  for (int k = 0; k < P1D; ++k) {
     V[k] = 0.0;
-    if (k < P1D)
-      for (int i = 0; i < Q1D; ++i)
-        V[k] += B[k + i*P1D] * U[i]; // Contract z direction
+    for (int i = 0; i < Q1D; ++i)
+      V[k] += B[k + i*P1D] * U[i]; // Contract z direction
   }
+  for (int k = P1D; k < Q1D; ++k)
+    V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -565,8 +567,8 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
-  CeedScalar r_V[Q1D];
-  CeedScalar r_t[Q1D];
+  CeedScalar r_V[T1D];
+  CeedScalar r_t[T1D];
 
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
@@ -577,7 +579,7 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
 
   for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < nelem;
        elem += gridDim.x*elemsPerBlock) {
-    for (int i = 0; i < Q1D; ++i) {
+    for (int i = 0; i < T1D; ++i) {
       r_V[i] = 0.0;
       r_t[i] = 0.0;
     }
@@ -606,9 +608,9 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
                               CeedScalar *__restrict__ d_V,
                               CeedScalar *slice) {
   // Use P1D for one of these
-  CeedScalar r_U[Q1D];
-  CeedScalar r_V[Q1D];
-  CeedScalar r_t[Q1D];
+  CeedScalar r_U[T1D];
+  CeedScalar r_V[T1D];
+  CeedScalar r_t[T1D];
 
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
