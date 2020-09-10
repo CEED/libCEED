@@ -812,8 +812,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedChk(ierr);
 
       // Check for collocated gradient
-      if (emode == CEED_EVAL_GRAD)
-        useCollograd = useCollograd && !!basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collograd1d; 
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
@@ -853,8 +852,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         }
 
       // Check for collocated gradient
-      if (emode == CEED_EVAL_GRAD)
-        useCollograd = useCollograd && basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collograd1d; 
     }
   }
   data->dim = dim;
