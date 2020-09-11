@@ -67,19 +67,6 @@ static const char *const memTypes[] = {
   "memType", "CEED_MEM_", NULL
 };
 
-// Problem Options
-typedef enum {
-  NS_DENSITY_CURRENT = 0,
-  NS_ADVECTION = 1,
-  NS_ADVECTION2D = 2,
-} problemType;
-static const char *const problemTypes[] = {
-  "density_current",
-  "advection",
-  "advection2d",
-  "problemType", "NS_", NULL
-};
-
 // Wind Options for Advection
 typedef enum {
   ADVECTION_WIND_ROTATION = 0,
@@ -152,66 +139,75 @@ typedef struct {
                        PetscScalar[], void *);
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
         *applyVol_ifunction_loc, *applySur_loc;
-  const bool non_zero_time;
+  bool non_zero_time;
 } problemData;
 
-problemData problemOptions[] = {
-  [NS_DENSITY_CURRENT] = {
-    .dim                       = 3,
-    .qdatasizeVol              = 10,
-    .qdatasizeSur              = 4,
-    .setupVol                  = Setup,
-    .setupVol_loc              = Setup_loc,
-    .setupSur                  = SetupBoundary,
-    .setupSur_loc              = SetupBoundary_loc,
-    .ics                       = ICsDC,
-    .ics_loc                   = ICsDC_loc,
-    .applyVol_rhs              = DC,
-    .applyVol_rhs_loc          = DC_loc,
-    .applyVol_ifunction        = IFunction_DC,
-    .applyVol_ifunction_loc    = IFunction_DC_loc,
-    .bc                        = Exact_DC,
-    .non_zero_time             = PETSC_FALSE,
-  },
-  [NS_ADVECTION] = {
-    .dim                       = 3,
-    .qdatasizeVol              = 10,
-    .qdatasizeSur              = 4,
-    .setupVol                  = Setup,
-    .setupVol_loc              = Setup_loc,
-    .setupSur                  = SetupBoundary,
-    .setupSur_loc              = SetupBoundary_loc,
-    .ics                       = ICsAdvection,
-    .ics_loc                   = ICsAdvection_loc,
-    .applyVol_rhs              = Advection,
-    .applyVol_rhs_loc          = Advection_loc,
-    .applyVol_ifunction        = IFunction_Advection,
-    .applyVol_ifunction_loc    = IFunction_Advection_loc,
-    .applySur                  = Advection_Sur,
-    .applySur_loc              = Advection_Sur_loc,
-    .bc                        = Exact_Advection,
-    .non_zero_time             = PETSC_FALSE,
-  },
-  [NS_ADVECTION2D] = {
-    .dim                       = 2,
-    .qdatasizeVol              = 5,
-    .qdatasizeSur              = 3,
-    .setupVol                  = Setup2d,
-    .setupVol_loc              = Setup2d_loc,
-    .setupSur                  = SetupBoundary2d,
-    .setupSur_loc              = SetupBoundary2d_loc,
-    .ics                       = ICsAdvection2d,
-    .ics_loc                   = ICsAdvection2d_loc,
-    .applyVol_rhs              = Advection2d,
-    .applyVol_rhs_loc          = Advection2d_loc,
-    .applyVol_ifunction        = IFunction_Advection2d,
-    .applyVol_ifunction_loc    = IFunction_Advection2d_loc,
-    .applySur                  = Advection2d_Sur,
-    .applySur_loc              = Advection2d_Sur_loc,
-    .bc                        = Exact_Advection2d,
-    .non_zero_time             = PETSC_TRUE,
-  },
-};
+static PetscErrorCode NS_DENSITY_CURRENT(problemData *problem) {
+
+  PetscFunctionBeginUser;
+  problem->dim                       = 3;
+  problem->qdatasizeVol              = 10;
+  problem->qdatasizeSur              = 4;
+  problem->setupVol                  = Setup;
+  problem->setupVol_loc              = Setup_loc;
+  problem->setupSur                  = SetupBoundary;
+  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->ics                       = ICsDC;
+  problem->ics_loc                   = ICsDC_loc;
+  problem->applyVol_rhs              = DC;
+  problem->applyVol_rhs_loc          = DC_loc;
+  problem->applyVol_ifunction        = IFunction_DC;
+  problem->applyVol_ifunction_loc    = IFunction_DC_loc;
+  problem->bc                        = Exact_DC;
+  problem->non_zero_time             = PETSC_FALSE;
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode NS_ADVECTION(problemData *problem) {
+
+  PetscFunctionBeginUser;
+  problem->dim                       = 3;
+  problem->qdatasizeVol              = 10;
+  problem->qdatasizeSur              = 4;
+  problem->setupVol                  = Setup;
+  problem->setupVol_loc              = Setup_loc;
+  problem->setupSur                  = SetupBoundary;
+  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->ics                       = ICsAdvection;
+  problem->ics_loc                   = ICsAdvection_loc;
+  problem->applyVol_rhs              = Advection;
+  problem->applyVol_rhs_loc          = Advection_loc;
+  problem->applyVol_ifunction        = IFunction_Advection;
+  problem->applyVol_ifunction_loc    = IFunction_Advection_loc;
+  problem->applySur                  = Advection_Sur;
+  problem->applySur_loc              = Advection_Sur_loc;
+  problem->bc                        = Exact_Advection;
+  problem->non_zero_time             = PETSC_FALSE;
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode NS_ADVECTION2D(problemData *problem) {
+
+  PetscFunctionBeginUser;
+  problem->dim                       = 2;
+  problem->qdatasizeVol              = 5;
+  problem->qdatasizeSur              = 3;
+  problem->setupVol                  = Setup2d;
+  problem->setupVol_loc              = Setup2d_loc;
+  problem->setupSur                  = SetupBoundary2d;
+  problem->setupSur_loc              = SetupBoundary2d_loc;
+  problem->ics                       = ICsAdvection2d;
+  problem->ics_loc                   = ICsAdvection2d_loc;
+  problem->applyVol_rhs              = Advection2d;
+  problem->applyVol_rhs_loc          = Advection2d_loc;
+  problem->applyVol_ifunction        = IFunction_Advection2d;
+  problem->applyVol_ifunction_loc    = IFunction_Advection2d_loc;
+  problem->applySur                  = Advection2d_Sur;
+  problem->applySur_loc              = Advection2d_Sur_loc;
+  problem->bc                        = Exact_Advection2d;
+  problem->non_zero_time             = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
 
 // PETSc user data
 typedef struct User_ *User;
@@ -885,7 +881,8 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
-  char ceedresource[4096] = "/cpu/self";
+  char ceedresource[4096] = "/cpu/self", problemName[256] = "density_current";
+  PetscFunctionList problems;
   PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
@@ -903,7 +900,6 @@ int main(int argc, char **argv) {
   CeedMemType memtyperequested;
   PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
               kgpersquaredms, Joulepercubicm, Joule;
-  problemType problemChoice;
   problemData *problem = NULL;
   WindType wind_type;
   StabilizationType stab;
@@ -966,6 +962,13 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
+  // Register problems to be available on the command line
+  ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problems, "advection", NS_ADVECTION);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problems, "advection2d", NS_ADVECTION2D);
+  CHKERRQ(ierr);
   // Parse command line options
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
@@ -979,11 +982,17 @@ int main(int argc, char **argv) {
                           (PetscEnum *)&testChoice,
                           NULL); CHKERRQ(ierr);
   test = &testOptions[testChoice];
-  problemChoice = NS_DENSITY_CURRENT;
-  ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
-                          problemTypes, (PetscEnum)problemChoice,
-                          (PetscEnum *)&problemChoice, NULL); CHKERRQ(ierr);
-  problem = &problemOptions[problemChoice];
+  ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
+                            problemName, problemName, sizeof(problemName),
+                            NULL); CHKERRQ(ierr);
+  // Choose the problem from the list of registered problems
+  {
+    PetscErrorCode (*problemChoice)(problemData*);
+
+    ierr = PetscFunctionListFind(problems, problemName, &problemChoice); CHKERRQ(ierr);
+    if (!problemChoice) SETERRQ1(PETSC_COMM_SELF, 1, "No problem '%s'", problemName);
+    ierr = (*problemChoice)(problem); CHKERRQ(ierr);
+  }
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
@@ -1341,11 +1350,9 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, problemTypes[problemChoice],
-                       StabilizationTypes[stab], box_faces_str, usedresource,
-                       CeedMemTypes[memtypebackend],
-                       (setmemtyperequest) ?
-                       CeedMemTypes[memtyperequested] : "none",
+                       comm_size, problemName, StabilizationTypes[stab],
+                       box_faces_str, usedresource, CeedMemTypes[memtypebackend],
+                       (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
                        numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
     CHKERRQ(ierr);
   }
@@ -1792,6 +1799,7 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
+  ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
 
