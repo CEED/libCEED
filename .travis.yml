@@ -117,9 +117,8 @@ install:
         && brew link --overwrite gcc;
     fi
 # OCCA v1.1.0
-# ToDo: Use OCCA release
   - if [[ "$TRAVIS_CPU_ARCH" != "arm64" ]]; then
-        git clone https://github.com/libocca/occa.git
+        git clone --depth=1 --branch v1.1.0 https://github.com/libocca/occa.git
         && make -C occa info
         && make -C occa -j2
         && export OCCA_DIR=$PWD/occa;
