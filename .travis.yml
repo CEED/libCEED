@@ -110,6 +110,17 @@ jobs:
        - cd ../..
      after_success:
        - make style-py && git diff --exit-code;
+  allow_failures:
+# Intel oneapi ICC and IPP current issue with apt
+   - name: "Linux ICC"
+     os: linux
+     dist: focal
+     arch: amd64
+     compiler: icc
+     env:
+       - FC=ifort
+       - CC=icc
+       - CXX=ipp
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
