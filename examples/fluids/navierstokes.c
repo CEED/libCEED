@@ -982,6 +982,7 @@ int main(int argc, char **argv) {
   // Allocate PETSc context
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
