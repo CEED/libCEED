@@ -902,8 +902,8 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
-  char ceedresource[4096] = "/cpu/self", problemName[256] = "density_current";
-  PetscFunctionList problems;
+  char ceedresource[4096] = "/cpu/self", problemName[] = "density_current";
+  PetscFunctionList problems = NULL;
   PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
@@ -1010,7 +1010,7 @@ int main(int argc, char **argv) {
   {
     PetscErrorCode (*p)(problemData*);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
-    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "No problem '%s'", problemName);
+    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
     ierr = (*p)(problem); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
