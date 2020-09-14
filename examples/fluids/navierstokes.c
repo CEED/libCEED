@@ -1008,11 +1008,10 @@ int main(int argc, char **argv) {
                             NULL); CHKERRQ(ierr);
   // Choose the problem from the list of registered problems
   {
-    PetscErrorCode (*problemChoice)(problemData*);
-
-    ierr = PetscFunctionListFind(problems, problemName, &problemChoice); CHKERRQ(ierr);
-    if (!problemChoice) SETERRQ1(PETSC_COMM_SELF, 1, "No problem '%s'", problemName);
-    ierr = (*problemChoice)(problem); CHKERRQ(ierr);
+    PetscErrorCode (*p)(problemData*);
+    ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
+    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "No problem '%s'", problemName);
+    ierr = (*p)(problem); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes,
@@ -1029,7 +1028,7 @@ int main(int argc, char **argv) {
     CHKERRQ(ierr);
   }
   if (wind_type == ADVECTION_WIND_TRANSLATION
-      && problemChoice == NS_DENSITY_CURRENT) {
+      && strcmp(problemName, "density_current") == 0) {
     SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
             "-problem_advection_wind translation is not defined for -problem density_current");
   }
@@ -1122,7 +1121,7 @@ int main(int argc, char **argv) {
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
   CHKERRQ(ierr);
-  if (problemChoice == NS_DENSITY_CURRENT && (CtauS != 0 || strong_form != 0)) {
+  if (strcmp(problemName, "density_current") == 0 && (CtauS != 0 || strong_form != 0)) {
     ierr = PetscPrintf(comm,
                        "Warning! Problem density_current does not support -CtauS or -strong_form\n");
     CHKERRQ(ierr);
@@ -1173,7 +1172,7 @@ int main(int argc, char **argv) {
                          NULL, qextraSur, &qextraSur, &userQextraSur);
   CHKERRQ(ierr);
   if ((wind_type == ADVECTION_WIND_ROTATION
-       || problemChoice == NS_DENSITY_CURRENT) && userQextraSur) {
+       || strcmp(problemName, "density_current") == 0) && userQextraSur) {
     ierr = PetscPrintf(comm,
                        "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
     CHKERRQ(ierr);
@@ -1572,13 +1571,11 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxSurfaceData, &ctxSurfaceData);
 
-  switch (problemChoice) {
-  case NS_DENSITY_CURRENT:
+  if (strcmp(problemName, "density_current") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
-    break;
-  case NS_ADVECTION:
-  case NS_ADVECTION2D:
+  } else if (strcmp(problemName, "advection") == 0
+             || strcmp(problemName, "advection2d") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
