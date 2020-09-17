@@ -38,6 +38,10 @@ Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with strain energy computation and more flexible boundary conditions.
 
+Deprecated backends
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* The ``/gpu/cuda/reg`` backend has been removed, with its core features moved into ``/gpu/cuda/ref`` and ``/gpu/cuda/shared``.
+
 .. _v0.6:
 
 v0.6 (Mar 29, 2020)

@@ -18,7 +18,6 @@
 #include "ceed-cuda-gen.h"
 #include <iostream>
 #include <sstream>
-#include "../cuda-reg/ceed-cuda-reg.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
 static const char *atomicAdd = QUOTE(
@@ -777,7 +776,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedBasis basis;
   CeedBasis_Cuda_shared *basis_data;
   CeedElemRestriction Erestrict;
-  CeedElemRestriction_Cuda_reg *restr_data;
+  CeedElemRestriction_Cuda *restr_data;
 
   ostringstream code;
   string devFunctions(deviceFunctions);

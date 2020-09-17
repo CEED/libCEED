@@ -165,9 +165,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/occa/cuda``         | OCCA backend with CUDA kernels                    | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/reg``          | Pure CUDA kernels using one thread per element    | Yes                   |
+| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -177,7 +175,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/magma/det``         | CUDA MAGMA kernels                                | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | No                    |
+| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 
 The ``/cpu/self/*/serial`` backends process one element at a time and are intended for meshes
@@ -223,7 +221,7 @@ with a MAGMA installation located elsewhere, create a link to ``magma/`` in libC
 directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
 
 The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
-the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 is required.
+the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as ``atomicAdd`` for increased performance.

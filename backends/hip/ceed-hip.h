@@ -81,10 +81,14 @@ typedef struct {
   hipFunction_t noTrOffset;
   hipFunction_t trStrided;
   hipFunction_t trOffset;
+  CeedInt nnodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
   CeedInt *d_ind;
   CeedInt *d_ind_allocated;
+  CeedInt *d_toffsets;
+  CeedInt *d_tindices;
+  CeedInt *d_lvec_indices;
 } CeedElemRestriction_Hip;
 
 // We use a struct to avoid having to memCpy the array of pointers

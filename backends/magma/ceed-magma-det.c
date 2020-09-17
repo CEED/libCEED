@@ -32,7 +32,7 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 
   // Create reference CEED for restriction
   Ceed restrictionceedref;
-  CeedInit("/gpu/cuda/reg", &restrictionceedref);
+  CeedInit("/gpu/cuda/ref", &restrictionceedref);
   ierr = CeedSetObjectDelegate(ceed, restrictionceedref, "ElemRestriction");
   CeedChk(ierr);
 
