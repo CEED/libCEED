@@ -203,8 +203,6 @@ xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda.cu        := $(sort $(wildcard backends/cuda/kernels/*.cu))
-cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
-cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/kernels/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
@@ -349,15 +347,15 @@ endif
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
-CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
+CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
-  libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu  += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS += $(CUDA_BACKENDS)
 endif
 
