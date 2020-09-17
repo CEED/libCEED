@@ -9,7 +9,7 @@ for each release of libCEED.
 Current Main
 ----------------------------------------
 
-The current ``main`` branch contains bug fixes and interfaces changes.
+The current ``main`` (formerly called ``master``) branch contains bug fixes and interfaces changes.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -33,6 +33,7 @@ New features
 Performance Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * OCCA backend rebuilt to facilitate future performance enhancements.
+* Petsc BPs suite improved to reduce noise due to multiple calls to :code:`mpiexec`.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
