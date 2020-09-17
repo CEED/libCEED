@@ -25,6 +25,7 @@ typedef struct { CeedInt *in[16]; CeedInt *out[16]; } CudaFieldsInt;
 typedef struct {
   CeedInt dim;
   CeedInt Q1d;
+  CeedInt maxP1d;
   CUmodule module;
   CUfunction op;
   CudaFieldsInt indices;
