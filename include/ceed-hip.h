@@ -18,7 +18,7 @@
 #define _ceed_hip_h
 
 #include <ceed.h>
-#include <hip.h>
+#include <hip/hip_runtime.h>
 
 CEED_EXTERN int CeedQFunctionSetHIPUserFunction(CeedQFunction qf,
     hipFunction_t f);
