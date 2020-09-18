@@ -1,7 +1,7 @@
 libCEED: the CEED Library
 ============================================
 
-|build-status| |codecov| |license| |doc| |doxygen| |binder|
+|build-status| |codecov| |license| |doc| |binder|
 
 .. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=main
     :alt: Build Status
@@ -22,11 +22,6 @@ libCEED: the CEED Library
     :alt: Read the Docs
     :scale: 100%
     :target: https://libceed.readthedocs.io/en/latest/?badge=latest
-
-.. |doxygen| image:: https://codedocs.xyz/CEED/libCEED.svg
-    :alt: Codedocs
-    :scale: 100%
-    :target: https://codedocs.xyz/CEED/libCEED/
 
 .. |binder| image:: http://mybinder.org/badge_logo.svg
     :alt: Binder
