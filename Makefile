@@ -158,7 +158,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 CEED_LIBS = -lceed
-libceed.c := $(wildcard interface/ceed*.c)
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
@@ -352,10 +352,11 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
+  libceed.c   += interface/ceed-cuda.c
   libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
   libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
-  BACKENDS += $(CUDA_BACKENDS)
+  BACKENDS    += $(CUDA_BACKENDS)
 endif
 
 # HIP Backends
@@ -367,14 +368,15 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)
-  libceed.hip += $(hip.hip)
-  libceed.cpp += $(hip.cpp)
+  libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c)
-  BACKENDS += $(HIP_BACKENDS)
+  libceed.cpp += $(hip.cpp)
+  libceed.hip += $(hip.hip)
+  BACKENDS    += $(HIP_BACKENDS)
 endif
 
 # MAGMA Backend
