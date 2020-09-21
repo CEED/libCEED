@@ -30,9 +30,9 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
-  Ceed ceedreg;
-  CeedInit("/gpu/cuda/reg", &ceedreg);
-  ierr = CeedSetDelegate(ceed, ceedreg); CeedChk(ierr);
+  Ceed ceedref;
+  CeedInit("/gpu/cuda/ref", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   Ceed_Cuda_shared *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
