@@ -413,7 +413,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
         $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
       endif
       $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
-      BACKENDS += /gpu/magma
+      BACKENDS += /gpu/magma /gpu/magma/det
     endif
   endif
 endif
