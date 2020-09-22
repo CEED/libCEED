@@ -542,6 +542,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	  "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
