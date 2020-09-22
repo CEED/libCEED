@@ -109,6 +109,37 @@ jobs:
        - cd ../..
      after_success:
        - make style-py && git diff --exit-code;
+# Julia
+   - name: "Julia"
+     language: julia
+     os: linux
+     julia: 1
+     install:
+       - make info && make -j4
+       - export JULIA_LIBCEED_LIB=$(find $PWD/lib -name "libceed.*")
+       - pushd julia/LibCEED.jl
+     script:
+       - julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED"; coverage=true)'
+       - unset JULIA_LIBCEED_LIB && julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED")'
+       - >
+         julia --project=.style/ -e 'import Pkg; Pkg.instantiate()'
+         && julia --project=.style/ .style/ceed_style.jl
+         && git diff --exit-code src test examples
+     after_success:
+       - popd
+       - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder("julia/LibCEED.jl/src"))'
+   - stage: "documentation"
+     name: "Julia Documentation"
+     language: julia
+     os: linux
+     julia: 1
+     install: skip
+     script:
+      - pushd julia/LibCEED.jl
+      - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); Pkg.build()'
+      - julia --project=docs/ docs/make.jl
+      - popd
+     after_success: skip
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
