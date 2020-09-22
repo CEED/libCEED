@@ -78,7 +78,8 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CC_VENDOR := $(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc XL,$(shell $(CC) --version))))
+# Note: Intel oneAPI C/C++ compiler is now icx/icpx
+CC_VENDOR := $(subst oneAPI,icc,$(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc oneAPI XL,$(shell $(CC) --version)))))
 FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
 
 # Default extra flags by vendor
