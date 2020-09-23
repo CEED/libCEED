@@ -40,15 +40,15 @@ PetscErrorCode FormRHSFunction_SW(TS ts, PetscReal t, Vec Q, Vec G,
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Gloc); CHKERRQ(ierr);
 
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations to Qloc
+
   // Ceed Vectors
   ierr = VecGetArrayRead(Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
   ierr = VecGetArray(Gloc, &g); CHKERRQ(ierr);
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
-
-  // TODO:
-  // L-vector to E-vector:
-  // Apply user-defined restriction with appropriate coordinate transformations
 
   // Apply CEED operator
   CeedOperatorApply(user->op_explicit, user->qceed, user->gceed,
@@ -99,6 +99,10 @@ PetscErrorCode FormIFunction_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
   ierr = DMGlobalToLocal(user->dm, Qdot, INSERT_VALUES, Qdotloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Floc); CHKERRQ(ierr);
 
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations to Qloc
+
   // Ceed Vectors
   ierr = VecGetArrayRead(Qloc, &q); CHKERRQ(ierr);
   ierr = VecGetArrayRead(Qdotloc, &qdot); CHKERRQ(ierr);
@@ -108,11 +112,6 @@ PetscErrorCode FormIFunction_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
   CeedVectorSetArray(user->qdotceed, CEED_MEM_HOST, CEED_USE_POINTER,
                      (PetscScalar *)qdot);
   CeedVectorSetArray(user->fceed, CEED_MEM_HOST, CEED_USE_POINTER, f);
-
-  // TODO:
-  // L-vector to E-vector:
-  // Apply user-defined restriction with appropriate coordinate transformations
-
 
   // Apply CEED operator
   CeedOperatorApply(user->op_implicit, user->qceed, user->fceed,
@@ -190,15 +189,15 @@ PetscErrorCode ApplyJacobian_SW(Mat mat, Vec Q, Vec JVec) {
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Jloc); CHKERRQ(ierr);
 
-  // Setup CEED vectors
+  // TODO:
+  // L-vector to E-vector:
+  // Apply user-defined restriction with appropriate coordinate transformations to Qloc
+
+  // CEED vectors
   ierr = VecGetArrayRead(Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
   ierr = VecGetArray(Jloc, &j); CHKERRQ(ierr);
   CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
   CeedVectorSetArray(user->jceed, CEED_MEM_HOST, CEED_USE_POINTER, j);
-
-  // TODO:
-  // L-vector to E-vector:
-  // Apply user-defined restriction with appropriate coordinate transformations
 
   // Apply the CEED operator for the dF/dQ terms
   CeedOperatorApply(user->op_jacobian, user->qceed, user->jceed,

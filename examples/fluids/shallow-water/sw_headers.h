@@ -145,14 +145,15 @@ extern problemData problemOptions[];
 
 // Auxiliary function to determine if nodes belong to cube face (panel) edges
 PetscErrorCode FindPanelEdgeNodes(DM dm, PhysicsContext phys_ctx,
-                                  PetscInt ncomp, PetscInt *edgenodecnt,
+                                  PetscInt ncomp, PetscInt degree,
+                                  PetscInt topodim, PetscInt *edgenodecnt,
                                   EdgeNode *edgenodes, Mat *T);
 
 // Auxiliary function that sets up all coordinate transformations between panels
-PetscErrorCode SetupPanelCoordTransformations(DM dm, PhysicsContext phys_ctx,
-                                              PetscInt ncomp,
-                                              EdgeNode edgenodes,
-                                              PetscInt nedgenodes, Mat *T);
+PetscErrorCode SetupRestrictionMatrix(DM dm, PhysicsContext phys_ctx,
+                                      PetscInt degree, PetscInt ncomp,
+                                      EdgeNode edgenodes, PetscInt nedgenodes,
+                                      Mat *T);
 
 // Auxiliary function that converts global 3D coors into local panel coords
 PetscErrorCode TransformCoords(DM dm, Vec Xloc, const PetscInt ncompx,
