@@ -374,8 +374,8 @@ int main(int argc, char **argv) {
   // Setup transformation matrix different panels of the cube
   Mat T;
   EdgeNode edgenodes;
-  ierr = FindPanelEdgeNodes(dm, &physCtxData, ncompq, &nedgenodes, &edgenodes,
-                            &T);
+  ierr = FindPanelEdgeNodes(dm, &physCtxData, ncompq, degree, topodim,
+                            &nedgenodes, &edgenodes, &T);
   CHKERRQ(ierr);
 
   // Transform coordinate according to their panel systems
