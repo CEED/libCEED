@@ -327,13 +327,13 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
 endif
 
 # OCCA Backends
-OCCA_BACKENDS = /cpu/occa/serial
+OCCA_BACKENDS = /cpu/self/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/occa/openmp)
-# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/occa/hip)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/occa/cuda)
+  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
+# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
+  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
+  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
 
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
