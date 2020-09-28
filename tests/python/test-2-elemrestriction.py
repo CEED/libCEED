@@ -105,10 +105,10 @@ def test_202(ceed_resource, capsys):
 
     r.apply(x, y)
 
-    print(y)
-
     x.set_value(0)
     r.T.apply(y, x)
+
+    print(y)
     print(x)
 
     stdout, stderr, ref_stdout = check.output(capsys)
