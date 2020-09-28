@@ -37,7 +37,7 @@ class Ceed():
     _pointer = ffi.NULL
 
     # Constructor
-    def __init__(self, resource="/cpu/self"):
+    def __init__(self, resource="/cpu/self", on_error="store"):
         # libCEED object
         self._pointer = ffi.new("Ceed *")
 
@@ -47,9 +47,13 @@ class Ceed():
         err_code = lib.CeedInit(resourceAscii, self._pointer)
         if err_code:
             raise Exception("Error initializing backend resource: " + resource)
+        error_handlers = dict(
+          store="CeedErrorStore",
+          abort="CeedErrorAbort",
+        )
         lib.CeedSetErrorHandler(
             self._pointer[0], ffi.addressof(
-                lib, "CeedErrorStore"))
+                lib, error_handlers[on_error]))
 
     # Representation
     def __repr__(self):
