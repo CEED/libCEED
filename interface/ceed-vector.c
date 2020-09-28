@@ -75,7 +75,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 }
 
 /**
-  @brief Add a refrence to a CeedVector
+  @brief Add a reference to a CeedVector
 
   @param[out] vec     CeedVector to increment reference counter
 
