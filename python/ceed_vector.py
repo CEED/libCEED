@@ -339,6 +339,18 @@ class Vector():
 
         return self
 
+    def _state(self):
+        """Return the modification state of the Vector.
+
+        State is incremented each time the Vector is mutated, and is odd whenever a
+        mutable reference has not been returned.
+        """
+
+        state_pointer = ffi.new("uint64_t *")
+        err_code = lib.CeedVectorGetState(self._pointer[0], state_pointer)
+        self._ceed._check_error(err_code)
+        return state_pointer[0]
+
 # ------------------------------------------------------------------------------
 
 
