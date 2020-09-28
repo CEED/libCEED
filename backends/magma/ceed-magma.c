@@ -27,7 +27,7 @@ static int CeedDestroy_Magma(Ceed ceed) {
 
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/gpu/magma/cuda") && strcmp(resource, "/gpu/magma/hip"))
+  if (strcmp(resource, "/gpu/cuda/magma") && strcmp(resource, "/gpu/hip/magma"))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
@@ -85,8 +85,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 __attribute__((constructor))
 static void Register(void) {
   #ifdef HAVE_HIP
-  CeedRegister("/gpu/magma/hip", CeedInit_Magma, 20);
+  CeedRegister("/gpu/hip/magma", CeedInit_Magma, 20);
   #else
-  CeedRegister("/gpu/magma/cuda", CeedInit_Magma, 20);
+  CeedRegister("/gpu/cuda/magma", CeedInit_Magma, 20);
   #endif
 }

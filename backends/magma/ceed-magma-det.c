@@ -18,8 +18,8 @@
 
 static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/gpu/magma/det/cuda")
-      && strcmp(resource, "/gpu/magma/det/hip"))
+  if (strcmp(resource, "/gpu/cuda/magma/det")
+      && strcmp(resource, "/gpu/hip/magma/det"))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
@@ -29,9 +29,9 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   //   through unless overridden
   Ceed ceedref;
   #ifdef HAVE_HIP
-  CeedInit("/gpu/magma/hip", &ceedref);
+  CeedInit("/gpu/hip/magma", &ceedref);
   #else
-  CeedInit("/gpu/magma/cuda", &ceedref);
+  CeedInit("/gpu/cuda/magma", &ceedref);
   #endif
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
@@ -51,8 +51,8 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 __attribute__((constructor))
 static void Register(void) {
   #ifdef HAVE_HIP
-  CeedRegister("/gpu/magma/det/hip", CeedInit_Magma_Det, 25);
+  CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 25);
   #else
-  CeedRegister("/gpu/magma/det/cuda", CeedInit_Magma_Det, 25);
+  CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 25);
   #endif
 }
