@@ -48,12 +48,16 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   CeedInt ierr;
   using std::ostringstream;
   using std::string;
+  Ceed ceed;
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChk(ierr);
   // QFunction is built
-  if (!data->qFunctionSource)
+  if (data->qFunction)
     return 0;
-  
+  if (!data->qFunctionSource)
+    return CeedError(ceed, 1, "No QFunction source or CUfunction provided.");
+
   // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
@@ -77,7 +81,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << qReadWriteS;
   code << qFunction;
   code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
-  
+
   // Inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
@@ -125,8 +129,6 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
   CeedDebug(code.str().c_str());
 
   // Compile kernel

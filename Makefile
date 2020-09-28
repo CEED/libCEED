@@ -78,7 +78,8 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CC_VENDOR := $(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc XL,$(shell $(CC) --version))))
+# Note: Intel oneAPI C/C++ compiler is now icx/icpx
+CC_VENDOR := $(subst oneAPI,icc,$(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc oneAPI XL,$(shell $(CC) --version)))))
 FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
 
 # Default extra flags by vendor
@@ -158,7 +159,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 CEED_LIBS = -lceed
-libceed.c := $(wildcard interface/ceed*.c)
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
@@ -203,8 +204,6 @@ xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda.cu        := $(sort $(wildcard backends/cuda/kernels/*.cu))
-cuda-reg.c     := $(sort $(wildcard backends/cuda-reg/*.c))
-cuda-reg.cu    := $(sort $(wildcard backends/cuda-reg/kernels/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
@@ -348,16 +347,17 @@ endif
 CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
 CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
-CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/reg /gpu/cuda/shared /gpu/cuda/gen
+CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
-  libceed.c   += $(cuda.c) $(cuda-reg.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.c   += interface/ceed-cuda.c
+  libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu  += $(cuda.cu) $(cuda-reg.cu) $(cuda-shared.cu) $(cuda-gen.cu)
-  BACKENDS += $(CUDA_BACKENDS)
+  libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  BACKENDS    += $(CUDA_BACKENDS)
 endif
 
 # HIP Backends
@@ -369,14 +369,15 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)
-  libceed.hip += $(hip.hip)
-  libceed.cpp += $(hip.cpp)
+  libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c)
-  BACKENDS += $(HIP_BACKENDS)
+  libceed.cpp += $(hip.cpp)
+  libceed.hip += $(hip.hip)
+  BACKENDS    += $(HIP_BACKENDS)
 endif
 
 # MAGMA Backend
@@ -541,6 +542,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	  "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 
