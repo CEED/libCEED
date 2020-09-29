@@ -252,7 +252,7 @@ info:
 	$(info ASAN          = $(or $(ASAN),(empty)))
 	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/sef/memcheck/blocked))
+	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/self/memcheck/blocked))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
@@ -327,13 +327,13 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
 endif
 
 # OCCA Backends
-OCCA_BACKENDS = /cpu/occa/serial
+OCCA_BACKENDS = /cpu/self/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/occa/openmp)
-# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/occa/hip)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/occa/cuda)
+  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
+# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
+  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
+  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
 
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
@@ -394,7 +394,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   libceed.cu += $(magma.cu)
   $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
   $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
-  BACKENDS += /gpu/magma /gpu/magma/det
+  BACKENDS += /gpu/cuda/magma /gpu/cuda/magma/det
   endif
 endif
 
