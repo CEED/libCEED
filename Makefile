@@ -123,6 +123,7 @@ FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
+  CXXFLAGS += --coverage
   LDFLAGS += --coverage
 endif
 
