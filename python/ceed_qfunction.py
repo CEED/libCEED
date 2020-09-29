@@ -27,7 +27,7 @@ class _QFunctionBase(ABC):
          volumetric terms."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
 
     # Destructor

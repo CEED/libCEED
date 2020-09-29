@@ -902,7 +902,8 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode, const char *format,
                    va_list args) {
   if (ceed->parent)
-    CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format, args);
+    return CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format,
+                          args);
 
   // Build message
   CeedInt len;

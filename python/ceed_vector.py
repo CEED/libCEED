@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 import contextlib
-from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
+from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
 
 # ------------------------------------------------------------------------------
 
@@ -27,8 +27,9 @@ class Vector():
     """Ceed Vector: storing and manipulating vectors."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
+    _array_reference = None
 
     # Constructor
     def __init__(self, ceed, size):
@@ -80,6 +81,12 @@ class Vector():
              *array: Numpy or Numba array to be used
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
              **cmode: copy mode for the array, default CEED_COPY_VALUES"""
+
+        # Store array reference if needed
+        if cmode == USE_POINTER:
+            self._array_reference = array
+        else:
+            self._array_reference = None
 
         # Setup the numpy array for the libCEED call
         array_pointer = ffi.new("CeedScalar *")
@@ -249,7 +256,7 @@ class Vector():
           np.array: read-only view of vector
 
         Examples:
-          Constructing the identity inside a libceed.Vector:
+          Viewing contents of a reshaped libceed.Vector view:
 
           >>> vec = ceed.Vector(6)
           >>> vec.set_value(1.3)

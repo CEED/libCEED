@@ -48,8 +48,8 @@ class Ceed():
         if err_code:
             raise Exception("Error initializing backend resource: " + resource)
         error_handlers = dict(
-          store="CeedErrorStore",
-          abort="CeedErrorAbort",
+            store="CeedErrorStore",
+            abort="CeedErrorAbort",
         )
         lib.CeedSetErrorHandler(
             self._pointer[0], ffi.addressof(
