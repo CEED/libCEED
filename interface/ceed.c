@@ -846,6 +846,13 @@ int CeedDestroy(Ceed *ceed) {
   return 0;
 }
 
+// LCOV_EXCL_START
+const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
+  vsnprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, format, *args);
+  return ceed->errmsg;
+}
+// LCOV_EXCL_STOP
+
 /**
   @brief Error handling implementation; use \ref CeedError instead.
 
@@ -857,17 +864,17 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   int retval;
   va_start(args, format);
   if (ceed) {
-    retval = ceed->Error(ceed, filename, lineno, func, ecode, format, args);
+    retval = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
   } else {
     // LCOV_EXCL_START
     const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
     if (!ceed_error_handler)
       ceed_error_handler = "abort";
     if (!strcmp(ceed_error_handler, "return"))
-      retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, args);
+      retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
     else
       // This function will not return
-      retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, args);
+      retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, &args);
   }
   va_end(args);
   return retval;
@@ -884,7 +891,7 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
 // LCOV_EXCL_START
 int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
                     const char *func, int ecode, const char *format,
-                    va_list args) {
+                    va_list *args) {
   return ecode;
 }
 // LCOV_EXCL_STOP
@@ -900,7 +907,7 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
 // LCOV_EXCL_START
 int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode, const char *format,
-                   va_list args) {
+                   va_list *args) {
   if (ceed->parent)
     return CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format,
                           args);
@@ -909,7 +916,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
   CeedInt len;
   len = snprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
                  filename, lineno, func);
-  vsnprintf(ceed->errmsg + len, CEED_MAX_RESOURCE_LEN - len, format, args);
+  vsnprintf(ceed->errmsg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);
   return ecode;
 }
 // LCOV_EXCL_STOP
@@ -924,9 +931,9 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
 // LCOV_EXCL_START
 int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
                    const char *func, int ecode, const char *format,
-                   va_list args) {
+                   va_list *args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
-  vfprintf(stderr, format, args);
+  vfprintf(stderr, format, *args);
   fprintf(stderr, "\n");
   abort();
   return ecode;
@@ -944,9 +951,9 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
   @ref Developer
 **/
 int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
-                  int ecode, const char *format, va_list args) {
+                  int ecode, const char *format, va_list *args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
-  vfprintf(stderr, format, args);
+  vfprintf(stderr, format, *args);
   fprintf(stderr, "\n");
   exit(ecode);
   return ecode;
@@ -963,7 +970,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
 **/
 int CeedSetErrorHandler(Ceed ceed,
                         int (*eh)(Ceed, const char *, int, const char *,
-                                  int, const char *, va_list)) {
+                                  int, const char *, va_list *)) {
   ceed->Error = eh;
   if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, eh);
   for (int i=0; i<ceed->objdelegatecount; i++)
