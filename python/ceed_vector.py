@@ -46,6 +46,7 @@ class Vector():
     # Destructor
     def __del__(self):
         # libCEED call
+        assert self._state() % 2 == 0
         err_code = lib.CeedVectorDestroy(self._pointer)
         self._ceed._check_error(err_code)
 
