@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 import contextlib
-from .ceed_constants import MEM_HOST, COPY_VALUES, NORM_2
+from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
 
 # ------------------------------------------------------------------------------
 

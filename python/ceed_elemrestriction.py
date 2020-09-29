@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 from abc import ABC
-from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, COPY_VALUES, TRANSPOSE, NOTRANSPOSE
+from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, MEM_HOST, USE_POINTER, COPY_VALUES, TRANSPOSE, NOTRANSPOSE
 from .ceed_vector import _VectorWrap
 
 # ------------------------------------------------------------------------------
