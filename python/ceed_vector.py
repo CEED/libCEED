@@ -249,7 +249,7 @@ class Vector():
           np.array: read-only view of vector
 
         Examples:
-          Constructing the identity inside a libceed.Vector:
+          Viewing contents of a reshaped libceed.Vector view:
 
           >>> vec = ceed.Vector(6)
           >>> vec.set_value(1.3)
