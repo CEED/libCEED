@@ -144,7 +144,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | CPU Valgrind Backends                                                                                  |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/ref/memcheck`` | Memcheck backends, undefined value checks         | Yes                   |
+| ``/cpu/self/memcheck/*``   | Memcheck backends, undefined value checks         | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | CPU LIBXSMM Backends                                                                                   |
 +----------------------------+---------------------------------------------------+-----------------------+
