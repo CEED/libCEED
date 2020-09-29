@@ -27,7 +27,7 @@ class Vector():
     """Ceed Vector: storing and manipulating vectors."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
     _array_reference = None
 

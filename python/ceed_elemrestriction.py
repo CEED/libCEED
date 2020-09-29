@@ -28,7 +28,7 @@ class _ElemRestrictionBase(ABC):
     """Ceed ElemRestriction: restriction from local vectors to elements."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
     _array_reference = None
 

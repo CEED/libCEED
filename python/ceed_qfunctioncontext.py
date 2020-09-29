@@ -27,7 +27,7 @@ class QFunctionContext():
     """Ceed QFunction Context: stores Ceed QFunction user context data."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
     _array_reference = None
 
