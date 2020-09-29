@@ -29,6 +29,7 @@ class Vector():
     # Attributes
     _ceed = ffi.NULL
     _pointer = ffi.NULL
+    _array_reference = None
 
     # Constructor
     def __init__(self, ceed, size):
@@ -80,6 +81,12 @@ class Vector():
              *array: Numpy or Numba array to be used
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
              **cmode: copy mode for the array, default CEED_COPY_VALUES"""
+
+        # Store reference if needed
+        if cmode=USE_POINTER:
+            self._array_reference = array
+        else:
+            self._array_reference = None
 
         # Setup the numpy array for the libCEED call
         array_pointer = ffi.new("CeedScalar *")
