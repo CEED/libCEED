@@ -128,11 +128,11 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | CEED resource              | Backend                                           | Deterministic Capable |
 +----------------------------+---------------------------------------------------+-----------------------+
+| CPU Native Backends                                                                                    |
++----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/ref/serial``   | Serial reference implementation                   | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/ref/blocked``  | Blocked reference implementation                  | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/ref/memcheck`` | Memcheck backend, undefined value checks          | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/opt/serial``   | Serial optimized C implementation                 | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -142,9 +142,35 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/avx/blocked``  | Blocked AVX implementation                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
+| CPU Valgrind Backends                                                                                  |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/cpu/self/ref/memcheck`` | Memcheck backends, undefined value checks         | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| CPU LIBXSMM Backends                                                                                   |
++----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                     | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                    | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| CUDA Native Backends                                                                                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| MAGMA Backends                                                                                         |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/cuda/magma/det``    | CUDA MAGMA kernels                                | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| HIP Native Backend                                                                                     |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| OCCA Backends                                                                                          |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/*/occa``                | Selects backend based on available OCCA modes     | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -155,18 +181,6 @@ There are multiple supported backends, which can be selected at runtime in the e
 | ``/gpu/cuda/occa``         | OCCA backend with CUDA kernels                    | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/hip/occa``          | OCCA backend with HIP kernels                     | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/magma/det``    | CUDA MAGMA kernels                                | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 
 The ``/cpu/self/*/serial`` backends process one element at a time and are intended for meshes
@@ -180,11 +194,6 @@ The ``/cpu/self/opt/*`` backends are written in pure C and use partial e-vectors
 
 The ``/cpu/self/avx/*`` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The ``/cpu/self/xsmm/*`` backends rely upon the `LIBXSMM <http://github.com/hfp/libxsmm>`_ package
-to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
-the Makefile is not detecting ``MKLROOT``, linking libCEED against MKL can be
-forced by setting the environment variable ``MKL=1``.
-
 The ``/cpu/self/memcheck/*`` backends rely upon the `Valgrind <http://valgrind.org/>`_ Memcheck tool
 to help verify that user QFunctions have no undefined values. To use, run your code with
 Valgrind and the Memcheck backends, e.g. ``valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck``. A
@@ -192,15 +201,10 @@ Valgrind and the Memcheck backends, e.g. ``valgrind ./build/ex1 -ceed /cpu/self/
 This backend can be run in serial or blocked mode and defaults to running in the serial mode
 if ``/cpu/self/memcheck`` is selected at runtime.
 
-The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
-cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
-to the top-level OCCA directory, with the OCCA library located in the ``${OCCA_DIR}/lib`` (By default,
-``OCCA_DIR`` is set to ``../occa``).
-
-Additionally, users can pass specific OCCA device properties after setting the CEED resource.
-For example:
-
-  - `"/*/occa:mode='CUDA',device_id=0"`
+The ``/cpu/self/xsmm/*`` backends rely upon the `LIBXSMM <http://github.com/hfp/libxsmm>`_ package
+to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
+the Makefile is not detecting ``MKLROOT``, linking libCEED against MKL can be
+forced by setting the environment variable ``MKL=1``.
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
@@ -213,6 +217,16 @@ directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or 
 
 The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
 the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
+
+The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
+cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
+to the top-level OCCA directory, with the OCCA library located in the ``${OCCA_DIR}/lib`` (By default,
+``OCCA_DIR`` is set to ``../occa``).
+
+Additionally, users can pass specific OCCA device properties after setting the CEED resource.
+For example:
+
+  - `"/*/occa:mode='CUDA',device_id=0"`
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as ``atomicAdd`` for increased performance.
@@ -238,73 +252,73 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
    cd ceed/
    make
    ./ex1-volume -ceed /cpu/self
-   ./ex1-volume -ceed /gpu/occa
+   ./ex1-volume -ceed /gpu/cuda
    ./ex2-surface -ceed /cpu/self
-   ./ex2-surface -ceed /gpu/occa
+   ./ex2-surface -ceed /gpu/cuda
    cd ..
 
    # MFEM+libCEED examples on CPU and GPU
    cd mfem/
    make
    ./bp1 -ceed /cpu/self -no-vis
-   ./bp3 -ceed /gpu/occa -no-vis
+   ./bp3 -ceed /gpu/cuda -no-vis
    cd ..
 
    # Nek5000+libCEED examples on CPU and GPU
    cd nek/
    make
    ./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
-   ./nek-examples.sh -e bp3 -ceed /gpu/occa -b 3
+   ./nek-examples.sh -e bp3 -ceed /gpu/cuda -b 3
    cd ..
 
    # PETSc+libCEED examples on CPU and GPU
    cd petsc/
    make
    ./bps -problem bp1 -ceed /cpu/self
-   ./bps -problem bp2 -ceed /gpu/occa
+   ./bps -problem bp2 -ceed /gpu/cuda
    ./bps -problem bp3 -ceed /cpu/self
-   ./bps -problem bp4 -ceed /gpu/occa
+   ./bps -problem bp4 -ceed /gpu/cuda
    ./bps -problem bp5 -ceed /cpu/self
-   ./bps -problem bp6 -ceed /gpu/occa
+   ./bps -problem bp6 -ceed /gpu/cuda
    cd ..
 
    cd petsc/
    make
    ./bpsraw -problem bp1 -ceed /cpu/self
-   ./bpsraw -problem bp2 -ceed /gpu/occa
+   ./bpsraw -problem bp2 -ceed /gpu/cuda
    ./bpsraw -problem bp3 -ceed /cpu/self
-   ./bpsraw -problem bp4 -ceed /gpu/occa
+   ./bpsraw -problem bp4 -ceed /gpu/cuda
    ./bpsraw -problem bp5 -ceed /cpu/self
-   ./bpsraw -problem bp6 -ceed /gpu/occa
+   ./bpsraw -problem bp6 -ceed /gpu/cuda
    cd ..
 
    cd petsc/
    make
    ./bpssphere -problem bp1 -ceed /cpu/self
-   ./bpssphere -problem bp2 -ceed /gpu/occa
+   ./bpssphere -problem bp2 -ceed /gpu/cuda
    ./bpssphere -problem bp3 -ceed /cpu/self
-   ./bpssphere -problem bp4 -ceed /gpu/occa
+   ./bpssphere -problem bp4 -ceed /gpu/cuda
    ./bpssphere -problem bp5 -ceed /cpu/self
-   ./bpssphere -problem bp6 -ceed /gpu/occa
+   ./bpssphere -problem bp6 -ceed /gpu/cuda
    cd ..
 
    cd petsc/
    make
    ./area -problem cube -ceed /cpu/self -petscspace_degree 3
-   ./area -problem cube -ceed /gpu/occa -petscspace_degree 3
+   ./area -problem cube -ceed /gpu/cuda -petscspace_degree 3
    ./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
-   ./area -problem sphere -ceed /gpu/occa -petscspace_degree 3 -dm_refine 2
+   ./area -problem sphere -ceed /gpu/cuda -petscspace_degree 3 -dm_refine 2
 
    cd fluids/
    make
    ./navierstokes -ceed /cpu/self -petscspace_degree 1
-   ./navierstokes -ceed /gpu/occa -petscspace_degree 1
+   ./navierstokes -ceed /gpu/cuda -petscspace_degree 1
    cd ..
 
    cd solids/
    make
    ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
-   ./elasticity -ceed /gpu/occa -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
+   ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
    cd ..
 
 For the last example shown, sample meshes to be used in place of
