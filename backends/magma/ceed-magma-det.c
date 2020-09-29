@@ -51,8 +51,8 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 __attribute__((constructor))
 static void Register(void) {
   #ifdef HAVE_HIP
-  CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 25);
+  CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
   #else
-  CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 25);
+  CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
   #endif
 }
