@@ -252,11 +252,11 @@ info:
 	$(info ASAN          = $(or $(ASAN),(empty)))
 	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/self/memcheck/blocked))
-	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
-	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
+	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
+	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
+	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
-	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,/gpu/magma /gpu/magma/det))
+	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info ------------------------------------)
@@ -289,23 +289,26 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
 MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
+MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
+  BACKENDS += $(MEMCHK_BACKENDS)
 endif
 
 # AVX Backed
 AVX_STATUS = Disabled
 AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
 AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
+  BACKENDS += $(AVX_BACKENDS)
 endif
 
 # libXSMM Backends
+XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
   $(libceeds) : LDLIBS += -lxsmm -ldl
@@ -323,7 +326,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDLIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
-  BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
+  BACKENDS += $(XSMM_BACKENDS)
 endif
 
 # OCCA Backends
@@ -381,6 +384,7 @@ ifneq ($(HIP_LIB_DIR),)
 endif
 
 # MAGMA Backend
+MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   ifneq ($(CUDA_LIB_DIR),)
   cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
@@ -394,7 +398,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   libceed.cu += $(magma.cu)
   $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
   $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
-  BACKENDS += /gpu/cuda/magma /gpu/cuda/magma/det
+  BACKENDS += $(MAGMA_BACKENDS)
   endif
 endif
 
