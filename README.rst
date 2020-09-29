@@ -162,9 +162,9 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/magma``             | CUDA MAGMA kernels                                | No                    |
+| ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/magma/det``         | CUDA MAGMA kernels                                | Yes                   |
+| ``/gpu/cuda/magma/det``    | CUDA MAGMA kernels                                | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -204,7 +204,7 @@ For example:
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
-The ``/gpu/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
+The ``/gpu/cuda/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
 To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
 MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
 By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
