@@ -30,6 +30,7 @@ class _ElemRestrictionBase(ABC):
     # Attributes
     _ceed = ffi.NULL
     _pointer = ffi.NULL
+    _array_reference = None
 
     # Destructor
     def __del__(self):
@@ -149,6 +150,12 @@ class ElemRestriction(_ElemRestrictionBase):
 
         # Reference to Ceed
         self._ceed = ceed
+
+        # Store array reference if needed
+        if cmode == USE_POINTER:
+            self._array_reference = offsets
+        else:
+            self._array_reference = None
 
         # Setup the numpy array for the libCEED call
         offsets_pointer = ffi.new("const CeedInt *")

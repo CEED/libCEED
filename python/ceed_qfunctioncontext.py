@@ -29,6 +29,7 @@ class QFunctionContext():
     # Attributes
     _ceed = ffi.NULL
     _pointer = ffi.NULL
+    _array_reference = None
 
     # Constructor
     def __init__(self, ceed):
@@ -81,6 +82,12 @@ class QFunctionContext():
              *data: Numpy or Numba array to be used
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
              **cmode: copy mode for the array, default CEED_COPY_VALUES"""
+
+        # Store array reference if needed
+        if cmode == USE_POINTER:
+            self._array_reference = data
+        else:
+            self._array_reference = None
 
         # Setup the numpy array for the libCEED call
         data_pointer = ffi.new("CeedScalar *")

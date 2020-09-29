@@ -82,8 +82,8 @@ class Vector():
              **memtype: memory type of the array being passed, default CEED_MEM_HOST
              **cmode: copy mode for the array, default CEED_COPY_VALUES"""
 
-        # Store reference if needed
-        if cmode=USE_POINTER:
+        # Store array reference if needed
+        if cmode == USE_POINTER:
             self._array_reference = array
         else:
             self._array_reference = None
