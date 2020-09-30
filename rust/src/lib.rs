@@ -43,7 +43,6 @@ pub mod basis;
 pub mod elem_restriction;
 pub mod operator;
 pub mod qfunction;
-pub mod qfunction_context;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
@@ -439,17 +438,6 @@ impl Ceed {
     /// ```
     pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunction {
         crate::qfunction::QFunction::create_by_name(self, name)
-    }
-
-    /// Returns a CeedQFunctionContext for storing CeedQFunction user context data
-    ///
-    /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let ctx = ceed.q_function_context();
-    /// println!("{}", ctx);
-    /// ```
-    pub fn q_function_context(&self) -> crate::qfunction_context::QFunctionContext {
-        crate::qfunction_context::QFunctionContext::create(self)
     }
 
     /// Returns a Operator and associate a QFunction. A Basis and ElemRestriction can be

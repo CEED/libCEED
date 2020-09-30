@@ -223,16 +223,6 @@ impl QFunction {
             );
         }
     }
-
-    /// Set global context for a QFunction
-    ///
-    /// * 'ctx' - Context data to set
-    ///
-    pub fn set_context(&self, ctx: crate::qfunction_context::QFunctionContext) {
-        unsafe {
-            bind_ceed::CeedQFunctionSetContext(self.ptr, ctx.ptr);
-        }
-    }
 }
 
 // -----------------------------------------------------------------------------
