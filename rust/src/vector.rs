@@ -117,6 +117,10 @@ impl Vector {
         Self { ptr: ptr }
     }
 
+    pub(crate) fn from_ptr(ptr: bind_ceed::CeedVector) -> Self {
+        Self { ptr: ptr }
+    }
+
     /// Create a Vector from a slice
     ///
     /// # arguments

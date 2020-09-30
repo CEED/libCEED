@@ -143,6 +143,91 @@ impl ElemRestriction {
         Self { ptr }
     }
 
+    /// Create an Lvector for an ElemRestriction
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    ///
+    /// let lvector = r.create_lvector();
+    ///
+    /// assert_eq!(lvector.length(), nelem+1, "Incorrect Lvector size");
+    /// ```
+    pub fn create_lvector(&self) -> crate::vector::Vector {
+        let mut ptr_lvector = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedElemRestrictionCreateVector(
+                self.ptr,
+                &mut ptr_lvector,
+                std::ptr::null_mut() as *mut _,
+            )
+        };
+        crate::vector::Vector::from_ptr(ptr_lvector)
+    }
+
+    /// Create an Evector for an ElemRestriction
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    ///
+    /// let evector = r.create_evector();
+    ///
+    /// assert_eq!(evector.length(), nelem*2, "Incorrect Evector size");
+    /// ```
+    pub fn create_evector(&self) -> crate::vector::Vector {
+        let mut ptr_evector = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedElemRestrictionCreateVector(
+                self.ptr,
+                std::ptr::null_mut() as *mut _,
+                &mut ptr_evector,
+            )
+        };
+        crate::vector::Vector::from_ptr(ptr_evector)
+    }
+
+    /// Create Vectors for an ElemRestriction
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2*nelem];
+    /// for i in 0..nelem {
+    ///   ind[2*i+0] = i as i32;
+    ///   ind[2*i+1] = (i+1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    ///
+    /// let (lvector, evector) = r.create_vectors();
+    ///
+    /// assert_eq!(lvector.length(), nelem+1, "Incorrect Lvector size");
+    /// assert_eq!(evector.length(), nelem*2, "Incorrect Evector size");
+    /// ```
+    pub fn create_vectors(&self) -> (crate::vector::Vector, crate::vector::Vector) {
+        let mut ptr_lvector = std::ptr::null_mut();
+        let mut ptr_evector = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
+        };
+        (
+            crate::vector::Vector::from_ptr(ptr_lvector),
+            crate::vector::Vector::from_ptr(ptr_evector),
+        )
+    }
+
     /// Restrict an L-vector to an E-vector or apply its transpose
     ///
     /// # arguments
@@ -268,10 +353,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
     ///
-    /// let lsize = r.get_Lvector_size();
+    /// let lsize = r.get_lvector_size();
     /// assert_eq!(lsize, (nelem+1) as i32);
     /// ```
-    pub fn get_Lvector_size(&self) -> i32 {
+    pub fn get_lvector_size(&self) -> i32 {
         let mut lsize = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetLVectorSize(self.ptr, &mut lsize) };
         lsize
@@ -299,7 +384,7 @@ impl ElemRestriction {
         numcomp
     }
 
-    /// Returns the multiplicity oof nodes in an ElemRestriction
+    /// Returns the multiplicity of nodes in an ElemRestriction
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
