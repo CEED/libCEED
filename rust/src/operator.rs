@@ -677,7 +677,7 @@ impl Operator {
 
     /// Create a multigrid coarse Operator and level transfer Operators for a
     ///   given Operator, creating the prolongation basis from the fine and
-    ///   coarse grid interpolation.
+    ///   coarse grid interpolation
     ///
     /// * 'p_mult_fine'  - Lvector multiplicity in parallel gather/scatter
     /// * 'rstr_coarse'  - Coarse grid restriction
@@ -830,6 +830,149 @@ impl Operator {
         )
     }
 
+    /// Create a multigrid coarse Operator and level transfer Operators for a
+    ///   given Operator with a tensor basis for the active basis
+    ///
+    /// * 'p_mult_fine'  - Lvector multiplicity in parallel gather/scatter
+    /// * 'rstr_coarse'  - Coarse grid restriction
+    /// * 'basis_coarse' - Coarse grid active vector basis
+    /// * 'interp_c_to_f' - Matrix for coarse to fine
+    ///
+    /// ```
+    /// # use ceed::prelude::*;
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 15;
+    /// let p_coarse = 3;
+    /// let p_fine = 5;
+    /// let q = 6;
+    /// let ndofs_coarse = p_coarse*ne-ne+1;
+    /// let ndofs_fine = p_fine*ne-ne+1;
+    ///
+    /// // Vectors
+    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x = ceed.vector_from_slice(&x_array);
+    /// let mut qdata = ceed.vector(ne*q);
+    /// qdata.set_value(0.0);
+    /// let mut u_coarse = ceed.vector(ndofs_coarse);
+    /// u_coarse.set_value(1.0);
+    /// let mut u_fine = ceed.vector(ndofs_fine);
+    /// u_fine.set_value(1.0);
+    /// let mut v_coarse = ceed.vector(ndofs_coarse);
+    /// v_coarse.set_value(0.0);
+    /// let mut v_fine = ceed.vector(ndofs_fine);
+    /// v_fine.set_value(0.0);
+    /// let mut multiplicity = ceed.vector(ndofs_fine);
+    /// multiplicity.set_value(1.0);
+    ///
+    /// // Restrictions
+    /// let strides : [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    ///
+    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   indx[2*i+0] = i as i32;
+    ///   indx[2*i+1] = (i+1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    ///
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// for i in 0..ne {
+    ///   for j in 0..p_coarse {
+    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///   }
+    /// }
+    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, ceed::MemType::Host, &indu_coarse);
+    ///
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// for i in 0..ne {
+    ///   for j in 0..p_fine {
+    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///   }
+    /// }
+    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, ceed::MemType::Host, &indu_fine);
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, ceed::QuadMode::Gauss);
+    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, ceed::QuadMode::Gauss);
+    ///
+    /// // Set up operator
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    ///
+    /// op_build.apply(&x, &mut qdata);
+    ///
+    /// // Mass operator
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_mass_fine.set_field("u", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// op_mass_fine.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
+    /// op_mass_fine.set_field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    ///
+    /// // Multigrid setup
+    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
+    /// {
+    ///   let mut coarse = ceed.vector(p_coarse);
+    ///   let mut fine = ceed.vector(p_fine);
+    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, ceed::QuadMode::GaussLobatto);
+    ///   for i in 0..p_coarse {
+    ///     coarse.set_value(0.0);
+    ///     {
+    ///        let mut array = coarse.view_mut();
+    ///        array[i] = 1.;
+    ///     }
+    ///     basis_c_to_f.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///                        &coarse, &mut fine);
+    ///     let array = fine.view();
+    ///     for j in 0..p_fine {
+    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///     }
+    ///   }
+    /// }
+    /// let (op_mass_coarse, op_prolong, op_restrict) =
+    ///   op_mass_fine.create_multigrid_level_tensor_H1(&multiplicity, &ru_coarse, &bu_coarse, &interp_c_to_f);
+    ///
+    /// // Coarse problem
+    /// u_coarse.set_value(1.0);
+    /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
+    ///
+    /// // Check
+    /// let array = v_coarse.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_coarse {
+    ///   sum += array[i];
+    /// }
+    /// drop(array);
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    ///
+    /// // Prolong
+    /// op_prolong.apply(&u_coarse, &mut u_fine);
+    ///
+    /// // Fine problem
+    /// op_mass_fine.apply(&u_fine, &mut v_fine);
+    ///
+    /// // Check
+    /// let array = v_fine.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_fine {
+    ///   sum += array[i];
+    /// }
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    ///
+    /// // Restrict
+    /// op_restrict.apply(&v_fine, &mut v_coarse);
+    ///
+    /// // Check
+    /// let array = v_coarse.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_coarse {
+    ///   sum += array[i];
+    /// }
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    /// ```
     pub fn create_multigrid_level_tensor_H1(
         &self,
         p_mult_fine: &crate::vector::Vector,
@@ -863,6 +1006,149 @@ impl Operator {
         )
     }
 
+    /// Create a multigrid coarse Operator and level transfer Operators for a
+    ///   given Operator with a non-tensor basis for the active basis
+    ///
+    /// * 'p_mult_fine'  - Lvector multiplicity in parallel gather/scatter
+    /// * 'rstr_coarse'  - Coarse grid restriction
+    /// * 'basis_coarse' - Coarse grid active vector basis
+    /// * 'interp_c_to_f' - Matrix for coarse to fine
+    ///
+    /// ```
+    /// # use ceed::prelude::*;
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let ne = 15;
+    /// let p_coarse = 3;
+    /// let p_fine = 5;
+    /// let q = 6;
+    /// let ndofs_coarse = p_coarse*ne-ne+1;
+    /// let ndofs_fine = p_fine*ne-ne+1;
+    ///
+    /// // Vectors
+    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x = ceed.vector_from_slice(&x_array);
+    /// let mut qdata = ceed.vector(ne*q);
+    /// qdata.set_value(0.0);
+    /// let mut u_coarse = ceed.vector(ndofs_coarse);
+    /// u_coarse.set_value(1.0);
+    /// let mut u_fine = ceed.vector(ndofs_fine);
+    /// u_fine.set_value(1.0);
+    /// let mut v_coarse = ceed.vector(ndofs_coarse);
+    /// v_coarse.set_value(0.0);
+    /// let mut v_fine = ceed.vector(ndofs_fine);
+    /// v_fine.set_value(0.0);
+    /// let mut multiplicity = ceed.vector(ndofs_fine);
+    /// multiplicity.set_value(1.0);
+    ///
+    /// // Restrictions
+    /// let strides : [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    ///
+    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// for i in 0..ne {
+    ///   indx[2*i+0] = i as i32;
+    ///   indx[2*i+1] = (i+1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    ///
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// for i in 0..ne {
+    ///   for j in 0..p_coarse {
+    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///   }
+    /// }
+    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, ceed::MemType::Host, &indu_coarse);
+    ///
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// for i in 0..ne {
+    ///   for j in 0..p_fine {
+    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///   }
+    /// }
+    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, ceed::MemType::Host, &indu_fine);
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, ceed::QuadMode::Gauss);
+    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, ceed::QuadMode::Gauss);
+    ///
+    /// // Set up operator
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
+    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    ///
+    /// op_build.apply(&x, &mut qdata);
+    ///
+    /// // Mass operator
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
+    /// op_mass_fine.set_field("u", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// op_mass_fine.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
+    /// op_mass_fine.set_field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    ///
+    /// // Multigrid setup
+    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
+    /// {
+    ///   let mut coarse = ceed.vector(p_coarse);
+    ///   let mut fine = ceed.vector(p_fine);
+    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, ceed::QuadMode::GaussLobatto);
+    ///   for i in 0..p_coarse {
+    ///     coarse.set_value(0.0);
+    ///     {
+    ///        let mut array = coarse.view_mut();
+    ///        array[i] = 1.;
+    ///     }
+    ///     basis_c_to_f.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///                        &coarse, &mut fine);
+    ///     let array = fine.view();
+    ///     for j in 0..p_fine {
+    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///     }
+    ///   }
+    /// }
+    /// let (op_mass_coarse, op_prolong, op_restrict) =
+    ///   op_mass_fine.create_multigrid_level_H1(&multiplicity, &ru_coarse, &bu_coarse, &interp_c_to_f);
+    ///
+    /// // Coarse problem
+    /// u_coarse.set_value(1.0);
+    /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
+    ///
+    /// // Check
+    /// let array = v_coarse.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_coarse {
+    ///   sum += array[i];
+    /// }
+    /// drop(array);
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    ///
+    /// // Prolong
+    /// op_prolong.apply(&u_coarse, &mut u_fine);
+    ///
+    /// // Fine problem
+    /// op_mass_fine.apply(&u_fine, &mut v_fine);
+    ///
+    /// // Check
+    /// let array = v_fine.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_fine {
+    ///   sum += array[i];
+    /// }
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    ///
+    /// // Restrict
+    /// op_restrict.apply(&v_fine, &mut v_coarse);
+    ///
+    /// // Check
+    /// let array = v_coarse.view();
+    /// let mut sum = 0.0;
+    /// for i in 0..ndofs_coarse {
+    ///   sum += array[i];
+    /// }
+    /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
+    /// ```
     pub fn create_multigrid_level_H1(
         &self,
         p_mult_fine: &crate::vector::Vector,
