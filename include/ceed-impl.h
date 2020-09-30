@@ -224,6 +224,8 @@ struct CeedQFunctionField_private {
 struct CeedQFunction_private {
   Ceed ceed;
   int (*Apply)(CeedQFunction, CeedInt, CeedVector *, CeedVector *);
+  int (*SetCUDAUserFunction)(CeedQFunction, void *);
+  int (*SetHIPUserFunction)(CeedQFunction, void *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    /* Number of quadrature points must be padded to a

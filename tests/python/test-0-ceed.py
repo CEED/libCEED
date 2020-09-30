@@ -68,13 +68,19 @@ def test_003(ceed_resource):
 
 
 def test_005(ceed_resource):
-    with pytest.raises(Exception) as e_info:
-        ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
-        vec = ceed.Vector(5)
-        array1 = vec.get_array()
+    vec = ceed.Vector(5)
+    array1 = vec.get_array()
+
+    exception_raised = False
+    try:
         array2 = vec.get_array()
+    except:
+        exception_raised = True
 
-        vec.restore_array()
+    assert exception_raised
+
+    vec.restore_array()
 
 # -------------------------------------------------------------------------------

@@ -99,7 +99,7 @@ def run(test, backends):
                 if test[:4] in 't115'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector read-only array access, the access lock is already in use')
                 if test[:4] in 't116'.split():
-                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the access lock is in use')
+                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the writable access lock is in use')
                 if test[:4] in 't117'.split():
                     check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
                 if test[:4] in 't118'.split():

@@ -4,9 +4,6 @@ Interface Concepts
 This page provides a brief description of the theoretical foundations and the
 practical implementation of the libCEED library.
 
-Developers may also want to consult the automatically updated
-`Doxygen documentation <https://codedocs.xyz/CEED/libCEED>`_.
-
 .. include:: FEMtheory.rst.inc
 
 Finite Element Operator Decomposition
@@ -341,7 +338,7 @@ constructors take a string representation specifying where the source for the
 implementation is found. This is used by backends that support Just-In-Time
 (JIT) compilation (i.e., CUDA and OCCA) to compile for coprocessors.
 For full support across all backends, these :ref:`CeedQFunction` source files must only contain constructs mutually supported by C99, C++11, and CUDA.
-For example, explict type casting of void pointers and explicit use of compatable arguments for :code:`math` library functions is required, and VLA syntax for array reshaping is only avaliable via libCEED's :ref:`CEED_Q_VLA` macro.
+For example, explict type casting of void pointers and explicit use of compatable arguments for :code:`math` library functions is required, and variable-length array (VLA) syntax for array reshaping is only avaliable via libCEED's :code:`CEED_Q_VLA` macro.
 
 Different input and output fields are added individually, specifying the field
 name, size of the field, and evaluation mode.

@@ -29,11 +29,11 @@
 // Sample runs:
 //
 //     bpssphere -problem bp1 -degree 3
-//     bpssphere -problem bp2 -ceed /cpu/self -degree 3
-//     bpssphere -problem bp3 -ceed /cpu/self -degree 3
-//     bpssphere -problem bp4 -ceed /cpu/occa -degree 3
-//     bpssphere -problem bp5 -ceed /cpu/occa -degree 3
-//     bpssphere -problem bp6 -ceed /cpu/self -degree 3
+//     bpssphere -problem bp2 -degree 3
+//     bpssphere -problem bp3 -degree 3
+//     bpssphere -problem bp4 -degree 3
+//     bpssphere -problem bp5 -degree 3 -ceed /cpu/self
+//     bpssphere -problem bp6 -degree 3 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -dm_refine 2
 

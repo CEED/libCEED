@@ -78,7 +78,8 @@ endif
 # export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
-CC_VENDOR := $(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc XL,$(shell $(CC) --version))))
+# Note: Intel oneAPI C/C++ compiler is now icx/icpx
+CC_VENDOR := $(subst oneAPI,icc,$(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc oneAPI XL,$(shell $(CC) --version)))))
 FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
 
 # Default extra flags by vendor
@@ -122,6 +123,7 @@ FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
+  CXXFLAGS += --coverage
   LDFLAGS += --coverage
 endif
 
@@ -158,7 +160,7 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed := $(LIBDIR)/libceed.$(SO_EXT)
 CEED_LIBS = -lceed
-libceed.c := $(wildcard interface/ceed*.c)
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
@@ -252,9 +254,9 @@ info:
 	$(info ASAN          = $(or $(ASAN),(empty)))
 	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
-	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,/cpu/self/memcheck/serial /cpu/sef/memcheck/blocked))
-	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,/cpu/self/avx/serial /cpu/self/avx/blocked))
-	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,/cpu/self/xsmm/serial /cpu/self/xsmm/blocked))
+	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
+	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
+	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
@@ -289,23 +291,26 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
 MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
+MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
+  BACKENDS += $(MEMCHK_BACKENDS)
 endif
 
 # AVX Backed
 AVX_STATUS = Disabled
 AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
 AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += /cpu/self/avx/serial /cpu/self/avx/blocked
+  BACKENDS += $(AVX_BACKENDS)
 endif
 
 # libXSMM Backends
+XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
   $(libceeds) : LDLIBS += -lxsmm -ldl
@@ -323,17 +328,17 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   $(libceeds) : LDLIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
-  BACKENDS += /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
+  BACKENDS += $(XSMM_BACKENDS)
 endif
 
 # OCCA Backends
-OCCA_BACKENDS = /cpu/occa/serial
+OCCA_BACKENDS = /cpu/self/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/occa/openmp)
-# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/occa/hip)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/occa/cuda)
+  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
+# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
+  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
+  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
 
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
@@ -353,10 +358,11 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
   $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
   $(libceeds) : LINK = $(CXX)
+  libceed.c   += interface/ceed-cuda.c
   libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
   libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
-  BACKENDS += $(CUDA_BACKENDS)
+  BACKENDS    += $(CUDA_BACKENDS)
 endif
 
 # HIP Backends
@@ -368,14 +374,15 @@ ifneq ($(HIP_LIB_DIR),)
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)
-  libceed.hip += $(hip.hip)
-  libceed.cpp += $(hip.cpp)
+  libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c)
-  BACKENDS += $(HIP_BACKENDS)
+  libceed.cpp += $(hip.cpp)
+  libceed.hip += $(hip.hip)
+  BACKENDS    += $(HIP_BACKENDS)
 endif
 
 # MAGMA Backend
@@ -563,6 +570,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	  "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 

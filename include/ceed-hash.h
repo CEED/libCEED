@@ -20,7 +20,7 @@
 #define _ceed_hash_h
 
 #include <ceed.h>
-#include <khash.h>
+#include <ceed-khash.h>
 
 /* Required for khash <= 0.2.5 */
 #if !defined(kcalloc)

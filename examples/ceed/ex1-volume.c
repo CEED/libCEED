@@ -35,10 +35,7 @@
 //
 //     ./ex1-volume
 //     ./ex1-volume -ceed /cpu/self
-//     ./ex1-volume -ceed /gpu/occa
-//     ./ex1-volume -ceed /cpu/occa
-//     ./ex1-volume -ceed /omp/occa
-//     ./ex1-volume -ceed /ocl/occa
+//     ./ex1-volume -ceed /gpu/cuda
 //     ./ex1-volume -m ../../../mfem/data/fichera.mesh
 //     ./ex1-volume -m ../../../mfem/data/star.vtk -o 3
 //     ./ex1-volume -m ../../../mfem/data/inline-segment.mesh -o 8
