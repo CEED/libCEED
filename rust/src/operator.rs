@@ -200,6 +200,11 @@ impl Operator {
         Self { op_core }
     }
 
+    fn from_raw(ptr: bind_ceed::CeedOperator) -> Self {
+        let op_core = OperatorCore { ptr };
+        Self { op_core }
+    }
+
     /// Apply Operator to a vector
     ///
     /// * 'input'  - Input Vector
@@ -675,21 +680,30 @@ impl Operator {
         p_mult_fine: &crate::vector::Vector,
         rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
-        op_coarse: &mut crate::operator::Operator,
-        op_prolong: &mut crate::operator::Operator,
-        op_restrict: &mut crate::operator::Operator,
+    ) -> (
+        crate::operator::Operator,
+        crate::operator::Operator,
+        crate::operator::Operator,
     ) {
+        let mut ptr_coarse = std::ptr::null_mut();
+        let mut ptr_prolong = std::ptr::null_mut();
+        let mut ptr_restrict = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreate(
                 self.op_core.ptr,
                 p_mult_fine.ptr,
                 rstr_coarse.ptr,
                 basis_coarse.ptr,
-                &mut op_coarse.op_core.ptr,
-                &mut op_prolong.op_core.ptr,
-                &mut op_restrict.op_core.ptr,
+                &mut ptr_coarse,
+                &mut ptr_prolong,
+                &mut ptr_restrict,
             )
         };
+        (
+            Operator::from_raw(ptr_coarse),
+            Operator::from_raw(ptr_prolong),
+            Operator::from_raw(ptr_restrict),
+        )
     }
 
     pub fn create_multigrid_level_tensor_H1(
@@ -698,10 +712,14 @@ impl Operator {
         rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
         interpCtoF: &Vec<f64>,
-        op_coarse: &mut crate::operator::Operator,
-        op_prolong: &mut crate::operator::Operator,
-        op_restrict: &mut crate::operator::Operator,
+    ) -> (
+        crate::operator::Operator,
+        crate::operator::Operator,
+        crate::operator::Operator,
     ) {
+        let mut ptr_coarse = std::ptr::null_mut();
+        let mut ptr_prolong = std::ptr::null_mut();
+        let mut ptr_restrict = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateTensorH1(
                 self.op_core.ptr,
@@ -709,11 +727,16 @@ impl Operator {
                 rstr_coarse.ptr,
                 basis_coarse.ptr,
                 interpCtoF.as_ptr(),
-                &mut op_coarse.op_core.ptr,
-                &mut op_prolong.op_core.ptr,
-                &mut op_restrict.op_core.ptr,
+                &mut ptr_coarse,
+                &mut ptr_prolong,
+                &mut ptr_restrict,
             )
         };
+        (
+            Operator::from_raw(ptr_coarse),
+            Operator::from_raw(ptr_prolong),
+            Operator::from_raw(ptr_restrict),
+        )
     }
 
     pub fn create_multigrid_level_H1(
@@ -722,10 +745,14 @@ impl Operator {
         rstr_coarse: &crate::elem_restriction::ElemRestriction,
         basis_coarse: &crate::basis::Basis,
         interpCtoF: &Vec<f64>,
-        op_coarse: &mut crate::operator::Operator,
-        op_prolong: &mut crate::operator::Operator,
-        op_restrict: &mut crate::operator::Operator,
+    ) -> (
+        crate::operator::Operator,
+        crate::operator::Operator,
+        crate::operator::Operator,
     ) {
+        let mut ptr_coarse = std::ptr::null_mut();
+        let mut ptr_prolong = std::ptr::null_mut();
+        let mut ptr_restrict = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateH1(
                 self.op_core.ptr,
@@ -733,21 +760,16 @@ impl Operator {
                 rstr_coarse.ptr,
                 basis_coarse.ptr,
                 interpCtoF.as_ptr(),
-                &mut op_coarse.op_core.ptr,
-                &mut op_prolong.op_core.ptr,
-                &mut op_restrict.op_core.ptr,
+                &mut ptr_coarse,
+                &mut ptr_prolong,
+                &mut ptr_restrict,
             )
         };
-    }
-
-    pub fn create_FDME_element_inverse(&self, fdminv: &mut crate::operator::Operator) {
-        unsafe {
-            bind_ceed::CeedOperatorCreateFDMElementInverse(
-                self.op_core.ptr,
-                &mut fdminv.op_core.ptr,
-                bind_ceed::CEED_REQUEST_IMMEDIATE,
-            )
-        };
+        (
+            Operator::from_raw(ptr_coarse),
+            Operator::from_raw(ptr_prolong),
+            Operator::from_raw(ptr_restrict),
+        )
     }
 }
 

@@ -168,7 +168,7 @@ impl ElemRestriction {
                 std::ptr::null_mut() as *mut _,
             )
         };
-        crate::vector::Vector::from_ptr(ptr_lvector)
+        crate::vector::Vector::from_raw(ptr_lvector)
     }
 
     /// Create an Evector for an ElemRestriction
@@ -196,7 +196,7 @@ impl ElemRestriction {
                 &mut ptr_evector,
             )
         };
-        crate::vector::Vector::from_ptr(ptr_evector)
+        crate::vector::Vector::from_raw(ptr_evector)
     }
 
     /// Create Vectors for an ElemRestriction
@@ -223,8 +223,8 @@ impl ElemRestriction {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
         };
         (
-            crate::vector::Vector::from_ptr(ptr_lvector),
-            crate::vector::Vector::from_ptr(ptr_evector),
+            crate::vector::Vector::from_raw(ptr_lvector),
+            crate::vector::Vector::from_raw(ptr_evector),
         )
     }
 

@@ -117,7 +117,7 @@ impl Vector {
         Self { ptr: ptr }
     }
 
-    pub(crate) fn from_ptr(ptr: bind_ceed::CeedVector) -> Self {
+    pub(crate) fn from_raw(ptr: bind_ceed::CeedVector) -> Self {
         Self { ptr: ptr }
     }
 
