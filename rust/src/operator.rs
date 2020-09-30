@@ -346,7 +346,10 @@ impl Operator {
     /// for i in 0..ndofs {
     ///   sum += array[i];
     /// }
-    /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15, "Incorrect interval length computed and added");
+    /// assert!(
+    ///   (sum - (2.0 + ndofs as f64)).abs() < 1e-15,
+    ///   "Incorrect interval length computed and added"
+    /// );
     /// ```
     pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
         self.op_core.apply_add(input, output)
@@ -529,7 +532,10 @@ impl Operator {
     /// let diag_array = diag.view();
     /// let true_array = true_diag.view();
     /// for i in 0..ndofs {
-    ///   assert!((diag_array[i] - true_array[i]).abs() < 1e-15, "Diagonal entry incorrect");
+    ///   assert!(
+    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
+    ///     "Diagonal entry incorrect"
+    ///   );
     /// }
     /// ```
     pub fn linear_assemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
@@ -628,7 +634,10 @@ impl Operator {
     /// let diag_array = diag.view();
     /// let true_array = true_diag.view();
     /// for i in 0..ndofs {
-    ///   assert!((diag_array[i] - true_array[i]).abs() < 1e-15, "Diagonal entry incorrect");
+    ///   assert!(
+    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
+    ///     "Diagonal entry incorrect"
+    ///   );
     /// }
     /// ```
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {

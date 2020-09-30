@@ -404,7 +404,10 @@ impl ElemRestriction {
     ///
     /// let array = mult.view();
     /// for i in 0..(nelem+1) {
-    ///   assert_eq!(if (i == 0 || i == nelem) { 1. } else { 2. }, array[i], "Incorrect multiplicity array");
+    ///   assert_eq!(
+    ///     if (i == 0 || i == nelem) { 1. } else { 2. },
+    ///     array[i],
+    ///     "Incorrect multiplicity array");
     /// }
     /// ```
     pub fn get_multiplicity(&self, mult: &mut crate::vector::Vector) {
