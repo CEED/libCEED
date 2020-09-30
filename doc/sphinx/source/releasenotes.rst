@@ -16,6 +16,7 @@ Interface changes
 
 New features
 ^^^^^^^^^^^^
+* New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
