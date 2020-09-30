@@ -28,8 +28,8 @@
 // Sample runs:
 //
 //     multigrid -problem bp3
-//     multigrid -problem bp4 -ceed /cpu/self
-//     multigrid -problem bp5 -ceed /cpu/occa
+//     multigrid -problem bp4
+//     multigrid -problem bp5 -ceed /cpu/self
 //     multigrid -problem bp6 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3

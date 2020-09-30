@@ -43,11 +43,11 @@ jobs:
      os: linux
      dist: focal
      arch: amd64
-     compiler: icc
+     compiler: icx
      env:
        - FC=ifort
-       - CC=icc
-       - CXX=ipp
+       - CC=icx
+       - CXX=icpx
      install:
      - source /opt/intel/oneapi/setvars.sh
      addons:
@@ -59,9 +59,8 @@ jobs:
          - liblapack-dev
          - libopenblas-dev
          - valgrind-dbg
-         - intel-oneapi-icc
-         - intel-oneapi-ipp
          - intel-oneapi-ifort
+         - intel-oneapi-dpcpp-cpp-compiler
 # OSX GCC
    - name: "OSX GCC"
      os: osx
@@ -128,17 +127,6 @@ jobs:
        - cd ..
      after_success:
        - cd rust && cargo fmt -- --check;
-  allow_failures:
-# Intel oneapi ICC and IPP current issue with apt
-   - name: "Linux ICC"
-     os: linux
-     dist: focal
-     arch: amd64
-     compiler: icc
-     env:
-       - FC=ifort
-       - CC=icc
-       - CXX=ipp
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then

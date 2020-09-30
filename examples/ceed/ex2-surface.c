@@ -36,10 +36,7 @@
 //
 //     ./ex2-surface
 //     ./ex2-surface -ceed /cpu/self
-//     ./ex2-surface -ceed /gpu/occa
-//     ./ex2-surface -ceed /cpu/occa
-//     ./ex2-surface -ceed /omp/occa
-//     ./ex2-surface -ceed /ocl/occa
+//     ./ex2-surface -ceed /gpu/cuda
 //     ./ex2-surface -m ../../../mfem/data/fichera.mesh
 //     ./ex2-surface -m ../../../mfem/data/star.vtk -o 3
 //     ./ex2-surface -m ../../../mfem/data/inline-segment.mesh -o 8
