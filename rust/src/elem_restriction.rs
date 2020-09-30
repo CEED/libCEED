@@ -30,7 +30,8 @@ impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     }
 }
 impl<'a> ElemRestrictionOpt<'a> {
-    /// Transform a Rust libCEED ElemRestriction into C libCEED CeedElemRestriction
+    /// Transform a Rust libCEED ElemRestriction into C libCEED
+    /// CeedElemRestriction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
         match self {
             Self::Some(restr) => restr.ptr,
@@ -235,8 +236,8 @@ impl ElemRestriction {
     /// * 'tmode' - Apply restriction or transpose
     /// * 'u'     - Input vector (of size lsize when tmode=NoTranspose)
     /// * 'ru'    - Output vector (of shape [nelem * elemsize] when
-    ///               tmode=NoTranspose). Ordering of the e-vector is decided
-    ///               by the backend.
+    ///   tmode=NoTranspose). Ordering of the e-vector is decided by the
+    ///   backend.
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
