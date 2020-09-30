@@ -17,7 +17,7 @@
 #include <ceed.h>
 #include "hip/hip_runtime.h"
 #include <magma_v2.h>
-#include "../common/elem_restriction_device.h"
+#include "../common/elem_restriction.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // ReadDofs to device memory
