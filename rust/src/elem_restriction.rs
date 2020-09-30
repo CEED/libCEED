@@ -229,14 +229,14 @@ impl ElemRestriction {
         )
     }
 
-    /// Restrict an L-vector to an E-vector or apply its transpose
+    /// Restrict an Lvector to an Evector or apply its transpose
     ///
     /// # arguments
     ///
     /// * 'tmode' - Apply restriction or transpose
     /// * 'u'     - Input vector (of size lsize when tmode=NoTranspose)
     /// * 'ru'    - Output vector (of shape [nelem * elemsize] when
-    ///               tmode=NoTranspose). Ordering of the e-vector is
+    ///               tmode=NoTranspose). Ordering of the Evector is
     ///               decided by the backend.
     ///
     /// ```
@@ -277,7 +277,7 @@ impl ElemRestriction {
         };
     }
 
-    /// Returns the L-vector component stride
+    /// Returns the Lvector component stride
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -342,7 +342,7 @@ impl ElemRestriction {
         elemsize
     }
 
-    /// Returns the size of the l-vector for an ElemRestriction
+    /// Returns the size of the Lvector for an ElemRestriction
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
