@@ -17,6 +17,12 @@
 #ifndef MAGMA_COMMON_DEVICE_H
 #define MAGMA_COMMON_DEVICE_H
 
+#ifdef HAVE_HIP
+#define MAGMA_DEVICE_SHARED(type, name) HIP_DYNAMIC_SHARED(type, name)
+#else 
+#define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
+#endif
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // init scalar to zero
 template<typename T>
