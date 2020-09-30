@@ -64,7 +64,7 @@ impl Drop for ElemRestriction {
 // Display
 // -----------------------------------------------------------------------------
 impl fmt::Display for ElemRestriction {
-    /// View a Basis
+    /// View an ElemRestriction
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -236,8 +236,8 @@ impl ElemRestriction {
     /// * 'tmode' - Apply restriction or transpose
     /// * 'u'     - Input vector (of size lsize when tmode=NoTranspose)
     /// * 'ru'    - Output vector (of shape [nelem * elemsize] when
-    ///   tmode=NoTranspose). Ordering of the e-vector is decided by the
-    ///   backend.
+    ///               tmode=NoTranspose). Ordering of the e-vector is
+    ///               decided by the backend.
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();

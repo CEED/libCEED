@@ -214,17 +214,20 @@ impl Ceed {
     /// * 'nelem'      - Number of elements described in the @a offsets array
     /// * 'elemsize'   - Size (number of "nodes") per element
     /// * 'ncomp'      - Number of field components per interpolation node (1
-    ///   for scalar fields)
+    ///                    for scalar fields)
     /// * 'compstride' - Stride between components for the same L-vector "node".
-    ///   Data for node i, component j, element k can be found in the L-vector
-    ///   at index offsets[i + k*elemsize] + j*compstride.
+    ///                    Data for node i, component j, element k can be found
+    ///                    in the L-vector at index
+    ///                    offsets[i + k*elemsize] + j*compstride.
     /// * 'lsize'      - The size of the L-vector. This vector may be larger
-    ///   than the elements and fields given by this restriction.
+    ///                    than the elements and fields given by this
+    ///                    restriction.
     /// * 'mtype'     - Memory type of the @a offsets array, see CeedMemType
     /// * 'offsets'    - Array of shape [@a nelem, @a elemsize]. Row i holds the
-    ///   ordered list of the offsets (into the input CeedVector) for the
-    ///   unknowns corresponding to element i, where 0 <= i < @a nelem. All
-    ///   offsets must be in the range [0, @a lsize - 1].
+    ///                    ordered list of the offsets (into the input CeedVector)
+    ///                    for the unknowns corresponding to element i, where
+    ///                    0 <= i < @a nelem. All offsets must be in the range
+    ///                    [0, @a lsize - 1].
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -258,17 +261,19 @@ impl Ceed {
     /// * 'nelem'      - Number of elements described in the @a offsets array
     /// * 'elemsize'   - Size (number of "nodes") per element
     /// * 'ncomp'      - Number of field components per interpolation node (1
-    ///   for scalar fields)
+    ///                    for scalar fields)
     /// * 'compstride' - Stride between components for the same L-vector "node".
-    ///   Data for node i, component j, element k can be found in the L-vector
-    ///   at index offsets[i + k*elemsize] + j*compstride.
+    ///                    Data for node i, component j, element k can be found
+    ///                    in the L-vector at index
+    ///                    offsets[i + k*elemsize] + j*compstride.
     /// * 'lsize'      - The size of the L-vector. This vector may be larger
     ///   than the elements and fields given by this restriction.
     /// * 'strides'   - Array for strides between [nodes, components, elements].
-    ///   Data for node i, component j, element k can be found in the L-vector
-    ///   at index i*strides[0] + j*strides[1] + k*strides[2].
-    ///   CEED_STRIDES_BACKEND may be used with vectors created by a Ceed
-    ///   backend.
+    ///                   Data for node i, component j, element k can be found
+    ///                   in the L-vector at index
+    ///                   i*strides[0] + j*strides[1] + k*strides[2].
+    ///                   CEED_STRIDES_BACKEND may be used with vectors created
+    ///                   by a Ceed backend.
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -296,16 +301,17 @@ impl Ceed {
     /// * 'dim'       - Topological dimension of element
     /// * 'ncomp'     - Number of field components (1 for scalar fields)
     /// * 'P1d'       - Number of Gauss-Lobatto nodes in one dimension.  The
-    ///   polynomial degree of the resulting Q_k element is k=P-1.
+    ///                   polynomial degree of the resulting Q_k element is
+    ///                   k=P-1.
     /// * 'Q1d'       - Number of quadrature points in one dimension
     /// * 'interp1d'  - Row-major (Q1d * P1d) matrix expressing the values of
-    ///   nodal basis functions at quadrature points
+    ///                   nodal basis functions at quadrature points
     /// * 'grad1d'    - Row-major (Q1d * P1d) matrix expressing derivatives of
-    ///   nodal basis functions at quadrature points
+    ///                   nodal basis functions at quadrature points
     /// * 'qref1d'    - Array of length Q1d holding the locations of quadrature
-    ///   points on the 1D reference element [-1, 1]
+    ///                   points on the 1D reference element [-1, 1]
     /// * 'qweight1d' - Array of length Q1d holding the quadrature weights on
-    ///   the reference element
+    ///                   the reference element
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -345,10 +351,10 @@ impl Ceed {
     /// * 'dim'   - Topological dimension of element
     /// * 'ncomp' - Number of field components (1 for scalar fields)
     /// * 'P'     - Number of Gauss-Lobatto nodes in one dimension.  The
-    ///   polynomial degree of the resulting Q_k element is k=P-1.
+    ///               polynomial degree of the resulting Q_k element is k=P-1.
     /// * 'Q'     - Number of quadrature points in one dimension
     /// * 'qmode' - Distribution of the Q quadrature points (affects order of
-    ///   accuracy for the quadrature)
+    ///               accuracy for the quadrature)
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -374,13 +380,13 @@ impl Ceed {
     /// * 'nnodes'  - Total number of nodes
     /// * 'nqpts'   - Total number of quadrature points
     /// * 'interp'  - Row-major (nqpts * nnodes) matrix expressing the values of
-    ///   nodal basis functions at quadrature points
+    ///                 nodal basis functions at quadrature points
     /// * 'grad'    - Row-major (nqpts * dim * nnodes) matrix expressing
-    ///   derivatives of nodal basis functions at quadrature points
+    ///                 derivatives of nodal basis functions at quadrature points
     /// * 'qref'    - Array of length nqpts holding the locations of quadrature
-    ///   points on the reference element [-1, 1]
+    ///                 points on the reference element [-1, 1]
     /// * 'qweight' - Array of length nqpts holding the quadrature weights on
-    ///   the reference element
+    ///                 the reference element
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -443,11 +449,11 @@ impl Ceed {
     /// set_field().
     ///
     /// * 'qf'   - QFunction defining the action of the operator at quadrature
-    ///   points
+    ///              points
     /// * 'dqf'  - QFunction defining the action of the Jacobian of the qf (or
-    ///   qfunction_none)
+    ///              qfunction_none)
     /// * 'dqfT' - QFunction defining teh action of the transpose of the
-    ///   Jacobian of the qf (or qfunction_none)
+    ///              Jacobian of the qf (or qfunction_none)
     ///
     /// ```
     /// # use ceed::prelude::*;

@@ -184,11 +184,11 @@ impl QFunction {
     /// Add a QFunction input
     ///
     /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or (ncomp
-    ///   * 1) for None and Interp
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///   to use interpolated values, EvalMode::Grad to use gradients,
-    ///   EvalMode::Weight to use quadrature weights
+    ///                   to use interpolated values, EvalMode::Grad to use
+    ///                   gradients, EvalMode::Weight to use quadrature weights
     pub fn add_input(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         unsafe {
@@ -204,10 +204,11 @@ impl QFunction {
     /// Add a QFunction output
     ///
     /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or (ncomp
-    ///   * 1) for None and Interp
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///   to use interpolated values, EvalMode::Grad to use gradients
+    ///                   to use interpolated values, EvalMode::Grad to use
+    ///                   gradients
     pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         unsafe {
