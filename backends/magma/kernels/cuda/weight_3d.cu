@@ -14,46 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/weight_device.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int Q>
-static __global__ void
-magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
-{
-    const int tx      = threadIdx.x;
-    const int ty      = threadIdx.y;
-    const int elem_id = (blockIdx.x * blockDim.y) + ty;
-
-    if (elem_id >= nelem) return;
-
-    T rV[1][1][Q];    // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
-    // global memory pointers
-    dV += elem_id * v_stride;
-
-    // shared memory pointers
-    T* sTweight = (T*)shared_data;
-
-    // read dqweight_1d
-    if (tx < Q) {
-        sTweight[tx] = dqweight1d[tx];
-    }
-    __syncthreads();
-
-    magma_weight_3d_device<T, 1, 1, Q, 0, 0>(sTweight, rV, tx);
-
-    // write V
-    if (tx < (Q*Q)) {
-        for(int j = 0; j < Q; j++) {
-            dV[ j*(Q*Q) + tx ] = rV[0][0][j];
-        }
-    }
-}
+#include "../common/weight.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>

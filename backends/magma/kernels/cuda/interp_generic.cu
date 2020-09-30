@@ -14,32 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/interp_device.h"
+#include "../common/interp.h"
 
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int P, int Q>
-static __global__ void
-interp_generic_kernel( 
-    const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
-    const T *dT, magma_trans_t transT,
-    const T *dU, const int estrdU, const int cstrdU, 
-          T *dV, const int estrdV, const int cstrdV)
-{
-    const int elem_id = blockIdx.x; 
-    const int comp_id = blockIdx.y;
-    magma_interp_generic_device< P, Q >
-    ( dim, ncomp, pre_org, post_org, tmp_size, dT, transT, 
-      dU + (elem_id * estrdU) + (comp_id * cstrdU), 
-      dV + (elem_id * estrdV) + (comp_id * cstrdV), 
-      shared_data );
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int P, int Q>

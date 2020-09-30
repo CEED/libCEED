@@ -14,45 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include "hip/hip_runtime.h"
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/weight_device.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int Q>
-static __global__ void
-magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
-{
-    HIP_DYNAMIC_SHARED( CeedScalar, shared_data)
-
-    const int tx      = threadIdx.x;
-    const int ty      = threadIdx.y;
-    const int elem_id = (blockIdx.x * blockDim.y) + ty;
-
-    if (elem_id >= nelem) return;
-
-    // global memory pointers
-    dV += elem_id * v_stride;
-
-    // shared memory pointers
-    T* sTweight = (T*)shared_data;
-    T* sV = sTweight + Q;
-    sV   += ty * Q;
-
-    // read dqweight_1d
-    if (ty == 0 && tx < Q) {
-        sTweight[tx] = dqweight1d[tx];
-    }
-
-    __syncthreads();
-    magma_weight_1d_device<T, Q>(sTweight, sV, tx);
-    __syncthreads();
-
-    // write V
-    dV[ tx ] = sV[ tx ];
-}
+#include "../common/weight.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>

@@ -14,65 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include "hip/hip_runtime.h"
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/interp_device.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int DIM, int NCOMP, int P, int Q>
-static __global__ void
-magma_interp_1d_kernel(  
-    const T *dT, magma_trans_t transT,
-    const T *dU, const int estrdU, const int cstrdU, 
-          T *dV, const int estrdV, const int cstrdV, const int nelem)
-{
-    HIP_DYNAMIC_SHARED( CeedScalar, shared_data)
-
-    const int tx      = threadIdx.x;
-    const int ty      = threadIdx.y;
-    const int elem_id = (blockIdx.x * blockDim.y) + ty;
-
-    if (elem_id >= nelem) return;
-
-    T* sU[NCOMP];
-    T* sV[NCOMP];
-
-    // shift global memory pointers by elem stride
-    dU += elem_id * estrdU;
-    dV += elem_id * estrdV;
-
-    // assign shared memory pointers
-    T* sT = (T*)(shared_data);
-    T* sW = sT + P*Q;
-    sU[0] = sW + ty * NCOMP * (P + Q);
-    sV[0] = sU[0] + (NCOMP * 1 * P);
-    for(int icomp = 1; icomp < NCOMP; icomp++) {
-        sU[icomp] = sU[icomp-1] + (1 * P);
-        sV[icomp] = sV[icomp-1] + (1 * Q);
-    }
-
-    // read T
-    if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
-    }
-    
-    // read U
-    read_1d<T, P, NCOMP>(dU, cstrdU, sU, tx);
-
-    // read V if transT is magmaTrans
-    if (transT == MagmaTrans) {
-        read_1d<T, Q, NCOMP>(dV, cstrdV, sV, tx);
-    }
-
-    __syncthreads();
-    magma_interp_1d_device<T, DIM, NCOMP, P, Q>(sT, transT, sU, sV, tx);
-    __syncthreads();
-
-    // write V
-    write_1d<T, Q, NCOMP>(sV, dV, cstrdV, tx);
-}
+#include "../common/interp.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q>

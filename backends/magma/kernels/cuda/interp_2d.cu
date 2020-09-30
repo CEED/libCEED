@@ -14,60 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/interp_device.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
-magma_interp_2d_kernel(
-    const T *dT, magma_trans_t transT,
-    const T *dU, const int estrdU, const int cstrdU, 
-          T *dV, const int estrdV, const int cstrdV, const int nelem)
-{
-    const int tx      = threadIdx.x;
-    const int ty      = threadIdx.y;
-    const int elem_id = (blockIdx.x * blockDim.y) + ty;
-
-    if (elem_id >= nelem) return;
-
-    T rU[1][NCOMP][P] = { make_zero<T>() };    // for a non fused operator DIM is always 1
-    T rV[1][NCOMP][Q] = { make_zero<T>() };    // for a non fused operator DIM is always 1
-    T rTmp = make_zero<T>();
-
-    // shift global memory pointers by elem stride
-    dU += elem_id * estrdU;
-    dV += elem_id * estrdV;
-
-    // assign shared memory pointers
-    T* sT    = (T*)(shared_data);
-    T* sTmp  = sT + P*Q;
-    sTmp    += ty * (P * MAXPQ);
-
-    // read T
-    if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
-    }
-
-    // read V if transT is magmaTrans
-    if (transT == MagmaTrans) {
-        readV_2d<T, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
-    }
-
-    // read U -- there is a sync at the end of this function
-    readU_2d<T, P, 1, NCOMP, P, 0>(dU, cstrdU, rU, sTmp, tx);
-
-    // no sync needed here -- readU_2d already syncs at the end
-    magma_interp_2d_device<T, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU, rV, tx, rTmp, sTmp);
-    __syncthreads();
-
-    // write V
-    writeV_2d<T, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
-}
+#include "../common/interp.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q>

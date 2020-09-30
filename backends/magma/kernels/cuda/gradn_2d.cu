@@ -14,71 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
 #include <cuda.h>    // for CUDA_VERSION
-#include <magma_v2.h>
-#include "../common/magma_common_device.h"
-#include "../common/grad_device.h"
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
-magma_gradn_2d_kernel(
-    const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
-    const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
-          T *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem)
-{
-    const int tx      = threadIdx.x;
-    const int ty      = threadIdx.y;
-    const int elem_id = (blockIdx.x * blockDim.y) + ty;
-
-    if (elem_id >= nelem) return;
-
-    T rU[1][NCOMP][P] = { make_zero<T>() };  // here DIMU = 1, but might be different for a fused operator
-    T rV[1][NCOMP][Q] = { make_zero<T>() };  // here DIMV = 1, but might be different for a fused operator
-    T rTmp = make_zero<T>();
-
-    // shift global memory pointers by elem stride
-    dU += elem_id * estrdU;
-    dV += elem_id * estrdV;
-
-    // assign shared memory pointers
-    T* sTinterp = (T*)(shared_data);
-    T* sTgrad   = sTinterp + P*Q;
-    T* sTmp     = sTgrad   + P*Q;
-    sTmp       += ty * (P * MAXPQ);
-
-    // read T
-    if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
-        dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
-    }
-
-    // No need to read V ( required only in transposed grad )
-    const T beta = make_zero<T>();
-
-    /* read U (idim = 0 for dU, iDIM = 0 for rU) -- 
-       there is a sync at the end of this function */
-    readU_2d<T, P, 1, NCOMP, P, 0>
-    (dU + (0*dstrdU), cstrdU, rU, sTmp, tx);
-
-    /* first call (iDIM = 0, iDIMU = 0, iDIMV = 0) -- 
-       output from rV[0][][] into dV (idim = 0) */
-    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>
-    (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp); 
-    /* there is a sync at the end of magma_grad_2d_device */
-    writeV_2d<T, Q, 1, NCOMP, Q, 0>
-    (dV+(0*dstrdV), cstrdV, rV, tx);
-
-    /* second call (iDIM = 1, iDIMU = 0, iDIMV = 0) -- 
-    output from rV[0][][] into dV (idim = 1) */
-    magma_grad_2d_device<T, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>
-    (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
-    /* there is a sync at the end of magma_grad_2d_device */
-    writeV_2d<T, Q, 1, NCOMP, Q, 0>
-    (dV+(1*dstrdV), cstrdV, rV, tx);
-}
+#include "../common/grad.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q>
