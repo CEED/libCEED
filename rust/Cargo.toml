@@ -4,7 +4,7 @@ authors = ["Jed Brown <jed@jedbrown.org",
            "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",]
 build = "build.rs"
 name = "ceed"
-version = "0.6.0"
+version = "0.7.0"
 links = "ceed"
 edition = "2018"
 
