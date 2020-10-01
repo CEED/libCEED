@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_INTERP_H
-#define MAGMA_INTERP_H
+#ifndef CEED_MAGMA_INTERP_H
+#define CEED_MAGMA_INTERP_H
 
 #include <ceed.h>
 #include <magma_v2.h>
@@ -197,4 +197,4 @@ interp_generic_kernel(
       shared_data );
 }
 
-#endif    // MAGMA_INTERP_H
+#endif    // CEED_MAGMA_INTERP_H

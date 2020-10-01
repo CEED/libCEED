@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef ATOMICS_CUH
-#define ATOMICS_CUH
+#ifndef CEED_MAGMA_ATOMICS_CUH
+#define CEED_MAGMA_ATOMICS_CUH
 
 #include "magma_internal.h"
 /******************************************************************************/
@@ -64,4 +64,4 @@ magmablas_zatomic_add(magmaDoubleComplex* address, magmaDoubleComplex val)
 }
 
 /******************************************************************************/
-#endif // ATOMICS_CUH
+#endif // CEED_MAGMA_ATOMICS_CUH

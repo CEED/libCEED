@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_WEIGHT_H
-#define MAGMA_WEIGHT_H
+#ifndef CEED_MAGMA_WEIGHT_H
+#define CEED_MAGMA_WEIGHT_H
 
 #include <ceed.h>
 #include <magma_v2.h>
@@ -155,4 +155,4 @@ magma_weight_nontensor_kernel(const CeedInt nelem, const CeedInt Q,
   }
 }
 
-#endif    // MAGMA_WEIGHT_H
+#endif    // CEED_MAGMA_WEIGHT_H

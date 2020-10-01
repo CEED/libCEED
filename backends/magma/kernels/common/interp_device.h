@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_INTERP_DEVICE_H
-#define MAGMA_INTERP_DEVICE_H
+#ifndef CEED_MAGMA_INTERP_DEVICE_H
+#define CEED_MAGMA_INTERP_DEVICE_H
 
 #define maxpq(p,q)    (p > q ? p : q)
 
@@ -344,4 +344,4 @@ magma_interp_generic_device(
 }
 
 
-#endif    // MAGMA_INTERP_DEVICE_H
+#endif    // CEED_MAGMA_INTERP_DEVICE_H

@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_ELEM_RESTRICTION_DEVICE_H
-#define MAGMA_ELEM_RESTRICTION_DEVICE_H
+#ifndef CEED_MAGMA_ELEM_RESTRICTION_DEVICE_H
+#define CEED_MAGMA_ELEM_RESTRICTION_DEVICE_H
 
 #ifdef HAVE_HIP
 #include "../hip/atomics.hip.h"
@@ -120,4 +120,4 @@ magma_writeDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
     }
 }
 
-#endif    // MAGMA_ELEM_RESTRICTION_DEVICE_H
+#endif    // CEED_MAGMA_ELEM_RESTRICTION_DEVICE_H

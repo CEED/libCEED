@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_GRAD_H
-#define MAGMA_GRAD_H
+#ifndef CEED_MAGMA_GRAD_H
+#define CEED_MAGMA_GRAD_H
 
 #include <ceed.h>
 #include <magma_v2.h>
@@ -385,4 +385,4 @@ magma_grad_generic_kernel(
     ( dim_id, dim, ncomp, pre, post, tmp_size, sTinterp, sTgrad, transT, dU, dV, shared_data + (2*P*Q) );
 }
 
-#endif    // MAGMA_GRAD_H
+#endif    // CEED_MAGMA_GRAD_H

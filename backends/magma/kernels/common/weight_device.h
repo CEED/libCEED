@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_WEIGHT_DEVICE_H
-#define MAGMA_WEIGHT_DEVICE_H
+#ifndef CEED_MAGMA_WEIGHT_DEVICE_H
+#define CEED_MAGMA_WEIGHT_DEVICE_H
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 1D
@@ -141,4 +141,4 @@ magma_weight_generic_device(
     }
 }
 
-#endif    // MAGMA_WEIGHT_DEVICE_H
+#endif    // CEED_MAGMA_WEIGHT_DEVICE_H

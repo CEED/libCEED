@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef ATOMICS_HIP_H
-#define ATOMICS_HIP_H
+#ifndef CEED_MAGMA_ATOMICS_HIP_H
+#define CEED_MAGMA_ATOMICS_HIP_H
 
 #include "magma_internal.h"
 /******************************************************************************/
@@ -34,4 +34,4 @@ magmablas_datomic_add(double* address, double val)
    return atomicAdd(address, val);
 }
 
-#endif // ATOMICS_HIP_H
+#endif // CEED_MAGMA_ATOMICS_HIP_H
