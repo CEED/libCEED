@@ -160,6 +160,10 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
+| HIP Native Backend                                                                                     |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
 | MAGMA Backends                                                                                         |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
@@ -169,10 +173,6 @@ There are multiple supported backends, which can be selected at runtime in the e
 | ``/gpu/hip/magma``         | HIP MAGMA kernels                                 | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/hip/magma/det``     | HIP MAGMA kernels                                 | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| HIP Native Backend                                                                                     |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | OCCA Backends                                                                                          |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -212,6 +212,9 @@ forced by setting the environment variable ``MKL=1``.
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
+The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
+the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
+
 The ``/gpu/*/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
 To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
 MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
@@ -221,9 +224,6 @@ directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or 
 Currently, each MAGMA library installation is only built for either CUDA or HIP.  The corresponding
 set of libCEED backends (``/gpu/cuda/magma/*`` or ``/gpu/hip/magma/*``) will automatically be built
 for the version of the MAGMA library found in ``MAGMA_DIR``.
-
-The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
-the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
 cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
