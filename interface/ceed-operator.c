@@ -190,7 +190,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->numoutputfields,
           op->qf->numoutputfields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
-    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->inputfields[i],
+    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->outputfields[i],
                                  i, sub, 0, stream); CeedChk(ierr);
   }
 
