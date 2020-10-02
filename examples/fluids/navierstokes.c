@@ -1818,6 +1818,9 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
+  ierr = PetscFree(problem); CHKERRQ(ierr);
+  ierr = PetscFree(ctxDCData); CHKERRQ(ierr);
+  ierr = PetscFree(ctxAdvectionData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
