@@ -10,7 +10,7 @@ Composite CeedOperator
         Active vector
     1 Output Field:
       Output Field [0]:
-        Name: "_weight"
+        Name: "rho"
         Collocated basis
   SubOperator [1]:
     3 Fields
@@ -23,7 +23,7 @@ Composite CeedOperator
         Active vector
     1 Output Field:
       Output Field [0]:
-        Name: "_weight"
+        Name: "rho"
         Collocated basis
 Composite CeedOperator
   SubOperator [0]:
@@ -37,7 +37,7 @@ Composite CeedOperator
         Active vector
     1 Output Field:
       Output Field [0]:
-        Name: "rho"
+        Name: "v"
         Active vector
   SubOperator [1]:
     3 Fields
@@ -50,5 +50,5 @@ Composite CeedOperator
         Active vector
     1 Output Field:
       Output Field [0]:
-        Name: "rho"
+        Name: "v"
         Active vector

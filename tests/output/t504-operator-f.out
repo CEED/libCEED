@@ -9,7 +9,7 @@ CeedOperator
       Active vector
   1 Output Field:
     Output Field [0]:
-      Name: "_weight"
+      Name: "rho"
       Collocated basis
       Active vector
 CeedOperator
@@ -23,5 +23,5 @@ CeedOperator
       Active vector
   1 Output Field:
     Output Field [0]:
-      Name: "rho"
+      Name: "v"
       Active vector
