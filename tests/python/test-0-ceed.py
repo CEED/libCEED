@@ -76,7 +76,7 @@ def test_005(ceed_resource):
     exception_raised = False
     try:
         array2 = vec.get_array()
-    except:
+    except BaseException:
         exception_raised = True
 
     assert exception_raised
