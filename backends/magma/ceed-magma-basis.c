@@ -372,6 +372,22 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
 
+  // Check for supported parameters
+  CeedInt ncomp = 0;
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  if (ncomp > 3)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Magma backend does not support tensor bases with more than 3 components");
+  // LCOV_EXCL_STOP
+  if (P1d > 10)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Magma backend does not support tensor bases with more than 10 nodes in each dimension");
+  // LCOV_EXCL_STOP
+  if (Q1d > 10)
+    // LCOV_EXCL_START
+    return CeedError(ceed, 1, "Magma backend does not support tensor bases with more than 10 quadrature points in each dimension");
+  // LCOV_EXCL_STOP
+
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, &data); CeedChk(ierr);
 
