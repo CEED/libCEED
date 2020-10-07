@@ -28,18 +28,21 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-navierstokes.c := $(wildcard navierstokes*.c)
-navierstokes := $(navierstokes.c:%.c=%)
+navierstokes.c := $(wildcard *.c)
+navierstokes.o := $(navierstokes.c:%.c=%.o)
 
-all: $(navierstokes)
-$(navierstokes): | $(PETSc.pc) $(ceed.pc)
+all: navierstokes
+navierstokes: $(navierstokes.o) | $(PETSc.pc) $(ceed.pc)
 
 # Quiet, color output
 quiet ?= $($(1))
 
 # Rules for building the example
-%: %.c
-	$(call quiet,CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ $(LDLIBS)
+%.o : %.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+% : %.o | $$(@D)/.DIR
+	$(call quiet,LINK.o) $^ $(LDLIBS) -o $@
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))

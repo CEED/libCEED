@@ -45,11 +45,8 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <petscsys.h>
 #include <petscts.h>
 #include <stdbool.h>
-#include "advection.h"
-#include "advection2d.h"
-#include "common.h"
-#include "densitycurrent.h"
-#include "setup-boundary.h"
+
+#include "navierstokes.h"
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
@@ -63,57 +60,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #else
 #  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,d,f,g,h,i,j,k,l,m,n)
 #endif
-
-// MemType Options
-static const char *const memTypes[] = {
-  "host",
-  "device",
-  "memType", "CEED_MEM_", NULL
-};
-
-// Wind Options for Advection
-typedef enum {
-  ADVECTION_WIND_ROTATION = 0,
-  ADVECTION_WIND_TRANSLATION = 1,
-} WindType;
-static const char *const WindTypes[] = {
-  "rotation",
-  "translation",
-  "WindType", "ADVECTION_WIND_", NULL
-};
-
-typedef enum {
-  STAB_NONE = 0,
-  STAB_SU = 1,   // Streamline Upwind
-  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
-} StabilizationType;
-static const char *const StabilizationTypes[] = {
-  "none",
-  "SU",
-  "SUPG",
-  "StabilizationType", "STAB_", NULL
-};
-
-// Test Options
-typedef enum {
-  TEST_NONE = 0,               // Non test mode
-  TEST_EXPLICIT = 1,           // Explicit test
-  TEST_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
-  TEST_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
-} testType;
-static const char *const testTypes[] = {
-  "none",
-  "explicit",
-  "implicit_stab_none",
-  "implicit_stab_supg",
-  "testType", "TEST_", NULL
-};
-
-// Tests specific data
-typedef struct {
-  PetscScalar testtol;
-  const char *filepath;
-} testData;
 
 testData testOptions[] = {
   [TEST_NONE] = {
@@ -146,26 +92,7 @@ typedef struct {
   bool non_zero_time;
 } problemData;
 
-static PetscErrorCode NS_DENSITY_CURRENT(problemData *problem) {
 
-  PetscFunctionBeginUser;
-  problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
-  problem->ics                       = ICsDC;
-  problem->ics_loc                   = ICsDC_loc;
-  problem->applyVol_rhs              = DC;
-  problem->applyVol_rhs_loc          = DC_loc;
-  problem->applyVol_ifunction        = IFunction_DC;
-  problem->applyVol_ifunction_loc    = IFunction_DC_loc;
-  problem->bc                        = Exact_DC;
-  problem->non_zero_time             = PETSC_FALSE;
-  PetscFunctionReturn(0);
-}
 
 static PetscErrorCode NS_ADVECTION(problemData *problem) {
 
