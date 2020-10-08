@@ -80,12 +80,10 @@ struct User_ {
   Units units;
   CeedVector qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
-  CeedQFunctionContext ctxSetup, ctxDC, ctxAdvection;
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
   DCContext ctxDCData;
-  AdvectionContext ctxAdvectionData;
 };
 
 struct Units_ {
@@ -112,6 +110,6 @@ struct SimpleBC_ {
   PetscBool userbc;
 };
 
-extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *userData);
+extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem);
 
 #endif
