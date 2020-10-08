@@ -80,19 +80,12 @@ testData testOptions[] = {
   }
 };
 
-// Problem specific data
-typedef struct {
-  CeedInt dim, qdatasizeVol, qdatasizeSur;
-  CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
-                    applySur;
-  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
-                       PetscScalar[], void *);
-  const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
-        *applyVol_ifunction_loc, *applySur_loc;
-  bool non_zero_time;
-} problemData;
-
-
+// MemType Options
+static const char *const memTypes[] = {
+  "host",
+  "device",
+  "memType", "CEED_MEM_", NULL
+};
 
 static PetscErrorCode NS_ADVECTION(problemData *problem) {
 
@@ -139,49 +132,6 @@ static PetscErrorCode NS_ADVECTION2D(problemData *problem) {
   problem->non_zero_time             = PETSC_TRUE;
   PetscFunctionReturn(0);
 }
-
-// PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
-
-struct User_ {
-  MPI_Comm comm;
-  PetscInt outputfreq;
-  DM dm;
-  DM dmviz;
-  Mat interpviz;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, qdotceed, gceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
-  Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
-  PetscInt contsteps;
-};
-
-struct Units_ {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
-  PetscScalar Joule;
-};
-
-typedef struct SimpleBC_ *SimpleBC;
-struct SimpleBC_ {
-  PetscInt nwall, nslip[3];
-  PetscInt walls[6], slips[3][6];
-  PetscBool userbc;
-};
 
 // Essential BC dofs are encoded in closure indices as -(i+1).
 static PetscInt Involute(PetscInt i) {
@@ -1746,8 +1696,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
-  ierr = PetscFree(ctxDCData); CHKERRQ(ierr);
-  ierr = PetscFree(ctxAdvectionData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
