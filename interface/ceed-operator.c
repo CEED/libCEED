@@ -57,6 +57,7 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   if (!op->ceed->opfallbackceed) {
     ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
     ceedref->opfallbackparent = op->ceed;
+    ceedref->Error = op->ceed->Error;
     op->ceed->opfallbackceed = ceedref;
   }
   ceedref = op->ceed->opfallbackceed;

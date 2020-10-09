@@ -911,6 +911,9 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
   if (ceed->parent)
     return CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format,
                           args);
+  if (ceed->opfallbackparent)
+    return CeedErrorStore(ceed->opfallbackparent, filename, lineno, func, ecode,
+                          format, args);
 
   // Build message
   CeedInt len;
