@@ -440,8 +440,8 @@ impl Ceed {
     /// # let ceed = ceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// ```
-    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunction {
-        crate::qfunction::QFunction::create_by_name(self, name)
+    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunctionByName {
+        crate::qfunction::QFunctionByName::create(self, name)
     }
 
     /// Returns a Operator and associate a QFunction. A Basis and

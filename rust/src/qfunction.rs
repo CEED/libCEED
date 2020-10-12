@@ -20,20 +20,31 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 #[derive(Clone, Copy)]
 pub enum QFunctionOpt<'a> {
-    Some(&'a QFunction),
+    SomeQFunction(&'a QFunction),
+    SomeQFunctionByName(&'a QFunctionByName),
     None,
 }
+
 /// Contruct a QFunctionOpt reference from a QFunction reference
 impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunction) -> Self {
-        Self::Some(qfunc)
+        Self::SomeQFunction(qfunc)
     }
 }
+
+/// Contruct a QFunctionOpt reference from a QFunction by Name reference
+impl<'a> From<&'a QFunctionByName> for QFunctionOpt<'a> {
+    fn from(qfunc: &'a QFunctionByName) -> Self {
+        Self::SomeQFunctionByName(qfunc)
+    }
+}
+
 impl<'a> QFunctionOpt<'a> {
     /// Transform a Rust libCEED QFunction into C libCEED CeedQFunction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedQFunction {
         match self {
-            Self::Some(qfunc) => qfunc.ptr,
+            Self::SomeQFunction(qfunc) => qfunc.qf_core.ptr,
+            Self::SomeQFunctionByName(qfunc) => qfunc.qf_core.ptr,
             Self::None => unsafe { bind_ceed::CEED_QFUNCTION_NONE },
         }
     }
@@ -42,14 +53,22 @@ impl<'a> QFunctionOpt<'a> {
 // -----------------------------------------------------------------------------
 // CeedQFunction context wrapper
 // -----------------------------------------------------------------------------
-pub struct QFunction {
+pub(crate) struct QFunctionCore {
     pub(crate) ptr: bind_ceed::CeedQFunction,
+}
+
+pub struct QFunction {
+    pub(crate) qf_core: QFunctionCore,
+}
+
+pub struct QFunctionByName {
+    pub(crate) qf_core: QFunctionCore,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl Drop for QFunction {
+impl Drop for QFunctionCore {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_QFUNCTION_NONE {
@@ -62,14 +81,7 @@ impl Drop for QFunction {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl fmt::Display for QFunction {
-    /// View a QFunction
-    ///
-    /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// println!("{}", qf);
-    /// ```
+impl fmt::Display for QFunctionCore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
@@ -81,11 +93,50 @@ impl fmt::Display for QFunction {
     }
 }
 
+impl fmt::Display for QFunction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.qf_core.fmt(f)
+    }
+}
+
+/// View a QFunction by Name
+///
+/// ```
+/// # let ceed = ceed::Ceed::default_init();
+/// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+/// println!("{}", qf);
+/// ```
+impl fmt::Display for QFunctionByName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.qf_core.fmt(f)
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Core functionality
+// -----------------------------------------------------------------------------
+impl QFunctionCore {
+    // Common implementation
+    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+        unsafe {
+            let mut u_c = [std::ptr::null_mut(); 16];
+            for i in 0..std::cmp::min(16, u.len()) {
+                u_c[i] = u[i].ptr;
+            }
+            let mut v_c = [std::ptr::null_mut(); 16];
+            for i in 0..std::cmp::min(16, v.len()) {
+                v_c[i] = v[i].ptr;
+            }
+            bind_ceed::CeedQFunctionApply(self.ptr, Q, &mut u_c[0], &mut v_c[0]);
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------
 // QFunction
 // -----------------------------------------------------------------------------
 impl QFunction {
-    // Constructors
+    // Constructor
     pub fn create(
         ceed: &crate::Ceed,
         vlength: i32,
@@ -103,16 +154,73 @@ impl QFunction {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        let qf_core = QFunctionCore { ptr };
+        Self { qf_core }
     }
 
-    pub fn create_by_name(ceed: &crate::Ceed, name: impl Into<String>) -> Self {
+    /// Apply the action of a QFunction
+    ///
+    /// * 'Q'      - The number of quadrature points
+    /// * 'input'  - Array of input Vectors
+    /// * 'output' - Array of output Vectors
+    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+        self.qf_core.apply(Q, u, v)
+    }
+
+    /// Add a QFunction input
+    ///
+    /// * 'fieldname' - Name of QFunction field
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
+    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
+    ///                   to use interpolated values, EvalMode::Grad to use
+    ///                   gradients, EvalMode::Weight to use quadrature weights
+    pub fn add_input(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
+        unsafe {
+            bind_ceed::CeedQFunctionAddInput(
+                self.qf_core.ptr,
+                name_c.as_ptr(),
+                size,
+                emode as bind_ceed::CeedEvalMode,
+            );
+        }
+    }
+
+    /// Add a QFunction output
+    ///
+    /// * 'fieldname' - Name of QFunction field
+    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
+    ///                   (ncomp * 1) for None and Interp
+    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
+    ///                   to use interpolated values, EvalMode::Grad to use
+    ///                   gradients
+    pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
+        unsafe {
+            bind_ceed::CeedQFunctionAddOutput(
+                self.qf_core.ptr,
+                name_c.as_ptr(),
+                size,
+                emode as bind_ceed::CeedEvalMode,
+            );
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// QFunction
+// -----------------------------------------------------------------------------
+impl QFunctionByName {
+    // Constructor
+    pub fn create(ceed: &crate::Ceed, name: impl Into<String>) -> Self {
         let name_c = CString::new(name.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedQFunctionCreateInteriorByName(ceed.ptr, name_c.as_ptr(), &mut ptr)
         };
-        Self { ptr }
+        let qf_core = QFunctionCore { ptr };
+        Self { qf_core }
     }
 
     /// Apply the action of a QFunction
@@ -168,57 +276,7 @@ impl QFunction {
     /// }
     /// ```
     pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
-        unsafe {
-            let mut u_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, u.len()) {
-                u_c[i] = u[i].ptr;
-            }
-            let mut v_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, v.len()) {
-                v_c[i] = v[i].ptr;
-            }
-            bind_ceed::CeedQFunctionApply(self.ptr, Q, &mut u_c[0], &mut v_c[0]);
-        }
-    }
-
-    /// Add a QFunction input
-    ///
-    /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
-    ///                   (ncomp * 1) for None and Interp
-    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///                   to use interpolated values, EvalMode::Grad to use
-    ///                   gradients, EvalMode::Weight to use quadrature weights
-    pub fn add_input(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname).expect("CString::new failed");
-        unsafe {
-            bind_ceed::CeedQFunctionAddInput(
-                self.ptr,
-                name_c.as_ptr(),
-                size,
-                emode as bind_ceed::CeedEvalMode,
-            );
-        }
-    }
-
-    /// Add a QFunction output
-    ///
-    /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
-    ///                   (ncomp * 1) for None and Interp
-    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///                   to use interpolated values, EvalMode::Grad to use
-    ///                   gradients
-    pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname).expect("CString::new failed");
-        unsafe {
-            bind_ceed::CeedQFunctionAddOutput(
-                self.ptr,
-                name_c.as_ptr(),
-                size,
-                emode as bind_ceed::CeedEvalMode,
-            );
-        }
+        self.qf_core.apply(Q, u, v)
     }
 }
 
