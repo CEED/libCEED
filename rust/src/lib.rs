@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative
 
 //! # libCEED Rust Interface
-//! 
+//!
 //! This is the documentation for the high level libCEED Rust interface.
 //! See the full libCEED user manual [here](https://libceed.readthedocs.io).
 
@@ -54,6 +54,7 @@ pub mod vector;
 // Constants for library interally
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
+const MAX_QFUNCTION_FIELDS: usize = 16;
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED

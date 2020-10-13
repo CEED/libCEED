@@ -57,8 +57,17 @@ pub(crate) struct QFunctionCore {
     ptr: bind_ceed::CeedQFunction,
 }
 
+struct QFunctionTrampolineData {
+    number_inputs: usize,
+    number_outputs: usize,
+    input_sizes: [i32; crate::MAX_QFUNCTION_FIELDS],
+    output_sizes: [i32; crate::MAX_QFUNCTION_FIELDS],
+}
+
 pub struct QFunction {
     qf_core: QFunctionCore,
+    qf_ctx_ptr: bind_ceed::CeedQFunctionContext,
+    trampoline_data: QFunctionTrampolineData,
 }
 
 pub struct QFunctionByName {
@@ -75,6 +84,15 @@ impl Drop for QFunctionCore {
                 bind_ceed::CeedQFunctionDestroy(&mut self.ptr);
             }
         }
+    }
+}
+
+impl Drop for QFunction {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedQFunctionContextDestroy(&mut self.qf_ctx_ptr);
+        }
+        drop(self.qf_core);
     }
 }
 
@@ -133,6 +151,39 @@ impl QFunctionCore {
 }
 
 // -----------------------------------------------------------------------------
+// User QFunction Closure
+// -----------------------------------------------------------------------------
+pub type QFunctionUserClosure = dyn FnMut(usize, &Vec<&[f64]>, &mut Vec<&mut [f64]>) -> i32;
+
+unsafe extern "C" fn trampoline<F>(
+    ctx: *mut ::std::os::raw::c_void,
+    q: bind_ceed::CeedInt,
+    inputs: *const *const bind_ceed::CeedScalar,
+    outputs: *const *mut bind_ceed::CeedScalar,
+) -> ::std::os::raw::c_int
+where
+    F: FnMut(
+        bind_ceed::CeedInt,
+        *const *const bind_ceed::CeedScalar,
+        *const *mut bind_ceed::CeedScalar,
+    ) -> i32,
+{
+    let inner_function = &mut *(ctx as *mut F);
+    inner_function(q, inputs, outputs)
+}
+
+pub fn get_trampoline<F>(_closure: &F) -> bind_ceed::CeedQFunctionUser
+where
+    F: FnMut(
+        bind_ceed::CeedInt,
+        *const *const bind_ceed::CeedScalar,
+        *const *mut bind_ceed::CeedScalar,
+    ) -> i32,
+{
+    Some(trampoline::<F>)
+}
+
+// -----------------------------------------------------------------------------
 // QFunction
 // -----------------------------------------------------------------------------
 impl QFunction {
@@ -140,22 +191,85 @@ impl QFunction {
     pub fn create(
         ceed: &crate::Ceed,
         vlength: i32,
-        f: bind_ceed::CeedQFunctionUser,
+        f: QFunctionUserClosure,
         source: impl Into<String>,
     ) -> Self {
         let source_c = CString::new(source.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
+
+        let number_inputs = 0;
+        let number_outputs = 0;
+        let input_sizes = [0; crate::MAX_QFUNCTION_FIELDS];
+        let output_sizes = [0; crate::MAX_QFUNCTION_FIELDS];
+        let trampoline_data = QFunctionTrampolineData {
+            number_inputs,
+            number_outputs,
+            input_sizes,
+            output_sizes,
+        };
+
+        let qf_closure = |q: bind_ceed::CeedInt,
+                          inputs: *const *const bind_ceed::CeedScalar,
+                          outputs: *const *mut bind_ceed::CeedScalar|
+         -> i32 {
+            let mut inputs_vec = Vec::new();
+            for i in 0..trampoline_data.number_inputs {
+                let input_slice = unsafe {
+                    std::slice::from_raw_parts(
+                        inputs.offset(i as isize) as *const f64,
+                        (input_sizes[i] * q) as usize,
+                    )
+                };
+                inputs_vec.push(&input_slice as &[f64]);
+            }
+
+            let mut outputs_vec = Vec::new();
+            for i in 0..trampoline_data.number_outputs {
+                let mut output_slice = unsafe {
+                    std::slice::from_raw_parts(
+                        outputs.offset(i as isize) as *mut f64,
+                        (output_sizes[i] * q) as usize,
+                    )
+                };
+                outputs_vec.push(&mut output_slice as &mut [f64]);
+            }
+
+            f(q as usize, &inputs_vec, &mut outputs_vec)
+        };
+
+        // Create QF
+        let f_trampoline = get_trampoline(&qf_closure);
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
                 vlength,
-                f,
+                f_trampoline,
                 source_c.as_ptr(),
                 &mut ptr,
             )
         };
+
+        // Create QF contetx
+        let mut qf_ctx_ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut qf_ctx_ptr);
+            bind_ceed::CeedQFunctionContextSetData(
+                qf_ctx_ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+                10,
+                &mut qf_closure as *mut _ as *mut ::std::os::raw::c_void,
+            );
+            bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr);
+        }
+
+        // Create object
         let qf_core = QFunctionCore { ptr };
-        Self { qf_core }
+        Self {
+            qf_core,
+            qf_ctx_ptr,
+            trampoline_data,
+        }
     }
 
     /// Apply the action of a QFunction
@@ -175,8 +289,10 @@ impl QFunction {
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
     ///                   to use interpolated values, EvalMode::Grad to use
     ///                   gradients, EvalMode::Weight to use quadrature weights
-    pub fn add_input(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+    pub fn add_input(&mut self, fieldname: String, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
+        self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
+        self.trampoline_data.number_inputs += 1;
         unsafe {
             bind_ceed::CeedQFunctionAddInput(
                 self.qf_core.ptr,
@@ -197,6 +313,8 @@ impl QFunction {
     ///                   gradients
     pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
+        self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
+        self.trampoline_data.number_outputs += 1;
         unsafe {
             bind_ceed::CeedQFunctionAddOutput(
                 self.qf_core.ptr,
