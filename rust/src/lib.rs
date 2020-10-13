@@ -14,6 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 
+//! # libCEED Rust Interface
+//! 
+//! This is the documentation for the high level libCEED Rust interface.
+//! See the full libCEED user manual [here](https://libceed.readthedocs.io).
+
 // -----------------------------------------------------------------------------
 // Exceptions
 // -----------------------------------------------------------------------------
@@ -113,7 +118,7 @@ pub enum EvalMode {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Ceed {
-    ptr: bind_ceed::Ceed,
+    pub(crate) ptr: bind_ceed::Ceed,
 }
 
 // -----------------------------------------------------------------------------
@@ -271,7 +276,7 @@ impl Ceed {
     /// * 'strides'   - Array for strides between [nodes, components, elements].
     ///                   Data for node i, component j, element k can be found
     ///                   in the L-vector at index
-    ///                   i*strides[0] + j*strides[1] + k*strides[2].
+    ///                   i*strides\[0\] + j*strides\[1\] + k*strides\[2\].
     ///                   CEED_STRIDES_BACKEND may be used with vectors created
     ///                   by a Ceed backend.
     ///
