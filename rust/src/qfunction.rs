@@ -54,15 +54,15 @@ impl<'a> QFunctionOpt<'a> {
 // CeedQFunction context wrapper
 // -----------------------------------------------------------------------------
 pub(crate) struct QFunctionCore {
-    pub(crate) ptr: bind_ceed::CeedQFunction,
+    ptr: bind_ceed::CeedQFunction,
 }
 
 pub struct QFunction {
-    pub(crate) qf_core: QFunctionCore,
+    qf_core: QFunctionCore,
 }
 
 pub struct QFunctionByName {
-    pub(crate) qf_core: QFunctionCore,
+    qf_core: QFunctionCore,
 }
 
 // -----------------------------------------------------------------------------
