@@ -273,7 +273,7 @@ impl QFunction {
                 qf_ctx_ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
-                10,
+                10, /* Note: size not relevant - CPU only approach */
                 &mut qf_self as *mut _ as *mut ::std::os::raw::c_void,
             );
             bind_ceed::CeedQFunctionSetContext(qf_self.qf_core.ptr, qf_ctx_ptr);
