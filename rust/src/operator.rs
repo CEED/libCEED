@@ -694,7 +694,7 @@ impl Operator {
     ///   return 0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp), "");
+    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
     /// qf_mass.add_input("u", 2, ceed::EvalMode::Interp);
     /// qf_mass.add_input("qdata", 1, ceed::EvalMode::None);
     /// qf_mass.add_output("v", 2, ceed::EvalMode::Interp);
@@ -829,7 +829,7 @@ impl Operator {
     ///   return 0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp), "");
+    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
     /// qf_mass.add_input("u", 2, ceed::EvalMode::Interp);
     /// qf_mass.add_input("qdata", 1, ceed::EvalMode::None);
     /// qf_mass.add_output("v", 2, ceed::EvalMode::Interp);

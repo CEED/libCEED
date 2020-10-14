@@ -133,7 +133,7 @@ impl fmt::Display for QFunctionCore {
 ///   return 0
 /// };
 ///
-/// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
+/// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
 ///
 /// qf.add_input("u", 1, ceed::EvalMode::Interp);
 /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
@@ -226,13 +226,8 @@ unsafe extern "C" fn trampoline(
 // -----------------------------------------------------------------------------
 impl QFunction {
     // Constructor
-    pub fn create(
-        ceed: &crate::Ceed,
-        vlength: i32,
-        user_f: Box<QFunctionUserClosure>,
-        source: impl Into<String>,
-    ) -> Self {
-        let source_c = CString::new(source.into()).expect("CString::new failed");
+    pub fn create(ceed: &crate::Ceed, vlength: i32, user_f: Box<QFunctionUserClosure>) -> Self {
+        let source_c = CString::new("").expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
 
         // Context for closure
@@ -313,7 +308,7 @@ impl QFunction {
     ///   return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
     /// qf.add_input("u", 1, ceed::EvalMode::Interp);
     /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
@@ -386,7 +381,7 @@ impl QFunction {
     ///   return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
     /// qf.add_input("u", 1, ceed::EvalMode::Interp);
     /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
@@ -434,7 +429,7 @@ impl QFunction {
     ///     return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
     /// qf.add_output("v", 1, ceed::EvalMode::Interp);
     /// ```
