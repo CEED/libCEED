@@ -92,7 +92,7 @@ impl Drop for QFunction {
         unsafe {
             bind_ceed::CeedQFunctionContextDestroy(&mut self.qf_ctx_ptr);
         }
-        drop(self.qf_core);
+        drop(&mut self.qf_core);
     }
 }
 
@@ -191,12 +191,13 @@ impl QFunction {
     pub fn create(
         ceed: &crate::Ceed,
         vlength: i32,
-        f: QFunctionUserClosure,
+        mut f: Box<&mut QFunctionUserClosure>,
         source: impl Into<String>,
     ) -> Self {
         let source_c = CString::new(source.into()).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
 
+        // Context for closure
         let number_inputs = 0;
         let number_outputs = 0;
         let input_sizes = [0; crate::MAX_QFUNCTION_FIELDS];
@@ -208,32 +209,34 @@ impl QFunction {
             output_sizes,
         };
 
-        let qf_closure = |q: bind_ceed::CeedInt,
-                          inputs: *const *const bind_ceed::CeedScalar,
-                          outputs: *const *mut bind_ceed::CeedScalar|
+        // Closure around user closure
+        let mut qf_closure = |q: bind_ceed::CeedInt,
+                              inputs: *const *const bind_ceed::CeedScalar,
+                              outputs: *const *mut bind_ceed::CeedScalar|
          -> i32 {
+            // Inputs
             let mut inputs_vec = Vec::new();
             for i in 0..trampoline_data.number_inputs {
-                let input_slice = unsafe {
+                inputs_vec.push(unsafe {
                     std::slice::from_raw_parts(
                         inputs.offset(i as isize) as *const f64,
                         (input_sizes[i] * q) as usize,
                     )
-                };
-                inputs_vec.push(&input_slice as &[f64]);
+                } as &[f64]);
             }
 
+            // Outputs
             let mut outputs_vec = Vec::new();
             for i in 0..trampoline_data.number_outputs {
-                let mut output_slice = unsafe {
-                    std::slice::from_raw_parts(
+                outputs_vec.push(unsafe {
+                    std::slice::from_raw_parts_mut(
                         outputs.offset(i as isize) as *mut f64,
                         (output_sizes[i] * q) as usize,
                     )
-                };
-                outputs_vec.push(&mut output_slice as &mut [f64]);
+                } as &mut [f64]);
             }
 
+            // User closure
             f(q as usize, &inputs_vec, &mut outputs_vec)
         };
 
@@ -311,7 +314,7 @@ impl QFunction {
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
     ///                   to use interpolated values, EvalMode::Grad to use
     ///                   gradients
-    pub fn add_output(&self, fieldname: String, size: i32, emode: crate::EvalMode) {
+    pub fn add_output(&mut self, fieldname: String, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
