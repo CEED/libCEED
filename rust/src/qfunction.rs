@@ -111,7 +111,37 @@ impl fmt::Display for QFunctionCore {
         cstring.to_string_lossy().fmt(f)
     }
 }
-
+/// View a QFunction
+///
+/// ```
+/// # let ceed = ceed::Ceed::default_init();
+/// let mut user_f = |
+///   q: usize,
+///   inputs: &Vec<&[f64]>,
+///   outputs: &mut Vec<&mut [f64]>,
+/// | -> i32
+/// {
+///   let u = &inputs[0];
+///   let weights = &inputs[1];
+///
+///   let v = &mut outputs[0];
+///
+///   for i in 0..q {
+///       v[i] = u[i] * weights[i];
+///   }
+///
+///   return 0
+/// };
+///
+/// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
+///
+/// qf.add_input("u", 1, ceed::EvalMode::Interp);
+/// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+///
+/// qf.add_output("v", 1, ceed::EvalMode::Interp);
+///
+/// println!("{}", qf);
+/// ```
 impl fmt::Display for QFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.qf_core.fmt(f)
@@ -169,7 +199,7 @@ unsafe extern "C" fn trampoline(
     let inputs_slice: &[*const bind_ceed::CeedScalar] =
         std::slice::from_raw_parts(inputs, crate::MAX_QFUNCTION_FIELDS);
     let mut inputs_vec: Vec<&[f64]> = Vec::new();
-    for i in 0..2 {
+    for i in 0..trampoline_data.number_inputs {
         inputs_vec.push(&std::slice::from_raw_parts(
             inputs_slice[i],
             (trampoline_data.input_sizes[i] * q) as usize,
@@ -180,7 +210,7 @@ unsafe extern "C" fn trampoline(
     let outputs_slice: &[*mut bind_ceed::CeedScalar] =
         std::slice::from_raw_parts(outputs, crate::MAX_QFUNCTION_FIELDS);
     let mut outputs_vec: Vec<&mut [f64]> = Vec::new();
-    for i in 0..1 {
+    for i in 0..trampoline_data.number_outputs {
         outputs_vec.push(std::slice::from_raw_parts_mut(
             outputs_slice[i],
             (trampoline_data.output_sizes[i] * q) as usize,
@@ -266,21 +296,21 @@ impl QFunction {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let mut user_f = |
-    ///     q: usize,
-    ///     inputs: &Vec<&[f64]>,
-    ///     outputs: &mut Vec<&mut [f64]>,
+    ///   q: usize,
+    ///   inputs: &Vec<&[f64]>,
+    ///   outputs: &mut Vec<&mut [f64]>,
     /// | -> i32
     /// {
-    ///     let u = &inputs[0];
-    ///     let weights = &inputs[1];
+    ///   let u = &inputs[0];
+    ///   let weights = &inputs[1];
     ///
-    ///     let v = &mut outputs[0];
+    ///   let v = &mut outputs[0];
     ///
-    ///     for i in 0..q {
-    ///         v[i] = u[i] * weights[i];
-    ///     }
+    ///   for i in 0..q {
+    ///     v[i] = u[i] * weights[i];
+    ///   }
     ///
-    ///     return 0
+    ///   return 0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
@@ -339,21 +369,21 @@ impl QFunction {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let mut user_f = |
-    ///     q: usize,
-    ///     inputs: &Vec<&[f64]>,
-    ///     outputs: &mut Vec<&mut [f64]>,
+    ///   q: usize,
+    ///   inputs: &Vec<&[f64]>,
+    ///   outputs: &mut Vec<&mut [f64]>,
     /// | -> i32
     /// {
-    ///     let u = &inputs[0];
-    ///     let weights = &inputs[1];
+    ///   let u = &inputs[0];
+    ///   let weights = &inputs[1];
     ///
-    ///     let v = &mut outputs[0];
+    ///   let v = &mut outputs[0];
     ///
-    ///     for i in 0..q {
-    ///         v[i] = u[i] * weights[i];
-    ///     }
+    ///   for i in 0..q {
+    ///     v[i] = u[i] * weights[i];
+    ///   }
     ///
-    ///     return 0
+    ///   return 0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");

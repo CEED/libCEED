@@ -443,21 +443,21 @@ impl Ceed {
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let mut user_f = |
-    ///     q: usize,
-    ///     inputs: &Vec<&[f64]>,
-    ///     outputs: &mut Vec<&mut [f64]>,
+    ///   q: usize,
+    ///   inputs: &Vec<&[f64]>,
+    ///   outputs: &mut Vec<&mut [f64]>,
     /// | -> i32
     /// {
-    ///     let u = &inputs[0];
-    ///     let weights = &inputs[1];
+    ///   let u = &inputs[0];
+    ///   let weights = &inputs[1];
     ///
-    ///     let v = &mut outputs[0];
+    ///   let v = &mut outputs[0];
     ///
-    ///     for i in 0..q {
-    ///         v[i] = u[i] * weights[i];
-    ///     }
+    ///   for i in 0..q {
+    ///       v[i] = u[i] * weights[i];
+    ///   }
     ///
-    ///     return 0
+    ///   return 0
     /// };
     ///
     /// let qf = ceed.q_function_interior(1, Box::new(user_f), "");
