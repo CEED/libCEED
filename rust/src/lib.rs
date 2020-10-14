@@ -460,12 +460,12 @@ impl Ceed {
     ///     return 0
     /// };
     ///
-    /// let qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    /// let qf = ceed.q_function_interior(1, Box::new(user_f), "");
     /// ```
     pub fn q_function_interior(
         &self,
         vlength: i32,
-        f: Box<&mut crate::qfunction::QFunctionUserClosure>,
+        f: Box<crate::qfunction::QFunctionUserClosure>,
         source: impl Into<String>,
     ) -> crate::qfunction::QFunction {
         crate::qfunction::QFunction::create(self, vlength, f, source)

@@ -68,6 +68,7 @@ pub struct QFunction {
     qf_core: QFunctionCore,
     qf_ctx_ptr: bind_ceed::CeedQFunctionContext,
     trampoline_data: QFunctionTrampolineData,
+    user_f: Box<QFunctionUserClosure>,
 }
 
 pub struct QFunctionByName {
@@ -155,32 +156,39 @@ impl QFunctionCore {
 // -----------------------------------------------------------------------------
 pub type QFunctionUserClosure = dyn FnMut(usize, &Vec<&[f64]>, &mut Vec<&mut [f64]>) -> i32;
 
-unsafe extern "C" fn trampoline<F>(
+unsafe extern "C" fn trampoline(
     ctx: *mut ::std::os::raw::c_void,
     q: bind_ceed::CeedInt,
     inputs: *const *const bind_ceed::CeedScalar,
     outputs: *const *mut bind_ceed::CeedScalar,
-) -> ::std::os::raw::c_int
-where
-    F: FnMut(
-        bind_ceed::CeedInt,
-        *const *const bind_ceed::CeedScalar,
-        *const *mut bind_ceed::CeedScalar,
-    ) -> i32,
-{
-    let inner_function = &mut *(ctx as *mut F);
-    inner_function(q, inputs, outputs)
-}
+) -> ::std::os::raw::c_int {
+    let context = &mut *(ctx as *mut QFunction);
+    let trampoline_data = &context.trampoline_data;
 
-pub fn get_trampoline<F>(_closure: &F) -> bind_ceed::CeedQFunctionUser
-where
-    F: FnMut(
-        bind_ceed::CeedInt,
-        *const *const bind_ceed::CeedScalar,
-        *const *mut bind_ceed::CeedScalar,
-    ) -> i32,
-{
-    Some(trampoline::<F>)
+    // Inputs
+    let inputs_slice: &[*const bind_ceed::CeedScalar] =
+        std::slice::from_raw_parts(inputs, crate::MAX_QFUNCTION_FIELDS);
+    let mut inputs_vec: Vec<&[f64]> = Vec::new();
+    for i in 0..2 {
+        inputs_vec.push(&std::slice::from_raw_parts(
+            inputs_slice[i],
+            (trampoline_data.input_sizes[i] * q) as usize,
+        ) as &[f64]);
+    }
+
+    // Outputs
+    let outputs_slice: &[*mut bind_ceed::CeedScalar] =
+        std::slice::from_raw_parts(outputs, crate::MAX_QFUNCTION_FIELDS);
+    let mut outputs_vec: Vec<&mut [f64]> = Vec::new();
+    for i in 0..1 {
+        outputs_vec.push(std::slice::from_raw_parts_mut(
+            outputs_slice[i],
+            (trampoline_data.output_sizes[i] * q) as usize,
+        ));
+    }
+
+    // User closure
+    (context.user_f)(q as usize, &inputs_vec, &mut outputs_vec)
 }
 
 // -----------------------------------------------------------------------------
@@ -191,7 +199,7 @@ impl QFunction {
     pub fn create(
         ceed: &crate::Ceed,
         vlength: i32,
-        mut f: Box<&mut QFunctionUserClosure>,
+        user_f: Box<QFunctionUserClosure>,
         source: impl Into<String>,
     ) -> Self {
         let source_c = CString::new(source.into()).expect("CString::new failed");
@@ -209,50 +217,30 @@ impl QFunction {
             output_sizes,
         };
 
-        // Closure around user closure
-        let mut qf_closure = |q: bind_ceed::CeedInt,
-                              inputs: *const *const bind_ceed::CeedScalar,
-                              outputs: *const *mut bind_ceed::CeedScalar|
-         -> i32 {
-            // Inputs
-            let mut inputs_vec = Vec::new();
-            for i in 0..trampoline_data.number_inputs {
-                inputs_vec.push(unsafe {
-                    std::slice::from_raw_parts(
-                        inputs.offset(i as isize) as *const f64,
-                        (input_sizes[i] * q) as usize,
-                    )
-                } as &[f64]);
-            }
-
-            // Outputs
-            let mut outputs_vec = Vec::new();
-            for i in 0..trampoline_data.number_outputs {
-                outputs_vec.push(unsafe {
-                    std::slice::from_raw_parts_mut(
-                        outputs.offset(i as isize) as *mut f64,
-                        (output_sizes[i] * q) as usize,
-                    )
-                } as &mut [f64]);
-            }
-
-            // User closure
-            f(q as usize, &inputs_vec, &mut outputs_vec)
-        };
-
         // Create QF
-        let f_trampoline = get_trampoline(&qf_closure);
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
                 vlength,
-                f_trampoline,
+                Some(trampoline),
                 source_c.as_ptr(),
                 &mut ptr,
             )
         };
 
         // Create QF contetx
+        let qf_ctx_ptr = std::ptr::null_mut();
+
+        // Create object
+        let qf_core = QFunctionCore { ptr };
+        let mut qf_self = Self {
+            qf_core,
+            qf_ctx_ptr,
+            trampoline_data,
+            user_f,
+        };
+
+        // Set closure
         let mut qf_ctx_ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut qf_ctx_ptr);
@@ -261,18 +249,12 @@ impl QFunction {
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
                 10,
-                &mut qf_closure as *mut _ as *mut ::std::os::raw::c_void,
+                &mut qf_self as *mut _ as *mut ::std::os::raw::c_void,
             );
-            bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr);
+            bind_ceed::CeedQFunctionSetContext(qf_self.qf_core.ptr, qf_ctx_ptr);
         }
-
-        // Create object
-        let qf_core = QFunctionCore { ptr };
-        Self {
-            qf_core,
-            qf_ctx_ptr,
-            trampoline_data,
-        }
+        qf_self.qf_ctx_ptr = qf_ctx_ptr;
+        qf_self
     }
 
     /// Apply the action of a QFunction
@@ -301,7 +283,7 @@ impl QFunction {
     ///     return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
     ///
     /// qf.add_input("u", 1, ceed::EvalMode::Interp);
     /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
@@ -325,7 +307,7 @@ impl QFunction {
     /// let mut V = ceed.vector(Q);
     /// V.set_value(0.0);
     /// {
-    ///   let mut input = vec![U, W];
+    ///   let input = vec![U, W];
     ///   let mut output = vec![V];
     ///   qf.apply(Q as i32, &input, &output);
     ///   V = output.remove(0);
@@ -336,7 +318,12 @@ impl QFunction {
     ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
     /// ```
-    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+    pub fn apply(
+        &mut self,
+        Q: i32,
+        u: &Vec<crate::vector::Vector>,
+        v: &Vec<crate::vector::Vector>,
+    ) {
         self.qf_core.apply(Q, u, v)
     }
 
@@ -369,7 +356,7 @@ impl QFunction {
     ///     return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
     ///
     /// qf.add_input("u", 1, ceed::EvalMode::Interp);
     /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
@@ -417,7 +404,7 @@ impl QFunction {
     ///     return 0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f), "");
     ///
     /// qf.add_output("v", 1, ceed::EvalMode::Interp);
     /// ```
