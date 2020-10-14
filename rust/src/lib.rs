@@ -430,6 +430,16 @@ impl Ceed {
 
     /// Returns a CeedQFunction for evaluating interior (volumetric) terms
     ///
+    /// # arguments
+    ///
+    /// * 'vlength' - Vector length. Caller must ensure that number of
+    ///                 quadrature points is a multiple of vlength.
+    /// * 'f'       - Boxed closure to evaluate action at quadrature points.
+    /// * 'source'  - Absolute path to source of QFunction,
+    ///                 "\abs_path\file.h:function_name".
+    ///                 For support across all backends, this source must only
+    ///                 contain constructs supported by C99, C++11, and CUDA.
+    ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
     /// let mut user_f = |
@@ -440,17 +450,16 @@ impl Ceed {
     /// {
     ///     let u = &inputs[0];
     ///     let weights = &inputs[1];
-    /// 
+    ///
     ///     let v = &mut outputs[0];
-    /// 
+    ///
     ///     for i in 0..q {
     ///         v[i] = u[i] * weights[i];
     ///     }
-    /// 
+    ///
     ///     return 0
     /// };
-    /// 
-    /// 
+    ///
     /// let qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
     /// ```
     pub fn q_function_interior(

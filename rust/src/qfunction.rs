@@ -280,6 +280,62 @@ impl QFunction {
     /// * 'Q'      - The number of quadrature points
     /// * 'input'  - Array of input Vectors
     /// * 'output' - Array of output Vectors
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let mut user_f = |
+    ///     q: usize,
+    ///     inputs: &Vec<&[f64]>,
+    ///     outputs: &mut Vec<&mut [f64]>,
+    /// | -> i32
+    /// {
+    ///     let u = &inputs[0];
+    ///     let weights = &inputs[1];
+    ///
+    ///     let v = &mut outputs[0];
+    ///
+    ///     for i in 0..q {
+    ///         v[i] = u[i] * weights[i];
+    ///     }
+    ///
+    ///     return 0
+    /// };
+    ///
+    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    ///
+    /// qf.add_input("u", 1, ceed::EvalMode::Interp);
+    /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+    ///
+    /// qf.add_output("v", 1, ceed::EvalMode::Interp);
+    ///
+    /// const Q : usize = 8;
+    /// let mut w = [0.; Q];
+    /// let mut u = [0.; Q];
+    /// let mut v = [0.; Q];
+    ///
+    /// for i in 0..Q as usize {
+    ///   let x = 2.*(i as f64)/((Q as f64) - 1.) - 1.;
+    ///   u[i] = 2. + 3.*x + 5.*x*x;
+    ///   w[i] = 1. - x*x;
+    ///   v[i] = u[i] * w[i];
+    /// }
+    ///
+    /// let U = ceed.vector_from_slice(&u);
+    /// let W = ceed.vector_from_slice(&w);
+    /// let mut V = ceed.vector(Q);
+    /// V.set_value(0.0);
+    /// {
+    ///   let mut input = vec![U, W];
+    ///   let mut output = vec![V];
+    ///   qf.apply(Q as i32, &input, &output);
+    ///   V = output.remove(0);
+    /// }
+    ///
+    /// let array = V.view();
+    /// for i in 0..Q {
+    ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
+    /// }
+    /// ```
     pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
         self.qf_core.apply(Q, u, v)
     }
@@ -292,8 +348,34 @@ impl QFunction {
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
     ///                   to use interpolated values, EvalMode::Grad to use
     ///                   gradients, EvalMode::Weight to use quadrature weights
-    pub fn add_input(&mut self, fieldname: String, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname).expect("CString::new failed");
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let mut user_f = |
+    ///     q: usize,
+    ///     inputs: &Vec<&[f64]>,
+    ///     outputs: &mut Vec<&mut [f64]>,
+    /// | -> i32
+    /// {
+    ///     let u = &inputs[0];
+    ///     let weights = &inputs[1];
+    ///
+    ///     let v = &mut outputs[0];
+    ///
+    ///     for i in 0..q {
+    ///         v[i] = u[i] * weights[i];
+    ///     }
+    ///
+    ///     return 0
+    /// };
+    ///
+    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    ///
+    /// qf.add_input("u", 1, ceed::EvalMode::Interp);
+    /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+    /// ```
+    pub fn add_input(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname.into()).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
         unsafe {
@@ -314,8 +396,33 @@ impl QFunction {
     /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
     ///                   to use interpolated values, EvalMode::Grad to use
     ///                   gradients
-    pub fn add_output(&mut self, fieldname: String, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname).expect("CString::new failed");
+    ///
+    /// ```
+    /// # let ceed = ceed::Ceed::default_init();
+    /// let mut user_f = |
+    ///     q: usize,
+    ///     inputs: &Vec<&[f64]>,
+    ///     outputs: &mut Vec<&mut [f64]>,
+    /// | -> i32
+    /// {
+    ///     let u = &inputs[0];
+    ///     let weights = &inputs[1];
+    ///
+    ///     let v = &mut outputs[0];
+    ///
+    ///     for i in 0..q {
+    ///         v[i] = u[i] * weights[i];
+    ///     }
+    ///
+    ///     return 0
+    /// };
+    ///
+    /// let mut qf = ceed.q_function_interior(1, Box::new(&mut user_f), "");
+    ///
+    /// qf.add_output("v", 1, ceed::EvalMode::Interp);
+    /// ```
+    pub fn add_output(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname.into()).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
         unsafe {
