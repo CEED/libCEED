@@ -83,7 +83,6 @@ struct User_ {
   Vec M;
   char outputfolder[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
-  DCContext ctxDCData;
 };
 
 struct Units_ {
