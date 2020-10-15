@@ -150,6 +150,8 @@ jobs:
        local_dir: rust/target/doc
        strategy: git
        repo: CEED/libCEED-rust-docs
+       on:
+         branch: jeremy/rust
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
