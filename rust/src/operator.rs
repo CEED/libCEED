@@ -62,8 +62,8 @@ impl fmt::Display for OperatorCore {
 /// View an Operator
 ///
 /// ```
-    /// # use libceed::prelude::*;
-    /// # let ceed = libceed::Ceed::default_init();
+/// # use libceed::prelude::*;
+/// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
 /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
 ///
@@ -97,8 +97,8 @@ impl fmt::Display for Operator {
 /// View a composite Operator
 ///
 /// ```
-    /// # use libceed::prelude::*;
-    /// # let ceed = libceed::Ceed::default_init();
+/// # use libceed::prelude::*;
+/// # let ceed = libceed::Ceed::default_init();
 /// let mut op = ceed.composite_operator();
 ///
 /// // Sub operator field arguments

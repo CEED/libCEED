@@ -114,8 +114,8 @@ impl fmt::Display for QFunctionCore {
 /// View a QFunction
 ///
 /// ```
-    /// # use libceed::prelude::*;
-    /// # let ceed = libceed::Ceed::default_init();
+/// # use libceed::prelude::*;
+/// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
 ///   q: usize,
 ///   inputs: &Vec<&[f64]>,
@@ -152,8 +152,8 @@ impl fmt::Display for QFunction {
 /// View a QFunction by Name
 ///
 /// ```
-    /// # use libceed::prelude::*;
-    /// # let ceed = libceed::Ceed::default_init();
+/// # use libceed::prelude::*;
+/// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
 /// println!("{}", qf);
 /// ```

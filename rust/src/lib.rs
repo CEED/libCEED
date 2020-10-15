@@ -24,6 +24,9 @@
 // -----------------------------------------------------------------------------
 #![allow(non_snake_case)]
 
+// -----------------------------------------------------------------------------
+// Crate prelude
+// -----------------------------------------------------------------------------
 use crate::prelude::*;
 
 pub mod prelude {
@@ -33,11 +36,11 @@ pub mod prelude {
         #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
-    pub use crate::{MemType, NormType, TransposeMode, QuadMode, EvalMode, ElemTopology};
     pub use crate::basis::{self, BasisOpt};
     pub use crate::elem_restriction::{self, ElemRestrictionOpt};
     pub use crate::qfunction::{self, QFunctionOpt};
     pub use crate::vector::{self, VectorOpt};
+    pub use crate::{ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode};
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
 }
@@ -67,7 +70,7 @@ pub enum MemType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-// OwnPointer will not be used but is included for completeness
+// OwnPointer will not be used by user but is included for internal use
 #[allow(dead_code)]
 pub(crate) enum CopyMode {
     CopyValues,
