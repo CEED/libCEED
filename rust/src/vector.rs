@@ -125,7 +125,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'slice' - values to initialize vector with
+    /// * `slice` - values to initialize vector with
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -142,7 +142,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'slice' - values to initialize vector with
+    /// * `slice` - values to initialize vector with
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -194,7 +194,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'val' - Value to be used
+    /// * `val` - Value to be used
     ///
     /// ```
     /// let ceed = ceed::Ceed::default_init();
@@ -217,7 +217,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'slice' - values to into self; length must match
+    /// * `slice` - values to into self; length must match
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -245,7 +245,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'mtype' - Memtype to be synced
+    /// * `mtype` - Memtype to be synced
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -304,7 +304,7 @@ impl Vector {
     ///
     /// # arguments
     ///
-    /// * 'ntype' - Norm type One, Two, or Max
+    /// * `ntype` - Norm type One, Two, or Max
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();

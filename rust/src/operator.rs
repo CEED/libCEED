@@ -242,8 +242,8 @@ impl Operator {
 
     /// Apply Operator to a vector
     ///
-    /// * 'input'  - Input Vector
-    /// * 'output' - Output Vector
+    /// * `input`  - Input Vector
+    /// * `output` - Output Vector
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -316,8 +316,8 @@ impl Operator {
 
     /// Apply Operator to a vector and add result to output vector
     ///
-    /// * 'input'  - Input Vector
-    /// * 'output' - Output Vector
+    /// * `input`  - Input Vector
+    /// * `output` - Output Vector
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -392,13 +392,14 @@ impl Operator {
 
     /// Provide a field to a Operator for use by its QFunction
     ///
-    /// * 'fieldname' - Name of the field (to be matched with the name used by
+    /// * `fieldname` - Name of the field (to be matched with the name used by
     ///                   the QFunction)
-    /// * 'r'         - ElemRestriction
-    /// * 'b'         - Basis in which the field resides or BasisCollocated if
+    /// * `r`         - ElemRestriction
+    /// * `b`         - Basis in which the field resides or `BasisCollocated` if
     ///                   collocated with quadrature points
-    /// * 'v'         - Vector to be used by Operator or VectorActive if field
-    ///                   is active or VectorNone if using Weight is the QFunction
+    /// * `v`         - Vector to be used by Operator or `VectorActive` if field
+    ///                   is active or `VectorNone` if using `Weight` with the
+    ///                   QFunction
     ///
     ///
     /// ```
@@ -449,8 +450,8 @@ impl Operator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled Operator diagonal
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled Operator diagonal
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -550,8 +551,8 @@ impl Operator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled Operator diagonal
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled Operator diagonal
     ///
     ///
     /// ```
@@ -653,13 +654,13 @@ impl Operator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled CeedOperator point block
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
-    ///                   ncomp * ncomp block at each node. The dimensions of
+    ///                   `ncomp * ncomp` block at each node. The dimensions of
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
-    ///                   [nodes, component out, component in].
+    ///                   `[nodes, component out, component in]`.
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -788,13 +789,13 @@ impl Operator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        -     Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled CeedOperator point block
+    /// * `op`        -     Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
-    ///                   ncomp * ncomp block at each node. The dimensions of
+    ///                   `ncomp * ncomp` block at each node. The dimensions of
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
-    ///                   [nodes, component out, component in].
+    ///                   `[nodes, component out, component in]`.
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -920,9 +921,9 @@ impl Operator {
     ///   given Operator, creating the prolongation basis from the fine and
     ///   coarse grid interpolation
     ///
-    /// * 'p_mult_fine'  - Lvector multiplicity in parallel gather/scatter
-    /// * 'rstr_coarse'  - Coarse grid restriction
-    /// * 'basis_coarse' - Coarse grid active vector basis
+    /// * `p_mult_fine`  - Lvector multiplicity in parallel gather/scatter
+    /// * `rstr_coarse`  - Coarse grid restriction
+    /// * `basis_coarse` - Coarse grid active vector basis
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1074,10 +1075,10 @@ impl Operator {
     /// Create a multigrid coarse Operator and level transfer Operators for a
     ///   given Operator with a tensor basis for the active basis
     ///
-    /// * 'p_mult_fine'   - Lvector multiplicity in parallel gather/scatter
-    /// * 'rstr_coarse'   - Coarse grid restriction
-    /// * 'basis_coarse'  - Coarse grid active vector basis
-    /// * 'interp_c_to_f' - Matrix for coarse to fine
+    /// * `p_mult_fine`   - Lvector multiplicity in parallel gather/scatter
+    /// * `rstr_coarse`   - Coarse grid restriction
+    /// * `basis_coarse`  - Coarse grid active vector basis
+    /// * `interp_c_to_f` - Matrix for coarse to fine
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1250,10 +1251,10 @@ impl Operator {
     /// Create a multigrid coarse Operator and level transfer Operators for a
     ///   given Operator with a non-tensor basis for the active basis
     ///
-    /// * 'p_mult_fine'   - Lvector multiplicity in parallel gather/scatter
-    /// * 'rstr_coarse'   - Coarse grid restriction
-    /// * 'basis_coarse'  - Coarse grid active vector basis
-    /// * 'interp_c_to_f' - Matrix for coarse to fine
+    /// * `p_mult_fine`   - Lvector multiplicity in parallel gather/scatter
+    /// * `rstr_coarse`   - Coarse grid restriction
+    /// * `basis_coarse`  - Coarse grid active vector basis
+    /// * `interp_c_to_f` - Matrix for coarse to fine
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1438,8 +1439,8 @@ impl CompositeOperator {
 
     /// Apply Operator to a vector
     ///
-    /// * 'input'  - Input Vector
-    /// * 'output' - Output Vector
+    /// * `input`  - Input Vector
+    /// * `output` - Output Vector
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1534,8 +1535,8 @@ impl CompositeOperator {
 
     /// Apply Operator to a vector and add result to output vector
     ///
-    /// * 'input'  - Input Vector
-    /// * 'output' - Output Vector
+    /// * `input`  - Input Vector
+    /// * `output` - Output Vector
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1630,7 +1631,7 @@ impl CompositeOperator {
 
     /// Add a sub-Operator to a Composite Operator
     ///
-    /// * 'subop' - Sub-Operator
+    /// * `subop` - Sub-Operator
     ///
     /// ```
     /// # use ceed::prelude::*;
@@ -1656,8 +1657,8 @@ impl CompositeOperator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled Operator diagonal
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled Operator diagonal
     pub fn linear_asssemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
@@ -1670,8 +1671,8 @@ impl CompositeOperator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled Operator diagonal
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled Operator diagonal
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
@@ -1683,13 +1684,13 @@ impl CompositeOperator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled CeedOperator point block
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
-    ///                   ncomp * ncomp block at each node. The dimensions of
+    ///                   `ncomp * ncomp` block at each node. The dimensions of
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
-    ///                   [nodes, component out, component in].
+    ///                   `[nodes, component out, component in]`.
     pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
@@ -1701,13 +1702,13 @@ impl CompositeOperator {
     /// Note: Currently only non-composite Operators with a single field and
     ///      composite Operators with single field sub-operators are supported.
     ///
-    /// * 'op'        - Operator to assemble QFunction
-    /// * 'assembled' - Vector to store assembled CeedOperator point block
+    /// * `op`        - Operator to assemble QFunction
+    /// * `assembled` - Vector to store assembled CeedOperator point block
     ///                   diagonal, provided in row-major form with an
-    ///                   ncomp * ncomp block at each node. The dimensions of
+    ///                   `ncomp * ncomp` block at each node. The dimensions of
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
-    ///                   [nodes, component out, component in].
+    ///                   `[nodes, component out, component in]`.
     pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }

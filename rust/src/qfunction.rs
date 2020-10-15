@@ -284,9 +284,9 @@ impl QFunction {
 
     /// Apply the action of a QFunction
     ///
-    /// * 'Q'      - The number of quadrature points
-    /// * 'input'  - Array of input Vectors
-    /// * 'output' - Array of output Vectors
+    /// * `Q`      - The number of quadrature points
+    /// * `input`  - Array of input Vectors
+    /// * `output` - Array of output Vectors
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -354,12 +354,12 @@ impl QFunction {
 
     /// Add a QFunction input
     ///
-    /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
-    ///                   (ncomp * 1) for None and Interp
-    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///                   to use interpolated values, EvalMode::Grad to use
-    ///                   gradients, EvalMode::Weight to use quadrature weights
+    /// * `fieldname` - Name of QFunction field
+    /// * `size`      - Size of QFunction field, `(ncomp * dim)` for `Grad` or
+    ///                   `(ncomp * 1)` for `None`, `Interp`, and `Weight`
+    /// * `emode`     - `EvalMode::None` to use values directly, `EvalMode::Interp`
+    ///                   to use interpolated values, `EvalMode::Grad` to use
+    ///                   gradients, `EvalMode::Weight` to use quadrature weights
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();
@@ -402,11 +402,11 @@ impl QFunction {
 
     /// Add a QFunction output
     ///
-    /// * 'fieldname' - Name of QFunction field
-    /// * 'size'      - Size of QFunction field, (ncomp * dim) of Grad or
-    ///                   (ncomp * 1) for None and Interp
-    /// * 'emode'     - EvalMode::None to use values directly, EvalMode::Interp
-    ///                   to use interpolated values, EvalMode::Grad to use
+    /// * `fieldname` - Name of QFunction field
+    /// * `size`      - Size of QFunction field, `(ncomp * dim)` for `Grad` or
+    ///                   `(ncomp * 1)` for `None` and `Interp`
+    /// * `emode`     - `EvalMode::None` to use values directly, `EvalMode::Interp`
+    ///                   to use interpolated values, `EvalMode::Grad` to use
     ///                   gradients
     ///
     /// ```
@@ -465,9 +465,9 @@ impl QFunctionByName {
 
     /// Apply the action of a QFunction
     ///
-    /// * 'Q'      - The number of quadrature points
-    /// * 'input'  - Array of input Vectors
-    /// * 'output' - Array of output Vectors
+    /// * `Q`      - The number of quadrature points
+    /// * `input`  - Array of input Vectors
+    /// * `output` - Array of output Vectors
     ///
     /// ```
     /// # let ceed = ceed::Ceed::default_init();

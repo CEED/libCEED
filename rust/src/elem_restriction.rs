@@ -233,10 +233,10 @@ impl ElemRestriction {
     ///
     /// # arguments
     ///
-    /// * 'tmode' - Apply restriction or transpose
-    /// * 'u'     - Input vector (of size lsize when tmode=NoTranspose)
-    /// * 'ru'    - Output vector (of shape [nelem * elemsize] when
-    ///               tmode=NoTranspose). Ordering of the Evector is
+    /// * `tmode` - Apply restriction or transpose
+    /// * `u`     - Input vector (of size `lsize` when `TransposeMode::NoTranspose`)
+    /// * `ru`    - Output vector (of shape `[nelem * elemsize]` when
+    ///               `TransposeMode::NoTranspose`). Ordering of the Evector is
     ///               decided by the backend.
     ///
     /// ```
