@@ -160,7 +160,7 @@ script:
   - make info
   - make -j2
   - make -j2 prove-all PROVE_OPTS=-v
-  - if [[ "$TRAVIS_JOB_NAME" == "Linux GCC + CodeCov" ]]; then
+  - if [[ "$TRAVIS_JOB_NAME" == "Linux Clang + Tidy and Style" ]]; then
         clang-tidy --version && TIDY_OPTS="-fix-errors" make -j2 tidy && git diff --exit-code;
     fi
   - if [[ "$TRAVIS_JOB_NAME" == "Linux Clang + Tidy and Style" ]]; then
