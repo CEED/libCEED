@@ -141,7 +141,7 @@ jobs:
        - make info && make -j4
        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
        - cd rust && cargo doc
-       - echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html
+       - echo "<meta http-equiv=refresh content=0;url=`ceed/index.html>" > target/doc/index.html
        - cd ..
      deploy:
        provider: pages
