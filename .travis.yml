@@ -146,8 +146,9 @@ jobs:
      deploy:
        provider: pages
        skip_cleanup: true
-       github_token: $RUST_DOCS_TOKEN
+       token: $RUST_DOCS_TOKEN
        local_dir: rust/target/doc
+       strategy: git
        repo: CEED/libCEED-rust-docs
 
 install:
