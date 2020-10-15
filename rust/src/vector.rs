@@ -84,8 +84,9 @@ impl fmt::Display for Vector {
     /// View a Vector
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
     /// assert_eq!(vec.to_string(), "CeedVector length 3
     ///     1.00000000
     ///     2.00000000
@@ -128,8 +129,9 @@ impl Vector {
     /// * `slice` - values to initialize vector with
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let vec = ceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.,]);
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
     pub fn from_slice(ceed: &crate::Ceed, v: &[f64]) -> Self {
@@ -145,9 +147,10 @@ impl Vector {
     /// * `slice` - values to initialize vector with
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut rust_vec = vec![1., 2., 3.];
-    /// let vec = ceed::vector::Vector::from_array(&ceed, &mut rust_vec);
+    /// let vec = libceed::vector::Vector::from_array(&ceed, &mut rust_vec);
     ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
@@ -167,7 +170,8 @@ impl Vector {
     /// Returns the length of a CeedVector
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
     ///
     /// let n = vec.length();
@@ -182,7 +186,8 @@ impl Vector {
     /// Returns the length of a CeedVector
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
     /// assert_eq!(vec.len(), 10, "Incorrect length");
     /// ```
@@ -197,7 +202,8 @@ impl Vector {
     /// * `val` - Value to be used
     ///
     /// ```
-    /// let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
     /// let mut vec = ceed.vector(len);
     ///
@@ -220,7 +226,8 @@ impl Vector {
     /// * `slice` - values to into self; length must match
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector(4);
     /// vec.set_slice(&[10., 11., 12., 13.]);
     ///
@@ -248,13 +255,14 @@ impl Vector {
     /// * `mtype` - Memtype to be synced
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
     /// let mut vec = ceed.vector(len);
     ///
     /// let val = 42.0;
     /// vec.set_value(val);
-    /// vec.sync(ceed::MemType::Host);
+    /// vec.sync(MemType::Host);
     ///
     /// let v = vec.view();
     /// for i in 0..len {
@@ -268,7 +276,8 @@ impl Vector {
     /// Create an immutable view
     ///
     /// ```
-    /// # let ceed= ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
     ///
     /// let v = vec.view();
@@ -285,7 +294,8 @@ impl Vector {
     /// Create an mutable view
     ///
     /// ```
-    /// # let ceed= ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.]);
     ///
     /// {
@@ -307,16 +317,17 @@ impl Vector {
     /// * `ntype` - Norm type One, Two, or Max
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.]);
     ///
-    /// let max_norm = vec.norm(ceed::NormType::Max);
+    /// let max_norm = vec.norm(NormType::Max);
     /// assert_eq!(max_norm, 4.0, "Incorrect Max norm");
     ///
-    /// let l1_norm = vec.norm(ceed::NormType::One);
+    /// let l1_norm = vec.norm(NormType::One);
     /// assert_eq!(l1_norm, 10., "Incorrect L1 norm");
     ///
-    /// let l2_norm = vec.norm(ceed::NormType::Two);
+    /// let l2_norm = vec.norm(NormType::Two);
     /// assert!((l2_norm - 5.477) < 1e-3, "Incorrect L2 norm");
     /// ```
     pub fn norm(&self, ntype: crate::NormType) -> f64 {

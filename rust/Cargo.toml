@@ -3,13 +3,13 @@ authors = ["Jed Brown <jed@jedbrown.org",
            "Yohann Dudouit <dudouit1@llnl.gov>",
            "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",]
 build = "build.rs"
-name = "ceed"
+name = "libceed"
 version = "0.7.0"
-links = "ceed"
+links = "libceed"
 edition = "2018"
 
 [lib]
-name = "ceed"
+name = "libceed"
 
 [build-dependencies]
 bindgen = "*"

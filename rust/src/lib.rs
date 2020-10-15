@@ -33,6 +33,7 @@ pub mod prelude {
         #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
+    pub use crate::{MemType, NormType, TransposeMode, QuadMode, EvalMode, ElemTopology};
     pub use crate::basis::{self, BasisOpt};
     pub use crate::elem_restriction::{self, ElemRestrictionOpt};
     pub use crate::qfunction::{self, QFunctionOpt};
@@ -140,7 +141,7 @@ impl fmt::Display for Ceed {
     /// View a Ceed
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// println!("{}", ceed);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -165,7 +166,7 @@ impl Ceed {
     /// * `resource` - Resource to use, e.g., "/cpu/self"
     ///
     /// ```
-    /// let ceed = ceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
         // Convert to C string
@@ -191,7 +192,8 @@ impl Ceed {
     /// * `n` - Length of vector
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
     /// ```
     pub fn vector(&self, n: usize) -> crate::vector::Vector {
@@ -205,7 +207,8 @@ impl Ceed {
     /// * `slice` - Slice containing data
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[1., 2., 3.]);
     /// assert_eq!(vec.length(), 3);
     /// ```
@@ -236,14 +239,15 @@ impl Ceed {
     ///                    `[0, lsize - 1]`.
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind : Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
@@ -282,7 +286,8 @@ impl Ceed {
     ///                   by a Ceed backend.
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides : [i32; 3] = [1, 2, 2];
     /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem*2, strides);
@@ -320,7 +325,8 @@ impl Ceed {
     ///                   the reference element
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let interp1d  = vec![ 0.62994317,  0.47255875, -0.14950343,  0.04700152,
     ///                      -0.07069480,  0.97297619,  0.13253993, -0.03482132,
     ///                      -0.03482132,  0.13253993,  0.97297619, -0.07069480,
@@ -363,8 +369,9 @@ impl Ceed {
     ///               accuracy for the quadrature)
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, ceed::QuadMode::Gauss);
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss);
     /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
@@ -395,7 +402,8 @@ impl Ceed {
     ///                 the reference element
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let interp  = vec![ 0.12000000,  0.48000000, -0.12000000,  0.48000000,  0.16000000, -0.12000000,
     ///                    -0.12000000,  0.48000000,  0.12000000,  0.16000000,  0.48000000, -0.12000000,
     ///                    -0.11111111,  0.44444444, -0.11111111,  0.44444444,  0.44444444, -0.11111111,
@@ -410,7 +418,7 @@ impl Ceed {
     ///                     0.20000000, -0.80000000,  0.00000000, -1.60000000,  0.80000000,  1.40000000];
     /// let qref    = vec![ 0.20000000,  0.60000000,  0.33333333,  0.20000000,  0.20000000,  0.20000000,  0.33333333,  0.60000000];
     /// let qweight = vec![ 0.26041667,  0.26041667, -0.28125000,  0.26041667];
-    /// let b = ceed.basis_H1(ceed::ElemTopology::Triangle, 1, 6, 4, &interp, &grad, &qref, &qweight);
+    /// let b = ceed.basis_H1(ElemTopology::Triangle, 1, 6, 4, &interp, &grad, &qref, &qweight);
     /// ```
     pub fn basis_H1(
         &self,
@@ -437,7 +445,8 @@ impl Ceed {
     /// * `f`       - Boxed closure to evaluate action at quadrature points.
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
     ///   inputs: &Vec<&[f64]>,
@@ -470,7 +479,8 @@ impl Ceed {
     /// created by name
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// ```
     pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunctionByName {
@@ -489,8 +499,8 @@ impl Ceed {
     ///              Jacobian of the qf (or qfunction_none)
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
     /// ```
@@ -506,7 +516,8 @@ impl Ceed {
     /// Returns an Operator that composes the action of several Operators
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let op = ceed.composite_operator();
     /// ```
     pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
@@ -523,7 +534,8 @@ mod tests {
 
     #[test]
     fn ceed_t501() {
-        let ceed = Ceed::default_init();
+        let resource = "/cpu/self/ref/blocked";
+        let ceed = Ceed::init(resource);
         let nelem = 4;
         let p = 3;
         let q = 4;

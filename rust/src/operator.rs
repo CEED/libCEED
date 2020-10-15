@@ -62,8 +62,8 @@ impl fmt::Display for OperatorCore {
 /// View an Operator
 ///
 /// ```
-/// # use ceed::prelude::*;
-/// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
 /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
 ///
@@ -75,11 +75,11 @@ impl fmt::Display for OperatorCore {
 ///   ind[2*i+0] = i as i32;
 ///   ind[2*i+1] = (i+1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
 /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
-/// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+/// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
 /// // Operator fields
 /// op.set_field("dx", &r, &b, VectorOpt::Active);
@@ -97,8 +97,8 @@ impl fmt::Display for Operator {
 /// View a composite Operator
 ///
 /// ```
-/// # use ceed::prelude::*;
-/// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
 /// let mut op = ceed.composite_operator();
 ///
 /// // Sub operator field arguments
@@ -109,11 +109,11 @@ impl fmt::Display for Operator {
 ///   ind[2*i+0] = i as i32;
 ///   ind[2*i+1] = (i+1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
 /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
-/// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+/// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
 /// let qdata_mass = ceed.vector(q*ne);
 /// let qdata_diff = ceed.vector(q*ne);
@@ -246,8 +246,8 @@ impl Operator {
     /// * `output` - Output Vector
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -268,20 +268,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -320,8 +320,8 @@ impl Operator {
     /// * `output` - Output Vector
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -341,20 +341,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -403,8 +403,8 @@ impl Operator {
     ///
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
     ///
@@ -416,9 +416,9 @@ impl Operator {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
     ///
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     ///
     /// // Operator field
     /// op.set_field("dx", &r, &b, VectorOpt::Active);
@@ -454,8 +454,8 @@ impl Operator {
     /// * `assembled` - Vector to store assembled Operator diagonal
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -476,20 +476,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = (2*i) as i32;
     ///   indu[p*i+1] = (2*i+1) as i32;
     ///   indu[p*i+2] = (2*i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -556,8 +556,8 @@ impl Operator {
     ///
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -578,20 +578,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = (2*i) as i32;
     ///   indu[p*i+1] = (2*i+1) as i32;
     ///   indu[p*i+2] = (2*i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -663,8 +663,8 @@ impl Operator {
     ///                   `[nodes, component out, component in]`.
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -686,20 +686,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = (2*i) as i32;
     ///   indu[p*i+1] = (2*i+1) as i32;
     ///   indu[p*i+2] = (2*i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -731,9 +731,9 @@ impl Operator {
     /// };
     ///
     /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.add_input("u", 2, ceed::EvalMode::Interp);
-    /// qf_mass.add_input("qdata", 1, ceed::EvalMode::None);
-    /// qf_mass.add_output("v", 2, ceed::EvalMode::Interp);
+    /// qf_mass.add_input("u", 2, EvalMode::Interp);
+    /// qf_mass.add_input("qdata", 1, EvalMode::None);
+    /// qf_mass.add_output("v", 2, EvalMode::Interp);
     ///
     /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
@@ -798,8 +798,8 @@ impl Operator {
     ///                   `[nodes, component out, component in]`.
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -821,20 +821,20 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = (2*i) as i32;
     ///   indu[p*i+1] = (2*i+1) as i32;
     ///   indu[p*i+2] = (2*i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -866,9 +866,9 @@ impl Operator {
     /// };
     ///
     /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.add_input("u", 2, ceed::EvalMode::Interp);
-    /// qf_mass.add_input("qdata", 1, ceed::EvalMode::None);
-    /// qf_mass.add_output("v", 2, ceed::EvalMode::Interp);
+    /// qf_mass.add_input("u", 2, EvalMode::Interp);
+    /// qf_mass.add_input("qdata", 1, EvalMode::None);
+    /// qf_mass.add_output("v", 2, EvalMode::Interp);
     ///
     /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
     /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
@@ -926,8 +926,8 @@ impl Operator {
     /// * `basis_coarse` - Coarse grid active vector basis
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
     /// let p_fine = 5;
@@ -960,7 +960,7 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     ///
     /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
     /// for i in 0..ne {
@@ -968,7 +968,7 @@ impl Operator {
     ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, ceed::MemType::Host, &indu_coarse);
+    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
     /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
     /// for i in 0..ne {
@@ -976,12 +976,12 @@ impl Operator {
     ///     indu_fine[p_fine*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, ceed::MemType::Host, &indu_fine);
+    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, ceed::QuadMode::Gauss);
-    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
+    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -1081,8 +1081,8 @@ impl Operator {
     /// * `interp_c_to_f` - Matrix for coarse to fine
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
     /// let p_fine = 5;
@@ -1115,7 +1115,7 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     ///
     /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
     /// for i in 0..ne {
@@ -1123,7 +1123,7 @@ impl Operator {
     ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, ceed::MemType::Host, &indu_coarse);
+    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
     /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
     /// for i in 0..ne {
@@ -1131,12 +1131,12 @@ impl Operator {
     ///     indu_fine[p_fine*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, ceed::MemType::Host, &indu_fine);
+    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, ceed::QuadMode::Gauss);
-    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
+    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -1159,14 +1159,14 @@ impl Operator {
     /// {
     ///   let mut coarse = ceed.vector(p_coarse);
     ///   let mut fine = ceed.vector(p_fine);
-    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, ceed::QuadMode::GaussLobatto);
+    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, QuadMode::GaussLobatto);
     ///   for i in 0..p_coarse {
     ///     coarse.set_value(0.0);
     ///     {
     ///        let mut array = coarse.view_mut();
     ///        array[i] = 1.;
     ///     }
-    ///     basis_c_to_f.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///     basis_c_to_f.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
@@ -1257,8 +1257,8 @@ impl Operator {
     /// * `interp_c_to_f` - Matrix for coarse to fine
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
     /// let p_fine = 5;
@@ -1291,7 +1291,7 @@ impl Operator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     ///
     /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
     /// for i in 0..ne {
@@ -1299,7 +1299,7 @@ impl Operator {
     ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, ceed::MemType::Host, &indu_coarse);
+    /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
     /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
     /// for i in 0..ne {
@@ -1307,12 +1307,12 @@ impl Operator {
     ///     indu_fine[p_fine*i+j] = (i+j) as i32;
     ///   }
     /// }
-    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, ceed::MemType::Host, &indu_fine);
+    /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, ceed::QuadMode::Gauss);
-    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
+    /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -1335,14 +1335,14 @@ impl Operator {
     /// {
     ///   let mut coarse = ceed.vector(p_coarse);
     ///   let mut fine = ceed.vector(p_fine);
-    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, ceed::QuadMode::GaussLobatto);
+    ///   let basis_c_to_f = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, p_fine, QuadMode::GaussLobatto);
     ///   for i in 0..p_coarse {
     ///     coarse.set_value(0.0);
     ///     {
     ///        let mut array = coarse.view_mut();
     ///        array[i] = 1.;
     ///     }
-    ///     basis_c_to_f.apply(1, ceed::TransposeMode::NoTranspose, ceed::EvalMode::Interp,
+    ///     basis_c_to_f.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
@@ -1443,8 +1443,8 @@ impl CompositeOperator {
     /// * `output` - Output Vector
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -1467,20 +1467,20 @@ impl CompositeOperator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operators
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -1539,8 +1539,8 @@ impl CompositeOperator {
     /// * `output` - Output Vector
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
@@ -1563,20 +1563,20 @@ impl CompositeOperator {
     ///   indx[2*i+0] = i as i32;
     ///   indx[2*i+1] = (i+1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, ceed::MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
     ///   indu[p*i+0] = i as i32;
     ///   indu[p*i+1] = (i+1) as i32;
     ///   indu[p*i+2] = (i+2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, ceed::MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
     /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
     ///
     /// // Bases
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, ceed::QuadMode::Gauss);
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, ceed::QuadMode::Gauss);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
     /// // Set up operators
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
@@ -1634,8 +1634,8 @@ impl CompositeOperator {
     /// * `subop` - Sub-Operator
     ///
     /// ```
-    /// # use ceed::prelude::*;
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut op = ceed.composite_operator();
     ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());

@@ -67,14 +67,15 @@ impl fmt::Display for ElemRestriction {
     /// View an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     /// println!("{}", r);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -147,14 +148,15 @@ impl ElemRestriction {
     /// Create an Lvector for an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let lvector = r.create_lvector();
     ///
@@ -175,14 +177,15 @@ impl ElemRestriction {
     /// Create an Evector for an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let evector = r.create_evector();
     ///
@@ -203,14 +206,15 @@ impl ElemRestriction {
     /// Create Vectors for an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let (lvector, evector) = r.create_vectors();
     ///
@@ -240,20 +244,21 @@ impl ElemRestriction {
     ///               decided by the backend.
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]);
     /// let mut y = ceed.vector(nelem*2);
     /// y.set_value(0.0);
     ///
-    /// r.apply(ceed::TransposeMode::NoTranspose, &x, &mut y);
+    /// r.apply(TransposeMode::NoTranspose, &x, &mut y);
     ///
     /// let array = y.view();
     /// for i in 0..(nelem*2) {
@@ -280,7 +285,8 @@ impl ElemRestriction {
     /// Returns the Lvector component stride
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let compstride = 1;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
@@ -288,7 +294,7 @@ impl ElemRestriction {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, MemType::Host, &ind);
     ///
     /// let c = r.get_comp_stride();
     /// assert_eq!(c, compstride as i32, "Incorrect component stride");
@@ -302,14 +308,15 @@ impl ElemRestriction {
     /// Returns the total number of elements in the range of a ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let n = r.get_num_elements();
     /// assert_eq!(n, nelem as i32, "Incorrect number of elements");
@@ -323,7 +330,8 @@ impl ElemRestriction {
     /// Returns the size of elements in the ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let elem_size = 2;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
@@ -331,7 +339,7 @@ impl ElemRestriction {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let e = r.get_elem_size();
     /// assert_eq!(e, elem_size as i32, "Incorrect element size");
@@ -345,14 +353,15 @@ impl ElemRestriction {
     /// Returns the size of the Lvector for an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind : Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let lsize = r.get_lvector_size();
     /// assert_eq!(lsize, (nelem+1) as i32);
@@ -366,7 +375,8 @@ impl ElemRestriction {
     /// Returns the number of components in the elements of an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let ncomp = 42;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
@@ -374,7 +384,7 @@ impl ElemRestriction {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), MemType::Host, &ind);
     ///
     /// let n = r.get_num_components();
     /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
@@ -388,14 +398,15 @@ impl ElemRestriction {
     /// Returns the multiplicity of nodes in an ElemRestriction
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2*nelem];
     /// for i in 0..nelem {
     ///   ind[2*i+0] = i as i32;
     ///   ind[2*i+1] = (i+1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, ceed::MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
     /// let mut mult = ceed.vector(nelem+1);
     /// mult.set_value(0.0);

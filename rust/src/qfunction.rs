@@ -114,7 +114,8 @@ impl fmt::Display for QFunctionCore {
 /// View a QFunction
 ///
 /// ```
-/// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
 ///   q: usize,
 ///   inputs: &Vec<&[f64]>,
@@ -135,10 +136,10 @@ impl fmt::Display for QFunctionCore {
 ///
 /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
 ///
-/// qf.add_input("u", 1, ceed::EvalMode::Interp);
-/// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+/// qf.add_input("u", 1, EvalMode::Interp);
+/// qf.add_input("weights", 1, EvalMode::Weight);
 ///
-/// qf.add_output("v", 1, ceed::EvalMode::Interp);
+/// qf.add_output("v", 1, EvalMode::Interp);
 ///
 /// println!("{}", qf);
 /// ```
@@ -151,7 +152,8 @@ impl fmt::Display for QFunction {
 /// View a QFunction by Name
 ///
 /// ```
-/// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
 /// println!("{}", qf);
 /// ```
@@ -289,7 +291,8 @@ impl QFunction {
     /// * `output` - Array of output Vectors
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
     ///   inputs: &Vec<&[f64]>,
@@ -310,10 +313,10 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_input("u", 1, ceed::EvalMode::Interp);
-    /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+    /// qf.add_input("u", 1, EvalMode::Interp);
+    /// qf.add_input("weights", 1, EvalMode::Weight);
     ///
-    /// qf.add_output("v", 1, ceed::EvalMode::Interp);
+    /// qf.add_output("v", 1, EvalMode::Interp);
     ///
     /// const Q : usize = 8;
     /// let mut w = [0.; Q];
@@ -362,7 +365,8 @@ impl QFunction {
     ///                   gradients, `EvalMode::Weight` to use quadrature weights
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
     ///   inputs: &Vec<&[f64]>,
@@ -383,8 +387,8 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_input("u", 1, ceed::EvalMode::Interp);
-    /// qf.add_input("weights", 1, ceed::EvalMode::Weight);
+    /// qf.add_input("u", 1, EvalMode::Interp);
+    /// qf.add_input("weights", 1, EvalMode::Weight);
     /// ```
     pub fn add_input(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname.into()).expect("CString::new failed");
@@ -410,7 +414,8 @@ impl QFunction {
     ///                   gradients
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///     q: usize,
     ///     inputs: &Vec<&[f64]>,
@@ -431,7 +436,7 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_output("v", 1, ceed::EvalMode::Interp);
+    /// qf.add_output("v", 1, EvalMode::Interp);
     /// ```
     pub fn add_output(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname.into()).expect("CString::new failed");
@@ -470,7 +475,8 @@ impl QFunctionByName {
     /// * `output` - Array of output Vectors
     ///
     /// ```
-    /// # let ceed = ceed::Ceed::default_init();
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
     /// const Q : usize = 8;
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
