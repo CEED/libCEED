@@ -115,7 +115,7 @@ jobs:
      dist: focal
      arch: amd64
      compiler: gcc
-     rust: 1.45.2
+     rust: stable
      install:
      before_script:
        - rustup component add rustfmt
@@ -127,6 +127,28 @@ jobs:
        - cd ..
      after_success:
        - cd rust && cargo fmt -- --check;
+   - stage: "documentation"
+     name: "Rust Documentation"
+     language: rust
+     dist: focal
+     arch: amd64
+     compiler: gcc
+     rust: stable
+     install:
+     before_script:
+       - rustup component add rustfmt
+     script:
+       - make info && make -j4
+       - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
+       - cd rust && cargo doc
+       - echo "<meta http-equiv=refresh content=0;url=`echo $TRAVIS_REPO_SLUG | cut -d '/' -f 2`/index.html>" > target/doc/index.html
+       - cd ..
+     deploy:
+       provider: pages
+       skip_cleanup: true
+       github_token: $RUST_DOCS_TOKEN
+       local_dir: rust/target/doc
+       repo: CEED/libCEED-rust-docs
 
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
