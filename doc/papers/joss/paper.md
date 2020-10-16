@@ -103,11 +103,13 @@ at run time). This easily allows $hp$-refinement studies (where $h$ commonly den
 elements with different topology. This sketch shows the independence of QFunctions
 (in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
-LibCEED is a C99 library with Fortran77, Python, and Julia interfaces.
+LibCEED is a C99 library with Fortran77, Python, Julia, and Rust interfaces.
 
 The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a ``CeedVector`` object is exposed as ``libceed.Vector`` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages, for handling host or device memory (when interested in GPU computations with CUDA). Flexible pointer handling in libCEED makes it easy to provide zero-copy host and (GPU) device support for any desired Python array container. The interested reader can find more details on libCEED's Python interface in [@libceed-paper-proc-scipy-2020].
 
-The Julia interface, referred to as ``LibCEED.jl``, provides both a low-level interface, which is generated automatically from ``libCEED``'s C header files, and a high-level interface. The high-level interface takes advantage of Julia features such as garbage collection to simplify memory management. A key feature of ``LibCEED.jl`` is the straightforward creation of user Q-functions that work on both the CPU and GPU, making use of Julia's metaprogramming and just-in-time compilation capabilities [@Julia-2017].
+The Julia interface, referred to as ``LibCEED.jl``, provides both a low-level interface, which is generated automatically from ``libCEED``'s C header files, and a high-level interface. The high-level interface takes advantage of Julia features such as garbage collection to simplify memory management. A key feature of ``LibCEED.jl`` is the straightforward creation of user QFunctions that work on both the CPU and GPU, making use of Julia's metaprogramming and just-in-time compilation capabilities [@Julia-2017].
+
+The Rust interface provides a high-level interface which wraps the automatically generated bindings from the ``libCEED`` C header files. The Rust interface takes advantage of ownership and borrow checking in Rust to provide improved memory safety and uses closures to simplify management of user provided environment variables in the context of the user QFunctions.
 
 To achieve high performance, libCEED can take advantage of a tensor-product
 finite-element basis and quadrature rule to apply the action of the basis
