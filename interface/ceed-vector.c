@@ -75,7 +75,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 }
 
 /**
-  @brief Add a refrence to a CeedVector
+  @brief Add a reference to a CeedVector
 
   @param[out] vec     CeedVector to increment reference counter
 
@@ -574,9 +574,14 @@ int CeedVectorDestroy(CeedVector *vec) {
 
   if (!*vec || --(*vec)->refcount > 0) return 0;
 
-  if ((*vec) && ((*vec)->state % 2) == 1)
-    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, the access "
+  if (((*vec)->state % 2) == 1)
+    return CeedError((*vec)->ceed, 1,
+                     "Cannot destroy CeedVector, the writable access "
                      "lock is in use");
+
+  if ((*vec)->numreaders > 0)
+    return CeedError((*vec)->ceed, 1, "Cannot destroy CeedVector, a process has "
+                     "read access");
 
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);

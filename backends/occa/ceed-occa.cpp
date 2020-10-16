@@ -140,22 +140,28 @@ namespace ceed {
       int wordStart = 1;
       std::string queryKey;
 
-      // Check for /gpu/occa/cuda, /gpu/occa/hip, /cpu/occa/serial, /cpu/occa/openmp
+      // Check for /gpu/cuda/occa, /gpu/hip/occa, /cpu/self/occa, /cpu/openmp/occa
       // Note: added for matching style with other backends
-      if (resource == "/gpu/occa/cuda"){
+      if (resource == "/gpu/cuda/occa"){
         match = "cuda";
         return 0;
       }
-      if (resource == "/gpu/occa/hip"){
+      if (resource == "/gpu/hip/occa"){
         match = "hip";
         return 0;
       }
-      if (resource == "/cpu/occa/serial"){
-        match = "serial";
+      /*
+      if (resource == "/gpu/opencl/occa"){
+        match = "opencl";
         return 0;
       }
-      if (resource == "/cpu/occa/openmp"){
+      */
+      if (resource == "/cpu/openmp/occa"){
         match = "openmp";
+        return 0;
+      }
+      if (resource == "/cpu/self/occa"){
+        match = "serial";
         return 0;
       }
 
@@ -333,22 +339,16 @@ namespace ceed {
 __attribute__((constructor))
 static void Register(void) {
   // General mode
-  CeedRegister("/*/occa", ceed::occa::registerBackend, 80);
+  CeedRegister("/*/occa", ceed::occa::registerBackend, 260);
   // CPU Modes
-  CeedRegister("/cpu/occa", ceed::occa::registerBackend, 70);
-  CeedRegister("/cpu/occa/serial", ceed::occa::registerBackend, 60);
-  CeedRegister("/serial/occa", ceed::occa::registerBackend, 60);
-  CeedRegister("/cpu/occa/openmp", ceed::occa::registerBackend, 50);
-  CeedRegister("/openmp/occa", ceed::occa::registerBackend, 50);
+  CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250);
+  CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240);
   // OpenCL Mode
   /* OpenCL not fully supported in OCCA
-  CeedRegister("/opencl/occa", ceed::occa::registerBackend, 40);
+  CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230);
   */
   // GPU Modes
-  CeedRegister("/gpu/occa", ceed::occa::registerBackend, 30);
-  CeedRegister("/gpu/occa/hip", ceed::occa::registerBackend, 20);
-  CeedRegister("/hip/occa", ceed::occa::registerBackend, 20);
-  CeedRegister("/gpu/occa/cuda", ceed::occa::registerBackend, 10);
-  CeedRegister("/cuda/occa", ceed::occa::registerBackend, 10);
+  CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220);
+  CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210);
 
 }

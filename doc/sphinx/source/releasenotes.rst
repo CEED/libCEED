@@ -12,6 +12,23 @@ Current Main
 The current ``main`` (formerly called ``master``) branch contains bug fixes and interfaces changes.
 
 Interface changes
+^^^^^^^^^^^^^^^^^
+
+New features
+^^^^^^^^^^^^
+
+Performance improvements
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Examples
+^^^^^^^^
+
+.. _v0.7
+
+v0.7 (Sep 29, 2020)
+-------------------
+
+Interface changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * Replace limited :code:`CeedInterlaceMode` with more flexible component stride :code:`compstride` in :code:`CeedElemRestriction` constructors.
   As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
@@ -29,9 +46,9 @@ Interface changes
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
-* CeedQFunction support for user CUfunctions in some backends
+* CeedQFunction support for user ``CUfunction``s in some backends
 
-Performance Improvements
+Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * OCCA backend rebuilt to facilitate future performance enhancements.
 * Petsc BPs suite improved to reduce noise due to multiple calls to :code:`mpiexec`.

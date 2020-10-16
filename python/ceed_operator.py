@@ -26,7 +26,7 @@ class _OperatorBase(ABC):
     """Ceed Operator: composed FE-type operations on vectors."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
 
     # Destructor

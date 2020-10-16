@@ -30,13 +30,11 @@
 //   Sequential:
 //
 //     ./area -problem cube -degree 3 -dm_refine 2
-//
 //     ./area -problem sphere -degree 3 -dm_refine 2
 //
 //   In parallel:
 //
 //     mpiexec -n 4 ./area -problem cube -degree 3 -dm_refine 2
-//
 //     mpiexec -n 4 ./area -problem sphere -degree 3 -dm_refine 2
 //
 //   The above example runs use 2 levels of refinement for the mesh.
