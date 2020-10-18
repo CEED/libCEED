@@ -21,8 +21,10 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, MPI_Comm comm,
-                                  SimpleBC bc, void *ctxSetupData) {
+// Wall boundary conditions are zero velocity and zero flux
+//   for mass density and energy density.
+PetscErrorCode BC_DENSITY_CURRENT(DM dm, MPI_Comm comm, SimpleBC bc,
+                                  void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
