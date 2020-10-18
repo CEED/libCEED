@@ -821,6 +821,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscFunctionListAdd(&problems, "advection2d", NS_ADVECTION2D);
   CHKERRQ(ierr);
+
   // Parse command line options
   comm = PETSC_COMM_WORLD;
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
