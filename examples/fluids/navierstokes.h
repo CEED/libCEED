@@ -66,8 +66,6 @@ typedef struct {
   CeedInt dim, qdatasizeVol, qdatasizeSur;
   CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
                     applySur;
-  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
-                       PetscScalar[], void *);
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
         *applyVol_ifunction_loc, *applySur_loc;
   bool non_zero_time;
