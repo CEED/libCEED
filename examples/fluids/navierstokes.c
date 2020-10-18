@@ -87,52 +87,6 @@ static const char *const memTypes[] = {
   "memType", "CEED_MEM_", NULL
 };
 
-static PetscErrorCode NS_ADVECTION(problemData *problem) {
-
-  PetscFunctionBeginUser;
-  problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
-  problem->ics                       = ICsAdvection;
-  problem->ics_loc                   = ICsAdvection_loc;
-  problem->applyVol_rhs              = Advection;
-  problem->applyVol_rhs_loc          = Advection_loc;
-  problem->applyVol_ifunction        = IFunction_Advection;
-  problem->applyVol_ifunction_loc    = IFunction_Advection_loc;
-  problem->applySur                  = Advection_Sur;
-  problem->applySur_loc              = Advection_Sur_loc;
-  problem->bc                        = Exact_Advection;
-  problem->non_zero_time             = PETSC_FALSE;
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode NS_ADVECTION2D(problemData *problem) {
-
-  PetscFunctionBeginUser;
-  problem->dim                       = 2;
-  problem->qdatasizeVol              = 5;
-  problem->qdatasizeSur              = 3;
-  problem->setupVol                  = Setup2d;
-  problem->setupVol_loc              = Setup2d_loc;
-  problem->setupSur                  = SetupBoundary2d;
-  problem->setupSur_loc              = SetupBoundary2d_loc;
-  problem->ics                       = ICsAdvection2d;
-  problem->ics_loc                   = ICsAdvection2d_loc;
-  problem->applyVol_rhs              = Advection2d;
-  problem->applyVol_rhs_loc          = Advection2d_loc;
-  problem->applyVol_ifunction        = IFunction_Advection2d;
-  problem->applyVol_ifunction_loc    = IFunction_Advection2d_loc;
-  problem->applySur                  = Advection2d_Sur;
-  problem->applySur_loc              = Advection2d_Sur_loc;
-  problem->bc                        = Exact_Advection2d;
-  problem->non_zero_time             = PETSC_TRUE;
-  PetscFunctionReturn(0);
-}
-
 // Essential BC dofs are encoded in closure indices as -(i+1).
 static PetscInt Involute(PetscInt i) {
   return i >= 0 ? i : -(i+1);
@@ -712,7 +666,6 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
               SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
                        "Boundary condition already set on face %D!\n",
                        bc->walls[w]);
-
           }
         }
       }

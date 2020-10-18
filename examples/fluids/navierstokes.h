@@ -110,8 +110,14 @@ struct Units_ {
   PetscScalar Joule;
 };
 
-
+// Setup function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem);
+extern PetscErrorCode NS_ADVECTION(problemData *problem);
+extern PetscErrorCode NS_ADVECTION2D(problemData *problem);
+
+// Boundary Condition Functions
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, MPI_Comm comm, SimpleBC bc, void *ctxSetupData);
+extern PetscErrorCode BC_ADVECTION(DM dm, MPI_Comm comm, SimpleBC bc, void *ctxSetupData);
+extern PetscErrorCode BC_ADVECTION2D(DM dm, MPI_Comm comm, SimpleBC bc, void *ctxSetupData);
 
 #endif
