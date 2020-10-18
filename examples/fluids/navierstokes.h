@@ -54,6 +54,13 @@ typedef struct {
   const char *filepath;
 } testData;
 
+typedef struct SimpleBC_ *SimpleBC;
+struct SimpleBC_ {
+  PetscInt nwall, nslip[3];
+  PetscInt walls[6], slips[3][6];
+  PetscBool userbc;
+};
+
 // Problem specific data
 typedef struct {
   CeedInt dim, qdatasizeVol, qdatasizeSur;
@@ -64,6 +71,7 @@ typedef struct {
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
         *applyVol_ifunction_loc, *applySur_loc;
   bool non_zero_time;
+  PetscErrorCode (*bc_func)(DM, MPI_Comm, SimpleBC, void *);
 } problemData;
 
 // PETSc user data
@@ -102,13 +110,8 @@ struct Units_ {
   PetscScalar Joule;
 };
 
-typedef struct SimpleBC_ *SimpleBC;
-struct SimpleBC_ {
-  PetscInt nwall, nslip[3];
-  PetscInt walls[6], slips[3][6];
-  PetscBool userbc;
-};
 
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem);
+extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, MPI_Comm comm, SimpleBC bc, void *ctxSetupData);
 
 #endif

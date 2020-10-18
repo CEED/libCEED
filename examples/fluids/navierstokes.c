@@ -717,14 +717,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_DC) {
-        PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                             3, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
-      } else
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
-                "Undefined boundary conditions for this problem");
+      }
     }
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
