@@ -16,20 +16,58 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem) {
   problem->applyVol_rhs_loc          = DC_loc;
   problem->applyVol_ifunction        = IFunction_DC;
   problem->applyVol_ifunction_loc    = IFunction_DC_loc;
-  problem->bc_func                   = BC_DENSITY_CURRENT;
+  problem->bc                        = BC_DENSITY_CURRENT;
   problem->non_zero_time             = PETSC_FALSE;
   PetscFunctionReturn(0);
 }
 
-// Wall boundary conditions are zero velocity and zero flux
-//   for mass density and energy density.
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, MPI_Comm comm, SimpleBC bc,
-                                  void *ctxSetupData) {
+PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, void *ctxSetupData) {
 
   PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
+  PetscInt len;
+  PetscBool flg;
   PetscInt comps[3] = {1, 2, 3};
+  MPI_Comm comm = PETSC_COMM_WORLD;
+
+  // Initialize bc
+  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
+  bc->slips[0][0] = 5;
+  bc->slips[0][1] = 6;
+  bc->slips[1][0] = 3;
+  bc->slips[1][1] = 4;
+  bc->slips[2][0] = 1;
+  bc->slips[2][1] = 2;
+
+  PetscFunctionBeginUser;
+  // Parse command line options
+  ierr = PetscOptionsBegin(comm, NULL, "Options for density_current",
+                           NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsIntArray("-bc_wall",
+                              "Use wall boundary conditions on this list of faces",
+                              NULL, bc->walls,
+                              (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
+                               &len), &flg); CHKERRQ(ierr);
+  if (flg) {
+    bc->nwall = len;
+    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
+    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+  }
+  for (PetscInt j=0; j<3; j++) {
+    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+    ierr = PetscOptionsIntArray(flags[j],
+                                "Use slip boundary conditions on this list of faces",
+                                NULL, bc->slips[j],
+                                (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
+                                 &len), &flg); CHKERRQ(ierr);
+    if (flg) {
+      bc->nslip[j] = len;
+      bc->userbc = PETSC_TRUE;
+    }
+  }
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Wall boundary conditions are zero velocity and zero flux
+  //   for mass density and energy density.
   ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                        3, comps, (void(*)(void))Exact_DC, NULL,
                        bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);

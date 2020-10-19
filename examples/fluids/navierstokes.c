@@ -758,10 +758,11 @@ int main(int argc, char **argv) {
   testData *test = NULL;
   PetscBool implicit;
   PetscInt    viz_refine = 0;
-  struct SimpleBC_ bc = {
-    .nslip = {2, 2, 2},
-    .slips = {{5, 6}, {3, 4}, {1, 2}}
-  };
+  SimpleBC bc;
+  //struct SimpleBC_ bc = {
+  //  .nslip = {2, 2, 2},
+  //  .slips = {{5, 6}, {3, 4}, {1, 2}}
+  //};
   double start, cpu_time_used;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -813,6 +814,7 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
@@ -838,13 +840,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
                             problemName, problemName, sizeof(problemName),
                             NULL); CHKERRQ(ierr);
-  // Choose the problem from the list of registered problems
-  {
-    PetscErrorCode (*p)(problemData*);
-    ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
-    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
-    ierr = (*p)(problem); CHKERRQ(ierr);
-  }
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
@@ -854,53 +849,53 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
                                "Constant wind vector",
                                NULL, wind, &n, &userWind); CHKERRQ(ierr);
-  if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
-    CHKERRQ(ierr);
-  }
-  if (wind_type == ADVECTION_WIND_TRANSLATION
-      && strcmp(problemName, "density_current") == 0) {
-    SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
-            "-problem_advection_wind translation is not defined for -problem density_current");
-  }
+  //if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
+  //  ierr = PetscPrintf(comm,
+  //                     "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+  //  CHKERRQ(ierr);
+  //}
+  //if (wind_type == ADVECTION_WIND_TRANSLATION
+  //    && strcmp(problemName, "density_current") == 0) {
+  //  SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
+  //          "-problem_advection_wind translation is not defined for -problem density_current");
+  //}
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
-  if (!implicit && stab != STAB_NONE) {
-    ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
-    CHKERRQ(ierr);
-  }
-  {
-    PetscInt len;
-    PetscBool flg;
-    ierr = PetscOptionsIntArray("-bc_wall",
-                                "Use wall boundary conditions on this list of faces",
-                                NULL, bc.walls,
-                                (len = sizeof(bc.walls) / sizeof(bc.walls[0]),
-                                 &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc.nwall = len;
-      // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-      bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
-    }
-    for (PetscInt j=0; j<3; j++) {
-      const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-      ierr = PetscOptionsIntArray(flags[j],
-                                  "Use slip boundary conditions on this list of faces",
-                                  NULL, bc.slips[j],
-                                  (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
-                                   &len), &flg);
-      CHKERRQ(ierr);
-      if (flg) {
-        bc.nslip[j] = len;
-        bc.userbc = PETSC_TRUE;
-      }
-    }
-  }
+  //if (!implicit && stab != STAB_NONE) {
+  //  ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
+  //  CHKERRQ(ierr);
+  //}
+  //{
+  //  PetscInt len;
+  //  PetscBool flg;
+  //  ierr = PetscOptionsIntArray("-bc_wall",
+  //                              "Use wall boundary conditions on this list of faces",
+  //                              NULL, bc.walls,
+  //                              (len = sizeof(bc.walls) / sizeof(bc.walls[0]),
+  //                               &len), &flg); CHKERRQ(ierr);
+  //  if (flg) {
+  //    bc.nwall = len;
+  //    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
+  //    bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
+  //  }
+  //  for (PetscInt j=0; j<3; j++) {
+  //    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+  //    ierr = PetscOptionsIntArray(flags[j],
+  //                                "Use slip boundary conditions on this list of faces",
+  //                                NULL, bc.slips[j],
+  //                                (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
+  //                                 &len), &flg);
+  //    CHKERRQ(ierr);
+  //    if (flg) {
+  //      bc.nslip[j] = len;
+  //      bc.userbc = PETSC_TRUE;
+  //    }
+  //  }
+  //}
   ierr = PetscOptionsInt("-viz_refine",
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
@@ -953,11 +948,11 @@ int main(int argc, char **argv) {
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
   CHKERRQ(ierr);
-  if (strcmp(problemName, "density_current") == 0 && (CtauS != 0 || strong_form != 0)) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Problem density_current does not support -CtauS or -strong_form\n");
-    CHKERRQ(ierr);
-  }
+  //if (strcmp(problemName, "density_current") == 0 && (CtauS != 0 || strong_form != 0)) {
+  //  ierr = PetscPrintf(comm,
+  //                     "Warning! Problem density_current does not support -CtauS or -strong_form\n");
+  //  CHKERRQ(ierr);
+  //}
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
@@ -1003,12 +998,12 @@ int main(int argc, char **argv) {
                          "Number of extra quadrature points on in/outflow faces",
                          NULL, qextraSur, &qextraSur, &userQextraSur);
   CHKERRQ(ierr);
-  if ((wind_type == ADVECTION_WIND_ROTATION
-       || strcmp(problemName, "density_current") == 0) && userQextraSur) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
-    CHKERRQ(ierr);
-  }
+  //if ((wind_type == ADVECTION_WIND_ROTATION
+  //     || strcmp(problemName, "density_current") == 0) && userQextraSur) {
+  //  ierr = PetscPrintf(comm,
+  //                     "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
+  //  CHKERRQ(ierr);
+  //}
   ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -1020,6 +1015,14 @@ int main(int argc, char **argv) {
                           (PetscEnum *)&memtyperequested, &setmemtyperequest);
   CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Choose the problem from the list of registered problems
+  {
+    PetscErrorCode (*p)(problemData*);
+    ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
+    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
+    ierr = (*p)(problem); CHKERRQ(ierr);
+  }
 
   // Define derived units
   Pascal = kilogram / (meter * PetscSqr(second));
@@ -1650,6 +1653,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
+  ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
