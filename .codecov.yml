@@ -4,6 +4,9 @@ codecov:
 fixes:
   - "build/backends/::backends/"
 
+ignore:
+  - "julia/LibCEED.jl/src/generated/*.jl"
+
 # CodeCov shows up in the checks on GitHub pull requests
 comment: false
 
@@ -12,15 +15,19 @@ coverage:
     project:
       default: off
       interface:
-        flags: interface
+        flags:
+          - interface
       backends:
-        flags: backends
+        flags:
+          - backends
     patch:
       default: off
       interface:
-        flags: interface
+        flags:
+          - interface
       backends:
-        flags: backends
+        flags:
+          - backends
 
 flags:
   interface:
