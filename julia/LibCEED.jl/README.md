@@ -1,49 +1,44 @@
 # LibCEED.jl: Julia Interface for [libCEED](https://github.com/CEED/libCEED)
 
+Please see the [LibCEED.jl
+documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev/) for
+usage and API documentation.
+
 ## Installation
 
-When the LibCEED.jl package is built, it requires the environment variable
-`JULIA_LIBCEED_LIB` to be set to the location of the compiled libCEED shared
-library.
+The LibCEED.jl package can be installed with Julia's package manager by running
+`] add LibCEED`. This will automatically install a pre-built binary of the
+libCEED library. If you require features of a specific build of libCEED (e.g.
+CUDA/GPU support, specific compiler flags, etc.) then you should compile your
+own version of the libCEED library, and configure LibCEED.jl to use this binary
+as described in the [Configuring LibCEED.jl](@ref) section.
 
-For example, the package can be installed by:
+**Warning:** the pre-built libCEED binaries do not support CUDA backends
+
+The pre-built binaries automatically installed by LibCEED.jl (through the
+[libCEED_jll](https://juliahub.com/ui/Packages/libCEED_jll/LB2fn) package) are
+not built with CUDA support. If you want to run libCEED on the GPU, you will
+have to build libCEED from source and configure LibCEED.jl as described in the
+[Configuring LibCEED.jl](@ref) section.
+
+### Configuring LibCEED.jl
+
+By default, LibCEED.jl will use the pre-built libCEED binaries provided by the
+[libCEED_jll](https://juliahub.com/ui/Packages/libCEED_jll/LB2fn) package. If
+you wish to use a different libCEED binary (e.g. one built from source),
+LibCEED.jl can be configured using the `JULIA_LIBCEED_LIB` environment variable
+set to the absolute path of the libCEED dynamic library. For the configuration
+to take effect, LibCEED.jl must be **built** with this environment variable, for
+example:
+
 ```julia
 % JULIA_LIBCEED_LIB=/path/to/libceed.so julia
 julia> # press ] to enter package manager
-
-(@v1.5) pkg> add LibCEED
+(env) pkg> build LibCEED
 ```
 or, equivalently,
 ```julia
-% julia
-
 julia> withenv("JULIA_LIBCEED_LIB" => "/path/to/libceed.so") do
-    Pkg.add("LibCEED")
+    Pkg.build("LibCEED")
 end
 ```
-
-
-## Usage
-
-This package provides both a low-level and high-level interface for libCEED.
-
-### Low-Level Interface
-
-The low-level interface (provided in the `LibCEED.C` module) is in one-to-one
-correspondence with the C libCEED iterface, and is automatically generated (with
-some minor manual modifications) using the Julia package Clang.jl. The script
-used to generate bindings is available in `generate_bindings.jl`.
-
-With the low-level interface, the user is responsible for freeing all allocated
-memory (calling the appropriate `Ceed*Destroy` functions). This interface is
-not type-safe, and calling functions with the wrong arguments can cause libCEED
-to crash.
-
-### High-Level Interface
-
-The high-level interface provides a more idiomatic Julia interface to the
-libCEED library. Objects allocated using the high-level interface will
-automatically be destroyed by the garbage collector, so the user does not need
-to manually manage memory.
-
-See the documentation for more information.
