@@ -212,7 +212,8 @@ cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
-magma.cu       := $(sort $(wildcard backends/magma/kernels/*.cu))
+magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
+magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
@@ -385,22 +386,44 @@ ifneq ($(HIP_LIB_DIR),)
 endif
 
 # MAGMA Backend
-MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
-  ifneq ($(CUDA_LIB_DIR),)
-  cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
-  omp_link = -fopenmp
-  magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-  magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
-  magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-  $(libceeds)          : LDLIBS += $(magma_link)
-  $(tests) $(examples) : LDLIBS += $(magma_link)
-  libceed.c  += $(magma.c)
-  libceed.cu += $(magma.cu)
-  $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-  $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
-  BACKENDS += $(MAGMA_BACKENDS)
+  MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
+  ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
+    ifneq ($(CUDA_LIB_DIR),)
+      cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      omp_link = -fopenmp
+      magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
+      magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+      magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+      $(libceeds)          : LDLIBS += $(magma_link)
+      $(tests) $(examples) : LDLIBS += $(magma_link)
+      libceed.c  += $(magma.c)
+      libceed.cu += $(magma.cu)
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+      MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
+    endif
+  else  # HIP MAGMA
+    ifneq ($(HIP_LIB_DIR),)
+      hip_link = -Wl,-rpath,$(HIP_LIB_DIR) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      omp_link = -fopenmp
+      magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
+      magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+      magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+      $(libceeds)          : LDLIBS += $(magma_link)
+      $(tests) $(examples) : LDLIBS += $(magma_link)
+      libceed.c  += $(magma.c)
+      libceed.hip += $(magma.hip)
+      ifneq ($(CXX), $(HIPCC))
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      else
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      endif
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
+    endif
   endif
+  BACKENDS += $(MAGMA_BACKENDS)
 endif
 
 export BACKENDS

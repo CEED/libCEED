@@ -14,48 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "grad_device.cuh"
+#include "hip/hip_runtime.h"
+#include "../common/grad.h"
 
-#define cu_ipow(a,b) ( (int)(__powf( (float)(a), (float)(b) ) ) )
+#define hip_ipow(a,b) ( (int)(__powf( (float)(a), (float)(b) ) ) )
 #define ipow(a,b) ( (magma_int_t)(std::pow( (float)(a), (float)(b) ) ) )
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int P, int Q>
-static __global__ void
-magma_grad_generic_kernel( 
-    const int dim, const int ncomp, 
-    const int pre_org, const int tmp_size, 
-    const T* dinterp1d, const T *dgrad1d, magma_trans_t transT,
-    const T *dU, const int estrdU, const int cstrdU, 
-          T *dV, const int estrdV, const int cstrdV, 
-    const int dim_id )
-{
-    const int elem_id = blockIdx.x;
-    const int comp_id = blockIdx.y;
-    int tx = threadIdx.x;
-    int pre, post;
-    
-    // advance to the respective element in the batch
-    dU += (elem_id * estrdU) + (comp_id * cstrdU);
-    dV += (elem_id * estrdV) + (comp_id * cstrdV);
-
-    T* sTinterp = (T*)shared_data;
-    T* sTgrad = sTinterp + P * Q;
-    
-    // read T in shared memory
-    dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp );
-    dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad );
-    __syncthreads();
-
-    pre  = pre_org; // the value of pre is independent from the loop below
-    post = 1;
-    magma_grad_generic_device<T, P, Q>
-    ( dim_id, dim, ncomp, pre, post, tmp_size, sTinterp, sTgrad, transT, dU, dV, shared_data + (2*P*Q) );
-}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int P, int Q>
@@ -83,15 +46,8 @@ magma_grad_generic_kernel_driver(
     magma_int_t nthreads = max(P, CeedIntPow(Q, dim-1) ); 
     nthreads = magma_roundup( nthreads, Q ); // nthreads must be multiple of Q
 
-    cudaDeviceGetAttribute (&nthreads_max, cudaDevAttrMaxThreadsPerBlock, device);
-    #if CUDA_VERSION >= 9000
-    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlockOptin, device);
-    if (shmem <= shmem_max) {
-        cudaFuncSetAttribute(magma_grad_generic_kernel<T, P, Q>, cudaFuncAttributeMaxDynamicSharedMemorySize, shmem);
-    }
-    #else
-    cudaDeviceGetAttribute (&shmem_max, cudaDevAttrMaxSharedMemoryPerBlock, device);
-    #endif    // CUDA_VERSION >= 9000
+    hipDeviceGetAttribute (&nthreads_max, hipDeviceAttributeMaxThreadsPerBlock, device);
+    hipDeviceGetAttribute (&shmem_max, hipDeviceAttributeMaxSharedMemoryPerBlock, device);
 
     if ( nthreads > nthreads_max || shmem > shmem_max ) {
         return 1;
@@ -99,12 +55,11 @@ magma_grad_generic_kernel_driver(
     else { 
         dim3 threads(nthreads, 1, 1);
         dim3 grid(nelem, ncomp, 1);
-        magma_grad_generic_kernel<T, P, Q><<<grid, threads, shmem, magma_queue_get_cuda_stream(queue)>>>
-        ( dim, ncomp, pre, tmp_size, dinterp1d, dgrad1d, transT, 
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(magma_grad_generic_kernel<T, P, Q>), dim3(grid), dim3(threads), shmem, magma_queue_get_hip_stream(queue),  dim, ncomp, pre, tmp_size, dinterp1d, dgrad1d, transT, 
           dU, estrdU, cstrdU, 
           dV, estrdV, cstrdV, 
           dim_id );
-        return (cudaPeekAtLastError() == cudaSuccess) ? 0 : 1;
+        return (hipPeekAtLastError() == hipSuccess) ? 0 : 1;
     } 
 }
 

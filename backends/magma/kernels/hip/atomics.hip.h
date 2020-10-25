@@ -14,15 +14,24 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMABLAS_CHECK_CUDAERROR_H
-#define MAGMABLAS_CHECK_CUDAERROR_H
+#ifndef CEED_MAGMA_ATOMICS_HIP_H
+#define CEED_MAGMA_ATOMICS_HIP_H
 
-#define magma_check_cudaerror() {                                          \
- cudaError_t e=cudaGetLastError();                                 \
- if (e!=cudaSuccess) {                                              \
-   printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));           \
-   exit(0); \
- }                                                                 \
+#include "magma_internal.h"
+/******************************************************************************/
+// Atomic adds 
+/******************************************************************************/
+__device__ static __inline__ float 
+magmablas_satomic_add(float* address, float val)
+{
+    return atomicAdd(address, val);
 }
 
-#endif
+/******************************************************************************/
+__device__ static __inline__ double 
+magmablas_datomic_add(double* address, double val)
+{
+   return atomicAdd(address, val);
+}
+
+#endif // CEED_MAGMA_ATOMICS_HIP_H

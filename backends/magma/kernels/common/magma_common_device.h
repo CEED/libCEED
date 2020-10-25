@@ -14,8 +14,14 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef MAGMA_COMMON_DEVICE_CUH
-#define MAGMA_COMMON_DEVICE_CUH
+#ifndef CEED_MAGMA_COMMON_DEVICE_H
+#define CEED_MAGMA_COMMON_DEVICE_H
+
+#ifdef HAVE_HIP
+#define MAGMA_DEVICE_SHARED(type, name) HIP_DYNAMIC_SHARED(type, name)
+#else 
+#define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // init scalar to zero
@@ -371,4 +377,4 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
 } 
 
 
-#endif // MAGMA_COMMON_DEVICE_CUH
+#endif // CEED_MAGMA_COMMON_DEVICE_H

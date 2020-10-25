@@ -14,40 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <magma.h>
-#include <magma_v2.h>
-#include "magma_common_device.cuh"
-#include "weight_device.cuh"
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-extern __shared__ CeedScalar shared_data[];
-template<typename T, int Q>
-static __global__ void
-magma_weight_generic_kernel( 
-    const int dim, const int pre_org, const int post_org, 
-    const T *dqweight1d, 
-    T *dV, const int vstride)
-{
-    const int batchid = blockIdx.x; 
-    magma_weight_generic_device<T, Q>
-    ( dim, pre_org, post_org, dqweight1d, dV+(batchid*vstride), shared_data );
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-static __global__ void 
-magma_weight_nontensor_kernel(const CeedInt nelem, const CeedInt Q,
-                    const CeedScalar *__restrict__ qweight,
-                    CeedScalar *__restrict__ d_V) {
-  const int tid = threadIdx.x;
-  //TODO load qweight in shared memory if blockDim.z > 1?                                           
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
-       elem += gridDim.x*blockDim.z) {
-    d_V[elem*Q + tid] = qweight[tid];
-  }
-}
-
+#include "../common/weight.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>
