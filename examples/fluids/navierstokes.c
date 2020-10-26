@@ -639,6 +639,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
+    ierr = problem->bc(dm, bc, ctxSetupData);
     {
       DMLabel label;
       ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
@@ -1110,7 +1111,7 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, bc, &ctxSetupData); CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -1130,7 +1131,7 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, &ctxSetupData);
       CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
@@ -1365,13 +1366,13 @@ int main(int argc, char **argv) {
 
   // Create CEED Operator for the whole domain
   if (!implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type, user->op_rhs_vol,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, wind_type, user->op_rhs_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, basisxSur, basisqSur,
                                    &user->op_rhs); CHKERRQ(ierr);
   if (implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, &bc, wind_type,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, wind_type,
                                    user->op_ifunction_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
