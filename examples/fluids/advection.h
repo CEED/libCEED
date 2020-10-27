@@ -420,11 +420,11 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                    };
     // *INDENT-ON*
 
-// Note with the order that du was filled and the order that dXdx was filled
-//   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k} )
-//   dXdx[k][j] = dX_K / dx_j
-//   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
-//   x_j and u_j are jth  physical position and velocity components
+    // Note with the order that du was filled and the order that dXdx was filled
+    //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k} )
+    //   dXdx[k][j] = dX_K / dx_j
+    //   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
+    //   x_j and u_j are jth  physical position and velocity components
 
     // The Physics
 
@@ -437,7 +437,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 
     // -- Total Energy
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
-    // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
+    //   or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_E = 0;
     for (CeedInt j=0; j<3; j++) {
       CeedScalar dEdx_j = 0;
@@ -462,7 +462,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     v[4][i] += wdetJ * strong_form * strongConv;
 
     // Stabilization requires a measure of element transit time in the velocity
-    // field u.
+    //   field u.
     CeedScalar uX[3];
     for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
