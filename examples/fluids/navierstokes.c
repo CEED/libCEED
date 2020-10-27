@@ -640,67 +640,6 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
     ierr = problem->bc(dm, bc, ctxSetupData);
-    {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-      PetscInt comps[1] = {1};
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
-                           bc->nslip[0], bc->slips[0], 0, 1, comps,
-                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
-      CHKERRQ(ierr);
-      comps[0] = 2;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
-                           bc->nslip[1], bc->slips[1], 0, 1, comps,
-                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
-      CHKERRQ(ierr);
-      comps[0] = 3;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
-                           bc->nslip[2], bc->slips[2], 0, 1, comps,
-                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
-      CHKERRQ(ierr);
-    }
-    if (bc->userbc == PETSC_TRUE) {
-      for (PetscInt c = 0; c < 3; c++) {
-        for (PetscInt s = 0; s < bc->nslip[c]; s++) {
-          for (PetscInt w = 0; w < bc->nwall; w++) {
-            if (bc->slips[c][s] == bc->walls[w])
-              SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                       "Boundary condition already set on face %D!\n",
-                       bc->walls[w]);
-          }
-        }
-      }
-    }
-    // Wall boundary conditions are zero energy density and zero flux for
-    //   velocity in advection/advection2d, and zero velocity and zero flux
-    //   for mass density and energy density in density_current
-    {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-      if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
-        PetscInt comps[1] = {4};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                             bc->nwall, bc->walls, 0,
-                             1, comps, (void(*)(void))problem->bc, NULL,
-                             ctxSetupData, NULL); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_DC) {
-        PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                             bc->nwall, bc->walls, 0,
-                             3, comps, (void(*)(void))problem->bc, NULL,
-                             ctxSetupData, NULL); CHKERRQ(ierr);
-      } else if (problem->bc == Exact_Euler) {
-        // So far nwall=0 but we keep this support for
-        //   the time when we add periodic BCs
-        PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                             bc->nwall, bc->walls, 0,
-                             3, comps, (void(*)(void))problem->bc, NULL,
-                             ctxSetupData, NULL); CHKERRQ(ierr);
-      } else
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
-                "Undefined boundary conditions for this problem");
-    }
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -760,10 +699,6 @@ int main(int argc, char **argv) {
   PetscBool implicit;
   PetscInt    viz_refine = 0;
   SimpleBC bc;
-  //struct SimpleBC_ bc = {
-  //  .nslip = {2, 2, 2},
-  //  .slips = {{5, 6}, {3, 4}, {1, 2}}
-  //};
   double start, cpu_time_used;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -866,37 +801,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
-  //if (!implicit && stab != STAB_NONE) {
-  //  ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
-  //  CHKERRQ(ierr);
-  //}
-  //{
-  //  PetscInt len;
-  //  PetscBool flg;
-  //  ierr = PetscOptionsIntArray("-bc_wall",
-  //                              "Use wall boundary conditions on this list of faces",
-  //                              NULL, bc.walls,
-  //                              (len = sizeof(bc.walls) / sizeof(bc.walls[0]),
-  //                               &len), &flg); CHKERRQ(ierr);
-  //  if (flg) {
-  //    bc.nwall = len;
-  //    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-  //    bc.nslip[0] = bc.nslip[1] = bc.nslip[2] = 0;
-  //  }
-  //  for (PetscInt j=0; j<3; j++) {
-  //    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-  //    ierr = PetscOptionsIntArray(flags[j],
-  //                                "Use slip boundary conditions on this list of faces",
-  //                                NULL, bc.slips[j],
-  //                                (len = sizeof(bc.slips[j]) / sizeof(bc.slips[j][0]),
-  //                                 &len), &flg);
-  //    CHKERRQ(ierr);
-  //    if (flg) {
-  //      bc.nslip[j] = len;
-  //      bc.userbc = PETSC_TRUE;
-  //    }
-  //  }
-  //}
   ierr = PetscOptionsInt("-viz_refine",
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
@@ -1017,8 +921,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  // Choose the problem from the list of registered problems
-  {
+  { // Choose the problem from the list of registered problems
     PetscErrorCode (*p)(problemData*);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
