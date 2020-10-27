@@ -685,7 +685,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
-  CeedQFunctionContext ctxSetup, ctxDC, ctxAdvection;
+  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
@@ -1287,19 +1287,10 @@ int main(int argc, char **argv) {
                               sizeof ctxSetupData, &ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
-  struct DCContext_ ctxDCData = {
-    .lambda = lambda,
-    .mu = mu,
-    .k = k,
-    .cv = cv,
-    .cp = cp,
-    .g = g,
-    .Rd = Rd,
-    .stabilization = stab,
-  };
-  CeedQFunctionContextCreate(ceed, &ctxDC);
-  CeedQFunctionContextSetData(ctxDC, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxDCData, &ctxDCData);
+  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
+  CeedQFunctionContextCreate(ceed, &ctxNS);
+  CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxNSData, &ctxNSData);
 
   struct AdvectionContext_ ctxAdvectionData = {
     .CtauS = CtauS,
@@ -1313,8 +1304,8 @@ int main(int argc, char **argv) {
                               sizeof ctxAdvectionData, &ctxAdvectionData);
 
   if (strcmp(problemName, "density_current") == 0) {
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxDC);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxDC);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
   } else if (strcmp(problemName, "advection") == 0
              || strcmp(problemName, "advection2d") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection);
@@ -1533,7 +1524,7 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_rhsVol);
   CeedQFunctionDestroy(&qf_ifunctionVol);
   CeedQFunctionContextDestroy(&ctxSetup);
-  CeedQFunctionContextDestroy(&ctxDC);
+  CeedQFunctionContextDestroy(&ctxNS);
   CeedQFunctionContextDestroy(&ctxAdvection);
   CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
