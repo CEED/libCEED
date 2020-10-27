@@ -56,10 +56,17 @@ struct SetupContext_ {
 };
 #endif
 
-#ifndef advection_context_struct
-#define advection_context_struct
+#ifndef dc_context_struct
+#define dc_context_struct
 typedef struct DCContext_ *DCContext;
 struct DCContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar Rd;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -254,14 +261,14 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar lambda = context[0];
-  const CeedScalar mu     = context[1];
-  const CeedScalar k      = context[2];
-  const CeedScalar cv     = context[3];
-  const CeedScalar cp     = context[4];
-  const CeedScalar g      = context[5];
-  const CeedScalar Rd     = context[6];
+  DCContext context = (DCContext)ctx;
+  const CeedScalar lambda = context->lambda;
+  const CeedScalar mu     = context->mu;
+  const CeedScalar k      = context->k;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar g      = context->g;
+  const CeedScalar Rd     = context->Rd;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -463,7 +470,6 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -513,14 +519,14 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
-  const CeedScalar *context = (const CeedScalar *)ctx;
-  const CeedScalar lambda = context[0];
-  const CeedScalar mu     = context[1];
-  const CeedScalar k      = context[2];
-  const CeedScalar cv     = context[3];
-  const CeedScalar cp     = context[4];
-  const CeedScalar g      = context[5];
-  const CeedScalar Rd     = context[6];
+  DCContext context = (DCContext)ctx;
+  const CeedScalar lambda = context->lambda;
+  const CeedScalar mu     = context->mu;
+  const CeedScalar k      = context->k;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar g      = context->g;
+  const CeedScalar Rd     = context->Rd;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -729,7 +735,6 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauE = TauM / (Ce * cv);
     const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
-    DCContext context = (DCContext)ctx;
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;

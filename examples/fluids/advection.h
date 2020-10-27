@@ -50,21 +50,13 @@ struct SetupContext_ {
 
 #ifndef advection_context_struct
 #define advection_context_struct
-typedef struct DCContext_ *DCContext;
-struct DCContext_ {
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
   CeedScalar CtauS;
   CeedScalar strong_form;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-#endif
-
-#ifndef surface_context_struct
-#define surface_context_struct
-typedef struct SurfaceContext_ *SurfaceContext;
-struct SurfaceContext_ {
   CeedScalar E_wind;
-  CeedScalar strong_form;
   bool implicit;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
@@ -244,7 +236,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  DCContext context = (DCContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -367,7 +359,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  DCContext context = (DCContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -508,7 +500,7 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  SurfaceContext context = (SurfaceContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar E_wind = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
   const bool implicit = context->implicit;

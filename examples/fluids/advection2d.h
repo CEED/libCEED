@@ -52,23 +52,15 @@ struct SetupContext_ {
 };
 #endif
 
-#ifndef advection2d_context_struct
-#define advection2d_context_struct
-typedef struct Advection2dContext_ *Advection2dContext;
-struct Advection2dContext_ {
+#ifndef advection_context_struct
+#define advection_context_struct
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
   CeedScalar CtauS;
   CeedScalar strong_form;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-#endif
-
-#ifndef surface_context_struct
-#define surface_context_struct
-typedef struct SurfaceContext_ *SurfaceContext;
-struct SurfaceContext_ {
   CeedScalar E_wind;
-  CeedScalar strong_form;
   bool implicit;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
@@ -228,7 +220,7 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  Advection2dContext context = (Advection2dContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -333,7 +325,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
-  Advection2dContext context = (Advection2dContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -455,7 +447,7 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  SurfaceContext context = (SurfaceContext)ctx;
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar E_wind = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
   const bool implicit = context->implicit;

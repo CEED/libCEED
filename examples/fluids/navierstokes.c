@@ -685,7 +685,7 @@ int main(int argc, char **argv) {
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
-  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection2d, ctxSurface;
+  CeedQFunctionContext ctxSetup, ctxDC, ctxAdvection;
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
@@ -1287,37 +1287,39 @@ int main(int argc, char **argv) {
                               sizeof ctxSetupData, &ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
-  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
-  CeedQFunctionContextCreate(ceed, &ctxNS);
-  CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxNSData, &ctxNSData);
-
-  struct Advection2dContext_ ctxAdvection2dData = {
-    .CtauS = CtauS,
-    .strong_form = strong_form,
+  struct DCContext_ ctxDCData = {
+    .lambda = lambda,
+    .mu = mu,
+    .k = k,
+    .cv = cv,
+    .cp = cp,
+    .g = g,
+    .Rd = Rd,
     .stabilization = stab,
   };
-  CeedQFunctionContextCreate(ceed, &ctxAdvection2d);
-  CeedQFunctionContextSetData(ctxAdvection2d, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxAdvection2dData, &ctxAdvection2dData);
+  CeedQFunctionContextCreate(ceed, &ctxDC);
+  CeedQFunctionContextSetData(ctxDC, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxDCData, &ctxDCData);
 
-  struct SurfaceContext_ ctxSurfaceData = {
-    .E_wind = E_wind,
+  struct AdvectionContext_ ctxAdvectionData = {
+    .CtauS = CtauS,
     .strong_form = strong_form,
+    .E_wind = E_wind,
     .implicit = implicit,
+    .stabilization = stab,
   };
-  CeedQFunctionContextCreate(ceed, &ctxSurface);
-  CeedQFunctionContextSetData(ctxSurface, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxSurfaceData, &ctxSurfaceData);
+  CeedQFunctionContextCreate(ceed, &ctxAdvection);
+  CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof ctxAdvectionData, &ctxAdvectionData);
 
   if (strcmp(problemName, "density_current") == 0) {
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxDC);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxDC);
   } else if (strcmp(problemName, "advection") == 0
              || strcmp(problemName, "advection2d") == 0) {
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
+    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxAdvection);
   }
 
   // Set up PETSc context
@@ -1531,9 +1533,8 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_rhsVol);
   CeedQFunctionDestroy(&qf_ifunctionVol);
   CeedQFunctionContextDestroy(&ctxSetup);
-  CeedQFunctionContextDestroy(&ctxNS);
-  CeedQFunctionContextDestroy(&ctxAdvection2d);
-  CeedQFunctionContextDestroy(&ctxSurface);
+  CeedQFunctionContextDestroy(&ctxDC);
+  CeedQFunctionContextDestroy(&ctxAdvection);
   CeedOperatorDestroy(&op_setupVol);
   CeedOperatorDestroy(&op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);
