@@ -158,14 +158,14 @@ The strong and weak forms given above, in :math:numref:`lin-elas` and :math:numr
 However, the strain energy density differs and is given by
 
 .. math::
-   
+
    \bm{\Phi} = \lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm\epsilon) - 1) + \mu \bm{\epsilon} : \bm{\epsilon} .
-   
+
 As above, we have the corresponding constitutive law given by
 
 .. math::
    :label: eq-neo-hookean-small-strain
-   
+
    \bm{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \bm{I}_3 + 2\mu \bm{\epsilon}
 
 where :math:`\bm{\epsilon}` is defined as in :math:numref:`small-strain`.
@@ -187,7 +187,7 @@ where
 
    \diff \bm{\epsilon} = \dfrac{1}{2}\left( \nabla \diff \bm{u} + \nabla \diff \bm{u}^T \right)
 
-and 
+and
 
 .. math::
 
@@ -220,16 +220,16 @@ Equation :math:numref:`derss` can be written in Voigt matrix notation as follows
      \diff \sigma_{23} \\
      \diff \sigma_{13} \\
      \diff \sigma_{12}
-   \end{pmatrix}  = 
+   \end{pmatrix}  =
    \begin{pmatrix}
      2 \mu +\bar{\lambda} & \bar{\lambda} & \bar{\lambda} & & & \\
      \bar{\lambda} & 2 \mu +\bar{\lambda} & \bar{\lambda} & & & \\
      \bar{\lambda} & \bar{\lambda} & 2 \mu +\bar{\lambda} & & & \\
-     & & & \mu & & \\    
+     & & & \mu & & \\
      & & & & \mu & \\
      & & & & & \mu \\
    \end{pmatrix}
-   \begin{pmatrix} 
+   \begin{pmatrix}
      \diff \epsilon_{11} \\
      \diff \epsilon_{22} \\
      \diff \epsilon_{33} \\
@@ -255,7 +255,7 @@ The strong form of the static balance of linear-momentum at *finite strain* (tot
    :label: sblFinS
 
    - \nabla_X \cdot \bm{P} - \rho_0 \bm{g} = \bm{0}
- 
+
 where the :math:`_X` in :math:`\nabla_X` indicates that the gradient is calculated with respect to the reference configuration in the finite strain regime.
 :math:`\bm{P}` and :math:`\bm{g}` are the *first Piola-Kirchhoff stress* tensor and the prescribed forcing function, respectively.
 :math:`\rho_0` is known as the *reference* mass density.
@@ -265,7 +265,7 @@ The tensor :math:`\bm P` is not symmetric, living in the current configuration o
 
 .. math::
    :label: 1st2nd
-   
+
    \bm{P} = \bm{F} \, \bm{S},
 
 where :math:`\bm S` is the *second Piola-Kirchhoff stress* tensor, a symmetric tensor defined entirely in the reference configuration, and :math:`\bm{F} = \bm I_3 + \nabla_X \bm u` is the deformation gradient.
@@ -339,15 +339,25 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    which gives accurate results even in the limit when the entries :math:`e_{ij}` are very small.
    For example, if :math:`e_{ij} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
+.. note::
+    Something about the new models here.
+    Mooney-Rivlin:
+    .. math::
+        :label: mooney-rivlin-stress
+        \bm S = \mu _1 I_1J^{-2/3}(\bm I_3 - \frac{1}{3} \bm C^{-1}) + \mu _2 I_2J^{-4/3}(I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + k_1(J^2 -J)\bm C^{-1}
 
+    Generalized Polynomial:
+    .. math::
+        :label: generalized-polynomial-stress
+        \bm S = \sum_{i + j = 1}^N 2C_{ij}\left(\frac{jI_2}{J^{-4/3}} (\bar{I_1} -3)^i (\bar{I_2} -3)^{j-1} (I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + \frac{i I_1}{J^{-2/3}} (\bar{I_2} -3)^j (\bar{I_1} -3)^{i-1} (\bm I_3 - \frac{1}{3} \bm C^{-1}) \right) +  \sum_{i = 1}^N k_1 i(J -1)^{2i-1}J\bm C^{-1}
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
- 
+
    .. math::
       :label: eq-st-venant-kirchoff
 
       \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
- 
+
    which is the St. Venant-Kirchoff model.
 
    This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
@@ -368,7 +378,7 @@ find :math:`\bm u \in \mathcal V \subset H^1(\Omega_0)` such that
     - \int_{\Omega_0}{\bm{v} \cdot \rho_0 \bm{g}} \, dV
     - \int_{\partial \Omega_0}{\bm{v} \cdot (\bm{P} \cdot \hat{\bm{N}})} \, dS
     = 0, \quad \forall \bm v \in \mathcal V,
-    
+
 where :math:`\bm{P} \cdot \hat{\bm{N}}|_{\partial\Omega}` is replaced by any prescribed force/traction boundary condition written in terms of the reference configuration.
 This equation contains material/constitutive nonlinearities in defining :math:`\bm S(\bm E)`, as well as geometric nonlinearities through :math:`\bm P = \bm F\, \bm S`, :math:`\bm E(\bm F)`, and the body force :math:`\bm g`, which must be pulled back from the current configuration to the reference configuration.
 Discretization of :math:numref:`hyperelastic-weak-form` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
@@ -462,4 +472,3 @@ That is, given the linearization point :math:`\bm F` and solution increment :mat
    In the case where complete linearization is preferred, note the symmetry :math:`\mathsf C_{IJKL} = \mathsf C_{KLIJ}` evident in :math:numref:`eq-neo-hookean-incremental-stress-index`, thus :math:`\mathsf C` can be stored as a symmetric :math:`6\times 6` matrix, which has 21 unique entries.
    Along with 6 entries for :math:`\bm S`, this totals 27 entries of overhead compared to computing everything from :math:`\bm F`.
    This compares with 13 entries of overhead for direct storage of :math:`\{ \bm S, \bm C^{-1}, \log J \}`, which is sufficient for the Neo-Hookean model to avoid all but matrix products.
-
