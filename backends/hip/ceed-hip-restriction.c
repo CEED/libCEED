@@ -148,14 +148,14 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
       // -- Offsets provided
       kernel = impl->noTrOffset;
       void *args[] = {&nelem, &impl->d_ind, &d_u, &d_v};
-      CeedInt blocksize = elemsize<1024?(elemsize>64?elemsize:64):1024;
+      CeedInt blocksize = elemsize<256?(elemsize>64?elemsize:64):256;
       ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
                               blocksize, args); CeedChk(ierr);
     } else {
       // -- Strided restriction
       kernel = impl->noTrStrided;
       void *args[] = {&nelem, &d_u, &d_v};
-      CeedInt blocksize = elemsize<1024?(elemsize>64?elemsize:64):1024;
+      CeedInt blocksize = elemsize<256?(elemsize>64?elemsize:64):256;
       ierr = CeedRunKernelHip(ceed, kernel, CeedDivUpInt(nnodes, blocksize),
                               blocksize, args); CeedChk(ierr);
     }
