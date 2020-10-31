@@ -99,7 +99,7 @@ struct Ceed_private {
   Ceed opfallbackceed, opfallbackparent;
   const char *opfallbackresource;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
-               va_list);
+               va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedInt, CeedVector);
