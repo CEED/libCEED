@@ -18,3 +18,12 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
+
+[compat]
+julia = "1.5"
+CEnum = "0.4"
+Cassette = "0.3"
+Requires = "1"
+StaticArrays = "0.12"
+UnsafeArrays = "1"
+libCEED_jll = "0.7"
