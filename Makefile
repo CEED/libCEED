@@ -118,7 +118,7 @@ OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-HIPCCFLAGS ?= $(OPT) -fPIC
+HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
