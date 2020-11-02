@@ -1,4 +1,4 @@
-Julia and Python Interfaces
+Julia, Python, and Rust Interfaces
 ========================================
 
 libCEED provides high-level interfaces using the Julia, Python, and Rust
