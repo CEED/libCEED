@@ -57,6 +57,7 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   if (!op->ceed->opfallbackceed) {
     ierr = CeedInit(fallbackresource, &ceedref); CeedChk(ierr);
     ceedref->opfallbackparent = op->ceed;
+    ceedref->Error = op->ceed->Error;
     op->ceed->opfallbackceed = ceedref;
   }
   ceedref = op->ceed->opfallbackceed;
@@ -190,7 +191,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->numoutputfields,
           op->qf->numoutputfields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->numoutputfields; i++) {
-    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->inputfields[i],
+    ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->outputfields[i],
                                  i, sub, 0, stream); CeedChk(ierr);
   }
 
@@ -1067,7 +1068,6 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
     ierr = op->opfallback->LinearAssembleAddDiagonal(op->opfallback, assembled,
            request); CeedChk(ierr);
   }

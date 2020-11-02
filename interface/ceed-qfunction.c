@@ -487,7 +487,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   char *name_copy;
 
   // Find matching backend
-  if (!name) return CeedError(NULL, 1, "No QFunction name provided");
+  if (!name) return CeedError(ceed, 1, "No QFunction name provided");
   for (size_t i=0; i<num_qfunctions; i++) {
     size_t n;
     const char *currname = qfunctions[i].name;
@@ -499,7 +499,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   }
   if (!matchlen)
     // LCOV_EXCL_START
-    return CeedError(NULL, 1, "No suitable gallery QFunction");
+    return CeedError(ceed, 1, "No suitable gallery QFunction");
   // LCOV_EXCL_STOP
 
   // Create QFunction
