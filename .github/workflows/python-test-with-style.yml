@@ -1,0 +1,42 @@
+name: Python - Test and Style
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gcc-9]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Python setup
+      uses: actions/setup-python@v2
+    - name: Python dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+    - name: Python test
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-9
+      run: |
+        make info
+        make -j2
+        export CEED_DIR=$PWD
+        pip install .
+        cd tests/python
+        python setup-qfunctions.py build
+        pytest test-*.py --ceed /cpu/self/ref/serial -vv
+        cd ../..
+    - name: Python style
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-9
+      run: |
+        make style-py && git diff --exit-code

@@ -1,0 +1,26 @@
+name: C/Fortran - ICC and IFort
+
+on:
+  push:
+  
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Clone Intel install scripts
+        run: |
+          git clone https://github.com/oneapi-src/oneapi-ci.git
+      - name: Install Intel compilers
+        run: |
+          oneapi-ci/scripts/install_linux_apt.sh intel-oneapi-dpcpp-cpp-compiler-pro
+          oneapi-ci/scripts/install_linux_apt.sh intel-oneapi-ifort
+      - name: Build and test libCEED
+        run: |
+          ./.github/workflows/c-fortran-test-icc.sh
+
