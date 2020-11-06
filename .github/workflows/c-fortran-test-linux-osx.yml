@@ -1,4 +1,4 @@
-name: C/Fortran - GCC and Clang on Linux and OSX
+name: C/Fortran
 
 on:
   push:

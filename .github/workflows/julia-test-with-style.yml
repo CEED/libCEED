@@ -1,4 +1,4 @@
-name: Julia - Test and Style
+name: Julia
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: C/Fortran - ICC and IFort
+name: ICC and IFort
 
 on:
   push:

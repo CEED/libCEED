@@ -1,4 +1,4 @@
-name: C/Fortran - Style
+name: Style
 
 on:
   push:

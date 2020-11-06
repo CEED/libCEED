@@ -1,4 +1,4 @@
-name: Python - Test and Style
+name: Python
 
 on:
   push:

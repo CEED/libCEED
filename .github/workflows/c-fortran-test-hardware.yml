@@ -1,4 +1,4 @@
-name: C/Fortran - ARM and IBM Power
+name: ARM and IBM Power
 
 on:
   push:
