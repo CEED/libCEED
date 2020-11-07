@@ -132,7 +132,7 @@ done
 function make() {
   # Set flags
   CFLAGS="-fPIC"
-  FFLAGS="-g -std=legacy -I${CEED_DIR}/include -DEXAMPLE_DIR='\"${PWD}/\"' -fPIC"
+  FFLAGS="-g -std=legacy -I${CEED_DIR}/include -ffixed-line-length-132 -DEXAMPLE_DIR='\"${PWD}/\"' -fPIC"
   USR_LFLAGS="-g -L${CEED_DIR}/lib -Wl,-rpath,${CEED_DIR}/lib -lceed -fPIC"
 
   # Build examples
