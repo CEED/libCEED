@@ -10,8 +10,8 @@ def parse_testargs(file):
         return sum([[line.split()[1:]] for line in open(file).readlines()
                     if line.startswith('//TESTARGS')], [])
     elif os.path.splitext(file)[1] == '.usr':
-        return sum([[line.split()[2:]] for line in open(file).readlines()
-                    if line.startswith('C TESTARGS')])
+        return sum([[line.split()[1:]] for line in open(file).readlines()
+                    if line.startswith('C_TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
