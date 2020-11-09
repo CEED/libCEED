@@ -127,9 +127,12 @@ struct AppCtx_private {
   PetscInt      numLevels;
   PetscInt      *levelDegrees;
   PetscInt      numIncrements;                        // Number of steps
-  PetscInt      bcClampFaces[16];
   PetscInt      bcClampCount;
+  PetscInt      bcClampFaces[16];
   PetscScalar   bcClampMax[16][7];
+  PetscInt      bcTractionCount;
+  PetscInt      bcTractionFaces[16];
+  PetscScalar   bcTractionVector[16][3];
   PetscScalar   forcingVector[3];
   PetscBool     petscHaveCuda, setMemTypeRequest;
   CeedMemType   memTypeRequested;
@@ -162,7 +165,7 @@ typedef struct UserMult_private *UserMult;
 struct UserMult_private {
   MPI_Comm        comm;
   DM              dm;
-  Vec             Xloc, Yloc;
+  Vec             Xloc, Yloc, NBCs;
   CeedVector      Xceed, Yceed;
   CeedOperator    op;
   CeedQFunction   qf;
@@ -248,9 +251,19 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
 // Destroy libCEED objects
 PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data);
 
-// Get libCEED restriction data from DMPlex
-PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-                                     CeedElemRestriction *Erestrict, DM dm);
+// Utility function - essential BC dofs are encoded in closure indices as -(i+1)
+PetscInt Involute(PetscInt i);
+
+// Utility function to create local CEED restriction from DMPlex
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
+    CeedInt height, DMLabel domainLabel, CeedInt value,
+    CeedElemRestriction *Erestrict);
+
+// Utility function to get Ceed Restriction for each domain
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
+                                       DMLabel domainLabel, PetscInt value, CeedInt P, CeedInt Q, CeedInt qdatasize,
+                                       CeedElemRestriction *restrictq, CeedElemRestriction *restrictx,
+                                       CeedElemRestriction *restrictqdi);
 
 // Set up libCEED for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
@@ -258,7 +271,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      CeedQFunctionContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
-                                     PetscInt Ulocsz, CeedVector forceCeed);
+                                     PetscInt Ulocsz, CeedVector forceCeed,
+                                     CeedVector neumannCeed);
 
 // Set up libCEED multigrid level for a given degree
 PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
