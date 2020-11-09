@@ -3,10 +3,10 @@ libCEED: the CEED Library
 
 |build-status| |codecov| |license| |doc| |binder|
 
-.. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=main
+.. |build-status| image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
     :alt: Build Status
     :scale: 100%
-    :target: https://travis-ci.com/CEED/libCEED
+    :target: https://github.com/CEED/libCEED/actions
 
 .. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
     :alt: Code Coverage
