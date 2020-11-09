@@ -31,12 +31,14 @@ elif [ ${1::4} == "nek-" ]; then
     for ((i=0;i<${numconfig};++i)); do
       allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
     done
-elif [ ${1::7} == "fluids-" ]; then
+elif [ ${1::7} == "fluids-navierstokes" ]; then
     # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
-      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- )")
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/navier-stokes/${1:7}.c | cut -d\  -f2- )")
     done
+elif [ $1 == "fluids-shallowwater" ]; then
+    allargs=$(grep -F //TESTARGS examples/fluids/shallow-water/shallowwater.c* | cut -d\  -f2- )
 elif [ ${1::7} == "solids-" ]; then
     allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
@@ -84,7 +86,7 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue;
     fi
 
-    # Navier-Stokes test problem too large for most CUDA backends
+    # Navier-Stokes and shallow-water test problems too large for most CUDA backends
     if [[ "$backend" = *gpu* && "$backend" != /gpu/cuda/gen && \
             ( "$1" = fluids-* ) ]]; then
         printf "ok $i0 # SKIP - test problem too large for $backend\n"
