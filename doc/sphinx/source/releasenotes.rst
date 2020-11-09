@@ -24,7 +24,7 @@ Performance improvements
 Examples
 ^^^^^^^^
 
-.. _v0.7
+.. _v0.7:
 
 v0.7 (Sep 29, 2020)
 -------------------
@@ -47,7 +47,7 @@ Interface changes
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
-* CeedQFunction support for user ``CUfunction``s in some backends
+* CeedQFunction support for user ``CUfunction`` in some backends
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
