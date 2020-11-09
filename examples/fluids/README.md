@@ -1,6 +1,8 @@
+# libCEED: Fluid Dynamics Examples
+
 ## libCEED: Navier-Stokes Example
 
-This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
+This section provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
 
 The Navier-Stokes problem solves the compressible Navier-Stokes equations in three dimensions using an
 explicit time integration. The state variables are mass density, momentum density, and energy density.
@@ -267,3 +269,22 @@ or implicit formulation.
 
 The geometric factors and coordinate transformations required for the integration of the weak form
 are described in the file [`common.h`](common.h)
+
+## libCEED: Shallow-water Example
+
+This section provides a description of the shallow-water example for the libCEED library, based on PETSc.
+
+This solver computes the solution to the shallow-water equations on a cubed-sphere (i.e.,
+a tensor-product discrete sphere, obtained by projecting a cube inscribed in a sphere onto the surface
+of the sphere).
+
+The main shallow-water solver for libCEED is defined in [`shallowwater.c`](shallowwater.c).
+
+Build by using
+
+`make`
+
+and run with
+
+`./shallowwater`
+

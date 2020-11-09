@@ -21,8 +21,10 @@ def get_source(test):
         return os.path.join('examples', 'mfem', test[5:] + '.cpp')
     elif test.startswith('nek-'):
         return os.path.join('examples', 'nek', 'bps', test[4:] + '.usr')
-    elif test.startswith('fluids-'):
-        return os.path.join('examples', 'fluids', test[7:] + '.c')
+    elif test.startswith('fluids-navierstokes'):
+        return os.path.join('examples', 'fluids', 'navier-stokes', test[7:] + '.c')
+    elif test.startswith('fluids-shallowwater'):
+        return os.path.join('examples', 'fluids', 'shallow-water', test[7:] + '.c')
     elif test.startswith('solids-'):
         return os.path.join('examples', 'solids', test[7:] + '.c')
     elif test.startswith('ex'):

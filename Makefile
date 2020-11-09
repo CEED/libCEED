@@ -208,8 +208,9 @@ nekexamples  := $(OBJDIR)/nek-bps
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Fluid Dynamics Examples
-fluidsexamples.c := $(sort $(wildcard examples/fluids/*.c))
-fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+fluidsdir        := navier-stokes shallow-water
+fluidsexamples.c := $(sort $(foreach dir,$(fluidsdir), $(wildcard examples/fluids/$(dir)/*.c)))
+fluidsexamples   := $(foreach dir,$(fluidsdir), $(fluidsexamples.c:examples/fluids/$(dir)/%.c=$(OBJDIR)/fluids-%))
 # Solid Mechanics Examples
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
@@ -525,10 +526,15 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	mv examples/petsc/$* $@
 
-$(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
+$(OBJDIR)/fluids-navierstokes : examples/fluids/navier-stokes/navierstokes.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(MAKE) -C examples/fluids/navier-stokes CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/fluids/$* $@
+	mv examples/fluids/navier-stokes/navierstokes $@
+
+$(OBJDIR)/fluids-shallowwater : examples/fluids/shallow-water/shallowwater.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(MAKE) -C examples/fluids/shallow-water CEED_DIR=`pwd` \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
+	mv examples/fluids/shallow-water/shallowwater $@
 
 $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
@@ -602,6 +608,7 @@ ceedexamples : $(examples)
 nekexamples : $(nekexamples)
 mfemexamples : $(mfemexamples)
 petscexamples : $(petscexamples)
+fluidsexamples : $(fluidsexamples)
 
 # Benchmarks
 allbenchmarks = petsc-bps
