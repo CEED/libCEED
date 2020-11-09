@@ -25,4 +25,5 @@ makedocs(sitename="LibCEED.jl Docs",
 deploydocs(
     repo="github.com/CEED/libCEED-julia-docs.git",
     devbranch="main",
+    push_preview=true,
 )

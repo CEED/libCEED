@@ -1,0 +1,25 @@
+name: C/Fortran
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc-9, clang]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Build and test libCEED
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-9
+      run: |
+        make info
+        make -j2
+        PROVE_OPTS=-v make prove -j2

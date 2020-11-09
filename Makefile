@@ -98,7 +98,7 @@ CFLAGS.XL               := -qpic -MMD
 CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
-CXXFLAGS.XL             := -qpic -MMD
+CXXFLAGS.XL             := -qpic -std=c++11 -MMD
 FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
 FFLAGS.ifort            := -fPIC -cpp
 FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
@@ -118,7 +118,7 @@ OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
-HIPCCFLAGS ?= $(OPT) -fPIC
+HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
