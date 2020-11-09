@@ -178,17 +178,17 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 
 /// Ceed error handlers
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int,
-                                const char *, va_list);
+                                const char *, va_list *);
 CEED_EXTERN int CeedErrorStore(Ceed, const char *, int, const char *, int,
-                               const char *, va_list);
+                               const char *, va_list *);
 CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
-                               const char *, va_list);
+                               const char *, va_list *);
 CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
-                              const char *, va_list);
+                              const char *, va_list *);
 CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
                                     int (*eh)(Ceed, const char *, int,
                                         const char *, int, const char *,
-                                        va_list));
+                                        va_list *));
 CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
 CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 

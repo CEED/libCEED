@@ -1,0 +1,30 @@
+name: Julia
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        julia-version: ['1']
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Environment setup
+        uses: actions/checkout@v2
+      - name: Julia setup
+        uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Julia test and style
+        run: |
+          make info
+          make -j2
+          export JULIA_LIBCEED_LIB=$(find $PWD/lib -name "libceed.*")
+          pushd julia/LibCEED.jl
+          julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED"; coverage=true)'
+          unset JULIA_LIBCEED_LIB && julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED")'
+          julia --project=.style/ -e 'import Pkg; Pkg.instantiate()' && julia --project=.style/ .style/ceed_style.jl && git diff --exit-code src test examples

@@ -47,7 +47,7 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   Ceed_Hip *data;
   ierr = CeedGetData(ceed, &data); CeedChk(ierr);
   data->deviceId = deviceID;
-  data->optblocksize = deviceProp.maxThreadsPerBlock;
+  data->optblocksize = 256;
   return 0;
 }
 

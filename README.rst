@@ -3,10 +3,10 @@ libCEED: the CEED Library
 
 |build-status| |codecov| |license| |doc| |binder|
 
-.. |build-status| image:: https://travis-ci.com/CEED/libCEED.svg?branch=main
+.. |build-status| image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
     :alt: Build Status
     :scale: 100%
-    :target: https://travis-ci.com/CEED/libCEED
+    :target: https://github.com/CEED/libCEED/actions
 
 .. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
     :alt: Code Coverage
@@ -160,15 +160,19 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
+| HIP Native Backend                                                                                     |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
 | MAGMA Backends                                                                                         |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/magma/det``    | CUDA MAGMA kernels                                | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
-| HIP Native Backend                                                                                     |
+| ``/gpu/hip/magma``         | HIP MAGMA kernels                                 | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
+| ``/gpu/hip/magma/det``     | HIP MAGMA kernels                                 | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
 | OCCA Backends                                                                                          |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -208,15 +212,18 @@ forced by setting the environment variable ``MKL=1``.
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
-The ``/gpu/cuda/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
-To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
-MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
-By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backend
-with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
-directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
-
 The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
 the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
+
+The ``/gpu/*/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
+To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
+MAGMA directory, with the MAGMA library located in ``$(MAGMA_DIR)/lib/``.
+By default, ``MAGMA_DIR`` is set to ``../magma``; to build the MAGMA backends
+with a MAGMA installation located elsewhere, create a link to ``magma/`` in libCEED's parent
+directory, or set ``MAGMA_DIR`` to the proper location.  MAGMA version 2.5.0 or newer is required.
+Currently, each MAGMA library installation is only built for either CUDA or HIP.  The corresponding
+set of libCEED backends (``/gpu/cuda/magma/*`` or ``/gpu/hip/magma/*``) will automatically be built
+for the version of the MAGMA library found in ``MAGMA_DIR``.
 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
 cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point

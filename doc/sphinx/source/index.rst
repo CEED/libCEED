@@ -9,6 +9,7 @@ Welcome to libCEED's User Manual!
    gettingstarted
    libCEEDapi
    examples/index
+   ffi
    api/index
    libCEEDdev
    Contributing <CONTRIBUTING>
