@@ -43,6 +43,7 @@ extensions = [
     'recommonmark',
     'sphinx_markdown_tables',
     'sphinx_rtd_theme',
+    'sphinx_togglebutton',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.doctest',
