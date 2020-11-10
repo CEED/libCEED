@@ -1387,7 +1387,7 @@ impl Operator {
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
-        interpCtoF: &Vec<f64>,
+        interpCtoF: &[f64],
     ) -> (Operator, Operator, Operator) {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
