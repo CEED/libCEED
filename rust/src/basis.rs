@@ -74,12 +74,12 @@ impl fmt::Display for Basis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
-        unsafe {
+        let cstring = unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedBasisView(self.ptr, file);
             bind_ceed::fclose(file);
+            CString::from_raw(ptr)
         };
-        let cstring = unsafe { CString::from_raw(ptr) };
         cstring.to_string_lossy().fmt(f)
     }
 }
@@ -95,19 +95,20 @@ impl Basis {
         ncomp: usize,
         P1d: usize,
         Q1d: usize,
-        interp1d: &Vec<f64>,
-        grad1d: &Vec<f64>,
-        qref1d: &Vec<f64>,
-        qweight1d: &Vec<f64>,
+        interp1d: &[f64],
+        grad1d: &[f64],
+        qref1d: &[f64],
+        qweight1d: &[f64],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
+        let (dim, ncomp, P1d, Q1d) = (dim as i32, ncomp as i32, P1d as i32, Q1d as i32);
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
                 ceed.ptr,
-                dim as i32,
-                ncomp as i32,
-                P1d as i32,
-                Q1d as i32,
+                dim,
+                ncomp,
+                P1d,
+                Q1d,
                 interp1d.as_ptr(),
                 grad1d.as_ptr(),
                 qref1d.as_ptr(),
@@ -127,14 +128,16 @@ impl Basis {
         qmode: crate::QuadMode,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
+        let (dim, ncomp, P, Q) = (dim as i32, ncomp as i32, P as i32, Q as i32);
+        let qmode = qmode as bind_ceed::CeedQuadMode;
         unsafe {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(
                 ceed.ptr,
-                dim as i32,
-                ncomp as i32,
-                P as i32,
-                Q as i32,
-                qmode as bind_ceed::CeedQuadMode,
+                dim,
+                ncomp,
+                P,
+                Q,
+                qmode,
                 &mut ptr,
             );
         }
@@ -147,19 +150,22 @@ impl Basis {
         ncomp: usize,
         nnodes: usize,
         nqpts: usize,
-        interp: &Vec<f64>,
-        grad: &Vec<f64>,
-        qref: &Vec<f64>,
-        qweight: &Vec<f64>,
+        interp: &[f64],
+        grad: &[f64],
+        qref: &[f64],
+        qweight: &[f64],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
+        let (topo, ncomp, nnodes, nqpts) = (
+            topo as bind_ceed::CeedElemTopology, ncomp as i32, nnodes as i32, nqpts as i32
+        );
         unsafe {
             bind_ceed::CeedBasisCreateH1(
                 ceed.ptr,
-                topo as bind_ceed::CeedElemTopology,
-                ncomp as i32,
-                nnodes as i32,
-                nqpts as i32,
+                topo,
+                ncomp,
+                nnodes,
+                nqpts,
                 interp.as_ptr(),
                 grad.as_ptr(),
                 qref.as_ptr(),
@@ -221,17 +227,20 @@ impl Basis {
     pub fn apply(
         &self,
         nelem: i32,
-        tmode: crate::TransposeMode,
-        emode: crate::EvalMode,
-        u: &crate::vector::Vector,
-        v: &mut crate::vector::Vector,
+        tmode: TransposeMode,
+        emode: EvalMode,
+        u: & Vector,
+        v: &mut Vector,
     ) {
+        let (tmode, emode) = (
+            tmode as bind_ceed::CeedTransposeMode, emode as bind_ceed::CeedEvalMode
+        );
         unsafe {
             bind_ceed::CeedBasisApply(
                 self.ptr,
                 nelem,
-                tmode as bind_ceed::CeedTransposeMode,
-                emode as bind_ceed::CeedEvalMode,
+                tmode,
+                emode,
                 u.ptr,
                 v.ptr,
             )

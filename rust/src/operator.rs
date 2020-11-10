@@ -48,14 +48,13 @@ impl fmt::Display for OperatorCore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        unsafe {
+        let cstring = unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedOperatorView(self.ptr, file);
             bind_ceed::fclose(file);
-            let cstring = CString::from_raw(ptr);
-            let s = cstring.to_string_lossy().into_owned();
-            write!(f, "{}", s)
-        }
+            CString::from_raw(ptr)
+        };
+        cstring.to_string_lossy().fmt(f)
     }
 }
 
@@ -147,7 +146,7 @@ impl fmt::Display for CompositeOperator {
 // -----------------------------------------------------------------------------
 impl OperatorCore {
     // Common implementations
-    pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply(&self, input: &Vector, output: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorApply(
                 self.ptr,
@@ -158,7 +157,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply_add(&self, input: &Vector, output: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorApplyAdd(
                 self.ptr,
@@ -169,7 +168,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn linear_assemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleDiagonal(
                 self.ptr,
@@ -179,7 +178,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddDiagonal(
                 self.ptr,
@@ -189,7 +188,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssemblePointBlockDiagonal(
                 self.ptr,
@@ -199,7 +198,7 @@ impl OperatorCore {
         };
     }
 
-    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut Vector) {
         unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddPointBlockDiagonal(
                 self.ptr,
@@ -217,9 +216,9 @@ impl Operator {
     // Constructor
     pub fn create<'b>(
         ceed: &crate::Ceed,
-        qf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
-        dqf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
-        dqfT: impl Into<crate::qfunction::QFunctionOpt<'b>>,
+        qf: impl Into<QFunctionOpt<'b>>,
+        dqf: impl Into<QFunctionOpt<'b>>,
+        dqfT: impl Into<QFunctionOpt<'b>>,
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
@@ -310,7 +309,7 @@ impl Operator {
     /// }
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
-    pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply(&self, input: &Vector, output: &mut Vector) {
         self.op_core.apply(input, output)
     }
 
@@ -386,7 +385,7 @@ impl Operator {
     ///   "Incorrect interval length computed and added"
     /// );
     /// ```
-    pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply_add(&self, input: &Vector, output: &mut Vector) {
         self.op_core.apply_add(input, output)
     }
 
@@ -426,16 +425,16 @@ impl Operator {
     pub fn set_field<'b>(
         &mut self,
         fieldname: &str,
-        r: impl Into<crate::elem_restriction::ElemRestrictionOpt<'b>>,
-        b: impl Into<crate::basis::BasisOpt<'b>>,
-        v: impl Into<crate::vector::VectorOpt<'b>>,
+        r: impl Into<ElemRestrictionOpt<'b>>,
+        b: impl Into<BasisOpt<'b>>,
+        v: impl Into<VectorOpt<'b>>,
     ) {
+        let fieldname = CString::new(fieldname).expect("CString::new failed");
+        let fieldname = fieldname.as_ptr() as *const i8;
         unsafe {
             bind_ceed::CeedOperatorSetField(
                 self.op_core.ptr,
-                CString::new(fieldname)
-                    .expect("CString::new failed")
-                    .as_ptr() as *const i8,
+                fieldname,
                 r.into().to_raw(),
                 b.into().to_raw(),
                 v.into().to_raw(),
@@ -540,7 +539,7 @@ impl Operator {
     ///   );
     /// }
     /// ```
-    pub fn linear_assemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_diagonal(assembled)
     }
 
@@ -642,7 +641,7 @@ impl Operator {
     ///   );
     /// }
     /// ```
-    pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
@@ -713,8 +712,8 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: &Vec<&[f64]>,
-    ///   outputs: &mut Vec<&mut [f64]>,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   let u = &inputs[0];
@@ -777,7 +776,7 @@ impl Operator {
     ///   );
     /// }
     /// ```
-    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_point_block_diagonal(assembled)
     }
 
@@ -848,8 +847,8 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: &Vec<&[f64]>,
-    ///   outputs: &mut Vec<&mut [f64]>,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   let u = &inputs[0];
@@ -912,7 +911,7 @@ impl Operator {
     ///   );
     /// }
     /// ```
-    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core
             .linear_assemble_add_point_block_diagonal(assembled)
     }
@@ -1043,14 +1042,10 @@ impl Operator {
     /// ```
     pub fn create_multigrid_level(
         &self,
-        p_mult_fine: &crate::vector::Vector,
-        rstr_coarse: &crate::elem_restriction::ElemRestriction,
-        basis_coarse: &crate::basis::Basis,
-    ) -> (
-        crate::operator::Operator,
-        crate::operator::Operator,
-        crate::operator::Operator,
-    ) {
+        p_mult_fine: &Vector,
+        rstr_coarse: &ElemRestriction,
+        basis_coarse: &Basis,
+    ) -> (Operator, Operator, Operator) {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -1217,15 +1212,11 @@ impl Operator {
     /// ```
     pub fn create_multigrid_level_tensor_H1(
         &self,
-        p_mult_fine: &crate::vector::Vector,
-        rstr_coarse: &crate::elem_restriction::ElemRestriction,
-        basis_coarse: &crate::basis::Basis,
+        p_mult_fine: &Vector,
+        rstr_coarse: &ElemRestriction,
+        basis_coarse: &Basis,
         interpCtoF: &Vec<f64>,
-    ) -> (
-        crate::operator::Operator,
-        crate::operator::Operator,
-        crate::operator::Operator,
-    ) {
+    ) -> (Operator, Operator, Operator) {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -1393,15 +1384,11 @@ impl Operator {
     /// ```
     pub fn create_multigrid_level_H1(
         &self,
-        p_mult_fine: &crate::vector::Vector,
-        rstr_coarse: &crate::elem_restriction::ElemRestriction,
-        basis_coarse: &crate::basis::Basis,
+        p_mult_fine: &Vector,
+        rstr_coarse: &ElemRestriction,
+        basis_coarse: &Basis,
         interpCtoF: &Vec<f64>,
-    ) -> (
-        crate::operator::Operator,
-        crate::operator::Operator,
-        crate::operator::Operator,
-    ) {
+    ) -> (Operator, Operator, Operator) {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -1529,7 +1516,7 @@ impl CompositeOperator {
     /// }
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
-    pub fn apply(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply(&self, input: &Vector, output: &mut Vector) {
         self.op_core.apply(input, output)
     }
 
@@ -1625,7 +1612,7 @@ impl CompositeOperator {
     /// }
     /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
-    pub fn apply_add(&self, input: &crate::vector::Vector, output: &mut crate::vector::Vector) {
+    pub fn apply_add(&self, input: &Vector, output: &mut Vector) {
         self.op_core.apply_add(input, output)
     }
 
@@ -1659,7 +1646,7 @@ impl CompositeOperator {
     ///
     /// * `op`        - Operator to assemble QFunction
     /// * `assembled` - Vector to store assembled Operator diagonal
-    pub fn linear_asssemble_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_asssemble_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
@@ -1673,7 +1660,7 @@ impl CompositeOperator {
     ///
     /// * `op`        - Operator to assemble QFunction
     /// * `assembled` - Vector to store assembled Operator diagonal
-    pub fn linear_assemble_add_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
@@ -1691,7 +1678,7 @@ impl CompositeOperator {
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
     ///                   `[nodes, component out, component in]`.
-    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 
@@ -1709,7 +1696,7 @@ impl CompositeOperator {
     ///                   this vector are derived from the active vector for
     ///                   the CeedOperator. The array has shape
     ///                   `[nodes, component out, component in]`.
-    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut crate::vector::Vector) {
+    pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 }

@@ -104,10 +104,12 @@ impl fmt::Display for QFunctionCore {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
-        unsafe { bind_ceed::CeedQFunctionView(self.ptr, file) };
-        unsafe { bind_ceed::fclose(file) };
-        let cstring = unsafe { CString::from_raw(ptr) };
+        let cstring = unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedQFunctionView(self.ptr, file);
+            bind_ceed::fclose(file);
+            CString::from_raw(ptr)
+        };
         cstring.to_string_lossy().fmt(f)
     }
 }
@@ -118,8 +120,8 @@ impl fmt::Display for QFunctionCore {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
 ///   q: usize,
-///   inputs: &Vec<&[f64]>,
-///   outputs: &mut Vec<&mut [f64]>,
+///   inputs: &[&[f64]],
+///   outputs: &mut [&mut [f64]],
 /// | -> i32
 /// {
 ///   let u = &inputs[0];
@@ -168,17 +170,17 @@ impl fmt::Display for QFunctionByName {
 // -----------------------------------------------------------------------------
 impl QFunctionCore {
     // Common implementation
-    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+    pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
+        let mut u_c = [std::ptr::null_mut(); 16];
+        for i in 0..std::cmp::min(16, u.len()) {
+            u_c[i] = u[i].ptr;
+        }
+        let mut v_c = [std::ptr::null_mut(); 16];
+        for i in 0..std::cmp::min(16, v.len()) {
+            v_c[i] = v[i].ptr;
+        }
         unsafe {
-            let mut u_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, u.len()) {
-                u_c[i] = u[i].ptr;
-            }
-            let mut v_c = [std::ptr::null_mut(); 16];
-            for i in 0..std::cmp::min(16, v.len()) {
-                v_c[i] = v[i].ptr;
-            }
-            bind_ceed::CeedQFunctionApply(self.ptr, Q, &mut u_c[0], &mut v_c[0]);
+            bind_ceed::CeedQFunctionApply(self.ptr, Q, u_c.as_mut_ptr(), v_c.as_mut_ptr());
         }
     }
 }
@@ -186,7 +188,7 @@ impl QFunctionCore {
 // -----------------------------------------------------------------------------
 // User QFunction Closure
 // -----------------------------------------------------------------------------
-pub type QFunctionUserClosure = dyn FnMut(usize, &Vec<&[f64]>, &mut Vec<&mut [f64]>) -> i32;
+pub type QFunctionUserClosure = dyn FnMut(usize, &[&[f64]], &mut [&mut [f64]]) -> i32;
 
 unsafe extern "C" fn trampoline(
     ctx: *mut ::std::os::raw::c_void,
@@ -295,8 +297,8 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &Vec<&[f64]>,
-    ///   outputs: &mut Vec<&mut [f64]>,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   let u = &inputs[0];
@@ -349,8 +351,8 @@ impl QFunction {
     pub fn apply(
         &mut self,
         Q: i32,
-        u: &Vec<crate::vector::Vector>,
-        v: &Vec<crate::vector::Vector>,
+        u: &[Vector],
+        v: &[Vector],
     ) {
         self.qf_core.apply(Q, u, v)
     }
@@ -369,8 +371,8 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &Vec<&[f64]>,
-    ///   outputs: &mut Vec<&mut [f64]>,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   let u = &inputs[0];
@@ -394,12 +396,13 @@ impl QFunction {
         let name_c = CString::new(fieldname.into()).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
+        let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
             bind_ceed::CeedQFunctionAddInput(
                 self.qf_core.ptr,
                 name_c.as_ptr(),
                 size,
-                emode as bind_ceed::CeedEvalMode,
+                emode,
             );
         }
     }
@@ -418,8 +421,8 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///     q: usize,
-    ///     inputs: &Vec<&[f64]>,
-    ///     outputs: &mut Vec<&mut [f64]>,
+    ///     inputs: &[&[f64]],
+    ///     outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///     let u = &inputs[0];
@@ -442,12 +445,13 @@ impl QFunction {
         let name_c = CString::new(fieldname.into()).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
+        let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
             bind_ceed::CeedQFunctionAddOutput(
                 self.qf_core.ptr,
                 name_c.as_ptr(),
                 size,
-                emode as bind_ceed::CeedEvalMode,
+                emode,
             );
         }
     }
@@ -521,7 +525,7 @@ impl QFunctionByName {
     ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
     /// ```
-    pub fn apply(&self, Q: i32, u: &Vec<crate::vector::Vector>, v: &Vec<crate::vector::Vector>) {
+    pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)
     }
 }

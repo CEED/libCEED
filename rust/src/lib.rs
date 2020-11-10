@@ -36,11 +36,14 @@ pub mod prelude {
         #![allow(dead_code)]
         include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
     }
-    pub use crate::basis::{self, BasisOpt};
-    pub use crate::elem_restriction::{self, ElemRestrictionOpt};
-    pub use crate::qfunction::{self, QFunctionOpt};
-    pub use crate::vector::{self, VectorOpt};
-    pub use crate::{ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode};
+    pub use crate::{
+        basis::{self, Basis, BasisOpt},
+        elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
+        operator::{self, Operator, CompositeOperator},
+        qfunction::{self, QFunction, QFunctionOpt, QFunctionByName},
+        vector::{self, Vector, VectorOpt},
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode,
+    };
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
 }
@@ -150,10 +153,12 @@ impl fmt::Display for Ceed {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
-        unsafe { bind_ceed::CeedView(self.ptr, file) };
-        unsafe { bind_ceed::fclose(file) };
-        let cstring = unsafe { CString::from_raw(ptr) };
+        let cstring = unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedView(self.ptr, file);
+            bind_ceed::fclose(file);
+            CString::from_raw(ptr)
+        };
         cstring.to_string_lossy().fmt(f)
     }
 }
@@ -181,7 +186,8 @@ impl Ceed {
         Ceed { ptr }
     }
 
-    // Default initalizer for testing
+    /// Default initalizer for testing
+    #[doc(hidden)]
     pub fn default_init() -> Self {
         // Convert to C string
         let resource = "/cpu/self/ref/serial";
@@ -199,8 +205,8 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10);
     /// ```
-    pub fn vector(&self, n: usize) -> crate::vector::Vector {
-        crate::vector::Vector::create(self, n)
+    pub fn vector(&self, n: usize) -> Vector {
+        Vector::create(self, n)
     }
 
     /// Create a Vector initialized with the data (copied) from a slice
@@ -215,8 +221,8 @@ impl Ceed {
     /// let vec = ceed.vector_from_slice(&[1., 2., 3.]);
     /// assert_eq!(vec.length(), 3);
     /// ```
-    pub fn vector_from_slice(&self, slice: &[f64]) -> crate::vector::Vector {
-        crate::vector::Vector::from_slice(self, slice)
+    pub fn vector_from_slice(&self, slice: &[f64]) -> Vector {
+        Vector::from_slice(self, slice)
     }
 
     /// Returns a ElemRestriction
@@ -260,9 +266,9 @@ impl Ceed {
         compstride: usize,
         lsize: usize,
         mtype: MemType,
-        offsets: &Vec<i32>,
-    ) -> crate::elem_restriction::ElemRestriction {
-        crate::elem_restriction::ElemRestriction::create(
+        offsets: &[i32],
+    ) -> ElemRestriction {
+        ElemRestriction::create(
             self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets,
         )
     }
@@ -302,8 +308,8 @@ impl Ceed {
         ncomp: usize,
         lsize: usize,
         strides: [i32; 3],
-    ) -> crate::elem_restriction::ElemRestriction {
-        crate::elem_restriction::ElemRestriction::create_strided(
+    ) -> ElemRestriction {
+        ElemRestriction::create_strided(
             self, nelem, elemsize, ncomp, lsize, strides,
         )
     }
@@ -349,12 +355,12 @@ impl Ceed {
         ncomp: usize,
         P1d: usize,
         Q1d: usize,
-        interp1d: &Vec<f64>,
-        grad1d: &Vec<f64>,
-        qref1d: &Vec<f64>,
-        qweight1d: &Vec<f64>,
-    ) -> crate::basis::Basis {
-        crate::basis::Basis::create_tensor_H1(
+        interp1d: &[f64],
+        grad1d: &[f64],
+        qref1d: &[f64],
+        qweight1d: &[f64],
+    ) -> Basis {
+        Basis::create_tensor_H1(
             self, dim, ncomp, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d,
         )
     }
@@ -383,8 +389,8 @@ impl Ceed {
         P: usize,
         Q: usize,
         qmode: QuadMode,
-    ) -> crate::basis::Basis {
-        crate::basis::Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
+    ) -> Basis {
+        Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
     /// Returns a tensor-product basis
@@ -429,12 +435,12 @@ impl Ceed {
         ncomp: usize,
         nnodes: usize,
         nqpts: usize,
-        interp: &Vec<f64>,
-        grad: &Vec<f64>,
-        qref: &Vec<f64>,
-        qweight: &Vec<f64>,
-    ) -> crate::basis::Basis {
-        crate::basis::Basis::create_H1(
+        interp: &[f64],
+        grad: &[f64],
+        qref: &[f64],
+        qweight: &[f64],
+    ) -> Basis {
+        Basis::create_H1(
             self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
         )
     }
@@ -452,8 +458,8 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &Vec<&[f64]>,
-    ///   outputs: &mut Vec<&mut [f64]>,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   let u = &inputs[0];
@@ -473,9 +479,9 @@ impl Ceed {
     pub fn q_function_interior(
         &self,
         vlength: i32,
-        f: Box<crate::qfunction::QFunctionUserClosure>,
-    ) -> crate::qfunction::QFunction {
-        crate::qfunction::QFunction::create(self, vlength, f)
+        f: Box<qfunction::QFunctionUserClosure>,
+    ) -> QFunction {
+        QFunction::create(self, vlength, f)
     }
 
     /// Returns a CeedQFunction for evaluating interior (volumetric) terms
@@ -486,8 +492,8 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
     /// ```
-    pub fn q_function_interior_by_name(&self, name: String) -> crate::qfunction::QFunctionByName {
-        crate::qfunction::QFunctionByName::create(self, name)
+    pub fn q_function_interior_by_name(&self, name: impl Into<String>) -> QFunctionByName {
+        QFunctionByName::create(self, name)
     }
 
     /// Returns a Operator and associate a QFunction. A Basis and
@@ -509,11 +515,11 @@ impl Ceed {
     /// ```
     pub fn operator<'b>(
         &self,
-        qf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
-        dqf: impl Into<crate::qfunction::QFunctionOpt<'b>>,
-        dqfT: impl Into<crate::qfunction::QFunctionOpt<'b>>,
-    ) -> crate::operator::Operator {
-        crate::operator::Operator::create(self, qf, dqf, dqfT)
+        qf: impl Into<QFunctionOpt<'b>>,
+        dqf: impl Into<QFunctionOpt<'b>>,
+        dqfT: impl Into<QFunctionOpt<'b>>,
+    ) -> Operator {
+        Operator::create(self, qf, dqf, dqfT)
     }
 
     /// Returns an Operator that composes the action of several Operators
@@ -523,8 +529,8 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let op = ceed.composite_operator();
     /// ```
-    pub fn composite_operator(&self) -> crate::operator::CompositeOperator {
-        crate::operator::CompositeOperator::create(self)
+    pub fn composite_operator(&self) -> CompositeOperator {
+        CompositeOperator::create(self)
     }
 }
 
