@@ -242,7 +242,9 @@ impl Vector {
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
         );
-        unsafe { bind_ceed::CeedVectorSetArray(self.ptr, host, copy_mode, slice.as_ptr() as *mut f64) };
+        unsafe {
+            bind_ceed::CeedVectorSetArray(self.ptr, host, copy_mode, slice.as_ptr() as *mut f64)
+        };
     }
 
     /// Sync the CeedVector to a specified memtype
