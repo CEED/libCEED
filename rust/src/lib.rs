@@ -39,8 +39,8 @@ pub mod prelude {
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
-        operator::{self, Operator, CompositeOperator},
-        qfunction::{self, QFunction, QFunctionOpt, QFunctionByName},
+        operator::{self, CompositeOperator, Operator},
+        qfunction::{self, QFunction, QFunctionByName, QFunctionOpt},
         vector::{self, Vector, VectorOpt},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode,
     };
@@ -309,9 +309,7 @@ impl Ceed {
         lsize: usize,
         strides: [i32; 3],
     ) -> ElemRestriction {
-        ElemRestriction::create_strided(
-            self, nelem, elemsize, ncomp, lsize, strides,
-        )
+        ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
     /// Returns a tensor-product basis

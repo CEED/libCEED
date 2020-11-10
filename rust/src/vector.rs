@@ -98,7 +98,7 @@ impl fmt::Display for Vector {
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
         let format = CString::new("%12.8f").expect("CString::new failed");
         let format_c: *const c_char = format.into_raw();
-        let cstring = unsafe { 
+        let cstring = unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedVectorView(self.ptr, format_c, file);
             bind_ceed::fclose(file);
@@ -163,14 +163,7 @@ impl Vector {
             crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
         );
         let v = v.as_ptr() as *mut f64;
-        unsafe {
-            bind_ceed::CeedVectorSetArray(
-                x.ptr,
-                host,
-                user_pointer,
-                v,
-            )
-        };
+        unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) };
         x
     }
 
@@ -249,14 +242,7 @@ impl Vector {
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
         );
-        unsafe {
-            bind_ceed::CeedVectorSetArray(
-                self.ptr,
-                host,
-                copy_mode,
-                slice.as_ptr() as *mut f64,
-            )
-        };
+        unsafe { bind_ceed::CeedVectorSetArray(self.ptr, host, copy_mode, slice.as_ptr() as *mut f64) };
     }
 
     /// Sync the CeedVector to a specified memtype

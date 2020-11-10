@@ -348,12 +348,7 @@ impl QFunction {
     ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
     /// ```
-    pub fn apply(
-        &mut self,
-        Q: i32,
-        u: &[Vector],
-        v: &[Vector],
-    ) {
+    pub fn apply(&mut self, Q: i32, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)
     }
 
@@ -398,12 +393,7 @@ impl QFunction {
         self.trampoline_data.number_inputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
-            bind_ceed::CeedQFunctionAddInput(
-                self.qf_core.ptr,
-                name_c.as_ptr(),
-                size,
-                emode,
-            );
+            bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
         }
     }
 
@@ -447,12 +437,7 @@ impl QFunction {
         self.trampoline_data.number_outputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
-            bind_ceed::CeedQFunctionAddOutput(
-                self.qf_core.ptr,
-                name_c.as_ptr(),
-                size,
-                emode,
-            );
+            bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
         }
     }
 }

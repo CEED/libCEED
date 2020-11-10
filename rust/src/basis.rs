@@ -131,15 +131,7 @@ impl Basis {
         let (dim, ncomp, P, Q) = (dim as i32, ncomp as i32, P as i32, Q as i32);
         let qmode = qmode as bind_ceed::CeedQuadMode;
         unsafe {
-            bind_ceed::CeedBasisCreateTensorH1Lagrange(
-                ceed.ptr,
-                dim,
-                ncomp,
-                P,
-                Q,
-                qmode,
-                &mut ptr,
-            );
+            bind_ceed::CeedBasisCreateTensorH1Lagrange(ceed.ptr, dim, ncomp, P, Q, qmode, &mut ptr);
         }
         Self { ptr }
     }
@@ -157,7 +149,10 @@ impl Basis {
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
         let (topo, ncomp, nnodes, nqpts) = (
-            topo as bind_ceed::CeedElemTopology, ncomp as i32, nnodes as i32, nqpts as i32
+            topo as bind_ceed::CeedElemTopology,
+            ncomp as i32,
+            nnodes as i32,
+            nqpts as i32,
         );
         unsafe {
             bind_ceed::CeedBasisCreateH1(
@@ -229,22 +224,14 @@ impl Basis {
         nelem: i32,
         tmode: TransposeMode,
         emode: EvalMode,
-        u: & Vector,
+        u: &Vector,
         v: &mut Vector,
     ) {
         let (tmode, emode) = (
-            tmode as bind_ceed::CeedTransposeMode, emode as bind_ceed::CeedEvalMode
+            tmode as bind_ceed::CeedTransposeMode,
+            emode as bind_ceed::CeedEvalMode,
         );
-        unsafe {
-            bind_ceed::CeedBasisApply(
-                self.ptr,
-                nelem,
-                tmode,
-                emode,
-                u.ptr,
-                v.ptr,
-            )
-        };
+        unsafe { bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr) };
     }
 
     /// Returns the dimension for given CeedBasis

@@ -81,7 +81,7 @@ impl fmt::Display for ElemRestriction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let cstring = unsafe { 
+        let cstring = unsafe {
             let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
             bind_ceed::CeedElemRestrictionView(self.ptr, file);
             bind_ceed::fclose(file);
@@ -140,12 +140,8 @@ impl ElemRestriction {
         strides: [i32; 3],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        let (nelem, elemsize, ncomp, lsize) = (
-            nelem as i32,
-            elemsize as i32,
-            ncomp as i32,
-            lsize as i32,
-        );
+        let (nelem, elemsize, ncomp, lsize) =
+            (nelem as i32, elemsize as i32, ncomp as i32, lsize as i32);
         unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(
                 ceed.ptr,
@@ -180,13 +176,7 @@ impl ElemRestriction {
     pub fn create_lvector(&self) -> Vector {
         let mut ptr_lvector = std::ptr::null_mut();
         let null = std::ptr::null_mut() as *mut _;
-        unsafe {
-            bind_ceed::CeedElemRestrictionCreateVector(
-                self.ptr,
-                &mut ptr_lvector,
-                null,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, null) };
         Vector::from_raw(ptr_lvector)
     }
 
@@ -210,13 +200,7 @@ impl ElemRestriction {
     pub fn create_evector(&self) -> Vector {
         let mut ptr_evector = std::ptr::null_mut();
         let null = std::ptr::null_mut() as *mut _;
-        unsafe {
-            bind_ceed::CeedElemRestrictionCreateVector(
-                self.ptr,
-                null,
-                &mut ptr_evector,
-            )
-        };
+        unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, null, &mut ptr_evector) };
         Vector::from_raw(ptr_evector)
     }
 
@@ -244,10 +228,7 @@ impl ElemRestriction {
         unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
         };
-        (
-            Vector::from_raw(ptr_lvector),
-            Vector::from_raw(ptr_evector),
-        )
+        (Vector::from_raw(ptr_lvector), Vector::from_raw(ptr_evector))
     }
 
     /// Restrict an Lvector to an Evector or apply its transpose
@@ -282,12 +263,7 @@ impl ElemRestriction {
     ///   assert_eq!(array[i], ((i+1)/2) as f64, "Incorrect value in restricted vector");
     /// }
     /// ```
-    pub fn apply(
-        &self,
-        tmode: TransposeMode,
-        u: &Vector,
-        ru: &mut Vector,
-    ) {
+    pub fn apply(&self, tmode: TransposeMode, u: &Vector, ru: &mut Vector) {
         let tmode = tmode as bind_ceed::CeedTransposeMode;
         unsafe {
             bind_ceed::CeedElemRestrictionApply(
