@@ -90,7 +90,7 @@ In particular, given an orthogonal transformation :math:`Q`, we desire
 
 which means that we can change our reference frame before or after computing :math:`\bm \sigma`, and get the same result either way.
 Constitutive relations in which :math:`\bm \sigma` is uniquely determined by :math:`\bm \epsilon` while satisfying the invariance property :math:numref:`elastic-invariance` are known as Cauchy elastic materials.
-Here, we define a strain energy density functional :math:`\Phi(\bm \epsilon) \in \mathbb R` and obtain the strain energy from its gradient,
+Here, we define a strain energy density functional :math:`\Phi(\bm \epsilon) \in \mathbb R` and obtain the stress from its gradient,
 
 .. math::
    :label: strain-energy-grad
@@ -307,13 +307,13 @@ For example, if we take the compressible Neo-Hookean model,
 
 where :math:`J = \lvert \bm F \rvert = \sqrt{\lvert \bm C \rvert}` is the determinant of deformation (i.e., volume change) and :math:`\lambda` and :math:`\mu` are the Lamé parameters in the infinitesimal strain limit.
 
-To evaluate :math:numref:`strain-energy-grad`, we make use of
+The second Piola-Kirchoff tensor is the gradient of the strain energy density :math:`\bm S = \partial \Phi/\partial \bm E` (cf. :math:numref:`strain-energy-grad`), the evaluation of which will use
 
 .. math::
    \frac{\partial J}{\partial \bm E} = \frac{\partial \sqrt{\lvert \bm C \rvert}}{\partial \bm E} = \lvert \bm C \rvert^{-1/2} \lvert \bm C \rvert \bm C^{-1} = J \bm C^{-1},
 
 where the factor of :math:`\frac 1 2` has been absorbed due to :math:`\bm C = \bm I_3 + 2 \bm E.`
-Carrying through the differentiation :math:numref:`strain-energy-grad` for the model :math:numref:`neo-hookean-energy`, we arrive at
+Carrying through the differentiation for the model :math:numref:`neo-hookean-energy`, we arrive at
 
 .. math::
    :label: neo-hookean-stress
