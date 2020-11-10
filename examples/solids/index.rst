@@ -365,6 +365,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
    along with the determinant :math:`J = \sqrt{\lvert \bm C \rvert}`.
 
+<<<<<<< HEAD
    :math:`\mathbb{\bar I_1}` and :math:`\mathbb{\bar I_1}` are derived as follows:
 
    .. math::
@@ -376,6 +377,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} &= 2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 C^{-1} \big) .
       \end{aligned}
 
+=======
+>>>>>>> b8085298... examples/solids: attempt to explain derivation of Mooney-Rivlin model
    The Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
 
    .. math::
@@ -388,6 +391,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-stress
 
+<<<<<<< HEAD
       \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
 
 
@@ -402,6 +406,23 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
        \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \sum_{i + j = 1}^N C_{ij}(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^j + \sum_{i = 1}^N \frac{k_i}{2}(J -1)^{2i}
 
    which we differentiate, using the derivaties defined in Mooney-Rivlin, as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
+=======
+      \bm S = \mu_1 \mathbb I_1 J^{-2/3}(\bm I_3 - \frac{1}{3} \bm C^{-1}) + \mu _2 I_2J^{-4/3}(I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + k_1(J^2 -J)\bm C^{-1} ,
+
+   [TODO: double-check above] where we have used
+
+   .. math::
+
+      \begin{aligned}
+      \frac{\partial \mathbb{I_1}}{\partial \bm E} &= 2 \bm I_3 &
+      \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} &= 2 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \\
+      \frac{\partial \mathbb{I_2}}{\partial \bm E} &= 2 \mathbb I_1 \bm I_3 - 2 \bm C &
+      \frac{\partial \mathbb{\bar I_2}}{\partial \bm C} &= 2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 C^{-1} \big) .
+      \end{aligned}
+
+.. admonition:: Generalized Polynomial model
+   :class: dropdown
+>>>>>>> b8085298... examples/solids: attempt to explain derivation of Mooney-Rivlin model
 
    .. math::
       :label: generalized-polynomial-stress
