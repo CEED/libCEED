@@ -415,13 +415,8 @@ Carrying through the differentiation for the model :math:numref:`neo-hookean-ene
       :label: eq-st-venant-kirchoff
 
       \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
-<<<<<<< HEAD
  
    which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see :math:numref:`hyperelastic-cd`).
-=======
-
-   which is the St. Venant-Kirchoff model.
->>>>>>> 6b65dcc0... adding equations for MR and GP
 
    This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
 
