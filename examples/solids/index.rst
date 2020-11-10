@@ -339,17 +339,57 @@ Carrying through the differentiation for the model :math:numref:`neo-hookean-ene
    which gives accurate results even in the limit when the entries :math:`e_{ij}` are very small.
    For example, if :math:`e_{ij} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
-.. note::
-    Something about the new models here.
-    Mooney-Rivlin:
-    .. math::
-        :label: mooney-rivlin-stress
-        \bm S = \mu _1 I_1J^{-2/3}(\bm I_3 - \frac{1}{3} \bm C^{-1}) + \mu _2 I_2J^{-4/3}(I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + k_1(J^2 -J)\bm C^{-1}
 
-    Generalized Polynomial:
-    .. math::
-        :label: generalized-polynomial-stress
-        \bm S = \sum_{i + j = 1}^N 2C_{ij}\left(\frac{jI_2}{J^{-4/3}} (\bar{I_1} -3)^i (\bar{I_2} -3)^{j-1} (I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + \frac{i I_1}{J^{-2/3}} (\bar{I_2} -3)^j (\bar{I_1} -3)^{i-1} (\bm I_3 - \frac{1}{3} \bm C^{-1}) \right) +  \sum_{i = 1}^N k_1 i(J -1)^{2i-1}J\bm C^{-1}
+.. admonition:: Mooney-Rivlin model
+   :class: dropdown
+
+   Constitutive models of rubber and other nearly-incompressible materials are often expressed in terms of invariants of an isochoric Cauchy-Green tensor :math:`\bar{\bm C} = J^{-2/3} \bm C`, typically defined as
+
+   .. math::
+      \begin{aligned}
+      \mathbb{\bar I_1} &= \operatorname{trace} \bm{\bar C} \\
+                        &= J^{-2/3} \operatorname{trace} \bm C \\
+                        &= J^{-2/3} \mathbb I_1 \\
+      \mathbb{\bar I_2} &= \frac 1 2 \Big( (\operatorname{trace} \bm{\bar C})^2 - \bm{\bar C} \!:\! \bm{\bar C} \Big) \\
+                        &= \frac 1 2 \Big( \mathbb{\bar I_1^2} - J^{-4/3} \bm C \!:\! \bm C \Big) \\
+                        &= J^{-4/3} \mathbb I_2
+      \end{aligned}
+
+   along with the determinant :math:`J = \sqrt{\lvert \bm C \rvert}`.
+
+   The Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
+
+   .. math::
+      :label: mooney-rivlin-energy
+
+      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (J - 1)^2,
+
+   which we differentiate as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
+
+   .. math::
+      :label: mooney-rivlin-stress
+
+      \bm S = \mu_1 \mathbb I_1 J^{-2/3}(\bm I_3 - \frac{1}{3} \bm C^{-1}) + \mu _2 I_2J^{-4/3}(I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + k_1(J^2 -J)\bm C^{-1} ,
+
+   [TODO: double-check above] where we have used
+
+   .. math::
+
+      \begin{aligned}
+      \frac{\partial \mathbb{I_1}}{\partial \bm E} &= 2 \bm I_3 &
+      \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} &= 2 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \\
+      \frac{\partial \mathbb{I_2}}{\partial \bm E} &= 2 \mathbb I_1 \bm I_3 - 2 \bm C &
+      \frac{\partial \mathbb{\bar I_2}}{\partial \bm C} &= 2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 C^{-1} \big) .
+      \end{aligned}
+
+.. admonition:: Generalized Polynomial model
+   :class: dropdown
+
+   .. math::
+      :label: generalized-polynomial-stress
+
+      \bm S = \sum_{i + j = 1}^N 2C_{ij}\left(\frac{jI_2}{J^{-4/3}} (\bar{I_1} -3)^i (\bar{I_2} -3)^{j-1} (I_1 - \bm C - \frac{2}{3} \bm C^{-1}) + \frac{i I_1}{J^{-2/3}} (\bar{I_2} -3)^j (\bar{I_1} -3)^{i-1} (\bm I_3 - \frac{1}{3} \bm C^{-1}) \right) +  \sum_{i = 1}^N k_1 i(J -1)^{2i-1}J\bm C^{-1}
+
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
 
