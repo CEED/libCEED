@@ -81,10 +81,12 @@ impl fmt::Display for ElemRestriction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
-        unsafe { bind_ceed::CeedElemRestrictionView(self.ptr, file) };
-        unsafe { bind_ceed::fclose(file) };
-        let cstring = unsafe { CString::from_raw(ptr) };
+        let cstring = unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedElemRestrictionView(self.ptr, file);
+            bind_ceed::fclose(file);
+            CString::from_raw(ptr)
+        };
         cstring.to_string_lossy().fmt(f)
     }
 }
@@ -102,17 +104,24 @@ impl ElemRestriction {
         compstride: usize,
         lsize: usize,
         mtype: crate::MemType,
-        offsets: &Vec<i32>,
+        offsets: &[i32],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
+        let (nelem, elemsize, ncomp, compstride, lsize) = (
+            nelem as i32,
+            elemsize as i32,
+            ncomp as i32,
+            compstride as i32,
+            lsize as i32,
+        );
         unsafe {
             bind_ceed::CeedElemRestrictionCreate(
                 ceed.ptr,
-                nelem as i32,
-                elemsize as i32,
-                ncomp as i32,
-                compstride as i32,
-                lsize as i32,
+                nelem,
+                elemsize,
+                ncomp,
+                compstride,
+                lsize,
                 mtype as bind_ceed::CeedMemType,
                 crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
                 offsets.as_ptr(),
@@ -131,13 +140,15 @@ impl ElemRestriction {
         strides: [i32; 3],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
+        let (nelem, elemsize, ncomp, lsize) =
+            (nelem as i32, elemsize as i32, ncomp as i32, lsize as i32);
         unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(
                 ceed.ptr,
-                nelem as i32,
-                elemsize as i32,
-                ncomp as i32,
-                lsize as i32,
+                nelem,
+                elemsize,
+                ncomp,
+                lsize,
                 strides.as_ptr(),
                 &mut ptr,
             )
@@ -162,16 +173,11 @@ impl ElemRestriction {
     ///
     /// assert_eq!(lvector.length(), nelem+1, "Incorrect Lvector size");
     /// ```
-    pub fn create_lvector(&self) -> crate::vector::Vector {
+    pub fn create_lvector(&self) -> Vector {
         let mut ptr_lvector = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedElemRestrictionCreateVector(
-                self.ptr,
-                &mut ptr_lvector,
-                std::ptr::null_mut() as *mut _,
-            )
-        };
-        crate::vector::Vector::from_raw(ptr_lvector)
+        let null = std::ptr::null_mut() as *mut _;
+        unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, null) };
+        Vector::from_raw(ptr_lvector)
     }
 
     /// Create an Evector for an ElemRestriction
@@ -191,16 +197,11 @@ impl ElemRestriction {
     ///
     /// assert_eq!(evector.length(), nelem*2, "Incorrect Evector size");
     /// ```
-    pub fn create_evector(&self) -> crate::vector::Vector {
+    pub fn create_evector(&self) -> Vector {
         let mut ptr_evector = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedElemRestrictionCreateVector(
-                self.ptr,
-                std::ptr::null_mut() as *mut _,
-                &mut ptr_evector,
-            )
-        };
-        crate::vector::Vector::from_raw(ptr_evector)
+        let null = std::ptr::null_mut() as *mut _;
+        unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, null, &mut ptr_evector) };
+        Vector::from_raw(ptr_evector)
     }
 
     /// Create Vectors for an ElemRestriction
@@ -221,16 +222,13 @@ impl ElemRestriction {
     /// assert_eq!(lvector.length(), nelem+1, "Incorrect Lvector size");
     /// assert_eq!(evector.length(), nelem*2, "Incorrect Evector size");
     /// ```
-    pub fn create_vectors(&self) -> (crate::vector::Vector, crate::vector::Vector) {
+    pub fn create_vectors(&self) -> (Vector, Vector) {
         let mut ptr_lvector = std::ptr::null_mut();
         let mut ptr_evector = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
         };
-        (
-            crate::vector::Vector::from_raw(ptr_lvector),
-            crate::vector::Vector::from_raw(ptr_evector),
-        )
+        (Vector::from_raw(ptr_lvector), Vector::from_raw(ptr_evector))
     }
 
     /// Restrict an Lvector to an Evector or apply its transpose
@@ -265,16 +263,12 @@ impl ElemRestriction {
     ///   assert_eq!(array[i], ((i+1)/2) as f64, "Incorrect value in restricted vector");
     /// }
     /// ```
-    pub fn apply(
-        &self,
-        tmode: crate::TransposeMode,
-        u: &crate::vector::Vector,
-        ru: &mut crate::vector::Vector,
-    ) {
+    pub fn apply(&self, tmode: TransposeMode, u: &Vector, ru: &mut Vector) {
+        let tmode = tmode as bind_ceed::CeedTransposeMode;
         unsafe {
             bind_ceed::CeedElemRestrictionApply(
                 self.ptr,
-                tmode as bind_ceed::CeedTransposeMode,
+                tmode,
                 u.ptr,
                 ru.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
@@ -421,7 +415,7 @@ impl ElemRestriction {
     ///     "Incorrect multiplicity array");
     /// }
     /// ```
-    pub fn get_multiplicity(&self, mult: &mut crate::vector::Vector) {
+    pub fn get_multiplicity(&self, mult: &mut Vector) {
         unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };
     }
 }

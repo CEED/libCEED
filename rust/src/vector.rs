@@ -96,12 +96,14 @@ impl fmt::Display for Vector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
         let mut sizeloc = crate::MAX_BUFFER_LENGTH;
-        let file = unsafe { bind_ceed::open_memstream(&mut ptr, &mut sizeloc) };
         let format = CString::new("%12.8f").expect("CString::new failed");
         let format_c: *const c_char = format.into_raw();
-        unsafe { bind_ceed::CeedVectorView(self.ptr, format_c, file) };
-        unsafe { bind_ceed::fclose(file) };
-        let cstring = unsafe { CString::from_raw(ptr) };
+        let cstring = unsafe {
+            let file = bind_ceed::open_memstream(&mut ptr, &mut sizeloc);
+            bind_ceed::CeedVectorView(self.ptr, format_c, file);
+            bind_ceed::fclose(file);
+            CString::from_raw(ptr)
+        };
         cstring.to_string_lossy().fmt(f)
     }
 }
@@ -112,7 +114,7 @@ impl fmt::Display for Vector {
 impl Vector {
     // Constructors
     pub fn create(ceed: &crate::Ceed, n: usize) -> Self {
-        let n = i32::try_from(n).unwrap();
+        let n = n as i32;
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self { ptr: ptr }
@@ -156,14 +158,12 @@ impl Vector {
     /// ```
     pub fn from_array(ceed: &crate::Ceed, v: &mut [f64]) -> Self {
         let x = Self::create(ceed, v.len());
-        unsafe {
-            bind_ceed::CeedVectorSetArray(
-                x.ptr,
-                crate::MemType::Host as bind_ceed::CeedMemType,
-                crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
-                v.as_ptr() as *mut f64,
-            )
-        };
+        let (host, user_pointer) = (
+            crate::MemType::Host as bind_ceed::CeedMemType,
+            crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+        );
+        let v = v.as_ptr() as *mut f64;
+        unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) };
         x
     }
 
@@ -238,13 +238,12 @@ impl Vector {
     /// ```
     pub fn set_slice(&mut self, slice: &[f64]) {
         assert_eq!(self.length(), slice.len());
+        let (host, copy_mode) = (
+            crate::MemType::Host as bind_ceed::CeedMemType,
+            crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
+        );
         unsafe {
-            bind_ceed::CeedVectorSetArray(
-                self.ptr,
-                crate::MemType::Host as bind_ceed::CeedMemType,
-                crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
-                slice.as_ptr() as *mut f64,
-            )
+            bind_ceed::CeedVectorSetArray(self.ptr, host, copy_mode, slice.as_ptr() as *mut f64)
         };
     }
 
