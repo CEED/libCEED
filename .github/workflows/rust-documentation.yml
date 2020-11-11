@@ -8,7 +8,7 @@ on:
     tags: '*'
 
 jobs:
-  test:
+  build:
     strategy:
       matrix:
         os: [ubuntu-latest]
