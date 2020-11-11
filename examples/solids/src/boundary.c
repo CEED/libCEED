@@ -66,9 +66,9 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
               kx = clampMax[3], ky = clampMax[4], kz = clampMax[5];
   PetscScalar c = cos(theta), s = sin(theta);
 
-  u[0] = lx + s*(-kz*y + ky*z) + (1-c)*(-ky*ky+kz*kz*x + kx*ky*y + kx*kz*z);
-  u[1] = ly + s*(kz*x + -kx*z) + (1-c)*(kx*ky*x - (kx*kx+kz*kz)*y + ky*kz*z);
-  u[2] = lz + s*(-ky*x + kx*y) + (1-c)*(kx*kz*x + ky*kz*y - (kx*kx+ky*ky)*z);
+  u[0] = lx + s*(-kz*y + ky*z) + (1-c)*(-(ky*ky+kz*kz)*x + kx*ky*y + kx*kz*z);
+  u[1] = ly + s*(kz*x + -kx*z) + (1-c)*(kx*ky*x + -(kx*kx+kz*kz)*y + ky*kz*z);
+  u[2] = lz + s*(-ky*x + kx*y) + (1-c)*(kx*kz*x + ky*kz*y + -(kx*kx+ky*ky)*z);
 
   PetscFunctionReturn(0);
 };
