@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - jeremy/rust
     tags: '*'
 
 jobs:
