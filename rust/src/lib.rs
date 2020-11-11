@@ -579,7 +579,7 @@ mod tests {
         let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
 
         // Set up operator
-        let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+        let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
         let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
         op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
         op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
@@ -588,7 +588,7 @@ mod tests {
         op_build.apply(&x, &mut qdata);
 
         // Mass operator
-        let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+        let qf_mass = ceed.q_function_interior_by_name("MassApply");
         let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
         op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
         op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);

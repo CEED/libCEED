@@ -156,7 +156,7 @@ impl fmt::Display for QFunction {
 /// ```
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
-/// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+/// let qf = ceed.q_function_interior_by_name("Mass1DBuild");
 /// println!("{}", qf);
 /// ```
 impl fmt::Display for QFunctionByName {
@@ -467,8 +467,8 @@ impl QFunctionByName {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q : usize = 8;
-    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
-    /// let qf_mass = ceed.q_function_interior_by_name("MassApply".to_string());
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
     ///
     /// let mut j = [0.; Q];
     /// let mut w = [0.; Q];
