@@ -1,0 +1,36 @@
+name: Rust Documentation
+
+on:
+  push:
+    branches:
+      - main
+    tags: '*'
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gcc-9]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Rust setup
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    - name: Build documentation
+      run: |
+        cd rust
+        cargo doc --all --no-deps
+        touch ./target/doc/libceed/.nojekyll
+        cd ..
+    - name: Deploy documentation
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        external_repository: CEED/libCEED-rust-docs
+        deploy_key: ${{ secrets.RUST_DOCS_KEY }}
+        publish_dir: ./rust/target/doc/libceed
