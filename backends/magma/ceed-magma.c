@@ -27,7 +27,7 @@ static int CeedDestroy_Magma(Ceed ceed) {
 
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/gpu/magma"))
+  if (strcmp(resource, "/gpu/cuda/magma") && strcmp(resource, "/gpu/hip/magma"))
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
@@ -35,7 +35,11 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
+  #ifdef HAVE_HIP
+  CeedInit("/gpu/hip/ref", &ceedref);
+  #else
   CeedInit("/gpu/cuda/ref", &ceedref);
+  #endif
   ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = magma_init();
@@ -58,7 +62,11 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
   // create a queue that uses the null stream
   magma_getdevice( &(data->device) );
+  #ifdef HAVE_HIP
+  magma_queue_create_from_hip(data->device, NULL, NULL, NULL, &(data->queue));
+  #else
   magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
+  #endif
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Magma); CeedChk(ierr);
@@ -76,5 +84,9 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
 
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/magma", CeedInit_Magma, 20);
+  #ifdef HAVE_HIP
+  CeedRegister("/gpu/hip/magma", CeedInit_Magma, 120);
+  #else
+  CeedRegister("/gpu/cuda/magma", CeedInit_Magma, 120);
+  #endif
 }

@@ -75,6 +75,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue;
     fi
 
+    # Nek5000 integration not currently supported in OCCA
+    if [[ "$backend" = *occa* && \
+            ( "$1" = nek-* ) ]]; then
+        printf "ok $i0 # SKIP - no support for Nek5000 with $backend\n"
+        printf "ok $i1 # SKIP - no support for Nek5000 with $backend stdout\n"
+        printf "ok $i2 # SKIP - no support for Nek5000 with $backend stderr\n"
+        continue;
+    fi
+
     # Navier-Stokes test problem too large for most CUDA backends
     if [[ "$backend" = *gpu* && "$backend" != /gpu/cuda/gen && \
             ( "$1" = fluids-* ) ]]; then

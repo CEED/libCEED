@@ -1,0 +1,26 @@
+name: Style
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [clang]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Install astyle
+      run: sudo apt-get install astyle
+    - name: C style
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-9
+      run: |
+        make info
+        make style-c -j2 && git diff --exit-code

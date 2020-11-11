@@ -99,7 +99,7 @@ struct Ceed_private {
   Ceed opfallbackceed, opfallbackparent;
   const char *opfallbackresource;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
-               va_list);
+               va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedInt, CeedVector);
@@ -224,6 +224,8 @@ struct CeedQFunctionField_private {
 struct CeedQFunction_private {
   Ceed ceed;
   int (*Apply)(CeedQFunction, CeedInt, CeedVector *, CeedVector *);
+  int (*SetCUDAUserFunction)(CeedQFunction, void *);
+  int (*SetHIPUserFunction)(CeedQFunction, void *);
   int (*Destroy)(CeedQFunction);
   int refcount;
   CeedInt vlength;    /* Number of quadrature points must be padded to a

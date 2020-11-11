@@ -420,18 +420,11 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
 //------------------------------------------------------------------------------
 static inline int CeedOperatorRestoreInputs_Opt(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
-    bool skipactive, CeedOperator_Opt *impl) {
+    CeedOperator_Opt *impl) {
   CeedInt ierr;
   CeedEvalMode emode;
 
   for (CeedInt i=0; i<numinputfields; i++) {
-    // Skip active inputs
-    if (skipactive) {
-      CeedVector vec;
-      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChk(ierr);
-      if (vec == CEED_VECTOR_ACTIVE)
-        continue;
-    }
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChk(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
@@ -522,7 +515,7 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector invec,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields,
-                                       opinputfields, false, impl);
+                                       opinputfields, impl);
   CeedChk(ierr);
 
   return 0;
@@ -679,7 +672,7 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Opt(numinputfields, qfinputfields,
-                                       opinputfields, true, impl);
+                                       opinputfields, impl);
   CeedChk(ierr);
 
   // Output blocked restriction

@@ -29,11 +29,11 @@
 // Sample runs:
 //
 //     ./bpsraw -problem bp1
-//     ./bpsraw -problem bp2 -ceed /cpu/self
-//     ./bpsraw -problem bp3 -ceed /gpu/occa
-//     ./bpsraw -problem bp4 -ceed /cpu/occa
-//     ./bpsraw -problem bp5 -ceed /omp/occa
-//     ./bpsraw -problem bp6 -ceed /ocl/occa
+//     ./bpsraw -problem bp2
+//     ./bpsraw -problem bp3
+//     ./bpsraw -problem bp4
+//     ./bpsraw -problem bp5 -ceed /cpu/self
+//     ./bpsraw -problem bp6 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp2 -degree 5 -qextra 1 -ksp_max_it_clip 15,15
 

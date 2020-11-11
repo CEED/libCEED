@@ -10,8 +10,8 @@ def parse_testargs(file):
         return sum([[line.split()[1:]] for line in open(file).readlines()
                     if line.startswith('//TESTARGS')], [])
     elif os.path.splitext(file)[1] == '.usr':
-        return sum([[line.split()[2:]] for line in open(file).readlines()
-                    if line.startswith('C TESTARGS')])
+        return sum([[line.split()[1:]] for line in open(file).readlines()
+                    if line.startswith('C_TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
@@ -48,7 +48,10 @@ def skip_rule(test, resource):
         test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
+        test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('t507') and contains_any(resource, ['occa']),
+        test.startswith('t318') and contains_any(resource, ['magma']),
+        test.startswith('t506') and contains_any(resource, ['magma']),
         ))
         
 def run(test, backends):
@@ -99,7 +102,7 @@ def run(test, backends):
                 if test[:4] in 't115'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector read-only array access, the access lock is already in use')
                 if test[:4] in 't116'.split():
-                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the access lock is in use')
+                    check_required_failure(case, proc.stderr, 'Cannot destroy CeedVector, the writable access lock is in use')
                 if test[:4] in 't117'.split():
                     check_required_failure(case, proc.stderr, 'Cannot restore CeedVector array access, access was not granted')
                 if test[:4] in 't118'.split():

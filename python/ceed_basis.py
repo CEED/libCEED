@@ -27,7 +27,7 @@ class Basis(ABC):
     """Ceed Basis: finite element basis objects."""
 
     # Attributes
-    _ceed = ffi.NULL
+    _ceed = None
     _pointer = ffi.NULL
 
     # Representation
