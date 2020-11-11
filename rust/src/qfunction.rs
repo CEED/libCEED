@@ -387,8 +387,8 @@ impl QFunction {
     /// qf.add_input("u", 1, EvalMode::Interp);
     /// qf.add_input("weights", 1, EvalMode::Weight);
     /// ```
-    pub fn add_input(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname.into()).expect("CString::new failed");
+    pub fn add_input(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
@@ -431,8 +431,8 @@ impl QFunction {
     ///
     /// qf.add_output("v", 1, EvalMode::Interp);
     /// ```
-    pub fn add_output(&mut self, fieldname: impl Into<String>, size: i32, emode: crate::EvalMode) {
-        let name_c = CString::new(fieldname.into()).expect("CString::new failed");
+    pub fn add_output(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
+        let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
