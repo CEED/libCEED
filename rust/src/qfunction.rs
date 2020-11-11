@@ -447,8 +447,8 @@ impl QFunction {
 // -----------------------------------------------------------------------------
 impl QFunctionByName {
     // Constructor
-    pub fn create(ceed: &crate::Ceed, name: impl Into<String>) -> Self {
-        let name_c = CString::new(name.into()).expect("CString::new failed");
+    pub fn create(ceed: &crate::Ceed, name: &str) -> Self {
+        let name_c = CString::new(name).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         unsafe {
             bind_ceed::CeedQFunctionCreateInteriorByName(ceed.ptr, name_c.as_ptr(), &mut ptr)

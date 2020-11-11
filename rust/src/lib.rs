@@ -488,9 +488,9 @@ impl Ceed {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild");
     /// ```
-    pub fn q_function_interior_by_name(&self, name: impl Into<String>) -> QFunctionByName {
+    pub fn q_function_interior_by_name(&self, name: &str) -> QFunctionByName {
         QFunctionByName::create(self, name)
     }
 
@@ -508,7 +508,7 @@ impl Ceed {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild".to_string());
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild");
     /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
     /// ```
     pub fn operator<'b>(
