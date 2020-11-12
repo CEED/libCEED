@@ -1160,8 +1160,8 @@ impl Operator {
     ///   for i in 0..p_coarse {
     ///     coarse.set_value(0.0);
     ///     {
-    ///        let mut array = coarse.view_mut();
-    ///        array[i] = 1.;
+    ///       let mut array = coarse.view_mut();
+    ///       array[i] = 1.;
     ///     }
     ///     basis_c_to_f.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///                        &coarse, &mut fine);
@@ -1332,8 +1332,8 @@ impl Operator {
     ///   for i in 0..p_coarse {
     ///     coarse.set_value(0.0);
     ///     {
-    ///        let mut array = coarse.view_mut();
-    ///        array[i] = 1.;
+    ///       let mut array = coarse.view_mut();
+    ///       array[i] = 1.;
     ///     }
     ///     basis_c_to_f.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///                        &coarse, &mut fine);
