@@ -58,7 +58,7 @@ pub mod qfunction;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
-// Constants for library interally
+// Constants for library internally
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
 const MAX_QFUNCTION_FIELDS: usize = 16;
@@ -167,7 +167,7 @@ impl fmt::Display for Ceed {
 // Object constructors
 // -----------------------------------------------------------------------------
 impl Ceed {
-    /// Returns a Ceed context initalized with the specified resource
+    /// Returns a Ceed context initialized with the specified resource
     ///
     /// # arguments
     ///
@@ -186,7 +186,7 @@ impl Ceed {
         Ceed { ptr }
     }
 
-    /// Default initalizer for testing
+    /// Default initializer for testing
     #[doc(hidden)]
     pub fn default_init() -> Self {
         // Convert to C string

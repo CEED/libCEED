@@ -25,14 +25,14 @@ pub enum QFunctionOpt<'a> {
     None,
 }
 
-/// Contruct a QFunctionOpt reference from a QFunction reference
+/// Construct a QFunctionOpt reference from a QFunction reference
 impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunction) -> Self {
         Self::SomeQFunction(qfunc)
     }
 }
 
-/// Contruct a QFunctionOpt reference from a QFunction by Name reference
+/// Construct a QFunctionOpt reference from a QFunction by Name reference
 impl<'a> From<&'a QFunctionByName> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunctionByName) -> Self {
         Self::SomeQFunctionByName(qfunc)
@@ -248,7 +248,7 @@ impl QFunction {
             output_sizes,
         };
 
-        // Create QF
+        // Create QFunction
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
@@ -259,7 +259,7 @@ impl QFunction {
             )
         };
 
-        // Create QF contetx
+        // Create QFunction context
         let qf_ctx_ptr = std::ptr::null_mut();
 
         // Create object
@@ -496,18 +496,18 @@ impl QFunctionByName {
     /// let U = ceed.vector_from_slice(&u);
     /// let mut V = ceed.vector(Q);
     /// V.set_value(0.0);
-    /// let mut Qdata = ceed.vector(Q);
-    /// Qdata.set_value(0.0);
+    /// let mut qdata = ceed.vector(Q);
+    /// qdata.set_value(0.0);
     ///
     /// {
     ///   let mut input = vec![J, W];
-    ///   let mut output = vec![Qdata];
+    ///   let mut output = vec![qdata];
     ///   qf_build.apply(Q as i32, &input, &output);
-    ///   Qdata = output.remove(0);
+    ///   qdata = output.remove(0);
     /// }
     ///
     /// {
-    ///   let mut input = vec![Qdata, U];
+    ///   let mut input = vec![qdata, U];
     ///   let mut output = vec![V];
     ///   qf_mass.apply(Q as i32, &input, &output);
     ///   V = output.remove(0);

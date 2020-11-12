@@ -23,7 +23,7 @@ pub enum BasisOpt<'a> {
     Some(&'a Basis),
     Collocated,
 }
-/// Contruct a BasisOpt reference from a Basis reference
+/// Construct a BasisOpt reference from a Basis reference
 impl<'a> From<&'a Basis> for BasisOpt<'a> {
     fn from(basis: &'a Basis) -> Self {
         Self::Some(basis)

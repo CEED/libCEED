@@ -23,7 +23,7 @@ pub enum ElemRestrictionOpt<'a> {
     Some(&'a ElemRestriction),
     None,
 }
-/// Contruct a ElemRestrictionOpt reference from a ElemRestriction reference
+/// Construct a ElemRestrictionOpt reference from a ElemRestriction reference
 impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     fn from(restr: &'a ElemRestriction) -> Self {
         Self::Some(restr)

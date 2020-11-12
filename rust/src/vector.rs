@@ -31,7 +31,7 @@ pub enum VectorOpt<'a> {
     Active,
     None,
 }
-/// Contruct a VectorOpt reference from a Vector reference
+/// Construct a VectorOpt reference from a Vector reference
 impl<'a> From<&'a Vector> for VectorOpt<'a> {
     fn from(vec: &'a Vector) -> Self {
         debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE });
