@@ -40,7 +40,7 @@ impl<'a> From<&'a Vector> for VectorOpt<'a> {
     }
 }
 impl<'a> VectorOpt<'a> {
-    /// Transform a Rust libCEED Vector into C libCEED CeedVector
+    /// Transform a Rust libCEED VectorOpt into C libCEED CeedVector
     pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
         match self {
             Self::Some(vec) => vec.ptr,

@@ -31,7 +31,7 @@ impl<'a> From<&'a Basis> for BasisOpt<'a> {
     }
 }
 impl<'a> BasisOpt<'a> {
-    /// Transform a Rust libCEED Basis into C libCEED CeedBasis
+    /// Transform a Rust libCEED BasisOpt into C libCEED CeedBasis
     pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
         match self {
             Self::Some(basis) => basis.ptr,

@@ -42,7 +42,7 @@ impl<'a> From<&'a QFunctionByName> for QFunctionOpt<'a> {
 }
 
 impl<'a> QFunctionOpt<'a> {
-    /// Transform a Rust libCEED QFunction into C libCEED CeedQFunction
+    /// Transform a Rust libCEED QFunctionOpt into C libCEED CeedQFunction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedQFunction {
         match self {
             Self::SomeQFunction(qfunc) => qfunc.qf_core.ptr,

@@ -31,7 +31,7 @@ impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     }
 }
 impl<'a> ElemRestrictionOpt<'a> {
-    /// Transform a Rust libCEED ElemRestriction into C libCEED
+    /// Transform a Rust libCEED ElemRestrictionOpt into C libCEED
     /// CeedElemRestriction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
         match self {
