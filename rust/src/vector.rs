@@ -349,7 +349,7 @@ pub struct VectorView<'a> {
 }
 
 impl<'a> VectorView<'a> {
-    // Constructor
+    /// Construct a VectorView from a Vector reference
     fn new(vec: &'a Vector) -> Self {
         let mut array = std::ptr::null();
         unsafe {
@@ -366,6 +366,7 @@ impl<'a> VectorView<'a> {
     }
 }
 
+// Destructor
 impl<'a> Drop for VectorView<'a> {
     fn drop(&mut self) {
         unsafe {
@@ -374,6 +375,7 @@ impl<'a> Drop for VectorView<'a> {
     }
 }
 
+// Data access
 impl<'a> Deref for VectorView<'a> {
     type Target = [f64];
     fn deref(&self) -> &[f64] {
@@ -381,6 +383,7 @@ impl<'a> Deref for VectorView<'a> {
     }
 }
 
+// Viewing
 impl<'a> fmt::Display for VectorView<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "VectorView({:?})", self.deref())
@@ -398,7 +401,7 @@ pub struct VectorViewMut<'a> {
 }
 
 impl<'a> VectorViewMut<'a> {
-    // Constructor
+    /// Construct a VectorViewMut from a Vector reference
     fn new(vec: &'a mut Vector) -> Self {
         let mut ptr = std::ptr::null_mut();
         unsafe {
@@ -415,6 +418,7 @@ impl<'a> VectorViewMut<'a> {
     }
 }
 
+// Destructor
 impl<'a> Drop for VectorViewMut<'a> {
     fn drop(&mut self) {
         unsafe {
@@ -423,6 +427,7 @@ impl<'a> Drop for VectorViewMut<'a> {
     }
 }
 
+// Data access
 impl<'a> Deref for VectorViewMut<'a> {
     type Target = [f64];
     fn deref(&self) -> &[f64] {
@@ -430,12 +435,14 @@ impl<'a> Deref for VectorViewMut<'a> {
     }
 }
 
+// Mutable data access
 impl<'a> DerefMut for VectorViewMut<'a> {
     fn deref_mut(&mut self) -> &mut [f64] {
         unsafe { std::slice::from_raw_parts_mut(self.array, self.vec.len()) }
     }
 }
 
+// Viewing
 impl<'a> fmt::Display for VectorViewMut<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "VectorViewMut({:?})", self.deref())
