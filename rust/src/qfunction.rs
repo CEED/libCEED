@@ -301,14 +301,14 @@ impl QFunction {
     ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
+    ///   // Inputs
     ///   let u = &inputs[0];
     ///   let weights = &inputs[1];
-    ///
+    ///   // Outputs
     ///   let v = &mut outputs[0];
     ///
-    ///   for i in 0..q {
-    ///     v[i] = u[i] * weights[i];
-    ///   }
+    ///   // Loop over quadrature points
+    ///   v.iter_mut().zip(u.iter().zip(weights.iter())).for_each(|(v, (u, w))| *v = u * w);
     ///
     ///   return 0
     /// };
@@ -370,14 +370,14 @@ impl QFunction {
     ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
+    ///   // Inputs
     ///   let u = &inputs[0];
     ///   let weights = &inputs[1];
-    ///
+    ///   // Outputs
     ///   let v = &mut outputs[0];
     ///
-    ///   for i in 0..q {
-    ///     v[i] = u[i] * weights[i];
-    ///   }
+    ///   // Loop over quadrature points
+    ///   v.iter_mut().zip(u.iter().zip(weights.iter())).for_each(|(v, (u, w))| *v = u * w);
     ///
     ///   return 0
     /// };
@@ -415,16 +415,16 @@ impl QFunction {
     ///     outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
-    ///     let u = &inputs[0];
-    ///     let weights = &inputs[1];
+    ///   // Inputs
+    ///   let u = &inputs[0];
+    ///   let weights = &inputs[1];
+    ///   // Outputs
+    ///   let v = &mut outputs[0];
     ///
-    ///     let v = &mut outputs[0];
+    ///   // Loop over quadrature points
+    ///   v.iter_mut().zip(u.iter().zip(weights.iter())).for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///     for i in 0..q {
-    ///         v[i] = u[i] * weights[i];
-    ///     }
-    ///
-    ///     return 0
+    ///   return 0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
