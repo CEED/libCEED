@@ -26,6 +26,7 @@ pub enum ElemRestrictionOpt<'a> {
 /// Construct a ElemRestrictionOpt reference from a ElemRestriction reference
 impl<'a> From<&'a ElemRestriction> for ElemRestrictionOpt<'a> {
     fn from(restr: &'a ElemRestriction) -> Self {
+        debug_assert!(restr.ptr != unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE });
         Self::Some(restr)
     }
 }

@@ -26,6 +26,7 @@ pub enum BasisOpt<'a> {
 /// Construct a BasisOpt reference from a Basis reference
 impl<'a> From<&'a Basis> for BasisOpt<'a> {
     fn from(basis: &'a Basis) -> Self {
+        debug_assert!(basis.ptr != unsafe { bind_ceed::CEED_BASIS_COLLOCATED });
         Self::Some(basis)
     }
 }

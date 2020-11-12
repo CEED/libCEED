@@ -28,6 +28,7 @@ pub enum QFunctionOpt<'a> {
 /// Construct a QFunctionOpt reference from a QFunction reference
 impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunction) -> Self {
+        debug_assert!(qfunc.qf_core.ptr != unsafe { bind_ceed::CEED_QFUNCTION_NONE });
         Self::SomeQFunction(qfunc)
     }
 }
@@ -35,6 +36,7 @@ impl<'a> From<&'a QFunction> for QFunctionOpt<'a> {
 /// Construct a QFunctionOpt reference from a QFunction by Name reference
 impl<'a> From<&'a QFunctionByName> for QFunctionOpt<'a> {
     fn from(qfunc: &'a QFunctionByName) -> Self {
+        debug_assert!(qfunc.qf_core.ptr != unsafe { bind_ceed::CEED_QFUNCTION_NONE });
         Self::SomeQFunctionByName(qfunc)
     }
 }
