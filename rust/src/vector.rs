@@ -339,7 +339,6 @@ impl Vector {
 // -----------------------------------------------------------------------------
 // Vector Viewer
 // -----------------------------------------------------------------------------
-
 /// A (host) view of a Vector with Deref to slice.  We can't make
 /// Vector itself Deref to slice because we can't handle the drop to
 /// call bind_ceed::CeedVectorRestoreArrayRead().
@@ -391,7 +390,6 @@ impl<'a> fmt::Display for VectorView<'a> {
 // -----------------------------------------------------------------------------
 // Vector Viewer Mutable
 // -----------------------------------------------------------------------------
-
 /// A mutable (host) view of a Vector with Deref to slice.
 #[derive(Debug)]
 pub struct VectorViewMut<'a> {
