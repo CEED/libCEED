@@ -171,12 +171,12 @@ impl fmt::Display for QFunctionByName {
 impl QFunctionCore {
     // Common implementation
     pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
-        let mut u_c = [std::ptr::null_mut(); 16];
-        for i in 0..std::cmp::min(16, u.len()) {
+        let mut u_c = [std::ptr::null_mut(); crate::MAX_QFUNCTION_FIELDS];
+        for i in 0..std::cmp::min(crate::MAX_QFUNCTION_FIELDS, u.len()) {
             u_c[i] = u[i].ptr;
         }
-        let mut v_c = [std::ptr::null_mut(); 16];
-        for i in 0..std::cmp::min(16, v.len()) {
+        let mut v_c = [std::ptr::null_mut(); crate::MAX_QFUNCTION_FIELDS];
+        for i in 0..std::cmp::min(crate::MAX_QFUNCTION_FIELDS, v.len()) {
             v_c[i] = v[i].ptr;
         }
         unsafe {
