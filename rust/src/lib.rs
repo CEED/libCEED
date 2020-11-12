@@ -468,10 +468,11 @@ impl Ceed {
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
-    ///       .zip(u.iter().zip(weights.iter()))
-    ///       .for_each(|(v, (u, w))| *v = u * w);
-    ///
-    ///   return 0
+    ///     .zip(u.iter().zip(weights.iter()))
+    ///     .for_each(|(v, (u, w))| *v = u * w);
+    /// 
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let qf = ceed.q_function_interior(1, Box::new(user_f));

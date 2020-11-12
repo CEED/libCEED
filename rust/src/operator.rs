@@ -726,7 +726,8 @@ impl Operator {
     ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
     ///   }
     ///
-    ///   return 0
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
@@ -861,7 +862,8 @@ impl Operator {
     ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
     ///   }
     ///
-    ///   return 0
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));

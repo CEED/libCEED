@@ -134,10 +134,11 @@ impl fmt::Display for QFunctionCore {
 ///
 ///   // Loop over quadrature points
 ///   v.iter_mut()
-///       .zip(u.iter().zip(weights.iter()))
-///       .for_each(|(v, (u, w))| *v = u * w);
+///     .zip(u.iter().zip(weights.iter()))
+///     .for_each(|(v, (u, w))| *v = u * w);
 ///
-///   return 0
+///   // Return clean error code
+///   0
 /// };
 ///
 /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
@@ -313,10 +314,11 @@ impl QFunction {
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
-    ///       .zip(u.iter().zip(weights.iter()))
-    ///       .for_each(|(v, (u, w))| *v = u * w);
+    ///     .zip(u.iter().zip(weights.iter()))
+    ///     .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   return 0
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
@@ -384,10 +386,11 @@ impl QFunction {
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
-    ///       .zip(u.iter().zip(weights.iter()))
-    ///       .for_each(|(v, (u, w))| *v = u * w);
+    ///     .zip(u.iter().zip(weights.iter()))
+    ///     .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   return 0
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
@@ -418,9 +421,9 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///     q: usize,
-    ///     inputs: &[&[f64]],
-    ///     outputs: &mut [&mut [f64]],
+    ///   q: usize,
+    ///   inputs: &[&[f64]],
+    ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
     ///   // Inputs
@@ -431,10 +434,11 @@ impl QFunction {
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
-    ///       .zip(u.iter().zip(weights.iter()))
-    ///       .for_each(|(v, (u, w))| *v = u * w);
+    ///     .zip(u.iter().zip(weights.iter()))
+    ///     .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   return 0
+    ///   // Return clean error code
+    ///   0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
