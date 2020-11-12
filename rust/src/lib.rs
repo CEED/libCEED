@@ -460,14 +460,16 @@ impl Ceed {
     ///   outputs: &mut [&mut [f64]],
     /// | -> i32
     /// {
+    ///   // Inputs
     ///   let u = &inputs[0];
     ///   let weights = &inputs[1];
-    ///
+    ///   // Outputs
     ///   let v = &mut outputs[0];
     ///
-    ///   for i in 0..q {
-    ///       v[i] = u[i] * weights[i];
-    ///   }
+    ///   // Loop over quadrature points
+    ///   v.iter_mut()
+    ///       .zip(u.iter().zip(weights.iter()))
+    ///       .for_each(|(v, (u, w))| *v = u * w);
     ///
     ///   return 0
     /// };
@@ -502,7 +504,7 @@ impl Ceed {
     ///              points
     /// * `dqf`  - QFunction defining the action of the Jacobian of the qf (or
     ///              qfunction_none)
-    /// * `dqfT` - QFunction defining teh action of the transpose of the
+    /// * `dqfT` - QFunction defining the action of the transpose of the
     ///              Jacobian of the qf (or qfunction_none)
     ///
     /// ```
