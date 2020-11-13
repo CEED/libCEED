@@ -122,16 +122,11 @@ impl fmt::Display for QFunctionCore {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
 ///   q: usize,
-///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
 /// | -> i32
 /// {
-///   // Inputs
-///   let [u, weights, ..] = inputs;
-///   // Outputs
-///   let [v, ..] = outputs;
-///
-///   // Loop over quadrature points
+///   // Iterate over quadrature points
 ///   v
 ///     .iter_mut()
 ///     .zip(u.iter().zip(weights.iter()))
@@ -315,16 +310,11 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   // Inputs
-    ///   let [u, weights, ..] = inputs;
-    ///   // Outputs
-    ///   let [v, ..] = outputs;
-    ///
-    ///   // Loop over quadrature points
+    ///   // Iterate over quadrature points
     ///   v
     ///     .iter_mut()
     ///     .zip(u.iter().zip(weights.iter()))
@@ -387,16 +377,11 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   // Inputs
-    ///   let [u, weights, ..] = inputs;
-    ///   // Outputs
-    ///   let [v, ..] = outputs;
-    ///
-    ///   // Loop over quadrature points
+    ///   // Iterate over quadrature points
     ///   v
     ///     .iter_mut()
     ///     .zip(u.iter().zip(weights.iter()))
@@ -435,16 +420,11 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   // Inputs
-    ///   let [u, weights, ..] = inputs;
-    ///   // Outputs
-    ///   let [v, ..] = outputs;
-    ///
-    ///   // Loop over quadrature points
+    ///   // Iterate over quadrature points
     ///   v
     ///     .iter_mut()
     ///     .zip(u.iter().zip(weights.iter()))

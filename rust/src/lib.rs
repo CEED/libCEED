@@ -460,8 +460,7 @@ impl Ceed {
     ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS], // outputs
     /// | -> i32
     /// {
-    ///
-    ///   // Loop over quadrature points
+    ///   // Iterate over quadrature points
     ///   v
     ///     .iter_mut()
     ///     .zip(u.iter().zip(weights.iter()))

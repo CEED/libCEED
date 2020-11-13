@@ -712,15 +712,11 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   // Inputs
-    ///   let [u, qdata, ..] = inputs;
-    ///   // Outputs
-    ///   let [v, ..] = outputs;
-    ///
+    ///   // Iterate over quadrature points
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
     ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
@@ -848,15 +844,11 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   // Inputs
-    ///   let [u, qdata, ..] = inputs;
-    ///   // Outputs
-    ///   let [v, ..] = outputs;
-    ///
+    ///   // Iterate over quadrature points
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
     ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
