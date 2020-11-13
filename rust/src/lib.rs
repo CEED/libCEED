@@ -455,8 +455,8 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // inputs
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS], // outputs
+    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
     /// | -> i32
     /// {
     ///   // Iterate over quadrature points

@@ -711,8 +711,8 @@ impl Operator {
     ///
     /// // Mass operator
     /// let mut mass_2_comp = |
-    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],    // Outputs
     /// | -> i32
     /// {
     ///   // Number of quadrature points
@@ -845,8 +845,8 @@ impl Operator {
     ///
     /// // Mass operator
     /// let mut mass_2_comp = |
-    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
+    ///   [u, qdata, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
+    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],    // Outputs
     /// | -> i32
     /// {
     ///   // Number of quadrature points
