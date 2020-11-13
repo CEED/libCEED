@@ -459,7 +459,7 @@ impl Ceed {
     /// let mut user_f = |
     ///   [u, weights, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Iterate over quadrature points
     ///   v
