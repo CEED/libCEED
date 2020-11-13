@@ -717,7 +717,7 @@ impl Operator {
     /// {
     ///   // Number of quadrature points
     ///   let q = qdata.len();
-    /// 
+    ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
@@ -851,7 +851,7 @@ impl Operator {
     /// {
     ///   // Number of quadrature points
     ///   let q = qdata.len();
-    /// 
+    ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
