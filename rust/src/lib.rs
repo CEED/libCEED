@@ -466,7 +466,8 @@ impl Ceed {
     ///   let [v, ..] = outputs;
     ///
     ///   // Loop over quadrature points
-    ///   v.iter_mut()
+    ///   v
+    ///     .iter_mut()
     ///     .zip(u.iter().zip(weights.iter()))
     ///     .for_each(|(v, (u, w))| *v = u * w);
     ///
