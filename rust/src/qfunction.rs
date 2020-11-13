@@ -124,8 +124,8 @@ impl fmt::Display for QFunctionCore {
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
-///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
-///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
+///   [u, weights, ..]: QFunctionInputs,
+///   [v, ..]: QFunctionOutputs,
 /// | -> i32
 /// {
 ///   // Iterate over quadrature points
@@ -311,8 +311,8 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
+    ///   [u, weights, ..]: QFunctionInputs,
+    ///   [v, ..]: QFunctionOutputs,
     /// | -> i32
     /// {
     ///   // Iterate over quadrature points
@@ -377,8 +377,8 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
+    ///   [u, weights, ..]: QFunctionInputs,
+    ///   [v, ..]: QFunctionOutputs,
     /// | -> i32
     /// {
     ///   // Iterate over quadrature points
@@ -419,8 +419,8 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
+    ///   [u, weights, ..]: QFunctionInputs,
+    ///   [v, ..]: QFunctionOutputs,
     /// | -> i32
     /// {
     ///   // Iterate over quadrature points
