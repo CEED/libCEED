@@ -121,7 +121,6 @@ impl fmt::Display for QFunctionCore {
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
-///   q: usize,
 ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
 ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
 /// | -> i32
@@ -189,7 +188,7 @@ impl QFunctionCore {
 // User QFunction Closure
 // -----------------------------------------------------------------------------
 pub type QFunctionUserClosure =
-    dyn FnMut(usize, [&[f64]; MAX_QFUNCTION_FIELDS], [&mut [f64]; MAX_QFUNCTION_FIELDS]) -> i32;
+    dyn FnMut([&[f64]; MAX_QFUNCTION_FIELDS], [&mut [f64]; MAX_QFUNCTION_FIELDS]) -> i32;
 
 macro_rules! mut_max_fields {
     ($e:expr) => {
@@ -235,7 +234,7 @@ unsafe extern "C" fn trampoline(
         .for_each(|(x, a)| *a = x);
 
     // User closure
-    (context.user_f)(q as usize, inputs_array, outputs_array)
+    (context.user_f)(inputs_array, outputs_array)
 }
 
 // -----------------------------------------------------------------------------
@@ -309,7 +308,6 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   q: usize,
     ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
     ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
@@ -376,7 +374,6 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   q: usize,
     ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
     ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
@@ -419,7 +416,6 @@ impl QFunction {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   q: usize,
     ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS],
     ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
