@@ -42,7 +42,7 @@ pub mod prelude {
         operator::{self, CompositeOperator, Operator},
         qfunction::{self, QFunction, QFunctionByName, QFunctionOpt},
         vector::{self, Vector, VectorOpt},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode,
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, MAX_QFUNCTION_FIELDS,
     };
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
@@ -61,7 +61,7 @@ pub mod vector;
 // Constants for library internally
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
-const MAX_QFUNCTION_FIELDS: usize = 16;
+pub const MAX_QFUNCTION_FIELDS: usize = 16;
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED
@@ -456,15 +456,14 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
     ///   // Inputs
-    ///   let u = &inputs[0];
-    ///   let weights = &inputs[1];
+    ///   let [u, weights, ..] = inputs;
     ///   // Outputs
-    ///   let v = &mut outputs[0];
+    ///   let [v, ..] = outputs;
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()

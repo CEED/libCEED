@@ -62,8 +62,8 @@ pub(crate) struct QFunctionCore {
 struct QFunctionTrampolineData {
     number_inputs: usize,
     number_outputs: usize,
-    input_sizes: [i32; crate::MAX_QFUNCTION_FIELDS],
-    output_sizes: [i32; crate::MAX_QFUNCTION_FIELDS],
+    input_sizes: [i32; MAX_QFUNCTION_FIELDS],
+    output_sizes: [i32; MAX_QFUNCTION_FIELDS],
 }
 
 pub struct QFunction {
@@ -122,15 +122,14 @@ impl fmt::Display for QFunctionCore {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |
 ///   q: usize,
-///   inputs: &[&[f64]],
-///   outputs: &mut [&mut [f64]],
+///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
 /// | -> i32
 /// {
 ///   // Inputs
-///   let u = &inputs[0];
-///   let weights = &inputs[1];
+///   let [u, weights, ..] = inputs;
 ///   // Outputs
-///   let v = &mut outputs[0];
+///   let [v, ..] = outputs;
 ///
 ///   // Loop over quadrature points
 ///   v.iter_mut()
@@ -176,12 +175,12 @@ impl fmt::Display for QFunctionByName {
 impl QFunctionCore {
     // Common implementation
     pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
-        let mut u_c = [std::ptr::null_mut(); crate::MAX_QFUNCTION_FIELDS];
-        for i in 0..std::cmp::min(crate::MAX_QFUNCTION_FIELDS, u.len()) {
+        let mut u_c = [std::ptr::null_mut(); MAX_QFUNCTION_FIELDS];
+        for i in 0..std::cmp::min(MAX_QFUNCTION_FIELDS, u.len()) {
             u_c[i] = u[i].ptr;
         }
-        let mut v_c = [std::ptr::null_mut(); crate::MAX_QFUNCTION_FIELDS];
-        for i in 0..std::cmp::min(crate::MAX_QFUNCTION_FIELDS, v.len()) {
+        let mut v_c = [std::ptr::null_mut(); MAX_QFUNCTION_FIELDS];
+        for i in 0..std::cmp::min(MAX_QFUNCTION_FIELDS, v.len()) {
             v_c[i] = v[i].ptr;
         }
         unsafe {
@@ -193,8 +192,16 @@ impl QFunctionCore {
 // -----------------------------------------------------------------------------
 // User QFunction Closure
 // -----------------------------------------------------------------------------
-pub type QFunctionUserClosure = dyn FnMut(usize, &[&[f64]], &mut [&mut [f64]]) -> i32;
+pub type QFunctionUserClosure =
+    dyn FnMut(usize, [&[f64]; MAX_QFUNCTION_FIELDS], [&mut [f64]; MAX_QFUNCTION_FIELDS]) -> i32;
 
+macro_rules! mut_max_fields {
+    ($e:expr) => {
+        [
+            $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e, $e,
+        ]
+    };
+}
 unsafe extern "C" fn trampoline(
     ctx: *mut ::std::os::raw::c_void,
     q: bind_ceed::CeedInt,
@@ -206,28 +213,33 @@ unsafe extern "C" fn trampoline(
 
     // Inputs
     let inputs_slice: &[*const bind_ceed::CeedScalar] =
-        std::slice::from_raw_parts(inputs, crate::MAX_QFUNCTION_FIELDS);
-    let mut inputs_vec: Vec<&[f64]> = Vec::new();
-    for i in 0..trampoline_data.number_inputs {
-        inputs_vec.push(&std::slice::from_raw_parts(
-            inputs_slice[i],
-            (trampoline_data.input_sizes[i] * q) as usize,
-        ) as &[f64]);
-    }
+        std::slice::from_raw_parts(inputs, MAX_QFUNCTION_FIELDS);
+    let mut inputs_array: [&[f64]; MAX_QFUNCTION_FIELDS] = [&[0.0]; MAX_QFUNCTION_FIELDS];
+    inputs_slice
+        .iter()
+        .enumerate()
+        .map(|(i, &x)| {
+            std::slice::from_raw_parts(x, (trampoline_data.input_sizes[i] * q) as usize) as &[f64]
+        })
+        .zip(inputs_array.iter_mut())
+        .for_each(|(x, a)| *a = x);
 
     // Outputs
     let outputs_slice: &[*mut bind_ceed::CeedScalar] =
-        std::slice::from_raw_parts(outputs, crate::MAX_QFUNCTION_FIELDS);
-    let mut outputs_vec: Vec<&mut [f64]> = Vec::new();
-    for i in 0..trampoline_data.number_outputs {
-        outputs_vec.push(std::slice::from_raw_parts_mut(
-            outputs_slice[i],
-            (trampoline_data.output_sizes[i] * q) as usize,
-        ));
-    }
+        std::slice::from_raw_parts(outputs, MAX_QFUNCTION_FIELDS);
+    let mut outputs_array: [&mut [f64]; MAX_QFUNCTION_FIELDS] = mut_max_fields!(&mut [0.0]);
+    outputs_slice
+        .iter()
+        .enumerate()
+        .map(|(i, &x)| {
+            std::slice::from_raw_parts_mut(x, (trampoline_data.output_sizes[i] * q) as usize)
+                as &mut [f64]
+        })
+        .zip(outputs_array.iter_mut())
+        .for_each(|(x, a)| *a = x);
 
     // User closure
-    (context.user_f)(q as usize, &inputs_vec, &mut outputs_vec)
+    (context.user_f)(q as usize, inputs_array, outputs_array)
 }
 
 // -----------------------------------------------------------------------------
@@ -242,8 +254,8 @@ impl QFunction {
         // Context for closure
         let number_inputs = 0;
         let number_outputs = 0;
-        let input_sizes = [0; crate::MAX_QFUNCTION_FIELDS];
-        let output_sizes = [0; crate::MAX_QFUNCTION_FIELDS];
+        let input_sizes = [0; MAX_QFUNCTION_FIELDS];
+        let output_sizes = [0; MAX_QFUNCTION_FIELDS];
         let trampoline_data = QFunctionTrampolineData {
             number_inputs,
             number_outputs,
@@ -302,15 +314,14 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
     ///   // Inputs
-    ///   let u = &inputs[0];
-    ///   let weights = &inputs[1];
+    ///   let [u, weights, ..] = inputs;
     ///   // Outputs
-    ///   let v = &mut outputs[0];
+    ///   let [v, ..] = outputs;
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
@@ -374,15 +385,14 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
     ///   // Inputs
-    ///   let u = &inputs[0];
-    ///   let weights = &inputs[1];
+    ///   let [u, weights, ..] = inputs;
     ///   // Outputs
-    ///   let v = &mut outputs[0];
+    ///   let [v, ..] = outputs;
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()
@@ -422,15 +432,14 @@ impl QFunction {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
     ///   // Inputs
-    ///   let u = &inputs[0];
-    ///   let weights = &inputs[1];
+    ///   let [u, weights, ..] = inputs;
     ///   // Outputs
-    ///   let v = &mut outputs[0];
+    ///   let [v, ..] = outputs;
     ///
     ///   // Loop over quadrature points
     ///   v.iter_mut()

@@ -712,14 +712,14 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   let u = &inputs[0];
-    ///   let qdata = &inputs[1];
-    ///
-    ///   let v = &mut outputs[0];
+    ///   // Inputs
+    ///   let [u, qdata, ..] = inputs;
+    ///   // Outputs
+    ///   let [v, ..] = outputs;
     ///
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
@@ -848,14 +848,14 @@ impl Operator {
     /// // Mass operator
     /// let mut mass_2_comp = |
     ///   q: usize,
-    ///   inputs: &[&[f64]],
-    ///   outputs: &mut [&mut [f64]],
+    ///   inputs: [&[f64]; MAX_QFUNCTION_FIELDS],
+    ///   outputs: [&mut [f64]; MAX_QFUNCTION_FIELDS],
     /// | -> i32
     /// {
-    ///   let u = &inputs[0];
-    ///   let qdata = &inputs[1];
-    ///
-    ///   let v = &mut outputs[0];
+    ///   // Inputs
+    ///   let [u, qdata, ..] = inputs;
+    ///   // Outputs
+    ///   let [v, ..] = outputs;
     ///
     ///   for i in 0..q {
     ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
