@@ -713,7 +713,7 @@ impl Operator {
     /// let mut mass_2_comp = |
     ///   [u, qdata, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Number of quadrature points
     ///   let q = qdata.len();
@@ -847,7 +847,7 @@ impl Operator {
     /// let mut mass_2_comp = |
     ///   [u, qdata, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Number of quadrature points
     ///   let q = qdata.len();

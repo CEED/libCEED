@@ -126,7 +126,7 @@ impl fmt::Display for QFunctionCore {
 /// let mut user_f = |
 ///   [u, weights, ..]: QFunctionInputs,
 ///   [v, ..]: QFunctionOutputs,
-/// | -> i32
+/// |
 /// {
 ///   // Iterate over quadrature points
 ///   v
@@ -313,7 +313,7 @@ impl QFunction {
     /// let mut user_f = |
     ///   [u, weights, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Iterate over quadrature points
     ///   v
@@ -379,7 +379,7 @@ impl QFunction {
     /// let mut user_f = |
     ///   [u, weights, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Iterate over quadrature points
     ///   v
@@ -421,7 +421,7 @@ impl QFunction {
     /// let mut user_f = |
     ///   [u, weights, ..]: QFunctionInputs,
     ///   [v, ..]: QFunctionOutputs,
-    /// | -> i32
+    /// |
     /// {
     ///   // Iterate over quadrature points
     ///   v
