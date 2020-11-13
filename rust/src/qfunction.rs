@@ -15,6 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative
 use crate::prelude::*;
 
+pub type QFunctionInputs<'a> = [&'a [f64]; MAX_QFUNCTION_FIELDS];
+pub type QFunctionOutputs<'a> = [&'a mut [f64]; MAX_QFUNCTION_FIELDS];
+
 // -----------------------------------------------------------------------------
 // CeedQFunction option
 // -----------------------------------------------------------------------------

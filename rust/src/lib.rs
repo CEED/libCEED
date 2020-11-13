@@ -40,7 +40,9 @@ pub mod prelude {
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
         operator::{self, CompositeOperator, Operator},
-        qfunction::{self, QFunction, QFunctionByName, QFunctionOpt},
+        qfunction::{
+            self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
+        },
         vector::{self, Vector, VectorOpt},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, MAX_QFUNCTION_FIELDS,
     };
@@ -455,8 +457,8 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |
-    ///   [u, weights, ..]: [&[f64]; MAX_QFUNCTION_FIELDS], // Inputs
-    ///   [v, ..]: [&mut [f64]; MAX_QFUNCTION_FIELDS],      // Outputs
+    ///   [u, weights, ..]: QFunctionInputs,
+    ///   [v, ..]: QFunctionOutputs,
     /// | -> i32
     /// {
     ///   // Iterate over quadrature points
