@@ -58,7 +58,7 @@ pub mod qfunction;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
-// Constants for library internally
+// Constants for library
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
 pub const MAX_QFUNCTION_FIELDS: usize = 16;
