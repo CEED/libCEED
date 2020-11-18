@@ -26,10 +26,6 @@ from .ceed_constants import TRANSPOSE, NOTRANSPOSE
 class Basis(ABC):
     """Ceed Basis: finite element basis objects."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-
     # Representation
     def __repr__(self):
         return "<CeedBasis instance at " + hex(id(self)) + ">"
