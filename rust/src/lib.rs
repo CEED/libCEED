@@ -75,6 +75,8 @@ pub const MAX_QFUNCTION_FIELDS: usize = 16;
 // Enums for libCEED
 // -----------------------------------------------------------------------------
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Many Ceed interfaces take or return pointers to memory.  This enum is used to
+/// specify where the memory being provided or requested must reside.
 pub enum MemType {
     Host,
     Device,
@@ -83,6 +85,7 @@ pub enum MemType {
 #[derive(Clone, Copy, PartialEq, Eq)]
 // OwnPointer will not be used by user but is included for internal use
 #[allow(dead_code)]
+/// Conveys ownership status of arrays passed to Ceed interfaces.
 pub(crate) enum CopyMode {
     CopyValues,
     UsePointer,
@@ -90,6 +93,7 @@ pub(crate) enum CopyMode {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Denotes type of vector norm to be computed
 pub enum NormType {
     One,
     Two,
@@ -97,18 +101,21 @@ pub enum NormType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Denotes whether a linear transformation or its transpose should be applied
 pub enum TransposeMode {
     NoTranspose,
     Transpose,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Type of quadrature; also used for location of nodes
 pub enum QuadMode {
     Gauss,
     GaussLobatto,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Type of basis shape to create non-tensor H1 element basis
 pub enum ElemTopology {
     Line,
     Triangle,
@@ -120,6 +127,7 @@ pub enum ElemTopology {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// Basis evaluation mode
 pub enum EvalMode {
     None,
     Interp,
@@ -132,6 +140,8 @@ pub enum EvalMode {
 // -----------------------------------------------------------------------------
 // Ceed context wrapper
 // -----------------------------------------------------------------------------
+/// A Ceed is a library context representing control of a logical hardware
+/// resource.
 #[derive(Debug)]
 pub struct Ceed {
     ptr: bind_ceed::Ceed,
