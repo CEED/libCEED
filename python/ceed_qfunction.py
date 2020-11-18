@@ -26,10 +26,6 @@ class _QFunctionBase(ABC):
     """Ceed QFunction: point-wise operation at quadrature points for evaluating
          volumetric terms."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-
     # Destructor
     def __del__(self):
         # libCEED call
