@@ -25,10 +25,6 @@ from .ceed_constants import REQUEST_IMMEDIATE, REQUEST_ORDERED, NOTRANSPOSE
 class _OperatorBase(ABC):
     """Ceed Operator: composed FE-type operations on vectors."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-
     # Destructor
     def __del__(self):
         # libCEED call

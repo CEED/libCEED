@@ -33,8 +33,6 @@ from .ceed_constants import *
 
 class Ceed():
     """Ceed: core components."""
-    # Attributes
-    _pointer = ffi.NULL
 
     # Constructor
     def __init__(self, resource="/cpu/self", on_error="store"):

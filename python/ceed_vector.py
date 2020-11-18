@@ -26,11 +26,6 @@ from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
 class Vector():
     """Ceed Vector: storing and manipulating vectors."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-    _array_reference = None
-
     # Constructor
     def __init__(self, ceed, size):
         # CeedVector object

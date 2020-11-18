@@ -26,11 +26,6 @@ from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES
 class QFunctionContext():
     """Ceed QFunction Context: stores Ceed QFunction user context data."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-    _array_reference = None
-
     # Constructor
     def __init__(self, ceed):
         # CeedQFunctionContext object
