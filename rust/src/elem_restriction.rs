@@ -13,6 +13,10 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+//! A Ceed ElemRestriction decomposes elements and groups the degrees of freedom
+//! (dofs) according to the different elements they belong to.
+
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------

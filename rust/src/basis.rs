@@ -13,6 +13,10 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+//! A Ceed Basis defines the discrete finite element basis and associated
+//! quadrature rule.
+
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------

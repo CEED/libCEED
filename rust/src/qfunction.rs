@@ -13,6 +13,10 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+//! A Ceed QFunction represents the spatial terms of the point-wise functions
+//! describing the physics at the quadrature points.
+
 use crate::prelude::*;
 
 pub type QFunctionInputs<'a> = [&'a [f64]; MAX_QFUNCTION_FIELDS];

@@ -18,6 +18,12 @@
 //!
 //! This is the documentation for the high level libCEED Rust interface.
 //! See the full libCEED user manual [here](https://libceed.readthedocs.io).
+//! 
+//! ## Installing
+//! 
+//! First, libCEED needs to be built and `LD_LIBRARY_PATH` updated to contain
+//! the filepath to `libceed.so`. Then `cargo` commands may be used as usual in
+//! the `libCEED/rust` folder, such as `cargo build` and `cargo test`.
 
 // -----------------------------------------------------------------------------
 // Exceptions

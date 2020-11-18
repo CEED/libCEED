@@ -3,8 +3,8 @@
 CeedVector
 **************************************
 
-CeedVectors constitute the main data structure and serve as input/output for
-CeedOperators.
+A `CeedVector` constitutes the main data structure and serves as input/output
+for the :ref:`CeedOperator`\s.
 
 Basic vector operations
 ======================================

@@ -13,6 +13,11 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
+
+//! A Ceed Operator defines the finite/spectral element operator associated to a
+//! Ceed QFunction. A Ceed Operator connects Ceed ElemRestrictions,
+//! Ceed Bases, and Ceed QFunctions.
+
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
