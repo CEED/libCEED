@@ -27,11 +27,6 @@ from .ceed_vector import _VectorWrap
 class _ElemRestrictionBase(ABC):
     """Ceed ElemRestriction: restriction from local vectors to elements."""
 
-    # Attributes
-    _ceed = None
-    _pointer = ffi.NULL
-    _array_reference = None
-
     # Destructor
     def __del__(self):
         # libCEED call
