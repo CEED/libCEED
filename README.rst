@@ -79,7 +79,7 @@ Building
 ----------------------------------------
 
 The CEED library, ``libceed``, is a C99 library with no required dependencies, and
-with Fortran and Python interfaces.  It can be built using::
+with Fortran, Python, Julia, and Rust interfaces.  It can be built using::
 
     make
 
@@ -89,11 +89,6 @@ or, with optimization flags::
 
 These optimization flags are used by all languages (C, C++, Fortran) and this
 makefile variable can also be set for testing and examples (below).
-Python users can install using::
-
-    pip install libceed
-
-or in a clone of the repository via ``pip install .``.
 
 The library attempts to automatically detect support for the AVX
 instruction set using gcc-style compiler options for the host.
@@ -108,6 +103,36 @@ or::
 if your compiler does not support gcc-style options, if you are cross
 compiling, etc.
 
+Additional Language Interfaces
+----------------------------------------
+
+The Fortran interface is built alongside the library automatically.
+
+Python users can install using::
+
+    pip install libceed
+
+or in a clone of the repository via ``pip install .``.
+
+Julia users can install using::
+
+   $ julia
+   julia> ]
+   pkg> add LibCEED
+
+in the Julia package manager or in a clone of the repository via::
+
+    JULIA_LIBCEED_LIB=/path/to/libceed.so julia
+    julia> # press ] to enter package manager
+    (env) pkg> build LibCEED
+
+Rust users can build using::
+
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/libceed.so
+    cd rust
+    cargo build
+
+The locally built Rust interface can be used as a path dependency, as per the `Rust documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies>`_.
 
 Testing
 ----------------------------------------
