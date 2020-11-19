@@ -46,6 +46,9 @@ The elasticity min-app is controlled via command-line options, the following of 
 
 Note: The default for a clamped face is zero displacement. All displacement is with respect to the initial configuration.
 
+   * - :code:`-bc_traction [int list]`
+     - List of face sets on which to set traction boundary conditions with the traction vector :code:`-bc_traction_[facenumber] [tx,ty,tz]`
+
 .. note::
 
    This solver can use any mesh format that PETSc's ``DMPlex`` can read (Exodus, Gmsh, Med, etc.).

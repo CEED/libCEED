@@ -75,6 +75,11 @@ PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
   // libCEED for local action of residual evaluator
   ierr = ApplyLocalCeedOp(X, Y, user); CHKERRQ(ierr);
 
+  // Neumann BCs
+  if (user->NBCs) {
+    ierr = VecAXPY(Y, -user->loadIncrement, user->NBCs); CHKERRQ(ierr);
+  }
+
   PetscFunctionReturn(0);
 };
 
