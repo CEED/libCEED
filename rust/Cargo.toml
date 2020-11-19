@@ -1,0 +1,15 @@
+[package]
+authors = ["Jed Brown <jed@jedbrown.org",
+           "Yohann Dudouit <dudouit1@llnl.gov>",
+           "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",]
+build = "build.rs"
+name = "libceed"
+version = "0.7.0"
+links = "libceed"
+edition = "2018"
+
+[lib]
+name = "libceed"
+
+[build-dependencies]
+bindgen = "*"
