@@ -116,7 +116,9 @@ or in a clone of the repository via ``pip install .``.
 
 Julia users can install using::
 
-    ] add LibCEED
+   $ julia
+   julia> ]
+   pkg> add LibCEED
 
 in the Julia package manager or in a clone of the repository via::
 
