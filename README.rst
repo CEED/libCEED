@@ -126,7 +126,7 @@ in the Julia package manager or in a clone of the repository via::
     julia> # press ] to enter package manager
     (env) pkg> build LibCEED
 
-Rust users can install using::
+Rust users can build using::
 
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/libceed.so
     cd rust
