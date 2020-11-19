@@ -1,0 +1,35 @@
+name: Rust
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [gcc-9]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Rust setup
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+    - name: Rust test
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-9
+      run: |
+        make info
+        make -j2
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
+        cd rust && cargo build
+        cargo test
+        cd ..
+    - name: Rust style
+      run: |
+        cd rust && cargo fmt -- --check
