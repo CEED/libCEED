@@ -132,6 +132,8 @@ Rust users can build using::
     cd rust
     cargo build
 
+The locally built Rust interface can be used as a path dependency, as per the `Rust documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies>`_.
+
 Testing
 ----------------------------------------
 
