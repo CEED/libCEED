@@ -9,7 +9,7 @@ for each release of libCEED.
 Current Main
 ----------------------------------------
 
-The current ``main`` (formerly called ``master``) branch contains bug fixes and interfaces changes.
+The current ``main`` (formerly called ``master``) branch contains bug fixes and additional features.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
@@ -17,12 +17,14 @@ Interface changes
 New features
 ^^^^^^^^^^^^
 * New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
+* Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Examples
 ^^^^^^^^
+* :ref:`example-petsc-elasticity` example updated with traction boundary conditions.
 
 .. _v0.7
 
@@ -47,7 +49,7 @@ Interface changes
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
-* CeedQFunction support for user ``CUfunction``s in some backends
+* CeedQFunction support for user ``CUfunction``\s in some backends
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
