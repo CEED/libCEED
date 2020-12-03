@@ -26,7 +26,7 @@ Examples
 ^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with traction boundary conditions.
 
-.. _v0.7
+.. _v0.7:
 
 v0.7 (Sep 29, 2020)
 -------------------
