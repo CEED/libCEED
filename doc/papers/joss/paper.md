@@ -70,7 +70,7 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 # Summary
 
 High-order numerical methods are widely used in Partial Differential Equation (PDE) solvers, but software packages that provide high-performance implementations have often been special-purpose and intrusive.
-``libCEED``, the Code for Efficient Extensible Discretizations, is a new lightweight, open-source, matrix-free Finite Elements library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-dev-site].
+``libCEED``, the Code for Efficient Extensible Discretizations, is a new lightweight, open-source, matrix-free Finite Elements library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-user-manual].
 libCEED supports run-time selection of implementations tuned for a variety of computational architectures, including CPUs and GPUs, and can be unobtrusively integrated in new and legacy software to provide portable performance. We introduce libCEED’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc [@PETScUserManual], MFEM [@MFEMlibrary; @mfem-paper], and Nek5000 [@Nekwebsite].
 
 In finite element formulations, the weak form of a PDE is evaluated on a subdomain (element), and the local results are composed into a larger system of equations that models the entire problem.
