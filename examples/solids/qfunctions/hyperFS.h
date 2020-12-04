@@ -33,6 +33,8 @@ struct Physics_private {
 };
 #endif
 
+
+
 // -----------------------------------------------------------------------------
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
@@ -78,6 +80,56 @@ static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
          E2work[1]*E2work[2] - E2work[5]*E2work[5] -
          E2work[4]*E2work[4] - E2work[3]*E2work[3];
 };
+
+
+// Functions for various material models
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Neo-Hookean model
+
+// Compute the Second Piola-Kirchhoff (S)
+void NH_Piola_Kirchhoff_2(CeedScalar *llnj, const CeedScalar lambda, 
+    CeedScalar *detC_m1, CeedScalar Swork[6], CeedScalar Cinvwork[6], 
+    const CeedScalar mu, const CeedScalar Cinv[][3], const CeedInt indj[6], CeedScalar E2[][3], const CeedInt indk[6]){
+  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
+  for (CeedInt m = 0; m < 6; m++) {
+    Swork[m] = (*llnj)*Cinvwork[m];
+    for (CeedInt n = 0; n < 3; n++)
+      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]];
+  }
+  return;
+}
+
+// // Compute the First Piola-Kirchhoff : P = F*S
+void NH_Piola_Kirchhoff_1(const CeedScalar F[][3], const CeedScalar S[][3], CeedScalar P[][3]){
+
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        P[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          P[j][k] += F[j][m] * S[m][k];
+      }
+  return;
+}
+
+// // Apply dXdx^T and weight to P (First Piola-Kirchhoff)
+
+void NH_delta_to_P(CeedInt i, CeedInt Q, CeedScalar dvdX[][3][Q], const CeedScalar dXdx[][3], CeedScalar P[][3], const CeedScalar wdetJ){
+  for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3; k++) { // Derivative
+        dvdX[k][j][i] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
+      }
+  return;
+}
+// -----------------------------------------------------------------------------
+// Mooney-Rivlin model
+
+// -----------------------------------------------------------------------------
+// Generalized Polynomial model
+
+// -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS
@@ -130,13 +182,14 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                                 };
   // *INDENT-ON*
 
-  // Compute the Second Piola-Kirchhoff (S)
-  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
-  for (CeedInt m = 0; m < 6; m++) {
-    Swork[m] = (*llnj)*Cinvwork[m];
-    for (CeedInt n = 0; n < 3; n++)
-      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]];
-  }
+  // Compute the Second Piola-Kirchhoff (S) MAKE INTO OWN FUNCTION
+  NH_Piola_Kirchhoff_2(llnj, lambda, detC_m1, Swork, Cinvwork, mu, Cinv, indj, E2, indk);
+  // (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
+  // for (CeedInt m = 0; m < 6; m++) {
+  //   Swork[m] = (*llnj)*Cinvwork[m];
+  //   for (CeedInt n = 0; n < 3; n++)
+  //     Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]];
+  // }
 
   return 0;
 };
@@ -145,7 +198,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+                         CeedScalar *const *out) { // add helper to call specific model
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -258,22 +311,26 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                };
     // *INDENT-ON*
 
-    // Compute the First Piola-Kirchhoff : P = F*S
+    // Compute the First Piola-Kirchhoff : P = F*S MAKE INTO OWN FUNCTION
     CeedScalar P[3][3];
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++) {
-        P[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          P[j][k] += F[j][m] * S[m][k];
-      }
+    // function call here
+    NH_Piola_Kirchhoff_1(F, S, P);
 
-    // Apply dXdx^T and weight to P (First Piola-Kirchhoff)
-    for (CeedInt j = 0; j < 3; j++)     // Component
-      for (CeedInt k = 0; k < 3; k++) { // Derivative
-        dvdX[k][j][i] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
-      }
+    // for (CeedInt j = 0; j < 3; j++)
+    //   for (CeedInt k = 0; k < 3; k++) {
+    //     P[j][k] = 0;
+    //     for (CeedInt m = 0; m < 3; m++)
+    //       P[j][k] += F[j][m] * S[m][k];
+    //   }
+
+    // Apply dXdx^T and weight to P (First Piola-Kirchhoff) MAKE INTO OWN FUNCTION?
+    NH_delta_to_P(i, Q, dvdX, dXdx, P, wdetJ);
+    // for (CeedInt j = 0; j < 3; j++)     // Component
+    //   for (CeedInt k = 0; k < 3; k++) { // Derivative
+    //     dvdX[k][j][i] = 0;
+    //     for (CeedInt m = 0; m < 3; m++)
+    //       dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
+    //   }
 
   } // End of Quadrature Point Loop
 
@@ -464,7 +521,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 }
 
 // -----------------------------------------------------------------------------
-// Strain energy computation for hyperelasticity, finite strain
+// Strain energy computation for hyperelasticity, finite strain                 UPDATE TO ALLOW FOR CALLING DIFFERENT MODEL TYPES
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) {
@@ -541,7 +598,7 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
+    const CeedScalar detC_m1 = computeDetCM1(E2work); // note
 
     // Strain energy Phi(E) for compressible Neo-Hookean
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
