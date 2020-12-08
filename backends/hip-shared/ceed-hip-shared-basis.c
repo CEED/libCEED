@@ -807,7 +807,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                           &d_u, &d_v
                          };
     if (dim == 1) {
-      CeedInt elemsPerBlock = 32*thread1d > 256? 256/thread1d : 32;
+      CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
       elemsPerBlock = elemsPerBlock>0?elemsPerBlock:1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
@@ -847,7 +847,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                         &data->c_G, &d_u, &d_v
                        };
     if (dim == 1) {
-      CeedInt elemsPerBlock = 32*thread1d > 256? 256/thread1d : 32;
+      CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
       elemsPerBlock = elemsPerBlock>0?elemsPerBlock:1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
@@ -880,7 +880,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     if (dim == 1) {
-      const CeedInt optElems = 32/Q1d;
+      const CeedInt optElems = 64/Q1d;
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
@@ -888,7 +888,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                  elemsPerBlock, 1, weightargs);
       CeedChk(ierr);
     } else if (dim == 2) {
-      const CeedInt optElems = 32/(Q1d*Q1d);
+      const CeedInt optElems = 64/(Q1d*Q1d);
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
