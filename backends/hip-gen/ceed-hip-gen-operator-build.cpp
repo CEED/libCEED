@@ -786,7 +786,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   struct hipDeviceProp_t prop;
   Ceed_Hip *ceed_data;
   ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
-  ierr = hipGetDeviceProperties(&prop, ceed_data->deviceId);
+  ierr = hipGetDeviceProperties(&prop, ceed_data->deviceId); CeedChk(ierr);
   if (prop.major<6){
     code << atomicAdd;
   }
