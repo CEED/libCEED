@@ -119,7 +119,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
   const CeedInt P1d = data->maxP1d;
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
   if (dim==1) {
-    CeedInt elemsPerBlock = 32*thread1d > 256? 256/thread1d : 32;
+    CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
     elemsPerBlock = elemsPerBlock>0?elemsPerBlock:1;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
