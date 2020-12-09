@@ -702,7 +702,8 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
 //------------------------------------------------------------------------------
 // Interp kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
+extern "C" __launch_bounds__(INTERP_BLKSIZE) __global__ void interp(
+                                  const CeedInt nelem, const int transpose,
                                   const CeedScalar *c_B,
                                   const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
@@ -719,7 +720,8 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
 //------------------------------------------------------------------------------
 // Grad kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
+extern "C" __launch_bounds__(GRAD_BLKSIZE) __global__ void grad(const CeedInt nelem,
+                                const int transpose,
                                 const CeedScalar *c_B, const CeedScalar *c_G,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
@@ -736,7 +738,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 //------------------------------------------------------------------------------
 // Weight kernels by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void weight(const CeedInt nelem,
+extern "C" __launch_bounds__(WEIGHT_BLKSIZE) __global__ void weight(const CeedInt nelem,
                                   const CeedScalar *__restrict__ qweight1d,
                                   CeedScalar *__restrict__ v) {
   if (BASIS_DIM == 1) {
@@ -750,6 +752,77 @@ extern "C" __global__ void weight(const CeedInt nelem,
 
 );
 // *INDENT-ON*
+
+//------------------------------------------------------------------------------
+// Compute a block size based on required minimum threads
+//------------------------------------------------------------------------------
+static CeedInt ComputeBlockSizeFromRequirement(const CeedInt required) {
+  CeedInt maxSize = 1024;    // Max total threads per block
+  CeedInt currentSize = 64;  // Start with one group
+
+  while(currentSize < maxSize) {
+    if (currentSize > required)
+      break;
+    else
+      currentSize = currentSize * 2;
+  }
+  return currentSize;
+}
+
+//------------------------------------------------------------------------------
+// Compute required thread block sizes for basis kernels given P, Q, dim, and
+// ncomp
+//------------------------------------------------------------------------------
+static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P1d,
+                                        const CeedInt Q1d,
+                                        const CeedInt ncomp, CeedInt *blksizes) {
+
+  // Note that this will use the same block sizes for all dimensions when compiling,
+  // but as each basis object is defined for a particular dimension, we will never
+  // call any kernels except the ones for the dimension for which we have computed the
+  // block sizes.
+  const CeedInt thread1d = CeedIntMax(P1d, Q1d);
+  switch (dim) {
+  case 1: {
+    // Interp kernels:
+    blksizes[0] = 256;
+
+    // Grad kernels:
+    blksizes[1] = 256;
+
+    // Weight kernels:
+    blksizes[2] = 256;
+
+  } break;
+  case 2: {
+    // Interp kernels:
+    CeedInt required = thread1d * thread1d * ncomp;
+    blksizes[0]  = ComputeBlockSizeFromRequirement(required);
+
+    // Grad kernels: currently use same required minimum threads
+    blksizes[1]  = ComputeBlockSizeFromRequirement(required);
+
+    // Weight kernels:
+    required = CeedIntMax(64, Q1d * Q1d);
+    blksizes[2]  = ComputeBlockSizeFromRequirement(required);
+
+  } break;
+  case 3: {
+    // Interp kernels:
+    CeedInt required = thread1d * thread1d * ncomp;
+    blksizes[0]  = ComputeBlockSizeFromRequirement(required);
+
+    // Grad kernels: currently use same required minimum threads
+    blksizes[1]  = ComputeBlockSizeFromRequirement(required);
+
+    // Weight kernels:
+    required = Q1d * Q1d * Q1d;
+    blksizes[2]  = ComputeBlockSizeFromRequirement(required);
+  }
+  }
+
+  return 0;
+}
 
 //------------------------------------------------------------------------------
 // Device initalization
@@ -798,6 +871,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
   switch (emode) {
   case CEED_EVAL_INTERP: {
     CeedInt P1d, Q1d;
+    CeedInt blksize = data->blksizes[0];
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     CeedInt thread1d = CeedIntMax(Q1d, P1d);
@@ -816,9 +890,8 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                        elemsPerBlock, sharedMem,
                                        interpargs); CeedChk(ierr);
     } else if (dim == 2) {
-      const CeedInt optElems[7] = {0,32,8,6,4,2,6};
-      // elemsPerBlock must be at least 1
-      CeedInt elemsPerBlock = CeedIntMax(thread1d<7?optElems[thread1d]/ncomp:1, 1);
+      // Check if required threads is small enough to do multiple elems
+      const CeedInt elemsPerBlock = CeedIntMax(blksize/(thread1d*thread1d*ncomp), 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
@@ -837,6 +910,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
   } break;
   case CEED_EVAL_GRAD: {
     CeedInt P1d, Q1d;
+    CeedInt blksize = data->blksizes[1];
     ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     CeedInt thread1d = CeedIntMax(Q1d, P1d);
@@ -856,9 +930,8 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                        elemsPerBlock, sharedMem, gradargs);
       CeedChk(ierr);
     } else if (dim == 2) {
-      const CeedInt optElems[7] = {0,32,8,6,4,2,6};
-      // elemsPerBlock must be at least 1
-      CeedInt elemsPerBlock = CeedIntMax(thread1d<7?optElems[thread1d]/ncomp:1, 1);
+      // Check if required threads is small enough to do multiple elems
+      const CeedInt elemsPerBlock = CeedIntMax(blksize/(thread1d*thread1d*ncomp), 1);
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                              ? 1 : 0 );
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
@@ -877,10 +950,11 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
   } break;
   case CEED_EVAL_WEIGHT: {
     CeedInt Q1d;
+    CeedInt blksize = data->blksizes[2];
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     if (dim == 1) {
-      const CeedInt optElems = 64/Q1d;
+      const CeedInt optElems = blksize/Q1d;
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
@@ -888,7 +962,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                  elemsPerBlock, 1, weightargs);
       CeedChk(ierr);
     } else if (dim == 2) {
-      const CeedInt optElems = 64/(Q1d*Q1d);
+      const CeedInt optElems = blksize/(Q1d*Q1d);
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
       const CeedInt gridsize = nelem/elemsPerBlock + ( (
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
@@ -990,10 +1064,14 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
     ierr = CeedFree(&collograd1d); CeedChk(ierr);
   }
 
-  // Compile basis kernels
+  // Set number of threads per block for basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = CeedCompileHip(ceed, kernelsShared, &data->module, 8,
+  ierr = ComputeBasisThreadBlockSizes(dim, P1d, Q1d, ncomp, data->blksizes);
+  CeedChk(ierr);
+
+  // Compile basis kernels
+  ierr = CeedCompileHip(ceed, kernelsShared, &data->module, 11,
                         "Q1D", Q1d,
                         "P1D", P1d,
                         "T1D", CeedIntMax(Q1d, P1d),
@@ -1002,7 +1080,10 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                         "BASIS_DIM", dim,
                         "BASIS_NCOMP", ncomp,
                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
-                        "BASIS_NQPT", CeedIntPow(Q1d, dim)
+                        "BASIS_NQPT", CeedIntPow(Q1d, dim),
+                        "INTERP_BLKSIZE", data->blksizes[0],
+                        "GRAD_BLKSIZE", data->blksizes[1],
+                        "WEIGHT_BLKSIZE", data->blksizes[2]
                        ); CeedChk(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
   CeedChk(ierr);
