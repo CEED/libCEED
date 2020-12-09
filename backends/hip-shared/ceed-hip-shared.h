@@ -20,6 +20,7 @@ typedef struct {
   hipFunction_t interp;
   hipFunction_t grad;
   hipFunction_t weight;
+  CeedInt blksizes[3]; // interp, grad, weight thread block sizes
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
   CeedScalar *d_collograd1d;
