@@ -106,7 +106,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar P = 1.;
   const CeedScalar T = P / rho - S * exp(1. - r*r);
   const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
-                           C*x0, 0.
+                           C*x0,
+                           0.
                           };
   // Initial Conditions
   q[0] = rho;
@@ -203,7 +204,8 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
   const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
-                           C*x0, 0.
+                           C*x0,
+                           0.
                           };
 
   // Forcing term for Manufactured solution
