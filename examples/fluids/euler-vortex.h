@@ -19,8 +19,8 @@
 /// example using PETSc
 
 // Model from:
-//   On the order of accuracy and numerical performance of two classes of
-//   finite volume WENO, Zhang, Zhang, and Shu (2009).
+//   On the Order of Accuracy and Numerical Performance of Two Classes of
+//   Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
 
 #ifndef eulervortex_h
 #define eulervortex_h
