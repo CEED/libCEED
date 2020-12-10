@@ -66,7 +66,7 @@ struct DCContext_ {
 #endif
 
 // *****************************************************************************
-// These function sets the the initial conditions and boundary conditions
+// This function sets the initial conditions and the boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
 //   Exner pressure and then converted to density and total energy.
