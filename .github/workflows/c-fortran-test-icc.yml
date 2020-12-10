@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  LINUX_CPP_COMPONENTS: intel-oneapi-dpcpp-cpp-compiler-pro
+  LINUX_CPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
   LINUX_FORTRAN_COMPONENTS: intel-oneapi-ifort
 
 jobs:
