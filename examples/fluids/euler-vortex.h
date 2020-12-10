@@ -77,8 +77,9 @@ struct EulerContext_ {
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for Euler traveling vortex
 // *****************************************************************************
-static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                           CeedInt Nf, CeedScalar q[], void *ctx) {
+static inline int Exact_Euler(CeedInt dim, CeedScalar time,
+                              const CeedScalar X[],
+                              CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
@@ -89,7 +90,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
-   // Vortex center
+  // Vortex center
   const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
   const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
 
@@ -105,7 +106,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
   const CeedScalar P = 1.;
   const CeedScalar T = P / rho - S * exp(1. - r*r);
   const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
-                           C*x0, 0.};
+                           C*x0, 0.
+                          };
   // Initial Conditions
   q[0] = rho;
   q[1] = rho * u[0];
@@ -120,7 +122,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[]
 // This QFunction sets the initial conditions for Euler traveling vortex
 // *****************************************************************************
 CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+                         const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
@@ -177,8 +179,9 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 // This helper function provides forcing term for Euler traveling vortex
 //   manufactured solution
 // *****************************************************************************
-static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[],
-                           CeedInt Nf, CeedScalar force[], void *ctx) {
+static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
+                                 const CeedScalar X[],
+                                 CeedInt Nf, CeedScalar force[], void *ctx) {
   // Context
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
@@ -189,7 +192,7 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   const CeedScalar gamma = 1.4;
   const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
-   // Vortex center
+  // Vortex center
   const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
   const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
 
@@ -200,7 +203,8 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
   const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0, etv_mean_velocity[1] +
-                           C*x0, 0.};
+                           C*x0, 0.
+                          };
 
   // Forcing term for Manufactured solution
   force[0] = 0.;
@@ -213,7 +217,7 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time, const CeedScalar 
 }
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
-                   const CeedScalar *const *in, CeedScalar *const *out) {
+                      const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],

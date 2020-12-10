@@ -994,7 +994,7 @@ int main(int argc, char **argv) {
   PetscInt qextra            = 2;        // -
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
-            etv_mean_velocity[3] = {1., 1., 0}; // etv: euler traveling vortex
+                                    etv_mean_velocity[3] = {1., 1., 0};
   DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                                   DM_BOUNDARY_NONE
                                  };
@@ -1572,14 +1572,14 @@ int main(int argc, char **argv) {
                                    qf_setupSur, height, numP_Sur, numQ_Sur,
                                    qdatasizeSur, NqptsSur, basisxSur,
                                    basisqSur, &user->op_rhs);
-                                   CHKERRQ(ierr);
+  CHKERRQ(ierr);
   if (implicit)
     ierr = CreateOperatorForDomain(ceed, dm, &bc, problemChoice, wind_type,
                                    user->op_ifunction_vol, qf_applySur,
                                    qf_setupSur, height, numP_Sur, numQ_Sur,
                                    qdatasizeSur, NqptsSur, basisxSur,
                                    basisqSur, &user->op_ifunction);
-                                   CHKERRQ(ierr);
+  CHKERRQ(ierr);
   // Set up contex for QFunctions
   CeedQFunctionContextCreate(ceed, &ctxSetup);
   CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
