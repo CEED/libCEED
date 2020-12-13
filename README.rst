@@ -429,11 +429,27 @@ How to Cite
 
 If you utilize libCEED please cite::
 
-   @misc{libceed-dev-site,
-     title =  {lib{CEED} development site},
-     url =    {https://github.com/ceed/libceed},
-     howpublished = {\url{https://github.com/ceed/libceed}},
-     year = 2020
+   @misc{libceed-user-manual,
+     author       = {Abdelfattah, Ahmad and
+                     Barra, Valeria and
+                     Beams, Natalie and
+                     Brown, Jed and
+                     Camier, Jean-Sylvain and
+                     Dobrev, Veselin and
+                     Dudouit, Yohann and
+                     Ghaffari, Leila and
+                     Kolev, Tzanio and
+                     Medina, David and
+                     Rathnayake, Thilina and
+                     Thompson, Jeremy L and
+                     Tomov, Stanimire},
+     title        = {libCEED User Manual},
+     month        = sep,
+     year         = 2020,
+     publisher    = {Zenodo},
+     version      = {0.7},
+     doi          = {10.5281/zenodo.4302737},
+     url          = {https://doi.org/10.5281/zenodo.4302737}
    }
 
 For libCEED's Python interface please cite::
