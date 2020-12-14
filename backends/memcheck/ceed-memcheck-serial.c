@@ -43,8 +43,7 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/memcheck/serial", CeedInit_Memcheck, 100);
+CEED_INTERN int CeedRegister_Memcheck_Serial(void) {
+  return CeedRegister("/cpu/self/memcheck/serial", CeedInit_Memcheck, 100);
 }
 //------------------------------------------------------------------------------

@@ -501,10 +501,12 @@ code). Backends are registered by calling
 typically in a library initializer or "constructor" that runs automatically.
 ``CeedInit`` uses this prefix to find an appropriate backend for the resource.
 
-Source (API) and binary (ABI) stability are important to libCEED. LibCEED is
-evolving rapidly at present, but we expect it to stabilize soon at which point
-we will adopt semantic versioning. User code, including libraries of
-:ref:`CeedQFunction`\s, will not need to be recompiled except between major releases.
-The backends currently have some dependence beyond the public user interface,
-but we intent to remove that dependence and will prioritize if anyone expresses
-interest in distributing a backend outside the libCEED repository.
+Source (API) and binary (ABI) stability are important to libCEED. Prior to
+reaching version 1.0, libCEED does not implement strict `semantic versioning
+<https://semver.org>`__ across the entire interface. However, user code,
+including libraries of :ref:`CeedQFunction`\s, should be source and binary
+compatible moving from 0.x.y to any later release 0.x.z. We have less experience
+with external packaging of backends and do not presently guarantee source or
+binary stability, but we intend to define stability guarantees for libCEED 1.0.
+We'd love to talk with you if you're interested in packaging backends
+externally, and will work with you on a practical stability policy.

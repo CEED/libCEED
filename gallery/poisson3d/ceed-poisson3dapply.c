@@ -46,8 +46,7 @@ static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested,
 /**
   @brief Register Ceed QFunction for applying the 3D Poisson operator
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Poisson3DApply", Poisson3DApply_loc, 1, Poisson3DApply,
-                        CeedQFunctionInit_Poisson3DApply);
+CEED_INTERN int CeedQFunctionRegister_Poisson3DApply(void) {
+  return CeedQFunctionRegister("Poisson3DApply", Poisson3DApply_loc, 1,
+                               Poisson3DApply, CeedQFunctionInit_Poisson3DApply);
 }

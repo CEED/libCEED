@@ -52,7 +52,7 @@ CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedFree(void *p);
 
-#define CeedChk(ierr) do { if (ierr) return ierr; } while (0)
+#define CeedChk(ierr) do { int ierr_ = ierr; if (ierr_) return ierr_; } while (0)
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
    different memory alignments: CeedMalloc returns pointers aligned at
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
@@ -70,6 +70,7 @@ typedef struct CeedOperatorField_private *CeedOperatorField;
 CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed),
                              unsigned int priority);
+CEED_EXTERN int CeedRegisterAll(void);
 
 CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *isDebug);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
@@ -152,6 +153,7 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
     void *data);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
+CEED_EXTERN int CeedQFunctionRegisterAll(void);
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
                                       CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);

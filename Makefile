@@ -31,9 +31,16 @@ endif
 ifeq (,$(filter-out undefined default,$(origin LINK)))
   LINK = $(CC)
 endif
+ifeq (,$(filter-out undefined default,$(origin AR)))
+  AR = ar
+endif
+ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
+  ARFLAGS = crD
+endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(HIP_DIR)/bin/hipcc
+SED ?= sed
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -117,6 +124,7 @@ OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
+LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
@@ -158,12 +166,16 @@ DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
-libceed := $(LIBDIR)/libceed.$(SO_EXT)
+libceed.so := $(LIBDIR)/libceed.$(SO_EXT)
+libceed.a := $(LIBDIR)/libceed.a
+libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
 CEED_LIBS = -lceed
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c))
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
-libceed_test := $(LIBDIR)/libceed_test.$(SO_EXT)
+libceed_test.so := $(LIBDIR)/libceed_test.$(SO_EXT)
+libceed_test.a := $(LIBDIR)/libceed_test.a
+libceed_test := $(if $(STATIC),$(libceed_test.a),$(libceed_test.so))
 libceeds = $(libceed) $(libceed_test)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS := $(BACKENDS_BUILTIN)
@@ -253,6 +265,8 @@ info:
 	$(info HIPCCFLAGS    = $(value HIPCCFLAGS))
 	$(info LDFLAGS       = $(value LDFLAGS))
 	$(info LDLIBS        = $(LDLIBS))
+	$(info AR            = $(AR))
+	$(info ARFLAGS       = $(ARFLAGS))
 	$(info OPT           = $(OPT))
 	$(info AFLAGS        = $(AFLAGS))
 	$(info ASAN          = $(or $(ASAN),(empty)))
@@ -280,7 +294,7 @@ info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
 .PHONY: lib all par info info-backends
 
-$(libceed) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed)))
+$(libceed.so) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
 $(libceed_test) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed_test)))
 
 # Standard Backends
@@ -313,11 +327,13 @@ ifneq ($(AVX),)
   BACKENDS += $(AVX_BACKENDS)
 endif
 
+# Collect list of libraries and paths for use in linking and pkg-config
+PKG_LIBS =
+
 # libXSMM Backends
 XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
-  $(libceeds) : LDFLAGS += -L$(XSMM_DIR)/lib -Wl,-rpath,$(abspath $(XSMM_DIR)/lib)
-  $(libceeds) : LDLIBS += -lxsmm -ldl
+  PKG_LIBS += -L$(abspath $(XSMM_DIR))/lib -lxsmm -ldl
   MKL ?=
   ifeq (,$(MKL)$(MKLROOT))
     BLAS_LIB = -lblas
@@ -325,11 +341,12 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     ifneq ($(MKLROOT),)
       # Some installs put everything inside an intel64 subdirectory, others not
       MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
-      MKL_LINK = -L$(MKL_LIBDIR) -Wl,-rpath,$(MKL_LIBDIR)
+      MKL_LINK = -L$(MKL_LIBDIR)
+      PKG_LIB_DIRS += $(MKL_LIBDIR)
     endif
-    BLAS_LIB = $(MKL_LINK) -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+    BLAS_LIB = $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
   endif
-  $(libceeds) : LDLIBS += $(BLAS_LIB)
+  PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS += $(XSMM_BACKENDS)
@@ -345,9 +362,8 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
 
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
-  $(libceeds) : LDFLAGS += -L$(OCCA_DIR)/lib -Wl,-rpath,$(abspath $(OCCA_DIR)/lib)
-  $(libceeds) : LDLIBS += -locca
-  $(libceeds) : LINK = $(CXX)
+  PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
+  LIBCEED_CONTAINS_CXX = 1
   libceed.cpp += $(occa.cpp)
   BACKENDS += $(OCCA_BACKENDS)
 endif
@@ -359,9 +375,8 @@ CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
-  $(libceeds) : LDFLAGS += -L$(CUDA_LIB_DIR) -Wl,-rpath,$(abspath $(CUDA_LIB_DIR))
-  $(libceeds) : LDLIBS += -lcudart -lnvrtc -lcuda -lcublas
-  $(libceeds) : LINK = $(CXX)
+  PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
+  LIBCEED_CONTAINS_CXX = 1
   libceed.c   += interface/ceed-cuda.c
   libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
   libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
@@ -379,9 +394,8 @@ ifneq ($(HIP_LIB_DIR),)
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
-  $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
-  $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
-  $(libceeds) : LINK = $(CXX)
+  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
+  LIBCEED_CONTAINS_CXX = 1
   libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
   libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
@@ -399,8 +413,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-      $(libceeds)          : LDLIBS += $(magma_link)
-      $(tests) $(examples) : LDLIBS += $(magma_link)
+      PKG_LIBS += $(magma_link)
       libceed.c  += $(magma.c)
       libceed.cu += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
@@ -414,8 +427,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-      $(libceeds)          : LDLIBS += $(magma_link)
-      $(tests) $(examples) : LDLIBS += $(magma_link)
+      PKG_LIBS += $(magma_link)
       libceed.c  += $(magma.c)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
@@ -427,16 +439,42 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
+  LIBCEED_CONTAINS_CXX = 1
   BACKENDS += $(MAGMA_BACKENDS)
 endif
 
 export BACKENDS
 
+_pkg_ldflags = $(filter -L%,$(PKG_LIBS))
+_pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
+$(libceeds) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%)
+$(libceeds) : LDLIBS += $(_pkg_ldlibs)
+ifeq ($(STATIC),1)
+$(examples) $(tests) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%)
+$(examples) $(tests) : LDLIBS += $(_pkg_ldlibs)
+endif
+
+pkgconfig-libs-private = $(PKG_LIBS)
+ifeq ($(LIBCEED_CONTAINS_CXX),1)
+  $(libceeds) : LINK = $(CXX)
+  ifeq ($(STATIC),1)
+    $(examples) $(tests) : LDLIBS += $(LIBCXX)
+	  pkgconfig-libs-private += $(LIBCXX)
+  endif
+endif
+
+# File names *-weak.c contain weak symbol definitions, which must be listed last
+# when creating shared or static libraries.
+weak_last = $(filter-out %-weak.o,$(1)) $(filter %-weak.o,$(1))
+
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
-$(libceed) : $(libceed.o) | $$(@D)/.DIR
+$(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+
+$(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
+	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
@@ -491,8 +529,11 @@ $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	mv examples/solids/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
-$(libceed_test) : $(libceed.o) $(libceed_test.o) | $$(@D)/.DIR
+$(libceed_test.so) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+
+$(libceed_test.a) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
+	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(examples) : $(libceed)
 $(tests) : $(libceed_test)
@@ -567,7 +608,9 @@ $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 .INTERMEDIATE : $(OBJDIR)/ceed.pc
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
-	@sed "s:%prefix%:$(pkgconfig-prefix):" $< > $@
+	@$(SED) \
+	    -e "s:%prefix%:$(pkgconfig-prefix):" \
+	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
@@ -655,7 +698,7 @@ print-% :
 # All variables to consider for caching
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
-	LDFLAGS LDLIBS \
+	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
 	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS

@@ -42,8 +42,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
+CEED_INTERN int CeedRegister_Avx_Blocked(void) {
+  return CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
 }
 //------------------------------------------------------------------------------

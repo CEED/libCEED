@@ -64,8 +64,8 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/opt/serial", CeedInit_Opt_Serial, 45);
+CEED_INTERN int CeedRegister_Opt_Serial(void) {
+  return CeedRegister("/cpu/self/opt/serial", CeedInit_Opt_Serial, 45);
 }
+
 //------------------------------------------------------------------------------

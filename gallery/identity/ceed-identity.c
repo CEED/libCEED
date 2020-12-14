@@ -40,8 +40,7 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
 /**
   @brief Register identity QFunction that copies inputs directly into outputs
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Identity", Identity_loc, 1, Identity,
-                        CeedQFunctionInit_Identity);
+CEED_INTERN int CeedQFunctionRegister_Identity(void) {
+  return CeedQFunctionRegister("Identity", Identity_loc, 1, Identity,
+                               CeedQFunctionInit_Identity);
 }
