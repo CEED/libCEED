@@ -44,7 +44,23 @@ doc/sphinx/build/
 # Example docs automatically copied from source tree
 doc/sphinx/source/examples/
 
+# Output files, videos, and compressed archives should not be added accidentally
+*.avi
+*.bin
+*.bin.info
+*.bz2
+*.gif
+*.gz
+*.mkv
+*.mp4
+*.ogv
+*.vtu
+*.xz
+*.zstd
+perf.data
+
 # Editor Misc
+.cache/
 .history
 .vscode
 .ccls-cache
