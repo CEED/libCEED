@@ -16,7 +16,7 @@
 
 #include "ceed-magma.h"
 
-static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/gpu/cuda/magma/det")
       && strcmp(resource, "/gpu/hip/magma/det"))
@@ -48,11 +48,10 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   return 0;
 }
 
-__attribute__((constructor))
-static void Register(void) {
+CEED_INTERN int CeedRegister_Magma_Det(void) {
   #ifdef HAVE_HIP
-  CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
+  return CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
   #else
-  CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
+  return CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
   #endif
 }

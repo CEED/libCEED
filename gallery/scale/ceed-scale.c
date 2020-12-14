@@ -40,8 +40,7 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
 /**
   @brief Register scaling QFunction
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Scale", Scale_loc, 1, Scale,
-                        CeedQFunctionInit_Scale);
+CEED_INTERN int CeedQFunctionRegister_Scale(void) {
+  return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale,
+                               CeedQFunctionInit_Scale);
 }

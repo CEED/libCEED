@@ -49,8 +49,7 @@ static int CeedQFunctionInit_Mass3DBuild(Ceed ceed, const char *requested,
   @brief Register Ceed QFunction for building the geometric data for the 3D mass
            matrix
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Mass3DBuild", Mass3DBuild_loc, 1, Mass3DBuild,
-                        CeedQFunctionInit_Mass3DBuild);
+CEED_INTERN int CeedQFunctionRegister_Mass3DBuild(void) {
+  return CeedQFunctionRegister("Mass3DBuild", Mass3DBuild_loc, 1, Mass3DBuild,
+                               CeedQFunctionInit_Mass3DBuild);
 }

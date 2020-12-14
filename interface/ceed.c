@@ -614,6 +614,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     // LCOV_EXCL_START
     return CeedError(NULL, 1, "No resource provided");
   // LCOV_EXCL_STOP
+  ierr = CeedRegisterAll(); CeedChk(ierr);
 
   for (size_t i=0; i<num_backends; i++) {
     size_t n;

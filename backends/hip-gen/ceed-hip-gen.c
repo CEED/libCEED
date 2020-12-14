@@ -53,8 +53,7 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/gpu/hip/gen", CeedInit_Hip_gen, 20);
+CEED_INTERN int CeedRegister_Hip_Gen(void) {
+  return CeedRegister("/gpu/hip/gen", CeedInit_Hip_gen, 20);
 }
 //------------------------------------------------------------------------------

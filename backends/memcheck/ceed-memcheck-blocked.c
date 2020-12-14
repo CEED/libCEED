@@ -42,8 +42,7 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110);
+CEED_INTERN int CeedRegister_Memcheck_Blocked(void) {
+  return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110);
 }
 //------------------------------------------------------------------------------
