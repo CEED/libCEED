@@ -348,18 +348,18 @@ impl QFunction {
     ///   v[i] = u[i] * w[i];
     /// }
     ///
-    /// let U = ceed.vector_from_slice(&u);
-    /// let W = ceed.vector_from_slice(&w);
-    /// let mut V = ceed.vector(Q);
-    /// V.set_value(0.0);
+    /// let uu = ceed.vector_from_slice(&u);
+    /// let ww = ceed.vector_from_slice(&w);
+    /// let mut vv = ceed.vector(Q);
+    /// vv.set_value(0.0);
     /// {
-    ///   let input = vec![U, W];
-    ///   let mut output = vec![V];
+    ///   let input = vec![uu, ww];
+    ///   let mut output = vec![vv];
     ///   qf.apply(Q as i32, &input, &output);
-    ///   V = output.remove(0);
+    ///   vv = output.remove(0);
     /// }
     ///
-    /// let array = V.view();
+    /// let array = vv.view();
     /// for i in 0..Q {
     ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
@@ -493,29 +493,29 @@ impl QFunctionByName {
     ///   v[i] = w[i] * u[i];
     /// }
     ///
-    /// let J = ceed.vector_from_slice(&j);
-    /// let W = ceed.vector_from_slice(&w);
-    /// let U = ceed.vector_from_slice(&u);
-    /// let mut V = ceed.vector(Q);
-    /// V.set_value(0.0);
+    /// let jj = ceed.vector_from_slice(&j);
+    /// let ww = ceed.vector_from_slice(&w);
+    /// let uu = ceed.vector_from_slice(&u);
+    /// let mut vv = ceed.vector(Q);
+    /// vv.set_value(0.0);
     /// let mut qdata = ceed.vector(Q);
     /// qdata.set_value(0.0);
     ///
     /// {
-    ///   let mut input = vec![J, W];
+    ///   let mut input = vec![jj, ww];
     ///   let mut output = vec![qdata];
     ///   qf_build.apply(Q as i32, &input, &output);
     ///   qdata = output.remove(0);
     /// }
     ///
     /// {
-    ///   let mut input = vec![qdata, U];
-    ///   let mut output = vec![V];
+    ///   let mut input = vec![qdata, uu];
+    ///   let mut output = vec![vv];
     ///   qf_mass.apply(Q as i32, &input, &output);
-    ///   V = output.remove(0);
+    ///   vv = output.remove(0);
     /// }
     ///
-    /// let array = V.view();
+    /// let array = vv.view();
     /// for i in 0..Q {
     ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
     /// }
