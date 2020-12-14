@@ -191,35 +191,35 @@ impl Basis {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// const q: usize = 6;
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, q, q, QuadMode::GaussLobatto);
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
+    /// const Q: usize = 6;
+    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, Q, Q, QuadMode::GaussLobatto);
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, Q, QuadMode::Gauss);
     ///
     /// let x_corners = ceed.vector_from_slice(&[-1., 1.]);
-    /// let mut x_qpts = ceed.vector(q);
-    /// let mut x_nodes = ceed.vector(q);
+    /// let mut x_qpts = ceed.vector(Q);
+    /// let mut x_nodes = ceed.vector(Q);
     /// bx.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///          &x_corners, &mut x_nodes);
     /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
     ///          &x_nodes, &mut x_qpts);
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
-    /// let mut u_arr = [0.; q];
+    /// let mut u_arr = [0.; Q];
     /// let x_nodes_arr = x_nodes.view();
-    /// for i in 0..q {
+    /// for i in 0..Q {
     ///   u_arr[i] = x_nodes_arr[i]*x_nodes_arr[i]*x_nodes_arr[i] + 1.;
     /// }
     /// let u = ceed.vector_from_slice(&u_arr);
     ///
     /// // Map function to Gauss points
-    /// let mut v = ceed.vector(q);
+    /// let mut v = ceed.vector(Q);
     /// v.set_value(0.);
     /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v);
     ///
     /// // Verify results
     /// let v_arr = v.view();
     /// let x_qpts_arr = x_qpts.view();
-    /// for i in 0..q {
+    /// for i in 0..Q {
     ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
     ///   assert_eq!(v_arr[i], true_value, "Incorrect basis application");
     /// }
