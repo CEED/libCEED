@@ -19,11 +19,41 @@
 //! This is the documentation for the high level libCEED Rust interface.
 //! See the full libCEED user manual [here](https://libceed.readthedocs.io).
 //!
-//! ## Installing
+//! ## Usage
 //!
-//! First, libCEED needs to be built and `LD_LIBRARY_PATH` updated to contain
-//! the filepath to `libceed.so`. Then `cargo` commands may be used as usual in
-//! the `libCEED/rust` folder, such as `cargo build` and `cargo test`.
+//! To call libCEED from a Rust package, the following `Cargo.toml` can be used.
+//! ```toml
+//! [dependencies]
+//! libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+//! ```
+//!
+//! Supported features:
+//! * `static` (default): link to static libceed.a
+//! * `system`: use libceed from a system directory (otherwise, install from source)
+//!
+//! ```
+//! extern crate libceed;
+//!
+//! fn main() {
+//!     let ceed = libceed::Ceed::init("/cpu/self/ref");
+//!     let xc = ceed.vector_from_slice(&[0., 0.5, 1.0]);
+//!     let xs = xc.view();
+//!     assert_eq!(xs[..], [0., 0.5, 1.0]);
+//! }
+//! ```
+//!
+//! ## Development
+//!
+//! To develop libCEED, use `cargo build` in the `rust/` directory to install a
+//! local copy and build the bindings. If you need custom flags for the C
+//! project, we recommend using `make configure` to cache arguments. If you
+//! disable the `static` feature, then you'll need to set `LD_LIBRARY_PATH` for
+//! doctests to be able to find it. You can do this in `$CEED_DIR/lib` and set
+//! `PKG_CONFIG_PATH`.
+//!
+//! Note: the `LD_LIBRARY_PATH` workarounds will become unnecessary if [this
+//! issue](https://github.com/rust-lang/cargo/issues/1592) is resolved -- it's
+//! currently closed, but the problem still exists.
 
 // -----------------------------------------------------------------------------
 // Exceptions

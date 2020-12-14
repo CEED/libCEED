@@ -1,16 +1,45 @@
 extern crate bindgen;
+extern crate pkg_config;
 
-use std::env;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
-    // Tell cargo to tell rustc to link the system bzip2
-    // shared library.
-    println!("cargo:rustc-link-search=native={}", "../lib");
-    println!("cargo:rustc-link-lib=ceed");
+    let out_dir = PathBuf::from(env("OUT_DIR").unwrap());
+    let statik = env("CARGO_FEATURE_STATIC").is_some();
+    let system = env("CARGO_FEATURE_SYSTEM").is_some();
+
+    let ceed_pc = if system {
+        "ceed".to_string()
+    } else {
+        // Install libceed.a or libceed.so to $OUT_DIR/lib
+        let makeflags = env("CARGO_MAKEFLAGS").unwrap();
+        let mut make = Command::new("make");
+        make.arg("install")
+            .arg(format!("prefix={}", out_dir.to_string_lossy()))
+            .env("MAKEFLAGS", makeflags)
+            .current_dir("..");
+        if statik {
+            make.arg("STATIC=1");
+        }
+        run(&mut make);
+        out_dir
+            .join("lib")
+            .join("pkgconfig")
+            .join("ceed.pc")
+            .to_string_lossy()
+            .into_owned()
+    };
+    pkg_config::Config::new()
+        .statik(statik)
+        .atleast_version("0.7")
+        .probe(&ceed_pc)
+        .unwrap();
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=../include/ceed.h");
+    println!("cargo:rerun-if-changed=../Makefile");
+    println!("cargo:rerun-if-changed=../config.mk");
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
@@ -30,8 +59,16 @@ fn main() {
         .expect("Unable to generate bindings");
 
     // Write the bindings to the $OUT_DIR/bindings.rs file.
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
-        .write_to_file(out_path.join("bindings.rs"))
+        .write_to_file(out_dir.join("bindings.rs"))
         .expect("Couldn't write bindings!");
+}
+
+fn env(k: &str) -> Option<String> {
+    std::env::var(k).ok()
+}
+
+fn run(command: &mut Command) {
+    println!("Running: `{:?}`", command);
+    assert!(command.status().unwrap().success());
 }

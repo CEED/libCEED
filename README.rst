@@ -126,13 +126,14 @@ in the Julia package manager or in a clone of the repository via::
     julia> # press ] to enter package manager
     (env) pkg> build LibCEED
 
-Rust users can build using::
+Rust users can include libCEED via ``Cargo.toml``:
 
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/libceed.so
-    cd rust
-    cargo build
+.. code-block:: toml
 
-The locally built Rust interface can be used as a path dependency, as per the `Rust documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies>`_.
+   [dependencies]
+   libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+
+See the `Cargo documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories>`__ for details.
 
 Testing
 ----------------------------------------
@@ -398,6 +399,10 @@ To install libCEED, run::
 or (e.g., if creating packages)::
 
     make install prefix=/usr DESTDIR=/packaging/path
+
+The usual variables like ``CC`` and ``CFLAGS`` are used, and optimization flags
+for all languages can be set using the likes of ``OPT='-O3 -march=native'``. Use
+``STATIC=1`` to build static libraries (``libceed.a``).
 
 To install libCEED for Python, run::
 
