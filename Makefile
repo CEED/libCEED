@@ -91,11 +91,11 @@ OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
 OMP_SIMD_FLAG.icc       := -qopenmp-simd
 OPT.gcc                 := -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
-CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-unused-function -MMD -MP
+CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
 CFLAGS.XL               := -qpic -MMD
-CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -Wno-unused-function -MMD -MP
+CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
 CXXFLAGS.XL             := -qpic -std=c++11 -MMD
