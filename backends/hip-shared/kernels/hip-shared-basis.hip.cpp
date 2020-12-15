@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed.h>
+#include <ceed-backend.h>
 #include <hip/hip_runtime.h>
 
 const int sizeMax = 16;
@@ -24,7 +25,7 @@ __constant__ double c_G[sizeMax*sizeMax];
 //------------------------------------------------------------------------------
 // Interp device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
+CEED_INTERN int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
                                   CeedScalar **c_B_ptr) {
   const int Bsize = P1d*Q1d*sizeof(CeedScalar);
   hipMemcpyToSymbol(HIP_SYMBOL(c_B), d_B, Bsize, 0, hipMemcpyDeviceToDevice);
@@ -36,8 +37,10 @@ extern "C" int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
 //------------------------------------------------------------------------------
 // Grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedHipInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
-    CeedInt P1d, CeedInt Q1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+CEED_INTERN int CeedHipInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
+                                      CeedInt P1d, CeedInt Q1d,
+                                      CeedScalar **c_B_ptr,
+                                      CeedScalar **c_G_ptr) {
   const int Bsize = P1d*Q1d*sizeof(CeedScalar);
   hipMemcpyToSymbol(HIP_SYMBOL(c_B), d_B, Bsize, 0, hipMemcpyDeviceToDevice);
   hipGetSymbolAddress((void **)c_B_ptr, HIP_SYMBOL(c_B));
