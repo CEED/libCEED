@@ -745,7 +745,7 @@ inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, 
 //------------------------------------------------------------------------------
 // Build singe operator kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
+CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
 
   using std::ostringstream;
   using std::string;
