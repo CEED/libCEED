@@ -57,6 +57,8 @@ extensions = [
     'sphinxcontrib.rsvgconverter',
 ]
 
+bibtex_bibfiles = ['references.bib']
+
 # The following, if true, allows figures, tables and code-blocks to be
 # automatically numbered if they have a caption.
 numfig = True
