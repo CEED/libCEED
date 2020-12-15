@@ -36,3 +36,10 @@ typedef struct {
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+
+CEED_INTERN int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
+                      CeedScalar **c_B);
+
+CEED_INTERN int CeedHipInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P1d,
+                          CeedInt Q1d, CeedScalar **c_B_ptr,
+                          CeedScalar **c_G_ptr);
