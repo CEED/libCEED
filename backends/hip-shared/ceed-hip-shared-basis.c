@@ -825,15 +825,6 @@ static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P1d,
 }
 
 //------------------------------------------------------------------------------
-// Device initalization
-//------------------------------------------------------------------------------
-int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
-                      CeedScalar **c_B);
-int CeedHipInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P1d,
-                          CeedInt Q1d, CeedScalar **c_B_ptr,
-                          CeedScalar **c_G_ptr);
-
-//------------------------------------------------------------------------------
 // Apply basis
 //------------------------------------------------------------------------------
 int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
