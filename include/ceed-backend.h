@@ -23,6 +23,7 @@
 #include <stdbool.h>
 
 #define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
+#define CEED_UNUSED __attribute__((unused))
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_ALIGN 64
