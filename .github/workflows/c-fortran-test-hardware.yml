@@ -7,9 +7,10 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         compiler: [gcc-9]
         arch: [aarch64, ppc64le]
+        distro: [ubuntu20.04]
 
     runs-on: ${{ matrix.os }}
 

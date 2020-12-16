@@ -18,6 +18,8 @@ New features
 ^^^^^^^^^^^^
 * New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
 * Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
+* New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
+* Static libraries can be built with ``make STATIC=1`` and the pkg-config file is installed accordingly.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -26,7 +28,7 @@ Examples
 ^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with traction boundary conditions.
 
-.. _v0.7
+.. _v0.7:
 
 v0.7 (Sep 29, 2020)
 -------------------

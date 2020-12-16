@@ -53,8 +53,7 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
+CEED_INTERN int CeedRegister_Cuda_Gen(void) {
+  return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
 }
 //------------------------------------------------------------------------------

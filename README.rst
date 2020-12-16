@@ -126,13 +126,14 @@ in the Julia package manager or in a clone of the repository via::
     julia> # press ] to enter package manager
     (env) pkg> build LibCEED
 
-Rust users can build using::
+Rust users can include libCEED via ``Cargo.toml``:
 
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/libceed.so
-    cd rust
-    cargo build
+.. code-block:: toml
 
-The locally built Rust interface can be used as a path dependency, as per the `Rust documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-path-dependencies>`_.
+   [dependencies]
+   libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+
+See the `Cargo documentation <https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories>`__ for details.
 
 Testing
 ----------------------------------------
@@ -189,6 +190,10 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/shared``        | Optimized pure HIP kernels using shared memory    | Yes                   |
++----------------------------+---------------------------------------------------+-----------------------+
+| ``/gpu/hip/gen``           | Optimized pure HIP kernels using code generation  | No                    |
++----------------------------+---------------------------------------------------+-----------------------+
 | MAGMA Backends                                                                                         |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
@@ -237,8 +242,8 @@ forced by setting the environment variable ``MKL=1``.
 
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
-The ``/gpu/hip/ref`` backend provides GPU performance strictly using HIP.  It is based on
-the ``/gpu/cuda/ref`` backend.  ROCm version 3.5 or newer is required.
+The ``/gpu/hip/*`` backends provide GPU performance strictly using HIP. They are based on
+the ``/gpu/cuda/*`` backends.  ROCm version 3.5 or newer is required.
 
 The ``/gpu/*/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
 To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
@@ -395,6 +400,10 @@ or (e.g., if creating packages)::
 
     make install prefix=/usr DESTDIR=/packaging/path
 
+The usual variables like ``CC`` and ``CFLAGS`` are used, and optimization flags
+for all languages can be set using the likes of ``OPT='-O3 -march=native'``. Use
+``STATIC=1`` to build static libraries (``libceed.a``).
+
 To install libCEED for Python, run::
 
     pip install libceed
@@ -429,11 +438,27 @@ How to Cite
 
 If you utilize libCEED please cite::
 
-   @misc{libceed-dev-site,
-     title =  {lib{CEED} development site},
-     url =    {https://github.com/ceed/libceed},
-     howpublished = {\url{https://github.com/ceed/libceed}},
-     year = 2020
+   @misc{libceed-user-manual,
+     author       = {Abdelfattah, Ahmad and
+                     Barra, Valeria and
+                     Beams, Natalie and
+                     Brown, Jed and
+                     Camier, Jean-Sylvain and
+                     Dobrev, Veselin and
+                     Dudouit, Yohann and
+                     Ghaffari, Leila and
+                     Kolev, Tzanio and
+                     Medina, David and
+                     Rathnayake, Thilina and
+                     Thompson, Jeremy L and
+                     Tomov, Stanimire},
+     title        = {libCEED User Manual},
+     month        = sep,
+     year         = 2020,
+     publisher    = {Zenodo},
+     version      = {0.7},
+     doi          = {10.5281/zenodo.4302737},
+     url          = {https://doi.org/10.5281/zenodo.4302737}
    }
 
 For libCEED's Python interface please cite::

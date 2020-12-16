@@ -7,7 +7,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-20.04]
         compiler: [gcc-9]
 
     runs-on: ${{ matrix.os }}
@@ -26,7 +26,6 @@ jobs:
       run: |
         make info
         make -j2
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
         cd rust && cargo build
         cargo test
         cd ..

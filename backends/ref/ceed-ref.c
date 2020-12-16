@@ -55,10 +55,10 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
+CEED_INTERN int CeedRegister_Ref(void) {
+  return
 //! [Register]
-  CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
+    CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
 //! [Register]
 }
 //------------------------------------------------------------------------------

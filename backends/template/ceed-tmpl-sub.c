@@ -54,8 +54,7 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/tmpl/sub", CeedInit_Tmpl, 70);
+CEED_INTERN int CeedRegister_Tmpl_Sub(void) {
+  return CeedRegister("/cpu/self/tmpl/sub", CeedInit_Tmpl, 70);
 }
 //------------------------------------------------------------------------------
