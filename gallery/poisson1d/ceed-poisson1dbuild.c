@@ -50,8 +50,7 @@ static int CeedQFunctionInit_Poisson1DBuild(Ceed ceed, const char *requested,
   @brief Register Ceed QFunction for building the geometric data for the 1D
            Poisson operator
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Poisson1DBuild", Poisson1DBuild_loc, 1, Poisson1DBuild,
-                        CeedQFunctionInit_Poisson1DBuild);
+CEED_INTERN int CeedQFunctionRegister_Poisson1DBuild(void) {
+  return CeedQFunctionRegister("Poisson1DBuild", Poisson1DBuild_loc, 1,
+                               Poisson1DBuild, CeedQFunctionInit_Poisson1DBuild);
 }

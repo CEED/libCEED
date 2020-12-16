@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Blocked(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/ref/blocked"))
@@ -43,8 +43,7 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55);
+CEED_INTERN int CeedRegister_Ref_Blocked(void) {
+  return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55);
 }
 //------------------------------------------------------------------------------

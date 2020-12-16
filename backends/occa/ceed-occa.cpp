@@ -336,19 +336,19 @@ namespace ceed {
   }
 }
 
-__attribute__((constructor))
-static void Register(void) {
+CEED_INTERN int CeedRegister_Occa(void) {
+  int ierr;
   // General mode
-  CeedRegister("/*/occa", ceed::occa::registerBackend, 260);
+  ierr = CeedRegister("/*/occa", ceed::occa::registerBackend, 260); CeedChk(ierr);
   // CPU Modes
-  CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250);
-  CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240);
+  ierr = CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250); CeedChk(ierr);
+  ierr = CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240); CeedChk(ierr);
   // OpenCL Mode
   /* OpenCL not fully supported in OCCA
-  CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230);
+  ierr = CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230); CeedChk(ierr);
   */
   // GPU Modes
-  CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220);
-  CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210);
-
+  ierr = CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220); CeedChk(ierr);
+  ierr = CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210); CeedChk(ierr);
+  return 0;
 }

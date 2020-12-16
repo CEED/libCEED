@@ -46,8 +46,7 @@ static int CeedQFunctionInit_Poisson2DApply(Ceed ceed, const char *requested,
 /**
   @brief Register Ceed QFunction for applying the 2D Poisson operator
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("Poisson2DApply", Poisson2DApply_loc, 1, Poisson2DApply,
-                        CeedQFunctionInit_Poisson2DApply);
+CEED_INTERN int CeedQFunctionRegister_Poisson2DApply(void) {
+  return CeedQFunctionRegister("Poisson2DApply", Poisson2DApply_loc, 1,
+                               Poisson2DApply, CeedQFunctionInit_Poisson2DApply);
 }

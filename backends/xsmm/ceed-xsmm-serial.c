@@ -44,8 +44,7 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-__attribute__((constructor))
-static void Register(void) {
-  CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
+CEED_INTERN int CeedRegister_Xsmm_Serial(void) {
+  return CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25);
 }
 //------------------------------------------------------------------------------

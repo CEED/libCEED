@@ -44,8 +44,7 @@ static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested,
 /**
   @brief Register Ceed QFunction for applying the mass matrix
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("MassApply", MassApply_loc, 1, MassApply,
-                        CeedQFunctionInit_MassApply);
+CEED_INTERN int CeedQFunctionRegister_MassApply(void) {
+  return CeedQFunctionRegister("MassApply", MassApply_loc, 1, MassApply,
+                               CeedQFunctionInit_MassApply);
 }

@@ -48,8 +48,7 @@ static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
 /**
   @brief Register new Ceed QFunction
 **/
-__attribute__((constructor))
-static void Register(void) {
-  CeedQFunctionRegister("GalleryTemplate", GalleryTemplate_loc, 1,
+CEED_INTERN int CeedQFunctionRegister_Template(void) {
+  return CeedQFunctionRegister("GalleryTemplate", GalleryTemplate_loc, 1,
                         GalleryTemplate, CeedQFunctionInit_GalleryTemplate);
 }

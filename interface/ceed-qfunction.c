@@ -486,6 +486,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   size_t matchlen = 0, matchidx = UINT_MAX;
   char *name_copy;
 
+  ierr = CeedQFunctionRegisterAll(); CeedChk(ierr);
   // Find matching backend
   if (!name) return CeedError(ceed, 1, "No QFunction name provided");
   for (size_t i=0; i<num_qfunctions; i++) {
