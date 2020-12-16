@@ -341,15 +341,15 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
 
    cd petsc/
    make
-   ./area -problem cube -ceed /cpu/self -petscspace_degree 3
-   ./area -problem cube -ceed /gpu/cuda -petscspace_degree 3
-   ./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
-   ./area -problem sphere -ceed /gpu/cuda -petscspace_degree 3 -dm_refine 2
+   ./area -problem cube -ceed /cpu/self -degree 3
+   ./area -problem cube -ceed /gpu/cuda -degree 3
+   ./area -problem sphere -ceed /cpu/self -degree 3 -dm_refine 2
+   ./area -problem sphere -ceed /gpu/cuda -degree 3 -dm_refine 2
 
    cd fluids/
    make
-   ./navierstokes -ceed /cpu/self -petscspace_degree 1
-   ./navierstokes -ceed /gpu/cuda -petscspace_degree 1
+   ./navierstokes -ceed /cpu/self -degree 1
+   ./navierstokes -ceed /gpu/cuda -degree 1
    cd ..
 
    cd solids/
