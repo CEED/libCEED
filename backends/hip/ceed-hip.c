@@ -129,6 +129,6 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 __attribute__((constructor))
 static void Register(void) {
-  CeedRegister("/gpu/hip/ref", CeedInit_Hip, 20);
+  CeedRegister("/gpu/hip/ref", CeedInit_Hip, 40);
 }
 //------------------------------------------------------------------------------

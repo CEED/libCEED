@@ -45,7 +45,7 @@ do { \
 
 #define CASE(name) case name: return #name
 // LCOV_EXCL_START
-static const char *hipblasGetErrorName(hipblasStatus_t error) {
+CEED_UNUSED static const char *hipblasGetErrorName(hipblasStatus_t error) {
   switch (error) {
     CASE(HIPBLAS_STATUS_SUCCESS);
     CASE(HIPBLAS_STATUS_NOT_INITIALIZED);

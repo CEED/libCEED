@@ -217,6 +217,10 @@ magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
+hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
+hip-shared.hip := $(sort $(wildcard backends/hip-shared/kernels/*.hip.cpp))
+hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
+hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 
 # Quiet, color output
 quiet ?= $($(1))
@@ -368,20 +372,20 @@ endif
 # HIP Backends
 HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
-HIP_BACKENDS = /gpu/hip/ref
+HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include -Wno-unused-function
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
   $(libceeds) : LDFLAGS += -L$(HIP_LIB_DIR) -Wl,-rpath,$(abspath $(HIP_LIB_DIR))
   $(libceeds) : LDLIBS += -lamdhip64 -lhipblas
   $(libceeds) : LINK = $(CXX)
   libceed.c   += interface/ceed-hip.c
-  libceed.c   += $(hip.c)
-  libceed.cpp += $(hip.cpp)
-  libceed.hip += $(hip.hip)
+  libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
+  libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
+  libceed.hip += $(hip.hip) $(hip-shared.hip)
   BACKENDS    += $(HIP_BACKENDS)
 endif
 
@@ -611,10 +615,10 @@ style : style-c style-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include
 
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include
 
 tidy_c   : $(libceed.c:%=%.tidy)
 tidy_cpp : $(libceed.cpp:%=%.tidy)
