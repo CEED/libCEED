@@ -270,16 +270,13 @@ int main(int argc, char **argv) {
   // -- Create libCEED local Neumann BCs vector
   CeedVector neumannCeed;
   CeedScalar *n;
+  PetscMemType nmemtype;
   if (appCtx->bcTractionCount > 0) {
     ierr = VecDuplicate(U, &NBCs); CHKERRQ(ierr);
     ierr = VecDuplicate(Uloc[fineLevel], &NBCsloc); CHKERRQ(ierr);
-    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
-      ierr = VecGetArray(NBCsloc, &n); CHKERRQ(ierr);
-    } else {
-      ierr = VecCUDAGetArray(NBCsloc, &n); CHKERRQ(ierr);
-    }
+    ierr = VecGetArrayAndMemType(NBCsloc, &n, &nmemtype); CHKERRQ(ierr);
     CeedVectorCreate(ceed, Ulocsz[fineLevel], &neumannCeed);
-    CeedVectorSetArray(neumannCeed, appCtx->memTypeRequested,
+    CeedVectorSetArray(neumannCeed, MemTypeP2C(nmemtype),
                        CEED_USE_POINTER, n);
   }
 
@@ -346,6 +343,7 @@ int main(int argc, char **argv) {
   if (appCtx->bcTractionCount > 0) {
     ierr = VecZeroEntries(NBCs); CHKERRQ(ierr);
 <<<<<<< HEAD
+<<<<<<< HEAD
     CeedVectorTakeArray(neumannCeed, MemTypeP2C(nmemtype), NULL);
     ierr = VecRestoreArrayAndMemType(NBCsloc, &n); CHKERRQ(ierr);
 =======
@@ -356,6 +354,10 @@ int main(int argc, char **argv) {
       ierr = VecCUDARestoreArray(NBCsloc, &n); CHKERRQ(ierr);
     }
 >>>>>>> fe394131... solids - traction BCs
+=======
+    CeedVectorTakeArray(neumannCeed, MemTypeP2C(nmemtype), NULL);
+    ierr = VecRestoreArrayAndMemType(NBCsloc, &n); CHKERRQ(ierr);
+>>>>>>> b68a8d79... examples/petsc: use VecGetArrayAndMemType() to support CUDA/HIP/Kokkos
     ierr = DMLocalToGlobal(levelDMs[fineLevel], NBCsloc, ADD_VALUES, NBCs);
     CHKERRQ(ierr);
     CeedVectorDestroy(&neumannCeed);
