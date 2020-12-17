@@ -91,11 +91,6 @@ typedef PetscErrorCode BCFunc(PetscInt, PetscReal, const PetscReal *, PetscInt,
 //         are added to boundary.c.
 BCFunc BCMMS, BCZero, BCClamp;
 
-// MemType Options
-static const char *const memTypes[] = {"host","device","memType",
-                                       "CEED_MEM_",0
-                                      };
-
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
@@ -134,8 +129,6 @@ struct AppCtx_private {
   PetscInt      bcTractionFaces[16];
   PetscScalar   bcTractionVector[16][3];
   PetscScalar   forcingVector[3];
-  PetscBool     petscHaveCuda, setMemTypeRequest;
-  CeedMemType   memTypeRequested;
 };
 
 // Problem specific data
@@ -172,11 +165,6 @@ struct UserMult_private {
   Ceed            ceed;
   PetscScalar     loadIncrement;
   CeedQFunctionContext ctxPhys, ctxPhysSmoother;
-  CeedMemType     memType;
-  int (*VecGetArray)(Vec, PetscScalar **);
-  int (*VecGetArrayRead)(Vec, const PetscScalar **);
-  int (*VecRestoreArray)(Vec, PetscScalar **);
-  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // Data for Jacobian setup routine
@@ -198,11 +186,6 @@ struct UserMultProlongRestr_private {
   CeedVector   ceedVecC, ceedVecF;
   CeedOperator opProlong, opRestrict;
   Ceed         ceed;
-  CeedMemType   memType;
-  int (*VecGetArray)(Vec, PetscScalar **);
-  int (*VecGetArrayRead)(Vec, const PetscScalar **);
-  int (*VecRestoreArray)(Vec, PetscScalar **);
-  int (*VecRestoreArrayRead)(Vec, const PetscScalar **);
 };
 
 // libCEED data struct for level
@@ -218,6 +201,11 @@ struct CeedData_private {
                       opDiagnostic;
   CeedVector          qdata, qdataDiagnostic, gradu, xceed, yceed, truesoln;
 };
+
+// Translate PetscMemType to CeedMemType
+static inline CeedMemType MemTypeP2C(PetscMemType mtype) {
+  return PetscMemTypeDevice(mtype) ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+}
 
 // -----------------------------------------------------------------------------
 // Process command line options
