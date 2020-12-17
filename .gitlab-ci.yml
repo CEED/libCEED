@@ -12,6 +12,8 @@ noether-rocm:
     - $CC --version && $CXX --version && $FC --version && $HIPCC --version
 # MAGMA from dev branch
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+# PETSc with HIP (minimal)
+    - export PETSC_DIR=/projects/jed/petsc PETSC_ARCH=mpich-hip-g && git -C $PETSC_DIR describe && make -C $PETSC_DIR info
 # LIBXSMM v1.16.1
     - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && git -C $XSMM_VERSION describe --tags && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
 # OCCA v1.1.0
