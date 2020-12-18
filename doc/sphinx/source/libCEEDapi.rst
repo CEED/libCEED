@@ -100,7 +100,7 @@ Vector representation/storage categories:
      by multiple processors
 
    - this way, an **E-vector** can be derived from an **L-vector** without any
-     communications and without additional computations to derive the dependend
+     communications and without additional computations to derive the dependent
      dofs
 
    - in other words, an entry in an **E-vector** is obtained by copying an entry
@@ -338,7 +338,7 @@ constructors take a string representation specifying where the source for the
 implementation is found. This is used by backends that support Just-In-Time
 (JIT) compilation (i.e., CUDA and OCCA) to compile for coprocessors.
 For full support across all backends, these :ref:`CeedQFunction` source files must only contain constructs mutually supported by C99, C++11, and CUDA.
-For example, explict type casting of void pointers and explicit use of compatable arguments for :code:`math` library functions is required, and variable-length array (VLA) syntax for array reshaping is only avaliable via libCEED's :code:`CEED_Q_VLA` macro.
+For example, explicit type casting of void pointers and explicit use of compatible arguments for :code:`math` library functions is required, and variable-length array (VLA) syntax for array reshaping is only available via libCEED's :code:`CEED_Q_VLA` macro.
 
 Different input and output fields are added individually, specifying the field
 name, size of the field, and evaluation mode.
@@ -410,7 +410,7 @@ the parallel restriction :math:`\bm{P}`), the element restriction :math:`\bm{G}`
 is the identity and :c:func:`CeedElemRestrictionCreateStrided()` is used instead.
 We plan to support other structured representations of :math:`\bm{G}` which will
 be added according to demand.
-There are two common approaches for supporting non-conforming elements: applying the node constraints via :math:`\bm P` so that the **L-vector** can be processed uniformly and applying the constraintsss via :math:`\bm G` so that the **E-vector** is uniform.
+There are two common approaches for supporting non-conforming elements: applying the node constraints via :math:`\bm P` so that the **L-vector** can be processed uniformly and applying the constraints via :math:`\bm G` so that the **E-vector** is uniform.
 The former can be done with the existing interface while the latter will require a generalization to element restriction that would define field values at constrained nodes as linear combinations of the values at primary nodes.
 
 These operations, :math:`\bm{P}`, :math:`\bm{B}`, and :math:`\bm{D}`,
