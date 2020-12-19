@@ -110,11 +110,20 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
                            0.
                           };
   // Initial Conditions
-  q[0] = rho;
-  q[1] = rho * u[0];
-  q[2] = rho * u[1];
-  q[3] = rho * u[2];
-  q[4] = rho * ( cv*T + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2. );
+  if (0) {
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = rho * ( cv*T + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2. );
+  }
+  if (1) {
+    q[0] = 1;
+    q[1] = 2;
+    q[2] = 3;
+    q[3] = 4;
+    q[4] = 5;
+  }
 
   return 0;
 }
@@ -209,12 +218,17 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
                           };
 
   // Forcing term for Manufactured solution
-  force[0] = 0.;
-  force[1] = C * ( 2*etv_mean_velocity[1] + x0 *C );
-  force[2] = -C*C*y0;
-  force[3] = 0.;
-  force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
-             C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
+  if (0) {
+    force[0] = 0.;
+    force[1] = C * ( 2*etv_mean_velocity[1] + x0 *C );
+    force[2] = -C*C*y0;
+    force[3] = 0.;
+    force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
+               C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
+  }
+  if (1) {
+    for (int i=0; i<5; i++) force[i] = 0;
+  }
   return 0;
 }
 // *****************************************************************************
