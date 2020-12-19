@@ -50,3 +50,9 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
         ./navierstokes $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
     done
 done
+
+# Remove ns files
+rm ns-*
+
+# Plot
+python3 convergence_plot.py verification-output/${run_flags[problem]}/*.log
