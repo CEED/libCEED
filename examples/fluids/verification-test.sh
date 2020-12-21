@@ -40,7 +40,7 @@ declare -A test_flags
 for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
     run_flags[degree]=$d
     for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
-        run_flags[dm_plex_box_faces]=$res,$res
+        run_flags[dm_plex_box_faces]=$res,$res,1
         args=''
         for arg in "${!run_flags[@]}"; do
             if ! [[ -z ${run_flags[$arg]} ]]; then
