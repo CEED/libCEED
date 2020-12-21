@@ -57,11 +57,11 @@ struct EulerContext_ {
 //   Pressure    = 1
 //   Temperature = P / rho - (gamma - 1) vortex_strength**2
 //                 exp(1 - r**2) / (8 gamma pi**2)
-//   Velocity = vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc, 0] / (2 pi)
-//         r  = sqrt( (x - xc)**2 + (y - yc)**2 + (z - zc)**2 )
+//   Velocity = 1 + vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc] / (2 pi)
+//         r  = sqrt( (x - xc)**2 + (y - yc)**2 )
 //
 // Conversion to Conserved Variables:
-//   E   = rho (cv T + (u u)/2 )
+//   E   = P / (gamma - 1) + rho (u u)/2
 //
 // TODO: Not sure what to do about BCs
 //
@@ -88,7 +88,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
 
   // Setup
   const CeedScalar gamma = 1.4;
-  const CeedScalar cv = 2.5; // cv computed based on Rd = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
   // Vortex center
   const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
@@ -115,14 +114,10 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     q[1] = rho * u[0];
     q[2] = rho * u[1];
     q[3] = rho * u[2];
-    q[4] = rho * ( cv*T + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2. );
+    q[4] = P / (gamma - 1.) + rho * (u[0]*u[0] + u[1]*u[1]) / 2.;
   }
-  if (1) {
-    q[0] = 1;
-    q[1] = 2;
-    q[2] = 3;
-    q[3] = 4;
-    q[4] = 5;
+  if (1) { // debugging ...
+    for (int i=0; i<5; i++) q[i] = 1.;
   }
 
   return 0;
@@ -226,8 +221,8 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
     force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
                C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
   }
-  if (1) {
-    for (int i=0; i<5; i++) force[i] = 0;
+  if (1) { // debugging ...
+    for (int i=0; i<5; i++) force[i] = 0.;
   }
   return 0;
 }
@@ -283,7 +278,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
 
     // The Physics
     for (int j=0; j<5; j++) {
-      v[j][i] = force[j]; // MMS forcing term
+      v[j][i] = force[j]; // MMS forcing term TODO: maybe (-)
       for (int k=0; k<3; k++)
         dv[k][j][i] = 0; // Zero dv so all future terms can safely sum into it
     }
