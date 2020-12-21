@@ -23,6 +23,7 @@ declare -A run_flags
     run_flags[dm_plex_box_faces]=20,20
     run_flags[ts_adapt_dt_max]=.01
     run_flags[ts_max_time]=.01
+    run_flags[ts_dt]=.01   # debugging ...
 
 # Remove previous test results
 if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
