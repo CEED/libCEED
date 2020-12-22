@@ -4,3 +4,5 @@ navierstokes
 *.bin*
 *.vtu
 *.log
+*.png
+
