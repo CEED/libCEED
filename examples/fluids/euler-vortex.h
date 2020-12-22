@@ -118,6 +118,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   }
   if (1) { // debugging ...
     for (int i=0; i<5; i++) q[i] = 1.;
+    q[3] = 0.;
   }
 
   return 0;
