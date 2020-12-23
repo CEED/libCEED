@@ -88,6 +88,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
 
   // Setup
   const CeedScalar gamma = 1.4;
+  const CeedScalar cv = 2.5;
+  const CeedScalar R = 1.;
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
   // Vortex center
   const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
@@ -109,16 +111,43 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
                            0.
                           };
   // Initial Conditions
-  if (0) {
+  if (0) { // Case 1: constant zero velocity, density constant, total energy constant
+    q[0] = 1.;
+    q[1] = 0.;
+    q[2] = 0.;
+    q[3] = 0.;
+    q[4] = 1.;
+  }
+  if (0) { // Case 2: constant nonzero velocity, density constant, total energy constant
+    q[0] = 1.;
+    q[1] = 1.;
+    q[2] = 1.;
+    q[3] = 0.;
+    q[4] = 1.;
+  }
+  if (0) { // Case 3: velocity zero, pressure constant (so density and internal energy will be non-constant),
+           //         but the velocity should stay zero and the bubble won't diffuse
+           //         (for Euler, where there is no thermal conductivity)
+    q[0] = P / (R*T); // rho = P / R T, R=1
+    q[1] = 0.;
+    q[2] = 0.;
+    q[3] = 0.;
+    q[4] = (P / (R*T)) * cv * T; // E = rho cv T + zero kinetic energy
+  }
+  if (1) { // Case 4: constant nonzero velocity, pressure constant (so density and internal energy will be non-constant),
+           //         it should be transported across the domain, but velocity stays constant
+    q[0] = P / (R*T); // rho = P / R T, R=1
+    q[1] = P / (R*T) * 1.;
+    q[2] = P / (R*T) * 1.;
+    q[3] = 0.;
+    q[4] = (P / (R*T)) * cv * T;
+  }
+  if (0) { // Euler
     q[0] = rho;
     q[1] = rho * u[0];
     q[2] = rho * u[1];
     q[3] = rho * u[2];
     q[4] = P / (gamma - 1.) + rho * (u[0]*u[0] + u[1]*u[1]) / 2.;
-  }
-  if (1) { // debugging ...
-    for (int i=0; i<5; i++) q[i] = 1.;
-    q[3] = 0.;
   }
 
   return 0;
