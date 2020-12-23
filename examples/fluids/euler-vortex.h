@@ -125,17 +125,19 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     q[3] = 0.;
     q[4] = 1.;
   }
-  if (0) { // Case 3: velocity zero, pressure constant (so density and internal energy will be non-constant),
-           //         but the velocity should stay zero and the bubble won't diffuse
-           //         (for Euler, where there is no thermal conductivity)
+  if (0) { // Case 3: velocity zero, pressure constant
+    // (so density and internal energy will be non-constant),
+    // but the velocity should stay zero and the bubble won't diffuse
+    // (for Euler, where there is no thermal conductivity)
     q[0] = P / (R*T); // rho = P / R T, R=1
     q[1] = 0.;
     q[2] = 0.;
     q[3] = 0.;
     q[4] = (P / (R*T)) * cv * T; // E = rho cv T + zero kinetic energy
   }
-  if (1) { // Case 4: constant nonzero velocity, pressure constant (so density and internal energy will be non-constant),
-           //         it should be transported across the domain, but velocity stays constant
+  if (1) { // Case 4: constant nonzero velocity, pressure constant
+    // (so density and internal energy will be non-constant),
+    // it should be transported across the domain, but velocity stays constant
     q[0] = P / (R*T); // rho = P / R T, R=1
     q[1] = P / (R*T) * 1.;
     q[2] = P / (R*T) * 1.;
