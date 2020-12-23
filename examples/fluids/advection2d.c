@@ -68,7 +68,8 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData) {
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  { // Slip boundary conditions
+  {
+    // Slip boundary conditions
     PetscInt comps[1] = {1};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
                          1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
@@ -94,7 +95,8 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData) {
       }
     }
   }
-  { // Wall boundary conditions
+  {
+    // Wall boundary conditions
     //   zero energy density and zero flux
     PetscInt comps[1] = {4};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,

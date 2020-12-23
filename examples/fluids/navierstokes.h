@@ -67,7 +67,7 @@ typedef struct {
   CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
                     applySur;
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
-             *applyVol_ifunction_loc, *applySur_loc;
+        *applyVol_ifunction_loc, *applySur_loc;
   bool non_zero_time;
   PetscErrorCode (*bc)(DM, SimpleBC, void *);
 } problemData;
@@ -114,7 +114,8 @@ extern PetscErrorCode NS_ADVECTION(problemData *problem);
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem);
 
 // Boundary Condition Functions
-extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, void *ctxSetupData);
+extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc,
+    void *ctxSetupData);
 extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, void *ctxSetupData);
 extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData);
 

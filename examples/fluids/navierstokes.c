@@ -774,8 +774,8 @@ int main(int argc, char **argv) {
                           NULL); CHKERRQ(ierr);
   test = &testOptions[testChoice];
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
-                            problemName, problemName, sizeof(problemName),
-                            NULL); CHKERRQ(ierr);
+                           problemName, problemName, sizeof(problemName),
+                           NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
@@ -921,8 +921,9 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  { // Choose the problem from the list of registered problems
-    PetscErrorCode (*p)(problemData*);
+  {
+    // Choose the problem from the list of registered problems
+    PetscErrorCode (*p)(problemData *);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
     ierr = (*p)(problem); CHKERRQ(ierr);
