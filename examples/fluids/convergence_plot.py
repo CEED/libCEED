@@ -53,7 +53,7 @@ def read_logs(files=None):
 def plot():
     # Load the data
     runs = read_logs()
-    colors = ['lightgreen', 'red', 'navy', 'green', 'magenta',
+    colors = ['orange', 'red', 'navy', 'green', 'magenta',
               'teal', 'blue', 'purple', 'pink', 'cyan']
     xaxis = 'mesh_res'
     yaxis = 'max_error'
