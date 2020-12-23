@@ -16,14 +16,16 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+make -B
+
 declare -A run_flags
     run_flags[ceed]=/cpu/self/ref/serial
     run_flags[problem]=euler_vortex  # Options: "euler_vortex" and "advection2d"
-    run_flags[degree]=1
+    run_flags[degree]=2
     run_flags[dm_plex_box_faces]=20,20
     run_flags[ts_adapt_dt_max]=.01
-    run_flags[ts_max_time]=.01
-    run_flags[ts_dt]=.01   # debugging ...
+    run_flags[ts_max_time]=.1
+    #run_flags[ts_dt]=.01   # debugging ...
 
 # Remove previous test results
 if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
@@ -31,11 +33,11 @@ if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
 fi
 
 declare -A test_flags
-    test_flags[degree_start]=1
-    test_flags[degree_end]=4
+    test_flags[degree_start]=2
+    test_flags[degree_end]=5
     test_flags[res_start]=2
     test_flags[res_stride]=4
-    test_flags[res_end]=10
+    test_flags[res_end]=20
 
 for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
     run_flags[degree]=$d
@@ -48,7 +50,7 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
             fi
         done
         echo $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
-        ./navierstokes $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
+        mpiexec.hydra -n 4 ./navierstokes $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
     done
 done
 
@@ -56,4 +58,5 @@ done
 rm ns-*
 
 # Plot
+# python3 convergence_plot.py verification-output/euler_vortex/*.log
 python3 convergence_plot.py verification-output/${run_flags[problem]}/*.log
