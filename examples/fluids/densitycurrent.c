@@ -66,7 +66,8 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, void *ctxSetupData) {
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  { // Slip boundary conditions
+  {
+    // Slip boundary conditions
     PetscInt comps[1] = {1};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
                          1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
@@ -92,7 +93,8 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, void *ctxSetupData) {
       }
     }
   }
-  { // Wall boundary conditions
+  {
+    // Wall boundary conditions
     //   zero velocity and zero flux for mass density and energy density
     PetscInt comps[3] = {1, 2, 3};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
