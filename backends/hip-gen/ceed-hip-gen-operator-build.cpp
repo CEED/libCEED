@@ -21,26 +21,6 @@
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 
-static const char *atomicAdd = QUOTE(
-//------------------------------------------------------------------------------
-// Atomic add, for older CUDA
-//------------------------------------------------------------------------------
-__device__ double atomicAdd(double *address, double val) {
-  unsigned long long int *address_as_ull = (unsigned long long int *)address;
-  unsigned long long int old = *address_as_ull, assumed;
-  do {
-    assumed = old;
-    old =
-      atomicCAS(address_as_ull, assumed,
-                __double_as_longlong(val +
-                                     __longlong_as_double(assumed)));
-    // Note: uses integer comparison to avoid hang in case of NaN
-    // (since NaN != NaN)
-  } while (assumed != old);
-  return __longlong_as_double(old);
-}
-);
-
 static const char *deviceFunctions = QUOTE(
 
 //------------------------------------------------------------------------------
@@ -781,16 +761,6 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
 
   ostringstream code;
   string devFunctions(deviceFunctions);
-
-  // Add atomicAdd function for old NVidia architectures
-  struct hipDeviceProp_t prop;
-  Ceed_Hip *ceed_data;
-  ierr = CeedGetData(ceed, &ceed_data); CeedChk(ierr);
-  ierr = hipGetDeviceProperties(&prop, ceed_data->deviceId); CeedChk(ierr);
-  if (prop.major<6){
-    code << atomicAdd;
-  }
-
   code << devFunctions;
 
   string qFunction(qf_data->qFunctionSource);
