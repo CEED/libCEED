@@ -1,5 +1,5 @@
 ---
-title: 'libCEED: An open-source library for efficient high-order operator evaluations'
+title: 'libCEED: Fast algebra for high-order element-based discretizations'
 tags:
   - high-performance computing
   - high-order methods
@@ -69,83 +69,87 @@ aas-journal: Astrophysical Journal <- The name of the AAS journal.
 
 # Summary
 
-High-order numerical methods are widely used in Partial Differential Equation (PDE) solvers, but software packages that provide high-performance implementations have often been special-purpose and intrusive.
-``libCEED``, the Code for Efficient Extensible Discretizations, is a new lightweight, open-source, matrix-free Finite Elements library that offers a purely algebraic interface for efficient operator evaluation and preconditioning ingredients [@libceed-user-manual].
-libCEED supports run-time selection of implementations tuned for a variety of computational architectures, including CPUs and GPUs, and can be unobtrusively integrated in new and legacy software to provide portable performance. We introduce libCEED’s conceptual framework and interface, and show examples of its integration with other packages, such as PETSc [@PETScUserManual], MFEM [@MFEMlibrary; @mfem-paper], and Nek5000 [@Nekwebsite].
+Finite element methods are widely used to solve partial differential equations (PDE) in science and engineering, but their standard implementation [@dealII92;@libMeshPaper;@LoggMardalWells2012] relies on assembly sparse matrices, resulting in less than 2% utilization of arithmetic units on modern architectures.
+Matrix assembly becomes even more problematic when the polynomial degree $p$ of the basis functions is increased, resulting in $O(p^d)$ storage and $O(p^{2d})$ compute per degree of freedom (DoF) in $d$ dimensions.
+Methods pioneered by the spectral element community [@Orszag:1980; @deville2002highorder] exploit problem structure to reduce costs to $O(1)$ storage and $O(p)$ compute per DoF, with very high utilization of modern CPUs and GPUs.
+Unfortunately, high-quality implementations have been relegated to applications and intrusive frameworks that are often difficult to extend to new problems or incorporate into legacy applications, especially when strong preconditioners are required.
 
-In finite element formulations, the weak form of a PDE is evaluated on a subdomain (element), and the local results are composed into a larger system of equations that models the entire problem.
-In particular, when high-order finite elements or spectral elements are used, the resulting sparse matrix representation of the global operator is computationally expensive, with respect to both the memory transfer and floating point operations needed for its evaluation [@Orszag:1980; @Brown:2010].
-libCEED provides an interface for matrix-free operator description that enables efficient evaluation on a variety of computational device types (selectable at run time).
+`libCEED`, the Code for Efficient Extensible Discretization, is a lightweight library that provides a purely algebraic interface for element-based discretization and preconditioning.
+`libCEED` provides portable performance via run-time selection of implementations optimized for CPUs and GPUs.
+It is designed for convenient use in new and legacy software, and offers interfaces in C99 [@C99-lang], Fortran77 [@Fortran77-lang], Python [@Python-lang], Julia [@Julia-lang], and Rust [@Rust-lang].
+In addition to applications and discretization libraries, `libCEED` provides a platform for performance engineering and co-design, as well as an algebraic interface for solvers research like adaptive $p$-multigrid, much like how sparse matrix libraries enable development and deployment of algebraic multigrid solvers.
 
-# libCEED's API
+# Concepts and interface
 
-``libCEED``'s Application Programming Interface (API) provides the local action of the
-linear or nonlinear operator without assembling its sparse representation. Let us
-define the global operator as
+A finite element discretization of an $H^1$ problem is based on a weak form: find $u$ such that
 
-\begin{align}\label{eq:decomposition}
-A = P^T \underbrace{G^T B^T D B G}_{\text{libCEED}} P \, ,
-\end{align}
+$$ v^T F(u) := \int_\Omega v \cdot f_0(u, \nabla u) + \nabla v \!:\! f_1(u, \nabla u) = 0 \quad \forall v, $$
 
-where $P$ is the parallel process decomposition operator (external to libCEED) in
-which the degrees of freedom (DOFs) are scattered to and gathered from the different
-compute devices. The operator denoted by $A_L = G^T B^T D B G$ gives the local action
-on a compute node or process, where $G$ is a local element restriction operation that
-localizes DOFs based on the elements, $B$ defines the action of the basis functions
-(or their gradients) on the nodes, and $D$ is the user-defined pointwise function
-describing the physics of the problem at the quadrature points, also called the
-QFunction. QFunctions, which can either be defined by the user or selected from a
-gallery of available built-in functions in the library, are pointwise functions
-that do not depend on element resolution, topology, or basis degree (selectable
-at run time). This easily allows $hp$-refinement studies (where $h$ commonly denotes the average element size and $p$ the polynomial degree of the basis functions in 1D) and $p$-multigrid solvers. libCEED also supports composition of different operators for multiphysics problems and mixed-element meshes (see Fig. \ref{fig:schematic}).
+where the functions $f_0$ and $f_1$ define the physics and possible stabilization of the problem [@Brown:2010] and the functions $u$ and $v$ live in a suitable space.
+Integrals in the weak form are evaluated by summing over elements $e$,
+
+$$ F(u) = \sum_e \mathcal E_e^T B_e^T W_e f(B_e \mathcal E_e u), $$
+
+where $\mathcal E_e$ restricts to element $e$, $B_e$ evaluates solution values and derivatives to quadrature points, $f$ acts independently at quadrature points, and $W_e$ is a (diagonal) weighting at quadrature points.
+By grouping the operations $W_e$ and $f$ into a point-block diagonal $D$ and stacking the restrictions $\mathcal E_e$ and basis actions $B_e$ for each element, we can express the global residual in operator notation (\autoref{fig:decomposition}), where $\mathcal P$ is an optional external operator, such as the parallel restriction in MPI-based [@gropp2014using] solvers. 
+
+![`libCEED` uses a logical decomposition to define element-based discretizations, with optimized implementations of the action and preconditioning ingredients. \label{fig:decomposition}](img/libCEED-2-trim.pdf)
+
+`libCEED`'s native C interface is object-oriented, providing data types for each logical object in the decomposition.
+
+Symbol        libCEED type             Description
+------        ------------             -----------
+$D$           `CeedQFunction`          User-defined action at quadrature points
+$B$           `CeedBasis`              Basis evaluation to quadrature (dense/structured)
+$\mathcal E$  `CeedElemRestriction`    Restriction to each element (sparse/boolean)
+$A$           `CeedOperator`           Linear or nonlinear operator acting on L-vectors
+
+`libCEED` implementations ("backends") are free to reorder and fuse computational steps (including eliding memory to store intermediate representations) so long as the mathematical properties of the operator $A$ are preserved.
+A `CeedOperator` is composed of one or more operators defined as in \autoref{fig:decomposition}, and acts on a `CeedVector`, which typically encapsulates zero-copy access to host or device memory provided by the caller.
+The element restriction $\mathcal E$ requires mesh topology and a numbering of DoFs, and may be a no-op when data is already composed by element (such as with discontinuous Galerkin methods).
+The discrete basis $B$ is the purely algebraic expression of a finite element basis (shape functions) and quadrature; it often possesses structure (such as a Kronecker product decomposition or symmetry) that is exploited to speed up its action.
+The physics (weak form) is expressed through `CeedQFunction`, which can either be defined by the user or selected from a gallery distributed with `libCEED`.
+These pointwise functions do not depend on element resolution, topology, or basis degree, and a single source implementation (in vanilla C or C++) can be used on CPUs or GPUs (transparently using the NVRTC, HIPRTC, or OCCA run-time compilation features).
+This isolation is valuable for $hp$-refinement studies (where $h$ commonly denotes the average element size and $p$ the polynomial degree of the basis functions) and $p$-multigrid solvers.
 
 ![A schematic of element restriction and basis applicator operators for
 elements with different topology. This sketch shows the independence of QFunctions
 (in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
 
-LibCEED is a C99 [@C99-lang] library with Fortran77 [@Fortran77-lang], Python [@Python-lang], Julia [@Julia-lang], and Rust [@Rust-lang] interfaces.
+# High-level languages
 
-The Python interface was developed using the C Foreign Function Interface (CFFI) for Python. CFFI allows to reuse most of the C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a ``CeedVector`` object is exposed as ``libceed.Vector`` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages, for handling host or device memory (when interested in GPU computations with CUDA). Flexible pointer handling in libCEED makes it easy to provide zero-copy host and (GPU) device support for any desired Python array container. The interested reader can find more details on libCEED's Python interface in [@libceed-paper-proc-scipy-2020].
+`libCEED` provides high-level interfaces in Python, Julia, and Rust, each of which is maintained and tested as part of the main repository, but distributed through each language's respective package manager.
 
-The Julia interface, referred to as ``LibCEED.jl``, provides both a low-level interface, which is generated automatically from ``libCEED``'s C header files, and a high-level interface. The high-level interface takes advantage of Julia features such as garbage collection to simplify memory management. A key feature of ``LibCEED.jl`` is the straightforward creation of user QFunctions that work on both the CPU and GPU, making use of Julia's metaprogramming and just-in-time compilation capabilities.
+The Python interface uses CFFI, the C Foreign Function Interface [@python-cffi]. CFFI allows reuse of most C declarations and requires only a minimal adaptation of some of them. The C and Python APIs are mapped in a nearly 1:1 correspondence. For instance, a `CeedVector` object is exposed as `libceed.Vector` in Python, and may reference memory that is also accessed via Python arrays from the NumPy [@NumPy] or Numba [@Numba] packages to access host or GPU device memory. The interested reader can find more details on libCEED's Python interface in @libceed-paper-proc-scipy-2020.
 
-The Rust interface provides a high-level interface which wraps the automatically generated bindings from the ``libCEED`` C header files. The Rust interface takes advantage of ownership and borrow checking in Rust to provide improved memory safety and uses closures to simplify management of user provided environment variables in the context of the user QFunctions.
+The Julia interface, referred to as `LibCEED.jl`, provides both a low-level interface, which is generated automatically from `libCEED`'s C header files, and a high-level interface. The high-level interface takes advantage of Julia's metaprogramming and just-in-time compilation capabilities to enable concise definition of Q-functions that work on both CPUs and GPUs, along with their composition into operators as in \autoref{fig:decomposition}.
 
-To achieve high performance, libCEED can take advantage of a tensor-product
-finite-element basis and quadrature rule to apply the action of the basis
-operator $B$ or, alternatively, efficiently operate on bases that are defined
-on arbitrary-topology elements. Furthermore, the algebraic decomposition described in
-Eq. (\ref{eq:decomposition}) can represent either linear/nonlinear or
-symmetric/asymmetric operators and exposes opportunities for device-specific
-optimizations.
+The Rust interface also wraps automatically-generated bindings from the `libCEED` C header files, offering increased safety due to Rust ownership and borrow checking, and more convenient definition of Q-functions (e.g., via closures).
 
-![libCEED is a low-level API for finite element codes, that has specialized implementations
+# Backends
+
+\autoref{fig:libCEEDBackends} shows a subset of the backend implementations (backends) available in libCEED.
+GPU implementations are available via pure CUDA [@CUDAwebsite] and pure HIP [@HIPwebsite], as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends on an arbitrary number of devices.
+
+![libCEED provides the algebraic core for element-based discretizations, with specialized implementations
 (backends) for heterogeneous architectures.\label{fig:libCEEDBackends}](img/libCEEDBackends.png)
 
-Fig. \ref{fig:libCEEDBackends} shows a subset of the backend implementations (backends) available in libCEED and its role as a low-level library that allows a wide variety of applications to share highly optimized discretization kernels.
-GPU implementations are available via pure CUDA [@CUDAwebsite] and pure HIP [@HIPwebsite] as well as the OCCA [@OCCAwebsite] and MAGMA [@MAGMAwebsite] libraries. CPU implementations are available via pure C and AVX intrinsics as well as the LIBXSMM library [@LIBXSMM]. libCEED provides a unified interface, so that users only need to write a single source code and can select the desired specialized implementation at run time. Moreover, each process or thread can instantiate an arbitrary number of backends.
+# Performance benchmarks
 
-# Performance Benchmarks
+The Exascale Computing Project (ECP) co-design Center for Efficient Exascale Discretization [@CEEDwebsite] has defined a suite of Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability; @CEED-ECP-paper]. \autoref{fig:bp3} compares the performance of `libCEED` solving BP3 (CG iteration on a 3D Poisson problem) or CPU and GPU systems of similar (purchase/operating and energy) cost. These tests use PETSc [@PETScUserManual] for unstructured mesh management and parallel solvers; a similar implementation with comparable performance is available through MFEM. 
 
-The Center for Efficient Exascale Discretizations (CEED), part of the Exascale Computing Project (ECP) uses Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability]. We present here the performance of libCEED's LIBXSMM blocked backend on a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz. In Fig. \ref{fig:NoetherxsmmBP1}, we measure performance over 20 iterations of unpreconditioned Conjugate Gradient (CG) for the mass operator and plot throughput, for different values of the polynomial degree $p$. In Fig. \ref{fig:NoetherxsmmBP3}, we show the measured performance to solve a Poisson's problem. For both problems the throughput is plotted versus execution time per iteration (on the left panel) and Finite Element points per compute node (on the right panel). For these tests, we use a 3D domain discretized with unstructured meshes.
+![Performance for BP3 using the \texttt{xsmm/blocked} backend on a 2-socket AMD EPYC 7452 (32-core, 2.35GHz) and the \texttt{cuda/gen} backend on LLNL's Lassen system with NVIDIA V100 GPUs. Each curve represents fixing the basis degree $p$ and varying the number of elements. The CPU enables faster solution of smaller problem sizes (as in strong scaling) while the GPU is more efficient for applications that can afford to wait for larger sizes. Note that the CPU exhibits a performance drop when the working set becomes too large for L3 cache (128 MB/socket) while no such drop exists for the GPU.  \label{fig:bp3}](img/bp3-2020.pdf)
 
-![BP1 (mass operator) solved with the \texttt{xsmm/blocked} backend on
-a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP1}](img/BP1.pdf)
+# Demo applications and integration
 
-![BP3 (Poisson's problem) solved with the \texttt{xsmm/blocked} backend on
-a 2x AMD EPYC 7452 (32-core) CPU 2.35GHz.\label{fig:NoetherxsmmBP3}](img/BP3.pdf)
+To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and solid mechanics communities. The fluid dynamics example solves the 2D and 3D compressible Navier-Stokes equations using SU/SUPG stabilization and implicit, explicit, or IMEX time integration; \autoref{fig:NSvortices} shows vortices arising in the "density current" [@straka1993numerical] when a cold bubble of air reaches the ground.
+The solid mechanics example solves static linear elasticity and hyperelasticity with load continuation and Newton-Krylov preconditioned by $p$-multigrid preconditioners; \autoref{fig:Solids} shows a twisted Neo-Hookean beam. Both of these examples have been developed using PETSc.
 
-# Applications
+![Vortices develop as a cold air bubble drops to the ground.\label{fig:NSvortices}](img/Vortices.png)
 
-To highlight the ease of library reuse for solver composition and leverage libCEED's full capability for real-world applications, libCEED comes with a suite of application examples, including problems of interest to the fluid dynamics and continuum mechanics communities. In Fig. \ref{fig:NSdensitycurrent} we show a numerical simulation of the 3D compressible gas dynamics for the density current example [@straka1993numerical], solved with high-order ($p = 10$) spectral elements. When the cold air bubble reaches the ground, it separates exhibiting swirls (see Fig. \ref{fig:NSvortices}). Fig. \ref{fig:Solids} shows an example for continuum mechanics applications with linear or neo-Hookean (both at small and finite strain) constitutive models.
+![Strain energy density in a twisted Neo-Hookean beam.\label{fig:Solids}](img/SolidTwistExample.jpeg)
 
-![Density current example for compressible gas dynamics in 3D on an unstructured grid, computed via the Navier-Stokes miniapp in libCEED.\label{fig:NSdensitycurrent}](img/Navier-Stokes.png)
-
-![When a cold air bubble drops to the ground, it develops swirls.\label{fig:NSvortices}](img/Vortices.png)
-
-![An example of a twisted solid, obtained via the continuum mechanics miniapp in libCEED.\label{fig:Solids}](img/SolidTwistExample.jpeg)
-
-Examples of integration of libCEED with other packages in the co-design Center for Efficient Exascale Discretizations (CEED) [@CEEDwebsite; @CEED-ECP-paper], such as PETSc, MFEM, and Nek5000, can be found in the CEED distribution, which provides the full CEED software ecosystem [@CEEDMS25; @CEEDMS34].
+`libCEED` also includes additional examples of integration with PETSc, MFEM [@MFEMlibrary; @mfem-paper], and Nek5000 [@Nekwebsite]. If MFEM is built with `libCEED` support, existing MFEM users can pass `-d ceed-cuda:/gpu/cuda/gen` to use a `libCEED` fastest CUDA backend, and similarly for other backends. The `libCEED` implementations, accessed in this way, currently provide MFEM users with the fastest operator action on CPUs and GPUs (CUDA and HIP/ROCm).
 
 # Acknowledgements
 
