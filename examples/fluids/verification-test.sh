@@ -19,7 +19,6 @@
 make -B
 
 declare -A run_flags
-    run_flags[ceed]=/cpu/self/ref/serial
     run_flags[problem]=euler_vortex  # Options: "euler_vortex" and "advection2d"
     run_flags[degree]=2
     run_flags[dm_plex_box_faces]=20,20
