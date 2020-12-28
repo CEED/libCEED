@@ -342,22 +342,8 @@ int main(int argc, char **argv) {
 
   if (appCtx->bcTractionCount > 0) {
     ierr = VecZeroEntries(NBCs); CHKERRQ(ierr);
-<<<<<<< HEAD
-<<<<<<< HEAD
     CeedVectorTakeArray(neumannCeed, MemTypeP2C(nmemtype), NULL);
     ierr = VecRestoreArrayAndMemType(NBCsloc, &n); CHKERRQ(ierr);
-=======
-    CeedVectorTakeArray(neumannCeed, appCtx->memTypeRequested, NULL);
-    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
-      ierr = VecRestoreArray(NBCsloc, &n); CHKERRQ(ierr);
-    } else {
-      ierr = VecCUDARestoreArray(NBCsloc, &n); CHKERRQ(ierr);
-    }
->>>>>>> fe394131... solids - traction BCs
-=======
-    CeedVectorTakeArray(neumannCeed, MemTypeP2C(nmemtype), NULL);
-    ierr = VecRestoreArrayAndMemType(NBCsloc, &n); CHKERRQ(ierr);
->>>>>>> b68a8d79... examples/petsc: use VecGetArrayAndMemType() to support CUDA/HIP/Kokkos
     ierr = DMLocalToGlobal(levelDMs[fineLevel], NBCsloc, ADD_VALUES, NBCs);
     CHKERRQ(ierr);
     CeedVectorDestroy(&neumannCeed);
