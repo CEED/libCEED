@@ -47,7 +47,6 @@ def skip_rule(test, resource):
     return any((
         test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
-        test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('t507') and contains_any(resource, ['occa']),
         test.startswith('t318') and contains_any(resource, ['magma']),
