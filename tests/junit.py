@@ -47,7 +47,6 @@ def skip_rule(test, resource):
     return any((
         test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
-        test.startswith('petsc-multigrid') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('t507') and contains_any(resource, ['occa']),
         test.startswith('t318') and contains_any(resource, ['magma']),
@@ -69,7 +68,7 @@ def run(test, backends):
             if skip_rule(test, ceed_resource):
                 case = TestCase('{} {}'.format(test, ceed_resource),
                                 elapsed_sec=0,
-                                timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
+                                timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()),
                                 stdout='',
                                 stderr='')
                 case.add_skipped_info('Pre-run skip rule')

@@ -33,11 +33,11 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
   const int rlen = strlen(resource);
   const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
-  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : 0;
+  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : -1;
 
   int currentDeviceID;
   ierr = hipGetDevice(&currentDeviceID); CeedChk_Hip(ceed,ierr);
-  if (currentDeviceID!=deviceID) {
+  if (deviceID >= 0 && currentDeviceID != deviceID) {
     ierr = hipSetDevice(deviceID); CeedChk_Hip(ceed,ierr);
   }
 

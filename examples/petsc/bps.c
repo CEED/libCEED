@@ -76,14 +76,13 @@ static int Min3(const PetscInt a[3]) {
 typedef struct RunParams_ *RunParams;
 struct RunParams_ {
   MPI_Comm comm;
-  PetscBool test_mode, read_mesh, userlnodes, setmemtyperequest,
+  PetscBool test_mode, read_mesh, userlnodes,
             petschavecuda, write_solution;
   char *filename, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
   PetscInt ksp_max_it_clip[2];
   PetscMPIInt rankspernode;
   bpType bpchoice;
-  CeedMemType memtyperequested;
   PetscLogStage solvestage;
 };
 
@@ -105,6 +104,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   CeedQFunction qferror;
   CeedOperator operror;
   CeedVector rhsceed, target;
+  VecType vectype;
+  PetscMemType memtype;
 
   PetscFunctionBeginUser;
   // Set up libCEED
@@ -112,18 +113,24 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
 
-  // Check memtype compatibility
-  if (!rp->setmemtyperequest)
-    rp->memtyperequested = memtypebackend;
-  else if (!rp->petschavecuda && rp->memtyperequested == CEED_MEM_DEVICE)
-    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
-             "PETSc was not built with CUDA. "
-             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
-
-  // Create vectors
-  if (rp->memtyperequested == CEED_MEM_DEVICE) {
-    ierr = DMSetVecType(dm, VECCUDA); CHKERRQ(ierr);
+  ierr = DMGetVecType(dm, &vectype); CHKERRQ(ierr);
+  if (!vectype) { // Not yet set by user -dm_vec_type
+    switch (memtypebackend) {
+    case CEED_MEM_HOST: vectype = VECSTANDARD; break;
+    case CEED_MEM_DEVICE: {
+      const char *resolved;
+      CeedGetResource(ceed, &resolved);
+      if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip/occa"))
+        vectype = VECSTANDARD; // https://github.com/CEED/libCEED/issues/678
+      else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
+      else vectype = VECSTANDARD;
+    }
+    }
+    ierr = DMSetVecType(dm, vectype); CHKERRQ(ierr);
   }
+
+  // Create global and local solution vectors
   ierr = DMCreateGlobalVector(dm, &X); CHKERRQ(ierr);
   ierr = VecGetLocalSize(X, &lsize); CHKERRQ(ierr);
   ierr = VecGetSize(X, &gsize); CHKERRQ(ierr);
@@ -139,9 +146,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                               (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
   ierr = MatShellSetOperation(matO, MATOP_GET_DIAGONAL,
                               (void(*)(void))MatGetDiag); CHKERRQ(ierr);
-  if (rp->memtyperequested == CEED_MEM_DEVICE) {
-    ierr = MatShellSetVecType(matO, VECCUDA); CHKERRQ(ierr);
-  }
+  ierr = MatShellSetVecType(matO, vectype); CHKERRQ(ierr);
 
   // Print summary
   if (!rp->test_mode) {
@@ -168,7 +173,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
-                       "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
@@ -181,8 +185,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        comm_size, rp->rankspernode,
                        vectype, usedresource,
                        CeedMemTypes[memtypebackend],
-                       (rp->setmemtyperequest) ?
-                       CeedMemTypes[rp->memtyperequested] : "none",
                        P, Q, gsize/rp->ncompu, cEnd - cStart, lsize/rp->ncompu,
                        rp->ncompu);
     CHKERRQ(ierr);
@@ -191,13 +193,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   // Create RHS vector
   ierr = VecDuplicate(Xloc, &rhsloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
-  if (rp->memtyperequested == CEED_MEM_HOST) {
-    ierr = VecGetArray(rhsloc, &r); CHKERRQ(ierr);
-  } else {
-    ierr = VecCUDAGetArray(rhsloc, &r); CHKERRQ(ierr);
-  }
+  ierr = VecGetArrayAndMemType(rhsloc, &r, &memtype); CHKERRQ(ierr);
   CeedVectorCreate(ceed, xlsize, &rhsceed);
-  CeedVectorSetArray(rhsceed, rp->memtyperequested, CEED_USE_POINTER, r);
+  CeedVectorSetArray(rhsceed, MemTypeP2C(memtype), CEED_USE_POINTER, r);
 
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, rp->degree, rp->dim, rp->qextra,
@@ -205,15 +203,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                               true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
-  CeedVectorTakeArray(rhsceed, rp->memtyperequested, NULL);
-  if (rp->memtyperequested == CEED_MEM_HOST) {
-    ierr = VecRestoreArray(rhsloc, &r); CHKERRQ(ierr);
-  } else {
-    ierr = VecCUDARestoreArray(rhsloc, &r); CHKERRQ(ierr);
-  }
+  CeedVectorTakeArray(rhsceed, MemTypeP2C(memtype), NULL);
+  ierr = VecRestoreArrayAndMemType(rhsloc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalBegin(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobalEnd(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhsceed);
 
   // Create the error QFunction
@@ -242,18 +235,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   userO->yceed = ceeddata->yceed;
   userO->op = ceeddata->opapply;
   userO->ceed = ceed;
-  userO->memtype = rp->memtyperequested;
-  if (rp->memtyperequested == CEED_MEM_HOST) {
-    userO->VecGetArray = VecGetArray;
-    userO->VecGetArrayRead = VecGetArrayRead;
-    userO->VecRestoreArray = VecRestoreArray;
-    userO->VecRestoreArrayRead = VecRestoreArrayRead;
-  } else {
-    userO->VecGetArray = VecCUDAGetArray;
-    userO->VecGetArrayRead = VecCUDAGetArrayRead;
-    userO->VecRestoreArray = VecCUDARestoreArray;
-    userO->VecRestoreArrayRead = VecCUDARestoreArrayRead;
-  }
 
   ierr = KSPCreate(rp->comm, &ksp); CHKERRQ(ierr);
   {
@@ -422,14 +403,19 @@ static PetscErrorCode Run(RunParams rp,
       dm  = dmDist;
     }
   }
+  // Disable default VECSTANDARD *after* distribution (which creates a Vec)
+  ierr = DMSetVecType(dm, NULL); CHKERRQ(ierr);
 
   for (PetscInt b = 0; b < num_bpchoices; b++) {
     DM dm_deg;
+    VecType vectype;
     PetscInt qextra = rp->qextra;
     rp->bpchoice = bpchoices[b];
     rp->ncompu = bpOptions[rp->bpchoice].ncompu;
     rp->qextra = qextra < 0 ? bpOptions[rp->bpchoice].qextra : qextra;
     ierr = DMClone(dm, &dm_deg); CHKERRQ(ierr);
+    ierr = DMGetVecType(dm, &vectype); CHKERRQ(ierr);
+    ierr = DMSetVecType(dm_deg, vectype); CHKERRQ(ierr);
     // Create DM
     ierr = SetupDMByDegree(dm_deg, rp->degree, rp->ncompu, rp->bpchoice);
     CHKERRQ(ierr);
@@ -548,11 +534,6 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsIntArray("-cells", "Number of cells per dimension", NULL,
                                 melem, &tmp, NULL); CHKERRQ(ierr);
   }
-  rp->memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
-  ierr = PetscOptionsEnum("-memtype", "CEED MemType requested", NULL, memTypes,
-                          (PetscEnum)rp->memtyperequested,
-                          (PetscEnum *)&rp->memtyperequested, &rp->setmemtyperequest);
-  CHKERRQ(ierr);
   localnodes[0] = 1000;
   ierr = PetscOptionsIntArray("-local_nodes",
                               "Target number of locally owned nodes per "
