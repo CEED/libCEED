@@ -364,7 +364,7 @@ For the last example shown, sample meshes to be used in place of
 The above code assumes a GPU-capable machine with the OCCA backend
 enabled. Depending on the available backends, other CEED resource
 specifiers can be provided with the ``-ceed`` option. Other command line
-arguments can be found in the `petsc <./petsc/README.md>`_ folder.
+arguments can be found in `examples/petsc <https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md>`_.
 
 
 .. benchmarks-marker
