@@ -1,7 +1,7 @@
 .. _example-petsc-elasticity:
 
-Solid mechanics elasticity mini-app
-========================================
+Solid mechanics mini-app
+========================
 
 This example is located in the subdirectory :file:`examples/solids`.
 It solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
@@ -136,6 +136,7 @@ For notational convenience, we express the symmetric second order tensors :math:
 Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as
 
 .. math::
+   :label: linear-elasticity-tensor
 
    \mathsf C = \begin{pmatrix}
    \lambda + 2\mu & \lambda & \lambda & & & \\
