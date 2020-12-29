@@ -27,6 +27,7 @@ import sys
 import breathe
 import os
 import subprocess
+from sphinxcontrib import katex
 
 # -- General configuration ------------------------------------------------
 
@@ -154,11 +155,13 @@ html_sidebars = {
 hoverxref_auto_ref = True
 hoverxref_mathjax = True
 
-katex_options = r'''{
-    macros: {
-        '\\diff': '{\\operatorname{d}}',
-    },
-}'''
+latex_macros = r"""
+\def \diff {\operatorname{d}\!}
+"""
+
+# Translate LaTeX macros to KaTeX and add to options for HTML builder
+katex_macros = katex.latex_defs_to_katex_macros(latex_macros)
+katex_options = 'macros: {' + katex_macros + '}'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -181,21 +184,20 @@ latex_elements = {
 
     # Additional stuff for the LaTeX preamble.
     #
-    'preamble': r'''
+    'preamble': r"""
 \usepackage{bm}
-\newcommand{\diff}{\operatorname{d}}
-''',
+""" + latex_macros,
 
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
     'fontenc': r'\usepackage{mathspec}',
-    'fontpkg': r'''
+    'fontpkg': r"""
 \setmainfont{TeX Gyre Pagella}
 \setmathfont{TeX Gyre Pagella Math}
 \setsansfont{DejaVu Sans}
 \setmonofont{DejaVu Sans Mono}
-''',
+""",
 }
 
 latex_logo = '../../img/ceed-full-name-logo.PNG'
