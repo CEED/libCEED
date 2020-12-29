@@ -1,0 +1,12 @@
+[package]
+name = "ex1-volume"
+version = "1.0.0"
+authors = [
+    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+]
+edition = "2018"
+
+[dependencies]
+clap = { version = "2.33.3", features = ["yaml"] }
+itertools = "0.10.0"
+libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
