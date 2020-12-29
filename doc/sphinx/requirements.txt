@@ -3,7 +3,7 @@ breathe>=4.17
 markdown==3.2.1
 recommonmark
 sphinx_rtd_theme
-sphinxcontrib-bibtex>=2.1
+sphinxcontrib-bibtex>=2.1.1
 sphinxcontrib-katex
 sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
