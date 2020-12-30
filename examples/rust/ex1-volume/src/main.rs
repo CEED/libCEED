@@ -288,9 +288,12 @@ fn example_1(opt: Opt) -> Result<(), String> {
 
     // Output results
     if !test {
-        println!("Exact mesh volume           : {}", exact_volume);
-        println!("Computed mesh volume        : {}", volume);
-        println!("Volume error                : {}", volume - exact_volume);
+        println!("Exact mesh volume           : {:.12}", exact_volume);
+        println!("Computed mesh volume        : {:.12}", volume);
+        println!(
+            "Volume error                : {:.12e}",
+            volume - exact_volume
+        );
     } else {
         let tolerance = if dim == 1 {
             1E-14
@@ -301,9 +304,9 @@ fn example_1(opt: Opt) -> Result<(), String> {
         };
         let error = (volume - exact_volume).abs();
         if error > tolerance {
-            println!("Volume error: {}", error);
+            println!("Volume error: {:.12e}", error);
             return Err(format!(
-                "Volume error too large - expected: {}, actual: {}",
+                "Volume error too large - expected: {:.12e}, actual: {:.12e}",
                 tolerance, error
             ));
         }
