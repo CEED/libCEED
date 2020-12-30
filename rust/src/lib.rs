@@ -626,18 +626,18 @@ mod tests {
         // Set up operator
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
         let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-        op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-        op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-        op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+        op_build.field("dx", &rx, &bx, VectorOpt::Active);
+        op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
+        op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
 
         op_build.apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply");
         let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-        op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-        op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-        op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+        op_mass.field("u", &ru, &bu, VectorOpt::Active);
+        op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
+        op_mass.field("v", &ru, &bu, VectorOpt::Active);
 
         v.set_value(0.0);
         op_mass.apply(&u, &mut v);

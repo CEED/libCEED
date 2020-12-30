@@ -144,10 +144,10 @@ impl fmt::Display for QFunctionCore {
 ///
 /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
 ///
-/// qf.add_input("u", 1, EvalMode::Interp);
-/// qf.add_input("weights", 1, EvalMode::Weight);
+/// qf.input("u", 1, EvalMode::Interp);
+/// qf.input("weights", 1, EvalMode::Weight);
 ///
-/// qf.add_output("v", 1, EvalMode::Interp);
+/// qf.output("v", 1, EvalMode::Interp);
 ///
 /// println!("{}", qf);
 /// ```
@@ -331,10 +331,10 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_input("u", 1, EvalMode::Interp);
-    /// qf.add_input("weights", 1, EvalMode::Weight);
+    /// qf.input("u", 1, EvalMode::Interp);
+    /// qf.input("weights", 1, EvalMode::Weight);
     ///
-    /// qf.add_output("v", 1, EvalMode::Interp);
+    /// qf.output("v", 1, EvalMode::Interp);
     ///
     /// const Q : usize = 8;
     /// let mut w = [0.; Q];
@@ -397,10 +397,10 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_input("u", 1, EvalMode::Interp);
-    /// qf.add_input("weights", 1, EvalMode::Weight);
+    /// qf.input("u", 1, EvalMode::Interp);
+    /// qf.input("weights", 1, EvalMode::Weight);
     /// ```
-    pub fn add_input(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
+    pub fn input(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
@@ -439,9 +439,9 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.add_output("v", 1, EvalMode::Interp);
+    /// qf.output("v", 1, EvalMode::Interp);
     /// ```
-    pub fn add_output(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
+    pub fn output(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
