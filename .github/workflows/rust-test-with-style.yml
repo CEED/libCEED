@@ -26,9 +26,7 @@ jobs:
       run: |
         make info
         make -j2
-        cd rust && cargo build
         cargo test
-        cd ..
     - name: Rust style
       run: |
-        cd rust && cargo fmt -- --check
+        cargo fmt -- --check
