@@ -158,6 +158,8 @@ static inline int Exact_Advection2d(CeedInt dim, CeedScalar time,
     q[3] = 0;
     q[4] = 0;
     break;
+  default:
+    return 1;
   }
 
   CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
@@ -190,7 +192,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i]};
-    CeedScalar q[5];
+    CeedScalar q[5] = {};
 
     Exact_Advection2d(2, context->time, x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];

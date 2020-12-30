@@ -206,7 +206,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5];
+    CeedScalar q[5] = {};
 
     Exact_Advection(3, 0., x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
