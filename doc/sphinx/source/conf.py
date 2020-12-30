@@ -163,6 +163,16 @@ latex_macros = r"""
 katex_macros = katex.latex_defs_to_katex_macros(latex_macros)
 katex_options = 'macros: {' + katex_macros + '}'
 
+
+def katex_cdn(path):
+    katex_gitcommit = '7c696bb7ac8995f177676d62be09ceefa37d66e3'
+    return f'https://cdn.jsdelivr.net/gh/jedbrown/katex@{katex_gitcommit}/' + path
+
+
+katex_css_path = katex_cdn('dist/katex.min.css')
+katex_js_path = katex_cdn('dist/katex.min.js')
+katex_autorender_path = katex_cdn('dist/contrib/auto-render.min.js')
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
@@ -186,6 +196,7 @@ latex_elements = {
     #
     'preamble': r"""
 \usepackage{bm}
+\usepackage{amscd}
 """ + latex_macros,
 
     # Latex figure (float) alignment
