@@ -27,31 +27,66 @@
 // All libCEED objects use a Ceed device object constructed based on a command
 // line argument (-ceed).
 
-#[macro_use]
-extern crate clap;
-use clap::App;
 use libceed::{prelude::*, Ceed};
+use structopt::StructOpt;
+
+// ----------------------------------------------------------------------------
+// Command line arguments
+// ----------------------------------------------------------------------------
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "libCEED Rust Example 1 - Volume",
+    about = "This example uses the mass matrix to compute the length, area, or volume of a region, depending upon runtime parameters."
+)]
+struct Opt {
+    /// Set libCEED backend resource to use
+    #[structopt(short = "c", long = "ceed", default_value = "/cpu/self")]
+    ceed_spec: String,
+    /// Set mesh dimension
+    #[structopt(short = "d", long = "dimension", default_value = "3")]
+    dim: usize,
+    /// Set polynomial degree for the mesh
+    #[structopt(short = "m", long = "mesh_degree", default_value = "4")]
+    mesh_degree: usize,
+    /// Set polynomial degree for the solution
+    #[structopt(short = "p", long = "solution_degree", default_value = "4")]
+    solution_degree: usize,
+    /// Set number of quadrature points in 1D
+    #[structopt(short = "q", long = "num_qpts", default_value = "6")]
+    num_qpts: usize,
+    /// Set approximate problem size
+    #[structopt(short = "s", long = "problem_size", default_value = "-1")]
+    problem_size_requested: i64,
+    /// Enable test mode
+    #[structopt(short = "t", long = "test")]
+    test: bool,
+    /// Use QFunctions from gallery
+    #[structopt(short = "g", long = "gallery")]
+    gallery: bool,
+}
 
 // ----------------------------------------------------------------------------
 // Example 1
 // ----------------------------------------------------------------------------
 fn main() {
+    let opt = Opt::from_args();
+    let _ = example_1(opt);
+}
+
+fn example_1(opt: Opt) -> Result<(), &'static str> {
     // Process command line arguments
-    let cli_yaml = load_yaml!("cli.yml");
-    let command_line_args = App::from_yaml(cli_yaml).get_matches();
-    let ceed_spec = command_line_args.value_of("ceed").unwrap();
-    let dim = value_t!(command_line_args, "dimension", usize).unwrap();
+    let Opt {
+        ceed_spec,
+        dim,
+        mesh_degree,
+        solution_degree,
+        num_qpts,
+        problem_size_requested,
+        test,
+        gallery,
+    } = opt;
     let ncomp_x = dim;
-    let mesh_degree = value_t!(command_line_args, "mesh_degree", usize).unwrap();
-    assert!(mesh_degree > 0);
-    let solution_degree = value_t!(command_line_args, "solution_degree", usize).unwrap();
-    assert!(solution_degree > 0);
-    let num_qpts = value_t!(command_line_args, "num_qpts", usize).unwrap();
-    assert!(num_qpts > 0);
-    let test = command_line_args.is_present("test");
-    let gallery = command_line_args.is_present("gallery");
     let problem_size: i64;
-    let problem_size_requested = value_t!(command_line_args, "problem_size", i64).unwrap();
     if problem_size_requested < 0 {
         problem_size = if test { 8 * 16 } else { 256 * 1024 };
     } else {
@@ -74,7 +109,7 @@ fn main() {
     }
 
     // Initalize ceed context
-    let ceed = Ceed::init(ceed_spec);
+    let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
     let basis_mesh =
@@ -85,7 +120,7 @@ fn main() {
     // Determine mesh size from approximate problem size
     let num_xyz = get_cartesian_mesh_size(dim, solution_degree, problem_size);
     if !test {
-        print!("Mesh size                   : nx = {}", num_xyz[0]);
+        print!("\nMesh size                   : nx = {}", num_xyz[0]);
         if dim > 1 {
             print!(", ny = {}", num_xyz[1]);
         }
@@ -262,8 +297,10 @@ fn main() {
         };
         if (volume - exact_volume).abs() > tolerance {
             println!("Volume error: {}", volume - exact_volume);
+            return Err("volume error too large");
         }
     }
+    Ok(())
 }
 
 // ----------------------------------------------------------------------------
@@ -403,7 +440,7 @@ fn set_cartesian_mesh_coords(
             for d in 0..dim {
                 let d_1d = r_nodes % num_d[d];
                 coords[gs_nodes + scalar_size * d] =
-                    ((d_1d as f64 / (p - 1) as f64) + nodes[d_1d % (p - 1)]) / num_xyz[d] as f64;
+                    ((d_1d / (p - 1)) as f64 + nodes[d_1d % (p - 1)]) / num_xyz[d] as f64;
                 r_nodes /= num_d[d];
             }
         }
@@ -442,6 +479,106 @@ fn transform_mesh_coordinates(dim: usize, mesh_size: usize, mesh_coords: &mut Ve
     }
 
     exact_volume
+}
+
+// ----------------------------------------------------------------------------
+// Tests
+// ----------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_example_1_1d() {
+        let ceed_spec = "/cpu/self/ref/serial".to_string();
+        let dim = 1;
+        let mesh_degree = 4;
+        let solution_degree = 4;
+        let num_qpts = 6;
+        let problem_size_requested = -1;
+        let test = true;
+        let gallery = false;
+        let opt = Opt {
+            ceed_spec,
+            dim,
+            mesh_degree,
+            solution_degree,
+            num_qpts,
+            problem_size_requested,
+            test,
+            gallery,
+        };
+        assert!(example_1(opt).is_ok());
+    }
+
+    #[test]
+    fn test_example_1_2d() {
+        let ceed_spec = "/cpu/self/ref/serial".to_string();
+        let dim = 2;
+        let mesh_degree = 4;
+        let solution_degree = 4;
+        let num_qpts = 6;
+        let problem_size_requested = -1;
+        let test = true;
+        let gallery = false;
+        let opt = Opt {
+            ceed_spec,
+            dim,
+            mesh_degree,
+            solution_degree,
+            num_qpts,
+            problem_size_requested,
+            test,
+            gallery,
+        };
+        assert!(example_1(opt).is_ok());
+    }
+
+    #[test]
+    fn test_example_1_3d() {
+        let ceed_spec = "/cpu/self/ref/serial".to_string();
+        let dim = 3;
+        let mesh_degree = 4;
+        let solution_degree = 4;
+        let num_qpts = 6;
+        let problem_size_requested = -1;
+        let test = true;
+        let gallery = false;
+        let opt = Opt {
+            ceed_spec,
+            dim,
+            mesh_degree,
+            solution_degree,
+            num_qpts,
+            problem_size_requested,
+            test,
+            gallery,
+        };
+        assert!(example_1(opt).is_ok());
+    }
+
+    #[test]
+    fn test_example_1_2d_gallery() {
+        let ceed_spec = "/cpu/self/ref/serial".to_string();
+        let dim = 2;
+        let mesh_degree = 4;
+        let solution_degree = 4;
+        let num_qpts = 6;
+        let problem_size_requested = -1;
+        let test = true;
+        let gallery = true;
+        let opt = Opt {
+            ceed_spec,
+            dim,
+            mesh_degree,
+            solution_degree,
+            num_qpts,
+            problem_size_requested,
+            test,
+            gallery,
+        };
+        assert!(example_1(opt).is_ok());
+    }
 }
 
 // ----------------------------------------------------------------------------

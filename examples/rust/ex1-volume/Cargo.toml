@@ -7,6 +7,5 @@ authors = [
 edition = "2018"
 
 [dependencies]
-clap = { version = "2.33.3", features = ["yaml"] }
-itertools = "0.10.0"
+structopt = { version = "0.3", default-features = false }
 libceed = { path = "../../../rust" }
