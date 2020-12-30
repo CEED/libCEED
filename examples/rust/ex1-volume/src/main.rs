@@ -525,7 +525,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_example_1_1d() {
+    fn example_1_1d() {
         let ceed_spec = "/cpu/self/ref/serial".to_string();
         let dim = 1;
         let mesh_degree = 4;
@@ -548,7 +548,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_1_2d() {
+    fn example_1_2d() {
         let ceed_spec = "/cpu/self/ref/serial".to_string();
         let dim = 2;
         let mesh_degree = 4;
@@ -571,7 +571,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_1_3d() {
+    fn example_1_3d() {
         let ceed_spec = "/cpu/self/ref/serial".to_string();
         let dim = 3;
         let mesh_degree = 4;
@@ -594,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_1_2d_gallery() {
+    fn example_1_2d_gallery() {
         let ceed_spec = "/cpu/self/ref/serial".to_string();
         let dim = 2;
         let mesh_degree = 4;
