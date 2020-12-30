@@ -68,12 +68,12 @@ struct Opt {
 // ----------------------------------------------------------------------------
 // Example 1
 // ----------------------------------------------------------------------------
-fn main() {
+fn main() -> Result<(), String> {
     let opt = Opt::from_args();
-    let _ = example_1(opt);
+    example_1(opt)
 }
 
-fn example_1(opt: Opt) -> Result<(), &'static str> {
+fn example_1(opt: Opt) -> Result<(), String> {
     // Process command line arguments
     let Opt {
         ceed_spec,
@@ -295,9 +295,13 @@ fn example_1(opt: Opt) -> Result<(), &'static str> {
         } else {
             1E-5
         };
-        if (volume - exact_volume).abs() > tolerance {
-            println!("Volume error: {}", volume - exact_volume);
-            return Err("volume error too large");
+        let error = (volume - exact_volume).abs();
+        if error > tolerance {
+            println!("Volume error: {}", error);
+            return Err(format!(
+                "Volume error too large - expected: {}, actual: {}",
+                tolerance, error
+            ));
         }
     }
     Ok(())
