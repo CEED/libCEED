@@ -108,8 +108,8 @@ pub const MAX_QFUNCTION_FIELDS: usize = 16;
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to
 /// specify where the memory being provided or requested must reside.
 pub enum MemType {
-    Host,
-    Device,
+    Host = bind_ceed::CeedMemType_CEED_MEM_HOST as isize,
+    Device = bind_ceed::CeedMemType_CEED_MEM_DEVICE as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -117,54 +117,54 @@ pub enum MemType {
 #[allow(dead_code)]
 /// Conveys ownership status of arrays passed to Ceed interfaces.
 pub(crate) enum CopyMode {
-    CopyValues,
-    UsePointer,
-    OwnPointer,
+    CopyValues = bind_ceed::CeedCopyMode_CEED_COPY_VALUES as isize,
+    UsePointer = bind_ceed::CeedCopyMode_CEED_USE_POINTER as isize,
+    OwnPointer = bind_ceed::CeedCopyMode_CEED_OWN_POINTER as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Denotes type of vector norm to be computed
 pub enum NormType {
-    One,
-    Two,
-    Max,
+    One = bind_ceed::CeedNormType_CEED_NORM_1 as isize,
+    Two = bind_ceed::CeedNormType_CEED_NORM_2 as isize,
+    Max = bind_ceed::CeedNormType_CEED_NORM_MAX as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Denotes whether a linear transformation or its transpose should be applied
 pub enum TransposeMode {
-    NoTranspose,
-    Transpose,
+    NoTranspose = bind_ceed::CeedTransposeMode_CEED_NOTRANSPOSE as isize,
+    Transpose = bind_ceed::CeedTransposeMode_CEED_TRANSPOSE as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of quadrature; also used for location of nodes
 pub enum QuadMode {
-    Gauss,
-    GaussLobatto,
+    Gauss = bind_ceed::CeedQuadMode_CEED_GAUSS as isize,
+    GaussLobatto = bind_ceed::CeedQuadMode_CEED_GAUSS_LOBATTO as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of basis shape to create non-tensor H1 element basis
 pub enum ElemTopology {
-    Line,
-    Triangle,
-    Quad,
-    Tet,
-    Pyramid,
-    Prism,
-    Hex,
+    Line = bind_ceed::CeedElemTopology_CEED_LINE as isize,
+    Triangle = bind_ceed::CeedElemTopology_CEED_TRIANGLE as isize,
+    Quad = bind_ceed::CeedElemTopology_CEED_QUAD as isize,
+    Tet = bind_ceed::CeedElemTopology_CEED_TET as isize,
+    Pyramid = bind_ceed::CeedElemTopology_CEED_PYRAMID as isize,
+    Prism = bind_ceed::CeedElemTopology_CEED_PRISM as isize,
+    Hex = bind_ceed::CeedElemTopology_CEED_HEX as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Basis evaluation mode
 pub enum EvalMode {
-    None,
-    Interp,
-    Grad,
-    Div,
-    Curl,
-    Weight,
+    None = bind_ceed::CeedEvalMode_CEED_EVAL_NONE as isize,
+    Interp = bind_ceed::CeedEvalMode_CEED_EVAL_INTERP as isize,
+    Grad = bind_ceed::CeedEvalMode_CEED_EVAL_GRAD as isize,
+    Div = bind_ceed::CeedEvalMode_CEED_EVAL_DIV as isize,
+    Curl = bind_ceed::CeedEvalMode_CEED_EVAL_CURL as isize,
+    Weight = bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT as isize,
 }
 
 // -----------------------------------------------------------------------------
