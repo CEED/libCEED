@@ -39,29 +39,54 @@ use structopt::StructOpt;
     about = "This example uses the mass matrix to compute the length, area, or volume of a region, depending upon runtime parameters."
 )]
 struct Opt {
-    /// Set libCEED backend resource to use
-    #[structopt(short = "c", long = "ceed", default_value = "/cpu/self")]
+    /// libCEED backend resource to use
+    #[structopt(name = "ceed", short = "c", long = "ceed", default_value = "/cpu/self")]
     ceed_spec: String,
-    /// Set mesh dimension
-    #[structopt(short = "d", long = "dimension", default_value = "3")]
+    /// Mesh dimension
+    #[structopt(
+        name = "dimension",
+        short = "d",
+        long = "dimension",
+        default_value = "3"
+    )]
     dim: usize,
-    /// Set polynomial degree for the mesh
-    #[structopt(short = "m", long = "mesh_degree", default_value = "4")]
+    /// Polynomial degree for the mesh
+    #[structopt(
+        name = "mesh degree",
+        short = "m",
+        long = "mesh_degree",
+        default_value = "4"
+    )]
     mesh_degree: usize,
-    /// Set polynomial degree for the solution
-    #[structopt(short = "p", long = "solution_degree", default_value = "4")]
+    /// Polynomial degree for the solution
+    #[structopt(
+        name = "solution degree",
+        short = "p",
+        long = "solution_degree",
+        default_value = "4"
+    )]
     solution_degree: usize,
-    /// Set number of quadrature points in 1D
-    #[structopt(short = "q", long = "num_qpts", default_value = "6")]
+    /// Number of quadrature points in 1D
+    #[structopt(
+        name = "number of quadrature points",
+        short = "q",
+        long = "num_qpts",
+        default_value = "6"
+    )]
     num_qpts: usize,
-    /// Set approximate problem size
-    #[structopt(short = "s", long = "problem_size", default_value = "-1")]
+    /// Approximate problem size
+    #[structopt(
+        name = "problem size",
+        short = "s",
+        long = "problem_size",
+        default_value = "-1"
+    )]
     problem_size_requested: i64,
-    /// Enable test mode
-    #[structopt(short = "t", long = "test")]
+    /// Test mode
+    #[structopt(name = "test mode", short = "t", long = "test")]
     test: bool,
-    /// Use QFunctions from gallery
-    #[structopt(short = "g", long = "gallery")]
+    /// Gallery QFunctions
+    #[structopt(name = "gallery QFunctions", short = "g", long = "gallery")]
     gallery: bool,
 }
 
