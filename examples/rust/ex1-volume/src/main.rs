@@ -85,6 +85,10 @@ fn example_1(opt: Opt) -> Result<(), String> {
         test,
         gallery,
     } = opt;
+    assert!(dim >= 1 && dim <= 3);
+    assert!(mesh_degree >= 1);
+    assert!(solution_degree >= 1);
+    assert!(num_qpts >= 1);
     let ncomp_x = dim;
     let problem_size: i64;
     if problem_size_requested < 0 {
