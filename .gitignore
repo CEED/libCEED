@@ -39,6 +39,7 @@ __pycache__/
 
 # Rust
 /target/
+Cargo.lock
 
 # Documentation
 xml/*
