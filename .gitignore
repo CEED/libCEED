@@ -37,6 +37,9 @@ dist
 __pycache__/
 .ipynb_checkpoints/
 
+# Rust
+/target/
+
 # Documentation
 xml/*
 doc/html
