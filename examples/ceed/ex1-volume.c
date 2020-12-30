@@ -18,7 +18,7 @@
 //
 // This example illustrates a simple usage of libCEED to compute the volume of a
 // 3D body using matrix-free application of a mass operator.  Arbitrary mesh and
-// solution orders in 1D, 2D and 3D are supported from the same code.
+// solution degrees in 1D, 2D and 3D are supported from the same code.
 //
 // The example has no dependencies, and is designed to be self-contained. For
 // additional examples that use external discretization libraries (MFEM, PETSc,
@@ -36,9 +36,6 @@
 //     ./ex1-volume
 //     ./ex1-volume -ceed /cpu/self
 //     ./ex1-volume -ceed /gpu/cuda
-//     ./ex1-volume -m ../../../mfem/data/fichera.mesh
-//     ./ex1-volume -m ../../../mfem/data/star.vtk -o 3
-//     ./ex1-volume -m ../../../mfem/data/inline-segment.mesh -o 8
 //
 // Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
@@ -58,24 +55,24 @@
 #include "ex1-volume.h"
 
 // Auxiliary functions.
-int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[3]);
-int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int order,
+int GetCartesianMeshSize(int dim, int degree, int prob_size, int nxyz[3]);
+int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[3], int degree,
                               int ncomp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i);
-int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_order,
+int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_degree,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
 
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
-  int dim        = 3;           // dimension of the mesh
-  int ncompx     = 3;           // number of x components
-  int mesh_order = 4;           // polynomial degree for the mesh
-  int sol_order  = 4;           // polynomial degree for the solution
-  int num_qpts   = sol_order+2; // number of 1D quadrature points
-  int prob_size  = -1;          // approximate problem size
+  int dim        = 3;              // dimension of the mesh
+  int ncompx     = 3;              // number of x components
+  int mesh_degree = 4;             // polynomial degree for the mesh
+  int sol_degree  = 4;             // polynomial degree for the solution
+  int num_qpts   = sol_degree + 2; // number of 1D quadrature points
+  int prob_size  = -1;             // approximate problem size
   int help = 0, test = 0, gallery = 0;
 
   // Process command line arguments.
@@ -89,9 +86,9 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? dim = atoi(argv[++ia]), 0 : 1;
       ncompx = dim;
     } else if (!strcmp(argv[ia],"-m")) {
-      parse_error = next_arg ? mesh_order = atoi(argv[++ia]), 0 : 1;
-    } else if (!strcmp(argv[ia],"-o")) {
-      parse_error = next_arg ? sol_order = atoi(argv[++ia]), 0 : 1;
+      parse_error = next_arg ? mesh_degree = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia],"-p")) {
+      parse_error = next_arg ? sol_degree= atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia],"-q")) {
       parse_error = next_arg ? num_qpts = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia],"-s")) {
@@ -113,8 +110,8 @@ int main(int argc, const char *argv[]) {
     printf("Selected options: [command line option] : <current value>\n");
     printf("  Ceed specification [-c] : %s\n", ceed_spec);
     printf("  Mesh dimension     [-d] : %d\n", dim);
-    printf("  Mesh order         [-m] : %d\n", mesh_order);
-    printf("  Solution order     [-o] : %d\n", sol_order);
+    printf("  Mesh degree        [-m] : %d\n", mesh_degree);
+    printf("  Solution degree    [-p] : %d\n", sol_degree);
     printf("  Num. 1D quadr. pts [-q] : %d\n", num_qpts);
     printf("  Approx. # unknowns [-s] : %d\n", prob_size);
     printf("  QFunction source   [-g] : %s\n", gallery?"gallery":"header");
@@ -132,14 +129,14 @@ int main(int argc, const char *argv[]) {
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, mesh_order+1, num_qpts,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, mesh_degree + 1, num_qpts,
                                   CEED_GAUSS, &mesh_basis);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, sol_order+1, num_qpts,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, sol_degree + 1, num_qpts,
                                   CEED_GAUSS, &sol_basis);
 
   // Determine the mesh size based on the given approximate problem size.
   int nxyz[dim];
-  GetCartesianMeshSize(dim, sol_order, prob_size, nxyz);
+  GetCartesianMeshSize(dim, sol_degree, prob_size, nxyz);
 
   if (!test) {
     printf("Mesh size: nx = %d", nxyz[0]);
@@ -152,9 +149,9 @@ int main(int argc, const char *argv[]) {
   // representations.
   CeedInt mesh_size, sol_size;
   CeedElemRestriction mesh_restr, sol_restr, sol_restr_i;
-  BuildCartesianRestriction(ceed, dim, nxyz, mesh_order, ncompx, &mesh_size,
+  BuildCartesianRestriction(ceed, dim, nxyz, mesh_degree, ncompx, &mesh_size,
                             num_qpts, &mesh_restr, NULL);
-  BuildCartesianRestriction(ceed, dim, nxyz, sol_order, 1, &sol_size,
+  BuildCartesianRestriction(ceed, dim, nxyz, sol_degree, 1, &sol_size,
                             num_qpts, &sol_restr, &sol_restr_i);
   if (!test) {
     printf("Number of mesh nodes     : %d\n", mesh_size/dim);
@@ -164,12 +161,12 @@ int main(int argc, const char *argv[]) {
   // Create a CeedVector with the mesh coordinates.
   CeedVector mesh_coords;
   CeedVectorCreate(ceed, mesh_size, &mesh_coords);
-  SetCartesianMeshCoords(dim, nxyz, mesh_order, mesh_coords);
+  SetCartesianMeshCoords(dim, nxyz, mesh_degree, mesh_coords);
 
   // Apply a transformation to the mesh.
   CeedScalar exact_vol = TransformMeshCoords(dim, mesh_size, mesh_coords);
 
-  // Context data to be passed to the 'f_build_mass' Q-function.
+  // Context data to be passed to the 'f_build_mass' QFunction.
   CeedQFunctionContext build_ctx;
   struct BuildContext build_ctx_data;
   build_ctx_data.dim = build_ctx_data.space_dim = dim;
@@ -177,7 +174,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(build_ctx_data), &build_ctx_data);
 
-  // Create the Q-function that builds the mass operator (i.e. computes its
+  // Create the QFunction that builds the mass operator (i.e. computes its
   // quadrature data) and set its context data.
   CeedQFunction build_qfunc;
   switch (gallery) {
@@ -227,7 +224,7 @@ int main(int argc, const char *argv[]) {
     printf(" done.\n");
   }
 
-  // Create the Q-function that defines the action of the mass operator.
+  // Create the QFunction that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
   switch (gallery) {
   case 0:
@@ -309,10 +306,10 @@ int main(int argc, const char *argv[]) {
 }
 
 
-int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[dim]) {
+int GetCartesianMeshSize(int dim, int degree, int prob_size, int nxyz[dim]) {
   // Use the approximate formula:
-  //    prob_size ~ num_elem * order^dim
-  CeedInt num_elem = prob_size / CeedIntPow(order, dim);
+  //    prob_size ~ num_elem * degree^dim
+  CeedInt num_elem = prob_size / CeedIntPow(degree, dim);
   CeedInt s = 0;  // find s: num_elem/2 < 2^s <= num_elem
   while (num_elem > 1) {
     num_elem /= 2;
@@ -327,69 +324,70 @@ int GetCartesianMeshSize(int dim, int order, int prob_size, int nxyz[dim]) {
   return 0;
 }
 
-int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int order,
+int BuildCartesianRestriction(Ceed ceed, int dim, int nxyz[dim], int degree,
                               int ncomp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i) {
-  CeedInt p = order, pp1 = p+1;
-  CeedInt nnodes = CeedIntPow(pp1, dim); // number of scal. nodes per element
+  CeedInt p = degree + 1;
+  CeedInt nnodes = CeedIntPow(p, dim); // number of scal. nodes per element
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim); // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
     num_elem *= nxyz[d];
-    nd[d] = nxyz[d]*p + 1;
+    nd[d] = nxyz[d] * (p - 1) + 1;
     scalar_size *= nd[d];
   }
   *size = scalar_size*ncomp;
   // elem:         0             1                 n-1
-  //        |---*-...-*---|---*-...-*---|- ... -|--...--|
+  //           |---*-...-*---|---*-...-*---|- ... -|--...--|
   // nnodes:   0   1    p-1  p  p+1       2*p             n*p
   CeedInt *el_nodes = malloc(sizeof(CeedInt)*num_elem*nnodes);
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt exyz[3] = {1, 1, 1}, re = e;
-    for (int d = 0; d < dim; d++) { exyz[d] = re%nxyz[d]; re /= nxyz[d]; }
+    for (int d = 0; d < dim; d++) { exyz[d] = re % nxyz[d]; re /= nxyz[d]; }
     CeedInt *loc_el_nodes = el_nodes + e*nnodes;
     for (int lnodes = 0; lnodes < nnodes; lnodes++) {
       CeedInt gnodes = 0, gnodes_stride = 1, rnodes = lnodes;
       for (int d = 0; d < dim; d++) {
-        gnodes += (exyz[d]*p + rnodes%pp1) * gnodes_stride;
+        gnodes += (exyz[d] * (p - 1) + rnodes % p) * gnodes_stride;
         gnodes_stride *= nd[d];
-        rnodes /= pp1;
+        rnodes /= p;
       }
       loc_el_nodes[lnodes] = gnodes;
     }
   }
   CeedElemRestrictionCreate(ceed, num_elem, nnodes, ncomp, scalar_size,
-                            ncomp*scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES,
+                            ncomp * scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES,
                             el_nodes, restr);
   if (restr_i)
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts,
-                                     ncomp, ncomp*elem_qpts*num_elem,
+                                     ncomp, ncomp * elem_qpts * num_elem,
                                      CEED_STRIDES_BACKEND, restr_i);
   free(el_nodes);
   return 0;
 }
 
-int SetCartesianMeshCoords(int dim, int nxyz[dim], int mesh_order,
+int SetCartesianMeshCoords(int dim, int nxyz[dim], int mesh_degree,
                            CeedVector mesh_coords) {
-  CeedInt p = mesh_order;
+  CeedInt p = mesh_degree + 1;
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
   for (int d = 0; d < dim; d++) {
     num_elem *= nxyz[d];
-    nd[d] = nxyz[d]*p + 1;
+    nd[d] = nxyz[d] * (p - 1) + 1;
     scalar_size *= nd[d];
   }
   CeedScalar *coords;
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
-  CeedScalar *nodes = malloc(sizeof(CeedScalar)*(p+1));
+  CeedScalar *nodes = malloc(sizeof(CeedScalar) * p);
   // The H1 basis uses Lobatto quadrature points as nodes.
-  CeedLobattoQuadrature(p+1, nodes, NULL); // nodes are in [-1,1]
-  for (CeedInt i = 0; i <= p; i++) { nodes[i] = 0.5+0.5*nodes[i]; }
+  CeedLobattoQuadrature(p, nodes, NULL); // nodes are in [-1,1]
+  for (CeedInt i = 0; i < p; i++) { nodes[i] = 0.5 + 0.5 * nodes[i]; }
   for (CeedInt gsnodes = 0; gsnodes < scalar_size; gsnodes++) {
     CeedInt rnodes = gsnodes;
     for (int d = 0; d < dim; d++) {
-      CeedInt d1d = rnodes%nd[d];
-      coords[gsnodes+scalar_size*d] = ((d1d/p)+nodes[d1d%p]) / nxyz[d];
+      CeedInt d1d = rnodes % nd[d];
+      coords[gsnodes + scalar_size * d] = ((d1d / (p - 1)) + nodes[d1d %
+                                           (p - 1)]) / nxyz[d];
       rnodes /= nd[d];
     }
   }
@@ -410,7 +408,7 @@ CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords) {
   if (dim == 1) {
     for (CeedInt i = 0; i < mesh_size; i++) {
       // map [0,1] to [0,1] varying the mesh density
-      coords[i] = 0.5+1./sqrt(3.)*sin((2./3.)*M_PI*(coords[i]-0.5));
+      coords[i] = 0.5 + 1./sqrt(3.) * sin((2./3.) * M_PI*(coords[i] - 0.5));
     }
     exact_volume = 1.;
   } else {
@@ -419,12 +417,12 @@ CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords) {
       // map (x,y) from [0,1]x[0,1] to the quarter annulus with polar
       // coordinates, (r,phi) in [1,2]x[0,pi/2] with area = 3/4*pi
       CeedScalar u = coords[i], v = coords[i+num_nodes];
-      u = 1.+u;
-      v = M_PI_2*v;
-      coords[i] = u*cos(v);
-      coords[i+num_nodes] = u*sin(v);
+      u = 1. + u;
+      v = M_PI_2 * v;
+      coords[i] = u * cos(v);
+      coords[i+num_nodes] = u * sin(v);
     }
-    exact_volume = 3./4.*M_PI;
+    exact_volume = 3./4. * M_PI;
   }
   CeedVectorRestoreArray(mesh_coords, &coords);
   return exact_volume;
