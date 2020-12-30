@@ -295,10 +295,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem+1, MemType::Host, &ind);
     ///
-    /// let c = r.get_comp_stride();
+    /// let c = r.comp_stride();
     /// assert_eq!(c, compstride as i32, "Incorrect component stride");
     /// ```
-    pub fn get_comp_stride(&self) -> i32 {
+    pub fn comp_stride(&self) -> i32 {
         let mut compstride = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetCompStride(self.ptr, &mut compstride) };
         compstride
@@ -317,10 +317,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
-    /// let n = r.get_num_elements();
+    /// let n = r.num_elements();
     /// assert_eq!(n, nelem as i32, "Incorrect number of elements");
     /// ```
-    pub fn get_num_elements(&self) -> i32 {
+    pub fn num_elements(&self) -> i32 {
         let mut numelem = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetNumElements(self.ptr, &mut numelem) };
         numelem
@@ -340,10 +340,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem+1, MemType::Host, &ind);
     ///
-    /// let e = r.get_elem_size();
+    /// let e = r.elem_size();
     /// assert_eq!(e, elem_size as i32, "Incorrect element size");
     /// ```
-    pub fn get_elem_size(&self) -> i32 {
+    pub fn elem_size(&self) -> i32 {
         let mut elemsize = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetElementSize(self.ptr, &mut elemsize) };
         elemsize
@@ -362,10 +362,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
     ///
-    /// let lsize = r.get_lvector_size();
+    /// let lsize = r.lvector_size();
     /// assert_eq!(lsize, (nelem+1) as i32);
     /// ```
-    pub fn get_lvector_size(&self) -> i32 {
+    pub fn lvector_size(&self) -> i32 {
         let mut lsize = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetLVectorSize(self.ptr, &mut lsize) };
         lsize
@@ -385,10 +385,10 @@ impl ElemRestriction {
     /// }
     /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp*(nelem+1), MemType::Host, &ind);
     ///
-    /// let n = r.get_num_components();
+    /// let n = r.num_components();
     /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
     /// ```
-    pub fn get_num_components(&self) -> i32 {
+    pub fn num_components(&self) -> i32 {
         let mut numcomp = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetNumComponents(self.ptr, &mut numcomp) };
         numcomp
@@ -410,7 +410,7 @@ impl ElemRestriction {
     /// let mut mult = ceed.vector(nelem+1);
     /// mult.set_value(0.0);
     ///
-    /// r.get_multiplicity(&mut mult);
+    /// r.multiplicity(&mut mult);
     ///
     /// let array = mult.view();
     /// for i in 0..(nelem+1) {
@@ -420,7 +420,7 @@ impl ElemRestriction {
     ///     "Incorrect multiplicity array");
     /// }
     /// ```
-    pub fn get_multiplicity(&self, mult: &mut Vector) {
+    pub fn multiplicity(&self, mult: &mut Vector) {
         unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };
     }
 }
