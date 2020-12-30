@@ -31,9 +31,9 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
-//TESTARGS -ceed {ceed_resource} -test implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
+//TESTARGS -ceed {ceed_resource} -test dc_explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -105,16 +105,17 @@ static const char *const StabilizationTypes[] = {
 
 // Test Options
 typedef enum {
-  TEST_NONE = 0,               // Non test mode
-  TEST_EXPLICIT = 1,           // Explicit test
-  TEST_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
-  TEST_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
+  TEST_NONE = 0,                  // Non test mode
+  // DENSITY_CURRENT
+  TEST_DC_EXPLICIT = 1,           // Explicit test
+  TEST_DC_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
+  TEST_DC_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
 } testType;
 static const char *const testTypes[] = {
   "none",
-  "explicit",
-  "implicit_stab_none",
-  "implicit_stab_supg",
+  "dc_explicit",
+  "dc_implicit_stab_none",
+  "dc_implicit_stab_supg",
   "testType", "TEST_", NULL
 };
 
@@ -129,17 +130,17 @@ testData testOptions[] = {
     .testtol = 0.,
     .filepath = NULL
   },
-  [TEST_EXPLICIT] = {
+  [TEST_DC_EXPLICIT] = {
     .testtol = 1E-5,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-explicit.bin"
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-explicit.bin"
   },
-  [TEST_IMPLICIT_STAB_NONE] = {
+  [TEST_DC_IMPLICIT_STAB_NONE] = {
     .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-none.bin"
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin"
   },
-  [TEST_IMPLICIT_STAB_SUPG] = {
+  [TEST_DC_IMPLICIT_STAB_SUPG] = {
     .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-supg.bin"
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-supg.bin"
   }
 };
 
