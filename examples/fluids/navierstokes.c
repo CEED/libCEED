@@ -31,15 +31,15 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
-//TESTARGS -ceed {ceed_resource} -test dc_explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
-//TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
-//TESTARGS -ceed {ceed_resource} -test adv_rotation_explicit_strong -problem advection -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
-//TESTARGS -ceed {ceed_resource} -test adv_rotation_implicit_stab_supg -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test adv_translation_implicit_stab_su -problem advection -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,-2.65
-//TESTARGS -ceed {ceed_resource} -test adv2d_rotation_explicit_strong -problem advection2d -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
-//TESTARGS -ceed {ceed_resource} -test adv2d_rotation_implicit_stab_supg -problem advection2d -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test adv2d_translation_implicit_stab_su -problem advection2d -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,0
+//TESTARGS(name="test_dc_explicit") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-explicit.bin
+//TESTARGS(name="test_dc_implicit_stab_none") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin
+//TESTARGS(name="test_dc_implicit_stab_supg") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-supg.bin
+//TESTARGS(name="test_adv_rotation_explicit_strong") -ceed {ceed_resource} -test -problem advection -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-explicit-strong.bin
+//TESTARGS(name="test_adv_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin
+//TESTARGS(name="test_adv_translation_implicit_stab_su") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,-2.65 -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-translation-implicit-stab-su.bin
+//TESTARGS(name="test_adv2d_rotation_explicit_strong") -ceed {ceed_resource} -test -problem advection2d -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-explicit-strong.bin
+//TESTARGS(name="test_adv2d_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection2d -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-implicit-stab-supg.bin
+//TESTARGS(name="test_adv2d_translation_implicit_stab_su") -ceed {ceed_resource} -test -problem advection2d -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,0 -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-translation-implicit-stab-su.bin
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -107,85 +107,6 @@ static const char *const StabilizationTypes[] = {
   "SU",
   "SUPG",
   "StabilizationType", "STAB_", NULL
-};
-
-// Test Options
-typedef enum {
-  TEST_NONE = 0,                               // Non test mode
-  // DENSITY_CURRENT
-  TEST_DC_EXPLICIT = 1,                        // Explicit test
-  TEST_DC_IMPLICIT_STAB_NONE = 2,              // Implicit test no stab
-  TEST_DC_IMPLICIT_STAB_SUPG = 3,              // Implicit test supg stab
-  // ADVECTION
-  TEST_ADV_ROTATION_EXPLICIT_STRONG = 4,       // Explicit test rotation strong form
-  TEST_ADV_ROTATION_IMPLICIT_STAB_SUPG = 5,    // Implicit test rotation stab supg
-  TEST_ADV_TRANSLATION_IMPLICIT_STAB_SU = 6,   // Implicit test translation stab su
-  // ADVECTION2D
-  TEST_ADV2D_ROTATION_EXPLICIT_STRONG = 7,     // Explicit test rotation strong form
-  TEST_ADV2D_ROTATION_IMPLICIT_STAB_SUPG = 8,  // Implicit test rotation stab supg
-  TEST_ADV2D_TRANSLATION_IMPLICIT_STAB_SU = 9  // Implicit test translation stab su
-} testType;
-static const char *const testTypes[] = {
-  "none",
-  "dc_explicit",
-  "dc_implicit_stab_none",
-  "dc_implicit_stab_supg",
-  "adv_rotation_explicit_strong",
-  "adv_rotation_implicit_stab_supg",
-  "adv_translation_implicit_stab_su",
-  "adv2d_rotation_explicit_strong",
-  "adv2d_rotation_implicit_stab_supg",
-  "adv2d_translation_implicit_stab_su",
-  "testType", "TEST_", NULL
-};
-
-// Tests specific data
-typedef struct {
-  PetscScalar testtol;
-  const char *filepath;
-} testData;
-
-testData testOptions[] = {
-  [TEST_NONE] = {
-    .testtol = 0.,
-    .filepath = NULL
-  },
-  [TEST_DC_EXPLICIT] = {
-    .testtol = 1E-5,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-explicit.bin"
-  },
-  [TEST_DC_IMPLICIT_STAB_NONE] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin"
-  },
-  [TEST_DC_IMPLICIT_STAB_SUPG] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-supg.bin"
-  },
-  [TEST_ADV_ROTATION_EXPLICIT_STRONG] = {
-    .testtol = 0.,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-rotation-explicit-strong.bin"
-  },
-  [TEST_ADV_ROTATION_IMPLICIT_STAB_SUPG] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin"
-  },
-  [TEST_ADV_TRANSLATION_IMPLICIT_STAB_SU] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-translation-implicit-stab-su.bin"
-  },
-  [TEST_ADV2D_ROTATION_EXPLICIT_STRONG] = {
-    .testtol = 0.,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-explicit-strong.bin"
-  },
-  [TEST_ADV2D_ROTATION_IMPLICIT_STAB_SUPG] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-implicit-stab-supg.bin"
-  },
-  [TEST_ADV2D_TRANSLATION_IMPLICIT_STAB_SU] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-translation-implicit-stab-su.bin"
-  }
 };
 
 // Problem specific data
@@ -952,8 +873,6 @@ int main(int argc, char **argv) {
   problemData *problem = NULL;
   WindType wind_type;
   StabilizationType stab;
-  testType testChoice;
-  testData *test = NULL;
   PetscBool implicit;
   PetscInt    viz_refine = 0;
   struct SimpleBC_ bc = {
@@ -961,6 +880,10 @@ int main(int argc, char **argv) {
     .slips = {{5, 6}, {3, 4}, {1, 2}}
   };
   double start, cpu_time_used;
+  // Test variables
+  PetscBool test;
+  PetscScalar testtol = 0.;
+  char filepath[PETSC_MAX_PATH_LEN];
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
   // *INDENT-OFF*
@@ -1018,12 +941,14 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
                             sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  testChoice = TEST_NONE;
-  ierr = PetscOptionsEnum("-test", "Run tests", NULL,
-                          testTypes, (PetscEnum)testChoice,
-                          (PetscEnum *)&testChoice,
-                          NULL); CHKERRQ(ierr);
-  test = &testOptions[testChoice];
+  ierr = PetscOptionsBool("-test", "Run in test mode",
+                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-compare_final_state_atol",
+                            "Test absolute tolerance",
+                            NULL, testtol, &testtol, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-compare_final_state_filename", "Test filename",
+                            NULL, filepath, filepath,
+                            sizeof(filepath), NULL); CHKERRQ(ierr);
   problemChoice = NS_DENSITY_CURRENT;
   ierr = PetscOptionsEnum("-problem", "Problem to solve", NULL,
                           problemTypes, (PetscEnum)problemChoice,
@@ -1353,7 +1278,7 @@ int main(int argc, char **argv) {
   numQ = numP + qextra;
 
   // Print summary
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
@@ -1694,14 +1619,14 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
-  if (testChoice != TEST_NONE) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
+  if (test) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
                               1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   if (!contsteps) { // print initial condition
-    if (testChoice == TEST_NONE) {
+    if (!test) {
       ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
     }
   } else { // continue from time of last output
@@ -1718,7 +1643,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
 
@@ -1730,14 +1655,14 @@ int main(int argc, char **argv) {
   ierr = TSGetSolveTime(ts, &ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time taken for solution (sec): %g\n",
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
   // Get error
-  if (problem->non_zero_time && testChoice == TEST_NONE) {
+  if (problem->non_zero_time && !test) {
     Vec Qexact, Qexactloc;
     PetscReal norm;
     ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
@@ -1760,7 +1685,7 @@ int main(int argc, char **argv) {
 
   // Output Statistics
   ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
-  if (testChoice == TEST_NONE) {
+  if (!test) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps, (double)ftime); CHKERRQ(ierr);
@@ -1769,13 +1694,13 @@ int main(int argc, char **argv) {
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
   // Compare reference solution values with current test run for CI
-  if (testChoice != TEST_NONE) {
+  if (test) {
     PetscViewer viewer;
     // Read reference file
     Vec Qref;
     PetscReal error, Qrefnorm;
     ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, test->filepath, FILE_MODE_READ, &viewer);
+    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -1787,7 +1712,7 @@ int main(int argc, char **argv) {
     ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
     ierr = VecDestroy(&Qref); CHKERRQ(ierr);
     // Check error
-    if (error > test->testtol) {
+    if (error > testtol) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,
                          "Test failed with error norm %g\n",
                          (double)error); CHKERRQ(ierr);
