@@ -64,6 +64,7 @@
 // Crate prelude
 // -----------------------------------------------------------------------------
 use crate::prelude::*;
+use std::sync::Once;
 
 pub mod prelude {
     pub(crate) mod bind_ceed {
@@ -211,6 +212,8 @@ impl fmt::Display for Ceed {
     }
 }
 
+static REGISTER: Once = Once::new();
+
 // -----------------------------------------------------------------------------
 // Object constructors
 // -----------------------------------------------------------------------------
@@ -225,6 +228,11 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
+        REGISTER.call_once(|| unsafe {
+            bind_ceed::CeedRegisterAll();
+            bind_ceed::CeedQFunctionRegisterAll();
+        });
+
         // Convert to C string
         let c_resource = CString::new(resource).expect("CString::new failed");
 
