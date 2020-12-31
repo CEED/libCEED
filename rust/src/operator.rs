@@ -246,7 +246,7 @@ impl Operator {
         Self { op_core }
     }
 
-    pub fn build(&mut self) -> Operator {
+    pub fn build(&mut self) -> Self {
         let ptr = self.op_core.ptr;
         self.op_core.ptr = std::ptr::null_mut();
         Self {
@@ -447,7 +447,7 @@ impl Operator {
         r: impl Into<ElemRestrictionOpt<'b>>,
         b: impl Into<BasisOpt<'b>>,
         v: impl Into<VectorOpt<'b>>,
-    ) -> &'a mut Operator {
+    ) -> &'a mut Self {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
         let fieldname = fieldname.as_ptr() as *const i8;
         unsafe {
@@ -1456,6 +1456,14 @@ impl CompositeOperator {
         Self { op_core }
     }
 
+    pub fn build(&mut self) -> Self {
+        let ptr = self.op_core.ptr;
+        self.op_core.ptr = std::ptr::null_mut();
+        Self {
+            op_core: OperatorCore { ptr },
+        }
+    }
+
     /// Apply Operator to a vector
     ///
     /// * `input`  - Input Vector
@@ -1521,16 +1529,12 @@ impl CompositeOperator {
     /// op_build_diff.apply(&x, &mut qdata_diff);
     ///
     /// // Application operator
-    /// let mut op_composite = ceed.composite_operator();
-    ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
     /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
     ///     .field("u", &ru, &bu, VectorOpt::Active)
     ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
     ///     .field("v", &ru, &bu, VectorOpt::Active)
     ///     .build();
-    ///
-    /// op_composite.sub_operator(&op_mass);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
     /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
@@ -1539,7 +1543,10 @@ impl CompositeOperator {
     ///     .field("dv", &ru, &bu, VectorOpt::Active)
     ///     .build();
     ///
-    /// op_composite.sub_operator(&op_diff);
+    /// let op_composite = ceed.composite_operator()
+    ///     .sub_operator(&op_mass)
+    ///     .sub_operator(&op_diff)
+    ///     .build();
     ///
     /// v.set_value(0.0);
     /// op_composite.apply(&u, &mut v);
@@ -1621,16 +1628,12 @@ impl CompositeOperator {
     /// op_build_diff.apply(&x, &mut qdata_diff);
     ///
     /// // Application operator
-    /// let mut op_composite = ceed.composite_operator();
-    ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
     /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
     ///     .field("u", &ru, &bu, VectorOpt::Active)
     ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
     ///     .field("v", &ru, &bu, VectorOpt::Active)
     ///     .build();
-    ///
-    /// op_composite.sub_operator(&op_mass);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
     /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
@@ -1639,7 +1642,10 @@ impl CompositeOperator {
     ///     .field("dv", &ru, &bu, VectorOpt::Active)
     ///     .build();
     ///
-    /// op_composite.sub_operator(&op_diff);
+    /// let op_composite = ceed.composite_operator()
+    ///     .sub_operator(&op_mass)
+    ///     .sub_operator(&op_diff)
+    ///     .build();
     ///
     /// v.set_value(1.0);
     /// op_composite.apply_add(&u, &mut v);
@@ -1673,8 +1679,9 @@ impl CompositeOperator {
     /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
     /// op.sub_operator(&op_diff);
     /// ```
-    pub fn sub_operator(&mut self, subop: &Operator) {
+    pub fn sub_operator<'a>(&'a mut self, subop: &Operator) -> &'a mut Self {
         unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
+        self
     }
 
     /// Assemble the diagonal of a square linear Operator
