@@ -413,12 +413,7 @@ impl QFunction {
     /// qf.input("u", 1, EvalMode::Interp);
     /// qf.input("weights", 1, EvalMode::Weight);
     /// ```
-    pub fn input<'a>(
-        &'a mut self,
-        fieldname: &str,
-        size: i32,
-        emode: crate::EvalMode,
-    ) -> &'a mut Self {
+    pub fn input(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> &mut Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
@@ -460,12 +455,7 @@ impl QFunction {
     ///
     /// qf.output("v", 1, EvalMode::Interp);
     /// ```
-    pub fn output<'a>(
-        &'a mut self,
-        fieldname: &str,
-        size: i32,
-        emode: crate::EvalMode,
-    ) -> &'a mut Self {
+    pub fn output(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> &mut Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;

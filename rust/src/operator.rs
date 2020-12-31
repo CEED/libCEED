@@ -437,13 +437,13 @@ impl Operator {
     /// // Operator field
     /// op.field("dx", &r, &b, VectorOpt::Active);
     /// ```
-    pub fn field<'a, 'b>(
-        &'a mut self,
+    pub fn field<'b>(
+        &mut self,
         fieldname: &str,
         r: impl Into<ElemRestrictionOpt<'b>>,
         b: impl Into<BasisOpt<'b>>,
         v: impl Into<VectorOpt<'b>>,
-    ) -> &'a mut Self {
+    ) -> &mut Self {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
         let fieldname = fieldname.as_ptr() as *const i8;
         unsafe {
@@ -1655,7 +1655,7 @@ impl CompositeOperator {
     /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
     /// op.sub_operator(&op_diff);
     /// ```
-    pub fn sub_operator<'a>(&'a mut self, subop: &Operator) -> &'a mut Self {
+    pub fn sub_operator(&mut self, subop: &Operator) -> &mut Self {
         unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
         self
     }
