@@ -623,16 +623,13 @@ mod tests {
         let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
         let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
 
-        // Set up operator
+        // Build quadrature data
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-        let op_build = ceed
-            .operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+        ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
             .field("dx", &rx, &bx, VectorOpt::Active)
             .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
             .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
-            .build();
-
-        op_build.apply(&x, &mut qdata);
+            .apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply");
