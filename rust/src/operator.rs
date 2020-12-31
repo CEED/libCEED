@@ -247,10 +247,10 @@ impl Operator {
     }
 
     pub fn build(&mut self) -> Self {
-        let ptr = self.op_core.ptr;
-        self.op_core.ptr = std::ptr::null_mut();
         Self {
-            op_core: OperatorCore { ptr },
+            op_core: OperatorCore {
+                ptr: std::mem::replace(&mut self.op_core.ptr, std::ptr::null_mut()),
+            },
         }
     }
 
@@ -1439,10 +1439,10 @@ impl CompositeOperator {
     }
 
     pub fn build(&mut self) -> Self {
-        let ptr = self.op_core.ptr;
-        self.op_core.ptr = std::ptr::null_mut();
         Self {
-            op_core: OperatorCore { ptr },
+            op_core: OperatorCore {
+                ptr: std::mem::replace(&mut self.op_core.ptr, std::ptr::null_mut()),
+            },
         }
     }
 
