@@ -66,7 +66,6 @@ pub(crate) struct QFunctionCore {
     ptr: bind_ceed::CeedQFunction,
 }
 
-#[derive(Copy, Clone)]
 struct QFunctionTrampolineData {
     number_inputs: usize,
     number_outputs: usize,
@@ -146,8 +145,7 @@ impl fmt::Display for QFunctionCore {
 /// let qf = ceed.q_function_interior(1, Box::new(user_f))
 ///     .input("u", 1, EvalMode::Interp)
 ///     .input("weights", 1, EvalMode::Weight)
-///     .output("v", 1, EvalMode::Interp)
-///     .build();
+///     .output("v", 1, EvalMode::Interp);
 ///
 /// println!("{}", qf);
 /// ```
@@ -305,20 +303,6 @@ impl QFunction {
         qf_self
     }
 
-    pub fn build(&mut self) -> Self {
-        let dummy_f = |_: QFunctionInputs, _: QFunctionOutputs| 1;
-        let mut user_f = std::mem::replace(&mut self.user_f, Box::new(dummy_f));
-        std::mem::swap(&mut self.user_f, &mut user_f);
-        Self {
-            qf_core: QFunctionCore {
-                ptr: std::mem::replace(&mut self.qf_core.ptr, std::ptr::null_mut()),
-            },
-            qf_ctx_ptr: std::mem::replace(&mut self.qf_ctx_ptr, std::ptr::null_mut()),
-            trampoline_data: self.trampoline_data.clone(),
-            user_f: user_f,
-        }
-    }
-
     /// Apply the action of a QFunction
     ///
     /// * `Q`      - The number of quadrature points
@@ -346,8 +330,7 @@ impl QFunction {
     /// let qf = ceed.q_function_interior(1, Box::new(user_f))
     ///     .input("u", 1, EvalMode::Interp)
     ///     .input("weights", 1, EvalMode::Weight)
-    ///     .output("v", 1, EvalMode::Interp)
-    ///     .build();
+    ///     .output("v", 1, EvalMode::Interp);
     ///
     /// const Q : usize = 8;
     /// let mut w = [0.; Q];
@@ -410,10 +393,10 @@ impl QFunction {
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f));
     ///
-    /// qf.input("u", 1, EvalMode::Interp);
-    /// qf.input("weights", 1, EvalMode::Weight);
+    /// qf = qf.input("u", 1, EvalMode::Interp);
+    /// qf = qf.input("weights", 1, EvalMode::Weight);
     /// ```
-    pub fn input(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> &mut Self {
+    pub fn input(mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.input_sizes[self.trampoline_data.number_inputs] = size;
         self.trampoline_data.number_inputs += 1;
@@ -455,7 +438,7 @@ impl QFunction {
     ///
     /// qf.output("v", 1, EvalMode::Interp);
     /// ```
-    pub fn output(&mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> &mut Self {
+    pub fn output(mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         self.trampoline_data.output_sizes[self.trampoline_data.number_outputs] = size;
         self.trampoline_data.number_outputs += 1;
