@@ -34,6 +34,12 @@
 //TESTARGS -ceed {ceed_resource} -test dc_explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
 //TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
 //TESTARGS -ceed {ceed_resource} -test dc_implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
+//TESTARGS -ceed {ceed_resource} -test adv_rotation_explicit_strong -problem advection -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test adv_rotation_implicit_stab_supg -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test adv_translation_implicit_stab_su -problem advection -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,-2.65
+//TESTARGS -ceed {ceed_resource} -test adv2d_rotation_explicit_strong -problem advection2d -strong_form 1 -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
+//TESTARGS -ceed {ceed_resource} -test adv2d_rotation_implicit_stab_supg -problem advection2d -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
+//TESTARGS -ceed {ceed_resource} -test adv2d_translation_implicit_stab_su -problem advection2d -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -problem_advection_wind translation -problem_advection_wind_translation .53,-1.33,0
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -105,17 +111,31 @@ static const char *const StabilizationTypes[] = {
 
 // Test Options
 typedef enum {
-  TEST_NONE = 0,                  // Non test mode
+  TEST_NONE = 0,                               // Non test mode
   // DENSITY_CURRENT
-  TEST_DC_EXPLICIT = 1,           // Explicit test
-  TEST_DC_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
-  TEST_DC_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
+  TEST_DC_EXPLICIT = 1,                        // Explicit test
+  TEST_DC_IMPLICIT_STAB_NONE = 2,              // Implicit test no stab
+  TEST_DC_IMPLICIT_STAB_SUPG = 3,              // Implicit test supg stab
+  // ADVECTION
+  TEST_ADV_ROTATION_EXPLICIT_STRONG = 4,       // Explicit test rotation strong form
+  TEST_ADV_ROTATION_IMPLICIT_STAB_SUPG = 5,    // Implicit test rotation stab supg
+  TEST_ADV_TRANSLATION_IMPLICIT_STAB_SU = 6,   // Implicit test translation stab su
+  // ADVECTION2D
+  TEST_ADV2D_ROTATION_EXPLICIT_STRONG = 7,     // Explicit test rotation strong form
+  TEST_ADV2D_ROTATION_IMPLICIT_STAB_SUPG = 8,  // Implicit test rotation stab supg
+  TEST_ADV2D_TRANSLATION_IMPLICIT_STAB_SU = 9  // Implicit test translation stab su
 } testType;
 static const char *const testTypes[] = {
   "none",
   "dc_explicit",
   "dc_implicit_stab_none",
   "dc_implicit_stab_supg",
+  "adv_rotation_explicit_strong",
+  "adv_rotation_implicit_stab_supg",
+  "adv_translation_implicit_stab_su",
+  "adv2d_rotation_explicit_strong",
+  "adv2d_rotation_implicit_stab_supg",
+  "adv2d_translation_implicit_stab_su",
   "testType", "TEST_", NULL
 };
 
@@ -141,6 +161,30 @@ testData testOptions[] = {
   [TEST_DC_IMPLICIT_STAB_SUPG] = {
     .testtol = 5E-4,
     .filepath = "examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-supg.bin"
+  },
+  [TEST_ADV_ROTATION_EXPLICIT_STRONG] = {
+    .testtol = 0.,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-rotation-explicit-strong.bin"
+  },
+  [TEST_ADV_ROTATION_IMPLICIT_STAB_SUPG] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin"
+  },
+  [TEST_ADV_TRANSLATION_IMPLICIT_STAB_SU] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv-translation-implicit-stab-su.bin"
+  },
+  [TEST_ADV2D_ROTATION_EXPLICIT_STRONG] = {
+    .testtol = 0.,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-explicit-strong.bin"
+  },
+  [TEST_ADV2D_ROTATION_IMPLICIT_STAB_SUPG] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-implicit-stab-supg.bin"
+  },
+  [TEST_ADV2D_TRANSLATION_IMPLICIT_STAB_SU] = {
+    .testtol = 5E-4,
+    .filepath = "examples/fluids/tests-output/fluids-navierstokes-adv2d-translation-implicit-stab-su.bin"
   }
 };
 
