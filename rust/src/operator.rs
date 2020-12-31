@@ -123,18 +123,20 @@ impl fmt::Display for Operator {
 /// let qdata_diff = ceed.vector(q*ne);
 ///
 /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-/// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-/// op_mass.field("u", &r, &b, VectorOpt::Active);
-/// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-/// op_mass.field("v", &r, &b, VectorOpt::Active);
+/// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("u", &r, &b, VectorOpt::Active)
+///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+///     .field("v", &r, &b, VectorOpt::Active)
+///     .build();
 ///
 /// op.sub_operator(&op_mass);
 ///
 /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-/// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-/// op_diff.field("du", &r, &b, VectorOpt::Active);
-/// op_diff.field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-/// op_diff.field("dv", &r, &b, VectorOpt::Active);
+/// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("du", &r, &b, VectorOpt::Active)
+///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+///     .field("dv", &r, &b, VectorOpt::Active)
+///     .build();
 ///
 /// op.sub_operator(&op_diff);
 ///
@@ -244,6 +246,14 @@ impl Operator {
         Self { op_core }
     }
 
+    pub fn build(&mut self) -> Operator {
+        let ptr = self.op_core.ptr;
+        self.op_core.ptr = std::ptr::null_mut();
+        Self {
+            op_core: OperatorCore { ptr },
+        }
+    }
+
     /// Apply Operator to a vector
     ///
     /// * `input`  - Input Vector
@@ -289,19 +299,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// v.set_value(0.0);
     /// op_mass.apply(&u, &mut v);
@@ -362,19 +374,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// v.set_value(1.0);
     /// op_mass.apply_add(&u, &mut v);
@@ -427,13 +441,13 @@ impl Operator {
     /// // Operator field
     /// op.field("dx", &r, &b, VectorOpt::Active);
     /// ```
-    pub fn field<'b>(
-        &mut self,
+    pub fn field<'a, 'b>(
+        &'a mut self,
         fieldname: &str,
         r: impl Into<ElemRestrictionOpt<'b>>,
         b: impl Into<BasisOpt<'b>>,
         v: impl Into<VectorOpt<'b>>,
-    ) {
+    ) -> &'a mut Operator {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
         let fieldname = fieldname.as_ptr() as *const i8;
         unsafe {
@@ -445,6 +459,7 @@ impl Operator {
                 v.into().to_raw(),
             )
         };
+        self
     }
 
     /// Assemble the diagonal of a square linear Operator
@@ -497,19 +512,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
@@ -599,19 +616,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
@@ -707,10 +726,11 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
@@ -738,10 +758,11 @@ impl Operator {
     /// qf_mass.input("qdata", 1, EvalMode::None);
     /// qf_mass.output("v", 2, EvalMode::Interp);
     ///
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ncomp*ncomp*ndofs);
@@ -841,10 +862,11 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
@@ -872,10 +894,11 @@ impl Operator {
     /// qf_mass.input("qdata", 1, EvalMode::None);
     /// qf_mass.output("v", 2, EvalMode::Interp);
     ///
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ncomp*ncomp*ndofs);
@@ -987,19 +1010,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Multigrid setup
     /// let (op_mass_coarse, op_prolong, op_restrict) =
@@ -1138,19 +1163,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Multigrid setup
     /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
@@ -1310,19 +1337,21 @@ impl Operator {
     ///
     /// // Set up operator
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build.apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .build();
     ///
     /// // Multigrid setup
     /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
@@ -1474,18 +1503,20 @@ impl CompositeOperator {
     ///
     /// // Set up operators
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_mass.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_mass.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_mass.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build_mass.apply(&x, &mut qdata_mass);
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild");
-    /// let mut op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_diff.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_diff.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_diff.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build_diff.apply(&x, &mut qdata_diff);
     ///
@@ -1493,18 +1524,20 @@ impl CompositeOperator {
     /// let mut op_composite = ceed.composite_operator();
     ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_composite.sub_operator(&op_mass);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-    /// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_diff.field("du", &ru, &bu, VectorOpt::Active);
-    /// op_diff.field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-    /// op_diff.field("dv", &ru, &bu, VectorOpt::Active);
+    /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("du", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+    ///     .field("dv", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_composite.sub_operator(&op_diff);
     ///
@@ -1570,18 +1603,20 @@ impl CompositeOperator {
     ///
     /// // Set up operators
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_mass.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_mass.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_mass.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build_mass.apply(&x, &mut qdata_mass);
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild");
-    /// let mut op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_diff.field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_diff.field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_diff.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+    /// let op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_build_diff.apply(&x, &mut qdata_diff);
     ///
@@ -1589,18 +1624,20 @@ impl CompositeOperator {
     /// let mut op_composite = ceed.composite_operator();
     ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-    /// op_mass.field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+    ///     .field("v", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_composite.sub_operator(&op_mass);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-    /// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_diff.field("du", &ru, &bu, VectorOpt::Active);
-    /// op_diff.field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-    /// op_diff.field("dv", &ru, &bu, VectorOpt::Active);
+    /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("du", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+    ///     .field("dv", &ru, &bu, VectorOpt::Active)
+    ///     .build();
     ///
     /// op_composite.sub_operator(&op_diff);
     ///
