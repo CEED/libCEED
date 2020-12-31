@@ -743,10 +743,11 @@ impl Operator {
     ///   0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.input("u", 2, EvalMode::Interp);
-    /// qf_mass.input("qdata", 1, EvalMode::None);
-    /// qf_mass.output("v", 2, EvalMode::Interp);
+    /// let qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp))
+    ///     .input("u", 2, EvalMode::Interp)
+    ///     .input("qdata", 1, EvalMode::None)
+    ///     .output("v", 2, EvalMode::Interp)
+    ///     .build();
     ///
     /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
     ///     .field("u", &ru, &bu, VectorOpt::Active)
@@ -877,10 +878,11 @@ impl Operator {
     ///   0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.input("u", 2, EvalMode::Interp);
-    /// qf_mass.input("qdata", 1, EvalMode::None);
-    /// qf_mass.output("v", 2, EvalMode::Interp);
+    /// let qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp))
+    ///     .input("u", 2, EvalMode::Interp)
+    ///     .input("qdata", 1, EvalMode::None)
+    ///     .output("v", 2, EvalMode::Interp)
+    ///     .build();
     ///
     /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
     ///     .field("u", &ru, &bu, VectorOpt::Active)
