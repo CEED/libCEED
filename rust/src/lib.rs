@@ -19,6 +19,11 @@
 //! This is the documentation for the high level libCEED Rust interface.
 //! See the full libCEED user manual [here](https://libceed.readthedocs.io).
 //!
+//! libCEED is a low-level API for for the efficient high-order discretization methods
+//! developed by the ECP co-design Center for Efficient Exascale Discretizations (CEED).
+//! While our focus is on high-order finite elements, the approach is mostly algebraic
+//! and thus applicable to other discretizations in factored form.
+//!
 //! ## Usage
 //!
 //! To call libCEED from a Rust package, the following `Cargo.toml` can be used.
@@ -41,6 +46,11 @@
 //!     assert_eq!(xs[..], [0., 0.5, 1.0]);
 //! }
 //! ```
+//!
+//! ## Examples
+//!
+//! Examples of libCEED can be found in the libCEED GitHub repository under the
+//! `examples/rust` folder.
 //!
 //! ## Development
 //!
