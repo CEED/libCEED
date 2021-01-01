@@ -117,7 +117,7 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
 
     // Create a Vector with the mesh coordinates
     let mut mesh_coords =
-        mesh::set_cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size);
+        mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size);
 
     // Apply a transformation to the mesh coordinates
     let exact_volume = mesh::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
