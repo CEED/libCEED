@@ -332,7 +332,7 @@ impl QFunction {
     ///     .input("weights", 1, EvalMode::Weight)
     ///     .output("v", 1, EvalMode::Interp);
     ///
-    /// const Q : usize = 8;
+    /// const Q: usize = 8;
     /// let mut w = [0.; Q];
     /// let mut u = [0.; Q];
     /// let mut v = [0.; Q];
@@ -404,6 +404,16 @@ impl QFunction {
         unsafe {
             bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
         }
+        /* Note: adding an input can change the pointer to self, resulting in bad ctx data */
+        unsafe {
+            bind_ceed::CeedQFunctionContextSetData(
+                self.qf_ctx_ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+                10, /* Note: size not relevant - CPU only approach */
+                &mut self as *mut _ as *mut ::std::os::raw::c_void,
+            );
+        }
         self
     }
 
@@ -445,6 +455,16 @@ impl QFunction {
         let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
             bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
+        }
+        /* Note: adding an output can change the pointer to self, resulting in bad ctx data */
+        unsafe {
+            bind_ceed::CeedQFunctionContextSetData(
+                self.qf_ctx_ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+                10, /* Note: size not relevant - CPU only approach */
+                &mut self as *mut _ as *mut ::std::os::raw::c_void,
+            );
         }
         self
     }
