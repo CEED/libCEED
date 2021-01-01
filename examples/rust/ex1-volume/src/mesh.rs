@@ -19,7 +19,7 @@ use libceed::{prelude::*, Ceed};
 // ----------------------------------------------------------------------------
 // Determine problem size in each dimension from size and dimenison
 // ----------------------------------------------------------------------------
-pub(crate) fn get_cartesian_mesh_size(
+pub(crate) fn cartesian_mesh_size(
     dim: usize,
     solution_degree: usize,
     problem_size: i64,

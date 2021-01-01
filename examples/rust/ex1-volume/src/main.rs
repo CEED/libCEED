@@ -90,7 +90,7 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss);
 
     // Determine mesh size from approximate problem size
-    let num_xyz = mesh::get_cartesian_mesh_size(dim, solution_degree, problem_size);
+    let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
     if !test {
         print!("\nMesh size                   : nx = {}", num_xyz[0]);
         if dim > 1 {
@@ -108,8 +108,8 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts);
     let (restr_solution, restr_qdata) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts);
-    let mesh_size = restr_mesh.get_lvector_size() as usize;
-    let solution_size = restr_solution.get_lvector_size() as usize;
+    let mesh_size = restr_mesh.lvector_size() as usize;
+    let solution_size = restr_solution.lvector_size() as usize;
     if !test {
         println!("Number of mesh nodes        : {}", mesh_size / dim);
         println!("Number of solution nodes    : {}", solution_size);
@@ -165,14 +165,11 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         // Return clean error code
         0
     };
-    let qf_build_closure = {
-        let mut qfunction = ceed.q_function_interior(1, Box::new(build_mass));
-        qfunction.add_input("dx", (ncomp_x * dim) as i32, EvalMode::Grad);
-        qfunction.add_input("weights", 1, EvalMode::Weight);
-        qfunction.add_output("qdata", 1, EvalMode::None);
-        qfunction
-    };
-
+    let qf_build_closure = ceed
+        .q_function_interior(1, Box::new(build_mass))
+        .input("dx", (ncomp_x * dim) as i32, EvalMode::Grad)
+        .input("weights", 1, EvalMode::Weight)
+        .output("qdata", 1, EvalMode::None);
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Mass{}DBuild", dim);
@@ -186,23 +183,21 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     };
 
     // Operator that build the quadrature data for the mass operator
-    let op_build = {
-        let mut op = ceed.operator(qf_build, QFunctionOpt::None, QFunctionOpt::None);
-        op.set_field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active);
-        op.set_field(
+    let op_build = ceed
+        .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)
+        .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)
+        .field(
             "weights",
             ElemRestrictionOpt::None,
             &basis_mesh,
             VectorOpt::None,
-        );
-        op.set_field(
+        )
+        .field(
             "qdata",
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
         );
-        op
-    };
 
     // Compute the quadrature data for the mass operator
     let elem_qpts = num_qpts.pow(dim as u32);
@@ -220,13 +215,11 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         // Return clean error code
         0
     };
-    let qf_mass_closure = {
-        let mut qfunction = ceed.q_function_interior(1, Box::new(apply_mass));
-        qfunction.add_input("u", 1, EvalMode::Interp);
-        qfunction.add_input("qdata", 1, EvalMode::None);
-        qfunction.add_output("v", 1, EvalMode::Interp);
-        qfunction
-    };
+    let qf_mass_closure = ceed
+        .q_function_interior(1, Box::new(apply_mass))
+        .input("u", 1, EvalMode::Interp)
+        .input("qdata", 1, EvalMode::None)
+        .output("v", 1, EvalMode::Interp);
     // -- QFunction from gallery
     let qf_mass_named = { ceed.q_function_interior_by_name("MassApply") };
     // -- QFunction for use with Operator
@@ -237,13 +230,11 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     };
 
     // Mass Operator
-    let op_mass = {
-        let mut op = ceed.operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-        op.set_field("u", &restr_solution, &basis_solution, VectorOpt::Active);
-        op.set_field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata);
-        op.set_field("v", &restr_solution, &basis_solution, VectorOpt::Active);
-        op
-    };
+    let op_mass = ceed
+        .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+        .field("u", &restr_solution, &basis_solution, VectorOpt::Active)
+        .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)
+        .field("v", &restr_solution, &basis_solution, VectorOpt::Active);
 
     // Solution vectors
     let u = ceed.vector_from_slice(&vec![1.0; solution_size]);
