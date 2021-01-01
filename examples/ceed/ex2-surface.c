@@ -153,13 +153,13 @@ int main(int argc, const char *argv[]) {
   // Build CeedElemRestriction objects describing the mesh and solution discrete
   // representations.
   CeedInt mesh_size, sol_size;
-  CeedElemRestriction mesh_restr, sol_restr, sol_restr_i, qdata_restr_i;
+  CeedElemRestriction mesh_restr, sol_restr, qdata_restr_i;
   BuildCartesianRestriction(ceed, dim, nxyz, mesh_degree, ncompx, &mesh_size,
                             num_qpts, &mesh_restr, NULL);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_degree, dim*(dim+1)/2,
                             &sol_size, num_qpts, NULL, &qdata_restr_i);
   BuildCartesianRestriction(ceed, dim, nxyz, sol_degree, 1, &sol_size,
-                            num_qpts, &sol_restr, &sol_restr_i);
+                            num_qpts, &sol_restr, NULL);
   if (!test) {
     printf("Number of mesh nodes     : %d\n", mesh_size/dim);
     printf("Number of solution nodes : %d\n", sol_size);
@@ -321,7 +321,6 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionDestroy(&build_qfunc);
   CeedElemRestrictionDestroy(&sol_restr);
   CeedElemRestrictionDestroy(&mesh_restr);
-  CeedElemRestrictionDestroy(&sol_restr_i);
   CeedElemRestrictionDestroy(&qdata_restr_i);
   CeedBasisDestroy(&sol_basis);
   CeedBasisDestroy(&mesh_basis);
