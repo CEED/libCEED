@@ -71,8 +71,8 @@ pub(crate) struct QFunctionCore {
 struct QFunctionTrampolineData {
     number_inputs: usize,
     number_outputs: usize,
-    input_sizes: [i32; MAX_QFUNCTION_FIELDS],
-    output_sizes: [i32; MAX_QFUNCTION_FIELDS],
+    input_sizes: [usize; MAX_QFUNCTION_FIELDS],
+    output_sizes: [usize; MAX_QFUNCTION_FIELDS],
     user_f: Box<QFunctionUserClosure>,
 }
 
@@ -175,7 +175,7 @@ impl fmt::Display for QFunctionByName {
 // -----------------------------------------------------------------------------
 impl QFunctionCore {
     // Common implementation
-    pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
+    pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) {
         let mut u_c = [std::ptr::null_mut(); MAX_QFUNCTION_FIELDS];
         for i in 0..std::cmp::min(MAX_QFUNCTION_FIELDS, u.len()) {
             u_c[i] = u[i].ptr;
@@ -185,7 +185,7 @@ impl QFunctionCore {
             v_c[i] = v[i].ptr;
         }
         unsafe {
-            bind_ceed::CeedQFunctionApply(self.ptr, Q, u_c.as_mut_ptr(), v_c.as_mut_ptr());
+            bind_ceed::CeedQFunctionApply(self.ptr, Q as i32, u_c.as_mut_ptr(), v_c.as_mut_ptr());
         }
     }
 }
@@ -219,7 +219,7 @@ unsafe extern "C" fn trampoline(
         .iter()
         .enumerate()
         .map(|(i, &x)| {
-            std::slice::from_raw_parts(x, (trampoline_data.input_sizes[i] * q) as usize) as &[f64]
+            std::slice::from_raw_parts(x, trampoline_data.input_sizes[i] * q as usize) as &[f64]
         })
         .zip(inputs_array.iter_mut())
         .for_each(|(x, a)| *a = x);
@@ -232,7 +232,7 @@ unsafe extern "C" fn trampoline(
         .iter()
         .enumerate()
         .map(|(i, &x)| {
-            std::slice::from_raw_parts_mut(x, (trampoline_data.output_sizes[i] * q) as usize)
+            std::slice::from_raw_parts_mut(x, trampoline_data.output_sizes[i] * q as usize)
                 as &mut [f64]
         })
         .zip(outputs_array.iter_mut())
@@ -247,7 +247,7 @@ unsafe extern "C" fn trampoline(
 // -----------------------------------------------------------------------------
 impl QFunction {
     // Constructor
-    pub fn create(ceed: &crate::Ceed, vlength: i32, user_f: Box<QFunctionUserClosure>) -> Self {
+    pub fn create(ceed: &crate::Ceed, vlength: usize, user_f: Box<QFunctionUserClosure>) -> Self {
         let source_c = CString::new("").expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
 
@@ -270,7 +270,7 @@ impl QFunction {
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
-                vlength,
+                vlength as i32,
                 Some(trampoline),
                 source_c.as_ptr(),
                 &mut ptr,
@@ -331,7 +331,7 @@ impl QFunction {
     /// let mut u = [0.; Q];
     /// let mut v = [0.; Q];
     ///
-    /// for i in 0..Q as usize {
+    /// for i in 0..Q {
     ///   let x = 2. * (i as f64)/((Q as f64) - 1.) - 1.;
     ///   u[i] = 2. + 3. * x + 5. * x * x;
     ///   w[i] = 1. - x * x;
@@ -345,7 +345,7 @@ impl QFunction {
     /// {
     ///   let input = vec![uu, ww];
     ///   let mut output = vec![vv];
-    ///   qf.apply(Q as i32, &input, &output);
+    ///   qf.apply(Q, &input, &output);
     ///   vv = output.remove(0);
     /// }
     ///
@@ -356,7 +356,7 @@ impl QFunction {
     ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
     ///     });
     /// ```
-    pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
+    pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)
     }
 
@@ -392,14 +392,14 @@ impl QFunction {
     /// qf = qf.input("u", 1, EvalMode::Interp);
     /// qf = qf.input("weights", 1, EvalMode::Weight);
     /// ```
-    pub fn input(mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> Self {
+    pub fn input(mut self, fieldname: &str, size: usize, emode: crate::EvalMode) -> Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         let idx = self.trampoline_data.number_inputs;
         self.trampoline_data.input_sizes[idx] = size;
         self.trampoline_data.number_inputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
-            bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
+            bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size as i32, emode);
         }
         self
     }
@@ -435,14 +435,19 @@ impl QFunction {
     ///
     /// qf.output("v", 1, EvalMode::Interp);
     /// ```
-    pub fn output(mut self, fieldname: &str, size: i32, emode: crate::EvalMode) -> Self {
+    pub fn output(mut self, fieldname: &str, size: usize, emode: crate::EvalMode) -> Self {
         let name_c = CString::new(fieldname).expect("CString::new failed");
         let idx = self.trampoline_data.number_outputs;
         self.trampoline_data.output_sizes[idx] = size;
         self.trampoline_data.number_outputs += 1;
         let emode = emode as bind_ceed::CeedEvalMode;
         unsafe {
-            bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
+            bind_ceed::CeedQFunctionAddOutput(
+                self.qf_core.ptr,
+                name_c.as_ptr(),
+                size as i32,
+                emode,
+            );
         }
         self
     }
@@ -472,7 +477,7 @@ impl QFunctionByName {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// const Q : usize = 8;
+    /// const Q: usize = 8;
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
     ///
@@ -481,7 +486,7 @@ impl QFunctionByName {
     /// let mut u = [0.; Q];
     /// let mut v = [0.; Q];
     ///
-    /// for i in 0..Q as usize {
+    /// for i in 0..Q {
     ///   let x = 2.*(i as f64)/((Q as f64) - 1.) - 1.;
     ///   j[i] = 1.;
     ///   w[i] = 1. - x*x;
@@ -500,14 +505,14 @@ impl QFunctionByName {
     /// {
     ///   let mut input = vec![jj, ww];
     ///   let mut output = vec![qdata];
-    ///   qf_build.apply(Q as i32, &input, &output);
+    ///   qf_build.apply(Q, &input, &output);
     ///   qdata = output.remove(0);
     /// }
     ///
     /// {
     ///   let mut input = vec![qdata, uu];
     ///   let mut output = vec![vv];
-    ///   qf_mass.apply(Q as i32, &input, &output);
+    ///   qf_mass.apply(Q, &input, &output);
     ///   vv = output.remove(0);
     /// }
     ///
@@ -518,7 +523,7 @@ impl QFunctionByName {
     ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
     ///     });
     /// ```
-    pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
+    pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)
     }
 }

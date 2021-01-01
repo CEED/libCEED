@@ -122,8 +122,8 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
 
     let (restr_solution, _) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts);
-    let mesh_size = restr_mesh.lvector_size() as usize;
-    let solution_size = restr_solution.lvector_size() as usize;
+    let mesh_size = restr_mesh.lvector_size();
+    let solution_size = restr_solution.lvector_size();
     if !test {
         println!("Number of mesh nodes        : {}", mesh_size / dim);
         println!("Number of solution nodes    : {}", solution_size);
@@ -208,9 +208,9 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
     };
     let qf_build_closure = ceed
         .q_function_interior(1, Box::new(build_diff))
-        .input("dx", (ncomp_x * dim) as i32, EvalMode::Grad)
+        .input("dx", ncomp_x * dim, EvalMode::Grad)
         .input("weights", 1, EvalMode::Weight)
-        .output("qdata", (dim * (dim + 1) / 2) as i32, EvalMode::None);
+        .output("qdata", dim * (dim + 1) / 2, EvalMode::None);
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Poisson{}DBuild", dim);
@@ -292,9 +292,9 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
     };
     let qf_diff_closure = ceed
         .q_function_interior(1, Box::new(apply_diff))
-        .input("du", dim as i32, EvalMode::Grad)
-        .input("qdata", (dim * (dim + 1) / 2) as i32, EvalMode::None)
-        .output("dv", dim as i32, EvalMode::Grad);
+        .input("du", dim, EvalMode::Grad)
+        .input("qdata", dim * (dim + 1) / 2, EvalMode::None)
+        .output("dv", dim, EvalMode::Grad);
     // -- QFunction from gallery
     let qf_diff_named = {
         let name = format!("Poisson{}DApply", dim);

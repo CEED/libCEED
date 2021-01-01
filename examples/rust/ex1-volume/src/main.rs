@@ -108,8 +108,8 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts);
     let (restr_solution, restr_qdata) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts);
-    let mesh_size = restr_mesh.lvector_size() as usize;
-    let solution_size = restr_solution.lvector_size() as usize;
+    let mesh_size = restr_mesh.lvector_size();
+    let solution_size = restr_solution.lvector_size();
     if !test {
         println!("Number of mesh nodes        : {}", mesh_size / dim);
         println!("Number of solution nodes    : {}", solution_size);
@@ -166,7 +166,7 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     };
     let qf_build_closure = ceed
         .q_function_interior(1, Box::new(build_mass))
-        .input("dx", (ncomp_x * dim) as i32, EvalMode::Grad)
+        .input("dx", ncomp_x * dim, EvalMode::Grad)
         .input("weights", 1, EvalMode::Weight)
         .output("qdata", 1, EvalMode::None);
     // -- QFunction from gallery

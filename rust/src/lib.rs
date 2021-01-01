@@ -94,6 +94,7 @@ pub mod prelude {
         ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
         MAX_QFUNCTION_FIELDS,
     };
+    pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
 }
@@ -541,7 +542,7 @@ impl Ceed {
     /// ```
     pub fn q_function_interior(
         &self,
-        vlength: i32,
+        vlength: usize,
         f: Box<qfunction::QFunctionUserClosure>,
     ) -> QFunction {
         QFunction::create(self, vlength, f)

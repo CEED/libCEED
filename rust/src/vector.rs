@@ -18,7 +18,6 @@
 //! for Ceed Operators.
 
 use std::{
-    convert::TryFrom,
     ops::{Deref, DerefMut},
     os::raw::c_char,
 };
