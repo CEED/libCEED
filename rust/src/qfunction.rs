@@ -104,7 +104,6 @@ impl Drop for QFunction {
         unsafe {
             bind_ceed::CeedQFunctionContextDestroy(&mut self.qf_ctx_ptr);
         }
-        drop(&mut self.qf_core);
     }
 }
 
