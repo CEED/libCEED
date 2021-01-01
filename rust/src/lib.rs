@@ -299,12 +299,12 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*nelem];
+    /// let mut ind : Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2*i+0] = i as i32;
-    ///   ind[2*i+1] = (i+1) as i32;
+    ///   ind[2 * i + 0] = i as i32;
+    ///   ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
@@ -347,7 +347,7 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides : [i32; 3] = [1, 2, 2];
-    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem*2, strides);
+    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides);
     /// ```
     pub fn strided_elem_restriction(
         &self,
@@ -623,31 +623,27 @@ mod tests {
         let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
         let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
 
-        // Set up operator
+        // Build quadrature data
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-        let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-        op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-        op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-        op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-
-        op_build.apply(&x, &mut qdata);
+        ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+            .field("dx", &rx, &bx, VectorOpt::Active)
+            .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+            .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+            .apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply");
-        let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-        op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-        op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-        op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+        let op_mass = ceed
+            .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+            .field("u", &ru, &bu, VectorOpt::Active)
+            .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+            .field("v", &ru, &bu, VectorOpt::Active);
 
         v.set_value(0.0);
         op_mass.apply(&u, &mut v);
 
         // Check
-        let array = v.view();
-        let mut sum = 0.0;
-        for i in 0..ndofs {
-            sum += array[i];
-        }
+        let sum: f64 = v.view().iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"
