@@ -109,13 +109,12 @@ pub(crate) fn build_cartesian_restriction(
     );
 
     // Quadratue data restriction
-    let strides: [i32; 3] = [0; 3];
     let restr_qdata = ceed.strided_elem_restriction(
         num_elem,
         elem_qpts,
         num_comp,
         num_comp * elem_qpts * num_elem,
-        strides,
+        CEED_STRIDES_BACKEND,
     );
     (restr, restr_qdata)
 }
@@ -178,14 +177,12 @@ pub(crate) fn transform_mesh_coordinates(
 ) -> f64 {
     // Transform coordinates
     if dim == 1 {
-        mesh_coords.view_mut()
-            .iter_mut()
-            .for_each(|coord| {
+        mesh_coords.view_mut().iter_mut().for_each(|coord| {
             // map [0,1] to [0,1] varying the mesh density
             *coord = 0.5
                 + 1.0 / (3.0_f64).sqrt()
                     * ((2.0 / 3.0) * std::f64::consts::PI * (*coord - 0.5)).sin()
-            });
+        });
     } else {
         let mut coords = mesh_coords.view_mut();
         let num_nodes = mesh_size / dim;

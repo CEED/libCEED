@@ -81,7 +81,8 @@ pub mod prelude {
             self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, MAX_QFUNCTION_FIELDS,
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
+        MAX_QFUNCTION_FIELDS,
     };
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
@@ -101,6 +102,7 @@ pub mod vector;
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
 pub const MAX_QFUNCTION_FIELDS: usize = 16;
+pub const CEED_STRIDES_BACKEND: [i32; 3] = [0; 3];
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED

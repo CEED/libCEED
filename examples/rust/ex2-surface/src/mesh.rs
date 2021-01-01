@@ -109,13 +109,12 @@ pub(crate) fn build_cartesian_restriction(
     );
 
     // Quadratue data restriction
-    let strides: [i32; 3] = [0; 3];
     let restr_qdata = ceed.strided_elem_restriction(
         num_elem,
         elem_qpts,
         num_comp,
         num_comp * elem_qpts * num_elem,
-        strides,
+        CEED_STRIDES_BACKEND,
     );
     (restr, restr_qdata)
 }
