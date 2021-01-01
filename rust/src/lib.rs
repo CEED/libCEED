@@ -643,11 +643,7 @@ mod tests {
         op_mass.apply(&u, &mut v);
 
         // Check
-        let array = v.view();
-        let mut sum = 0.0;
-        for i in 0..ndofs {
-            sum += array[i];
-        }
+        let sum: f64 = v.view().iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"

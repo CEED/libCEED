@@ -69,7 +69,6 @@ impl fmt::Display for OperatorCore {
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild");
-/// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
 ///
 /// // Operator field arguments
 /// let ne = 3;
@@ -86,9 +85,10 @@ impl fmt::Display for OperatorCore {
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
 /// // Operator fields
-/// op = op.field("dx", &r, &b, VectorOpt::Active);
-/// op = op.field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None);
-/// op = op.field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+/// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("dx", &r, &b, VectorOpt::Active)
+///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)
+///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
 ///
 /// println!("{}", op);
 /// ```
@@ -103,7 +103,6 @@ impl fmt::Display for Operator {
 /// ```
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
-/// let mut op = ceed.composite_operator();
 ///
 /// // Sub operator field arguments
 /// let ne = 3;
@@ -128,7 +127,6 @@ impl fmt::Display for Operator {
 ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
 ///     .field("v", &r, &b, VectorOpt::Active);
 ///
-/// op = op.sub_operator(&op_mass);
 ///
 /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
 /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
@@ -136,7 +134,9 @@ impl fmt::Display for Operator {
 ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
 ///     .field("dv", &r, &b, VectorOpt::Active);
 ///
-/// op = op.sub_operator(&op_diff);
+/// let op = ceed.composite_operator()
+///     .sub_operator(&op_mass)
+///     .sub_operator(&op_diff);
 ///
 /// println!("{}", op);
 /// ```
@@ -306,11 +306,7 @@ impl Operator {
     /// op_mass.apply(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply(&self, input: &Vector, output: &mut Vector) {
@@ -378,11 +374,7 @@ impl Operator {
     /// op_mass.apply_add(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!(
     ///   (sum - (2.0 + ndofs as f64)).abs() < 1e-15,
     ///   "Incorrect interval length computed and added"
@@ -1005,12 +997,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1020,22 +1007,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level(
@@ -1174,12 +1153,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1189,22 +1163,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level_tensor_H1(
@@ -1345,12 +1311,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1360,22 +1321,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level_H1(
@@ -1501,11 +1454,7 @@ impl CompositeOperator {
     /// op_composite.apply(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply(&self, input: &Vector, output: &mut Vector) {
@@ -1593,11 +1542,7 @@ impl CompositeOperator {
     /// op_composite.apply_add(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply_add(&self, input: &Vector, output: &mut Vector) {
