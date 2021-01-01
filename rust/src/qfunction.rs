@@ -332,9 +332,9 @@ impl QFunction {
     /// let mut v = [0.; Q];
     ///
     /// for i in 0..Q as usize {
-    ///   let x = 2.*(i as f64)/((Q as f64) - 1.) - 1.;
-    ///   u[i] = 2. + 3.*x + 5.*x*x;
-    ///   w[i] = 1. - x*x;
+    ///   let x = 2. * (i as f64)/((Q as f64) - 1.) - 1.;
+    ///   u[i] = 2. + 3. * x + 5. * x * x;
+    ///   w[i] = 1. - x * x;
     ///   v[i] = u[i] * w[i];
     /// }
     ///
@@ -349,10 +349,12 @@ impl QFunction {
     ///   vv = output.remove(0);
     /// }
     ///
-    /// let array = vv.view();
-    /// for i in 0..Q {
-    ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
-    /// }
+    /// vv.view()
+    ///     .iter()
+    ///     .zip(v.iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
+    ///     });
     /// ```
     pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)
@@ -509,10 +511,12 @@ impl QFunctionByName {
     ///   vv = output.remove(0);
     /// }
     ///
-    /// let array = vv.view();
-    /// for i in 0..Q {
-    ///   assert_eq!(array[i], v[i], "Incorrect value in QFunction application");
-    /// }
+    /// vv.view()
+    ///     .iter()
+    ///     .zip(v.iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
+    ///     });
     /// ```
     pub fn apply(&self, Q: i32, u: &[Vector], v: &[Vector]) {
         self.qf_core.apply(Q, u, v)

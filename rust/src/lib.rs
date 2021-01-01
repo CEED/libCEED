@@ -299,12 +299,12 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*nelem];
+    /// let mut ind : Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2*i+0] = i as i32;
-    ///   ind[2*i+1] = (i+1) as i32;
+    ///   ind[2 * i + 0] = i as i32;
+    ///   ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
@@ -347,7 +347,7 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides : [i32; 3] = [1, 2, 2];
-    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem*2, strides);
+    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides);
     /// ```
     pub fn strided_elem_restriction(
         &self,

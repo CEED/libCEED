@@ -205,10 +205,7 @@ impl Basis {
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
     /// let mut u_arr = [0.; Q];
-    /// let x_nodes_arr = x_nodes.view();
-    /// for i in 0..Q {
-    ///   u_arr[i] = x_nodes_arr[i]*x_nodes_arr[i]*x_nodes_arr[i] + 1.;
-    /// }
+    /// u_arr.iter_mut().zip(x_nodes.view().iter()).for_each(|(u, x)| *u = x * x * x + 1.);
     /// let u = ceed.vector_from_slice(&u_arr);
     ///
     /// // Map function to Gauss points
@@ -217,12 +214,13 @@ impl Basis {
     /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v);
     ///
     /// // Verify results
-    /// let v_arr = v.view();
-    /// let x_qpts_arr = x_qpts.view();
-    /// for i in 0..Q {
-    ///   let true_value = x_qpts_arr[i]*x_qpts_arr[i]*x_qpts_arr[i] + 1.;
-    ///   assert_eq!(v_arr[i], true_value, "Incorrect basis application");
-    /// }
+    /// v.view()
+    ///     .iter()
+    ///     .zip(x_qpts.view().iter())
+    ///     .for_each(|(v, x)| {
+    ///         let true_value = x * x * x + 1.;
+    ///         assert_eq!(*v, true_value, "Incorrect basis application");
+    ///     });
     /// ```
     pub fn apply(
         &self,
@@ -282,7 +280,7 @@ impl Basis {
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, p, 4, QuadMode::Gauss);
     ///
     /// let nnodes = b.num_nodes();
-    /// assert_eq!(nnodes, (p*p) as i32, "Incorrect number of nodes");
+    /// assert_eq!(nnodes, (p * p) as i32, "Incorrect number of nodes");
     /// ```
     pub fn num_nodes(&self) -> i32 {
         let mut nnodes = 0;
@@ -300,7 +298,7 @@ impl Basis {
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, q, QuadMode::Gauss);
     ///
     /// let nqpts = b.num_quadrature_points();
-    /// assert_eq!(nqpts, (q*q) as i32, "Incorrect number of quadrature points");
+    /// assert_eq!(nqpts, (q * q) as i32, "Incorrect number of quadrature points");
     /// ```
     pub fn num_quadrature_points(&self) -> i32 {
         let mut Q = 0;

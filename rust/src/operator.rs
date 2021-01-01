@@ -73,12 +73,12 @@ impl fmt::Display for OperatorCore {
 /// // Operator field arguments
 /// let ne = 3;
 /// let q = 4 as usize;
-/// let mut ind : Vec<i32> = vec![0; 2*ne];
+/// let mut ind : Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
-///   ind[2*i+0] = i as i32;
-///   ind[2*i+1] = (i+1) as i32;
+///   ind[2 * i + 0] = i as i32;
+///   ind[2 * i + 1] = (i + 1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
 /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
@@ -107,19 +107,19 @@ impl fmt::Display for Operator {
 /// // Sub operator field arguments
 /// let ne = 3;
 /// let q = 4 as usize;
-/// let mut ind : Vec<i32> = vec![0; 2*ne];
+/// let mut ind : Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
-///   ind[2*i+0] = i as i32;
-///   ind[2*i+1] = (i+1) as i32;
+///   ind[2 * i + 0] = i as i32;
+///   ind[2 * i + 1] = (i + 1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
-/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
+/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides);
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
-/// let qdata_mass = ceed.vector(q*ne);
-/// let qdata_diff = ceed.vector(q*ne);
+/// let qdata_mass = ceed.vector(q * ne);
+/// let qdata_diff = ceed.vector(q * ne);
 ///
 /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
 /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
@@ -255,33 +255,32 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
-    /// let mut u = ceed.vector(ndofs);
-    /// u.set_value(1.0);
+    /// let u = ceed.vector_from_slice(&vec![1.0; ndofs]);
     /// let mut v = ceed.vector(ndofs);
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -324,32 +323,31 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
-    /// let mut u = ceed.vector(ndofs);
-    /// u.set_value(1.0);
+    /// let u = ceed.vector_from_slice(&vec![1.0; ndofs]);
     /// let mut v = ceed.vector(ndofs);
     ///
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -405,12 +403,12 @@ impl Operator {
     /// // Operator field arguments
     /// let ne = 3;
     /// let q = 4;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   ind[2*i+0] = i as i32;
-    ///   ind[2*i+1] = (i+1) as i32;
+    ///   ind[2 * i + 0] = i as i32;
+    ///   ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     ///
@@ -455,7 +453,7 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -469,19 +467,19 @@ impl Operator {
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -526,14 +524,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_diagonal(assembled)
@@ -556,7 +555,7 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -568,21 +567,21 @@ impl Operator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -627,14 +626,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
@@ -663,7 +663,7 @@ impl Operator {
     /// let p = 3;
     /// let q = 4;
     /// let ncomp = 2;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -677,19 +677,19 @@ impl Operator {
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
     /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp * ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -714,8 +714,8 @@ impl Operator {
     ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
-    ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
-    ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
+    ///     v[i + 0 * q] = u[i + 1 * q] * qdata[i];
+    ///     v[i + 1 * q] = u[i + 0 * q] * qdata[i];
     ///   }
     ///
     ///   // Return clean error code
@@ -733,18 +733,18 @@ impl Operator {
     ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// // Diagonal
-    /// let mut diag = ceed.vector(ncomp*ncomp*ndofs);
+    /// let mut diag = ceed.vector(ncomp * ncomp * ndofs);
     /// diag.set_value(0.0);
     /// op_mass.linear_assemble_point_block_diagonal(&mut diag);
     ///
     /// // Manual diagonal computation
-    /// let mut true_diag = ceed.vector(ncomp*ncomp*ndofs);
+    /// let mut true_diag = ceed.vector(ncomp * ncomp * ndofs);
     /// for i in 0..ndofs {
     ///   for j in 0..ncomp {
     ///     u.set_value(0.0);
     ///     {
     ///       let mut u_array = u.view_mut();
-    ///       u_array[i + j*ndofs] = 1.;
+    ///       u_array[i + j * ndofs] = 1.;
     ///     }
     ///
     ///     op_mass.apply(&u, &mut v);
@@ -753,21 +753,22 @@ impl Operator {
     ///       let v_array = v.view_mut();
     ///       let mut true_array = true_diag.view_mut();
     ///       for k in 0..ncomp {
-    ///         true_array[i*ncomp*ncomp + k*ncomp + j] = v_array[i + k*ndofs];
+    ///         true_array[i * ncomp * ncomp + k * ncomp + j] = v_array[i + k * ndofs];
     ///       }
     ///     }
     ///   }
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ncomp*ncomp*ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_point_block_diagonal(assembled)
@@ -796,7 +797,7 @@ impl Operator {
     /// let p = 3;
     /// let q = 4;
     /// let ncomp = 2;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -808,21 +809,21 @@ impl Operator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp * ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -847,8 +848,8 @@ impl Operator {
     ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
-    ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
-    ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
+    ///     v[i + 0 * q] = u[i + 1 * q] * qdata[i];
+    ///     v[i + 1 * q] = u[i + 0 * q] * qdata[i];
     ///   }
     ///
     ///   // Return clean error code
@@ -893,14 +894,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ncomp*ncomp*ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - 1.0 - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed -  1.0 - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core
@@ -922,13 +924,13 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
-    /// let mut qdata = ceed.vector(ne*q);
+    /// let mut qdata = ceed.vector(ne * q);
     /// qdata.set_value(0.0);
     /// let mut u_coarse = ceed.vector(ndofs_coarse);
     /// u_coarse.set_value(1.0);
@@ -943,27 +945,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -1059,11 +1061,11 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
@@ -1080,27 +1082,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -1126,7 +1128,7 @@ impl Operator {
     ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active);
     ///
     /// // Multigrid setup
-    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
+    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse * p_fine];
     /// {
     ///   let mut coarse = ceed.vector(p_coarse);
     ///   let mut fine = ceed.vector(p_fine);
@@ -1141,7 +1143,7 @@ impl Operator {
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
-    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///       interp_c_to_f[j * p_coarse + i] = array[j];
     ///     }
     ///   }
     /// }
@@ -1217,11 +1219,11 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
@@ -1238,27 +1240,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -1299,7 +1301,7 @@ impl Operator {
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
-    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///       interp_c_to_f[j * p_coarse + i] = array[j];
     ///     }
     ///   }
     /// }
@@ -1384,13 +1386,13 @@ impl CompositeOperator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
-    /// let mut qdata_mass = ceed.vector(ne*q);
+    /// let mut qdata_mass = ceed.vector(ne * q);
     /// qdata_mass.set_value(0.0);
-    /// let mut qdata_diff = ceed.vector(ne*q);
+    /// let mut qdata_diff = ceed.vector(ne * q);
     /// qdata_diff.set_value(0.0);
     /// let mut u = ceed.vector(ndofs);
     /// u.set_value(1.0);
@@ -1398,21 +1400,21 @@ impl CompositeOperator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
@@ -1472,13 +1474,13 @@ impl CompositeOperator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
-    /// let mut qdata_mass = ceed.vector(ne*q);
+    /// let mut qdata_mass = ceed.vector(ne * q);
     /// qdata_mass.set_value(0.0);
-    /// let mut qdata_diff = ceed.vector(ne*q);
+    /// let mut qdata_diff = ceed.vector(ne * q);
     /// qdata_diff.set_value(0.0);
     /// let mut u = ceed.vector(ndofs);
     /// u.set_value(1.0);
@@ -1486,21 +1488,21 @@ impl CompositeOperator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
