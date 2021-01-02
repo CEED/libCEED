@@ -1,32 +1,33 @@
 libCEED: the CEED Library
 ============================================
 
-|build-status| |codecov| |license| |doc| |binder|
+.. image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
+   :alt: GitHub Actions
+   :target: https://github.com/CEED/libCEED/actions
 
-.. |build-status| image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
-    :alt: Build Status
-    :scale: 100%
-    :target: https://github.com/CEED/libCEED/actions
+.. image:: https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
+   :alt: GitLab-CI
+   :target: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
 
-.. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
-    :alt: Code Coverage
-    :scale: 100%
-    :target: https://codecov.io/gh/CEED/libCEED/
+.. image:: https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
+   :alt: Azure Pipelines
+   :target: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
 
-.. |license| image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
-    :alt: License
-    :scale: 100%
-    :target: https://opensource.org/licenses/BSD-2-Clause
+.. image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
+   :alt: Code Coverage
+   :target: https://codecov.io/gh/CEED/libCEED/
 
-.. |doc| image:: https://readthedocs.org/projects/libceed/badge/?version=latest
-    :alt: Read the Docs
-    :scale: 100%
-    :target: https://libceed.readthedocs.io/en/latest/?badge=latest
+.. image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+   :alt: License
+   :target: https://opensource.org/licenses/BSD-2-Clause
 
-.. |binder| image:: http://mybinder.org/badge_logo.svg
-    :alt: Binder
-    :scale: 100%
-    :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
+.. image:: https://readthedocs.org/projects/libceed/badge/?version=latest
+   :alt: Read the Docs
+   :target: https://libceed.readthedocs.io/en/latest/?badge=latest
+
+.. image:: http://mybinder.org/badge_logo.svg
+   :alt: Binder
+   :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
 Code for Efficient Extensible Discretization
 --------------------------------------------
