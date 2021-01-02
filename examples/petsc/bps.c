@@ -121,8 +121,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
       const char *resolved;
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa"))
-        vectype = VECSTANDARD; // https://github.com/CEED/libCEED/issues/678
       else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
       else vectype = VECSTANDARD;
     }
