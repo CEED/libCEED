@@ -40,10 +40,12 @@ function create_interior_qfunction(c::Ceed, f::UserQFunction; vlength=1)
     if !isnothing(f.cuf)
         C.CeedQFunctionSetCUDAUserFunction(ref[], f.cuf)
     elseif iscuda(c) && !cuda_is_loaded
-        error(string(
-            "In order to use user Q-functions with a CUDA backend, the CUDA.jl package ",
-            "must be loaded",
-        ))
+        error(
+            string(
+                "In order to use user Q-functions with a CUDA backend, the CUDA.jl package ",
+                "must be loaded",
+            ),
+        )
     end
     # COV_EXCL_STOP
     QFunction(ref, f)
