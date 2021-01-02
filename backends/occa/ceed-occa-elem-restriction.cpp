@@ -14,6 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <cstring>
 #include <map>
 
 #include "./ceed-occa-elem-restriction.hpp"
@@ -79,7 +80,11 @@ namespace ceed {
 
     void ElemRestriction::setupFromDeviceMemory(CeedCopyMode copyMode,
                                                 const CeedInt *indices_d) {
-      ::occa::memory deviceIndices = arrayToMemory(indices_d);
+      const CeedInt entries = ceedElementCount * ceedElementSize;
+
+      ::occa::memory deviceIndices = (
+        getDevice().wrapMemory<CeedInt>(indices_d, entries)
+      );
 
       freeIndices = (copyMode == CEED_OWN_POINTER);
 
@@ -334,7 +339,7 @@ namespace ceed {
           return 0;
         }
         case CEED_MEM_DEVICE: {
-          *offsets = memoryToArray<CeedInt>(indices);
+          *offsets = indices.ptr<CeedInt>();
           return 0;
         }
       }

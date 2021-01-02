@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <cstring>
+
 #include "ceed-occa-vector.hpp"
 
 
@@ -92,6 +94,10 @@ namespace ceed {
       }
     }
 
+    ::occa::memory Vector::arrayToMemory(CeedScalar *array) {
+      return getDevice().wrapMemory<CeedScalar>(array, length);
+    }
+
     int Vector::setValue(CeedScalar value) {
       // Prioritize keeping data in the device
       if (syncState & SyncState::device) {
@@ -141,7 +147,7 @@ namespace ceed {
             setCurrentHostBufferIfNeeded();
             currentMemory.copyFrom(currentHostBuffer);
           }
-          *array = memoryToArray<CeedScalar>(currentMemory);
+          *array = currentMemory.ptr<CeedScalar>();
           memory = ::occa::null;
           currentMemory = ::occa::null;
 
@@ -224,7 +230,7 @@ namespace ceed {
             currentMemory.copyFrom(currentHostBuffer);
           }
           syncState = SyncState::device;
-          *array = memoryToArray<CeedScalar>(currentMemory);
+          *array = currentMemory.ptr<CeedScalar>();
           return 0;
       }
       return ceedError("Invalid CeedMemType passed");

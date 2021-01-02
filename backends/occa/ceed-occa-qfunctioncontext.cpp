@@ -14,8 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-occa-qfunctioncontext.hpp"
+#include <cstring>
 
+#include "ceed-occa-qfunctioncontext.hpp"
 
 namespace ceed {
   namespace occa {

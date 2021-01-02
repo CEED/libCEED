@@ -22,20 +22,6 @@
 
 namespace ceed {
   namespace occa {
-    template <class TM>
-    ::occa::memory arrayToMemory(const TM *array) {
-      if (array) {
-        ::occa::memory mem((::occa::modeMemory_t*) array);
-        return mem.as(::occa::dtype::get<TM>());
-      }
-      return ::occa::null;
-    }
-
-    template <class TM>
-    TM* memoryToArray(::occa::memory &memory) {
-      return (TM*) memory.getModeMemory();
-    }
-
     class Vector : public CeedObject {
      public:
       // Owned resources
@@ -70,6 +56,8 @@ namespace ceed {
       void setCurrentHostBufferIfNeeded();
 
       void freeHostBuffer();
+
+      ::occa::memory arrayToMemory(CeedScalar *array);
 
       int setValue(CeedScalar value);
 
