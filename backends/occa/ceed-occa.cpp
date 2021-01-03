@@ -257,18 +257,11 @@ namespace ceed {
         return CeedError(ceed, 1, "(OCCA) Backend cannot use resource: %s", c_resource);
       }
 
-      std::string devicePropsStr = "{\n";
-      StringMap::const_iterator it;
-      for (it = query.begin(); it != query.end(); ++it) {
-        devicePropsStr += "  \"";
-        devicePropsStr += it->first;
-        devicePropsStr += "\": ";
-        devicePropsStr += it->second;
-        devicePropsStr += ",\n";
+      ::occa::json deviceProps;
+      for (auto &kv : query) {
+        deviceProps[kv.first] = kv.second;
       }
-      devicePropsStr += '}';
 
-      ::occa::json deviceProps(devicePropsStr);
       setDefaultProps(deviceProps, mode);
 
       ceed::occa::Context *context = new Context(::occa::device(deviceProps));
