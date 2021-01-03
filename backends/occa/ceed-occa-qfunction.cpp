@@ -74,8 +74,8 @@ namespace ceed {
       return QFunction::from(qf);
     }
 
-    ::occa::properties QFunction::getKernelProps(const CeedInt Q) {
-      ::occa::properties props;
+    ::occa::json QFunction::getKernelProps(const CeedInt Q) {
+      ::occa::json props;
 
       // Types
       props["defines/CeedInt"] = ::occa::dtype::get<CeedInt>().name();
@@ -99,7 +99,7 @@ namespace ceed {
     int QFunction::buildKernel(const CeedInt Q) {
       // TODO: Store a kernel per Q
       if (!qFunctionKernel.isInitialized()) {
-        ::occa::properties props = getKernelProps(Q);
+        ::occa::json props = getKernelProps(Q);
 
         // Properties only used in the QFunction kernel source
         props["defines/OCCA_Q"] = Q;

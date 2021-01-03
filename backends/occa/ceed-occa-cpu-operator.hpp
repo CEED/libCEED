@@ -71,7 +71,7 @@ namespace ceed {
                                       SimplexBasis &basis);
 
       // Set props for a given field
-      ::occa::properties getKernelProps();
+      ::occa::json getKernelProps();
 
       void applyAdd(Vector *in, Vector *out);
 

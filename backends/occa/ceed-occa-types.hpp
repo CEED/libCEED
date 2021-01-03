@@ -20,6 +20,9 @@
 #include <ceed-backend.h>
 #include <occa.hpp>
 
+// Uses occa::kernelBuilder
+#include <occa/experimental.hpp>
+
 #define CeedOccaFromChk(ierr)                   \
   do {                                          \
     if (ierr) {                                 \

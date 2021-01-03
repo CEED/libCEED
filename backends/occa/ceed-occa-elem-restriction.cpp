@@ -181,7 +181,7 @@ namespace ceed {
     }
 
     void ElemRestriction::setupKernelBuilders() {
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
       kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
 
@@ -292,7 +292,7 @@ namespace ceed {
                                Vector &v) {
       const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;
       kernelProps["defines/NOT_STRIDED"]     = StrideType::NOT_STRIDED;
       kernelProps["defines/BACKEND_STRIDES"] = StrideType::BACKEND_STRIDES;

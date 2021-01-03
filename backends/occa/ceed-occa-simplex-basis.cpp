@@ -63,7 +63,7 @@ namespace ceed {
         kernelSource += occa_simplex_basis_cpu_kernel_source;
       }
 
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
       kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
       kernelProps["defines/DIM"] = dim;
@@ -164,7 +164,7 @@ namespace ceed {
 
     ::occa::kernel SimplexBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                     const bool transpose) {
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/TRANSPOSE"] = transpose;
 
       return kernelBuilder.build(getDevice(), kernelProps);
@@ -172,7 +172,7 @@ namespace ceed {
 
     ::occa::kernel SimplexBasis::buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                     const bool transpose) {
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/TRANSPOSE"]          = transpose;
       kernelProps["defines/ELEMENTS_PER_BLOCK"] = Q <= 1024 ? (1024 / Q) : 1;
 

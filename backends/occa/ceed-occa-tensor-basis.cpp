@@ -90,7 +90,7 @@ namespace ceed {
         kernelSource += cpuKernelSources[dim - 1];
       }
 
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
       kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
       kernelProps["defines/Q1D"] = Q1D;
@@ -233,7 +233,7 @@ namespace ceed {
 
     ::occa::kernel TensorBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                    const bool transpose) {
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/TRANSPOSE"] = transpose;
 
       return kernelBuilder.build(getDevice(), kernelProps);
@@ -243,7 +243,7 @@ namespace ceed {
                                                    const bool transpose,
                                                    const int elementsPerBlock) {
 
-      ::occa::properties kernelProps;
+      ::occa::json kernelProps;
       kernelProps["defines/TRANSPOSE"]          = transpose;
       kernelProps["defines/MAX_PQ"]             = Q1D > P1D ? Q1D : P1D;
       kernelProps["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlock;

@@ -211,7 +211,7 @@ namespace ceed {
       return 0;
     }
 
-    void setDefaultProps(::occa::properties &deviceProps,
+    void setDefaultProps(::occa::json &deviceProps,
                          const std::string &defaultMode) {
       std::string mode;
       if (deviceProps.has("mode")) {
@@ -268,7 +268,7 @@ namespace ceed {
       }
       devicePropsStr += '}';
 
-      ::occa::properties deviceProps(devicePropsStr);
+      ::occa::json deviceProps(devicePropsStr);
       setDefaultProps(deviceProps, mode);
 
       ceed::occa::Context *context = new Context(::occa::device(deviceProps));

@@ -205,8 +205,8 @@ namespace ceed {
       }
     }
 
-    ::occa::properties CpuOperator::getKernelProps() {
-      ::occa::properties props = qfunction->getKernelProps(ceedQ);
+    ::occa::json CpuOperator::getKernelProps() {
+      ::occa::json props = qfunction->getKernelProps(ceedQ);
 
       props["defines/OCCA_Q"] = ceedQ;
 

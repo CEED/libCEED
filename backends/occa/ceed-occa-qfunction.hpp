@@ -40,7 +40,7 @@ namespace ceed {
       static QFunction* from(CeedQFunction qf);
       static QFunction* from(CeedOperator op);
 
-      ::occa::properties getKernelProps(const CeedInt Q);
+      ::occa::json getKernelProps(const CeedInt Q);
 
       int buildKernel(const CeedInt Q);
       std::string getKernelSource(const std::string &kernelName,
