@@ -21,7 +21,7 @@ noether-rocm:
       cd ..
       && export OCCA_VERSION=occa-1.1.1 OCCA_OPENCL_ENABLED=0
       && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch main https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; }
-      && (cd $OCCA_VERSION && git reset --hard origin/main)
+      && (cd $OCCA_VERSION; git fetch; git reset --hard origin/main)
       && make -C $OCCA_VERSION info
       && export OCCA_DIR=$PWD/$OCCA_VERSION
       && cd libCEED
