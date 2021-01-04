@@ -590,6 +590,10 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
                           CeedEvalMode emode) {
+  if ((emode == CEED_EVAL_WEIGHT) && (size != 1))
+    // LCOV_EXCL_START
+    return CeedError(qf->ceed, 1, "CEED_EVAL_WEIGHT should have size 1");
+  // LCOV_EXCL_STOP
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
