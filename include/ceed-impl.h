@@ -238,6 +238,7 @@ struct CeedQFunction_private {
   const char *qfname;
   bool identity;
   bool fortranstatus;
+  CeedInt operatorsset;
   CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
@@ -314,7 +315,8 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
-  bool setupdone;
+  bool interfacesetup;
+  bool backendsetup;
   bool composite;
   bool hasrestriction;
   CeedOperator *suboperators;

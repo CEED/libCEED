@@ -70,7 +70,8 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = CeedCalloc(1, &opref); CeedChk(ierr);
   memcpy(opref, op, sizeof(*opref)); CeedChk(ierr);
   opref->data = NULL;
-  opref->setupdone = 0;
+  opref->interfacesetup = false;
+  opref->backendsetup = false;
   opref->ceed = ceedref;
   ierr = ceedref->OperatorCreate(opref); CeedChk(ierr);
   op->opfallback = opref;
@@ -175,8 +176,10 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
   @ref Developer
 **/
 static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
-  CeedQFunction qf = op->qf;
+  if (op->interfacesetup)
+    return 0;
 
+  CeedQFunction qf = op->qf;
   if (op->composite) {
     if (!op->numsub)
       // LCOV_EXCL_START
@@ -200,6 +203,21 @@ static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
       return CeedError(ceed, 1,"At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
+
+  // Flag as immutable and ready
+  op->interfacesetup = true;
+  if (op->qf && op->qf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->qf->operatorsset++;
+  // LCOV_EXCL_STOP
+  if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqf->operatorsset++;
+  // LCOV_EXCL_STOP
+  if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqfT->operatorsset++;
+  // LCOV_EXCL_STOP
 
   return 0;
 }
@@ -564,7 +582,7 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 **/
 
 int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
-  *issetupdone = op->setupdone;
+  *issetupdone = op->backendsetup;
   return 0;
 }
 
@@ -690,7 +708,7 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
 **/
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
-  op->setupdone = 1;
+  op->backendsetup = true;
   return 0;
 }
 
@@ -1742,8 +1760,20 @@ int CeedOperatorDestroy(CeedOperator *op) {
     if ((*op)->suboperators[i]) {
       ierr = CeedOperatorDestroy(&(*op)->suboperators[i]); CeedChk(ierr);
     }
+  if ((*op)->qf)
+    // LCOV_EXCL_START
+    (*op)->qf->operatorsset--;
+  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
+  if ((*op)->dqf && (*op)->dqf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    (*op)->dqf->operatorsset--;
+  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
+  if ((*op)->dqfT && (*op)->dqfT != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    (*op)->dqfT->operatorsset--;
+  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
 
   // Destroy fallback
