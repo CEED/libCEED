@@ -19,16 +19,17 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-    - name: Rust test
-      env:
-        CC: ${{ matrix.compiler }}
-        FC: gfortran-9
-      run: |
-        make info
-        make -j2
-        cd rust && cargo build
-        cargo test
-        cd ..
+        override: true
+    - name: Rust test with coverage
+      uses: actions-rs/tarpaulin@v0.1
+      with:
+        env:
+          CC: ${{ matrix.compiler }}
+          FC: gfortran-9
+    - name: Codecov upload
+      uses: codecov/codecov-action@v1.0.2
+      #with:
+        #token: ${{secrets.CODECOV_TOKEN}} # not required for public repos
     - name: Rust style
       run: |
         cd rust && cargo fmt -- --check
