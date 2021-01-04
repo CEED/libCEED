@@ -93,11 +93,13 @@ function generate_user_qfunction(
 
     # COV_EXCL_START
     if iscuda(ceed)
-        getresource(ceed) == "/gpu/cuda/gen" && error(string(
-            "/gpu/cuda/gen is not compatible with user Q-functions defined with ",
-            "libCEED.jl.\nPlease use a different backend, for example: /gpu/cuda/shared ",
-            "or /gpu/cuda/ref",
-        ))
+        getresource(ceed) == "/gpu/cuda/gen" && error(
+            string(
+                "/gpu/cuda/gen is not compatible with user Q-functions defined with ",
+                "libCEED.jl.\nPlease use a different backend, for example: /gpu/cuda/shared ",
+                "or /gpu/cuda/ref",
+            ),
+        )
         if cuda_is_loaded
             !has_cuda() && error("No valid CUDA installation found")
             qf2 = gensym(qf_name)
@@ -114,11 +116,13 @@ function generate_user_qfunction(
             )
             cuf = mk_cufunction(ceed, def_module, qf_name, kf, dims_in, dims_out)
         else
-            error(string(
-                "User Q-functions with CUDA backends require the CUDA.jl package to be ",
-                "loaded.\nThe libCEED backend is: $(getresource(ceed))\n",
-                "Please ensure that the CUDA.jl package is installed and loaded.",
-            ))
+            error(
+                string(
+                    "User Q-functions with CUDA backends require the CUDA.jl package to be ",
+                    "loaded.\nThe libCEED backend is: $(getresource(ceed))\n",
+                    "Please ensure that the CUDA.jl package is installed and loaded.",
+                ),
+            )
         end
     else
         kf = nothing

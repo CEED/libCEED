@@ -2,4 +2,3 @@ Bibliography
 ========================================
 
 .. bibliography::
-   references.bib

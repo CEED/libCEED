@@ -1,32 +1,33 @@
 libCEED: the CEED Library
 ============================================
 
-|build-status| |codecov| |license| |doc| |binder|
+.. image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
+   :alt: GitHub Actions
+   :target: https://github.com/CEED/libCEED/actions
 
-.. |build-status| image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
-    :alt: Build Status
-    :scale: 100%
-    :target: https://github.com/CEED/libCEED/actions
+.. image:: https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
+   :alt: GitLab-CI
+   :target: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
 
-.. |codecov| image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
-    :alt: Code Coverage
-    :scale: 100%
-    :target: https://codecov.io/gh/CEED/libCEED/
+.. image:: https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
+   :alt: Azure Pipelines
+   :target: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
 
-.. |license| image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
-    :alt: License
-    :scale: 100%
-    :target: https://opensource.org/licenses/BSD-2-Clause
+.. image:: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
+   :alt: Code Coverage
+   :target: https://codecov.io/gh/CEED/libCEED/
 
-.. |doc| image:: https://readthedocs.org/projects/libceed/badge/?version=latest
-    :alt: Read the Docs
-    :scale: 100%
-    :target: https://libceed.readthedocs.io/en/latest/?badge=latest
+.. image:: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+   :alt: License
+   :target: https://opensource.org/licenses/BSD-2-Clause
 
-.. |binder| image:: http://mybinder.org/badge_logo.svg
-    :alt: Binder
-    :scale: 100%
-    :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
+.. image:: https://readthedocs.org/projects/libceed/badge/?version=latest
+   :alt: Read the Docs
+   :target: https://libceed.readthedocs.io/en/latest/?badge=latest
+
+.. image:: http://mybinder.org/badge_logo.svg
+   :alt: Binder
+   :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
 Code for Efficient Extensible Discretization
 --------------------------------------------
@@ -186,7 +187,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
 +----------------------------+---------------------------------------------------+-----------------------+
-| HIP Native Backend                                                                                     |
+| HIP Native Backends                                                                                    |
 +----------------------------+---------------------------------------------------+-----------------------+
 | ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
 +----------------------------+---------------------------------------------------+-----------------------+
@@ -341,15 +342,15 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
 
    cd petsc/
    make
-   ./area -problem cube -ceed /cpu/self -petscspace_degree 3
-   ./area -problem cube -ceed /gpu/cuda -petscspace_degree 3
-   ./area -problem sphere -ceed /cpu/self -petscspace_degree 3 -dm_refine 2
-   ./area -problem sphere -ceed /gpu/cuda -petscspace_degree 3 -dm_refine 2
+   ./area -problem cube -ceed /cpu/self -degree 3
+   ./area -problem cube -ceed /gpu/cuda -degree 3
+   ./area -problem sphere -ceed /cpu/self -degree 3 -dm_refine 2
+   ./area -problem sphere -ceed /gpu/cuda -degree 3 -dm_refine 2
 
    cd fluids/
    make
-   ./navierstokes -ceed /cpu/self -petscspace_degree 1
-   ./navierstokes -ceed /gpu/cuda -petscspace_degree 1
+   ./navierstokes -ceed /cpu/self -degree 1
+   ./navierstokes -ceed /gpu/cuda -degree 1
    cd ..
 
    cd solids/
@@ -364,7 +365,7 @@ For the last example shown, sample meshes to be used in place of
 The above code assumes a GPU-capable machine with the OCCA backend
 enabled. Depending on the available backends, other CEED resource
 specifiers can be provided with the ``-ceed`` option. Other command line
-arguments can be found in the `petsc <./petsc/README.md>`_ folder.
+arguments can be found in `examples/petsc <https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md>`_.
 
 
 .. benchmarks-marker

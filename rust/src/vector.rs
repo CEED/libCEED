@@ -213,10 +213,11 @@ impl Vector {
     /// let val = 42.0;
     /// vec.set_value(val);
     ///
-    /// let v = vec.view();
-    /// for i in 0..len {
-    ///   assert_eq!(v[i], val, "Value not set correctly");
-    /// }
+    /// vec.view()
+    ///     .iter()
+    ///     .for_each(|v| {
+    ///         assert_eq!(*v, val, "Value not set correctly");
+    ///     });
     /// ```
     pub fn set_value(&mut self, value: f64) {
         unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
@@ -234,10 +235,12 @@ impl Vector {
     /// let mut vec = ceed.vector(4);
     /// vec.set_slice(&[10., 11., 12., 13.]);
     ///
-    /// let v = vec.view();
-    /// for i in 0..4 {
-    ///   assert_eq!(v[i], 10. + i as f64, "Slice not set correctly");
-    /// }
+    /// vec.view()
+    ///     .iter()
+    ///     .enumerate()
+    ///     .for_each(|(i, v)| {
+    ///         assert_eq!(*v, 10. + i as f64, "Slice not set correctly");
+    ///     });
     /// ```
     pub fn set_slice(&mut self, slice: &[f64]) {
         assert_eq!(self.length(), slice.len());
@@ -266,10 +269,11 @@ impl Vector {
     /// vec.set_value(val);
     /// vec.sync(MemType::Host);
     ///
-    /// let v = vec.view();
-    /// for i in 0..len {
-    ///   assert_eq!(v[i], val, "Value not set correctly");
-    /// }
+    /// vec.view()
+    ///     .iter()
+    ///     .for_each(|v| {
+    ///         assert_eq!(*v, val, "Value not set correctly");
+    ///     });
     /// ```
     pub fn sync(&self, mtype: crate::MemType) {
         unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };

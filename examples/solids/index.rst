@@ -1,7 +1,7 @@
 .. _example-petsc-elasticity:
 
-Solid mechanics elasticity mini-app
-========================================
+Solid mechanics mini-app
+========================
 
 This example is located in the subdirectory :file:`examples/solids`.
 It solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
@@ -18,11 +18,18 @@ Due to the nonlinearity of material models in Neo-Hookean hyperelasticity, the N
    The effect of these linearizations is sketched in the diagram below, where :math:`\bm \sigma` and :math:`\bm \epsilon` are stress and strain, respectively, in the small strain regime, while :math:`\bm S` and :math:`\bm E` are their finite-strain generalizations (second Piola-Kirchoff tensor and Green-Lagrange strain tensor, respectively) defined in the reference configuration, and :math:`\mathsf C` is a linearized constitutive model.
 
    .. math::
-      \begin{matrix}
-      \text{Finite Strain Hyperelastic} & \underset{\bm S = \mathsf C \bm E}{\overset{\text{constitutive}}{\longrightarrow}} & \text{St. Venant-Kirchoff} \\
-      \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} & & \text{\scriptsize geometric} {\LARGE \ \downarrow\ } \scriptsize{\bm E \to \bm \epsilon} \\
-      \text{Small Strain Hyperelastic} & \underset{\bm \sigma = \mathsf C \bm \epsilon}{\overset{\text{constitutive}}{\longrightarrow}} & \text{Linear Elastic} \\
-      \end{matrix}
+      :label: hyperelastic-cd
+
+      \begin{CD}
+        {\overbrace{\bm S(\bm E)}^{\text{Finite Strain Hyperelastic}}}
+        @>{\text{constitutive}}>{\text{linearization}}>
+        {\overbrace{\bm S = \mathsf C \bm E}^{\text{St. Venant-Kirchoff}}} \\
+        @V{\text{geometric}}V{\begin{smallmatrix}\bm E \to \bm \epsilon \\ \bm S \to \bm \sigma \end{smallmatrix}}V
+        @V{\begin{smallmatrix}\bm E \to \bm \epsilon \\ \bm S \to \bm \sigma \end{smallmatrix}}V{\text{geometric}}V \\
+        {\underbrace{\bm \sigma(\bm \epsilon)}_\text{Small Strain Hyperelastic}}
+        @>{\text{constitutive}}>\text{linearization}>
+        {\underbrace{\bm \sigma = \mathsf C \bm \epsilon}_\text{Linear Elastic}}
+      \end{CD}
 
 
 .. _running-elasticity:
@@ -136,6 +143,7 @@ For notational convenience, we express the symmetric second order tensors :math:
 Hence, the fourth order elasticity tensor :math:`\mathsf C` (also known as elastic moduli tensor or material stiffness tensor) can be represented as
 
 .. math::
+   :label: linear-elasticity-tensor
 
    \mathsf C = \begin{pmatrix}
    \lambda + 2\mu & \lambda & \lambda & & & \\
@@ -348,11 +356,11 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
  
-   which is the St. Venant-Kirchoff model.
+   which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see :math:numref:`hyperelastic-cd`).
 
    This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
 
-   Alternatively, one can drop geometric nonlinearities, :math:`\bm E \to \bm \epsilon` and :math:`\bm C \to \bm I_3`, while retaining the nonlinear dependence on :math:`J \to 1 + \operatorname{trace} \bm \epsilon`, thereby yielding :math:numref:`eq-neo-hookean-small-strain`.
+   Alternatively, one can drop geometric nonlinearities, :math:`\bm E \to \bm \epsilon` and :math:`\bm C \to \bm I_3`, while retaining the nonlinear dependence on :math:`J \to 1 + \operatorname{trace} \bm \epsilon`, thereby yielding :math:numref:`eq-neo-hookean-small-strain` (see :math:numref:`hyperelastic-cd`).
 
 
 Weak form

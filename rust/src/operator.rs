@@ -69,26 +69,26 @@ impl fmt::Display for OperatorCore {
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild");
-/// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None);
 ///
 /// // Operator field arguments
 /// let ne = 3;
 /// let q = 4 as usize;
-/// let mut ind : Vec<i32> = vec![0; 2*ne];
+/// let mut ind : Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
-///   ind[2*i+0] = i as i32;
-///   ind[2*i+1] = (i+1) as i32;
+///   ind[2 * i + 0] = i as i32;
+///   ind[2 * i + 1] = (i + 1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
 /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
 /// // Operator fields
-/// op.set_field("dx", &r, &b, VectorOpt::Active);
-/// op.set_field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None);
-/// op.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
+/// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("dx", &r, &b, VectorOpt::Active)
+///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)
+///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
 ///
 /// println!("{}", op);
 /// ```
@@ -103,40 +103,40 @@ impl fmt::Display for Operator {
 /// ```
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
-/// let mut op = ceed.composite_operator();
 ///
 /// // Sub operator field arguments
 /// let ne = 3;
 /// let q = 4 as usize;
-/// let mut ind : Vec<i32> = vec![0; 2*ne];
+/// let mut ind : Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
-///   ind[2*i+0] = i as i32;
-///   ind[2*i+1] = (i+1) as i32;
+///   ind[2 * i + 0] = i as i32;
+///   ind[2 * i + 1] = (i + 1) as i32;
 /// }
-/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+/// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
 /// let strides : [i32; 3] = [1, q as i32, q as i32];
-/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q*ne, strides);
+/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides);
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
 ///
-/// let qdata_mass = ceed.vector(q*ne);
-/// let qdata_diff = ceed.vector(q*ne);
+/// let qdata_mass = ceed.vector(q * ne);
+/// let qdata_diff = ceed.vector(q * ne);
 ///
 /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-/// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-/// op_mass.set_field("u", &r, &b, VectorOpt::Active);
-/// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-/// op_mass.set_field("v", &r, &b, VectorOpt::Active);
+/// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("u", &r, &b, VectorOpt::Active)
+///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+///     .field("v", &r, &b, VectorOpt::Active);
 ///
-/// op.add_sub_operator(&op_mass);
 ///
 /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-/// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-/// op_diff.set_field("du", &r, &b, VectorOpt::Active);
-/// op_diff.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-/// op_diff.set_field("dv", &r, &b, VectorOpt::Active);
+/// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+///     .field("du", &r, &b, VectorOpt::Active)
+///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+///     .field("dv", &r, &b, VectorOpt::Active);
 ///
-/// op.add_sub_operator(&op_diff);
+/// let op = ceed.composite_operator()
+///     .sub_operator(&op_mass)
+///     .sub_operator(&op_diff);
 ///
 /// println!("{}", op);
 /// ```
@@ -255,63 +255,57 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
-    /// let mut u = ceed.vector(ndofs);
-    /// u.set_value(1.0);
+    /// let u = ceed.vector_from_slice(&vec![1.0; ndofs]);
     /// let mut v = ceed.vector(ndofs);
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// v.set_value(0.0);
     /// op_mass.apply(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply(&self, input: &Vector, output: &mut Vector) {
@@ -329,62 +323,56 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
-    /// let mut u = ceed.vector(ndofs);
-    /// u.set_value(1.0);
+    /// let u = ceed.vector_from_slice(&vec![1.0; ndofs]);
     /// let mut v = ceed.vector(ndofs);
     ///
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// v.set_value(1.0);
     /// op_mass.apply_add(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!(
     ///   (sum - (2.0 + ndofs as f64)).abs() < 1e-15,
     ///   "Incorrect interval length computed and added"
@@ -415,25 +403,26 @@ impl Operator {
     /// // Operator field arguments
     /// let ne = 3;
     /// let q = 4;
-    /// let mut ind : Vec<i32> = vec![0; 2*ne];
+    /// let mut ind : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   ind[2*i+0] = i as i32;
-    ///   ind[2*i+1] = (i+1) as i32;
+    ///   ind[2 * i + 0] = i as i32;
+    ///   ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind);
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     ///
     /// // Operator field
-    /// op.set_field("dx", &r, &b, VectorOpt::Active);
+    /// op = op.field("dx", &r, &b, VectorOpt::Active);
     /// ```
-    pub fn set_field<'b>(
-        &mut self,
+    #[allow(unused_mut)]
+    pub fn field<'b>(
+        mut self,
         fieldname: &str,
         r: impl Into<ElemRestrictionOpt<'b>>,
         b: impl Into<BasisOpt<'b>>,
         v: impl Into<VectorOpt<'b>>,
-    ) {
+    ) -> Self {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
         let fieldname = fieldname.as_ptr() as *const i8;
         unsafe {
@@ -445,6 +434,7 @@ impl Operator {
                 v.into().to_raw(),
             )
         };
+        self
     }
 
     /// Assemble the diagonal of a square linear Operator
@@ -463,7 +453,7 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -477,39 +467,38 @@ impl Operator {
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
@@ -535,14 +524,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_diagonal(assembled)
@@ -565,7 +555,7 @@ impl Operator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -577,41 +567,40 @@ impl Operator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, p, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ndofs);
@@ -637,14 +626,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_add_diagonal(assembled)
@@ -673,7 +663,7 @@ impl Operator {
     /// let p = 3;
     /// let q = 4;
     /// let ncomp = 2;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -687,32 +677,31 @@ impl Operator {
     /// // Restrictions
     /// let mut indx : Vec<i32> = vec![0; 2*ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
     /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp * ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let mut mass_2_comp = |
@@ -725,37 +714,37 @@ impl Operator {
     ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
-    ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
-    ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
+    ///     v[i + 0 * q] = u[i + 1 * q] * qdata[i];
+    ///     v[i + 1 * q] = u[i + 0 * q] * qdata[i];
     ///   }
     ///
     ///   // Return clean error code
     ///   0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.add_input("u", 2, EvalMode::Interp);
-    /// qf_mass.add_input("qdata", 1, EvalMode::None);
-    /// qf_mass.add_output("v", 2, EvalMode::Interp);
+    /// let qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp))
+    ///     .input("u", 2, EvalMode::Interp)
+    ///     .input("qdata", 1, EvalMode::None)
+    ///     .output("v", 2, EvalMode::Interp);
     ///
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// // Diagonal
-    /// let mut diag = ceed.vector(ncomp*ncomp*ndofs);
+    /// let mut diag = ceed.vector(ncomp * ncomp * ndofs);
     /// diag.set_value(0.0);
     /// op_mass.linear_assemble_point_block_diagonal(&mut diag);
     ///
     /// // Manual diagonal computation
-    /// let mut true_diag = ceed.vector(ncomp*ncomp*ndofs);
+    /// let mut true_diag = ceed.vector(ncomp * ncomp * ndofs);
     /// for i in 0..ndofs {
     ///   for j in 0..ncomp {
     ///     u.set_value(0.0);
     ///     {
     ///       let mut u_array = u.view_mut();
-    ///       u_array[i + j*ndofs] = 1.;
+    ///       u_array[i + j * ndofs] = 1.;
     ///     }
     ///
     ///     op_mass.apply(&u, &mut v);
@@ -764,21 +753,22 @@ impl Operator {
     ///       let v_array = v.view_mut();
     ///       let mut true_array = true_diag.view_mut();
     ///       for k in 0..ncomp {
-    ///         true_array[i*ncomp*ncomp + k*ncomp + j] = v_array[i + k*ndofs];
+    ///         true_array[i * ncomp * ncomp + k * ncomp + j] = v_array[i + k * ndofs];
     ///       }
     ///     }
     ///   }
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ncomp*ncomp*ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core.linear_assemble_point_block_diagonal(assembled)
@@ -807,7 +797,7 @@ impl Operator {
     /// let p = 3;
     /// let q = 4;
     /// let ncomp = 2;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
@@ -819,34 +809,33 @@ impl Operator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = (2*i) as i32;
-    ///   indu[p*i+1] = (2*i+1) as i32;
-    ///   indu[p*i+2] = (2*i+2) as i32;
+    ///   indu[p * i + 0] = (2 * i) as i32;
+    ///   indu[p * i + 1] = (2 * i + 1) as i32;
+    ///   indu[p * i + 2] = (2 * i + 2) as i32;
     /// }
-    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp*ndofs, MemType::Host, &indu);
+    /// let ru = ceed.elem_restriction(ne, p, ncomp, ndofs, ncomp * ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, ncomp, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let mut mass_2_comp = |
@@ -859,23 +848,23 @@ impl Operator {
     ///
     ///   // Iterate over quadrature points
     ///   for i in 0..q {
-    ///     v[i + 0*q] = u[i + 1*q] * qdata[i];
-    ///     v[i + 1*q] = u[i + 0*q] * qdata[i];
+    ///     v[i + 0 * q] = u[i + 1 * q] * qdata[i];
+    ///     v[i + 1 * q] = u[i + 0 * q] * qdata[i];
     ///   }
     ///
     ///   // Return clean error code
     ///   0
     /// };
     ///
-    /// let mut qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp));
-    /// qf_mass.add_input("u", 2, EvalMode::Interp);
-    /// qf_mass.add_input("qdata", 1, EvalMode::None);
-    /// qf_mass.add_output("v", 2, EvalMode::Interp);
+    /// let qf_mass = ceed.q_function_interior(1, Box::new(mass_2_comp))
+    ///     .input("u", 2, EvalMode::Interp)
+    ///     .input("qdata", 1, EvalMode::None)
+    ///     .output("v", 2, EvalMode::Interp);
     ///
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// // Diagonal
     /// let mut diag = ceed.vector(ncomp*ncomp*ndofs);
@@ -905,14 +894,15 @@ impl Operator {
     /// }
     ///
     /// // Check
-    /// let diag_array = diag.view();
-    /// let true_array = true_diag.view();
-    /// for i in 0..ncomp*ncomp*ndofs {
-    ///   assert!(
-    ///     (diag_array[i] - 1.0 - true_array[i]).abs() < 1e-15,
-    ///     "Diagonal entry incorrect"
-    ///   );
-    /// }
+    /// diag.view()
+    ///     .iter()
+    ///     .zip(true_diag.view().iter())
+    ///     .for_each(|(computed, actual)| {
+    ///         assert!(
+    ///             (*computed -  1.0 - *actual).abs() < 1e-15,
+    ///             "Diagonal entry incorrect"
+    ///         );
+    ///     });
     /// ```
     pub fn linear_assemble_add_point_block_diagonal(&self, assembled: &mut Vector) {
         self.op_core
@@ -934,13 +924,13 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
-    /// let mut qdata = ceed.vector(ne*q);
+    /// let mut qdata = ceed.vector(ne * q);
     /// qdata.set_value(0.0);
     /// let mut u_coarse = ceed.vector(ndofs_coarse);
     /// u_coarse.set_value(1.0);
@@ -955,27 +945,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -985,21 +975,20 @@ impl Operator {
     /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
     /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.set_field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.set_field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active);
     ///
     /// // Multigrid setup
     /// let (op_mass_coarse, op_prolong, op_restrict) =
@@ -1010,12 +999,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1025,22 +1009,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level(
@@ -1085,11 +1061,11 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
@@ -1106,27 +1082,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -1136,24 +1112,23 @@ impl Operator {
     /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
     /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.set_field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.set_field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active);
     ///
     /// // Multigrid setup
-    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
+    /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse * p_fine];
     /// {
     ///   let mut coarse = ceed.vector(p_coarse);
     ///   let mut fine = ceed.vector(p_fine);
@@ -1168,7 +1143,7 @@ impl Operator {
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
-    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///       interp_c_to_f[j * p_coarse + i] = array[j];
     ///     }
     ///   }
     /// }
@@ -1180,12 +1155,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1195,22 +1165,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level_tensor_H1(
@@ -1257,11 +1219,11 @@ impl Operator {
     /// let p_coarse = 3;
     /// let p_fine = 5;
     /// let q = 6;
-    /// let ndofs_coarse = p_coarse*ne-ne+1;
-    /// let ndofs_fine = p_fine*ne-ne+1;
+    /// let ndofs_coarse = p_coarse * ne - ne + 1;
+    /// let ndofs_fine = p_fine * ne - ne + 1;
     ///
     /// // Vectors
-    /// let x_array = (0..ne+1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
+    /// let x_array = (0..ne + 1).map(|i| 2.0 * i as f64 / ne as f64 - 1.0).collect::<Vec<f64>>();
     /// let x = ceed.vector_from_slice(&x_array);
     /// let mut qdata = ceed.vector(ne*q);
     /// qdata.set_value(0.0);
@@ -1278,27 +1240,27 @@ impl Operator {
     ///
     /// // Restrictions
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     ///
-    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse*ne];
+    /// let mut indu_coarse : Vec<i32> = vec![0; p_coarse * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_coarse {
-    ///     indu_coarse[p_coarse*i+j] = (i+j) as i32;
+    ///     indu_coarse[p_coarse * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_coarse = ceed.elem_restriction(ne, p_coarse, 1, 1, ndofs_coarse, MemType::Host, &indu_coarse);
     ///
-    /// let mut indu_fine : Vec<i32> = vec![0; p_fine*ne];
+    /// let mut indu_fine : Vec<i32> = vec![0; p_fine * ne];
     /// for i in 0..ne {
     ///   for j in 0..p_fine {
-    ///     indu_fine[p_fine*i+j] = (i+j) as i32;
+    ///     indu_fine[p_fine * i + j] = (i + j) as i32;
     ///   }
     /// }
     /// let ru_fine = ceed.elem_restriction(ne, p_fine, 1, 1, ndofs_fine, MemType::Host, &indu_fine);
@@ -1308,21 +1270,20 @@ impl Operator {
     /// let bu_coarse = ceed.basis_tensor_H1_Lagrange(1, 1, p_coarse, q, QuadMode::Gauss);
     /// let bu_fine = ceed.basis_tensor_H1_Lagrange(1, 1, p_fine, q, QuadMode::Gauss);
     ///
-    /// // Set up operator
+    /// // Build quadrature data
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build.apply(&x, &mut qdata);
+    /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata);
     ///
     /// // Mass operator
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass_fine.set_field("u", &ru_fine, &bu_fine, VectorOpt::Active);
-    /// op_mass_fine.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-    /// op_mass_fine.set_field("v", &ru_fine, &bu_fine, VectorOpt::Active);
+    /// let op_mass_fine = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+    ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active);
     ///
     /// // Multigrid setup
     /// let mut interp_c_to_f : Vec<f64> = vec![0.; p_coarse*p_fine];
@@ -1340,7 +1301,7 @@ impl Operator {
     ///                        &coarse, &mut fine);
     ///     let array = fine.view();
     ///     for j in 0..p_fine {
-    ///       interp_c_to_f[j*p_coarse + i] = array[j];
+    ///       interp_c_to_f[j * p_coarse + i] = array[j];
     ///     }
     ///   }
     /// }
@@ -1352,12 +1313,7 @@ impl Operator {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
-    /// drop(array);
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Prolong
@@ -1367,22 +1323,14 @@ impl Operator {
     /// op_mass_fine.apply(&u_fine, &mut v_fine);
     ///
     /// // Check
-    /// let array = v_fine.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_fine {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_fine.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     ///
     /// // Restrict
     /// op_restrict.apply(&v_fine, &mut v_coarse);
     ///
     /// // Check
-    /// let array = v_coarse.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs_coarse {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v_coarse.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn create_multigrid_level_H1(
@@ -1438,13 +1386,13 @@ impl CompositeOperator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
-    /// let mut qdata_mass = ceed.vector(ne*q);
+    /// let mut qdata_mass = ceed.vector(ne * q);
     /// qdata_mass.set_value(0.0);
-    /// let mut qdata_diff = ceed.vector(ne*q);
+    /// let mut qdata_diff = ceed.vector(ne * q);
     /// qdata_diff.set_value(0.0);
     /// let mut u = ceed.vector(ndofs);
     /// u.set_value(1.0);
@@ -1452,71 +1400,63 @@ impl CompositeOperator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
     /// let mut indu : Vec<i32> = vec![0; p*ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operators
+    /// // Build quadrature data
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_mass.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_mass.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_mass.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build_mass.apply(&x, &mut qdata_mass);
+    /// ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata_mass);
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild");
-    /// let mut op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_diff.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_diff.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_diff.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build_diff.apply(&x, &mut qdata_diff);
+    /// ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata_diff);
     ///
     /// // Application operator
-    /// let mut op_composite = ceed.composite_operator();
-    ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
-    ///
-    /// op_composite.add_sub_operator(&op_mass);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-    /// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_diff.set_field("du", &ru, &bu, VectorOpt::Active);
-    /// op_diff.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-    /// op_diff.set_field("dv", &ru, &bu, VectorOpt::Active);
+    /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("du", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+    ///     .field("dv", &ru, &bu, VectorOpt::Active);
     ///
-    /// op_composite.add_sub_operator(&op_diff);
+    /// let op_composite = ceed.composite_operator()
+    ///     .sub_operator(&op_mass)
+    ///     .sub_operator(&op_diff);
     ///
     /// v.set_value(0.0);
     /// op_composite.apply(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - 2.0).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply(&self, input: &Vector, output: &mut Vector) {
@@ -1534,13 +1474,13 @@ impl CompositeOperator {
     /// let ne = 4;
     /// let p = 3;
     /// let q = 4;
-    /// let ndofs = p*ne-ne+1;
+    /// let ndofs = p * ne - ne + 1;
     ///
     /// // Vectors
     /// let x = ceed.vector_from_slice(&[-1., -0.5, 0.0, 0.5, 1.0]);
-    /// let mut qdata_mass = ceed.vector(ne*q);
+    /// let mut qdata_mass = ceed.vector(ne * q);
     /// qdata_mass.set_value(0.0);
-    /// let mut qdata_diff = ceed.vector(ne*q);
+    /// let mut qdata_diff = ceed.vector(ne * q);
     /// qdata_diff.set_value(0.0);
     /// let mut u = ceed.vector(ndofs);
     /// u.set_value(1.0);
@@ -1548,71 +1488,63 @@ impl CompositeOperator {
     /// v.set_value(0.0);
     ///
     /// // Restrictions
-    /// let mut indx : Vec<i32> = vec![0; 2*ne];
+    /// let mut indx : Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
-    ///   indx[2*i+0] = i as i32;
-    ///   indx[2*i+1] = (i+1) as i32;
+    ///   indx[2 * i + 0] = i as i32;
+    ///   indx[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne+1, MemType::Host, &indx);
-    /// let mut indu : Vec<i32> = vec![0; p*ne];
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx);
+    /// let mut indu : Vec<i32> = vec![0; p * ne];
     /// for i in 0..ne {
-    ///   indu[p*i+0] = i as i32;
-    ///   indu[p*i+1] = (i+1) as i32;
-    ///   indu[p*i+2] = (i+2) as i32;
+    ///   indu[p * i + 0] = i as i32;
+    ///   indu[p * i + 1] = (i + 1) as i32;
+    ///   indu[p * i + 2] = (i + 2) as i32;
     /// }
     /// let ru = ceed.elem_restriction(ne, 3, 1, 1, ndofs, MemType::Host, &indu);
     /// let strides : [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q*ne, strides);
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides);
     ///
     /// // Bases
     /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
     /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
     ///
-    /// // Set up operators
+    /// // Build quadrature data
     /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild");
-    /// let mut op_build_mass = ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_mass.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_mass.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_mass.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build_mass.apply(&x, &mut qdata_mass);
+    /// ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata_mass);
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild");
-    /// let mut op_build_diff = ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_build_diff.set_field("dx", &rx, &bx, VectorOpt::Active);
-    /// op_build_diff.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-    /// op_build_diff.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-    ///
-    /// op_build_diff.apply(&x, &mut qdata_diff);
+    /// ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+    ///     .apply(&x, &mut qdata_diff);
     ///
     /// // Application operator
-    /// let mut op_composite = ceed.composite_operator();
-    ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
-    /// let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-    /// op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_mass);
-    /// op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
-    ///
-    /// op_composite.add_sub_operator(&op_mass);
+    /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("u", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)
+    ///     .field("v", &ru, &bu, VectorOpt::Active);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
-    /// let mut op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op_diff.set_field("du", &ru, &bu, VectorOpt::Active);
-    /// op_diff.set_field("qdata", &rq, BasisOpt::Collocated, &qdata_diff);
-    /// op_diff.set_field("dv", &ru, &bu, VectorOpt::Active);
+    /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .field("du", &ru, &bu, VectorOpt::Active)
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)
+    ///     .field("dv", &ru, &bu, VectorOpt::Active);
     ///
-    /// op_composite.add_sub_operator(&op_diff);
+    /// let op_composite = ceed.composite_operator()
+    ///     .sub_operator(&op_mass)
+    ///     .sub_operator(&op_diff);
     ///
     /// v.set_value(1.0);
     /// op_composite.apply_add(&u, &mut v);
     ///
     /// // Check
-    /// let array = v.view();
-    /// let mut sum = 0.0;
-    /// for i in 0..ndofs {
-    ///   sum += array[i];
-    /// }
+    /// let sum: f64 = v.view().iter().sum();
     /// assert!((sum - (2.0 + ndofs as f64)).abs() < 1e-15, "Incorrect interval length computed");
     /// ```
     pub fn apply_add(&self, input: &Vector, output: &mut Vector) {
@@ -1630,14 +1562,16 @@ impl CompositeOperator {
     ///
     /// let qf_mass = ceed.q_function_interior_by_name("MassApply");
     /// let op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-    /// op.add_sub_operator(&op_mass);
+    /// op = op.sub_operator(&op_mass);
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply");
     /// let op_diff = ceed.operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None);
-    /// op.add_sub_operator(&op_diff);
+    /// op = op.sub_operator(&op_diff);
     /// ```
-    pub fn add_sub_operator(&mut self, subop: &Operator) {
+    #[allow(unused_mut)]
+    pub fn sub_operator(mut self, subop: &Operator) -> Self {
         unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
+        self
     }
 
     /// Assemble the diagonal of a square linear Operator

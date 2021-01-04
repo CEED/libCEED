@@ -108,8 +108,8 @@ pub const MAX_QFUNCTION_FIELDS: usize = 16;
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to
 /// specify where the memory being provided or requested must reside.
 pub enum MemType {
-    Host,
-    Device,
+    Host = bind_ceed::CeedMemType_CEED_MEM_HOST as isize,
+    Device = bind_ceed::CeedMemType_CEED_MEM_DEVICE as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -117,54 +117,54 @@ pub enum MemType {
 #[allow(dead_code)]
 /// Conveys ownership status of arrays passed to Ceed interfaces.
 pub(crate) enum CopyMode {
-    CopyValues,
-    UsePointer,
-    OwnPointer,
+    CopyValues = bind_ceed::CeedCopyMode_CEED_COPY_VALUES as isize,
+    UsePointer = bind_ceed::CeedCopyMode_CEED_USE_POINTER as isize,
+    OwnPointer = bind_ceed::CeedCopyMode_CEED_OWN_POINTER as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Denotes type of vector norm to be computed
 pub enum NormType {
-    One,
-    Two,
-    Max,
+    One = bind_ceed::CeedNormType_CEED_NORM_1 as isize,
+    Two = bind_ceed::CeedNormType_CEED_NORM_2 as isize,
+    Max = bind_ceed::CeedNormType_CEED_NORM_MAX as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Denotes whether a linear transformation or its transpose should be applied
 pub enum TransposeMode {
-    NoTranspose,
-    Transpose,
+    NoTranspose = bind_ceed::CeedTransposeMode_CEED_NOTRANSPOSE as isize,
+    Transpose = bind_ceed::CeedTransposeMode_CEED_TRANSPOSE as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of quadrature; also used for location of nodes
 pub enum QuadMode {
-    Gauss,
-    GaussLobatto,
+    Gauss = bind_ceed::CeedQuadMode_CEED_GAUSS as isize,
+    GaussLobatto = bind_ceed::CeedQuadMode_CEED_GAUSS_LOBATTO as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of basis shape to create non-tensor H1 element basis
 pub enum ElemTopology {
-    Line,
-    Triangle,
-    Quad,
-    Tet,
-    Pyramid,
-    Prism,
-    Hex,
+    Line = bind_ceed::CeedElemTopology_CEED_LINE as isize,
+    Triangle = bind_ceed::CeedElemTopology_CEED_TRIANGLE as isize,
+    Quad = bind_ceed::CeedElemTopology_CEED_QUAD as isize,
+    Tet = bind_ceed::CeedElemTopology_CEED_TET as isize,
+    Pyramid = bind_ceed::CeedElemTopology_CEED_PYRAMID as isize,
+    Prism = bind_ceed::CeedElemTopology_CEED_PRISM as isize,
+    Hex = bind_ceed::CeedElemTopology_CEED_HEX as isize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Basis evaluation mode
 pub enum EvalMode {
-    None,
-    Interp,
-    Grad,
-    Div,
-    Curl,
-    Weight,
+    None = bind_ceed::CeedEvalMode_CEED_EVAL_NONE as isize,
+    Interp = bind_ceed::CeedEvalMode_CEED_EVAL_INTERP as isize,
+    Grad = bind_ceed::CeedEvalMode_CEED_EVAL_GRAD as isize,
+    Div = bind_ceed::CeedEvalMode_CEED_EVAL_DIV as isize,
+    Curl = bind_ceed::CeedEvalMode_CEED_EVAL_CURL as isize,
+    Weight = bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT as isize,
 }
 
 // -----------------------------------------------------------------------------
@@ -299,12 +299,12 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2*nelem];
+    /// let mut ind : Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2*i+0] = i as i32;
-    ///   ind[2*i+1] = (i+1) as i32;
+    ///   ind[2 * i + 0] = i as i32;
+    ///   ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem+1, MemType::Host, &ind);
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind);
     /// ```
     pub fn elem_restriction(
         &self,
@@ -347,7 +347,7 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides : [i32; 3] = [1, 2, 2];
-    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem*2, strides);
+    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides);
     /// ```
     pub fn strided_elem_restriction(
         &self,
@@ -623,31 +623,27 @@ mod tests {
         let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss);
         let bu = ceed.basis_tensor_H1_Lagrange(1, 1, p, q, QuadMode::Gauss);
 
-        // Set up operator
+        // Build quadrature data
         let qf_build = ceed.q_function_interior_by_name("Mass1DBuild");
-        let mut op_build = ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None);
-        op_build.set_field("dx", &rx, &bx, VectorOpt::Active);
-        op_build.set_field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None);
-        op_build.set_field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active);
-
-        op_build.apply(&x, &mut qdata);
+        ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)
+            .field("dx", &rx, &bx, VectorOpt::Active)
+            .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)
+            .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)
+            .apply(&x, &mut qdata);
 
         // Mass operator
         let qf_mass = ceed.q_function_interior_by_name("MassApply");
-        let mut op_mass = ceed.operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None);
-        op_mass.set_field("u", &ru, &bu, VectorOpt::Active);
-        op_mass.set_field("qdata", &rq, BasisOpt::Collocated, &qdata);
-        op_mass.set_field("v", &ru, &bu, VectorOpt::Active);
+        let op_mass = ceed
+            .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)
+            .field("u", &ru, &bu, VectorOpt::Active)
+            .field("qdata", &rq, BasisOpt::Collocated, &qdata)
+            .field("v", &ru, &bu, VectorOpt::Active);
 
         v.set_value(0.0);
         op_mass.apply(&u, &mut v);
 
         // Check
-        let array = v.view();
-        let mut sum = 0.0;
-        for i in 0..ndofs {
-            sum += array[i];
-        }
+        let sum: f64 = v.view().iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"
