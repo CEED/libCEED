@@ -112,12 +112,13 @@ impl ElemRestriction {
         offsets: &[i32],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        let (nelem, elemsize, ncomp, compstride, lsize) = (
-            nelem as i32,
-            elemsize as i32,
-            ncomp as i32,
-            compstride as i32,
-            lsize as i32,
+        let (nelem, elemsize, ncomp, compstride, lsize, mtype) = (
+            i32::try_from(nelem).unwrap(),
+            i32::try_from(elemsize).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(compstride).unwrap(),
+            i32::try_from(lsize).unwrap(),
+            mtype as bind_ceed::CeedMemType,
         );
         unsafe {
             bind_ceed::CeedElemRestrictionCreate(
@@ -127,7 +128,7 @@ impl ElemRestriction {
                 ncomp,
                 compstride,
                 lsize,
-                mtype as bind_ceed::CeedMemType,
+                mtype,
                 crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
                 offsets.as_ptr(),
                 &mut ptr,
@@ -145,8 +146,12 @@ impl ElemRestriction {
         strides: [i32; 3],
     ) -> Self {
         let mut ptr = std::ptr::null_mut();
-        let (nelem, elemsize, ncomp, lsize) =
-            (nelem as i32, elemsize as i32, ncomp as i32, lsize as i32);
+        let (nelem, elemsize, ncomp, lsize) = (
+            i32::try_from(nelem).unwrap(),
+            i32::try_from(elemsize).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(lsize).unwrap(),
+        );
         unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(
                 ceed.ptr,
@@ -301,7 +306,7 @@ impl ElemRestriction {
     /// assert_eq!(c, compstride, "Incorrect component stride");
     /// ```
     pub fn comp_stride(&self) -> usize {
-        let mut compstride = 0;
+        let mut compstride: i32 = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetCompStride(self.ptr, &mut compstride) };
         usize::try_from(compstride).unwrap()
     }
@@ -323,7 +328,7 @@ impl ElemRestriction {
     /// assert_eq!(n, nelem, "Incorrect number of elements");
     /// ```
     pub fn num_elements(&self) -> usize {
-        let mut numelem = 0;
+        let mut numelem: i32 = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetNumElements(self.ptr, &mut numelem) };
         usize::try_from(numelem).unwrap()
     }
@@ -346,7 +351,7 @@ impl ElemRestriction {
     /// assert_eq!(e, elem_size, "Incorrect element size");
     /// ```
     pub fn elem_size(&self) -> usize {
-        let mut elemsize = 0;
+        let mut elemsize: i32 = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetElementSize(self.ptr, &mut elemsize) };
         usize::try_from(elemsize).unwrap()
     }
@@ -368,7 +373,7 @@ impl ElemRestriction {
     /// assert_eq!(lsize, nelem + 1);
     /// ```
     pub fn lvector_size(&self) -> usize {
-        let mut lsize = 0;
+        let mut lsize: i32 = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetLVectorSize(self.ptr, &mut lsize) };
         usize::try_from(lsize).unwrap()
     }
@@ -391,7 +396,7 @@ impl ElemRestriction {
     /// assert_eq!(n, ncomp, "Incorrect number of components");
     /// ```
     pub fn num_components(&self) -> usize {
-        let mut ncomp = 0;
+        let mut ncomp: i32 = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetNumComponents(self.ptr, &mut ncomp) };
         usize::try_from(ncomp).unwrap()
     }

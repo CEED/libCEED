@@ -184,8 +184,9 @@ impl QFunctionCore {
         for i in 0..std::cmp::min(MAX_QFUNCTION_FIELDS, v.len()) {
             v_c[i] = v[i].ptr;
         }
+        let Q = i32::try_from(Q).unwrap();
         unsafe {
-            bind_ceed::CeedQFunctionApply(self.ptr, Q as i32, u_c.as_mut_ptr(), v_c.as_mut_ptr());
+            bind_ceed::CeedQFunctionApply(self.ptr, Q, u_c.as_mut_ptr(), v_c.as_mut_ptr());
         }
     }
 }
@@ -267,10 +268,11 @@ impl QFunction {
         };
 
         // Create QFunction
+        let vlength = i32::try_from(vlength).unwrap();
         unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
-                vlength as i32,
+                vlength,
                 Some(trampoline),
                 source_c.as_ptr(),
                 &mut ptr,
@@ -397,9 +399,12 @@ impl QFunction {
         let idx = self.trampoline_data.number_inputs;
         self.trampoline_data.input_sizes[idx] = size;
         self.trampoline_data.number_inputs += 1;
-        let emode = emode as bind_ceed::CeedEvalMode;
+        let (size, emode) = (
+            i32::try_from(size).unwrap(),
+            emode as bind_ceed::CeedEvalMode,
+        );
         unsafe {
-            bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size as i32, emode);
+            bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
         }
         self
     }
@@ -440,14 +445,12 @@ impl QFunction {
         let idx = self.trampoline_data.number_outputs;
         self.trampoline_data.output_sizes[idx] = size;
         self.trampoline_data.number_outputs += 1;
-        let emode = emode as bind_ceed::CeedEvalMode;
+        let (size, emode) = (
+            i32::try_from(size).unwrap(),
+            emode as bind_ceed::CeedEvalMode,
+        );
         unsafe {
-            bind_ceed::CeedQFunctionAddOutput(
-                self.qf_core.ptr,
-                name_c.as_ptr(),
-                size as i32,
-                emode,
-            );
+            bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode);
         }
         self
     }
