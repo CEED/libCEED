@@ -18,7 +18,7 @@ jobs:
     - name: Rust setup
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly
         override: true
     - name: Rust test with coverage
       uses: actions-rs/tarpaulin@v0.1
