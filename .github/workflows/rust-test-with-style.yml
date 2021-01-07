@@ -25,6 +25,8 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-9
+      with:
+        args: '--run-types Doctests Tests'
     - name: Codecov upload
       uses: codecov/codecov-action@v1.0.2
       with:
