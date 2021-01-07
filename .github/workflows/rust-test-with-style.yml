@@ -18,6 +18,7 @@ jobs:
     - name: Rust setup
       uses: actions-rs/toolchain@v1
       with:
+        # Note: nightly required for coverage of Doctests with tarpaulin
         toolchain: nightly
         override: true
     - name: Rust test with coverage
@@ -46,6 +47,7 @@ jobs:
     - name: Rust setup
       uses: actions-rs/toolchain@v1
       with:
+        # Note: rustfmt not always included in nightly
         toolchain: stable
     - name: Rust style
       run: |
