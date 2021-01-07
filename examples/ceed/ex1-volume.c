@@ -77,6 +77,7 @@ int main(int argc, const char *argv[]) {
 
   // Process command line arguments.
   for (int ia = 1; ia < argc; ia++) {
+    // LCOV_EXCL_START
     int next_arg = ((ia+1) < argc), parse_error = 0;
     if (!strcmp(argv[ia],"-h")) {
       help = 1;
@@ -102,11 +103,13 @@ int main(int argc, const char *argv[]) {
       printf("Error parsing command line options.\n");
       return 1;
     }
+    // LCOV_EXCL_STOP
   }
   if (prob_size < 0) prob_size = test ? 8*16 : 256*1024;
 
   // Print the values of all options:
   if (!test || help) {
+    // LCOV_EXCL_START
     printf("Selected options: [command line option] : <current value>\n");
     printf("  Ceed specification [-c] : %s\n", ceed_spec);
     printf("  Mesh dimension     [-d] : %d\n", dim);
@@ -120,6 +123,7 @@ int main(int argc, const char *argv[]) {
       return 0;
     }
     printf("\n");
+    // LCOV_EXCL_STOP
   }
 
   // Select appropriate backend and logical device based on the <ceed-spec>
@@ -137,12 +141,13 @@ int main(int argc, const char *argv[]) {
   // Determine the mesh size based on the given approximate problem size.
   int nxyz[dim];
   GetCartesianMeshSize(dim, sol_degree, prob_size, nxyz);
-
   if (!test) {
+    // LCOV_EXCL_START
     printf("Mesh size: nx = %d", nxyz[0]);
     if (dim > 1) { printf(", ny = %d", nxyz[1]); }
     if (dim > 2) { printf(", nz = %d", nxyz[2]); }
     printf("\n");
+    // LCOV_EXCL_STOP
   }
 
   // Build CeedElemRestriction objects describing the mesh and solution discrete
@@ -214,15 +219,8 @@ int main(int argc, const char *argv[]) {
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
   CeedVectorCreate(ceed, num_elem*elem_qpts, &qdata);
-  if (!test) {
-    printf("Computing the quadrature data for the mass operator ...");
-    fflush(stdout);
-  }
   CeedOperatorApply(build_oper, mesh_coords, qdata,
                     CEED_REQUEST_IMMEDIATE);
-  if (!test) {
-    printf(" done.\n");
-  }
 
   // Create the QFunction that defines the action of the mass operator.
   CeedQFunction apply_qfunc;
@@ -250,12 +248,6 @@ int main(int argc, const char *argv[]) {
                        qdata);
   CeedOperatorSetField(oper, "v", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
-  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
-  if (!test) {
-    printf("Computing the mesh volume using the formula: vol = 1^T.M.1 ...");
-    fflush(stdout);
-  }
-
   // Create auxiliary solution-size vectors.
   CeedVector u, v;
   CeedVectorCreate(ceed, sol_size, &u);
@@ -264,7 +256,7 @@ int main(int argc, const char *argv[]) {
   // Initialize 'u' and 'v' with ones.
   CeedVectorSetValue(u, 1.0);
 
-  // Apply the mass operator: 'u' -> 'v'.
+  // Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Compute and print the sum of the entries of 'v' giving the mesh volume.
@@ -276,10 +268,12 @@ int main(int argc, const char *argv[]) {
   }
   CeedVectorRestoreArrayRead(v, &v_host);
   if (!test) {
+    // LCOV_EXCL_START
     printf(" done.\n");
     printf("Exact mesh volume    : % .14g\n", exact_vol);
     printf("Computed mesh volume : % .14g\n", vol);
     printf("Volume error         : % .14g\n", vol-exact_vol);
+    // LCOV_EXCL_STOP
   } else {
     CeedScalar tol = (dim==1? 1E-14 : dim==2? 1E-7 : 1E-5);
     if (fabs(vol-exact_vol)>tol)

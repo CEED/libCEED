@@ -78,6 +78,7 @@ int main(int argc, const char *argv[]) {
 
   // Process command line arguments.
   for (int ia = 1; ia < argc; ia++) {
+    // LCOV_EXCL_START
     int next_arg = ((ia+1) < argc), parse_error = 0;
     if (!strcmp(argv[ia],"-h")) {
       help = 1;
@@ -103,6 +104,7 @@ int main(int argc, const char *argv[]) {
       printf("Error parsing command line options.\n");
       return 1;
     }
+    // LCOV_EXCL_STOP
   }
   if (prob_size < 0) prob_size = test ? 16*16*dim*dim : 256*1024;
 
@@ -112,6 +114,7 @@ int main(int argc, const char *argv[]) {
 
   // Print the values of all options:
   if (!test || help) {
+    // LCOV_EXCL_START
     printf("Selected options: [command line option] : <current value>\n");
     printf("  Ceed specification [-c] : %s\n", ceed_spec);
     printf("  Mesh dimension     [-d] : %d\n", dim);
@@ -125,6 +128,7 @@ int main(int argc, const char *argv[]) {
       return 0;
     }
     printf("\n");
+    // LCOV_EXCL_STOP
   }
 
   // Select appropriate backend and logical device based on the <ceed-spec>
@@ -144,10 +148,12 @@ int main(int argc, const char *argv[]) {
   GetCartesianMeshSize(dim, sol_degree, prob_size, nxyz);
 
   if (!test) {
+    // LCOV_EXCL_START
     printf("Mesh size: nx = %d", nxyz[0]);
     if (dim > 1) { printf(", ny = %d", nxyz[1]); }
     if (dim > 2) { printf(", nz = %d", nxyz[2]); }
     printf("\n");
+    // LCOV_EXCL_STOP
   }
 
   // Build CeedElemRestriction objects describing the mesh and solution discrete
@@ -161,8 +167,10 @@ int main(int argc, const char *argv[]) {
   BuildCartesianRestriction(ceed, dim, nxyz, sol_degree, 1, &sol_size,
                             num_qpts, &sol_restr, NULL);
   if (!test) {
+    // LCOV_EXCL_START
     printf("Number of mesh nodes     : %d\n", mesh_size/dim);
     printf("Number of solution nodes : %d\n", sol_size);
+    // LCOV_EXCL_STOP
   }
 
   // Create a CeedVector with the mesh coordinates.
@@ -222,15 +230,8 @@ int main(int argc, const char *argv[]) {
   for (int d = 0; d < dim; d++)
     num_elem *= nxyz[d];
   CeedVectorCreate(ceed, num_elem*elem_qpts*dim*(dim+1)/2, &qdata);
-  if (!test) {
-    printf("Computing the quadrature data for the diffusion operator ...");
-    fflush(stdout);
-  }
   CeedOperatorApply(build_oper, mesh_coords, qdata,
                     CEED_REQUEST_IMMEDIATE);
-  if (!test) {
-    printf(" done.\n");
-  }
 
   // Create the QFunction that defines the action of the diffusion operator.
   CeedQFunction apply_qfunc;
@@ -262,13 +263,6 @@ int main(int argc, const char *argv[]) {
                        qdata);
   CeedOperatorSetField(oper, "dv", sol_restr, sol_basis, CEED_VECTOR_ACTIVE);
 
-  // Compute the mesh surface area using the diff operator:
-  //                                             sa = 1^T \cdot abs( K \cdot x).
-  if (!test) {
-    printf("Computing the mesh surface area using the formula: sa = 1^T.|K.x| ...");
-    fflush(stdout);
-  }
-
   // Create auxiliary solution-size vectors.
   CeedVector u, v;
   CeedVectorCreate(ceed, sol_size, &u);
@@ -287,7 +281,8 @@ int main(int argc, const char *argv[]) {
   CeedVectorRestoreArray(u, &u_host);
   CeedVectorRestoreArrayRead(mesh_coords, &x_host);
 
-  // Apply the diffusion operator: 'u' -> 'v'.
+  // Compute the mesh surface area using the diff operator:
+  //                                             sa = 1^T \cdot abs( K \cdot x).
   CeedOperatorApply(oper, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Compute and print the sum of the entries of 'v' giving the mesh surface area.
@@ -299,10 +294,12 @@ int main(int argc, const char *argv[]) {
   }
   CeedVectorRestoreArrayRead(v, &v_host);
   if (!test) {
+    // LCOV_EXCL_START
     printf(" done.\n");
     printf("Exact mesh surface area    : % .14g\n", exact_sa);
     printf("Computed mesh surface area : % .14g\n", sa);
     printf("Surface area error         : % .14g\n", sa-exact_sa);
+    // LCOV_EXCL_STOP
   } else {
     CeedScalar tol = (dim==1? 1E-12 : dim==2? 1E-1 : 1E-1);
     if (fabs(sa-exact_sa)>tol)
