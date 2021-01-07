@@ -303,7 +303,7 @@ impl ElemRestriction {
     pub fn comp_stride(&self) -> usize {
         let mut compstride = 0;
         unsafe { bind_ceed::CeedElemRestrictionGetCompStride(self.ptr, &mut compstride) };
-        compstride as usize
+        usize::try_from(compstride).unwrap()
     }
 
     /// Returns the total number of elements in the range of a ElemRestriction
