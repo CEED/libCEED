@@ -289,7 +289,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
-        let quiet = false;
+        let quiet = true;
         let gallery = false;
         let options = opt::Opt {
             ceed_spec,
@@ -339,7 +339,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
-        let quiet = true;
+        let quiet = false;
         let gallery = false;
         let options = opt::Opt {
             ceed_spec,
