@@ -52,6 +52,7 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
         num_qpts,
         problem_size_requested,
         test,
+        quiet,
         gallery,
     } = options;
     assert!(dim >= 1 && dim <= 3);
@@ -71,7 +72,7 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
     }
 
     // Summary output
-    if !test {
+    if !quiet {
         println!("Selected options: [command line option] : <current value>");
         println!("    Ceed specification [-c] : {}", ceed_spec);
         println!("    Mesh dimension     [-d] : {}", dim);
@@ -96,7 +97,7 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
-    if !test {
+    if !quiet {
         print!("\nMesh size                   : nx = {}", num_xyz[0]);
         if dim > 1 {
             print!(", ny = {}", num_xyz[1]);
@@ -124,7 +125,7 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts);
     let mesh_size = restr_mesh.lvector_size();
     let solution_size = restr_solution.lvector_size();
-    if !test {
+    if !quiet {
         println!("Number of mesh nodes        : {}", mesh_size / dim);
         println!("Number of solution nodes    : {}", solution_size);
     }
@@ -331,26 +332,25 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
     let area: f64 = v.view().iter().map(|v| (*v).abs()).sum();
 
     // Output results
-    if !test {
+    if !quiet {
         println!("Exact mesh surface area     : {:.12}", exact_area);
         println!("Computed mesh surface_area  : {:.12}", area);
         println!("Surface area error          : {:.12e}", area - exact_area);
+    }
+    let tolerance = if dim == 1 {
+        1E-12
+    } else if dim == 2 {
+        1E-1
     } else {
-        let tolerance = if dim == 1 {
-            1E-12
-        } else if dim == 2 {
-            1E-1
-        } else {
-            1E-1
-        };
-        let error = (area - exact_area).abs();
-        if error > tolerance {
-            println!("Volume error: {:.12e}", error);
-            return Err(format!(
-                "Volume error too large - expected: {:.12e}, actual: {:.12e}",
-                tolerance, error
-            ));
-        }
+        1E-1
+    };
+    let error = (area - exact_area).abs();
+    if error > tolerance {
+        println!("Volume error too large: {:.12e}", error);
+        return Err(format!(
+            "Volume error too large - expected: {:.12e}, actual: {:.12e}",
+            tolerance, error
+        ));
     }
     Ok(())
 }
@@ -371,6 +371,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
+        let quiet = false;
         let gallery = false;
         let options = opt::Opt {
             ceed_spec,
@@ -380,6 +381,7 @@ mod tests {
             num_qpts,
             problem_size_requested,
             test,
+            quiet,
             gallery,
         };
         assert!(example_2(options).is_ok());
@@ -394,6 +396,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
+        let quiet = true;
         let gallery = false;
         let options = opt::Opt {
             ceed_spec,
@@ -403,6 +406,7 @@ mod tests {
             num_qpts,
             problem_size_requested,
             test,
+            quiet,
             gallery,
         };
         assert!(example_2(options).is_ok());
@@ -417,6 +421,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
+        let quiet = true;
         let gallery = false;
         let options = opt::Opt {
             ceed_spec,
@@ -426,6 +431,7 @@ mod tests {
             num_qpts,
             problem_size_requested,
             test,
+            quiet,
             gallery,
         };
         assert!(example_2(options).is_ok());
@@ -440,6 +446,7 @@ mod tests {
         let num_qpts = 6;
         let problem_size_requested = -1;
         let test = true;
+        let quiet = true;
         let gallery = true;
         let options = opt::Opt {
             ceed_spec,
@@ -449,6 +456,7 @@ mod tests {
             num_qpts,
             problem_size_requested,
             test,
+            quiet,
             gallery,
         };
         assert!(example_2(options).is_ok());

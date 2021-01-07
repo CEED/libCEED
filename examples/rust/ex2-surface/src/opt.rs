@@ -71,6 +71,9 @@ pub(crate) struct Opt {
     /// Test mode
     #[structopt(name = "test mode", short = "t", long = "test")]
     pub(crate) test: bool,
+    /// Quiet mode
+    #[structopt(name = "quiet mode", short = "q", long = "quiet")]
+    pub(crate) quiet: bool,
     /// Gallery QFunctions
     #[structopt(name = "gallery QFunctions", short = "g", long = "gallery")]
     pub(crate) gallery: bool,
