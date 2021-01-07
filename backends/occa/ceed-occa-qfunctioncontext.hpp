@@ -47,8 +47,8 @@ namespace ceed {
         return mem;
       }
 
-      void* memoryToData(::occa::memory &memory) {
-        return memory.getModeMemory();
+      void* memoryToData(::occa::memory &mem) {
+        return mem.getModeMemory();
       }
 
       void resizeCtx(const size_t ctxSize_);
