@@ -9,7 +9,7 @@ noether-rocm:
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - $CC --version && $CXX --version && $FC --version && $HIPCC --version
+    - $CC --version && $CXX --version && $FC --version && $HIPCC --version && gcov --version
 # MAGMA from dev branch
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
 # PETSc with HIP (minimal)
