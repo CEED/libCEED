@@ -260,7 +260,7 @@ impl Basis {
     /// assert_eq!(d, dim, "Incorrect dimension");
     /// ```
     pub fn dimension(&self) -> usize {
-        let mut dim: i32 = 0;
+        let mut dim = 0;
         unsafe { bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim) };
         usize::try_from(dim).unwrap()
     }
@@ -277,7 +277,7 @@ impl Basis {
     /// assert_eq!(n, ncomp, "Incorrect number of components");
     /// ```
     pub fn num_components(&self) -> usize {
-        let mut ncomp: i32 = 0;
+        let mut ncomp = 0;
         unsafe { bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp) };
         usize::try_from(ncomp).unwrap()
     }
@@ -294,7 +294,7 @@ impl Basis {
     /// assert_eq!(nnodes, p * p, "Incorrect number of nodes");
     /// ```
     pub fn num_nodes(&self) -> usize {
-        let mut nnodes: i32 = 0;
+        let mut nnodes = 0;
         unsafe { bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes) };
         usize::try_from(nnodes).unwrap()
     }
@@ -312,7 +312,7 @@ impl Basis {
     /// assert_eq!(nqpts, q * q, "Incorrect number of quadrature points");
     /// ```
     pub fn num_quadrature_points(&self) -> usize {
-        let mut Q: i32 = 0;
+        let mut Q = 0;
         unsafe {
             bind_ceed::CeedBasisGetNumQuadraturePoints(self.ptr, &mut Q);
         }

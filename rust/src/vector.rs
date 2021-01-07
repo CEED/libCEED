@@ -180,7 +180,7 @@ impl Vector {
     /// assert_eq!(n, 10, "Incorrect length");
     /// ```
     pub fn length(&self) -> usize {
-        let mut n: i32 = 0;
+        let mut n = 0;
         unsafe { bind_ceed::CeedVectorGetLength(self.ptr, &mut n) };
         usize::try_from(n).unwrap()
     }
