@@ -31,6 +31,22 @@ jobs:
       uses: codecov/codecov-action@v1.0.2
       with:
         token: ${{secrets.CODECOV_TOKEN}}
+
+  style:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        compiler: [gcc-9]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Rust setup
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
     - name: Rust style
       run: |
         cargo fmt -- --check
