@@ -15,11 +15,12 @@ int main(int argc, char **argv) {
 
   const size_t resourceLength = strlen(resource);
   const bool isExactMatch = strcmp(resource, backend) == 0;
-  const bool isMatchWithQueryArguments = (
-      !isExactMatch
-      && memcmp(resource, backend, resourceLength) == 0
-      && backend[resourceLength] == ':'
-                                         );
+  const bool isMatchWithQueryArguments =
+    // LCOV_EXCL_START
+    !isExactMatch
+    && memcmp(resource, backend, resourceLength) == 0
+    && backend[resourceLength] == ':';
+  // LCOV_EXCL_STOP
 
   if (!isExactMatch && !isMatchWithQueryArguments) {
     // LCOV_EXCL_START
