@@ -19,11 +19,7 @@ use libceed::{prelude::*, Ceed};
 // ----------------------------------------------------------------------------
 // Determine problem size in each dimension from size and dimenison
 // ----------------------------------------------------------------------------
-pub(crate) fn cartesian_mesh_size(
-    dim: usize,
-    solution_degree: usize,
-    problem_size: i64,
-) -> [usize; 3] {
+pub fn cartesian_mesh_size(dim: usize, solution_degree: usize, problem_size: i64) -> [usize; 3] {
     // Use the approximate formula:
     //    prob_size ~ num_elem * degree^dim
     let mut num_elem = problem_size / solution_degree.pow(dim as u32) as i64;
@@ -50,7 +46,7 @@ pub(crate) fn cartesian_mesh_size(
 // ----------------------------------------------------------------------------
 // Build element restriction objects for the mesh
 // ----------------------------------------------------------------------------
-pub(crate) fn build_cartesian_restriction(
+pub fn build_cartesian_restriction(
     ceed: &Ceed,
     dim: usize,
     num_xyz: [usize; 3],
@@ -122,7 +118,7 @@ pub(crate) fn build_cartesian_restriction(
 // ----------------------------------------------------------------------------
 // Set mesh coordinates
 // ----------------------------------------------------------------------------
-pub(crate) fn cartesian_mesh_coords(
+pub fn cartesian_mesh_coords(
     ceed: &Ceed,
     dim: usize,
     num_xyz: [usize; 3],
@@ -165,26 +161,6 @@ pub(crate) fn cartesian_mesh_coords(
         }
     }
     mesh_coords
-}
-
-// ----------------------------------------------------------------------------
-// Transform mesh coordinates
-// ----------------------------------------------------------------------------
-pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -> f64 {
-    // Transform coordinates
-    mesh_coords.view_mut().iter_mut().for_each(|coord| {
-        // map [0,1] to [0,1] varying the mesh density
-        *coord = 0.5
-            + 1.0 / (3.0_f64).sqrt() * ((2.0 / 3.0) * std::f64::consts::PI * (*coord - 0.5)).sin()
-    });
-
-    // Exact surface area of transformed region
-    let exact_area = match dim {
-        1 => 2.0,
-        2 => 4.0,
-        _ => 6.0,
-    };
-    exact_area
 }
 
 // ----------------------------------------------------------------------------

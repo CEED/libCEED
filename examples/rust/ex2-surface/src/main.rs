@@ -29,10 +29,11 @@
 // line argument (-ceed).
 
 use libceed::{prelude::*, Ceed};
+use mesh;
 use structopt::StructOpt;
 
-mod mesh;
 mod opt;
+mod transform;
 
 // ----------------------------------------------------------------------------
 // Example 1
@@ -134,7 +135,7 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size);
 
     // Apply a transformation to the mesh coordinates
-    let exact_area = mesh::transform_mesh_coordinates(dim, &mut mesh_coords);
+    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords);
 
     // QFunction that builds the quadrature data for the diff operator
     // -- QFunction from user closure

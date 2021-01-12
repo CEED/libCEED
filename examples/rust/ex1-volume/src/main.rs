@@ -28,10 +28,11 @@
 // line argument (-ceed).
 
 use libceed::{prelude::*, Ceed};
+use mesh;
 use structopt::StructOpt;
 
-mod mesh;
 mod opt;
+mod transform;
 
 // ----------------------------------------------------------------------------
 // Example 1
@@ -120,7 +121,7 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size);
 
     // Apply a transformation to the mesh coordinates
-    let exact_volume = mesh::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
+    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
 
     // QFunction that builds the quadrature data for the mass operator
     // -- QFunction from user closure
