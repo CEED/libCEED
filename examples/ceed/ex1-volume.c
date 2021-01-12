@@ -160,8 +160,10 @@ int main(int argc, const char *argv[]) {
   BuildCartesianRestriction(ceed, dim, nxyz, sol_degree, 1, &sol_size,
                             num_qpts, &sol_restr, &sol_restr_i);
   if (!test) {
+    // LCOV_EXCL_START
     printf("Number of mesh nodes     : %d\n", mesh_size/dim);
     printf("Number of solution nodes : %d\n", sol_size);
+    // LCOV_EXCL_STOP
   }
 
   // Create a CeedVector with the mesh coordinates.
@@ -278,7 +280,9 @@ int main(int argc, const char *argv[]) {
   } else {
     CeedScalar tol = (dim==1? 1E-14 : dim==2? 1E-7 : 1E-5);
     if (fabs(vol-exact_vol)>tol)
+      // LCOV_EXCL_START
       printf("Volume error : % .1e\n", vol-exact_vol);
+    // LCOV_EXCL_STOP
   }
 
   // Free dynamically allocated memory.

@@ -304,7 +304,9 @@ int main(int argc, const char *argv[]) {
   } else {
     CeedScalar tol = (dim==1? 1E-12 : dim==2? 1E-1 : 1E-1);
     if (fabs(sa-exact_sa)>tol)
+      // LCOV_EXCL_START
       printf("Surface area error         : % .14g\n", sa-exact_sa);
+    // LCOV_EXCL_STOP
   }
 
   // Free dynamically allocated memory.
