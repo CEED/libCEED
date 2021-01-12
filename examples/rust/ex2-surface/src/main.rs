@@ -402,7 +402,7 @@ mod tests {
             num_qpts: 6,
             problem_size_requested: -1,
             test: true,
-            quiet: true,
+            quiet: false,
             gallery: false,
         };
         assert!(example_2(options).is_ok());
