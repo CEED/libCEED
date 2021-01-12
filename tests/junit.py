@@ -127,7 +127,7 @@ def run(test, backends):
                 elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
             testcases.append(case)
-        return TestSuite(test, testcases)
+    return TestSuite(test, testcases)
 
 if __name__ == '__main__':
     import argparse

@@ -17,7 +17,7 @@ static bool register_all_called;
 
   @sa CeedRegister()
 
-  @ref Backend
+  @ref User
 **/
 int CeedRegisterAll() {
   if (register_all_called) return 0;

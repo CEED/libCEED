@@ -596,4 +596,9 @@ static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 **/
 static inline CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
 
+// Used to ensure initialization before CeedInit()
+CEED_EXTERN int CeedRegisterAll(void);
+// Used to ensure initialization before CeedQFunctionCreate*()
+CEED_EXTERN int CeedQFunctionRegisterAll(void);
+
 #endif

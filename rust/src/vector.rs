@@ -18,7 +18,6 @@
 //! for Ceed Operators.
 
 use std::{
-    convert::TryFrom,
     ops::{Deref, DerefMut},
     os::raw::c_char,
 };
@@ -117,7 +116,7 @@ impl fmt::Display for Vector {
 impl Vector {
     // Constructors
     pub fn create(ceed: &crate::Ceed, n: usize) -> Self {
-        let n = n as i32;
+        let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         Self { ptr: ptr }

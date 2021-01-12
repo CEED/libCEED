@@ -70,7 +70,6 @@ typedef struct CeedOperatorField_private *CeedOperatorField;
 CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed),
                              unsigned int priority);
-CEED_EXTERN int CeedRegisterAll(void);
 
 CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *isDebug);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
@@ -153,7 +152,6 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract,
     void *data);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
-CEED_EXTERN int CeedQFunctionRegisterAll(void);
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
                                       CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);

@@ -19,6 +19,11 @@
 //! This is the documentation for the high level libCEED Rust interface.
 //! See the full libCEED user manual [here](https://libceed.readthedocs.io).
 //!
+//! libCEED is a low-level API for for the efficient high-order discretization methods
+//! developed by the ECP co-design Center for Efficient Exascale Discretizations (CEED).
+//! While our focus is on high-order finite elements, the approach is mostly algebraic
+//! and thus applicable to other discretizations in factored form.
+//!
 //! ## Usage
 //!
 //! To call libCEED from a Rust package, the following `Cargo.toml` can be used.
@@ -42,6 +47,11 @@
 //! }
 //! ```
 //!
+//! ## Examples
+//!
+//! Examples of libCEED can be found in the libCEED GitHub repository under the
+//! `examples/rust` folder.
+//!
 //! ## Development
 //!
 //! To develop libCEED, use `cargo build` in the `rust/` directory to install a
@@ -64,6 +74,7 @@
 // Crate prelude
 // -----------------------------------------------------------------------------
 use crate::prelude::*;
+use std::sync::Once;
 
 pub mod prelude {
     pub(crate) mod bind_ceed {
@@ -80,8 +91,10 @@ pub mod prelude {
             self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, MAX_QFUNCTION_FIELDS,
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
+        MAX_QFUNCTION_FIELDS,
     };
+    pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
 }
@@ -100,6 +113,7 @@ pub mod vector;
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
 pub const MAX_QFUNCTION_FIELDS: usize = 16;
+pub const CEED_STRIDES_BACKEND: [i32; 3] = [0; 3];
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED
@@ -211,6 +225,8 @@ impl fmt::Display for Ceed {
     }
 }
 
+static REGISTER: Once = Once::new();
+
 // -----------------------------------------------------------------------------
 // Object constructors
 // -----------------------------------------------------------------------------
@@ -225,6 +241,11 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
+        REGISTER.call_once(|| unsafe {
+            bind_ceed::CeedRegisterAll();
+            bind_ceed::CeedQFunctionRegisterAll();
+        });
+
         // Convert to C string
         let c_resource = CString::new(resource).expect("CString::new failed");
 
@@ -521,7 +542,7 @@ impl Ceed {
     /// ```
     pub fn q_function_interior(
         &self,
-        vlength: i32,
+        vlength: usize,
         f: Box<qfunction::QFunctionUserClosure>,
     ) -> QFunction {
         QFunction::create(self, vlength, f)

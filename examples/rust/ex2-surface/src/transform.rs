@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Copyright (c) 2017-2021, Lawrence Livermore National Security, LLC.
 // Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 // All Rights reserved. See files LICENSE and NOTICE for details.
 //
@@ -14,34 +14,26 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/**
- This file is not compiled into libCEED. This file provides a template to
-   build additional gallery QFunctions. Copy this file and the registration/
-   initialization .c file to a new folder in this directory and modify.
-**/
+use libceed::prelude::*;
 
-/**
-  @brief New Ceed QFunction
-**/
+// ----------------------------------------------------------------------------
+// Transform mesh coordinates
+// ----------------------------------------------------------------------------
+pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -> f64 {
+    // Transform coordinates
+    mesh_coords.view_mut().iter_mut().for_each(|coord| {
+        // map [0,1] to [0,1] varying the mesh density
+        *coord = 0.5
+            + 1.0 / (3.0_f64).sqrt() * ((2.0 / 3.0) * std::f64::consts::PI * (*coord - 0.5)).sin()
+    });
 
-#ifndef gallerytemplate_h
-#define gallerytemplate_h
-// LCOV_EXCL_START
-CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
-  // in[0] is u, size (Q)
-  // in[1] is quadrature data, size (Q)
-  const CeedScalar *u = in[0], *qd = in[1];
-  // out[0] is v, size (Q)
-  CeedScalar *v = out[0];
-
-  // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = u[i] * qd[i];
-  }
-
-  return 0;
+    // Exact surface area of transformed region
+    let exact_area = match dim {
+        1 => 2.0,
+        2 => 4.0,
+        _ => 6.0,
+    };
+    exact_area
 }
-// LCOV_EXCL_STOP
-#endif // gallerytemplate_h
+
+// ----------------------------------------------------------------------------
