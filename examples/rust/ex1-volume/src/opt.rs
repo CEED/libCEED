@@ -24,6 +24,7 @@ use structopt::StructOpt;
     name = "libCEED Rust Example 1 - Volume",
     about = "This example uses the mass matrix to compute the length, area, or volume of a region, depending upon runtime parameters."
 )]
+#[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
     /// libCEED backend resource to use
     #[structopt(name = "ceed", short = "c", long = "ceed", default_value = "/cpu/self")]

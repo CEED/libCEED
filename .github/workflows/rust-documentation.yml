@@ -26,12 +26,12 @@ jobs:
       run: |
         cd rust
         cargo doc --all --no-deps
+        cd ..
         touch ./target/doc/.nojekyll
         echo "<meta http-equiv=refresh content=0;url=libceed/index.html>" > ./target/doc/index.html
-        cd ..
     - name: Deploy documentation
       uses: peaceiris/actions-gh-pages@v3
       with:
         external_repository: CEED/libCEED-rust-docs
         deploy_key: ${{ secrets.RUST_DOCS_KEY }}
-        publish_dir: ./rust/target/doc
+        publish_dir: ./target/doc
