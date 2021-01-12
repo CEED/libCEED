@@ -36,8 +36,9 @@ mod opt;
 mod transform;
 
 // ----------------------------------------------------------------------------
-// Example 1
+// Example 2
 // ----------------------------------------------------------------------------
+#[cfg(not(tarpaulin_include))]
 fn main() -> Result<(), String> {
     let options = opt::Opt::from_args();
     example_2(options)
