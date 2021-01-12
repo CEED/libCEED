@@ -282,150 +282,96 @@ mod tests {
 
     #[test]
     fn example_1_1d() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 1;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = true;
-        let gallery = false;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 1,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: false,
         };
         assert!(example_1(options).is_ok());
     }
 
     #[test]
     fn example_1_2d() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 2;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = true;
-        let gallery = false;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 2,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: false,
         };
         assert!(example_1(options).is_ok());
     }
 
     #[test]
     fn example_1_3d() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 3;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = false;
-        let gallery = false;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 3,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: false,
         };
         assert!(example_1(options).is_ok());
     }
 
     #[test]
     fn example_1_1d_gallery() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 1;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = true;
-        let gallery = true;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 1,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: true,
         };
         assert!(example_1(options).is_ok());
     }
 
     #[test]
     fn example_1_2d_gallery() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 2;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = true;
-        let gallery = true;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 2,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: true,
         };
         assert!(example_1(options).is_ok());
     }
 
     #[test]
     fn example_1_3d_gallery() {
-        let ceed_spec = "/cpu/self/ref/serial".to_string();
-        let dim = 3;
-        let mesh_degree = 4;
-        let solution_degree = 4;
-        let num_qpts = 6;
-        let problem_size_requested = -1;
-        let test = true;
-        let quiet = true;
-        let gallery = true;
         let options = opt::Opt {
-            ceed_spec,
-            dim,
-            mesh_degree,
-            solution_degree,
-            num_qpts,
-            problem_size_requested,
-            test,
-            quiet,
-            gallery,
+            ceed_spec: "/cpu/self/ref/serial".to_string(),
+            dim: 3,
+            mesh_degree: 4,
+            solution_degree: 4,
+            num_qpts: 6,
+            problem_size_requested: -1,
+            test: true,
+            quiet: true,
+            gallery: true,
         };
         assert!(example_1(options).is_ok());
     }
