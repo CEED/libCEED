@@ -17,7 +17,7 @@ static bool register_all_called;
 
   @sa CeedQFunctionRegister()
 
-  @ref Backend
+  @ref User
 **/
 int CeedQFunctionRegisterAll() {
   if (register_all_called) return 0;
