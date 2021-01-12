@@ -255,12 +255,10 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
             volume - exact_volume
         );
     }
-    let tolerance = if dim == 1 {
-        1E-14
-    } else if dim == 2 {
-        1E-7
-    } else {
-        1E-5
+    let tolerance = match dim {
+        1 => 1E-14,
+        2 => 1E-7,
+        _ => 1E-5,
     };
     let error = (volume - exact_volume).abs();
     if error > tolerance {

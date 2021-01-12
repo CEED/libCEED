@@ -337,12 +337,9 @@ fn example_2(options: opt::Opt) -> Result<(), String> {
         println!("Computed mesh surface_area  : {:.12}", area);
         println!("Surface area error          : {:.12e}", area - exact_area);
     }
-    let tolerance = if dim == 1 {
-        1E-12
-    } else if dim == 2 {
-        1E-1
-    } else {
-        1E-1
+    let tolerance = match dim {
+        1 => 1E-12,
+        _ => 1E-1,
     };
     let error = (area - exact_area).abs();
     if error > tolerance {
