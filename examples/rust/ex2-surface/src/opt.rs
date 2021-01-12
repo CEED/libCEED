@@ -24,6 +24,7 @@ use structopt::StructOpt;
     name = "libCEED Rust Example 2 - Surface Area",
     about = "This example illustrates a simple usage of libCEED to compute the surface area of a body using matrix-free application of a diffusion operator."
 )]
+#[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
     /// libCEED backend resource to use
     #[structopt(name = "ceed", short = "c", long = "ceed", default_value = "/cpu/self")]
