@@ -425,7 +425,6 @@ mod tests {
 
     #[test]
     fn example_2_2d_gallery() {
-
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 2,
