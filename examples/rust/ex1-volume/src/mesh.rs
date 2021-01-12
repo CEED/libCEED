@@ -197,10 +197,9 @@ pub(crate) fn transform_mesh_coordinates(
     }
 
     // Exact volume of transformed region
-    let exact_volume = if dim == 1 {
-        1.0
-    } else {
-        3.0 / 4.0 * std::f64::consts::PI
+    let exact_volume = match dim {
+        1 => 1.0,
+        _ => 3.0 / 4.0 * std::f64::consts::PI,
     };
     exact_volume
 }

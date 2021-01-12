@@ -179,12 +179,10 @@ pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -
     });
 
     // Exact surface area of transformed region
-    let exact_area = if dim == 1 {
-        2.0
-    } else if dim == 2 {
-        4.0
-    } else {
-        6.0
+    let exact_area = match dim {
+        1 => 2.0,
+        2 => 4.0,
+        _ => 6.0,
     };
     exact_area
 }
