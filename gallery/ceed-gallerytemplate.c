@@ -27,6 +27,7 @@
 /**
   @brief Set fields for new Ceed QFunction
 **/
+// LCOV_EXCL_START
 static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
@@ -52,3 +53,4 @@ CEED_INTERN int CeedQFunctionRegister_Template(void) {
   return CeedQFunctionRegister("GalleryTemplate", GalleryTemplate_loc, 1,
                         GalleryTemplate, CeedQFunctionInit_GalleryTemplate);
 }
+// LCOV_EXCL_STOP

@@ -2,10 +2,12 @@
 #include <stdlib.h>
 
 // This function provides a debug target for weak symbols
+// LCOV_EXCL_START
 static int CeedRegister_Weak(const char *name) {
   if (getenv("CEED_DEBUG")) fprintf(stderr, "Weak %s\n", name);
   return 0;
 }
+// LCOV_EXCL_STOP
 
 #define MACRO(name)                                                     \
   CEED_INTERN int name(void) __attribute__((weak));                     \
