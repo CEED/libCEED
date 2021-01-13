@@ -102,7 +102,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
 
-  // Exact Solutions
+  // Exact Solutions (traveling vortex)
   //const CeedScalar rho = 1.;
   //const CeedScalar P = 1.;
   //const CeedScalar E = 2.;
@@ -114,7 +114,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
 
   // Initial Conditions
   if (0) { // Case 1: constant zero velocity, density constant, total energy constant
-
     const CeedScalar rho = 1.;
     const CeedScalar P = 1.;
     const CeedScalar E = 2.;
@@ -127,7 +126,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     q[4] = E;
   }
   if (0) { // Case 2: constant nonzero velocity, density constant, total energy constant
-
     const CeedScalar rho = 1.;
     const CeedScalar P = 1.;
     const CeedScalar E = 2.;
@@ -143,26 +141,22 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // (so density and internal energy will be non-constant),
     // but the velocity should stay zero and the bubble won't diffuse
     // (for Euler, where there is no thermal conductivity)
-
     const CeedScalar P = 1.;
-    const CeedScalar T = 1. - S * exp(1. - r*r); // I am not sure!!!
+    const CeedScalar T = 1. - S * exp(1. - r*r);
     const CeedScalar rho = P / (R*T);
-    //const CeedScalar E = 2.;
     const CeedScalar u[3] = {0., 0., 0.};
 
     q[0] = rho;
     q[1] = rho * u[0];
     q[2] = rho * u[1];
     q[3] = rho * u[2];
-    q[4] = rho * ( cv * T + (u[0]*u[0] +
-                             u[1]*u[1])/2. ); // It doesn't really change!
+    q[4] = rho * ( cv * T + (u[0]*u[0] + u[1]*u[1])/2. );
   }
   if (1) { // Case 4: constant nonzero velocity, pressure constant
     // (so density and internal energy will be non-constant),
     // it should be transported across the domain, but velocity stays constant
-
     const CeedScalar P = 1.;
-    const CeedScalar T = 1. - S * exp(1. - r*r); // P / rho - S * exp(1. - r*r);
+    const CeedScalar T = 1. - S * exp(1. - r*r);
     const CeedScalar rho = P / (R*T);
     const CeedScalar u[3] = {1.1, 1.2, 0.};
 
@@ -268,12 +262,12 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
-  CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
-                     etv_mean_velocity[1] + C*x0,
-                     0.
-                    };
+  const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
+                           etv_mean_velocity[1] + C*x0,
+                           0.
+                          };
 
-  // Forcing term for Manufactured solution
+  // Forcing term for Manufactured solution (traveling vortex)
   if (0) {
     force[0] = 0.;
     force[1] = C * ( 2*etv_mean_velocity[1] + x0 *C );
@@ -281,118 +275,6 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
     force[3] = 0.;
     force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
                C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
-  }
-  if (0) { // Case 4
-
-    const CeedScalar P = 1.;
-    const CeedScalar T = 1. - S * exp(1. - r*r);
-    u[0] = 1.1;
-    u[1] = 1.2;
-
-    force[0] =
-      (11*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[0] - 2*x +
-                    2*etv_mean_velocity[0]*time))/(10* pow((S*exp(1 - pow((center[1] - y +
-                        etv_mean_velocity[1]*time), 2) -
-                        pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) +
-      (6*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-               pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[1] - 2*y +
-                   2*etv_mean_velocity[1]*time))/(5* pow((S*exp(1 - pow((center[1] - y +
-                       etv_mean_velocity[1]*time),
-                       2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) -
-      (S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time),
-                     2) - pow((center[0] - x +
-                               etv_mean_velocity[0]*time), 2))*(2*etv_mean_velocity[0]*(center[0] - x +
-                                   etv_mean_velocity[0]*time) + 2*etv_mean_velocity[1]*(center[1] - y +
-                                       etv_mean_velocity[1]*time)))/ pow((S*exp(1 - pow((center[1] - y +
-                                           etv_mean_velocity[1]*time),
-                                           2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2);
-
-    force[1] =
-      (121*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                 pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[0] - 2*x +
-                     2*etv_mean_velocity[0]*time))/(100* pow((S*exp(1 - pow((center[1] - y +
-                         etv_mean_velocity[1]*time),
-                         2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) +
-      (33*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time),
-                        2) - pow((center[0] - x +
-                                  etv_mean_velocity[0]*time),
-                                 2))*(2*center[1] - 2*y + 2*etv_mean_velocity[1]*time))/(25*
-                                     pow((S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                                          pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) -
-      (11*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                pow((center[0] - x + etv_mean_velocity[0]*time),
-                    2))*(2*etv_mean_velocity[0]*(center[0] -
-                         x + etv_mean_velocity[0]*time) + 2*etv_mean_velocity[1]*(center[1] - y +
-                             etv_mean_velocity[1]*time)))/(10* pow((S*exp(1 - pow((center[1] - y +
-                                 etv_mean_velocity[1]*time),
-                                 2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2));
-
-
-    force[2] =
-      (33*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[0] - 2*x +
-                    2*etv_mean_velocity[0]*time))/(25* pow((S*exp(1 - pow((center[1] - y +
-                        etv_mean_velocity[1]*time),
-                        2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2))
-                        - 1), 2)) + (36*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                                     pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[1] - 2*y +
-                                         2*etv_mean_velocity[1]*time))/(25* pow((S*exp(1 - pow((center[1] - y +
-                                             etv_mean_velocity[1]*time),
-                                             2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2))
-                                             - 1), 2)) - (6*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                                                 pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*etv_mean_velocity[0]*
-                                                     (center[0] - x + etv_mean_velocity[0]*time) + 2*etv_mean_velocity[1]*
-                                                     (center[1] - y + etv_mean_velocity[1]*time)))/(5* pow((S*exp(1 - pow((
-                                                         center[1] - y +
-                                                         etv_mean_velocity[1]*time),
-                                                         2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2));
-
-
-    force[3] = 0;
-
-    force[4] = (11*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                         pow((center[0] - x + etv_mean_velocity[0]*time), 2))*(2*center[0] -
-                             2*x + 2*etv_mean_velocity[0]*time))/(4*(S*exp(1 -
-                                 pow((center[1] - y + etv_mean_velocity[1]*time), 2) - pow((center[0] - x +
-                                     etv_mean_velocity[0]*time), 2)) - 1)) + (3*S*exp(1 -
-                                         pow((center[1] - y + etv_mean_velocity[1]*time), 2) - pow((center[0] - x +
-                                             etv_mean_velocity[0]*time),
-                                             2))*(2*center[1] - 2*y + 2*etv_mean_velocity[1]*time))/
-               (S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time),
-                              2) - pow((center[0] - x +
-                                        etv_mean_velocity[0]*time), 2)) - 1) - (5*S*exp(1 - pow((center[1] - y +
-                                            etv_mean_velocity[1]*time),
-                                            2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2))*
-                                            (2*etv_mean_velocity[0]*(center[0] - x + etv_mean_velocity[0]*time) +
-                                                2*etv_mean_velocity[1]*(center[1] - y + etv_mean_velocity[1]*time)))/
-               (2*(S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                         pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1)) -
-               (11*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                         pow((center[0] - x + etv_mean_velocity[0]*time), 2))*((5*S*exp(1 -
-                             pow((center[1] - y + etv_mean_velocity[1]*time), 2) - pow((center[0] - x +
-                                 etv_mean_velocity[0]*time), 2)))/2 - 153/40)*(2*center[0] -
-                                     2*x + 2*etv_mean_velocity[0]*time))/(10* pow((S*exp(1 - pow((center[1] - y +
-                                         etv_mean_velocity[1]*time), 2) -
-                                         pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) -
-               (6*S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                        pow((center[0] - x + etv_mean_velocity[0]*time), 2))*((5*S*exp(1 -
-                            pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                            pow((center[0] - x + etv_mean_velocity[0]*time), 2)))/2 - 153/40)*
-                (2*center[1] - 2*y + 2*etv_mean_velocity[1]*time))/
-               (5* pow((S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                              pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2)) +
-               (S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time), 2) -
-                      pow((center[0] - x + etv_mean_velocity[0]*time),
-                          2))*(2*etv_mean_velocity[0]*(center[0] -
-                               x + etv_mean_velocity[0]*time) + 2*etv_mean_velocity[1]*(center[1] - y +
-                                   etv_mean_velocity[1]*time))*((5*S*exp(1 - pow((center[1] - y +
-                                       etv_mean_velocity[1]*time),
-                                       2) - pow((center[0] - x + etv_mean_velocity[0]*time), 2)))/
-                                       2 - 153/40))/ pow((S*exp(1 - pow((center[1] - y + etv_mean_velocity[1]*time),
-                                           2) -
-                                           pow((center[0] - x + etv_mean_velocity[0]*time), 2)) - 1), 2);
-
   }
   // No forcing
   if (1) for (int j=0; j<5; j++) force[j] = 0.;
