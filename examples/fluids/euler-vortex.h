@@ -369,6 +369,103 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
+
+// *****************************************************************************
+// This QFunction implements outflow and inflow BCs for
+//      3D Euler traveling vortex
+//
+//  Inflow and outflow faces are determined based on
+//    sign(dot(etv_mean_velocity, normal)):
+//      sign(dot(etv_mean_velocity, normal)) > 0 : outflow BCs
+//      sign(dot(etv_mean_velocity, normal)) < 0 : inflow BCs
+//
+//  Outflow BCs:
+//    The validity of the weak form of the governing equations is
+//    extended to the outflow.
+//
+//  Inflow BCs:
+//    Prescribed T_inlet and P_inlet are converted to conservative variables
+//      and applied weakly.
+//
+//
+// *****************************************************************************
+CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
+                          const CeedScalar *const *in,
+                          CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  SurfaceContext context = (SurfaceContext)ctx;
+  const CeedScalar T_inlet = context->T_inlet;
+  const CeedScalar P_inlet = context->P_inlet;
+  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho      =  q[0][i];
+    const CeedScalar u[3]     = {q[1][i] / rho,
+                                 q[2][i] / rho,
+                                 q[3][i] / rho
+                                };
+    const CeedScalar E        =  q[4][i];
+
+    // -- Interp-to-Interp qdata
+    const CeedScalar wdetJb   =    qdataSur[0][i];
+    const CeedScalar norm[3]  =   {qdataSur[1][i],
+                                   qdataSur[2][i],
+                                   qdataSur[3][i]
+                                  };
+
+    const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
+    const CeedScalar gamma = 1.4;
+    const CeedScalar cv = 2.5;
+    const CeedScalar R = 1.;
+    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1]) / 2.;  // ke = kinetic energy
+    const CeedScalar P  = (E - ke * rho) * (gamma - 1.); // P = pressure
+    const CeedScalar rho_inlet = P_inlet/(R*T_inlet);    // rho_inlet = incoming density
+    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +  norm[2]*u[2]; // u_n = Normal velocity
+    const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + ke); // E_inlet = incoming total energy
+    // TODO: not sure about ke!
+
+    // face_n = Normal vector of the face
+    const CeedScalar face_n = norm[0]*etv_mean_velocity[0] +
+                              norm[1]*etv_mean_velocity[1] +
+                              norm[2]*etv_mean_velocity[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (int j=0; j<5; j++) v[j][i] = 0;
+
+    // Implementing in/outflow BCs
+    if (face_n > 0) { // outflow
+      // -- Density
+      v[0][i] -= wdetJb * rho * u_n;
+      // -- Momentum
+      for (int j=0; j<3; j++)
+        v[j+1][i] -= wdetJb *(rho * u_n * u[j] + norm[j] * P);
+      // -- Total Energy Density
+      v[4][i] -= wdetJb * u_n * (E + P);
+    } else { // inflow
+      // -- Density
+      v[0][i] -= wdetJb * rho_inlet * u_n;
+      // -- Momentum
+      for (int j=0; j<3; j++)
+        v[j+1][i] -= wdetJb *(rho_inlet * u_n * u[j] + norm[j] * P_inlet);
+      // -- Total Energy Density
+      v[4][i] -= wdetJb * u_n * (E_inlet + P_inlet);
+    }
+
+  } // End Quadrature Point Loop
+  return 0;
+}
+
 // *****************************************************************************
 
 #endif // eulervortex_h
