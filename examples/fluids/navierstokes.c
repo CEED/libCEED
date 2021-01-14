@@ -962,9 +962,6 @@ int main(int argc, char **argv) {
   PetscInt qextraSur         = 2;        // -
   PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0},
                                     etv_mean_velocity[3] = {1., 1., 0};
-  DMBoundaryType periodicity[] = {DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                                  DM_BOUNDARY_NONE
-                                 };
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
@@ -1244,18 +1241,11 @@ int main(int argc, char **argv) {
     .wind_type = wind_type,
   };
 
-  // Periodicity for EULER_VORTEX test case
-  if (problemChoice == NS_EULER_VORTEX) {
-    periodicity[0] = PETSC_TRUE;
-    periodicity[1] = PETSC_TRUE;
-    periodicity[2] = PETSC_FALSE;
-  }
-
   // Create the mesh
   {
     const PetscReal scale[3] = {lx, ly, lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               periodicity, PETSC_TRUE, &dm);
+                               NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
   }
 
