@@ -440,7 +440,8 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
     if (face_n > 0) { // outflow
       const CeedScalar ke = (u[0]*u[0] + u[1]*u[1]) / 2.;  // kinetic energy
       const CeedScalar P  = (E - ke * rho) * (gamma - 1.); // pressure
-      const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +  norm[2]*u[2]; // Normal velocity
+      const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +
+                             norm[2]*u[2]; // Normal velocity
       // -- Density
       v[0][i] -= wdetJb * rho * u_n;
       // -- Momentum
@@ -452,12 +453,14 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
       const CeedScalar rho_inlet = P_inlet/(R*T_inlet);    // incoming density
       const CeedScalar ke_inlet = (etv_mean_velocity[0]*etv_mean_velocity[0] +
                                    etv_mean_velocity[1]*etv_mean_velocity[1]) / 2.; // kinetic energy
-      const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + ke_inlet); // incoming total energy
+      // incoming total energy
+      const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + ke_inlet);
       // -- Density
       v[0][i] -= wdetJb * rho_inlet * face_n;
       // -- Momentum
       for (int j=0; j<3; j++)
-        v[j+1][i] -= wdetJb *(rho_inlet * face_n * etv_mean_velocity[j] + norm[j] * P_inlet);
+        v[j+1][i] -= wdetJb *(rho_inlet * face_n * etv_mean_velocity[j] +
+                              norm[j] * P_inlet);
       // -- Total Energy Density
       v[4][i] -= wdetJb * face_n * (E_inlet + P_inlet);
     }

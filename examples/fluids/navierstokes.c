@@ -434,7 +434,8 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  if (wind_type == ADVECTION_WIND_TRANSLATION || problemChoice == NS_EULER_VORTEX) {
+  if (wind_type == ADVECTION_WIND_TRANSLATION
+      || problemChoice == NS_EULER_VORTEX) {
     // Ignore wall and slip BCs
     bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
     if (wind_type == ADVECTION_WIND_TRANSLATION) bc->nslip[2] = 0;
