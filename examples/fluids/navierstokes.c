@@ -191,6 +191,8 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsEuler_loc,
     .applyVol_rhs              = Euler,
     .applyVol_rhs_loc          = Euler_loc,
+    .applySur                  = Euler_Sur,
+    .applySur_loc              = Euler_Sur_loc,
     .bc                        = Exact_Euler,
     .non_zero_time             = PETSC_TRUE,
   },
@@ -432,10 +434,10 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  if (wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (wind_type == ADVECTION_WIND_TRANSLATION || problemChoice == NS_EULER_VORTEX) {
     // Ignore wall and slip BCs
-    bc->nwall = 0;
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+    bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
+    if (wind_type == ADVECTION_WIND_TRANSLATION) bc->nslip[2] = 0;
 
     // Set number of faces
     if (dim == 2) nFace = 4;
@@ -801,8 +803,6 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    if (problem->bc == Exact_Euler)
-      bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
