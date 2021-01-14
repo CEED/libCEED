@@ -941,8 +941,8 @@ int main(int argc, char **argv) {
   CeedScalar cv              = 717.;     // J/(kg K)
   CeedScalar cp              = 1004.;    // J/(kg K)
   CeedScalar vortex_strength = 5.;       // -
-  CeedScalar T_inlet         = 300.;     // K
-  CeedScalar P_inlet         = 1.e5;     // Pa
+  CeedScalar T_inlet         = 1.;       // K
+  CeedScalar P_inlet         = 1.;       // Pa
   CeedScalar g               = 9.81;     // m/s^2
   CeedScalar lambda          = -2./3.;   // -
   CeedScalar mu              = 75.;      // Pa s, dynamic viscosity
