@@ -102,16 +102,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
 
-  // Exact Solutions (traveling vortex)
-  //const CeedScalar rho = 1.;
-  //const CeedScalar P = 1.;
-  //const CeedScalar E = 2.;
-  //const CeedScalar T = P / rho - S * exp(1. - r*r);
-  //const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
-  //                         etv_mean_velocity[1] + C*x0,
-  //                         0.
-  //                        };
-
   // Initial Conditions
   if (0) { // Case 1: constant zero velocity, density constant, total energy constant
     const CeedScalar rho = 1.;
@@ -167,14 +157,23 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     q[4] = rho * ( cv * T + (u[0]*u[0] + u[1]*u[1])/2. );
   }
 
-  //if (0) { // Euler
-  //  q[0] = rho;
-  //  q[1] = rho * u[0];
-  //  q[2] = rho * u[1];
-  //  q[3] = rho * u[2];
-  //  q[4] = P / (gamma - 1.) + rho * (u[0]*u[0] + u[1]*u[1]) / 2.;
-  //}
+  if (0) { // Traveling vortex
+    const CeedScalar rho = 1.;
+    const CeedScalar P = 1.;
+    const CeedScalar E = 2.;
+    const CeedScalar T = P / rho - S * exp(1. - r*r);
+    const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
+                             etv_mean_velocity[1] + C*x0,
+                             0.
+                            };
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = P / (gamma - 1.) + rho * (u[0]*u[0] + u[1]*u[1]) / 2.;
+  }
 
+  // Return
   return 0;
 }
 
