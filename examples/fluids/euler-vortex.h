@@ -63,8 +63,6 @@ struct EulerContext_ {
 // Conversion to Conserved Variables:
 //   E   = P / (gamma - 1) + rho (u u)/2
 //
-// TODO: Not sure what to do about BCs
-//
 // Constants:
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
@@ -331,8 +329,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
 
     // The Physics
     for (int j=0; j<5; j++) {
-      v[j][i] = force[j]; // MMS forcing term TODO: maybe (-)
-      //if (fabs(force[j]) > 10E-8) printf(" Force[%d] = %f \n", j, force[j]);
+      v[j][i] = force[j]; // MMS forcing term
       for (int k=0; k<3; k++)
         dv[k][j][i] = 0; // Zero dv so all future terms can safely sum into it
     }
