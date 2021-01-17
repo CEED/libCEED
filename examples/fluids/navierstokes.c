@@ -1013,6 +1013,7 @@ int main(int argc, char **argv) {
     SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
             "-problem_advection_wind translation is not defined for -problem density_current or -problem euler_vortex");
   }
+  n = problem->dim;
   ierr = PetscOptionsRealArray("-problem_euler_mean_velocity",
                                "Mean velocity vector",
                                NULL, etv_mean_velocity, &n, NULL);
