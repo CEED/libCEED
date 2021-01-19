@@ -42,6 +42,7 @@ struct EulerContext_ {
   CeedScalar currentTime;
   CeedScalar vortex_strength;
   CeedScalar etv_mean_velocity[3];
+  int euler_test;
 };
 #endif
 
@@ -112,78 +113,77 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
+  CeedScalar rho, P, T, E, u[3] = {0.};
 
   // Initial Conditions
-  if (0) { // Case 1: constant zero velocity, density constant, total energy constant
-    const CeedScalar rho = 1.;
-    const CeedScalar P = 1.;
-    const CeedScalar E = 2.;
-    const CeedScalar u[3] = {0., 0., 0.};
+  switch (context->euler_test) {
+  case 0: // Traveling vortex
+    rho = 1.;
+    P = 1.;
+    T = P / rho - S * exp(1. - r*r);
+    u[0] = etv_mean_velocity[0] - C*y0;
+    u[1] = etv_mean_velocity[1] + C*x0;
 
-    q[0] = rho;
-    q[1] = rho * u[0];
-    q[2] = rho * u[1];
-    q[3] = rho * u[2];
-    q[4] = E;
-  }
-  if (0) { // Case 2: constant nonzero velocity, density constant, total energy constant
-    const CeedScalar rho = 1.;
-    const CeedScalar P = 1.;
-    const CeedScalar E = 2.;
-    const CeedScalar u[3] = {etv_mean_velocity[0], etv_mean_velocity[1], 0.}; // {1., 1., 0.};
-
-    q[0] = rho;
-    q[1] = rho * u[0];
-    q[2] = rho * u[1];
-    q[3] = rho * u[2];
-    q[4] = E;
-  }
-  if (0) { // Case 3: velocity zero, pressure constant
-    // (so density and internal energy will be non-constant),
-    // but the velocity should stay zero and the bubble won't diffuse
-    // (for Euler, where there is no thermal conductivity)
-    const CeedScalar P = 1.;
-    const CeedScalar T = 1. - S * exp(1. - r*r);
-    const CeedScalar rho = P / (R*T);
-    const CeedScalar u[3] = {0., 0., 0.};
-
-    q[0] = rho;
-    q[1] = rho * u[0];
-    q[2] = rho * u[1];
-    q[3] = rho * u[2];
-    q[4] = rho * ( cv * T + (u[0]*u[0] + u[1]*u[1])/2. );
-  }
-  if (1) { // Case 4: constant nonzero velocity, pressure constant
-    // (so density and internal energy will be non-constant),
-    // it should be transported across the domain, but velocity stays constant
-    const CeedScalar P = 1.;
-    const CeedScalar T = 1. - S * exp(1. - r*r);
-    const CeedScalar rho = P / (R*T);
-    const CeedScalar u[3] = {etv_mean_velocity[0], etv_mean_velocity[1], 0.}; // {1., 1., 0.};
-
-    q[0] = rho;
-    q[1] = rho * u[0];
-    q[2] = rho * u[1];
-    q[3] = rho * u[2];
-    q[4] = rho * ( cv * T + (u[0]*u[0] + u[1]*u[1])/2. );
-  }
-
-  if (0) { // Traveling vortex
-    const CeedScalar rho = 1.;
-    const CeedScalar P = 1.;
-    const CeedScalar E = 2.;
-    const CeedScalar T = P / rho - S * exp(1. - r*r);
-    const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
-                             etv_mean_velocity[1] + C*x0,
-                             0.
-                            };
     q[0] = rho;
     q[1] = rho * u[0];
     q[2] = rho * u[1];
     q[3] = rho * u[2];
     q[4] = P / (gamma - 1.) + rho * (u[0]*u[0] + u[1]*u[1]) / 2.;
-  }
+    break;
+  case 1: // Constant zero velocity, density constant, total energy constant
+    rho = 1.;
+    P = 1.;
+    E = 2.;
 
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = E;
+    break;
+  case 2: // Constant nonzero velocity, density constant, total energy constant
+    rho = 1.;
+    P = 1.;
+    E = 2.;
+    u[0] = etv_mean_velocity[0];
+    u[1] = etv_mean_velocity[1];
+
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = E;
+    break;
+  case 3: // Velocity zero, pressure constant
+    // (so density and internal energy will be non-constant),
+    // but the velocity should stay zero and the bubble won't diffuse
+    // (for Euler, where there is no thermal conductivity)
+    P = 1.;
+    T = 1. - S * exp(1. - r*r);
+    rho = P / (R*T);
+
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
+    break;
+  case 4: // Constant nonzero velocity, pressure constant
+    // (so density and internal energy will be non-constant),
+    // it should be transported across the domain, but velocity stays constant
+    P = 1.;
+    T = 1. - S * exp(1. - r*r);
+    rho = P / (R*T);
+    u[0] = etv_mean_velocity[0];
+    u[1] = etv_mean_velocity[1];
+
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
+    break;
+  }
   // Return
   return 0;
 }
@@ -276,18 +276,8 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
                            etv_mean_velocity[1] + C*x0,
                            0.
                           };
-
-  // Forcing term for Manufactured solution (traveling vortex)
-  if (0) {
-    force[0] = 0.;
-    force[1] = C * ( 2*etv_mean_velocity[1] + x0 *C );
-    force[2] = -C*C*y0;
-    force[3] = 0.;
-    force[4] = 2.*S*cv*(x0*u[0] + y0*u[1]) + x0*y0*C*(u[0]*u[0] - u[1]*u[1]) *
-               C*u[0]*u[1]*(y0*y0 - x0*x0) + 2.*C*u[0]*u[1];
-  }
-  // No forcing
-  if (1) for (int j=0; j<5; j++) force[j] = 0.;
+// TODO: Forcing terms
+  for (int j=0; j<5; j++) force[j] = 0.;
   return 0;
 }
 // *****************************************************************************

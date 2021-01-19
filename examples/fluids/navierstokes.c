@@ -106,6 +106,22 @@ static const char *const StabilizationTypes[] = {
   "StabilizationType", "STAB_", NULL
 };
 
+typedef enum {
+  EULER_TEST_NONE = 0,
+  EULER_TEST_1 = 1,
+  EULER_TEST_2 = 2,
+  EULER_TEST_3 = 3,
+  EULER_TEST_4 = 4,
+} EulerTestType;
+static const char *const EulerTestTypes[] = {
+  "none",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "EulerTestType", "EULER_TEST_", NULL
+};
+
 // Test Options
 typedef enum {
   TEST_NONE = 0,               // Non test mode
@@ -943,6 +959,7 @@ int main(int argc, char **argv) {
   problemData *problem = NULL;
   WindType wind_type;
   StabilizationType stab;
+  EulerTestType euler_test;
   testType testChoice;
   testData *test = NULL;
   PetscBool implicit;
@@ -1052,6 +1069,9 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-euler_test", "Euler test option", NULL,
+                          EulerTestTypes, (PetscEnum)(euler_test = EULER_TEST_NONE),
+                          (PetscEnum *)&euler_test, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -1632,6 +1652,7 @@ int main(int argc, char **argv) {
   // Set up ctxEulerData structure
   ctxEulerData->time = 0.;
   ctxEulerData->currentTime = 0.;
+  ctxEulerData->euler_test = euler_test;
   ctxEulerData->center[0] = center[0];
   ctxEulerData->center[1] = center[1];
   ctxEulerData->center[2] = center[2];
