@@ -437,7 +437,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) v[j][i] = 0;
 
     // Implementing in/outflow BCs
-    if (face_n > 0) { // outflow
+    if (face_n > 1E-5) { // outflow
       const CeedScalar ke = (u[0]*u[0] + u[1]*u[1]) / 2.;  // kinetic energy
       const CeedScalar P  = (E - ke * rho) * (gamma - 1.); // pressure
       const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +
@@ -449,7 +449,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
         v[j+1][i] -= wdetJb *(rho * u_n * u[j] + norm[j] * P);
       // -- Total Energy Density
       v[4][i] -= wdetJb * u_n * (E + P);
-    } else { // inflow
+    } else if (face_n < -1E-5) { // inflow
       const CeedScalar rho_inlet = P_inlet/(R*T_inlet);    // incoming density
       const CeedScalar ke_inlet = (etv_mean_velocity[0]*etv_mean_velocity[0] +
                                    etv_mean_velocity[1]*etv_mean_velocity[1]) / 2.; // kinetic energy
