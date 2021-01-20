@@ -1607,11 +1607,6 @@ int main(int argc, char **argv) {
   struct SurfaceContext_ ctxSurfaceData = {
     .E_wind = E_wind,
     .strong_form = strong_form,
-    .T_inlet = T_inlet,
-    .P_inlet = P_inlet,
-    .etv_mean_velocity[0] = etv_mean_velocity[0],
-    .etv_mean_velocity[1] = etv_mean_velocity[1],
-    .etv_mean_velocity[2] = etv_mean_velocity[2],
     .implicit = implicit,
   };
   CeedQFunctionContextCreate(ceed, &ctxSurface);
@@ -1629,6 +1624,8 @@ int main(int argc, char **argv) {
   ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
   ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
   ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
+  ctxEulerData->T_inlet = T_inlet;
+  ctxEulerData->P_inlet = P_inlet;
   user->ctxEulerData = ctxEulerData;
 
   CeedQFunctionContextCreate(ceed, &ctxEuler);
@@ -1648,7 +1645,7 @@ int main(int argc, char **argv) {
   case NS_EULER_VORTEX:
     if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
+    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxEuler);
   }
 
   // Set up PETSc context

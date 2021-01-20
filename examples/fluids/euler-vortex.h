@@ -42,20 +42,9 @@ struct EulerContext_ {
   CeedScalar currentTime;
   CeedScalar vortex_strength;
   CeedScalar etv_mean_velocity[3];
+  CeedScalar T_inlet;
+  CeedScalar P_inlet;
   int euler_test;
-};
-#endif
-
-#ifndef surface_context_struct
-#define surface_context_struct
-typedef struct SurfaceContext_ *SurfaceContext;
-struct SurfaceContext_ {
-  CeedScalar E_wind;               // advection(2d)
-  CeedScalar strong_form;          // advection(2d)
-  CeedScalar T_inlet;              // euler_vortex
-  CeedScalar P_inlet;              // euler_vortex
-  CeedScalar etv_mean_velocity[3]; // euler_vortex
-  bool implicit;
 };
 #endif
 
@@ -256,7 +245,12 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength = context->vortex_strength;
   const CeedScalar *center = context->center; // Center of the domain
-  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  const int euler_test = context->euler_test;
+
+  // For test cases 1 and 3 the velocity is zero
+  if (euler_test == 1 || euler_test == 3)
+    for (CeedInt i=0; i<3; i++) etv_mean_velocity[i] = 0.;
 
   // Setup
   const CeedScalar gamma = 1.4;
@@ -272,6 +266,7 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
                        (8.*gamma*M_PI*M_PI);
+  // Note this is not correct for test cases
   const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
                            etv_mean_velocity[1] + C*x0,
                            0.
@@ -390,10 +385,15 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  SurfaceContext context = (SurfaceContext)ctx;
+  EulerContext context = (EulerContext)ctx;
   const CeedScalar T_inlet = context->T_inlet;
   const CeedScalar P_inlet = context->P_inlet;
-  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  const int euler_test = context->euler_test;
+
+  // For test cases 1 and 3 the velocity is zero
+  if (euler_test == 1 || euler_test == 3)
+    for (CeedInt i=0; i<3; i++) etv_mean_velocity[i] = 0.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop

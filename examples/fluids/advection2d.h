@@ -67,11 +67,8 @@ struct Advection2dContext_ {
 #define surface_context_struct
 typedef struct SurfaceContext_ *SurfaceContext;
 struct SurfaceContext_ {
-  CeedScalar E_wind;               // advection(2d)
-  CeedScalar strong_form;          // advection(2d)
-  CeedScalar T_inlet;              // euler_vortex
-  CeedScalar P_inlet;              // euler_vortex
-  CeedScalar etv_mean_velocity[3]; // euler_vortex
+  CeedScalar E_wind;
+  CeedScalar strong_form;
   bool implicit;
 };
 #endif
