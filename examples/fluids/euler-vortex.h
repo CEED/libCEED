@@ -320,7 +320,10 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     qdata[9][i]}
                                   };
     // *INDENT-ON*
-    const CeedScalar P  = 1.; // P = pressure
+    const CeedScalar
+      E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
+      E_internal = E - E_kinetic,
+      P = E_internal * (gamma - 1); // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar force[5];
     MMSforce_Euler(3, currentTime, X, 5, force, ctx);
