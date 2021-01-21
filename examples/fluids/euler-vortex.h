@@ -100,7 +100,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar y0 = y - yc;
   const CeedScalar r = sqrt( x0*x0 + y0*y0 );
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
-  const CeedScalar delta_T = - (gamma - 1) * vortex_strength * vortex_strength * exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
+  const CeedScalar delta_T = - (gamma - 1) * vortex_strength * vortex_strength *
+                             exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
   const CeedScalar S_vortex = 1; // no perturbation in the entropy P / rho^gamma
   const CeedScalar S_bubble = (gamma - 1.) * vortex_strength * vortex_strength /
                               (8.*gamma*M_PI*M_PI);
@@ -113,7 +114,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // P = rho * T
     // P = S * rho^gamma
     // Solve for rho, then substitute for P
-    rho = pow(T/S_vortex , 1 / (gamma - 1));
+    rho = pow(T/S_vortex, 1 / (gamma - 1));
     P = rho * T;
     u[0] = etv_mean_velocity[0] - C*y0;
     u[1] = etv_mean_velocity[1] + C*x0;
@@ -326,9 +327,9 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
     const CeedScalar
-      E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
-      E_internal = E - E_kinetic,
-      P = E_internal * (gamma - 1); // P = pressure
+    E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
+    E_internal = E - E_kinetic,
+    P = E_internal * (gamma - 1); // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar force[5];
     MMSforce_Euler(3, currentTime, X, 5, force, ctx);
