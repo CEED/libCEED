@@ -32,8 +32,6 @@ typedef struct {
   CeedScalar *d_grad1d;
   CeedScalar *d_collograd1d;
   CeedScalar *d_qweight1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
 } CeedBasis_Hip_shared;
 
 typedef struct {
