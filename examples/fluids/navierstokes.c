@@ -453,8 +453,8 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   if (wind_type == ADVECTION_WIND_TRANSLATION
       || problemChoice == NS_EULER_VORTEX) {
     // Ignore wall and slip BCs
-    bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
-    if (wind_type == ADVECTION_WIND_TRANSLATION) bc->nslip[2] = 0;
+    if (wind_type == ADVECTION_WIND_TRANSLATION)
+      bc->nwall = bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
 
     // Set number of faces
     if (dim == 2) nFace = 4;
@@ -820,6 +820,9 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
+    // Turn off slip and wall BCs for EULER_VORTEX
+    if (problem->bc == Exact_Euler)
+      bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
     {
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
@@ -861,6 +864,8 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                              3, comps, (void(*)(void))problem->bc, NULL,
                              bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else if (problem->bc == Exact_Euler) {
+        // So far nwall=0 but we keep this support for
+        //   when the time we add periodic BCs
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
