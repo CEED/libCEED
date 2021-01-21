@@ -101,7 +101,9 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar r = sqrt( x0*x0 + y0*y0 );
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
   const CeedScalar delta_T = - (gamma - 1) * vortex_strength * vortex_strength * exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
-  const CeedScalar S = 1; // no perturbation in the entropy P / rho^gamma
+  const CeedScalar S_vortex = 1; // no perturbation in the entropy P / rho^gamma
+  const CeedScalar S_bubble = (gamma - 1.) * vortex_strength * vortex_strength /
+    -                       (8.*gamma*M_PI*M_PI);
   CeedScalar rho, P, T, E, u[3] = {0.};
 
   // Initial Conditions
@@ -111,7 +113,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // P = rho * T
     // P = S * rho^gamma
     // Solve for rho, then substitute for P
-    rho = pow(T/S, 1 / (gamma - 1));
+    rho = pow(T/S_vortex , 1 / (gamma - 1));
     P = rho * T;
     u[0] = etv_mean_velocity[0] - C*y0;
     u[1] = etv_mean_velocity[1] + C*x0;
@@ -151,7 +153,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // but the velocity should stay zero and the bubble won't diffuse
     // (for Euler, where there is no thermal conductivity)
     P = 1.;
-    T = 1. - S * exp(1. - r*r);
+    T = 1. - S_bubble * exp(1. - r*r);
     rho = P / (R*T);
 
     q[0] = rho;
@@ -164,7 +166,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // (so density and internal energy will be non-constant),
     // it should be transported across the domain, but velocity stays constant
     P = 1.;
-    T = 1. - S * exp(1. - r*r);
+    T = 1. - S_bubble * exp(1. - r*r);
     rho = P / (R*T);
     u[0] = etv_mean_velocity[0];
     u[1] = etv_mean_velocity[1];
