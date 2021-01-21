@@ -103,7 +103,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar delta_T = - (gamma - 1) * vortex_strength * vortex_strength * exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
   const CeedScalar S_vortex = 1; // no perturbation in the entropy P / rho^gamma
   const CeedScalar S_bubble = (gamma - 1.) * vortex_strength * vortex_strength /
-    -                       (8.*gamma*M_PI*M_PI);
+                              (8.*gamma*M_PI*M_PI);
   CeedScalar rho, P, T, E, u[3] = {0.};
 
   // Initial Conditions
