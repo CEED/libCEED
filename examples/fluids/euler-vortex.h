@@ -100,16 +100,19 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar y0 = y - yc;
   const CeedScalar r = sqrt( x0*x0 + y0*y0 );
   const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
-  const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
-                       (8.*gamma*M_PI*M_PI);
+  const CeedScalar delta_T = - (gamma - 1) * vortex_strength * vortex_strength * exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
+  const CeedScalar S = 1; // no perturbation in the entropy P / rho^gamma
   CeedScalar rho, P, T, E, u[3] = {0.};
 
   // Initial Conditions
   switch (context->euler_test) {
   case 0: // Traveling vortex
-    rho = 1.;
-    P = 1.;
-    T = P / rho - S * exp(1. - r*r);
+    T = 1 + delta_T;
+    // P = rho * T
+    // P = S * rho^gamma
+    // Solve for rho, then substitute for P
+    rho = pow(T/S, 1 / (gamma - 1));
+    P = rho * T;
     u[0] = etv_mean_velocity[0] - C*y0;
     u[1] = etv_mean_velocity[1] + C*x0;
 
