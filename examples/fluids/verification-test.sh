@@ -26,8 +26,11 @@ declare -A run_flags
     run_flags[P_inlet]=1
     run_flags[T_inlet]=1
     run_flags[euler_test]=none
-    run_flags[ts_max_steps]=10   # turn off time stepping
-    #run_flags[ts_max_time]=.1
+    run_flags[lx]=900
+    run_flags[ly]=900
+    run_flags[lz]=1
+    run_flags[ts_max_time]=.1
+    #run_flags[ts_max_steps]=20   # turn off time stepping
 
 # Remove previous test results
 if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
@@ -37,9 +40,9 @@ fi
 declare -A test_flags
     test_flags[degree_start]=1
     test_flags[degree_end]=4
-    test_flags[res_start]=50
+    test_flags[res_start]=10
     test_flags[res_stride]=20
-    test_flags[res_end]=110
+    test_flags[res_end]=90
 
 alpha=.5
 
