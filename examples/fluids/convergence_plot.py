@@ -55,28 +55,32 @@ def plot():
     runs = read_logs()
     colors = ['orange', 'red', 'navy', 'green', 'magenta',
               'teal', 'blue', 'purple', 'pink', 'cyan']
-    xaxis = 'mesh_res'
-    yaxis = 'max_error'
+    res = 'mesh_res'
     fig, ax = plt.subplots()
     i = 0
+    HH = [0.4*1e1, 2*1e2, 1e4, 5e5]
     for group in runs.groupby('degree'):
         data = group[1]
         data = data.sort_values('max_error')
-        x = data[xaxis]
-        y = data[yaxis]
-        ax.loglog(x, y, 'o', color=colors[i])
-        log_x = np.log10(x)
-        log_y = np.log10(y)
-        m, b = np.polyfit(log_x, log_y, 1)
-        lbl = data['degree'].values[0]
-        ax.loglog(x, 10**b * x**m, '-', color=colors[i], label='p=' + str(lbl))
+        p = data['degree'].values[0]
+        h = 1/data[res]
+        H = HH[i] * h**p # H = h^p
+        E = data['max_error']
+        log_h = np.log10(h)
+        log_H = np.log10(H)
+        log_E = np.log10(E)
+        ax.loglog(h, E, 'o', color=colors[i])
+        m, b = np.polyfit(log_h, log_H, 1)
+        n, c = np.polyfit(log_h, log_E, 1)
+        ax.loglog(h, 10**b * h**m, '--', color=colors[i], label='O(h^' + str(p) + ')')
+        ax.loglog(h, 10**c * h**n, '-', color=colors[i], label='p=' + str(p))
         i = i + 1
 
     ax.legend(loc='best')
     ax.set_xlabel('h')
     ax.set_ylabel('Max Error')
     ax.set_title('Convergence by h Refinement')
-    xlim(1, 100)
+    xlim(.005, .05)
     fig.tight_layout()
     plt.savefig('h_ref_conv_test.png', bbox_inches='tight')
 

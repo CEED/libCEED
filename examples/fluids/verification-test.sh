@@ -21,10 +21,13 @@ make -B
 declare -A run_flags
     run_flags[problem]=euler_vortex  # Options: "euler_vortex" and "advection2d"
     run_flags[degree]=2
-    run_flags[dm_plex_box_faces]=20,20
+    run_flags[dm_plex_box_faces]=20,20,1
     run_flags[ts_adapt_dt_max]=.01
-    run_flags[ts_max_time]=.1
-    #run_flags[ts_max_steps]=1   # turn off time stepping
+    run_flags[P_inlet]=1
+    run_flags[T_inlet]=1
+    run_flags[euler_test]=none
+    run_flags[ts_max_steps]=10   # turn off time stepping
+    #run_flags[ts_max_time]=.1
 
 # Remove previous test results
 if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
@@ -32,16 +35,21 @@ if ! [[ -z ./verification-output/${run_flags[problem]}/*.log ]]; then
 fi
 
 declare -A test_flags
-    test_flags[degree_start]=2
-    test_flags[degree_end]=5
-    test_flags[res_start]=2
-    test_flags[res_stride]=4
-    test_flags[res_end]=20
+    test_flags[degree_start]=1
+    test_flags[degree_end]=4
+    test_flags[res_start]=50
+    test_flags[res_stride]=20
+    test_flags[res_end]=110
+
+alpha=.5
+
 
 for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
     run_flags[degree]=$d
     for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
         run_flags[dm_plex_box_faces]=$res,$res,1
+        beta=$((($res)*($d)))
+        run_flags[ts_adapt_dt_max]=$(echo -e scale=5 "\n" $alpha \/ $beta |bc -l)
         args=''
         for arg in "${!run_flags[@]}"; do
             if ! [[ -z ${run_flags[$arg]} ]]; then
@@ -49,7 +57,7 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d++)); do
             fi
         done
         echo $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
-        mpiexec.hydra -n 4 ./navierstokes $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
+        mpiexec.hydra -n 4 ./navierstokes -ts_adapt_monitor $args  &>> ./verification-output/${run_flags[problem]}/${run_flags[degree]}_${res}.log
     done
 done
 
