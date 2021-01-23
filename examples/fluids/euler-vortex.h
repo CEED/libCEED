@@ -201,7 +201,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5];
 
-    Exact_Euler(3, context->time, x, 5, q, ctx);
+    Exact_Euler(3, context->currentTime, x, 5, q, ctx);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
