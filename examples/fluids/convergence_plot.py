@@ -23,7 +23,7 @@ def read_logs(files=None):
         if 'rank(s)' in line:
             data = data_default.copy()
             data['num_procs'] = int(line.split(': ', 1)[1])
-        # New Problem
+        # Problem name
         elif "Problem Name" in line:
             # Starting a new block
             data = data.copy()
@@ -42,8 +42,8 @@ def read_logs(files=None):
         # Total DOFs
         elif 'Global DoFs' in line:
             data['num_unknowns'] = int(line.split(': ')[1])
-        # Max Error
-        elif 'Max Error' in line:
+        # Relative Error
+        elif 'Relative Error' in line:
             data['max_error'] = float(line.split(': ')[1])
         # End of output
     return pd.DataFrame(runs)
@@ -54,35 +54,33 @@ def plot():
     # Load the data
     runs = read_logs()
     colors = ['orange', 'red', 'navy', 'green', 'magenta',
-              'teal', 'blue', 'purple', 'pink', 'cyan']
+              'gray', 'blue', 'purple', 'pink', 'black']
     res = 'mesh_res'
     fig, ax = plt.subplots()
     i = 0
-    HH = [0.4*1e1, 2*1e2, 1e4, 5e5]
+    HH = [2.2e-2, .24e0, .22e0, .7e0, 2.5e0,
+          3e0, 3.5e0, 4e0, 4.5e0, 5e0]
     for group in runs.groupby('degree'):
         data = group[1]
         data = data.sort_values('max_error')
         p = data['degree'].values[0]
         h = 1/data[res]
-        H = HH[i] * h**p # H = h^p
+        H = HH[i] * h**p # H = C h^p
         E = data['max_error']
         log_h = np.log10(h)
         log_H = np.log10(H)
-        log_E = np.log10(E)
         ax.loglog(h, E, 'o', color=colors[i])
         m, b = np.polyfit(log_h, log_H, 1)
-        n, c = np.polyfit(log_h, log_E, 1)
         ax.loglog(h, 10**b * h**m, '--', color=colors[i], label='O(h^' + str(p) + ')')
-        ax.loglog(h, 10**c * h**n, '-', color=colors[i], label='p=' + str(p))
         i = i + 1
 
     ax.legend(loc='best')
     ax.set_xlabel('h')
-    ax.set_ylabel('Max Error')
+    ax.set_ylabel('Relative Error')
     ax.set_title('Convergence by h Refinement')
-    xlim(.005, .05)
+    xlim(.03, .3)
     fig.tight_layout()
-    plt.savefig('h_ref_conv_test.png', bbox_inches='tight')
+    plt.savefig('h_convergence_plot.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":
