@@ -1791,20 +1791,21 @@ int main(int argc, char **argv) {
   // Get error
   if (problem->non_zero_time && !test) {
     Vec Qexact, Qexactloc;
-    PetscReal norm;
+    PetscReal rel_error, norm_error, norm_exact;
     ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
     ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
                                restrictq, ctxSetup, ftime); CHKERRQ(ierr);
-
+    ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
-    ierr = VecNorm(Q, NORM_MAX, &norm); CHKERRQ(ierr);
+    ierr = VecNorm(Q, NORM_1, &norm_error); CHKERRQ(ierr);
+    rel_error = norm_error / norm_exact;
     CeedVectorDestroy(&q0ceed);
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Max Error: %g\n",
-                       (double)norm); CHKERRQ(ierr);
+                       "Relative Error: %g\n",
+                       (double)rel_error); CHKERRQ(ierr);
     // Clean up vectors
     ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
@@ -1817,8 +1818,7 @@ int main(int argc, char **argv) {
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps, (double)ftime); CHKERRQ(ierr);
   }
-  // Output numerical values from command line
-  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
+
 
   // Compare reference solution values with current test run for CI
   if (test) {
