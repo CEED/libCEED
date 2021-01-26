@@ -24,7 +24,7 @@ const char *const CeedErrorTypesShifted[] = {
   [CEED_ERROR_ACCESS - CEED_ERROR_UNSUPPORTED] = "access lock in use",
   [CEED_ERROR_TERMINAL - CEED_ERROR_UNSUPPORTED] = "terminal error",
   [CEED_ERROR_BACKEND - CEED_ERROR_UNSUPPORTED] = "internal backend error",
-  [CEED_ERROR_UNSUPPORTED - CEED_ERROR_UNSUPPORTED] = "operator unsupported by backend",
+  [CEED_ERROR_UNSUPPORTED - CEED_ERROR_UNSUPPORTED] = "operation unsupported by backend",
 };
 const char *const *CeedErrorTypes =  &CeedErrorTypesShifted[-
                                      CEED_ERROR_UNSUPPORTED];
