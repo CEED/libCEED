@@ -17,7 +17,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 declare -A run_flags
-    run_flags[problem]=euler_vortex  # Options: "euler_vortex" and "advection2d"
+    run_flags[problem]=euler_vortex
     run_flags[degree]=2
     run_flags[dm_plex_box_faces]=20,20,1
     run_flags[P_inlet]=1
@@ -26,7 +26,7 @@ declare -A run_flags
     run_flags[lx]=1e3
     run_flags[ly]=1e3
     run_flags[lz]=1
-    run_flags[ts_max_time]=.2
+    run_flags[ts_max_time]=.02
     run_flags[ts_rk_type]=5bs
     run_flags[ts_rtol]=1e-10
     run_flags[ts_atol]=1e-10
@@ -34,11 +34,13 @@ declare -A run_flags
 declare -A test_flags
     test_flags[degree_start]=1
     test_flags[degree_stride]=1
-    test_flags[degree_end]=6
+    test_flags[degree_end]=3
     test_flags[res_start]=6
-    test_flags[res_stride]=4
-    test_flags[res_end]=30
+    test_flags[res_stride]=2
+    test_flags[res_end]=10
 
+echo ",mesh_res,degree,rel_error" > conv_test_result.csv
+i=0
 for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_flags[degree_stride]})); do
     run_flags[degree]=$d
     for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
@@ -49,10 +51,7 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_fla
                 args="$args -$arg ${run_flags[$arg]}"
             fi
         done
-        echo $args  &>> ./${run_flags[degree]}_${res}.log
-        ./navierstokes -ts_adapt_monitor $args  &> ./${run_flags[degree]}_${res}.log
+        ./navierstokes $args | grep "Relative Error:" | awk -v i="$i" -v res="$res" -v d="$d" '{ print i","res","d","$3}' >> conv_test_result.csv
+        i=$((i+1))
     done
 done
-
-# Plot
-# python convergence_plot.py *.log
