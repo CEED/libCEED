@@ -992,22 +992,25 @@ found:
   ierr = CeedOperatorCheckField(op->ceed, qfield, r, b); CeedChk(ierr);
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
 
+  (*ofield)->vec = v;
+  if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE) {
+    v->refcount += 1;
+  }
+
+  (*ofield)->Erestrict = r;
+  r->refcount += 1;
   if (r != CEED_ELEMRESTRICTION_NONE) {
     op->numelements = numelements;
     op->hasrestriction = true; // Restriction set, but numelements may be 0
   }
-  op->numqpoints = numqpoints;
 
-  (*ofield)->Erestrict = r;
-  r->refcount += 1;
   (*ofield)->basis = b;
-  if (b != CEED_BASIS_COLLOCATED)
+  if (b != CEED_BASIS_COLLOCATED) {
+    op->numqpoints = numqpoints;
     b->refcount += 1;
-  (*ofield)->vec = v;
-  if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE)
-    v->refcount += 1;
-  op->nfields += 1;
+  }
 
+  op->nfields += 1;
   size_t len = strlen(fieldname);
   char *tmp;
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
