@@ -35,7 +35,7 @@ CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q,
     qd[i] = (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]) * qw[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // mass2dbuild_h

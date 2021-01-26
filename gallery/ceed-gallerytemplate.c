@@ -36,7 +36,7 @@ static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
   // Check QFunction name
   const char *name = "GalleryTemplate";
   if (strcmp(name, requested))
-    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s",
                      name, requested);
 
   // Add QFunction fields
@@ -44,7 +44,7 @@ static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

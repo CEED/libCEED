@@ -40,7 +40,7 @@ CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q,
     qd[i] = qw[i] / J[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson1dbuild_h

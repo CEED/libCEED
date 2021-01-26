@@ -28,14 +28,15 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
   const char *name = "Identity";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunction '%s' does not match requested name: %s",
                      name, requested);
   // LCOV_EXCL_STOP
 
   // QFunction fields 'input' and 'output' with requested emodes added
   //   by the library rather than being added here
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
