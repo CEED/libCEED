@@ -36,5 +36,5 @@ int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f) {
   } else {
     ierr = qf->SetHIPUserFunction(qf, f); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

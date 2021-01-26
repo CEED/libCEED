@@ -76,7 +76,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0]))
     // LCOV_EXCL_START
-    return CeedError(NULL, 1, "Too many gallery QFunctions");
+    return CeedError(NULL, CEED_ERROR_UNSUPPORTED, "Too many gallery QFunctions");
   // LCOV_EXCL_STOP
 
   strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
@@ -87,7 +87,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
   qfunctions[num_qfunctions].f = f;
   qfunctions[num_qfunctions].init = init;
   num_qfunctions++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -118,7 +118,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
   (*f)->fieldname = tmp;
   (*f)->size = size;
   (*f)->emode = emode;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -142,8 +142,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
           "      EvalMode: \"%s\"\n",
           inout, fieldnumber, field->fieldname, field->size,
           CeedEvalModes[field->emode]);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -159,7 +158,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
 **/
 int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status) {
   qf->fortranstatus = status;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -182,7 +181,7 @@ int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status) {
 **/
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
   *ceed = qf->ceed;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -197,7 +196,7 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 **/
 int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vlength) {
   *vlength = qf->vlength;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -215,7 +214,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
                             CeedInt *numoutput) {
   if (numinput) *numinput = qf->numinputfields;
   if (numoutput) *numoutput = qf->numoutputfields;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -230,7 +229,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *numinput,
 **/
 int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
   *source = (char *) qf->sourcepath;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -245,7 +244,7 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
 **/
 int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
   *f = qf->function;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -263,7 +262,7 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
 **/
 int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   *ctx = qf->ctx;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -289,9 +288,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   } else {
     *ctx = qf->ctx;
   }
-
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -306,7 +303,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 **/
 int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
   *isidentity = qf->identity;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -321,7 +318,7 @@ int CeedQFunctionIsIdentity(CeedQFunction qf, bool *isidentity) {
 **/
 int CeedQFunctionGetData(CeedQFunction qf, void *data) {
   *(void **)data = qf->data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -336,7 +333,7 @@ int CeedQFunctionGetData(CeedQFunction qf, void *data) {
 **/
 int CeedQFunctionSetData(CeedQFunction qf, void *data) {
   qf->data = data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -356,7 +353,7 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
     *inputfields = qf->inputfields;
   if (outputfields)
     *outputfields = qf->outputfields;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -371,7 +368,7 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
 **/
 int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
   *fieldname = (char *)qffield->fieldname;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -386,7 +383,7 @@ int CeedQFunctionFieldGetName(CeedQFunctionField qffield, char **fieldname) {
 **/
 int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
   *size = qffield->size;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -402,7 +399,7 @@ int CeedQFunctionFieldGetSize(CeedQFunctionField qffield, CeedInt *size) {
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qffield,
                                   CeedEvalMode *emode) {
   *emode = qffield->emode;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -446,12 +443,13 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support QFunctionCreate");
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support QFunctionCreate");
     // LCOV_EXCL_STOP
 
     ierr = CeedQFunctionCreateInterior(delegate, vlength, f, source, qf);
     CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   ierr = CeedCalloc(1, qf); CeedChk(ierr);
@@ -468,7 +466,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vlength, CeedQFunctionUser f,
   ierr = CeedCalloc(16, &(*qf)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->outputfields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -491,7 +489,8 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   ierr = CeedQFunctionRegisterAll(); CeedChk(ierr);
   // Find matching backend
-  if (!name) return CeedError(ceed, 1, "No QFunction name provided");
+  if (!name) return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                                "No QFunction name provided");
   for (size_t i=0; i<num_qfunctions; i++) {
     size_t n;
     const char *currname = qfunctions[i].name;
@@ -503,7 +502,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   }
   if (!matchlen)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "No suitable gallery QFunction");
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "No suitable gallery QFunction");
   // LCOV_EXCL_STOP
 
   // Create QFunction
@@ -520,8 +519,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   ierr = CeedMalloc(slen, &name_copy); CeedChk(ierr);
   memcpy(name_copy, name, slen);
   (*qf)->qfname = name_copy;
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -550,7 +548,8 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
 
   if (inmode == CEED_EVAL_NONE && outmode == CEED_EVAL_NONE)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "CEED_EVAL_NONE for a both the input and "
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "CEED_EVAL_NONE for a both the input and "
                      "output does not make sense with an identity QFunction");
   // LCOV_EXCL_STOP
 
@@ -569,8 +568,7 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode inmode,
   CeedChk(ierr);
   ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
   ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -592,18 +590,19 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
                           CeedEvalMode emode) {
   if (qf->operatorsset)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1,
+    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED,
                      "QFunction cannot be changed when in use by an operator");
   // LCOV_EXCL_STOP
   if ((emode == CEED_EVAL_WEIGHT) && (size != 1))
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1, "CEED_EVAL_WEIGHT should have size 1");
+    return CeedError(qf->ceed, CEED_ERROR_DIMENSION,
+                     "CEED_EVAL_WEIGHT should have size 1");
   // LCOV_EXCL_STOP
   int ierr = CeedQFunctionFieldSet(&qf->inputfields[qf->numinputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
   qf->numinputfields++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -625,19 +624,20 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
   if (qf->operatorsset)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1,
+    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED,
                      "QFunction cannot be changed when in use by an operator");
   // LCOV_EXCL_STOP
   if (emode == CEED_EVAL_WEIGHT)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1, "Cannot create QFunction output with "
+    return CeedError(qf->ceed, CEED_ERROR_DIMENSION,
+                     "Cannot create QFunction output with "
                      "CEED_EVAL_WEIGHT");
   // LCOV_EXCL_STOP
   int ierr = CeedQFunctionFieldSet(&qf->outputfields[qf->numoutputfields],
                                    fieldname, size, emode);
   CeedChk(ierr);
   qf->numoutputfields++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -653,7 +653,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
 int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   qf->ctx = ctx;
   ctx->refcount++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -685,7 +685,7 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
     ierr = CeedQFunctionFieldView(qf->outputfields[i], i, 0, stream);
     CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -705,15 +705,17 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   int ierr;
   if (!qf->Apply)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 1, "Backend does not support QFunctionApply");
+    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support QFunctionApply");
   // LCOV_EXCL_STOP
   if (Q % qf->vlength)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, 2, "Number of quadrature points %d must be a "
+    return CeedError(qf->ceed, CEED_ERROR_DIMENSION,
+                     "Number of quadrature points %d must be a "
                      "multiple of %d", Q, qf->vlength);
   // LCOV_EXCL_STOP
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -728,7 +730,7 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
 int CeedQFunctionDestroy(CeedQFunction *qf) {
   int ierr;
 
-  if (!*qf || --(*qf)->refcount > 0) return 0;
+  if (!*qf || --(*qf)->refcount > 0) return CEED_ERROR_SUCCESS;
   // Backend destroy
   if ((*qf)->Destroy) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
@@ -752,7 +754,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedFree(&(*qf)->qfname); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}

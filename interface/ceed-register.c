@@ -29,5 +29,5 @@ int CeedRegisterAll() {
 #define MACRO(name) CeedChk(name());
 #include "../backends/ceed-backend-list.h"
 #undef MACRO
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
