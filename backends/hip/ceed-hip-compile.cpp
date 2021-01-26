@@ -62,7 +62,9 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   }
 
   // Standard backend options
-  code << "#define CeedScalar double\n#define CeedInt int\n\n";
+  code << "#define CeedScalar double\n";
+  code << "#define CeedInt int\n";
+  code << "#define CEED_ERROR_SUCCESS 0\n\n";
  
   // Non-macro options     
   opts[0] = "-default-device";
@@ -139,7 +141,7 @@ int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, const int gridSize,
 }
 
 //------------------------------------------------------------------------------
-// Run HIP kernel for spatial dimension with sharde memory
+// Run HIP kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
 int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int gridSize,
                                const int blockSizeX, const int blockSizeY,
