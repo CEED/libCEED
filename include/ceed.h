@@ -233,20 +233,22 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
 /// @ingroup Ceed
 typedef enum {
   /// Sucess error code
-  CEED_ERROR_SUCCESS       = 0,
-  /// Recoverable error, generic
-  CEED_ERROR_RECOVERABLE   = 2,
-  /// Recoverable error, dimension mismatch in inputs
-  CEED_ERROR_DIMENSION     = 4,
-  /// Recoverable error, incomplete object setup
-  CEED_ERROR_INCOMPLETE    = 6,
-  /// Unrecoverable error, generic
-  CEED_ERROR_UNRECOVERABLE = 1,
-  /// Unrecoverable error, internal backend error
-  CEED_ERROR_BACKEND       = 3,
-  /// Unrecoverable error, operation unsupported by current backend
-  CEED_ERROR_UNSUPPORTED   = 5,
+  CEED_ERROR_SUCCESS     = 0,
+  /// Nonterminal error, generic
+  CEED_ERROR_NONTERMINAL = 1,
+  /// Nonterminal error, dimension mismatch in inputs
+  CEED_ERROR_DIMENSION   = 2,
+  /// Nonterminal error, incomplete object setup
+  CEED_ERROR_INCOMPLETE  = 3,
+  /// Terminal error, generic
+  CEED_ERROR_TERMINAL    = -1,
+  /// Terminal error, internal backend error
+  CEED_ERROR_BACKEND     = -2,
+  /// Terminal error, operation unsupported by current backend
+  CEED_ERROR_UNSUPPORTED = -3,
 } CeedErrorType;
+
+CEED_EXTERN const char *const *CeedErrorTypes;
 
 /// Specify memory type
 ///
