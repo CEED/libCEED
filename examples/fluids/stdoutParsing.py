@@ -50,5 +50,5 @@ if __name__ == "__main__":
         values = parseFile(file)
         results = results.append(values, ignore_index=True)
 
-        # Convert string values to numeric type
+    # Convert string values to numeric type
     results = results.apply(lambda col: pd.to_numeric(col, errors="coerce"))
