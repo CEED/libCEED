@@ -422,7 +422,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -511,7 +511,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
   }
   ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -532,7 +532,7 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   ierr = cudaFree(data->d_grad1d); CeedChk_Cu(ceed,ierr);
 
   ierr = CeedFree(&data); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -553,7 +553,7 @@ static int CeedBasisDestroyNonTensor_Cuda(CeedBasis basis) {
   ierr = cudaFree(data->d_grad); CeedChk_Cu(ceed, ierr);
 
   ierr = CeedFree(&data); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -611,7 +611,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                 CeedBasisApply_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
                                 CeedBasisDestroy_Cuda); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -666,6 +666,6 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
                                 CeedBasisApplyNonTensor_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
                                 CeedBasisDestroyNonTensor_Cuda); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

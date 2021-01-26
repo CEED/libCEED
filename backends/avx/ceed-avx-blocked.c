@@ -41,7 +41,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Avx); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

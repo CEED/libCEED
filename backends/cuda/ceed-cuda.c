@@ -90,7 +90,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 
   CeedChk_Cu(ceed, cuModuleLoadData(module, ptx));
   ierr = CeedFree(&ptx); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
                       CUfunction *kernel) {
   CeedChk_Cu(ceed, cuModuleGetFunction(kernel, module, name));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                       const int blockSize, void **args) {
   CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
                                   1, 0, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -121,7 +121,7 @@ int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
   CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
                                   0, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
   CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
                                   sharedMemSize, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
 //------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
   data->deviceId = deviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
     ierr = cublasCreate(&data->cublasHandle); CeedChk_Cublas(ceed, ierr);
   }
   *handle = data->cublasHandle;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ int CeedDestroy_Cuda(Ceed ceed) {
     ierr = cublasDestroy(data->cublasHandle); CeedChk_Cublas(ceed, ierr);
   }
   ierr = CeedFree(&data); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedCompositeOperatorCreate_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Cuda); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

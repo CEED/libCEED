@@ -81,7 +81,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     ierr = CeedQFunctionContextRestoreData(ctx, &data->d_c);
     CeedChkBackend(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   if  (data->module)
     CeedChk_Cu(ceed, cuModuleUnload(data->module));
   ierr = CeedFree(&data); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   data->qFunction = f;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   data->qFunctionSource = buffer;
   data->qFunction = NULL;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -210,6 +210,6 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction",
                                 CeedQFunctionSetCUDAUserFunction_Cuda);
   CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
