@@ -240,6 +240,8 @@ typedef enum {
   CEED_ERROR_DIMENSION   = 2,
   /// Nonterminal error, incomplete object setup
   CEED_ERROR_INCOMPLETE  = 3,
+  /// Nonterminal error, access lock in place
+  CEED_ERROR_ACCESS      = 4,
   /// Terminal error, generic
   CEED_ERROR_TERMINAL    = -1,
   /// Terminal error, internal backend error

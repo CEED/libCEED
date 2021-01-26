@@ -51,7 +51,8 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   CeedChk(ierr);
   if (!strcmp(resource, fallbackresource))
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Backend %s cannot create an operator"
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend %s cannot create an operator"
                      "fallback to resource %s", resource, fallbackresource);
   // LCOV_EXCL_STOP
 
@@ -85,8 +86,7 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = ceedref->QFunctionCreate(qfref); CeedChk(ierr);
   opref->qf = qfref;
   op->qffallback = qfref;
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -111,7 +111,8 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
     ierr = CeedElemRestrictionGetNumComponents(r, &restr_ncomp);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "CEED_ELEMRESTRICTION_NONE can only be used "
+    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+                     "CEED_ELEMRESTRICTION_NONE can only be used "
                      "for a field with eval mode CEED_EVAL_WEIGHT");
     // LCOV_EXCL_STOP
   }
@@ -121,7 +122,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
     ierr = CeedBasisGetNumComponents(b, &ncomp); CeedChk(ierr);
     if (r != CEED_ELEMRESTRICTION_NONE && restr_ncomp != ncomp) {
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "ElemRestriction and Basis have incompatible numbers of components");
       // LCOV_EXCL_STOP
     }
@@ -131,7 +132,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
   case CEED_EVAL_NONE:
     if (size != restr_ncomp)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Incompatible QFunction field size and Operator field "
                        "ElemRestriction number of components");
     // LCOV_EXCL_STOP
@@ -139,7 +140,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
   case CEED_EVAL_INTERP:
     if (size != ncomp)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Incompatible QFunction field size and Operator field "
                        "Basis number of components");
     // LCOV_EXCL_STOP
@@ -147,7 +148,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
   case CEED_EVAL_GRAD:
     if (size != ncomp * dim)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Incompatible QFunction field size and Operator field "
                        "Basis dimension and number of components");
     // LCOV_EXCL_STOP
@@ -162,7 +163,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
     // Not implemented
     break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -177,30 +178,32 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
 **/
 static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
   if (op->interfacesetup)
-    return 0;
+    return CEED_ERROR_SUCCESS;
 
   CeedQFunction qf = op->qf;
   if (op->composite) {
     if (!op->numsub)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No suboperators set");
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No suboperators set");
     // LCOV_EXCL_STOP
   } else {
     if (op->nfields == 0)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "No operator fields set");
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
     // LCOV_EXCL_STOP
     if (op->nfields < qf->numinputfields + qf->numoutputfields)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Not all operator fields set");
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
     // LCOV_EXCL_STOP
     if (!op->hasrestriction)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one restriction required");
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one restriction required");
     // LCOV_EXCL_STOP
     if (op->numqpoints == 0)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,"At least one non-collocated basis required");
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one non-collocated basis required");
     // LCOV_EXCL_STOP
   }
 
@@ -218,8 +221,7 @@ static int CeedOperatorCheckReady(Ceed ceed, CeedOperator op) {
     // LCOV_EXCL_START
     op->dqfT->operatorsset++;
   // LCOV_EXCL_STOP
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -255,7 +257,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
   else if (field->vec == CEED_VECTOR_NONE)
     fprintf(stream, "%s      No vector\n", pre);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -291,8 +293,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
     ierr = CeedOperatorFieldView(op->outputfields[i], op->qf->outputfields[i],
                                  i, sub, 0, stream); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -319,11 +320,11 @@ static int CeedOperatorGetActiveBasis(CeedOperator op,
     int ierr;
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "No active basis found for automatic multigrid setup");
     // LCOV_EXCL_STOP
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -357,7 +358,7 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   ierr = CeedOperatorIsComposite(opFine, &isComposite); CeedChk(ierr);
   if (isComposite)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "Automatic multigrid setup for composite operators not supported");
   // LCOV_EXCL_STOP
 
@@ -479,8 +480,7 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
   ierr = CeedBasisDestroy(&basisCtoF); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qfRestrict); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qfProlong); CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -504,7 +504,7 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator opFine,
 
 int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
   *ceed = op->ceed;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -521,11 +521,12 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
   *numelem = op->numelements;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -542,11 +543,12 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
   *numqpts = op->numqpoints;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -563,11 +565,12 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operators");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Not defined for composite operators");
   // LCOV_EXCL_STOP
 
   *numargs = op->nfields;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -583,7 +586,7 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
 
 int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
   *issetupdone = op->backendsetup;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -600,11 +603,12 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
   *qf = op->qf;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -620,7 +624,7 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 
 int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
   *iscomposite = op->composite;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -637,11 +641,11 @@ int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *numsub = op->numsub;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -658,11 +662,11 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *suboperators = op->suboperators;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -678,7 +682,7 @@ int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
 
 int CeedOperatorGetData(CeedOperator op, void *data) {
   *(void **)data = op->data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -694,7 +698,7 @@ int CeedOperatorGetData(CeedOperator op, void *data) {
 
 int CeedOperatorSetData(CeedOperator op, void *data) {
   op->data = data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -709,7 +713,7 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
   op->backendsetup = true;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -728,12 +732,13 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
                           CeedOperatorField **outputfields) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not defined for composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
   if (inputfields) *inputfields = op->inputfields;
   if (outputfields) *outputfields = op->outputfields;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -750,7 +755,7 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
 int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
                                         CeedElemRestriction *rstr) {
   *rstr = opfield->Erestrict;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -766,7 +771,7 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField opfield,
 
 int CeedOperatorFieldGetBasis(CeedOperatorField opfield, CeedBasis *basis) {
   *basis = opfield->basis;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -782,7 +787,7 @@ int CeedOperatorFieldGetBasis(CeedOperatorField opfield, CeedBasis *basis) {
 
 int CeedOperatorFieldGetVector(CeedOperatorField opfield, CeedVector *vec) {
   *vec = opfield->vec;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -821,16 +826,18 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support OperatorCreate");
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support OperatorCreate");
     // LCOV_EXCL_STOP
 
     ierr = CeedOperatorCreate(delegate, qf, dqf, dqfT, op); CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   if (!qf || qf == CEED_QFUNCTION_NONE)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Operator must have a valid QFunction.");
+    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+                     "Operator must have a valid QFunction.");
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
@@ -849,7 +856,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   ierr = CeedCalloc(16, &(*op)->inputfields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->outputfields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -872,7 +879,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
     if (delegate) {
       ierr = CeedCompositeOperatorCreate(delegate, op); CeedChk(ierr);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 
@@ -885,7 +892,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   if (ceed->CompositeOperatorCreate) {
     ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -918,22 +925,25 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   int ierr;
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Cannot add field to composite operator.");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot add field to composite operator.");
   // LCOV_EXCL_STOP
   if (!r)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "ElemRestriction r for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!b)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Basis b for field \"%s\" must be non-NULL.",
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+                     "Basis b for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!v)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Vector v for field \"%s\" must be non-NULL.",
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+                     "Vector v for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
 
@@ -942,7 +952,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   if (r != CEED_ELEMRESTRICTION_NONE && op->hasrestriction &&
       op->numelements != numelements)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1,
+    return CeedError(op->ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction with %d elements incompatible with prior "
                      "%d elements", numelements, op->numelements);
   // LCOV_EXCL_STOP
@@ -956,7 +966,8 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
       // LCOV_EXCL_START
-      return CeedError(op->ceed, 1, "Basis with %d quadrature points "
+      return CeedError(op->ceed, CEED_ERROR_DIMENSION,
+                       "Basis with %d quadrature points "
                        "incompatible with prior %d points", numqpoints,
                        op->numqpoints);
     // LCOV_EXCL_STOP
@@ -979,7 +990,8 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
     }
   }
   // LCOV_EXCL_START
-  return CeedError(op->ceed, 1, "QFunction has no knowledge of field '%s'",
+  return CeedError(op->ceed, CEED_ERROR_INCOMPLETE,
+                   "QFunction has no knowledge of field '%s'",
                    fieldname);
   // LCOV_EXCL_STOP
 found:
@@ -1000,7 +1012,7 @@ found:
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, fieldname, len+1);
   (*ofield)->fieldname = tmp;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1016,19 +1028,21 @@ found:
 int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
     // LCOV_EXCL_START
-    return CeedError(compositeop->ceed, 1, "CeedOperator is not a composite "
+    return CeedError(compositeop->ceed, CEED_ERROR_UNSUPPORTED,
+                     "CeedOperator is not a composite "
                      "operator");
   // LCOV_EXCL_STOP
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
     // LCOV_EXCL_START
-    return CeedError(compositeop->ceed, 1, "Cannot add additional suboperators");
+    return CeedError(compositeop->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot add additional suboperators");
   // LCOV_EXCL_STOP
 
   compositeop->suboperators[compositeop->numsub] = subop;
   subop->refcount++;
   compositeop->numsub++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1078,8 +1092,7 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
     ierr = op->opfallback->LinearAssembleQFunction(op->opfallback, assembled,
            rstr, request); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1125,8 +1138,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
       return CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
     }
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1164,8 +1176,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     ierr = op->opfallback->LinearAssembleAddDiagonal(op->opfallback, assembled,
            request); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1220,8 +1231,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
              request);
     }
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1266,8 +1276,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     ierr = op->opfallback->LinearAssembleAddPointBlockDiagonal(op->opfallback,
            assembled, request); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1302,7 +1311,8 @@ int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
   ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
   if (Qf != Qc)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Bases must have compatible quadrature spaces");
   // LCOV_EXCL_STOP
 
   // Coarse to fine basis
@@ -1320,7 +1330,8 @@ int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
     ierr = CeedBasisGetNumNodes(basisCoarse, &Pc); CeedChk(ierr);
   } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bases must both be tensor or non-tensor");
+    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+                     "Bases must both be tensor or non-tensor");
     // LCOV_EXCL_STOP
   }
 
@@ -1370,7 +1381,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
 
   // Cleanup
   ierr = CeedFree(&interpCtoF); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1406,7 +1417,8 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator opFine,
   ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
   if (Qf != Qc)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Bases must have compatible quadrature spaces");
   // LCOV_EXCL_STOP
 
   // Coarse to fine basis
@@ -1436,7 +1448,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator opFine,
                                          basisCoarse, basisCtoF, opCoarse,
                                          opProlong, opRestrict);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1476,7 +1488,8 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator opFine,
   ierr = CeedBasisGetNumQuadraturePoints(basisCoarse, &Qc); CeedChk(ierr);
   if (Qf != Qc)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bases must have compatible quadrature spaces");
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Bases must have compatible quadrature spaces");
   // LCOV_EXCL_STOP
 
   // Coarse to fine basis
@@ -1505,7 +1518,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator opFine,
                                          basisCoarse, basisCtoF, opCoarse,
                                          opProlong, opRestrict);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1549,8 +1562,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdminv,
     ierr = op->opfallback->CreateFDMElementInverse(op->opfallback, fdminv,
            request); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1578,8 +1590,7 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
     fprintf(stream, "CeedOperator\n");
     ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1655,8 +1666,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
       }
     }
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1703,8 +1713,7 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
       }
     }
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1719,7 +1728,7 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
 int CeedOperatorDestroy(CeedOperator *op) {
   int ierr;
 
-  if (!*op || --(*op)->refcount > 0) return 0;
+  if (!*op || --(*op)->refcount > 0) return CEED_ERROR_SUCCESS;
   if ((*op)->Destroy) {
     ierr = (*op)->Destroy(*op); CeedChk(ierr);
   }
@@ -1788,7 +1797,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(&(*op)->outputfields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->suboperators); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}

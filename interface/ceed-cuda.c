@@ -36,5 +36,5 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
   } else {
     ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
