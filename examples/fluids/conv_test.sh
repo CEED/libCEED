@@ -55,3 +55,6 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_fla
         i=$((i+1))
     done
 done
+
+# Compare the output CSV file with the reference file
+diff conv_test_result.csv tests-output/fluids_navierstokes_etv.csv
