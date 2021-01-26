@@ -41,7 +41,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
@@ -106,7 +106,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                         v, v_elstride, v_compstride,
                         nelem, data->basis_kernel_mode, data->maxthreads,
                         data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_interp");
   }
   break;
@@ -165,31 +165,31 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                        v, v_elstride, v_compstride, v_dimstride,
                        nelem, data->basis_kernel_mode, data->maxthreads,
                        data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_grad");
   }
   break;
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
     ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
                         data->basis_kernel_mode, data->maxthreads, data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_weight");
   }
   break;
   // LCOV_EXCL_START
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
@@ -228,7 +228,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du); CeedChk(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
@@ -291,7 +291,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // LCOV_EXCL_STOP
 
@@ -306,11 +306,11 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 
   // LCOV_EXCL_START
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
@@ -379,17 +379,17 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
   if (ncomp > 3)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 3 components");
   // LCOV_EXCL_STOP
   if (P1d > 10)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 10 nodes in each dimension");
   // LCOV_EXCL_STOP
   if (Q1d > 10)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 10 quadrature points in each dimension");
   // LCOV_EXCL_STOP
 

@@ -27,7 +27,7 @@
 do { \
   hiprtcResult result = static_cast<hiprtcResult>(x); \
   if (result != HIPRTC_SUCCESS) \
-    return CeedError((ceed), x, hiprtcGetErrorString(result)); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, hiprtcGetErrorString(result)); \
 } while (0)
 
 //------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
     char *log;
     ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
     CeedChk_hiprtc(ceed, hiprtcGetProgramLog(prog, log));
-    return CeedError(ceed, (int)result, "%s\n%s", hiprtcGetErrorString(result), log);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
   }
 
   size_t ptxsize;

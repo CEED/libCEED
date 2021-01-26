@@ -35,7 +35,7 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Only MemType = HOST supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
   ierr = CeedFree(&impl->data_allocated); CeedChk(ierr);
   switch (cmode) {
@@ -67,11 +67,11 @@ static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Can only provide to HOST memory");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
   // LCOV_EXCL_STOP
   if (!impl->data)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "No context data set");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
   // LCOV_EXCL_STOP
   *(void **)data = impl->data;
   return 0;

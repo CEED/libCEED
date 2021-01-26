@@ -28,7 +28,8 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/avx")
       && strcmp(resource, "/cpu/self/avx/blocked"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "AVX backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 

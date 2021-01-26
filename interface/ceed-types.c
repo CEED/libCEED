@@ -25,7 +25,8 @@ const char *const CeedErrorTypesShifted[] = {
   [CEED_ERROR_BACKEND - CEED_ERROR_UNSUPPORTED] = "internal backend error",
   [CEED_ERROR_UNSUPPORTED - CEED_ERROR_UNSUPPORTED] = "operator unsupported by backend",
 };
-const char *const *CeedErrorTypes =  &CeedErrorTypesShifted[- CEED_ERROR_UNSUPPORTED];
+const char *const *CeedErrorTypes =  &CeedErrorTypesShifted[-
+                                     CEED_ERROR_UNSUPPORTED];
 
 const char *const CeedMemTypes[] = {
   [CEED_MEM_HOST] = "host",

@@ -281,7 +281,8 @@ static inline int CeedOperatorInputBasis_Ref(CeedInt e, CeedInt Q,
       CeedChk(ierr);
       Ceed ceed;
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Ceed evaluation mode not implemented");
       // LCOV_EXCL_STOP
     }
     }
@@ -342,14 +343,16 @@ static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q,
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "CEED_EVAL_WEIGHT cannot be an output "
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "CEED_EVAL_WEIGHT cannot be an output "
                        "evaluation mode");
     }
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Ceed evaluation mode not implemented");
       // LCOV_EXCL_STOP
     }
     }
@@ -522,7 +525,8 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
   // Check for identity
   if (impl->identityqf)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Assembling identity QFunctions not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Assembling identity QFunctions not supported");
   // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction
@@ -567,7 +571,8 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
   // Check sizes
   if (!numactivein || !numactiveout)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Cannot assemble QFunction without active inputs "
                      "and outputs");
   // LCOV_EXCL_STOP
 
@@ -754,7 +759,7 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
       CeedChk(ierr);
       if (rstrin && rstrin != rstr)
         // LCOV_EXCL_START
-        return CeedError(ceed, 1,
+        return CeedError(ceed, CEED_ERROR_BACKEND,
                          "Multi-field non-composite operator diagonal assembly not supported");
       // LCOV_EXCL_STOP
       rstrin = rstr;
@@ -799,7 +804,7 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
       CeedChk(ierr);
       if (rstrout && rstrout != rstr)
         // LCOV_EXCL_START
-        return CeedError(ceed, 1,
+        return CeedError(ceed, CEED_ERROR_BACKEND,
                          "Multi-field non-composite operator diagonal assembly not supported");
       // LCOV_EXCL_STOP
       rstrout = rstr;
@@ -1020,7 +1025,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   }
   if (!basis)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "No active field set");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No active field set");
   // LCOV_EXCL_STOP
   CeedInt P1d, Q1d, elemsize, nqpts, dim, ncomp = 1, nelem = 1, lsize = 1;
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
@@ -1037,7 +1042,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr = CeedBasisIsTensor(basis, &tensorbasis); CeedChk(ierr);
   if (!tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "FDMElementInverse only supported for tensor "
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "FDMElementInverse only supported for tensor "
                      "bases");
   // LCOV_EXCL_STOP
   CeedScalar *work, *mass, *laplace, *x, *x2, *lambda;

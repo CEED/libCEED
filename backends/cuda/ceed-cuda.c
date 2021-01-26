@@ -77,7 +77,8 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
     char *log;
     ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
     CeedChk_Nvrtc(ceed, nvrtcGetProgramLog(prog, log));
-    return CeedError(ceed, (int)result, "%s\n%s", nvrtcGetErrorString(result), log);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s",
+                     nvrtcGetErrorString(result), log);
   }
 
   size_t ptxsize;
@@ -206,7 +207,8 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   const int nrc = 9; // number of characters in resource
   if (strncmp(resource, "/gpu/cuda/ref", nrc))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cuda backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Cuda backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   Ceed_Cuda *data;

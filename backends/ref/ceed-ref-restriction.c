@@ -294,7 +294,7 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr,
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Can only provide to HOST memory");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
   // LCOV_EXCL_STOP
 
   *offsets = impl->offsets;
@@ -334,7 +334,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Only MemType = HOST supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, &impl); CeedChk(ierr);
 
@@ -360,7 +360,8 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
       for (CeedInt i = 0; i < nelem*elemsize; i++)
         if (offsets[i] < 0 || lsize <= offsets[i] + (ncomp - 1) * compstride)
           // LCOV_EXCL_START
-          return CeedError(ceed, 1, "Restriction offset %d (%d) out of range "
+          return CeedError(ceed, CEED_ERROR_BACKEND,
+                           "Restriction offset %d (%d) out of range "
                            "[0, %d]", i, offsets[i], lsize);
       // LCOV_EXCL_STOP
     }

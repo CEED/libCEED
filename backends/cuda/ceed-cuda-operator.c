@@ -470,7 +470,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
       break; // Should not occur
     }
@@ -551,7 +551,8 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
   ierr = CeedQFunctionIsIdentity(qf, &identityqf); CeedChk(ierr);
   if (identityqf)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Assembling identity QFunctions not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Assembling identity QFunctions not supported");
   // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction
@@ -596,7 +597,8 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
   // Check sizes
   if (!numactivein || !numactiveout)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Cannot assemble QFunction without active inputs "
                      "and outputs");
   // LCOV_EXCL_STOP
 
@@ -892,7 +894,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
       CeedChk(ierr);
       if (rstrin && rstrin != rstr)
         // LCOV_EXCL_START
-        return CeedError(ceed, 1,
+        return CeedError(ceed, CEED_ERROR_BACKEND,
                          "Multi-field non-composite operator diagonal assembly not supported");
       // LCOV_EXCL_STOP
       rstrin = rstr;
@@ -937,7 +939,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
       CeedChk(ierr);
       if (rstrout && rstrout != rstr)
         // LCOV_EXCL_START
-        return CeedError(ceed, 1,
+        return CeedError(ceed, CEED_ERROR_BACKEND,
                          "Multi-field non-composite operator diagonal assembly not supported");
       // LCOV_EXCL_STOP
       rstrout = rstr;
@@ -1194,7 +1196,8 @@ static int CeedOperatorCreateFDMElementInverse_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement FDM inverse creation");
   // LCOV_EXCL_STOP
 }
 

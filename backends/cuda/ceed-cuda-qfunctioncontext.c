@@ -164,7 +164,7 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChk(ierr);
   if(impl->h_data == NULL && impl->d_data == NULL)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "No context data set");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
   // LCOV_EXCL_STOP
 
   // Sync array to requested memtype and update pointer

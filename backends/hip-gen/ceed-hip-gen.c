@@ -28,7 +28,8 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   const int nrc = 8; // number of characters in resource
   if (strncmp(resource, "/gpu/hip/gen", nrc))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Hip backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   Ceed ceedshared;

@@ -907,13 +907,13 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   // Evaluate the curl to/from the quadrature points
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }

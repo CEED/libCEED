@@ -30,7 +30,8 @@ static int CeedQFunctionApply_Hip_gen(CeedQFunction qf, CeedInt Q,
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement QFunctionApply");
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement QFunctionApply");
 }
 
 //------------------------------------------------------------------------------

@@ -198,7 +198,8 @@ static int CeedOperatorCreateFDMElementInverse_Hip(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement FDM inverse creation");
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement FDM inverse creation");
   // LCOV_EXCL_STOP
 }
 
