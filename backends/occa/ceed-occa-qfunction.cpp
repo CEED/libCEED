@@ -83,6 +83,7 @@ namespace ceed {
       // CEED defines
       props["defines/CeedPragmaSIMD"] = "";
       props["defines/CEED_Q_VLA"] = "OCCA_Q";
+      props["defines/CEED_ERROR_SUCCESS"] = 0;
 
       std::stringstream ss;
       ss << "#define CEED_QFUNCTION(FUNC_NAME) \\" << std::endl

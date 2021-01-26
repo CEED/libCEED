@@ -75,8 +75,9 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "\n#define CeedPragmaSIMD\n";
-  code << "\n#define CEED_Q_VLA 1\n\n";
+  code << "#define CeedPragmaSIMD\n";
+  code << "#define CEED_ERROR_SUCCESS 0\n";
+  code << "#define CEED_Q_VLA 1\n\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;\n";
   code << qReadWriteS;
   code << qFunction;
