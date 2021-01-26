@@ -256,7 +256,6 @@ static int CeedOperatorFieldView(CeedOperatorField field,
     fprintf(stream, "%s      Active vector\n", pre);
   else if (field->vec == CEED_VECTOR_NONE)
     fprintf(stream, "%s      No vector\n", pre);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -320,7 +319,7 @@ static int CeedOperatorGetActiveBasis(CeedOperator op,
     int ierr;
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
                      "No active basis found for automatic multigrid setup");
     // LCOV_EXCL_STOP
   }
@@ -521,7 +520,7 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -543,7 +542,7 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -565,7 +564,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Not defined for composite operators");
   // LCOV_EXCL_STOP
 
@@ -603,7 +602,7 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -641,7 +640,7 @@ int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *numsub = op->numsub;
@@ -662,7 +661,7 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *suboperators = op->suboperators;
@@ -732,7 +731,7 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
                           CeedOperatorField **outputfields) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -925,7 +924,7 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   int ierr;
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
                      "Cannot add field to composite operator.");
   // LCOV_EXCL_STOP
   if (!r)
@@ -956,13 +955,9 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                      "ElemRestriction with %d elements incompatible with prior "
                      "%d elements", numelements, op->numelements);
   // LCOV_EXCL_STOP
-  if (r != CEED_ELEMRESTRICTION_NONE) {
-    op->numelements = numelements;
-    op->hasrestriction = true; // Restriction set, but numelements may be 0
-  }
 
+  CeedInt numqpoints;
   if (b != CEED_BASIS_COLLOCATED) {
-    CeedInt numqpoints;
     ierr = CeedBasisGetNumQuadraturePoints(b, &numqpoints); CeedChk(ierr);
     if (op->numqpoints && op->numqpoints != numqpoints)
       // LCOV_EXCL_START
@@ -971,7 +966,6 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
                        "incompatible with prior %d points", numqpoints,
                        op->numqpoints);
     // LCOV_EXCL_STOP
-    op->numqpoints = numqpoints;
   }
   CeedQFunctionField qfield;
   CeedOperatorField *ofield;
@@ -997,6 +991,13 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
 found:
   ierr = CeedOperatorCheckField(op->ceed, qfield, r, b); CeedChk(ierr);
   ierr = CeedCalloc(1, ofield); CeedChk(ierr);
+
+  if (r != CEED_ELEMRESTRICTION_NONE) {
+    op->numelements = numelements;
+    op->hasrestriction = true; // Restriction set, but numelements may be 0
+  }
+  op->numqpoints = numqpoints;
+
   (*ofield)->Erestrict = r;
   r->refcount += 1;
   (*ofield)->basis = b;
@@ -1028,7 +1029,7 @@ found:
 int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
     // LCOV_EXCL_START
-    return CeedError(compositeop->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(compositeop->ceed, CEED_ERROR_NONTERMINAL,
                      "CeedOperator is not a composite "
                      "operator");
   // LCOV_EXCL_STOP
@@ -1368,7 +1369,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
   ierr = CeedFree(&interpC); CeedChk(ierr);
   ierr = CeedFree(&interpF); CeedChk(ierr);
 
-  // Fallback to interpCtoF versions of code
+  // Complete with interpCtoF versions of code
   if (isTensorF) {
     ierr = CeedOperatorMultigridLevelCreateTensorH1(opFine, PMultFine,
            rstrCoarse, basisCoarse, interpCtoF, opCoarse, opProlong, opRestrict);

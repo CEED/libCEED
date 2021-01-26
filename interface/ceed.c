@@ -546,7 +546,7 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
       size_t offset = ceed->foffsets[i].offset;
       int (**fpointer)(void) = (int (**)(void))((char *)object + offset); // *NOPAD*
       *fpointer = f;
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
   // LCOV_EXCL_START

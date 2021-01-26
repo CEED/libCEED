@@ -51,9 +51,9 @@
 int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blkoffsets,
                           CeedInt nblk, CeedInt nelem, CeedInt blksize,
                           CeedInt elemsize) {
-  for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
-    for (int j = 0; j < blksize; j++)
-      for (int k = 0; k < elemsize; k++)
+  for (CeedInt e=0; e<nblk*blksize; e+=blksize)
+    for (int j=0; j<blksize; j++)
+      for (int k=0; k<elemsize; k++)
         blkoffsets[e*elemsize + k*blksize + j]
           = offsets[CeedIntMin(e+j,nelem-1)*elemsize + k];
   return CEED_ERROR_SUCCESS;
@@ -97,11 +97,11 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
                                   CeedInt (*strides)[3]) {
   if (!rstr->strides)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(rstr->ceed, CEED_ERROR_NONTERMINAL,
                      "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*strides)[i] = rstr->strides[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -162,7 +162,7 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
   @ref Backend
 **/
 int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *isstrided) {
-  *isstrided = rstr->strides ? 1 : 0;
+  *isstrided = rstr->strides ? true : false;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -180,7 +180,7 @@ int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr,
     bool *hasbackendstrides) {
   if (!rstr->strides)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(rstr->ceed, CEED_ERROR_NONTERMINAL,
                      "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
@@ -209,11 +209,11 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
                                   CeedInt (*layout)[3]) {
   if (!rstr->layout[0])
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(rstr->ceed, CEED_ERROR_NONTERMINAL,
                      "ElemRestriction has no layout data");
   // LCOV_EXCL_STOP
 
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*layout)[i] = rstr->layout[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -414,7 +414,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL,
                                      *rstr);
@@ -501,7 +501,6 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          (const CeedInt *) blkoffsets, *rstr); CeedChk(ierr);
-
   if (cmode == CEED_OWN_POINTER) {
     ierr = CeedFree(&offsets); CeedChk(ierr);
   }
@@ -567,7 +566,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
   (*rstr)->nblk = nblk;
   (*rstr)->blksize = blksize;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          NULL, *rstr); CeedChk(ierr);

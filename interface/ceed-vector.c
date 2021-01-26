@@ -158,7 +158,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1,vec); CeedChk(ierr);
+  ierr = CeedCalloc(1, vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
   ceed->refcount++;
   (*vec)->refcount = 1;
@@ -235,7 +235,6 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     for (int i=0; i<vec->length; i++) array[i] = value;
     ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   }
-
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -268,7 +267,6 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
     ierr = CeedVectorGetArrayRead(vec, mtype, &array); CeedChk(ierr);
     ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -524,8 +522,8 @@ int CeedVectorReciprocal(CeedVector vec) {
   for (CeedInt i=0; i<len; i++)
     if (fabs(array[i]) > CEED_EPSILON)
       array[i] = 1./array[i];
-  ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
 
+  ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -552,7 +550,6 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
     fprintf(stream, fmt, x[i]);
 
   ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -601,7 +598,6 @@ int CeedVectorDestroy(CeedVector *vec) {
 
   ierr = CeedDestroy(&(*vec)->ceed); CeedChk(ierr);
   ierr = CeedFree(vec); CeedChk(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 

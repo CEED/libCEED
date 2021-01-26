@@ -76,7 +76,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
   if (num_qfunctions >= sizeof(qfunctions) / sizeof(qfunctions[0]))
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_UNSUPPORTED, "Too many gallery QFunctions");
+    return CeedError(NULL, CEED_ERROR_TERMINAL, "Too many gallery QFunctions");
   // LCOV_EXCL_STOP
 
   strncpy(qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
@@ -111,8 +111,8 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *fieldname,
   size_t len = strlen(fieldname);
   char *tmp;
   int ierr;
-  ierr = CeedCalloc(1,f); CeedChk(ierr);
 
+  ierr = CeedCalloc(1, f); CeedChk(ierr);
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, fieldname, len+1);
   (*f)->fieldname = tmp;
@@ -349,10 +349,8 @@ int CeedQFunctionSetData(CeedQFunction qf, void *data) {
 **/
 int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **inputfields,
                            CeedQFunctionField **outputfields) {
-  if (inputfields)
-    *inputfields = qf->inputfields;
-  if (outputfields)
-    *outputfields = qf->outputfields;
+  if (inputfields) *inputfields = qf->inputfields;
+  if (outputfields) *outputfields = qf->outputfields;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -590,7 +588,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *fieldname, CeedInt size,
                           CeedEvalMode emode) {
   if (qf->operatorsset)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(qf->ceed, CEED_ERROR_TERMINAL,
                      "QFunction cannot be changed when in use by an operator");
   // LCOV_EXCL_STOP
   if ((emode == CEED_EVAL_WEIGHT) && (size != 1))
@@ -624,7 +622,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *fieldname,
                            CeedInt size, CeedEvalMode emode) {
   if (qf->operatorsset)
     // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED,
+    return CeedError(qf->ceed, CEED_ERROR_TERMINAL,
                      "QFunction cannot be changed when in use by an operator");
   // LCOV_EXCL_STOP
   if (emode == CEED_EVAL_WEIGHT)
