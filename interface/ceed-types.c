@@ -16,15 +16,16 @@
 
 #include <ceed.h>
 
-const char *const CeedErrorTypes[] = {
-  [CEED_ERROR_SUCCESS] = "success",
-  [CEED_ERROR_RECOVERABLE] = "recoverable error",
-  [CEED_ERROR_DIMENSION] = "dimension mismatch",
-  [CEED_ERROR_INCOMPLETE] = "object setup incomplete",
-  [CEED_ERROR_UNRECOVERABLE] = "unrecoverable error",
-  [CEED_ERROR_BACKEND] = "internal backend error",
-  [CEED_ERROR_UNSUPPORTED] = "operator unsupported by backend",
+const char *const CeedErrorTypesShifted[] = {
+  [CEED_ERROR_SUCCESS - CEED_ERROR_UNSUPPORTED] = "success",
+  [CEED_ERROR_NONTERMINAL - CEED_ERROR_UNSUPPORTED] = "nonterminal error",
+  [CEED_ERROR_DIMENSION - CEED_ERROR_UNSUPPORTED] = "dimension mismatch",
+  [CEED_ERROR_INCOMPLETE - CEED_ERROR_UNSUPPORTED] = "object setup incomplete",
+  [CEED_ERROR_TERMINAL - CEED_ERROR_UNSUPPORTED] = "terminal error",
+  [CEED_ERROR_BACKEND - CEED_ERROR_UNSUPPORTED] = "internal backend error",
+  [CEED_ERROR_UNSUPPORTED - CEED_ERROR_UNSUPPORTED] = "operator unsupported by backend",
 };
+const char *const *CeedErrorTypes =  &CeedErrorTypesShifted[- CEED_ERROR_UNSUPPORTED];
 
 const char *const CeedMemTypes[] = {
   [CEED_MEM_HOST] = "host",
