@@ -228,8 +228,10 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
 /// Ceed Errors
 ///
 /// This enum is used to specify the type of error returned by a function.
-/// A zero error code is success, odd error codes indicate non-recoverable errors
-/// and even error codes indicate recoverable errors.
+/// A zero error code is success, negative error codes indicate terminal errors
+/// and positive error codes indicate nonterminal errors. With nonterminal errors
+/// the object state has not been modifiend, but with terminal errors the object
+/// data is likely modified or corrupted.
 /// @ingroup Ceed
 typedef enum {
   /// Sucess error code
@@ -240,7 +242,7 @@ typedef enum {
   CEED_ERROR_DIMENSION   = 2,
   /// Nonterminal error, incomplete object setup
   CEED_ERROR_INCOMPLETE  = 3,
-  /// Nonterminal error, access lock in place
+  /// Nonterminal error, access lock problem
   CEED_ERROR_ACCESS      = 4,
   /// Terminal error, generic
   CEED_ERROR_TERMINAL    = -1,
