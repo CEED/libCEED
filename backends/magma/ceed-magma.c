@@ -22,10 +22,10 @@
 static int CeedDestroy_Magma(Ceed ceed) {
   int ierr;
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
   magma_queue_destroy( data->queue );
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
@@ -44,7 +44,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   #else
   CeedInit("/gpu/cuda/ref", &ceedref);
   #endif
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   ierr = magma_init();
   if (ierr)
@@ -53,8 +53,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
 
   Ceed_Magma *data;
-  ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChk(ierr);
-  ierr = CeedSetData(ceed, data); CeedChk(ierr);
+  ierr = CeedCalloc(sizeof(Ceed_Magma), &data); CeedChkBackend(ierr);
+  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
 
   // kernel selection
   data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
@@ -73,17 +73,17 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   #endif
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Magma); CeedChk(ierr);
+                                CeedElemRestrictionCreate_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Magma); CeedChk(ierr);
+                                CeedElemRestrictionCreateBlocked_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Magma); CeedChk(ierr);
+                                CeedBasisCreateTensorH1_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Magma); CeedChk(ierr);
+                                CeedBasisCreateH1_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Magma); CeedChk(ierr);
-  return 0;
+                                CeedDestroy_Magma); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_INTERN int CeedRegister_Magma(void) {

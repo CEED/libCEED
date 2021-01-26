@@ -34,23 +34,23 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   // Create reference CEED for objects
   Ceed basisceedref;
   CeedInit("/cpu/self/ref/blocked", &basisceedref);
   ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   Ceed tensorceedref;
   CeedInit("/cpu/self/ref/blocked", &tensorceedref);
   ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   Ceed opceedref;
   CeedInit("/cpu/self/ref/blocked", &opceedref);
   ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

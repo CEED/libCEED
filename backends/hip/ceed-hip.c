@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -47,10 +47,10 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   ierr = hipGetDeviceProperties(&deviceProp, deviceID); CeedChk_Hip(ceed,ierr);
 
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
   data->deviceId = deviceID;
   data->optblocksize = 256;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -59,13 +59,13 @@ int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
 int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
   int ierr;
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
   if (!data->hipblasHandle) {
     ierr = hipblasCreate(&data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
   }
   *handle = data->hipblasHandle;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -74,12 +74,12 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
 int CeedDestroy_Hip(Ceed ceed) {
   int ierr;
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
   if (data->hipblasHandle) {
     ierr = hipblasDestroy(data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
   }
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -96,35 +96,35 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
 
   Ceed_Hip *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  ierr = CeedSetData(ceed, data); CeedChk(ierr);
-  ierr = CeedHipInit(ceed, resource, nrc); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
+  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
+  ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
-                                CeedGetPreferredMemType_Hip); CeedChk(ierr);
+                                CeedGetPreferredMemType_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
-                                CeedVectorCreate_Hip); CeedChk(ierr);
+                                CeedVectorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Hip); CeedChk(ierr);
+                                CeedBasisCreateTensorH1_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Hip); CeedChk(ierr);
+                                CeedBasisCreateH1_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Hip); CeedChk(ierr);
+                                CeedElemRestrictionCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreateBlocked_Hip);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Hip); CeedChk(ierr);
+                                CeedQFunctionCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Hip); CeedChk(ierr);
+                                CeedQFunctionContextCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Hip); CeedChk(ierr);
+                                CeedOperatorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Hip); CeedChk(ierr);
+                                CeedCompositeOperatorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Hip); CeedChk(ierr);
-  return 0;
+                                CeedDestroy_Hip); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

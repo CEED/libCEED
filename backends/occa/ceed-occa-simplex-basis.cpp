@@ -98,7 +98,7 @@ namespace ceed {
                    U.getConstKernelArg(),
                    V.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel SimplexBasis::getCpuInterpKernel(const bool transpose) {
@@ -126,7 +126,7 @@ namespace ceed {
                  U.getConstKernelArg(),
                  V.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel SimplexBasis::getCpuGradKernel(const bool transpose) {
@@ -149,7 +149,7 @@ namespace ceed {
 
       weightKernel(elementCount, qWeight, W.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel SimplexBasis::getCpuWeightKernel() {
@@ -217,7 +217,7 @@ namespace ceed {
         CeedHandleOccaException(exc);
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-------------
@@ -243,7 +243,7 @@ namespace ceed {
       CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
       CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

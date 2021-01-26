@@ -6,7 +6,7 @@
 // LCOV_EXCL_START
 static int CeedRegister_Weak(const char *name) {
   if (getenv("CEED_DEBUG")) fprintf(stderr, "Weak %s\n", name);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // LCOV_EXCL_STOP
 

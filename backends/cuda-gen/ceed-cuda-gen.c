@@ -34,23 +34,24 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
 
   Ceed ceedshared;
   CeedInit("/gpu/cuda/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
 
   Ceed_Cuda_gen *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  ierr = CeedSetData(ceed, data); CeedChk(ierr);
-  ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
+  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
+  ierr = CeedCudaInit(ceed, resource, nrc); CeedChkBackend(ierr);
 
   const char fallbackresource[] = "/gpu/cuda/ref";
-  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource); CeedChk(ierr);
+  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
+  CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Cuda_gen); CeedChk(ierr);
+                                CeedQFunctionCreate_Cuda_gen); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Cuda_gen); CeedChk(ierr);
+                                CeedOperatorCreate_Cuda_gen); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChk(ierr);
-  return 0;
+                                CeedDestroy_Cuda); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
