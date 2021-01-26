@@ -225,6 +225,29 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
                                bool *release);
 
+/// Ceed Errors
+///
+/// This enum is used to specify the type of error returned by a function.
+/// A zero error code is success, odd error codes indicate non-recoverable errors
+/// and even error codes indicate recoverable errors.
+/// @ingroup Ceed
+typedef enum {
+  /// Sucess error code
+  CEED_ERROR_SUCCESS       = 0,
+  /// Recoverable error, generic
+  CEED_ERROR_RECOVERABLE   = 2,
+  /// Recoverable error, dimension mismatch in inputs
+  CEED_ERROR_DIMENSION     = 4,
+  /// Recoverable error, incomplete object setup
+  CEED_ERROR_INCOMPLETE    = 6,
+  /// Unrecoverable error, generic
+  CEED_ERROR_UNRECOVERABLE = 1,
+  /// Unrecoverable error, internal backend error
+  CEED_ERROR_BACKEND       = 3,
+  /// Unrecoverable error, operation unsupported by current backend
+  CEED_ERROR_UNSUPPORTED   = 5,
+} CeedErrorType;
+
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to
