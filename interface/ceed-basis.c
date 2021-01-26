@@ -678,7 +678,16 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
                    CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
-  CeedInt ulength = 0, vlength, nnodes, nqpt;
+  CeedInt ulength = 0, vlength, dim, ncomp, nnodes, nqpts;
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpts); CeedChk(ierr);
+  ierr = CeedVectorGetLength(v, &vlength); CeedChk(ierr);
+  if (u) {
+    ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
+  }
+
   if (!basis->Apply)
     // LCOV_EXCL_START
     return CeedError(basis->ceed, CEED_ERROR_UNSUPPORTED,
@@ -686,19 +695,51 @@ int CeedBasisApply(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode,
   // LCOV_EXCL_STOP
 
   // Check compatibility of topological and geometrical dimensions
-  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
-  ierr = CeedVectorGetLength(v, &vlength); CeedChk(ierr);
-
-  if (u) {
-    ierr = CeedVectorGetLength(u, &ulength); CeedChk(ierr);
-  }
-
-  if ((tmode == CEED_TRANSPOSE && (vlength%nnodes != 0 || ulength%nqpt != 0)) ||
-      (tmode == CEED_NOTRANSPOSE && (ulength%nnodes != 0 || vlength%nqpt != 0)))
+  if ((tmode == CEED_TRANSPOSE && (vlength%nnodes != 0 || ulength%nqpts != 0)) ||
+      (tmode == CEED_NOTRANSPOSE && (ulength%nnodes != 0 || vlength%nqpts != 0)))
     return CeedError(basis->ceed, CEED_ERROR_DIMENSION,
                      "Length of input/output vectors "
                      "incompatible with basis dimensions");
+
+  // Check vector lengths to prevent out of bounds issues
+  bool baddims = false;
+  switch (emode) {
+  case CEED_EVAL_NONE:
+  case CEED_EVAL_INTERP: baddims =
+      ((tmode == CEED_TRANSPOSE && (ulength < nelem*ncomp*nqpts
+                                    || vlength < nelem*ncomp*nnodes)) ||
+       (tmode == CEED_NOTRANSPOSE && (vlength < nelem*nqpts*ncomp
+                                      || ulength < nelem*ncomp*nnodes)));
+    break;
+  case CEED_EVAL_GRAD: baddims =
+      ((tmode == CEED_TRANSPOSE && (ulength < nelem*ncomp*nqpts*dim
+                                    || vlength < nelem*ncomp*nnodes)) ||
+       (tmode == CEED_NOTRANSPOSE && (vlength < nelem*nqpts*ncomp*dim
+                                      || ulength < nelem*ncomp*nnodes)));
+    break;
+  case CEED_EVAL_WEIGHT:
+    baddims = vlength < nelem*nqpts;
+    break;
+  // LCOV_EXCL_START
+  case CEED_EVAL_DIV: baddims =
+      ((tmode == CEED_TRANSPOSE && (ulength < nelem*ncomp*nqpts
+                                    || vlength < nelem*ncomp*nnodes)) ||
+       (tmode == CEED_NOTRANSPOSE && (vlength < nelem*nqpts*ncomp
+                                      || ulength < nelem*ncomp*nnodes)));
+    break;
+  case CEED_EVAL_CURL: baddims =
+      ((tmode == CEED_TRANSPOSE && (ulength < nelem*ncomp*nqpts
+                                    || vlength < nelem*ncomp*nnodes)) ||
+       (tmode == CEED_NOTRANSPOSE && (vlength < nelem*nqpts*ncomp
+                                      || ulength < nelem*ncomp*nnodes)));
+    break;
+    // LCOV_EXCL_STOP
+  }
+  if (baddims)
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, CEED_ERROR_DIMENSION,
+                     "Input/output vectors too short for basis and evalualtion mode");
+  // LCOV_EXCL_STOP
 
   ierr = basis->Apply(basis, nelem, tmode, emode, u, v); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
