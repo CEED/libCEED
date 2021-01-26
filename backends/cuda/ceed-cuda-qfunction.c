@@ -126,7 +126,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   const char *last_dot = strrchr(cuda_file, '.');
   if (!last_dot)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot find file's extension!");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
   // LCOV_EXCL_STOP
   const size_t cuda_path_len = last_dot - cuda_file;
   strncpy(&cuda_file[cuda_path_len], ".h", 3);
@@ -138,7 +138,8 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
   fp = fopen (cuda_file, "rb");
   if (!fp)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't open the Cuda file for the QFunction.");
   // LCOV_EXCL_STOP
 
   // Compute size of source
@@ -154,7 +155,8 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
     // LCOV_EXCL_START
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChk(ierr);
-    return CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't read the Cuda file for the QFunction.");
     // LCOV_EXCL_STOP
   }
 

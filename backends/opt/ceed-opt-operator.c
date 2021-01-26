@@ -344,7 +344,8 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q,
       CeedChk(ierr);
       Ceed ceed;
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Ceed evaluation mode not implemented");
       // LCOV_EXCL_STOP
     }
     }
@@ -394,14 +395,16 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q,
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "CEED_EVAL_WEIGHT cannot be an output "
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "CEED_EVAL_WEIGHT cannot be an output "
                        "evaluation mode");
     }
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL: {
       Ceed ceed;
       ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1, "Ceed evaluation mode not implemented");
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Ceed evaluation mode not implemented");
       // LCOV_EXCL_STOP
     }
     }
@@ -563,7 +566,8 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
   // Check for identity
   if (impl->identityqf)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Assembling identity qfunctions not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Assembling identity qfunctions not supported");
   // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction
@@ -608,7 +612,8 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
   // Check sizes
   if (!numactivein || !numactiveout)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot assemble QFunction without active inputs "
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Cannot assemble QFunction without active inputs "
                      "and outputs");
   // LCOV_EXCL_STOP
 
@@ -752,7 +757,8 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
 
   if (blksize != 1 && blksize != 8)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Opt backend cannot use blocksize: %d", blksize);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Opt backend cannot use blocksize: %d", blksize);
   // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",

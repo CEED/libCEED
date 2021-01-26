@@ -58,7 +58,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   if (data->qFunction)
     return 0;
   if (!data->qFunctionSource)
-    return CeedError(ceed, 1, "No QFunction source or CUfunction provided.");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
 
   // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;

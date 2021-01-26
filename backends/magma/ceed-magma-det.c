@@ -23,7 +23,8 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/gpu/cuda/magma/det")
       && strcmp(resource, "/gpu/hip/magma/det"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 

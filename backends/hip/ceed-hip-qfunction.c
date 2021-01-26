@@ -115,7 +115,7 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   const char *last_dot = strrchr(hip_file, '.');
   if (!last_dot)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot find file's extension!");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
   // LCOV_EXCL_STOP
   const size_t hip_path_len = last_dot - hip_file;
   strncpy(&hip_file[hip_path_len], ".h", 3);
@@ -127,7 +127,8 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   fp = fopen (hip_file, "rb");
   if (!fp)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't open the Hip file for the QFunction.");
   // LCOV_EXCL_STOP
 
   // Compute size of source
@@ -143,7 +144,8 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
     // LCOV_EXCL_START
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChk(ierr);
-    return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't read the Hip file for the QFunction.");
     // LCOV_EXCL_STOP
   }
 

@@ -32,7 +32,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int ierr;
   if (strcmp(resource, "/gpu/cuda/magma") && strcmp(resource, "/gpu/hip/magma"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Magma backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Magma backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   // Create reference CEED that implementation will be dispatched
@@ -48,7 +49,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   ierr = magma_init();
   if (ierr)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "error in magma_init(): %d\n", ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "error in magma_init(): %d\n", ierr);
   // LCOV_EXCL_STOP
 
   Ceed_Magma *data;

@@ -202,7 +202,8 @@ int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block,
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement blocked restrictions");
   // LCOV_EXCL_STOP
 }
 
@@ -428,7 +429,8 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
     }
   } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Only MemType = HOST or DEVICE supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Only MemType = HOST or DEVICE supported");
     // LCOV_EXCL_STOP
   }
 
@@ -476,6 +478,7 @@ int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype,
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement blocked restrictions");
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement blocked restrictions");
 }
 //------------------------------------------------------------------------------

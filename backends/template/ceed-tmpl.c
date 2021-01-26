@@ -26,7 +26,8 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Tmpl backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   // Create reference CEED that implementation will be dispatched

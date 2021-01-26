@@ -248,13 +248,13 @@ namespace ceed {
 
       ierr = splitCeedResource(c_resource, match, query);
       if (ierr) {
-        return CeedError(ceed, 1, "(OCCA) Backend cannot use resource: %s", c_resource);
+        return CeedError(ceed, CEED_ERROR_BACKEND, "(OCCA) Backend cannot use resource: %s", c_resource);
       }
 
       std::string mode;
       ierr = getDeviceMode(match, mode);
       if (ierr) {
-        return CeedError(ceed, 1, "(OCCA) Backend cannot use resource: %s", c_resource);
+        return CeedError(ceed, CEED_ERROR_BACKEND, "(OCCA) Backend cannot use resource: %s", c_resource);
       }
 
       std::string devicePropsStr = "{\n";

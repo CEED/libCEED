@@ -28,7 +28,8 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/xsmm")
       && strcmp(resource, "/cpu/self/xsmm/blocked"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "blocked libXSMM backend cannot use resource: %s",
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "blocked libXSMM backend cannot use resource: %s",
                      resource);
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
