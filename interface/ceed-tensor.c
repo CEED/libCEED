@@ -59,7 +59,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1,contract); CeedChk(ierr);
+  ierr = CeedCalloc(1, contract); CeedChk(ierr);
 
   (*contract)->ceed = ceed;
   ceed->refcount++;
