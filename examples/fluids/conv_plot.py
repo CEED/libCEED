@@ -52,7 +52,7 @@ def plot():
     ax.set_title('Convergence by h Refinement')
     xlim(.03, .3)
     fig.tight_layout()
-    plt.savefig('h_conv_plt.png', bbox_inches='tight')
+    plt.savefig('conv_plt_h.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":
