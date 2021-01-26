@@ -318,31 +318,6 @@ different wind types.
       ./navierstokes -problem advection2d -problem_advection_wind translation -problem_advection_wind translation 1,-.5
 
 
-.. _problem-density-current:
-
-Density Current
-----------------------------------------
-
-For this test problem (from :cite:`straka1993numerical`), we solve the full
-Navier-Stokes equations :math:numref:`eq-ns`, for which a cold air bubble
-(of radius :math:`r_c`) drops by convection in a neutrally stratified atmosphere.
-Its initial condition is defined in terms of the Exner pressure,
-:math:`\pi(\bm{x},t)`, and potential temperature,
-:math:`\theta(\bm{x},t)`, that relate to the state variables via
-
-.. math::
-   \begin{aligned}
-   \rho &= \frac{P_0}{( c_p - c_v)\theta(\bm{x},t)} \pi(\bm{x},t)^{\frac{c_v}{ c_p - c_v}} \, , \\
-   e &= c_v \theta(\bm{x},t) \pi(\bm{x},t) + \bm{u}\cdot \bm{u} /2 + g z \, ,
-   \end{aligned}
-
-where :math:`P_0` is the atmospheric pressure. For this problem, we have used no-slip
-and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
-for mass and energy densities. This problem can be run with::
-
-   ./navierstokes -problem density_current
-
-
 .. _problem-euler-vortex:
 
 Euler Traveling Vortex
@@ -376,3 +351,29 @@ where :math:`(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)`, :math:`(x_c, \, y_c)` r
 This problem can be run with::
 
    ./navierstokes -problem euler_vortex
+
+
+.. _problem-density-current:
+
+Density Current
+----------------------------------------
+
+For this test problem (from :cite:`straka1993numerical`), we solve the full
+Navier-Stokes equations :math:numref:`eq-ns`, for which a cold air bubble
+(of radius :math:`r_c`) drops by convection in a neutrally stratified atmosphere.
+Its initial condition is defined in terms of the Exner pressure,
+:math:`\pi(\bm{x},t)`, and potential temperature,
+:math:`\theta(\bm{x},t)`, that relate to the state variables via
+
+.. math::
+   \begin{aligned}
+   \rho &= \frac{P_0}{( c_p - c_v)\theta(\bm{x},t)} \pi(\bm{x},t)^{\frac{c_v}{ c_p - c_v}} \, , \\
+   e &= c_v \theta(\bm{x},t) \pi(\bm{x},t) + \bm{u}\cdot \bm{u} /2 + g z \, ,
+   \end{aligned}
+
+where :math:`P_0` is the atmospheric pressure. For this problem, we have used no-slip
+and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
+for mass and energy densities. This problem can be run with::
+
+   ./navierstokes -problem density_current
+
