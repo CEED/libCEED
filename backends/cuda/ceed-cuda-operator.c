@@ -68,7 +68,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   ierr = CeedFree(&impl->diag); CeedChkBackend(ierr);
 
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -176,7 +176,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
       break; // TODO: Not implemented
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   bool setupdone;
   ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChkBackend(ierr);
   if (setupdone)
-    return 0;
+    return CEED_ERROR_SUCCESS;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedOperator_Cuda *impl;
@@ -232,7 +232,7 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
                                       numelements); CeedChkBackend(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -284,7 +284,7 @@ static inline int CeedOperatorSetupInputs_Cuda(CeedInt numinputfields,
       }
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -344,7 +344,7 @@ static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
       break; // TODO: Not implemented
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -380,7 +380,7 @@ static inline int CeedOperatorRestoreInputs_Cuda(CeedInt numinputfields,
       }
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -515,7 +515,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
   ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
                                         opinputfields, false, impl);
   CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -682,7 +682,7 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
   }
   ierr = CeedFree(&activein); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -866,7 +866,7 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
   // Cleanup
   ierr = CeedElemRestrictionRestoreOffsets(rstr, &offsets); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1062,7 +1062,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
   // Restriction
   diag->diagrstr = rstrout;
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1149,7 +1149,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   ierr = CeedVectorDestroy(&assembledqf); CeedChkBackend(ierr);
   ierr = CeedVectorDestroy(&elemdiag); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(
     ierr = CeedOperatorAssembleDiagonalCore_Cuda(subOperators[i], assembled,
            request, pointBlock); CeedChkBackend(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1244,7 +1244,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorApplyAdd_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
                                 CeedOperatorDestroy_Cuda); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1261,6 +1261,6 @@ int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
                                 "LinearAssembleAddPointBlockDiagonal",
                                 CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
   CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

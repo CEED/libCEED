@@ -82,7 +82,7 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
       }
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
         v[a*J+j] += tq * u[a*B+b];
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -294,14 +294,14 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A,
                                            u, v);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Tensor Contract Destroy
 //------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -317,6 +317,6 @@ int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
                                 CeedTensorContractDestroy_Avx); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

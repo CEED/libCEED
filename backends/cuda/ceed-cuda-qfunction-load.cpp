@@ -56,7 +56,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
   // QFunction is built
   if (data->qFunction)
-    return 0;
+    return CEED_ERROR_SUCCESS;
   if (!data->qFunctionSource)
     return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
 
@@ -141,6 +141,6 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
 
   // Cleanup
   ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

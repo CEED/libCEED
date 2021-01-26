@@ -43,7 +43,7 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(
 
   ierr = cudaMemcpy(impl->d_data, impl->h_data, bytes(ctx),
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
 
   ierr = cudaMemcpy(impl->h_data, impl->d_data, bytes(ctx),
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
     break;
   }
   impl->memState = CEED_CUDA_HOST_SYNC;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ static int CeedQFunctionContextSetDataDevice_Cuda(const CeedQFunctionContext
     break;
   }
   impl->memState = CEED_CUDA_DEVICE_SYNC;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -194,7 +194,7 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
     *(void **)data = impl->d_data;
     break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextRestoreData_Cuda(const CeedQFunctionContext
     ctx) {
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -218,7 +218,7 @@ static int CeedQFunctionContextDestroy_Cuda(const CeedQFunctionContext ctx) {
   ierr = cudaFree(impl->d_data_allocated); CeedChk_Cu(ceed, ierr);
   ierr = CeedFree(&impl->h_data_allocated); CeedChkBackend(ierr);
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -241,6 +241,6 @@ int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
   ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
   impl->memState = CEED_CUDA_NONE_SYNC;
   ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChkBackend(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
