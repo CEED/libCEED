@@ -26,10 +26,10 @@
 static int CeedDestroy_Opt(Ceed ceed) {
   int ierr;
   Ceed_Opt *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
-  ierr = CeedFree(&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -43,26 +43,26 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Opt backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Opt); CeedChk(ierr);
+                                CeedDestroy_Opt); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Opt); CeedChk(ierr);
+                                CeedOperatorCreate_Opt); CeedChkBackend(ierr);
 
   // Set blocksize
   Ceed_Opt *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   data->blksize = 1;
-  ierr = CeedSetData(ceed, data); CeedChk(ierr);
+  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

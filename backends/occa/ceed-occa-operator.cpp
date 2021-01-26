@@ -74,7 +74,7 @@ namespace ceed {
 
       applyAdd(in, out);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Virtual Methods ]------------
@@ -111,7 +111,7 @@ namespace ceed {
       CeedOccaRegisterFunction(op, "ApplyAdd", Operator::ceedApplyAdd);
       CeedOccaRegisterFunction(op, "Destroy", Operator::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int Operator::ceedCreateComposite(CeedOperator op) {
@@ -122,7 +122,7 @@ namespace ceed {
       CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
       CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
 
@@ -157,7 +157,7 @@ namespace ceed {
 
     int Operator::ceedDestroy(CeedOperator op) {
       delete Operator::from(op);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

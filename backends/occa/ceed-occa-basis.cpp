@@ -59,7 +59,7 @@ namespace ceed {
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
       ierr = CeedBasisGetNumComponents(basis, &ceedComponentCount); CeedChk(ierr);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-----------
@@ -88,7 +88,7 @@ namespace ceed {
 
     int Basis::ceedDestroy(CeedBasis basis) {
       delete Basis::from(basis);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

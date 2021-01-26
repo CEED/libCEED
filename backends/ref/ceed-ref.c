@@ -30,30 +30,30 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Ref backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
-                                CeedVectorCreate_Ref); CeedChk(ierr);
+                                CeedVectorCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Ref); CeedChk(ierr);
+                                CeedBasisCreateTensorH1_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Ref); CeedChk(ierr);
+                                CeedBasisCreateH1_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Ref); CeedChk(ierr);
+                                CeedTensorContractCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Ref); CeedChk(ierr);
+                                CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreate_Ref); CeedChk(ierr);
+                                CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Ref); CeedChk(ierr);
+                                CeedQFunctionCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Ref); CeedChk(ierr);
+                                CeedQFunctionContextCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Ref); CeedChk(ierr);
+                                CeedOperatorCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Ref); CeedChk(ierr);
-  return 0;
+                                CeedCompositeOperatorCreate_Ref); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

@@ -29,16 +29,16 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
   const CeedScalar *uu;
   CeedScalar *vv;
   CeedInt nelem, elemsize, voffset;
-  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChkBackend(ierr);
   voffset = start*blksize*elemsize*ncomp;
 
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChk(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChk(ierr);
+  ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChkBackend(ierr);
   // Restriction from L-vector to E-vector
   // Perform: v = r * u
   if (tmode == CEED_NOTRANSPOSE) {
@@ -46,7 +46,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     if (!impl->offsets) {
       bool backendstrides;
       ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       if (backendstrides) {
         // CPU backend strides are {1, elemsize, elemsize*ncomp}
         // This if branch is left separate to allow better inlining
@@ -63,7 +63,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
       } else {
         // User provided strides
         CeedInt strides[3];
-        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChkBackend(ierr);
         for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
           for (CeedInt k = 0; k < ncomp; k++)
@@ -94,7 +94,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
     if (!impl->offsets) {
       bool backendstrides;
       ierr = CeedElemRestrictionHasBackendStrides(r, &backendstrides);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       if (backendstrides) {
         // CPU backend strides are {1, elemsize, elemsize*ncomp}
         // This if brach is left separate to allow better inlining
@@ -110,7 +110,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
       } else {
         // User provided strides
         CeedInt strides[3];
-        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChk(ierr);
+        ierr = CeedElemRestrictionGetStrides(r, &strides); CeedChkBackend(ierr);
         for (CeedInt e = start*blksize; e < stop*blksize; e+=blksize)
           CeedPragmaSIMD
           for (CeedInt k = 0; k < ncomp; k++)
@@ -134,11 +134,11 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
               += uu[elemsize*(k*blksize+ncomp*e) + j - voffset];
     }
   }
-  ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(v, &vv); CeedChk(ierr);
+  ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArray(v, &vv); CeedChkBackend(ierr);
   if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED)
     *request = NULL;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -252,12 +252,12 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r,
                                         CeedVector v, CeedRequest *request) {
   int ierr;
   CeedInt numblk, blksize, ncomp, compstride;
-  ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChkBackend(ierr);
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
 
   return impl->Apply(r, ncomp, blksize, compstride, 0, numblk, tmode, u, v,
                      request);
@@ -271,11 +271,11 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r,
     CeedRequest *request) {
   int ierr;
   CeedInt blksize, ncomp, compstride;
-  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChkBackend(ierr);
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
 
   return impl->Apply(r, ncomp, blksize, compstride, block, block+1, tmode, u, v,
                      request);
@@ -288,9 +288,9 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr,
     CeedMemType mtype, const CeedInt **offsets) {
   int ierr;
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(rstr, &impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(rstr, &impl); CeedChkBackend(ierr);
   Ceed ceed;
-  ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChkBackend(ierr);
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
@@ -298,7 +298,7 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr,
   // LCOV_EXCL_STOP
 
   *offsets = impl->offsets;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -307,11 +307,11 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr,
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   int ierr;
   CeedElemRestriction_Ref *impl;
-  ierr = CeedElemRestrictionGetData(r, &impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
 
-  ierr = CeedFree(&impl->offsets_allocated); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&impl->offsets_allocated); CeedChkBackend(ierr);
+  ierr = CeedFree(&impl); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -323,39 +323,39 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
   int ierr;
   CeedElemRestriction_Ref *impl;
   CeedInt nelem, elemsize, numblk, blksize, ncomp, compstride;
-  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumElements(r, &nelem); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elemsize); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumBlocks(r, &numblk); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetBlockSize(r, &blksize); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(r, &ncomp); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChkBackend(ierr);
   Ceed ceed;
-  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
 
   if (mtype != CEED_MEM_HOST)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
 
   // Offsets data
   bool isStrided;
-  ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChk(ierr);
+  ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChkBackend(ierr);
   if (!isStrided) {
     // Check indices for ref or memcheck backends
     Ceed parentCeed = ceed, currCeed = NULL;
     while (parentCeed != currCeed) {
       currCeed = parentCeed;
-      ierr = CeedGetParent(currCeed, &parentCeed); CeedChk(ierr);
+      ierr = CeedGetParent(currCeed, &parentCeed); CeedChkBackend(ierr);
     }
     const char *resource;
-    ierr = CeedGetResource(parentCeed, &resource); CeedChk(ierr);
+    ierr = CeedGetResource(parentCeed, &resource); CeedChkBackend(ierr);
     if (!strcmp(resource, "/cpu/self/ref/serial")
         || !strcmp(resource, "/cpu/self/ref/blocked")
         || !strcmp(resource, "/cpu/self/memcheck/serial")
         || !strcmp(resource, "/cpu/self/memcheck/blocked")) {
       CeedInt lsize;
-      ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetLVectorSize(r, &lsize); CeedChkBackend(ierr);
 
       for (CeedInt i = 0; i < nelem*elemsize; i++)
         if (offsets[i] < 0 || lsize <= offsets[i] + (ncomp - 1) * compstride)
@@ -370,7 +370,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
     switch (cmode) {
     case CEED_COPY_VALUES:
       ierr = CeedMalloc(nelem*elemsize, &impl->offsets_allocated);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       memcpy(impl->offsets_allocated, offsets,
              nelem * elemsize * sizeof(offsets[0]));
       impl->offsets = impl->offsets_allocated;
@@ -384,19 +384,19 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
     }
   }
 
-  ierr = CeedElemRestrictionSetData(r, impl); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetData(r, impl); CeedChkBackend(ierr);
   CeedInt layout[3] = {1, elemsize, elemsize*ncomp};
-  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChk(ierr);
+  ierr = CeedElemRestrictionSetELayout(r, layout); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply",
-                                CeedElemRestrictionApply_Ref); CeedChk(ierr);
+                                CeedElemRestrictionApply_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock",
                                 CeedElemRestrictionApplyBlock_Ref);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets",
                                 CeedElemRestrictionGetOffsets_Ref);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy",
-                                CeedElemRestrictionDestroy_Ref); CeedChk(ierr);
+                                CeedElemRestrictionDestroy_Ref); CeedChkBackend(ierr);
 
   // Set apply function based upon ncomp, blksize, and compstride
   CeedInt idx = -1;
@@ -448,6 +448,6 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mtype, CeedCopyMode cmode,
     break;
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

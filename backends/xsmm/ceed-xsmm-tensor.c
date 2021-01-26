@@ -46,7 +46,7 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
                 &alpha, &t[0], NULL, &u[0], NULL,
                 &beta, &v[0], NULL);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedScalar *restrict v) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
-  ierr = CeedTensorContractGetData(contract, &impl); CeedChk(ierr);
+  ierr = CeedTensorContractGetData(contract, &impl); CeedChkBackend(ierr);
 
   // Get kernel
   libxsmm_dmmfunction kernel;
@@ -76,7 +76,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
   else
     CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, tmode, add, u, v);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -87,12 +87,12 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   CeedTensorContract_Xsmm *impl;
   libxsmm_dmmfunction kernel;
 
-  ierr = CeedTensorContractGetData(contract, &impl); CeedChk(ierr);
+  ierr = CeedTensorContractGetData(contract, &impl); CeedChkBackend(ierr);
   // Free kernels
   kh_foreach_value(impl->lookup, kernel, libxsmm_release_kernel(&kernel));
   kh_destroy(m32, impl->lookup);
-  ierr = CeedFree(&impl); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&impl); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -102,19 +102,19 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                                   CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
-  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChk(ierr);
+  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChkBackend(ierr);
   CeedTensorContract_Xsmm *impl;
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
+  ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
 
   // Setup kernels hash table
   impl->lookup = kh_init(m32);
 
   // Set up pointers to kernels
-  ierr = CeedBasisIsTensor(basis, &impl->isTensor); CeedChk(ierr);
+  ierr = CeedBasisIsTensor(basis, &impl->isTensor); CeedChkBackend(ierr);
   if (impl->isTensor) {
-    ierr = CeedBasisGetNumNodes1D(basis, &impl->P); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &impl->Q); CeedChk(ierr);
-    ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis, &impl->P); CeedChkBackend(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &impl->Q); CeedChkBackend(ierr);
+    ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChkBackend(ierr);
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
       for (CeedInt add = 0; add <= 1; add++)
@@ -144,9 +144,9 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               }
             }
   } else {
-    ierr = CeedBasisGetNumNodes(basis, &impl->P); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints(basis, &impl->Q); CeedChk(ierr);
-    ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes(basis, &impl->P); CeedChkBackend(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints(basis, &impl->Q); CeedChkBackend(ierr);
+    ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChkBackend(ierr);
     // Build all required kernels
     for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
       for (CeedInt add = 0; add <= 1; add++)
@@ -177,13 +177,13 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
           }
         }
   }
-  ierr = CeedTensorContractSetData(contract, impl); CeedChk(ierr);
+  ierr = CeedTensorContractSetData(contract, impl); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
-                                CeedTensorContractApply_Xsmm); CeedChk(ierr);
+                                CeedTensorContractApply_Xsmm); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
-                                CeedTensorContractDestroy_Xsmm); CeedChk(ierr);
+                                CeedTensorContractDestroy_Xsmm); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

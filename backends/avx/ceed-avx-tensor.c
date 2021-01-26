@@ -310,12 +310,12 @@ static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
 int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
-  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChk(ierr);
+  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
-                                CeedTensorContractApply_Avx); CeedChk(ierr);
+                                CeedTensorContractApply_Avx); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
-                                CeedTensorContractDestroy_Avx); CeedChk(ierr);
+                                CeedTensorContractDestroy_Avx); CeedChkBackend(ierr);
 
   return 0;
 }

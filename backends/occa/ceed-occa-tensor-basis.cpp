@@ -123,7 +123,7 @@ namespace ceed {
              U.getConstKernelArg(),
              V.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel TensorBasis::getCpuInterpKernel(const bool transpose) {
@@ -166,7 +166,7 @@ namespace ceed {
            U.getConstKernelArg(),
            V.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel TensorBasis::getCpuGradKernel(const bool transpose) {
@@ -204,7 +204,7 @@ namespace ceed {
 
       weight(elementCount, qWeight1D, W.getKernelArg());
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::kernel TensorBasis::getCpuWeightKernel() {
@@ -289,7 +289,7 @@ namespace ceed {
         CeedHandleOccaException(exc);
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-------------
@@ -317,7 +317,7 @@ namespace ceed {
       CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
       CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

@@ -112,7 +112,7 @@ namespace ceed {
         );
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     std::string QFunction::getKernelSource(const std::string &kernelName,
@@ -212,7 +212,7 @@ namespace ceed {
 
       qFunctionKernel.run();
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-----------
@@ -236,7 +236,7 @@ namespace ceed {
       CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
       CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int QFunction::ceedApply(CeedQFunction qf, CeedInt Q,
@@ -251,7 +251,7 @@ namespace ceed {
 
     int QFunction::ceedDestroy(CeedQFunction qf) {
       delete QFunction::from(qf);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

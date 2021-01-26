@@ -53,6 +53,7 @@ CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedFree(void *p);
 
 #define CeedChk(ierr) do { int ierr_ = ierr; if (ierr_) return ierr_; } while (0)
+#define CeedChkBackend(ierr) do { int ierr_ = ierr; if (ierr_) return CEED_ERROR_BACKEND; } while (0)
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
    different memory alignments: CeedMalloc returns pointers aligned at
    CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
