@@ -42,7 +42,7 @@ CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
     v[i] = u[i] * qd[i];
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // LCOV_EXCL_STOP
 #endif // gallerytemplate_h

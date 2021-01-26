@@ -64,7 +64,7 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
     qd[i+Q*5] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson3dbuild_h

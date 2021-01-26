@@ -35,7 +35,7 @@ CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q,
     v[i] = u[i] * qd[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // massapply_h

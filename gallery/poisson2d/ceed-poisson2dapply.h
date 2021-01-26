@@ -58,7 +58,7 @@ CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
                    du[1] * dXdxdXdxT[1][j]);
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson2dapply_h
