@@ -17,13 +17,24 @@
 
 import numpy as np
 import pandas as pd
+import argparse
 from pylab import *
 from matplotlib import use
 
 
 def plot():
+    # Define argparse for the input variables
+    parser = argparse.ArgumentParser(description='Get input arguments')
+    parser.add_argument('--conv_result_file',
+                        dest='conv_result_file',
+                        type=str,
+                        required=True,
+                        help='Path to the CSV file')
+    args = parser.parse_args()
+    conv_result_file = args.conv_result_file
+
     # Load the data
-    runs = pd.read_csv("conv_test_result.csv")
+    runs = pd.read_csv(conv_result_file)
     colors = ['orange', 'red', 'navy', 'green', 'magenta',
               'gray', 'blue', 'purple', 'pink', 'black']
     res = 'mesh_res'
