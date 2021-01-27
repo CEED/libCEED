@@ -350,7 +350,7 @@ where :math:`(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)`, :math:`(x_c, \, y_c)` r
 
 This problem can be run with::
 
-   ./navierstokes -problem euler_vortex
+   ./navierstokes -problem euler_vortex -problem_euler_mean_velocity .5,-.8,0. -dm_plex_box_faces 20,20,1 -lx 1000 -ly 1000 -lz 1
 
 
 .. _problem-density-current:
