@@ -83,7 +83,7 @@ class Ceed():
             lib.CeedGetErrorMessage(self._pointer[0], message)
             raise Exception(ffi.string(message[0]).decode("UTF-8"))
         elif (err_code < 0):
-          sys.exit(ffi.string(message[0]).decode("UTF-8"))
+            sys.exit(ffi.string(message[0]).decode("UTF-8"))
 
     # Get Resource
     def get_resource(self):
