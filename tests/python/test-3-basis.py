@@ -77,7 +77,7 @@ def test_301(ceed_resource, capsys):
     qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
     tau = np.empty(3, dtype="float64")
 
-    qr, tau = libceed.Basis.qr_factorization(ceed, qr, tau, 4, 3)
+    qr, tau = ceed.qr_factorization(qr, tau, 4, 3)
 
     for i in range(len(qr)):
         if qr[i] <= TOL and qr[i] >= -TOL:
@@ -106,7 +106,7 @@ def test_304(ceed_resource, capsys):
                   -0.07448852, 0.16666509, 1., 0.0745459,
                   0.0332866, -0.07448852, 0.0745459, 0.19996678], dtype="float64")
 
-    lam = libceed.Basis.symmetric_schur_decomposition(ceed, A, 4)
+    lam = ceed.symmetric_schur_decomposition(A, 4)
 
     print("Q: ")
     for i in range(4):
@@ -142,7 +142,7 @@ def test_305(ceed_resource, capsys):
                   0.49824435, -2.9167733, 5.83354662, -3.41501767,
                   -0.11667092, 0.49824435, -3.41501767, 3.03344425], dtype="float64")
 
-    x, lam = libceed.Basis.simultaneous_diagonalization(ceed, K, M, 4)
+    x, lam = ceed.simultaneous_diagonalization(K, M, 4)
 
     print("x: ")
     for i in range(4):
@@ -171,8 +171,8 @@ def test_306(ceed_resource):
 
     b = ceed.BasisTensorH1Lagrange(3, 1, 4, 5, libceed.GAUSS_LOBATTO)
 
-    p = libceed.Basis.get_num_nodes(b)
-    q = libceed.Basis.get_num_quadrature_points(b)
+    p = b.get_num_nodes()
+    q = b.get_num_quadrature_points()
 
     assert p == 64
     assert q == 125
