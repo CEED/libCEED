@@ -182,6 +182,32 @@ pub enum EvalMode {
 }
 
 // -----------------------------------------------------------------------------
+// Ceed error
+// -----------------------------------------------------------------------------
+type Result<T> = std::result::Result<T, CeedError>;
+
+#[derive(Debug)]
+pub struct CeedError {
+    message: String,
+}
+
+impl fmt::Display for CeedError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Ceed error handler
+// -----------------------------------------------------------------------------
+pub enum CeedErrorHandler {
+    ErrorAbort,
+    ErrorExit,
+    ErrorReturn,
+    ErrorStore,
+}
+
+// -----------------------------------------------------------------------------
 // Ceed context wrapper
 // -----------------------------------------------------------------------------
 /// A Ceed is a library context representing control of a logical hardware
@@ -251,7 +277,47 @@ impl Ceed {
 
         // Call to libCEED
         let mut ptr = std::ptr::null_mut();
-        unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
+        unsafe {
+            bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr);
+            bind_ceed::CeedSetErrorHandler(ptr, Some(bind_ceed::CeedErrorAbort));
+        };
+        Ceed { ptr }
+    }
+    /// Returns a Ceed context initialized with the specified resource
+    ///
+    /// # arguments
+    ///
+    /// * `resource` - Resource to use, e.g., "/cpu/self"
+    ///
+    /// ```
+    /// let ceed = libceed::Ceed::init_with_error_handler(
+    ///     "/cpu/self/ref/serial",
+    ///     libceed::CeedErrorHandler::ErrorAbort,
+    /// );
+    /// ```
+    pub fn init_with_error_handler(resource: &str, handler: CeedErrorHandler) -> Self {
+        REGISTER.call_once(|| unsafe {
+            bind_ceed::CeedRegisterAll();
+            bind_ceed::CeedQFunctionRegisterAll();
+        });
+
+        // Convert to C string
+        let c_resource = CString::new(resource).expect("CString::new failed");
+
+        // Get error handler pointer
+        let eh = match handler {
+            CeedErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
+            CeedErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
+            CeedErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
+            CeedErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
+        };
+
+        // Call to libCEED
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr);
+            bind_ceed::CeedSetErrorHandler(ptr, Some(eh));
+        };
         Ceed { ptr }
     }
 
@@ -261,6 +327,27 @@ impl Ceed {
         // Convert to C string
         let resource = "/cpu/self/ref/serial";
         crate::Ceed::init(resource)
+    }
+
+    /// Internal error checker
+    #[doc(hidden)]
+    pub fn check_error(&self, ierr: i32) -> Result<i32> {
+        // Return early if code is clean
+        if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+            return Ok(ierr);
+        }
+        // Retrieve error message
+        let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
+        let c_str = unsafe {
+            bind_ceed::CeedGetErrorMessage(self.ptr, &mut ptr);
+            std::ffi::CStr::from_ptr(ptr)
+        };
+        let message = c_str.to_string_lossy().to_string();
+        // Panic if negative code, otherwise return error
+        if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+            panic!(message);
+        }
+        Err(CeedError { message })
     }
 
     /// Returns a CeedVector of the specified length (does not allocate memory)
