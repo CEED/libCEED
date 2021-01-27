@@ -336,7 +336,7 @@ and account only for the convective fluxes, are given by
    \end{aligned}
 
 Following the setup given in :cite:`zhang2011verification`, the mean flow for this problem is
-:math:`\rho=1`, :math:`P=1`, and :math:`\bm{u}=(1,1,0)` while the perturbation :math:`\delta \bm{u}`,
+:math:`\rho=1`, :math:`P=1`, :math:`T=P/\rho= 1`, and :math:`\bm{u}=(u_1,u_2,0)` while the perturbation :math:`\delta \bm{u}`,
 and :math:`\delta T` are defined as
 
 .. math::
@@ -346,7 +346,8 @@ and :math:`\delta T` are defined as
    \end{aligned}
 
 where :math:`(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)`, :math:`(x_c, \, y_c)` represents the center of the domain,
-:math:`r^2=\bar{x}^2 + \bar{y}^2`, and :math:`\epsilon` is the vortex strength.
+:math:`r^2=\bar{x}^2 + \bar{y}^2`, and :math:`\epsilon` is the vortex strength. There is no perturbation in the entropy
+:math:`S=P/\rho^\gamma` (:math:`\delta S=0)`.
 
 This problem can be run with::
 
