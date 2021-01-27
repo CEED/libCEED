@@ -974,9 +974,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
 
   @ref Developer
 **/
-int CeedSetErrorHandler(Ceed ceed,
-                        int (*eh)(Ceed, const char *, int, const char *,
-                                  int, const char *, va_list *)) {
+int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh) {
   ceed->Error = eh;
   if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, eh);
   for (int i=0; i<ceed->objdelegatecount; i++)

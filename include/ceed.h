@@ -183,10 +183,10 @@ CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list *);
 CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
                               const char *, va_list *);
-CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (*eh)(Ceed, const char *, int,
-                                        const char *, int, const char *,
-                                        va_list *));
+typedef int (*CeedErrorHandler)(Ceed, const char *, int,
+                                const char *, int, const char *,
+                                va_list *);
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh);
 CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
 CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 
