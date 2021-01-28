@@ -16,8 +16,10 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <stddef.h>
 #include "ceed-cuda-gen.h"
 #include "ceed-cuda-gen-operator-build.h"
+#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator

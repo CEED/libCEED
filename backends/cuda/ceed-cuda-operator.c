@@ -16,7 +16,11 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
-#include <math.h>
+#include <assert.h>
+#include <cuda.h>
+
+#include <cuda_runtime.h>
+#include <stdbool.h>
 #include <string.h>
 #include "ceed-cuda.h"
 

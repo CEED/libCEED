@@ -17,9 +17,7 @@
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
 #include "../cuda/ceed-cuda.h"
-#include <nvrtc.h>
 
 typedef struct {
   CUmodule module;

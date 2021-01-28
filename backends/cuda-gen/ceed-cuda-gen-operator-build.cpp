@@ -17,6 +17,7 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
 #include "ceed-cuda-gen.h"

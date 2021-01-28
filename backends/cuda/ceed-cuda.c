@@ -16,8 +16,15 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
-#include <string.h>
+#include <cublas_v2.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <nvrtc.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ceed-cuda.h"
 
 //------------------------------------------------------------------------------

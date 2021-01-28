@@ -16,6 +16,9 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <math.h>
 #include <string.h>
 #include "ceed-cuda.h"
 

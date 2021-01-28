@@ -17,7 +17,6 @@
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
 #include "../cuda/ceed-cuda.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;

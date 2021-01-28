@@ -16,6 +16,10 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include "ceed-cuda.h"
 
 // *INDENT-OFF*
