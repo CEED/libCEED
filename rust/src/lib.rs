@@ -267,21 +267,7 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
-        REGISTER.call_once(|| unsafe {
-            bind_ceed::CeedRegisterAll();
-            bind_ceed::CeedQFunctionRegisterAll();
-        });
-
-        // Convert to C string
-        let c_resource = CString::new(resource).expect("CString::new failed");
-
-        // Call to libCEED
-        let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr);
-            bind_ceed::CeedSetErrorHandler(ptr, Some(bind_ceed::CeedErrorAbort));
-        };
-        Ceed { ptr }
+        Ceed::init_with_error_handler(resource, CeedErrorHandler::ErrorStore)
     }
 
     /// Returns a Ceed context initialized with the specified resource
@@ -315,11 +301,14 @@ impl Ceed {
 
         // Call to libCEED
         let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr);
-            bind_ceed::CeedSetErrorHandler(ptr, Some(eh));
-        };
-        Ceed { ptr }
+        let mut ierr = unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
+        if ierr != 0 {
+            panic!(format!("Error initializing backend resource: {}", resource))
+        }
+        ierr = unsafe { bind_ceed::CeedSetErrorHandler(ptr, Some(eh)) };
+        let ceed = Ceed { ptr };
+        ceed.check_error(ierr).unwrap();
+        ceed
     }
 
     /// Default initializer for testing
