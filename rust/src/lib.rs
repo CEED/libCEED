@@ -425,12 +425,14 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
-    /// let mut ind : Vec<i32> = vec![0; 2 * nelem];
+    /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     /// ```
     pub fn elem_restriction(
         &self,
@@ -472,8 +474,10 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
-    /// let strides : [i32; 3] = [1, 2, 2];
-    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides).unwrap();
+    /// let strides: [i32; 3] = [1, 2, 2];
+    /// let r = ceed
+    ///     .strided_elem_restriction(nelem, 2, 1, nelem * 2, strides)
+    ///     .unwrap();
     /// ```
     pub fn strided_elem_restriction(
         &self,
@@ -552,7 +556,9 @@ impl Ceed {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
@@ -585,21 +591,99 @@ impl Ceed {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let interp  = [ 0.12000000,  0.48000000, -0.12000000,  0.48000000,  0.16000000, -0.12000000,
-    ///                -0.12000000,  0.48000000,  0.12000000,  0.16000000,  0.48000000, -0.12000000,
-    ///                -0.11111111,  0.44444444, -0.11111111,  0.44444444,  0.44444444, -0.11111111,
-    ///                -0.12000000,  0.16000000, -0.12000000,  0.48000000,  0.48000000,  0.12000000];
-    /// let grad    = [-1.40000000,  1.60000000, -0.20000000, -0.80000000,  0.80000000,  0.00000000,
-    ///                 0.20000000, -1.60000000,  1.40000000, -0.80000000,  0.80000000,  0.00000000,
-    ///                -0.33333333,  0.00000000,  0.33333333, -1.33333333,  1.33333333,  0.00000000,
-    ///                 0.20000000,  0.00000000, -0.20000000, -2.40000000,  2.40000000,  0.00000000,
-    ///                -1.40000000, -0.80000000,  0.00000000,  1.60000000,  0.80000000, -0.20000000,
-    /// 	            0.20000000, -2.40000000,  0.00000000,  0.00000000,  2.40000000, -0.20000000,
-    ///                -0.33333333, -1.33333333,  0.00000000,  0.00000000,  1.33333333,  0.33333333,
-    ///                 0.20000000, -0.80000000,  0.00000000, -1.60000000,  0.80000000,  1.40000000];
-    /// let qref    = [ 0.20000000,  0.60000000,  0.33333333,  0.20000000,  0.20000000,  0.20000000,  0.33333333,  0.60000000];
-    /// let qweight = [ 0.26041667,  0.26041667, -0.28125000,  0.26041667];
-    /// let b = ceed.basis_H1(ElemTopology::Triangle, 1, 6, 4, &interp, &grad, &qref, &qweight).unwrap();
+    /// let interp = [
+    ///     0.12000000,
+    ///     0.48000000,
+    ///     -0.12000000,
+    ///     0.48000000,
+    ///     0.16000000,
+    ///     -0.12000000,
+    ///     -0.12000000,
+    ///     0.48000000,
+    ///     0.12000000,
+    ///     0.16000000,
+    ///     0.48000000,
+    ///     -0.12000000,
+    ///     -0.11111111,
+    ///     0.44444444,
+    ///     -0.11111111,
+    ///     0.44444444,
+    ///     0.44444444,
+    ///     -0.11111111,
+    ///     -0.12000000,
+    ///     0.16000000,
+    ///     -0.12000000,
+    ///     0.48000000,
+    ///     0.48000000,
+    ///     0.12000000,
+    /// ];
+    /// let grad = [
+    ///     -1.40000000,
+    ///     1.60000000,
+    ///     -0.20000000,
+    ///     -0.80000000,
+    ///     0.80000000,
+    ///     0.00000000,
+    ///     0.20000000,
+    ///     -1.60000000,
+    ///     1.40000000,
+    ///     -0.80000000,
+    ///     0.80000000,
+    ///     0.00000000,
+    ///     -0.33333333,
+    ///     0.00000000,
+    ///     0.33333333,
+    ///     -1.33333333,
+    ///     1.33333333,
+    ///     0.00000000,
+    ///     0.20000000,
+    ///     0.00000000,
+    ///     -0.20000000,
+    ///     -2.40000000,
+    ///     2.40000000,
+    ///     0.00000000,
+    ///     -1.40000000,
+    ///     -0.80000000,
+    ///     0.00000000,
+    ///     1.60000000,
+    ///     0.80000000,
+    ///     -0.20000000,
+    ///     0.20000000,
+    ///     -2.40000000,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     2.40000000,
+    ///     -0.20000000,
+    ///     -0.33333333,
+    ///     -1.33333333,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     1.33333333,
+    ///     0.33333333,
+    ///     0.20000000,
+    ///     -0.80000000,
+    ///     0.00000000,
+    ///     -1.60000000,
+    ///     0.80000000,
+    ///     1.40000000,
+    /// ];
+    /// let qref = [
+    ///     0.20000000, 0.60000000, 0.33333333, 0.20000000, 0.20000000, 0.20000000, 0.33333333,
+    ///     0.60000000,
+    /// ];
+    /// let qweight = [0.26041667, 0.26041667, -0.28125000, 0.26041667];
+    /// let b = ceed
+    ///     .basis_H1(
+    ///         ElemTopology::Triangle,
+    ///         1,
+    ///         6,
+    ///         4,
+    ///         &interp,
+    ///         &grad,
+    ///         &qref,
+    ///         &qweight,
+    ///     )
+    ///     .unwrap();
     /// ```
     pub fn basis_H1(
         &self,
@@ -628,19 +712,14 @@ impl Ceed {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut user_f = |
-    ///   [u, weights, ..]: QFunctionInputs,
-    ///   [v, ..]: QFunctionOutputs,
-    /// |
-    /// {
-    ///   // Iterate over quadrature points
-    ///   v
-    ///     .iter_mut()
-    ///     .zip(u.iter().zip(weights.iter()))
-    ///     .for_each(|(v, (u, w))| *v = u * w);
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   // Return clean error code
-    ///   0
+    ///     // Return clean error code
+    ///     0
     /// };
     ///
     /// let qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
@@ -680,7 +759,9 @@ impl Ceed {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
-    /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None).unwrap();
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)
+    ///     .unwrap();
     /// ```
     pub fn operator<'b>(
         &self,
