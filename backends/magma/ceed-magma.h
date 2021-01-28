@@ -18,7 +18,7 @@
 #ifndef CEED_MAGMA_H
 #define CEED_MAGMA_H
 
-#include <string.h>
+#include <ceed.h>
 #include <ceed-backend.h>
 #include <magma_v2.h>
 

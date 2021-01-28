@@ -16,8 +16,8 @@
 
 // Fortran interface
 #include <ceed.h>
-#include <ceed-impl.h>
 #include <ceed-backend.h>
+#include <ceed-impl.h>
 #include <ceed-fortran-name.h>
 #include <stdlib.h>
 #include <string.h>

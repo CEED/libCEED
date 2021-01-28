@@ -14,10 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <math.h>
+#include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
-#include <string.h>
-#include <math.h>
 
 //------------------------------------------------------------------------------
 // Destroy operator

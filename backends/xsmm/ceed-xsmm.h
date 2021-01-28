@@ -14,11 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed.h>
 #include <ceed-backend.h>
 #include <ceed-hash.h>
 #include <libxsmm.h>
-#include <string.h>
-#include <math.h>
 
 // Instantiate khash structs and methods
 CeedHashIJKLMInit(m32, libxsmm_dmmfunction)
