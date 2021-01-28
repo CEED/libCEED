@@ -38,12 +38,12 @@ mod transform;
 // Example 1
 // ----------------------------------------------------------------------------
 #[cfg(not(tarpaulin_include))]
-fn main() -> Result<(), String> {
+fn main() -> Result<(), libceed::CeedError> {
     let options = opt::Opt::from_args();
     example_1(options)
 }
 
-fn example_1(options: opt::Opt) -> Result<(), String> {
+fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     // Process command line arguments
     let opt::Opt {
         ceed_spec,
@@ -87,10 +87,12 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh =
-        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss);
-    let basis_solution =
-        ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss);
+    let basis_mesh = ceed
+        .basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)
+        .unwrap();
+    let basis_solution = ceed
+        .basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)
+        .unwrap();
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
@@ -108,9 +110,9 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     // Build ElemRestriction objects describing the mesh and solution discrete
     // representations
     let (restr_mesh, _) =
-        mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts);
+        mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts)?;
     let (restr_solution, restr_qdata) =
-        mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts);
+        mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts)?;
     let mesh_size = restr_mesh.lvector_size();
     let solution_size = restr_solution.lvector_size();
     if !quiet {
@@ -119,7 +121,7 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     }
 
     // Create a Vector with the mesh coordinates
-    let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size);
+    let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
     let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
@@ -168,14 +170,14 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         0
     };
     let qf_build_closure = ceed
-        .q_function_interior(1, Box::new(build_mass))
-        .input("dx", ncomp_x * dim, EvalMode::Grad)
-        .input("weights", 1, EvalMode::Weight)
-        .output("qdata", 1, EvalMode::None);
+        .q_function_interior(1, Box::new(build_mass))?
+        .input("dx", ncomp_x * dim, EvalMode::Grad)?
+        .input("weights", 1, EvalMode::Weight)?
+        .output("qdata", 1, EvalMode::None)?;
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Mass{}DBuild", dim);
-        ceed.q_function_interior_by_name(&name)
+        ceed.q_function_interior_by_name(&name)?
     };
     // -- QFunction for use with Operator
     let qf_build = if gallery {
@@ -186,26 +188,26 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
 
     // Operator that build the quadrature data for the mass operator
     let op_build = ceed
-        .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)
-        .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)
+        .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)?
+        .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)?
         .field(
             "weights",
             ElemRestrictionOpt::None,
             &basis_mesh,
             VectorOpt::None,
-        )
+        )?
         .field(
             "qdata",
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
-        );
+        )?;
 
     // Compute the quadrature data for the mass operator
     let elem_qpts = num_qpts.pow(dim as u32);
     let num_elem: usize = num_xyz.iter().take(dim).product();
-    let mut qdata = ceed.vector(num_elem * elem_qpts);
-    op_build.apply(&mesh_coords, &mut qdata);
+    let mut qdata = ceed.vector(num_elem * elem_qpts)?;
+    op_build.apply(&mesh_coords, &mut qdata)?;
 
     // QFunction that applies the mass operator
     // -- QFunction from user closure
@@ -218,12 +220,12 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
         0
     };
     let qf_mass_closure = ceed
-        .q_function_interior(1, Box::new(apply_mass))
-        .input("u", 1, EvalMode::Interp)
-        .input("qdata", 1, EvalMode::None)
-        .output("v", 1, EvalMode::Interp);
+        .q_function_interior(1, Box::new(apply_mass))?
+        .input("u", 1, EvalMode::Interp)?
+        .input("qdata", 1, EvalMode::None)?
+        .output("v", 1, EvalMode::Interp)?;
     // -- QFunction from gallery
-    let qf_mass_named = { ceed.q_function_interior_by_name("MassApply") };
+    let qf_mass_named = ceed.q_function_interior_by_name("MassApply")?;
     // -- QFunction for use with Operator
     let qf_mass = if gallery {
         QFunctionOpt::SomeQFunctionByName(&qf_mass_named)
@@ -233,17 +235,17 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
 
     // Mass Operator
     let op_mass = ceed
-        .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)
-        .field("u", &restr_solution, &basis_solution, VectorOpt::Active)
-        .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)
-        .field("v", &restr_solution, &basis_solution, VectorOpt::Active);
+        .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
+        .field("u", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
+        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?;
 
     // Solution vectors
-    let u = ceed.vector_from_slice(&vec![1.0; solution_size]);
-    let mut v = ceed.vector(solution_size);
+    let u = ceed.vector_from_slice(&vec![1.0; solution_size])?;
+    let mut v = ceed.vector(solution_size)?;
 
     // Apply the mass operator
-    op_mass.apply(&u, &mut v);
+    op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
     let volume: f64 = v.view().iter().sum();
@@ -265,10 +267,12 @@ fn example_1(options: opt::Opt) -> Result<(), String> {
     let error = (volume - exact_volume).abs();
     if error > tolerance {
         println!("Volume error too large: {:.12e}", error);
-        return Err(format!(
-            "Volume error too large - expected: {:.12e}, actual: {:.12e}",
-            tolerance, error
-        ));
+        return Err(libceed::CeedError {
+            message: format!(
+                "Volume error too large - expected: {:.12e}, actual: {:.12e}",
+                tolerance, error
+            ),
+        });
     }
     Ok(())
 }
