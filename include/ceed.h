@@ -236,19 +236,19 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
 typedef enum {
   /// Sucess error code
   CEED_ERROR_SUCCESS     = 0,
-  /// Nonterminal error, generic
-  CEED_ERROR_NONTERMINAL = 1,
-  /// Nonterminal error, dimension mismatch in inputs
+  /// Minor error, generic
+  CEED_ERROR_MINOR       = 1,
+  /// Minor error, dimension mismatch in inputs
   CEED_ERROR_DIMENSION   = 2,
-  /// Nonterminal error, incomplete object setup
+  /// Minor error, incomplete object setup
   CEED_ERROR_INCOMPLETE  = 3,
-  /// Nonterminal error, access lock problem
+  /// Minor error, access lock problem
   CEED_ERROR_ACCESS      = 4,
-  /// Terminal error, generic
-  CEED_ERROR_TERMINAL    = -1,
-  /// Terminal error, internal backend error
+  /// Major error, generic
+  CEED_ERROR_MAJOR       = -1,
+  /// Major error, internal backend error
   CEED_ERROR_BACKEND     = -2,
-  /// Terminal error, operation unsupported by current backend
+  /// Major error, operation unsupported by current backend
   CEED_ERROR_UNSUPPORTED = -3,
 } CeedErrorType;
 
