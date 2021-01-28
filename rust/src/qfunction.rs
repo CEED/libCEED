@@ -129,25 +129,25 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
 /// ```
 /// # use libceed::prelude::*;
 /// # let ceed = libceed::Ceed::default_init();
-/// let mut user_f = |
-///   [u, weights, ..]: QFunctionInputs,
-///   [v, ..]: QFunctionOutputs,
-/// |
-/// {
-///   // Iterate over quadrature points
-///   v
-///     .iter_mut()
-///     .zip(u.iter().zip(weights.iter()))
-///     .for_each(|(v, (u, w))| *v = u * w);
+/// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+///     // Iterate over quadrature points
+///     v.iter_mut()
+///         .zip(u.iter().zip(weights.iter()))
+///         .for_each(|(v, (u, w))| *v = u * w);
 ///
-///   // Return clean error code
-///   0
+///     // Return clean error code
+///     0
 /// };
 ///
-/// let qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap()
-///     .input("u", 1, EvalMode::Interp).unwrap()
-///     .input("weights", 1, EvalMode::Weight).unwrap()
-///     .output("v", 1, EvalMode::Interp).unwrap();
+/// let qf = ceed
+///     .q_function_interior(1, Box::new(user_f))
+///     .unwrap()
+///     .input("u", 1, EvalMode::Interp)
+///     .unwrap()
+///     .input("weights", 1, EvalMode::Weight)
+///     .unwrap()
+///     .output("v", 1, EvalMode::Interp)
+///     .unwrap();
 ///
 /// println!("{}", qf);
 /// ```
@@ -318,25 +318,25 @@ impl<'a> QFunction<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut user_f = |
-    ///   [u, weights, ..]: QFunctionInputs,
-    ///   [v, ..]: QFunctionOutputs,
-    /// |
-    /// {
-    ///   // Iterate over quadrature points
-    ///   v
-    ///     .iter_mut()
-    ///     .zip(u.iter().zip(weights.iter()))
-    ///     .for_each(|(v, (u, w))| *v = u * w);
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   // Return clean error code
-    ///   0
+    ///     // Return clean error code
+    ///     0
     /// };
     ///
-    /// let qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap()
-    ///     .input("u", 1, EvalMode::Interp).unwrap()
-    ///     .input("weights", 1, EvalMode::Weight).unwrap()
-    ///     .output("v", 1, EvalMode::Interp).unwrap();
+    /// let qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))
+    ///     .unwrap()
+    ///     .input("u", 1, EvalMode::Interp)
+    ///     .unwrap()
+    ///     .input("weights", 1, EvalMode::Weight)
+    ///     .unwrap()
+    ///     .output("v", 1, EvalMode::Interp)
+    ///     .unwrap();
     ///
     /// const Q: usize = 8;
     /// let mut w = [0.; Q];
@@ -344,10 +344,10 @@ impl<'a> QFunction<'a> {
     /// let mut v = [0.; Q];
     ///
     /// for i in 0..Q {
-    ///   let x = 2. * (i as f64)/((Q as f64) - 1.) - 1.;
-    ///   u[i] = 2. + 3. * x + 5. * x * x;
-    ///   w[i] = 1. - x * x;
-    ///   v[i] = u[i] * w[i];
+    ///     let x = 2. * (i as f64) / ((Q as f64) - 1.) - 1.;
+    ///     u[i] = 2. + 3. * x + 5. * x * x;
+    ///     w[i] = 1. - x * x;
+    ///     v[i] = u[i] * w[i];
     /// }
     ///
     /// let uu = ceed.vector_from_slice(&u).unwrap();
@@ -355,17 +355,20 @@ impl<'a> QFunction<'a> {
     /// let mut vv = ceed.vector(Q).unwrap();
     /// vv.set_value(0.0);
     /// {
-    ///   let input = vec![uu, ww];
-    ///   let mut output = vec![vv];
-    ///   qf.apply(Q, &input, &output).unwrap();
-    ///   vv = output.remove(0);
+    ///     let input = vec![uu, ww];
+    ///     let mut output = vec![vv];
+    ///     qf.apply(Q, &input, &output).unwrap();
+    ///     vv = output.remove(0);
     /// }
     ///
     /// vv.view()
     ///     .iter()
     ///     .zip(v.iter())
     ///     .for_each(|(computed, actual)| {
-    ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
+    ///         assert_eq!(
+    ///             *computed, *actual,
+    ///             "Incorrect value in QFunction application"
+    ///         );
     ///     });
     /// ```
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {
@@ -384,19 +387,14 @@ impl<'a> QFunction<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut user_f = |
-    ///   [u, weights, ..]: QFunctionInputs,
-    ///   [v, ..]: QFunctionOutputs,
-    /// |
-    /// {
-    ///   // Iterate over quadrature points
-    ///   v
-    ///     .iter_mut()
-    ///     .zip(u.iter().zip(weights.iter()))
-    ///     .for_each(|(v, (u, w))| *v = u * w);
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   // Return clean error code
-    ///   0
+    ///     // Return clean error code
+    ///     0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
@@ -437,19 +435,14 @@ impl<'a> QFunction<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut user_f = |
-    ///   [u, weights, ..]: QFunctionInputs,
-    ///   [v, ..]: QFunctionOutputs,
-    /// |
-    /// {
-    ///   // Iterate over quadrature points
-    ///   v
-    ///     .iter_mut()
-    ///     .zip(u.iter().zip(weights.iter()))
-    ///     .for_each(|(v, (u, w))| *v = u * w);
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
     ///
-    ///   // Return clean error code
-    ///   0
+    ///     // Return clean error code
+    ///     0
     /// };
     ///
     /// let mut qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
@@ -514,11 +507,11 @@ impl<'a> QFunctionByName<'a> {
     /// let mut v = [0.; Q];
     ///
     /// for i in 0..Q {
-    ///   let x = 2.*(i as f64)/((Q as f64) - 1.) - 1.;
-    ///   j[i] = 1.;
-    ///   w[i] = 1. - x*x;
-    ///   u[i] = 2. + 3.*x + 5.*x*x;
-    ///   v[i] = w[i] * u[i];
+    ///     let x = 2. * (i as f64) / ((Q as f64) - 1.) - 1.;
+    ///     j[i] = 1.;
+    ///     w[i] = 1. - x * x;
+    ///     u[i] = 2. + 3. * x + 5. * x * x;
+    ///     v[i] = w[i] * u[i];
     /// }
     ///
     /// let jj = ceed.vector_from_slice(&j).unwrap();
@@ -530,24 +523,27 @@ impl<'a> QFunctionByName<'a> {
     /// qdata.set_value(0.0);
     ///
     /// {
-    ///   let mut input = vec![jj, ww];
-    ///   let mut output = vec![qdata];
-    ///   qf_build.apply(Q, &input, &output).unwrap();
-    ///   qdata = output.remove(0);
+    ///     let mut input = vec![jj, ww];
+    ///     let mut output = vec![qdata];
+    ///     qf_build.apply(Q, &input, &output).unwrap();
+    ///     qdata = output.remove(0);
     /// }
     ///
     /// {
-    ///   let mut input = vec![qdata, uu];
-    ///   let mut output = vec![vv];
-    ///   qf_mass.apply(Q, &input, &output).unwrap();
-    ///   vv = output.remove(0);
+    ///     let mut input = vec![qdata, uu];
+    ///     let mut output = vec![vv];
+    ///     qf_mass.apply(Q, &input, &output).unwrap();
+    ///     vv = output.remove(0);
     /// }
     ///
     /// vv.view()
     ///     .iter()
     ///     .zip(v.iter())
     ///     .for_each(|(computed, actual)| {
-    ///         assert_eq!(*computed, *actual, "Incorrect value in QFunction application");
+    ///         assert_eq!(
+    ///             *computed, *actual,
+    ///             "Incorrect value in QFunction application"
+    ///         );
     ///     });
     /// ```
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {

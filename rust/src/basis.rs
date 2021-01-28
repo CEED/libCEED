@@ -74,7 +74,9 @@ impl<'a> fmt::Display for Basis<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     /// println!("{}", b);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -206,26 +208,44 @@ impl<'a> Basis<'a> {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 6;
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, Q, Q, QuadMode::GaussLobatto).unwrap();
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, Q, QuadMode::Gauss).unwrap();
+    /// let bu = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 1, Q, Q, QuadMode::GaussLobatto)
+    ///     .unwrap();
+    /// let bx = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 1, 2, Q, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let x_corners = ceed.vector_from_slice(&[-1., 1.]).unwrap();
     /// let mut x_qpts = ceed.vector(Q).unwrap();
     /// let mut x_nodes = ceed.vector(Q).unwrap();
-    /// bx.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
-    ///          &x_corners, &mut x_nodes);
-    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
-    ///          &x_nodes, &mut x_qpts);
+    /// bx.apply(
+    ///     1,
+    ///     TransposeMode::NoTranspose,
+    ///     EvalMode::Interp,
+    ///     &x_corners,
+    ///     &mut x_nodes,
+    /// );
+    /// bu.apply(
+    ///     1,
+    ///     TransposeMode::NoTranspose,
+    ///     EvalMode::Interp,
+    ///     &x_nodes,
+    ///     &mut x_qpts,
+    /// );
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
     /// let mut u_arr = [0.; Q];
-    /// u_arr.iter_mut().zip(x_nodes.view().iter()).for_each(|(u, x)| *u = x * x * x + 1.);
+    /// u_arr
+    ///     .iter_mut()
+    ///     .zip(x_nodes.view().iter())
+    ///     .for_each(|(u, x)| *u = x * x * x + 1.);
     /// let u = ceed.vector_from_slice(&u_arr).unwrap();
     ///
     /// // Map function to Gauss points
     /// let mut v = ceed.vector(Q).unwrap();
     /// v.set_value(0.);
-    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v).unwrap();
+    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v)
+    ///     .unwrap();
     ///
     /// // Verify results
     /// v.view()
@@ -260,7 +280,9 @@ impl<'a> Basis<'a> {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let dim = 2;
-    /// let b = ceed.basis_tensor_H1_Lagrange(dim, 1, 3, 4, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(dim, 1, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let d = b.dimension();
     /// assert_eq!(d, dim, "Incorrect dimension");
@@ -277,7 +299,9 @@ impl<'a> Basis<'a> {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let ncomp = 2;
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, ncomp, 3, 4, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(1, ncomp, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let n = b.num_components();
     /// assert_eq!(n, ncomp, "Incorrect number of components");
@@ -294,7 +318,9 @@ impl<'a> Basis<'a> {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let p = 3;
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, p, 4, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(2, 1, p, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let nnodes = b.num_nodes();
     /// assert_eq!(nnodes, p * p, "Incorrect number of nodes");
@@ -312,7 +338,9 @@ impl<'a> Basis<'a> {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let q = 4;
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, q, QuadMode::Gauss).unwrap();
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(2, 1, 3, q, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let nqpts = b.num_quadrature_points();
     /// assert_eq!(nqpts, q * q, "Incorrect number of quadrature points");

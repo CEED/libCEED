@@ -78,10 +78,12 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     /// println!("{}", r);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -177,10 +179,12 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let lvector = r.create_lvector().unwrap();
     ///
@@ -203,10 +207,12 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let evector = r.create_evector().unwrap();
     ///
@@ -229,10 +235,12 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let (lvector, evector) = r.create_vectors().unwrap();
     ///
@@ -267,23 +275,26 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]).unwrap();
-    /// let mut y = ceed.vector(nelem*2).unwrap();
+    /// let mut y = ceed.vector(nelem * 2).unwrap();
     /// y.set_value(0.0);
     ///
     /// r.apply(TransposeMode::NoTranspose, &x, &mut y).unwrap();
     ///
-    /// y.view()
-    ///     .iter()
-    ///     .enumerate()
-    ///     .for_each(|(i, arr)| {
-    ///         assert_eq!(*arr, ((i + 1) / 2) as f64, "Incorrect value in restricted vector");
-    ///     });
+    /// y.view().iter().enumerate().for_each(|(i, arr)| {
+    ///     assert_eq!(
+    ///         *arr,
+    ///         ((i + 1) / 2) as f64,
+    ///         "Incorrect value in restricted vector"
+    ///     );
+    /// });
     /// ```
     pub fn apply(&self, tmode: TransposeMode, u: &Vector, ru: &mut Vector) -> crate::Result<i32> {
         let tmode = tmode as bind_ceed::CeedTransposeMode;
@@ -308,10 +319,12 @@ impl<'a> ElemRestriction<'a> {
     /// let compstride = 1;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, compstride, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let c = r.comp_stride();
     /// assert_eq!(c, compstride, "Incorrect component stride");
@@ -330,10 +343,12 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let n = r.num_elements();
     /// assert_eq!(n, nelem, "Incorrect number of elements");
@@ -353,10 +368,12 @@ impl<'a> ElemRestriction<'a> {
     /// let elem_size = 2;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, elem_size, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let e = r.elem_size();
     /// assert_eq!(e, elem_size, "Incorrect element size");
@@ -375,10 +392,12 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let lsize = r.lvector_size();
     /// assert_eq!(lsize, nelem + 1);
@@ -398,10 +417,12 @@ impl<'a> ElemRestriction<'a> {
     /// let ncomp = 42;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp * (nelem + 1), MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 42, 1, ncomp * (nelem + 1), MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let n = r.num_components();
     /// assert_eq!(n, ncomp, "Incorrect number of components");
@@ -420,25 +441,25 @@ impl<'a> ElemRestriction<'a> {
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
     /// for i in 0..nelem {
-    ///   ind[2 * i + 0] = i as i32;
-    ///   ind[2 * i + 1] = (i + 1) as i32;
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind).unwrap();
+    /// let r = ceed
+    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
+    ///     .unwrap();
     ///
     /// let mut mult = ceed.vector(nelem + 1).unwrap();
     /// mult.set_value(0.0);
     ///
     /// r.multiplicity(&mut mult).unwrap();
     ///
-    /// mult.view()
-    ///     .iter()
-    ///     .enumerate()
-    ///     .for_each(|(i, arr)| {
-    ///         assert_eq!(
-    ///             if (i == 0 || i == nelem) { 1. } else { 2. },
-    ///             *arr,
-    ///             "Incorrect multiplicity array");
-    ///     });
+    /// mult.view().iter().enumerate().for_each(|(i, arr)| {
+    ///     assert_eq!(
+    ///         if (i == 0 || i == nelem) { 1. } else { 2. },
+    ///         *arr,
+    ///         "Incorrect multiplicity array"
+    ///     );
+    /// });
     /// ```
     pub fn multiplicity(&self, mult: &mut Vector) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };

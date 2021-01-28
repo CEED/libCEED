@@ -89,12 +89,15 @@ impl<'a> fmt::Display for Vector<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.,]).unwrap();
-    /// assert_eq!(vec.to_string(), "CeedVector length 3
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.]).unwrap();
+    /// assert_eq!(
+    ///     vec.to_string(),
+    ///     "CeedVector length 3
     ///     1.00000000
     ///     2.00000000
     ///     3.00000000
-    /// ")
+    /// "
+    /// )
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -140,7 +143,7 @@ impl<'a> Vector<'a> {
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.,]).unwrap();
+    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.]).unwrap();
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
     pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> crate::Result<Self> {
@@ -218,11 +221,9 @@ impl<'a> Vector<'a> {
     /// let val = 42.0;
     /// vec.set_value(val).unwrap();
     ///
-    /// vec.view()
-    ///     .iter()
-    ///     .for_each(|v| {
-    ///         assert_eq!(*v, val, "Value not set correctly");
-    ///     });
+    /// vec.view().iter().for_each(|v| {
+    ///     assert_eq!(*v, val, "Value not set correctly");
+    /// });
     /// ```
     pub fn set_value(&mut self, value: f64) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
@@ -241,12 +242,9 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector(4).unwrap();
     /// vec.set_slice(&[10., 11., 12., 13.]).unwrap();
     ///
-    /// vec.view()
-    ///     .iter()
-    ///     .enumerate()
-    ///     .for_each(|(i, v)| {
-    ///         assert_eq!(*v, 10. + i as f64, "Slice not set correctly");
-    ///     });
+    /// vec.view().iter().enumerate().for_each(|(i, v)| {
+    ///     assert_eq!(*v, 10. + i as f64, "Slice not set correctly");
+    /// });
     /// ```
     pub fn set_slice(&mut self, slice: &[f64]) -> crate::Result<i32> {
         assert_eq!(self.length(), slice.len());
@@ -276,11 +274,9 @@ impl<'a> Vector<'a> {
     /// vec.set_value(val);
     /// vec.sync(MemType::Host).unwrap();
     ///
-    /// vec.view()
-    ///     .iter()
-    ///     .for_each(|v| {
-    ///         assert_eq!(*v, val, "Value not set correctly");
-    ///     });
+    /// vec.view().iter().for_each(|v| {
+    ///     assert_eq!(*v, val, "Value not set correctly");
+    /// });
     /// ```
     pub fn sync(&self, mtype: crate::MemType) -> crate::Result<i32> {
         let ierr =
@@ -314,8 +310,8 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.]).unwrap();
     ///
     /// {
-    ///   let mut v = vec.view_mut();
-    ///   v[2] = 9.;
+    ///     let mut v = vec.view_mut();
+    ///     v[2] = 9.;
     /// }
     ///
     /// let w = vec.view();
