@@ -196,7 +196,7 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n*unit);
   if (ierr)
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL,
+    return CeedError(NULL, CEED_ERROR_MAJOR,
                      "posix_memalign failed to allocate %zd "
                      "members of size %zd\n", n, unit);
   // LCOV_EXCL_STOP
@@ -222,7 +222,7 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
   if (n && unit && !*(void **)p)
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL,
+    return CeedError(NULL, CEED_ERROR_MAJOR,
                      "calloc failed to allocate %zd members of size "
                      "%zd\n", n, unit);
   // LCOV_EXCL_STOP
@@ -248,7 +248,7 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n*unit);
   if (n && unit && !*(void **)p)
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL,
+    return CeedError(NULL, CEED_ERROR_MAJOR,
                      "realloc failed to allocate %zd members of size "
                      "%zd\n", n, unit);
   // LCOV_EXCL_STOP
@@ -286,7 +286,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
                  unsigned int priority) {
   if (num_backends >= sizeof(backends) / sizeof(backends[0]))
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL, "Too many backends");
+    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
   // LCOV_EXCL_STOP
 
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
@@ -612,7 +612,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Find matching backend
   if (!resource)
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL, "No resource provided");
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No resource provided");
   // LCOV_EXCL_STOP
   ierr = CeedRegisterAll(); CeedChk(ierr);
 
@@ -629,7 +629,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   if (matchlen <= 1)
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_TERMINAL, "No suitable backend: %s",
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
                      resource);
   // LCOV_EXCL_STOP
 

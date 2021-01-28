@@ -818,7 +818,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(basis->ceed, CEED_ERROR_MINOR,
                      "Cannot supply P1d for non-tensor basis");
   // LCOV_EXCL_STOP
 
@@ -854,7 +854,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(basis->ceed, CEED_ERROR_MINOR,
                      "Cannot supply Q1d for non-tensor basis");
   // LCOV_EXCL_STOP
 
@@ -940,7 +940,7 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
 int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(basis->ceed, CEED_ERROR_MINOR,
                      "CeedBasis is not a tensor product basis.");
   // LCOV_EXCL_STOP
 
@@ -1001,7 +1001,7 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad1d) {
   if (!basis->tensorbasis)
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(basis->ceed, CEED_ERROR_MINOR,
                      "CeedBasis is not a tensor product basis.");
   // LCOV_EXCL_STOP
 
@@ -1358,7 +1358,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   // Check convergence
   if (itr == maxitr && q < n-1)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(ceed, CEED_ERROR_MINOR,
                      "Symmetric QR failed to converge");
   // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;

@@ -111,7 +111,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
     ierr = CeedElemRestrictionGetNumComponents(r, &restr_ncomp);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(ceed, CEED_ERROR_MINOR,
                      "CEED_ELEMRESTRICTION_NONE can only be used "
                      "for a field with eval mode CEED_EVAL_WEIGHT");
     // LCOV_EXCL_STOP
@@ -319,7 +319,7 @@ static int CeedOperatorGetActiveBasis(CeedOperator op,
     int ierr;
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(ceed, CEED_ERROR_MINOR,
                      "No active basis found for automatic multigrid setup");
     // LCOV_EXCL_STOP
   }
@@ -520,7 +520,7 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -542,7 +542,7 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *numelem) {
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -564,7 +564,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *numqpts) {
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *numargs) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operators");
   // LCOV_EXCL_STOP
 
@@ -602,7 +602,7 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *issetupdone) {
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -640,7 +640,7 @@ int CeedOperatorIsComposite(CeedOperator op, bool *iscomposite) {
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *numsub = op->numsub;
@@ -661,7 +661,7 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *numsub) {
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator **suboperators) {
   if (!op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL, "Not a composite operator");
+    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
 
   *suboperators = op->suboperators;
@@ -731,7 +731,7 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **inputfields,
                           CeedOperatorField **outputfields) {
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
@@ -835,7 +835,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
 
   if (!qf || qf == CEED_QFUNCTION_NONE)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(ceed, CEED_ERROR_MINOR,
                      "Operator must have a valid QFunction.");
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, op); CeedChk(ierr);
@@ -924,24 +924,24 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   int ierr;
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Cannot add field to composite operator.");
   // LCOV_EXCL_STOP
   if (!r)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "ElemRestriction r for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!b)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Basis b for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!v)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Vector v for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
@@ -1032,7 +1032,7 @@ found:
 int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
     // LCOV_EXCL_START
-    return CeedError(compositeop->ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(compositeop->ceed, CEED_ERROR_MINOR,
                      "CeedOperator is not a composite "
                      "operator");
   // LCOV_EXCL_STOP
@@ -1334,7 +1334,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator opFine, CeedVector PMultFine,
     ierr = CeedBasisGetNumNodes(basisCoarse, &Pc); CeedChk(ierr);
   } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_NONTERMINAL,
+    return CeedError(ceed, CEED_ERROR_MINOR,
                      "Bases must both be tensor or non-tensor");
     // LCOV_EXCL_STOP
   }
