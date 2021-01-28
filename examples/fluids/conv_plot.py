@@ -52,9 +52,9 @@ def plot():
         E = data['rel_error']
         log_h = np.log10(h)
         log_H = np.log10(H)
-        ax.loglog(h, E, 'o', color=colors[i], label='P=' + str(p))
+        ax.loglog(h, E, 'o', color=colors[i])
         m, b = np.polyfit(log_h, log_H, 1)
-        #ax.loglog(h, 10**b * h**m, '--', color=colors[i], label='O(h^' + str(p) + ')')
+        ax.loglog(h, 10**b * h**m, '--', color=colors[i], label='O(h^' + str(p) + ')')
         i = i + 1
 
     ax.legend(loc='best')
