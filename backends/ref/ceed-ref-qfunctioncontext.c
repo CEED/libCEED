@@ -16,6 +16,7 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <string.h>
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------

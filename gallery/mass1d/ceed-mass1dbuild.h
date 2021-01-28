@@ -20,6 +20,9 @@
 
 #ifndef mass1dbuild_h
 #define mass1dbuild_h
+#ifndef __CUDACC__
+#  include <ceed.h>
+#endif
 
 CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {

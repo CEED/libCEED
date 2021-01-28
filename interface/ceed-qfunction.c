@@ -18,6 +18,8 @@
 #include <ceed-backend.h>
 #include <ceed-impl.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 /// @file

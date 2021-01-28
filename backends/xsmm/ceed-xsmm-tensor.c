@@ -16,7 +16,10 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <ceed-hash.h>
+#include <ceed-khash.h>
 #include <libxsmm.h>
+#include <stddef.h>
 #include "ceed-xsmm.h"
 
 //------------------------------------------------------------------------------

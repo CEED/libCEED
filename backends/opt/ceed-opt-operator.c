@@ -16,6 +16,8 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include "ceed-opt.h"
 

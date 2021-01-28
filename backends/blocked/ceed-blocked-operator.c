@@ -16,6 +16,9 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "ceed-blocked.h"
 
 //------------------------------------------------------------------------------

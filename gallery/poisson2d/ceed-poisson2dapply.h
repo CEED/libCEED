@@ -20,6 +20,9 @@
 
 #ifndef poisson2dapply_h
 #define poisson2dapply_h
+#ifndef __CUDACC__
+#  include <ceed.h>
+#endif
 
 CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,

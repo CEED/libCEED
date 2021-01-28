@@ -17,6 +17,7 @@
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <immintrin.h>
+#include <stdbool.h>
 #include "ceed-avx.h"
 
 // c += a * b

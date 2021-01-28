@@ -18,6 +18,8 @@
 #include <ceed-backend.h>
 #include <ceed-impl.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /// @file
 /// Implementation of public CeedVector interfaces

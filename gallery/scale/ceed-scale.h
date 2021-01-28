@@ -20,6 +20,9 @@
 
 #ifndef scale_h
 #define scale_h
+#ifndef __CUDACC__
+#  include <ceed.h>
+#endif
 
 CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {

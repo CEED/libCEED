@@ -17,7 +17,8 @@
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <ceed-impl.h>
-#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /// @file
 /// Implementation of public CeedQFunctionContext interfaces

@@ -26,6 +26,10 @@
 
 #ifndef gallerytemplate_h
 #define gallerytemplate_h
+#ifndef __CUDACC__
+#  include <ceed.h>
+#endif
+
 // LCOV_EXCL_START
 CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
                                 const CeedScalar *const *in,

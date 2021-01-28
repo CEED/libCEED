@@ -15,7 +15,9 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed.h>
-#include <string.h>
+#include <ceed-backend.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
   CeedScalar *collograd1d;

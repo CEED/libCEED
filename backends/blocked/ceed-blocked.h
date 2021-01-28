@@ -16,6 +16,8 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
   CeedScalar *colograd1d;
