@@ -53,7 +53,7 @@ pub fn build_cartesian_restriction(
     degree: usize,
     num_comp: usize,
     num_qpts: usize,
-) -> (ElemRestriction, ElemRestriction) {
+) -> Result<(ElemRestriction, ElemRestriction), libceed::CeedError> {
     let p = degree + 1;
     let num_nodes = p.pow(dim as u32); // number of nodes per element
     let elem_qpts = num_qpts.pow(dim as u32); // number of quadrature pts per element
@@ -102,7 +102,7 @@ pub fn build_cartesian_restriction(
         num_comp * scalar_size,
         MemType::Host,
         &elem_nodes,
-    );
+    )?;
 
     // Quadratue data restriction
     let restr_qdata = ceed.strided_elem_restriction(
@@ -111,8 +111,8 @@ pub fn build_cartesian_restriction(
         num_comp,
         num_comp * elem_qpts * num_elem,
         CEED_STRIDES_BACKEND,
-    );
-    (restr, restr_qdata)
+    )?;
+    Ok((restr, restr_qdata))
 }
 
 // ----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ pub fn cartesian_mesh_coords(
     num_xyz: [usize; 3],
     mesh_degree: usize,
     mesh_size: usize,
-) -> Vector {
+) -> Result<Vector, libceed::CeedError> {
     let p = mesh_degree + 1;
     let mut num_d = [0; 3];
     let mut scalar_size = 1;
@@ -134,19 +134,21 @@ pub fn cartesian_mesh_coords(
     }
 
     // Lobatto points
-    let lobatto_basis = ceed.basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto);
-    let nodes_corners = ceed.vector_from_slice(&[0.0, 1.0]);
-    let mut nodes_full = ceed.vector(p);
+    let lobatto_basis = ceed
+        .basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto)
+        .unwrap();
+    let nodes_corners = ceed.vector_from_slice(&[0.0, 1.0])?;
+    let mut nodes_full = ceed.vector(p)?;
     lobatto_basis.apply(
         1,
         TransposeMode::NoTranspose,
         EvalMode::Interp,
         &nodes_corners,
         &mut nodes_full,
-    );
+    )?;
 
     // Coordinates for mesh
-    let mut mesh_coords = ceed.vector(mesh_size);
+    let mut mesh_coords = ceed.vector(mesh_size)?;
     {
         let mut coords = mesh_coords.view_mut();
         let nodes = nodes_full.view();
@@ -160,7 +162,7 @@ pub fn cartesian_mesh_coords(
             }
         }
     }
-    mesh_coords
+    Ok(mesh_coords)
 }
 
 // ----------------------------------------------------------------------------
