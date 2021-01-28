@@ -283,6 +283,7 @@ impl Ceed {
         };
         Ceed { ptr }
     }
+
     /// Returns a Ceed context initialized with the specified resource
     ///
     /// # arguments
@@ -331,7 +332,7 @@ impl Ceed {
 
     /// Internal error checker
     #[doc(hidden)]
-    pub fn check_error(&self, ierr: i32) -> Result<i32> {
+    fn check_error(&self, ierr: i32) -> Result<i32> {
         // Return early if code is clean
         if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
             return Ok(ierr);
@@ -348,6 +349,23 @@ impl Ceed {
             panic!(message);
         }
         Err(CeedError { message })
+    }
+
+    /// Returns full resource name for a Ceed context
+    ///
+    /// ```
+    /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
+    /// let resource = ceed.resource();
+    ///
+    /// assert_eq!(resource, "/cpu/self/ref/serial".to_string())
+    /// ```
+    pub fn resource(&self) -> String {
+        let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
+        let c_str = unsafe {
+            bind_ceed::CeedGetResource(self.ptr, &mut ptr);
+            std::ffi::CStr::from_ptr(ptr)
+        };
+        c_str.to_string_lossy().to_string()
     }
 
     /// Returns a CeedVector of the specified length (does not allocate memory)
