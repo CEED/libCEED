@@ -726,6 +726,7 @@ extern "C" __launch_bounds__(INTERP_BLKSIZE) __global__ void interp(
   // load interp1d into shared memory
   __shared__ double s_B[P1D*Q1D];
   loadMatrix(d_interp1d, s_B); 
+  __syncthreads();
 
   if (BASIS_DIM == 1) {
     interp1d(nelem, transpose, s_B, d_U, d_V, slice);
@@ -750,6 +751,7 @@ extern "C" __launch_bounds__(GRAD_BLKSIZE) __global__ void grad(const CeedInt ne
   loadMatrix(d_interp1d, s_B); 
   __shared__ double s_G[P1D*Q1D];
   loadMatrix(d_grad1d, s_G); 
+  __syncthreads();
 
   if (BASIS_DIM == 1) {
     grad1d(nelem, transpose, s_B, s_G, d_U, d_V, slice);
