@@ -17,7 +17,6 @@
 #define _ceed_hip_compile_h
 
 #include <ceed.h>
-
 #include <hip/hip_runtime.h>
 
 CEED_INTERN int CeedCompileHip(Ceed ceed, const char *source,

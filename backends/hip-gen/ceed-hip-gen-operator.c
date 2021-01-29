@@ -16,6 +16,7 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <stddef.h>
 #include "ceed-hip-gen.h"
 #include "ceed-hip-gen-operator-build.h"
 #include "../hip/ceed-hip-compile.h"

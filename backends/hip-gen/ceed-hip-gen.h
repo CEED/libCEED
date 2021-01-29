@@ -16,6 +16,7 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <hip/hip_runtime.h>
 #include "../hip/ceed-hip.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } HipFields;

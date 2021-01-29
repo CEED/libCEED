@@ -15,6 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed.h>
+#include <ceed-backend.h>
+#include <hip/hip_runtime.h>
 #include "../hip/ceed-hip.h"
 
 typedef struct {

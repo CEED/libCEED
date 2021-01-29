@@ -16,9 +16,9 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
-#include <stdarg.h>
 #include <string.h>
 #include "ceed-hip-gen.h"
+#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Backend init

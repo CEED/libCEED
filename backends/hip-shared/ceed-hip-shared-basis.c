@@ -16,7 +16,10 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <hip/hip_runtime.h>
+#include <stddef.h>
 #include "ceed-hip-shared.h"
+#include "../hip/ceed-hip.h"
 #include "../hip/ceed-hip-compile.h"
 
 //------------------------------------------------------------------------------

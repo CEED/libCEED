@@ -16,9 +16,11 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <hip/hip_runtime.h>
 #include <stdio.h>
 #include <string.h>
 #include "ceed-hip-gen.h"
+#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction

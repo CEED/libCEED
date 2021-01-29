@@ -16,6 +16,9 @@
 
 #include <ceed.h>
 #include <ceed-backend.h>
+#include <hip/hip_runtime.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 
