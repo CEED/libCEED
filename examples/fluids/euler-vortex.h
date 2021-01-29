@@ -44,6 +44,7 @@ struct EulerContext_ {
   CeedScalar etv_mean_velocity[3];
   CeedScalar T_inlet;
   CeedScalar P_inlet;
+  int stabilization;
   int euler_test;
 };
 #endif
@@ -260,7 +261,7 @@ static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
 
   // Setup
   const CeedScalar gamma = 1.4;
-  const CeedScalar cv = 2.5; // cv computed based on Rd = 1
+  const CeedScalar cv = 2.5; // cv computed based on R = 1
   const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
   // Vortex center
   const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
@@ -296,7 +297,10 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Context
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar currentTime = context->currentTime;
+  const int stabilization = context->stabilization;
   const CeedScalar gamma  = 1.4;
+  const CeedScalar cv = 2.5;
+  const CeedScalar R = 1.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -310,6 +314,25 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     q[3][i] / rho
                                    };
     const CeedScalar E          =   q[4][i];
+    // -- Grad in
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
+    const CeedScalar dU[3][3]   = {{dq[0][1][i],
+                                    dq[1][1][i],
+                                    dq[2][1][i]},
+                                   {dq[0][2][i],
+                                    dq[1][2][i],
+                                    dq[2][2][i]},
+                                   {dq[0][3][i],
+                                    dq[1][3][i],
+                                    dq[2][3][i]}
+                                  };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
     // -- Interp-to-Interp qdata
     const CeedScalar wdetJ      =   qdata[0][i];
     // -- Interp-to-Grad qdata
@@ -326,6 +349,29 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     qdata[9][i]}
                                   };
     // *INDENT-ON*
+    // -- Grad-to-Grad qdata
+    // dU/dx
+    CeedScalar du[3][3] = {{0}};
+    CeedScalar drhodx[3] = {0};
+    CeedScalar dEdx[3] = {0};
+    CeedScalar dUdx[3][3] = {{0}};
+    CeedScalar dXdxdXdxT[3][3] = {{0}};
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
+        du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
+        drhodx[j] += drho[k] * dXdx[k][j];
+        dEdx[j] += dE[k] * dXdx[k][j];
+        for (int l=0; l<3; l++) {
+          dUdx[j][k] += dU[j][l] * dXdx[l][k];
+          dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
+        }
+      }
+    }
+    CeedScalar dudx[3][3] = {{0}};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        for (int l=0; l<3; l++)
+          dudx[j][k] += du[j][l] * dXdx[l][k];
     const CeedScalar
     E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
     E_internal = E - E_kinetic,
@@ -333,6 +379,48 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar force[5];
     MMSforce_Euler(3, currentTime, X, 5, force, ctx);
+
+
+    // dFconvdq[3][5][5] = dF(convective)/dq at each direction
+    CeedScalar dFconvdq[3][5][5] = {{{0}}};
+    for (int j=0; j<3; j++) {
+      dFconvdq[j][4][0] = u[j] * (2*R*E_kinetic/cv - E*gamma);
+      dFconvdq[j][4][4] = u[j] * gamma;
+      for (int k=0; k<3; k++) {
+        dFconvdq[j][k+1][0] = -u[j]*u[k] + (j==k?(E_kinetic*R/cv):0);
+        dFconvdq[j][k+1][4] = (j==k?(R/cv):0);
+        dFconvdq[j][k+1][k+1] = (j!=k?u[j]:0);
+        dFconvdq[j][0][k+1] = (j==k?1:0);
+        dFconvdq[j][j+1][k+1] = u[k] * ((j==k?2:0) - R/cv);
+        dFconvdq[j][4][k+1] = -(R/cv)*u[j]*u[k] + (j==k?(E*gamma - R*E_kinetic/cv):0);
+      }
+    }
+    dFconvdq[0][2][1] = u[1];
+    dFconvdq[0][3][1] = u[2];
+    dFconvdq[1][1][2] = u[0];
+    dFconvdq[1][3][2] = u[2];
+    dFconvdq[2][1][3] = u[0];
+    dFconvdq[2][2][3] = u[1];
+    // dFconvdqT = dFconvdq^T
+    CeedScalar dFconvdqT[3][5][5];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          dFconvdqT[j][k][l] = dFconvdq[j][l][k];
+    // dqdx collects drhodx, dUdx and dEdx in one vector
+    CeedScalar dqdx[5][3];
+    for (int j=0; j<3; j++) {
+      dqdx[0][j] = drhodx[j];
+      dqdx[4][j] = dEdx[j];
+      for (int k=0; k<3; k++)
+        dqdx[k+1][j] = dUdx[k][j];
+    }
+    // StrongConv = dF/dq * dq/dx    (Strong convection)
+    CeedScalar StrongConv[5] = {0};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          StrongConv[k] += dFconvdq[j][k][l] * dqdx[l][j];
 
     // The Physics
     for (int j=0; j<5; j++) {
@@ -358,6 +446,40 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++)
       dv[j][4][i]  += wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                          u[2]*dXdx[j][2]);
+    //Stabilization
+    CeedScalar uX[3];
+    for (int j=0; j<3; j++)
+      uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
+    const CeedScalar Cc   = 1.;
+    const CeedScalar Ce   = 1.;
+    const CeedScalar f1   = rho * sqrt(uiujgij);
+    const CeedScalar TauC = (Cc * f1) /
+                            (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
+    const CeedScalar TauM = 1. / (f1>1. ? f1 : 1.);
+    const CeedScalar TauE = TauM / (Ce * cv);
+    // *INDENT-ON*
+    const CeedScalar Tau[5] = {TauC, TauM, TauM, TauM, TauE};
+    CeedScalar stab[5][3];
+    switch (stabilization) {
+    case 0:        // Galerkin
+      break;
+    case 1:        // SU
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = dFconvdqT[j][k][l] * Tau[l] * StrongConv[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] -= stab[j][0] * dXdx[k][0] +
+                         stab[j][1] * dXdx[k][1] +
+                         stab[j][2] * dXdx[k][2];
+      break;
+    case 2:        // SUPG is not implemented for explicit scheme
+      break;
+    }
+
   } // End Quadrature Point Loop
 
   // Return
