@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_xsmm_h
+#define _ceed_xsmm_h
+
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <ceed-hash.h>
@@ -30,3 +33,5 @@ typedef struct {
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     CeedTensorContract contract);
+
+#endif // _ceed_xsmm_h

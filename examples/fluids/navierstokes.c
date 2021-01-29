@@ -40,16 +40,16 @@
 
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
-#include <petscts.h>
-#include <petscdmplex.h>
 #include <ceed.h>
-#include <stdbool.h>
+#include <petscdmplex.h>
 #include <petscsys.h>
-#include "common.h"
-#include "setup-boundary.h"
+#include <petscts.h>
+#include <stdbool.h>
 #include "advection.h"
 #include "advection2d.h"
+#include "common.h"
 #include "densitycurrent.h"
+#include "setup-boundary.h"
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)

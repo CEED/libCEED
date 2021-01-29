@@ -17,15 +17,13 @@
 #ifndef setup_h
 #define setup_h
 
-#include <stdbool.h>
-#include <string.h>
-
+#include <ceed.h>
 #include <petsc.h>
 #include <petscdmplex.h>
-#include <petscksp.h>
 #include <petscfe.h>
-
-#include <ceed.h>
+#include <petscksp.h>
+#include <stdbool.h>
+#include <string.h>
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l) DMAddBoundary(a,b,c,d,e,f,g,h,j,k,l)

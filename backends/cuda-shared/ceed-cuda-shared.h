@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_cuda_shared_h
+#define _ceed_cuda_shared_h
+
 #include <ceed.h>
 #include <ceed-backend.h>
 #include <cuda.h>
@@ -39,3 +42,5 @@ typedef struct {
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+
+#endif // _ceed_cuda_shared_h

@@ -18,7 +18,6 @@
 #include <ceed-backend.h>
 #include <assert.h>
 #include <cuda.h>
-
 #include <cuda_runtime.h>
 #include <stdbool.h>
 #include <string.h>

@@ -43,11 +43,11 @@
 /// and bpsdmplex.c for an implementation using an unstructured grid.
 static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 
+#include <ceed.h>
+#include <petscdmplex.h>
+#include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
-#include <petscksp.h>
-#include <petscdmplex.h>
-#include <ceed.h>
 #include "setupsphere.h"
 
 int main(int argc, char **argv) {

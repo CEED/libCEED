@@ -16,9 +16,9 @@
 
 /// @file
 /// Mass operator example using MFEM
+
 #include <ceed.h>
 #include <mfem.hpp>
-
 #include "bp1.h"
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator

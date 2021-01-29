@@ -42,17 +42,17 @@
 /// See bps.c for an implementation using DMPlex unstructured grids.
 const char help[] = "Solve CEED BPs using PETSc\n";
 
+#include <ceed.h>
+#include <petscksp.h>
+#include <petscsys.h>
 #include <stdbool.h>
 #include <string.h>
-#include <petscksp.h>
-#include <ceed.h>
-#include "qfunctions/bps/common.h"
 #include "qfunctions/bps/bp1.h"
 #include "qfunctions/bps/bp2.h"
 #include "qfunctions/bps/bp3.h"
 #include "qfunctions/bps/bp4.h"
+#include "qfunctions/bps/common.h"
 
-#include <petscsys.h>
 #if PETSC_VERSION_LT(3,12,0)
 #ifdef PETSC_HAVE_CUDA
 #include <petsccuda.h>
