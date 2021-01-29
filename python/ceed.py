@@ -78,7 +78,7 @@ class Ceed():
     # Error handler
     def _check_error(self, err_code):
         """Check return code and retrieve error message for non-zero code"""
-        if (err_code != 0):
+        if (err_code != lib.CEED_ERROR_SUCCESS):
             message = ffi.new("char **")
             lib.CeedGetErrorMessage(self._pointer[0], message)
             raise Exception(ffi.string(message[0]).decode("UTF-8"))
