@@ -20,9 +20,6 @@
 
 #ifndef poisson2dbuild_h
 #define poisson2dbuild_h
-#ifndef __CUDACC__
-#  include <ceed.h>
-#endif
 
 CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,

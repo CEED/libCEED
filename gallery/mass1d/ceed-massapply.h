@@ -20,9 +20,6 @@
 
 #ifndef massapply_h
 #define massapply_h
-#ifndef __CUDACC__
-#  include <ceed.h>
-#endif
 
 CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q,
                           const CeedScalar *const *in, CeedScalar *const *out) {

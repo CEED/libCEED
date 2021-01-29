@@ -20,9 +20,6 @@
 
 #ifndef identity_h
 #define identity_h
-#ifndef __CUDACC__
-#  include <ceed.h>
-#endif
 
 CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
                          const CeedScalar *const *in,
