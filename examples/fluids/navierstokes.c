@@ -1631,6 +1631,7 @@ int main(int argc, char **argv) {
   ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
   ctxEulerData->T_inlet = T_inlet;
   ctxEulerData->P_inlet = P_inlet;
+  ctxEulerData->stabilization = stab;
   user->ctxEulerData = ctxEulerData;
 
   CeedQFunctionContextCreate(ceed, &ctxEuler);
