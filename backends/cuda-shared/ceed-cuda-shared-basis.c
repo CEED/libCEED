@@ -14,7 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <stddef.h>
 #include "ceed-cuda-shared.h"
+#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Shared mem kernels

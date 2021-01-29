@@ -51,10 +51,9 @@
 /// libCEED example using diffusion operator to compute surface area
 
 #include <ceed.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
-
 #include "ex2-surface.h"
 
 // Auxiliary functions.

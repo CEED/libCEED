@@ -17,12 +17,12 @@
 #ifndef setuparea_h
 #define setuparea_h
 
-#include <stdbool.h>
-#include <string.h>
+#include <ceed.h>
 #include <petsc.h>
 #include <petscdmplex.h>
 #include <petscfe.h>
-#include <ceed.h>
+#include <stdbool.h>
+#include <string.h>
 #include "qfunctions/area/areacube.h"
 #include "qfunctions/area/areasphere.h"
 

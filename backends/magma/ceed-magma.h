@@ -15,10 +15,10 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // magma functions specific to ceed
-#ifndef CEED_MAGMA_H
-#define CEED_MAGMA_H
+#ifndef _ceed_mamga_h
+#define _ceed_magma_h
 
-#include <string.h>
+#include <ceed.h>
 #include <ceed-backend.h>
 #include <magma_v2.h>
 
@@ -267,4 +267,4 @@ CEED_INTERN {
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
 
-#endif  // CEED_MAGMA_H
+#endif  // _ceed_magma_h

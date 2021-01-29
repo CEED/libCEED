@@ -14,8 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_blocked_h
+#define _ceed_blocked_h
+
+#include <ceed.h>
 #include <ceed-backend.h>
-#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
   CeedScalar *colograd1d;
@@ -37,3 +42,5 @@ typedef struct {
 } CeedOperator_Blocked;
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);
+
+#endif // _ceed_blocked_h

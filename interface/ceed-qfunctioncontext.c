@@ -14,9 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed-backend.h>
-#include <limits.h>
+#include <ceed-impl.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /// @file
 /// Implementation of public CeedQFunctionContext interfaces

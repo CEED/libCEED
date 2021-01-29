@@ -1,5 +1,6 @@
 #include <ceed-backend.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // This function provides a debug target for weak symbols
 // LCOV_EXCL_START

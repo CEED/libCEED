@@ -41,11 +41,11 @@
 /// See bpsraw.c for a "raw" implementation using a structured grid.
 const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
+#include <ceed.h>
+#include <petscdmplex.h>
+#include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
-#include <petscksp.h>
-#include <petscdmplex.h>
-#include <ceed.h>
 #include "setup.h"
 
 // -----------------------------------------------------------------------------

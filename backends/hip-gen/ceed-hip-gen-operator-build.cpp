@@ -13,11 +13,16 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #define CEED_DEBUG_COLOR 12
 
-#include "ceed-hip-gen.h"
+#include <ceed.h>
+#include <ceed-backend.h>
 #include <iostream>
+#include <string>
 #include <sstream>
+#include "ceed-hip-gen.h"
+#include "../hip/ceed-hip.h"
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 

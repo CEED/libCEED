@@ -14,9 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_avx_h
+#define _ceed_avx_h
+
+#include <ceed.h>
 #include <ceed-backend.h>
-#include <string.h>
-#include <immintrin.h>
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis,
     CeedTensorContract contract);
+
+#endif // _ceed_avx_h

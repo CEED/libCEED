@@ -50,10 +50,9 @@
 /// libCEED example using mass operator to compute volume
 
 #include <ceed.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
-
 #include "ex1-volume.h"
 
 // Auxiliary functions.

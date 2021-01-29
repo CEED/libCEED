@@ -47,9 +47,9 @@
 static const char help[] =
   "Compute surface area of a cube or a cubed-sphere using DMPlex in PETSc\n";
 
-#include <string.h>
-#include <petscdmplex.h>
 #include <ceed.h>
+#include <petscdmplex.h>
+#include <string.h>
 #include "setuparea.h"
 
 #ifndef M_PI

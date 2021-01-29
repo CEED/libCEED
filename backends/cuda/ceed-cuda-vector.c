@@ -14,8 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-cuda.h"
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <math.h>
 #include <string.h>
+#include "ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // * Bytes used
