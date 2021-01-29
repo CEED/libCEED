@@ -14,4 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_hip_gen_operator_build_h
+#define _ceed_hip_gen_operator_build_h
+
 CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op);
+
+#endif // _ceed_hip_gen_operator_build_h

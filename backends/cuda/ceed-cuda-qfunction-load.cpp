@@ -14,9 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed.h>
+#include <ceed-backend.h>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 #include "ceed-cuda.h"
 
 static const char *qReadWrite = QUOTE(

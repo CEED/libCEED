@@ -1,4 +1,7 @@
+#include <ceed.h>
+#include <ceed-backend.h>
 #include <ceed-impl.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 static bool register_all_called;

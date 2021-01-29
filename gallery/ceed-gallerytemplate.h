@@ -26,6 +26,7 @@
 
 #ifndef gallerytemplate_h
 #define gallerytemplate_h
+
 // LCOV_EXCL_START
 CEED_QFUNCTION(GalleryTemplate)(void *ctx, const CeedInt Q,
                                 const CeedScalar *const *in,

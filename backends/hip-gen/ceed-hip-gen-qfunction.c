@@ -14,9 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <hip/hip_runtime.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-hip-gen.h"
+#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction

@@ -17,17 +17,17 @@
 #ifndef setupsphere_h
 #define setupsphere_h
 
-#include <stdbool.h>
-#include <string.h>
+#include <ceed.h>
 #include <petsc.h>
 #include <petscdmplex.h>
 #include <petscfe.h>
-#include <ceed.h>
-#include "qfunctions/bps/common.h"
+#include <stdbool.h>
+#include <string.h>
 #include "qfunctions/bps/bp1sphere.h"
 #include "qfunctions/bps/bp2sphere.h"
 #include "qfunctions/bps/bp3sphere.h"
 #include "qfunctions/bps/bp4sphere.h"
+#include "qfunctions/bps/common.h"
 
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)

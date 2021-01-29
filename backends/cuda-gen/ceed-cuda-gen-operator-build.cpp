@@ -13,11 +13,15 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #define CEED_DEBUG_COLOR 12
 
-#include "ceed-cuda-gen.h"
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
+#include "ceed-cuda-gen.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
 static const char *atomicAdd = QUOTE(

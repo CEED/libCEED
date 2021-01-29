@@ -14,9 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <cuda_runtime.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-cuda-gen.h"
+#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction

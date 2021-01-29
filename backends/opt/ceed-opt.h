@@ -14,8 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_opt_h
+#define _ceed_opt_h
+
+#include <ceed.h>
 #include <ceed-backend.h>
-#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
   CeedInt blksize;
@@ -41,3 +46,5 @@ typedef struct {
 } CeedOperator_Opt;
 
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
+
+#endif // _ceed_opt_h

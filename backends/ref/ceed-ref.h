@@ -14,9 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_ref_h
+#define _ceed_ref_h
+
+#include <ceed.h>
 #include <ceed-backend.h>
-#include <string.h>
-#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
   CeedScalar *collograd1d;
@@ -88,3 +92,5 @@ CEED_INTERN int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx);
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
 
 CEED_INTERN int CeedCompositeOperatorCreate_Ref(CeedOperator op);
+
+#endif // _ceed_ref_h

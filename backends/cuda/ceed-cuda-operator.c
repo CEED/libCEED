@@ -14,9 +14,14 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include "ceed-cuda.h"
+#include <ceed.h>
+#include <ceed-backend.h>
+#include <assert.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <stdbool.h>
 #include <string.h>
-#include <math.h>
+#include "ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
