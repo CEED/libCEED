@@ -207,6 +207,8 @@ problemData problemOptions[] = {
     .ics_loc                   = ICsEuler_loc,
     .applyVol_rhs              = Euler,
     .applyVol_rhs_loc          = Euler_loc,
+    .applyVol_ifunction        = IFunction_Euler,
+    .applyVol_ifunction_loc    = IFunction_Euler_loc,
     .applySur                  = Euler_Sur,
     .applySur_loc              = Euler_Sur_loc,
     .bc                        = Exact_Euler,
@@ -1632,6 +1634,7 @@ int main(int argc, char **argv) {
   ctxEulerData->T_inlet = T_inlet;
   ctxEulerData->P_inlet = P_inlet;
   ctxEulerData->stabilization = stab;
+  ctxEulerData->implicit = implicit;
   user->ctxEulerData = ctxEulerData;
 
   CeedQFunctionContextCreate(ceed, &ctxEuler);
@@ -1651,6 +1654,7 @@ int main(int argc, char **argv) {
   case NS_EULER_VORTEX:
     if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
+    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxEuler);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxEuler);
   }
 
