@@ -122,7 +122,9 @@ struct AppCtx_private {
   PetscInt      numIncrements;                        // Number of steps
   PetscInt      bcClampCount;
   PetscInt      bcClampFaces[16];
-  PetscScalar   bcClampMax[16][7];
+  // [translation; 3] [rotation axis; 3] [rotation magnitude c_0, c_1]
+  // The rotations are (c_0 + c_1 s) \pi, where s = x · axis
+  PetscScalar   bcClampMax[16][8];
   PetscInt      bcTractionCount;
   PetscInt      bcTractionFaces[16];
   PetscScalar   bcTractionVector[16][3];

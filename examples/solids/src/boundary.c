@@ -59,16 +59,25 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
   PetscScalar (*clampMax) = (PetscScalar(*))ctx;
 
   PetscFunctionBeginUser;
-
-  PetscScalar lx = clampMax[0]*loadIncrement, ly = clampMax[1]*loadIncrement,
-              lz = clampMax[2]*loadIncrement,
-              theta = clampMax[6]*M_PI*loadIncrement,
-              kx = clampMax[3], ky = clampMax[4], kz = clampMax[5];
+  PetscScalar
+  // translation vector
+  lx = clampMax[0]*loadIncrement,
+  ly = clampMax[1]*loadIncrement,
+  lz = clampMax[2]*loadIncrement,
+  // normalized rotation axis
+  kx = clampMax[3],
+  ky = clampMax[4],
+  kz = clampMax[5],
+  // rotation polynomial
+  c_0 = clampMax[6] * M_PI,
+  c_1 = clampMax[7] * M_PI,
+  cx = kx * x + ky * y + kz * z,
+  // rotation magnitude
+  theta = (c_0 + c_1 * cx) * loadIncrement;
   PetscScalar c = cos(theta), s = sin(theta);
 
   u[0] = lx + s*(-kz*y + ky*z) + (1-c)*(-(ky*ky+kz*kz)*x + kx*ky*y + kx*kz*z);
   u[1] = ly + s*(kz*x + -kx*z) + (1-c)*(kx*ky*x + -(kx*kx+kz*kz)*y + ky*kz*z);
   u[2] = lz + s*(-ky*x + kx*y) + (1-c)*(kx*kz*x + ky*kz*y + -(kx*kx+ky*ky)*z);
-
   PetscFunctionReturn(0);
 };
