@@ -119,6 +119,10 @@ Energy Density:
 
 #### Boundary Conditions
 
+This problem is solved for two test cases with different BCs.
+
+##### Rotation
+
 Mass Density:
     0.0 flux
 
@@ -127,6 +131,25 @@ Momentum Density:
 
 Energy Density:
     0.0 flux
+
+##### Translation
+
+Mass Density:
+    0.0 flux
+
+Momentum Density:
+    0.0
+
+Energy Density:
+
+Inflow BCs:
+   *E = E</sub>wind</sub>*
+
+Outflow BCs:
+   *E = E</sub>boundary</sub>*
+
+Both In/Outflow BCs for E are applied weakly.
+
 
 ### Euler Traveling Vortex
 
@@ -334,4 +357,5 @@ or implicit formulation.
 ### Space Discretization
 
 The geometric factors and coordinate transformations required for the integration of the weak form
-are described in the file [`common.h`](common.h)
+for the interior domain and for the boundaries are described in the files [`common.h`](common.h)
+and [`setup-boundary.h`](setup-boundary.h), respectively.
