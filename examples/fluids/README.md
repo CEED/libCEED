@@ -22,9 +22,11 @@ Available runtime options are:
 | :-------------------------------------| :-----------------------------------------------------------------------------------------------|
 | `-ceed`                               | CEED resource specifier                                                                         |
 | `-test`                               | Run in test mode                                                                                |
-| `-problem`                            | Problem to solve (`advection`, `advection2d`, or `density_current`)                             |
+| `-problem`                            | Problem to solve (`advection`, `advection2d`, `density_current`, or `euler_vortex`)             |
 | `-problem_advection_wind`             | Wind type in Advection (`rotation` or `translation`)                                            |
 | `-problem_advection_wind_translation` | Constant wind vector when `-problem_advection_wind translation`                                 |
+| `-problem_euler_mean_velocity`        | Constant mean velocity vector in `euler_vortex`                                                 |
+| `-vortex_strength`                    | Strength of vortex in `euler_vortex`                                                            |
 | `-stab`                               | Stabilization method                                                                            |
 | `-implicit`                           | Use implicit time integartor formulation                                                        |
 | `-bc_wall`                            | Use wall boundary conditions on this list of faces                                              |
@@ -125,6 +127,72 @@ Momentum Density:
 
 Energy Density:
     0.0 flux
+
+### Euler Traveling Vortex
+
+This problem solves the 3D Euler equations for vortex evolution provided
+in On the Order of Accuracy and Numerical Performance of Two Classes of
+Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
+
+State Variables:
+
+   *q = ( rho, U<sub>1</sub>, U<sub>2</sub>, U<sub>3</sub>, E )*
+
+   *rho* - Mass Density
+
+   *U<sub>i</sub>*  - Momentum Density   ,  *U<sub>i</sub> = rho u<sub>i</sub>*
+
+   *E*   - Total Energy Density,  *E  = P / (gamma - 1) + rho (u u) / 2*
+
+Euler Equations:
+
+   *drho/dt + div( U )                               = 0*
+
+   *dU/dt   + div( rho (u x u) + P I<sub>3</sub> )   = 0*
+
+   *dE/dt   + div( (E + P) u )                       = 0*
+
+Constants:
+
+   *c<sub>v</sub>*              ,  Specific heat, constant volume
+
+   *c<sub>p</sub>*              ,  Specific heat, constant pressure
+
+   *gamma  = c<sub>p</sub> / c<sub>v</sub>*,  Specific heat ratio
+
+   *epsilon*                    ,  Vortex Strength
+
+#### Initial Conditions
+
+Temperature:
+
+   *T   = 1 - (gamma - 1) epsilon^2 exp(1 - r^2) / (8 gamma pi^2)*
+
+Entropy:
+
+   *S = 1* , Constant entropy
+
+Density:
+
+   *rho = (T/S)^(1 / (gamma - 1))*
+
+Pressure:
+
+   *P = rho T*
+
+Velocity:
+
+   *u<sub>i</sub>  = 1 + epsilon exp((1 - r^2)/2) [yc - y, x - xc, 0] / (2 pi)*
+
+   *r        = sqrt( (x - xc)^2 + (y - yc)^2 )*
+    with *(xc,yc)* center of the xy-plane in the domain
+
+#### Boundary Conditions
+
+For this problem, in/outflow BCs are implemented where the validity of the weak
+form of the governing equations is extended to the outflow.
+For the inflow fluxes, prescribed T_inlet and P_inlet are converted to
+conservative variables and applied weakly.
 
 ### Density Current
 
