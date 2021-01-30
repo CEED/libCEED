@@ -143,10 +143,10 @@ Momentum Density:
 Energy Density:
 
 Inflow BCs:
-   *E = E</sub>wind</sub>*
+   *E = E(wind)*
 
 Outflow BCs:
-   *E = E</sub>boundary</sub>*
+   *E = E(boundary)*
 
 Both In/Outflow BCs for E are applied weakly.
 
