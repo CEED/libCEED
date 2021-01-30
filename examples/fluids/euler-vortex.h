@@ -51,22 +51,21 @@ struct EulerContext_ {
 #endif
 
 // *****************************************************************************
-// This function sets the initial conditions and the boundary conditions
+// This function sets the initial conditions
 //
-// These initial conditions are given in terms of potential temperature and
-//   Exner pressure and then converted to density and total energy.
-//   Initial momentum density is zero.
-//
-// Initial Conditions:
-//   Density     = 1
-//   Pressure    = 1
-//   Temperature = P / rho - (gamma - 1) vortex_strength**2
-//                 exp(1 - r**2) / (8 gamma pi**2)
-//   Velocity = 1 + vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc] / (2 pi)
-//         r  = sqrt( (x - xc)**2 + (y - yc)**2 )
-//
-// Conversion to Conserved Variables:
-//   E   = P / (gamma - 1) + rho (u u)/2
+//   Temperature:
+//     T   = 1 - (gamma - 1) vortex_strength**2 exp(1 - r**2) / (8 gamma pi**2)
+//   Density:
+//     rho = (T/S_vortex)^(1 / (gamma - 1))
+//   Pressure:
+//     P   = rho * T
+//   Velocity:
+//     ui  = 1 + vortex_strength exp((1 - r**2)/2.) [yc - y, x - xc] / (2 pi)
+//     r   = sqrt( (x - xc)**2 + (y - yc)**2 )
+//   Velocity/Momentum Density:
+//     Ui  = rho ui
+//   Total Energy:
+//     E   = P / (gamma - 1) + rho (u u)/2
 //
 // Constants:
 //   cv              ,  Specific heat, constant volume
@@ -74,6 +73,7 @@ struct EulerContext_ {
 //   vortex_strength ,  Strength of vortex
 //   center          ,  Location of bubble center
 //   gamma  = cp / cv,  Specific heat ratio
+//
 // *****************************************************************************
 
 // *****************************************************************************
@@ -224,7 +224,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
 //   Ui  - Momentum Density,      Ui = rho ui
-//   E   - Total Energy Density,  E  = rho ( cv T + (u u) / 2 )
+//   E   - Total Energy Density,  E  = P / (gamma - 1) + rho (u u)/2
 //
 // Euler Equations:
 //   drho/dt + div( U )                   = 0
@@ -234,12 +234,21 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 // Equation of State:
 //   P = (gamma - 1) (E - rho (u u) / 2)
 //
+// Stabilization:
+//   Tau = diag(TauC, TauM, TauM, TauM, TauE)
+//     f1 = rho  sqrt(ui uj gij)
+//     gij = dXi/dX * dXi/dX
+//     TauC = Cc f1 / (8 gii)
+//     TauM = min( 1 , 1 / f1 )
+//     TauE = TauM / (Ce cv)
+//
+//  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
+//
 // Constants:
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
 //   g               ,  Gravity
 //   gamma  = cp / cv,  Specific heat ratio
-//
 // *****************************************************************************
 
 // *****************************************************************************
@@ -488,6 +497,13 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction implements the Euler equations with (mentioned above)
+//   with implicit time stepping method
+//
+//  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
+//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
+//
+// *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
                                 const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -714,8 +730,8 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
   return 0;
 }
 // *****************************************************************************
-// This QFunction implements outflow and inflow BCs for
-//      3D Euler traveling vortex
+// This QFunction sets the boundary conditions
+//   In this problem, only in/outflow BCs are implemented
 //
 //  Inflow and outflow faces are determined based on
 //    sign(dot(etv_mean_velocity, normal)):
@@ -724,12 +740,11 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
 //
 //  Outflow BCs:
 //    The validity of the weak form of the governing equations is
-//    extended to the outflow.
+//      extended to the outflow.
 //
 //  Inflow BCs:
 //    Prescribed T_inlet and P_inlet are converted to conservative variables
 //      and applied weakly.
-//
 //
 // *****************************************************************************
 CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
