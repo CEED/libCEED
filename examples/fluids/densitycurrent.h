@@ -52,7 +52,6 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
-  CeedScalar vortex_strength;
   int wind_type;
 };
 #endif
