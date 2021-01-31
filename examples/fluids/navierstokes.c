@@ -1823,7 +1823,8 @@ int main(int argc, char **argv) {
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps, (double)ftime); CHKERRQ(ierr);
   }
-
+  // Output numerical values from command line
+  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
   // Compare reference solution values with current test run for CI
   if (test) {
