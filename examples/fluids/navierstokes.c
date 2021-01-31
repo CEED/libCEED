@@ -867,7 +867,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                              bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else if (problem->bc == Exact_Euler) {
         // So far nwall=0 but we keep this support for
-        //   when the time we add periodic BCs
+        //   the time when we add periodic BCs
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
