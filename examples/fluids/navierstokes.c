@@ -808,7 +808,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 }
 
 static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                              SimpleBC bc, void *ctxSetupData, void *ctxMMS) {
+                              SimpleBC bc, void *ctxSetupData) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -871,7 +871,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
         PetscInt comps[3] = {1, 2, 3};
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxMMS); CHKERRQ(ierr);
+                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
@@ -1288,7 +1288,6 @@ int main(int argc, char **argv) {
     .wind[1] = wind[1],
     .wind[2] = wind[2],
     .time = 0,
-    .vortex_strength = vortex_strength,
     .wind_type = wind_type,
   };
 
@@ -1318,7 +1317,7 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData, ctxEulerData);
+  ierr = SetUpDM(dm, problem, degree, &bc, &ctxSetupData);
   CHKERRQ(ierr);
 
   // Refine DM for high-order viz
@@ -1339,8 +1338,8 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData,
-                     ctxEulerData); CHKERRQ(ierr);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, &bc, &ctxSetupData);
+      CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
       if (!i) interpviz = interp_next;
