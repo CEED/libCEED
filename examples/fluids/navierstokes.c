@@ -1650,6 +1650,7 @@ int main(int argc, char **argv) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection2d);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection2d);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxSurface);
+    break;
   case NS_EULER_VORTEX:
     if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
