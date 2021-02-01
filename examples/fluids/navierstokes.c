@@ -966,8 +966,6 @@ int main(int argc, char **argv) {
   CeedScalar cv              = 717.;     // J/(kg K)
   CeedScalar cp              = 1004.;    // J/(kg K)
   CeedScalar vortex_strength = 5.;       // -
-  CeedScalar T_inlet         = 1.;       // K
-  CeedScalar P_inlet         = 1.;       // Pa
   CeedScalar g               = 9.81;     // m/s^2
   CeedScalar lambda          = -2./3.;   // -
   CeedScalar mu              = 75.;      // Pa s, dynamic viscosity
@@ -1122,24 +1120,6 @@ int main(int argc, char **argv) {
                        "Warning! Use -vortex_strength only with -problem euler_vortex\n");
     CHKERRQ(ierr);
   }
-  PetscBool userTinlet;
-  ierr = PetscOptionsScalar("-T_inlet", "Incoming Temperature",
-                            NULL, T_inlet, &T_inlet, &userTinlet);
-  CHKERRQ(ierr);
-  if (problemChoice != NS_EULER_VORTEX && userTinlet) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -T_inlet only with -problem euler_vortex\n");
-    CHKERRQ(ierr);
-  }
-  PetscBool userPinlet;
-  ierr = PetscOptionsScalar("-P_inlet", "Incoming Pressure",
-                            NULL, P_inlet, &P_inlet, &userPinlet);
-  CHKERRQ(ierr);
-  if (problemChoice != NS_EULER_VORTEX && userPinlet) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -P_inlet only with -problem euler_vortex\n");
-    CHKERRQ(ierr);
-  }
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
@@ -1248,8 +1228,6 @@ int main(int argc, char **argv) {
   cv *= JperkgK;
   cp *= JperkgK;
   Rd = cp - cv;
-  T_inlet *= Kelvin;
-  P_inlet *= Pascal;
   g *= mpersquareds;
   mu *= Pascal * second;
   k *= WpermK;
@@ -1630,8 +1608,6 @@ int main(int argc, char **argv) {
   ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
   ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
   ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
-  ctxEulerData->T_inlet = T_inlet;
-  ctxEulerData->P_inlet = P_inlet;
   ctxEulerData->stabilization = stab;
   ctxEulerData->implicit = implicit;
   user->ctxEulerData = ctxEulerData;
