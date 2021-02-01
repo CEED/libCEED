@@ -42,8 +42,6 @@ struct EulerContext_ {
   CeedScalar currentTime;
   CeedScalar vortex_strength;
   CeedScalar etv_mean_velocity[3];
-  CeedScalar T_inlet;
-  CeedScalar P_inlet;
   int stabilization;
   int euler_test;
   bool implicit;
@@ -759,15 +757,18 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   EulerContext context = (EulerContext)ctx;
-  const CeedScalar T_inlet = context->T_inlet;
-  const CeedScalar P_inlet = context->P_inlet;
-  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
   const int euler_test = context->euler_test;
   const bool implicit = context->implicit;
+  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  CeedScalar T_inlet = 1.;
+  CeedScalar P_inlet = 1.;
 
-  // For test cases 1 and 3 the velocity is zero
+  // For test cases 1 and 3 the background velocity is zero
   if (euler_test == 1 || euler_test == 3)
     for (CeedInt i=0; i<3; i++) etv_mean_velocity[i] = 0.;
+
+  // For test cases 1 and 2, T_inlet = T_inlet = 0.4
+  if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
