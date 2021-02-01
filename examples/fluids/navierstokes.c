@@ -1051,8 +1051,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
-  if (!implicit && stab != STAB_NONE) {
-    ierr = PetscPrintf(comm, "Warning! Use -stab only with -implicit\n");
+  if (!implicit && stab == STAB_SUPG) {
+    ierr = PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
   {
