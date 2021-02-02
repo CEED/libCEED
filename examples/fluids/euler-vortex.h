@@ -127,7 +127,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     break;
   case 1: // Constant zero velocity, density constant, total energy constant
     rho = 1.;
-    P = 1.;
     E = 2.;
 
     q[0] = rho;
@@ -138,7 +137,6 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     break;
   case 2: // Constant nonzero velocity, density constant, total energy constant
     rho = 1.;
-    P = 1.;
     E = 2.;
     u[0] = etv_mean_velocity[0];
     u[1] = etv_mean_velocity[1];
@@ -807,29 +805,37 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
     // Implementing in/outflow BCs
     if (face_n > 0) { // outflow
-      const CeedScalar E_kinetic = (u[0]*u[0] + u[1]*u[1]) / 2.;  // kinetic energy
+      const CeedScalar E_kinetic = (u[0]*u[0] + u[1]*u[1]) / 2.;
       const CeedScalar P  = (E - E_kinetic * rho) * (gamma - 1.); // pressure
       const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] +
                              norm[2]*u[2]; // Normal velocity
+      // The Physics
       // -- Density
       v[0][i] -= wdetJb * rho * u_n;
+
       // -- Momentum
       for (int j=0; j<3; j++)
         v[j+1][i] -= wdetJb *(rho * u_n * u[j] + norm[j] * P);
+
       // -- Total Energy Density
       v[4][i] -= wdetJb * u_n * (E + P);
+
     } else { // inflow
-      const CeedScalar rho_inlet = P_inlet/(R*T_inlet);    // incoming density
+      const CeedScalar rho_inlet = P_inlet/(R*T_inlet);
       const CeedScalar E_kinetic_inlet = (etv_mean_velocity[0]*etv_mean_velocity[0] +
-                                   etv_mean_velocity[1]*etv_mean_velocity[1]) / 2.; // kinetic energy
+                                          etv_mean_velocity[1]*etv_mean_velocity[1]) / 2.;
       // incoming total energy
       const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
+
+      // The Physics
       // -- Density
       v[0][i] -= wdetJb * rho_inlet * face_n;
+
       // -- Momentum
       for (int j=0; j<3; j++)
         v[j+1][i] -= wdetJb *(rho_inlet * face_n * etv_mean_velocity[j] +
                               norm[j] * P_inlet);
+
       // -- Total Energy Density
       v[4][i] -= wdetJb * face_n * (E_inlet + P_inlet);
     }
