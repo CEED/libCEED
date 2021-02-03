@@ -1053,6 +1053,10 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
+  if (problemChoice == NS_EULER_VORTEX && stab != STAB_NONE) {
+    ierr = PetscPrintf(comm, "Warning! -stab is not defined for euler_vortex\n");
+    CHKERRQ(ierr);
+  }
   {
     PetscInt len;
     PetscBool flg;
@@ -1608,7 +1612,6 @@ int main(int argc, char **argv) {
   ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
   ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
   ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
-  ctxEulerData->stabilization = stab;
   ctxEulerData->implicit = implicit;
   user->ctxEulerData = ctxEulerData;
 
