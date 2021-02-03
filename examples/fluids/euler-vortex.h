@@ -252,8 +252,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
@@ -339,7 +338,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
     E_internal = E - E_kinetic,
     P = E_internal * (gamma - 1); // P = pressure
-    const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
 
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
@@ -462,8 +460,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
-                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
@@ -549,7 +546,6 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     E_kinetic = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
     E_internal = E - E_kinetic,
     P = E_internal * (gamma - 1); // P = pressure
-    const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
 
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
