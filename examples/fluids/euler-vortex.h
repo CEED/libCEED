@@ -437,8 +437,8 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   const int euler_test = context->euler_test;
   const bool implicit = context->implicit;
   CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
-  CeedScalar T_inlet = 1.;
-  CeedScalar P_inlet = 1.;
+  CeedScalar T_inlet;
+  CeedScalar P_inlet;
 
   // For test cases 1 and 3 the background velocity is zero
   if (euler_test == 1 || euler_test == 3)
@@ -446,6 +446,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
+  else T_inlet = P_inlet = 1.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
