@@ -246,49 +246,6 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
 //   g               ,  Gravity
 //   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
-
-// *****************************************************************************
-// This helper function provides forcing term for Euler traveling vortex
-//   manufactured solution
-// *****************************************************************************
-static inline int MMSforce_Euler(CeedInt dim, CeedScalar time,
-                                 const CeedScalar X[],
-                                 CeedInt Nf, CeedScalar force[], void *ctx) {
-  // Context
-  const EulerContext context = (EulerContext)ctx;
-  const CeedScalar vortex_strength = context->vortex_strength;
-  const CeedScalar *center = context->center; // Center of the domain
-  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
-  const int euler_test = context->euler_test;
-
-  // For test cases 1 and 3 the velocity is zero
-  if (euler_test == 1 || euler_test == 3)
-    for (CeedInt i=0; i<3; i++) etv_mean_velocity[i] = 0.;
-
-  // Setup
-  const CeedScalar gamma = 1.4;
-  const CeedScalar cv = 2.5; // cv computed based on R = 1
-  const CeedScalar x = X[0], y = X[1], z = X[2]; // Coordinates
-  // Vortex center
-  const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
-  const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
-
-  const CeedScalar x0 = x - xc;
-  const CeedScalar y0 = y - yc;
-  const CeedScalar r = sqrt( x0*x0 + y0*y0 );
-  const CeedScalar C = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
-  const CeedScalar S = (gamma - 1.) * vortex_strength * vortex_strength /
-                       (8.*gamma*M_PI*M_PI);
-  // Note this is not correct for test cases
-  const CeedScalar u[3] = {etv_mean_velocity[0] - C*y0,
-                           etv_mean_velocity[1] + C*x0,
-                           0.
-                          };
-// TODO: Forcing terms
-  for (int j=0; j<5; j++) force[j] = 0.;
-  return 0;
-}
-// *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -383,9 +340,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     E_internal = E - E_kinetic,
     P = E_internal * (gamma - 1); // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
-    CeedScalar force[5];
-    MMSforce_Euler(3, currentTime, X, 5, force, ctx);
-
 
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
@@ -429,8 +383,9 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
           StrongConv[k] += dFconvdq[j][k][l] * dqdx[l][j];
 
     // The Physics
+    // Zero v and dv so all future terms can safely sum into it
     for (int j=0; j<5; j++) {
-      v[j][i] = force[j]; // MMS forcing term
+      v[j][i] = 0;
       for (int k=0; k<3; k++)
         dv[k][j][i] = 0; // Zero dv so all future terms can safely sum into it
     }
@@ -497,7 +452,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
 //   with implicit time stepping method
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
-//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
+//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j) )
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
@@ -595,9 +550,6 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     E_internal = E - E_kinetic,
     P = E_internal * (gamma - 1); // P = pressure
     const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
-    CeedScalar force[5];
-    MMSforce_Euler(3, currentTime, X, 5, force, ctx);
-
 
     // dFconvdq[3][5][5] = dF(convective)/dq at each direction
     CeedScalar dFconvdq[3][5][5] = {{{0}}};
@@ -655,10 +607,6 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     //-----mass matrix
     for (int j=0; j<5; j++)
       v[j][i] += wdetJ*qdot[j][i];
-
-    // Forcing
-    for (int j=0; j<5; j++)
-      v[j][i] -= force[j]; // MMS forcing term
 
     // -- Density
     // ---- u rho
