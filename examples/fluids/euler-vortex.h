@@ -385,7 +385,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) {
       v[j][i] = 0;
       for (int k=0; k<3; k++)
-        dv[k][j][i] = 0; // Zero dv so all future terms can safely sum into it
+        dv[k][j][i] = 0;
     }
 
     // -- Density
@@ -693,8 +693,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -734,7 +733,6 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
                                      qdataSur[2][i],
                                      qdataSur[3][i]
                                     };
-    const CeedScalar X[] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar gamma = 1.4;
     const CeedScalar cv = 2.5;
     const CeedScalar R = 1.;
