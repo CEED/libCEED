@@ -39,12 +39,12 @@
 //
 // Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
-//TESTARGS -ceed {ceed_resource} -d 1 -t
-//TESTARGS -ceed {ceed_resource} -d 2 -t
-//TESTARGS -ceed {ceed_resource} -d 3 -t
-//TESTARGS -ceed {ceed_resource} -d 1 -t -g
-//TESTARGS -ceed {ceed_resource} -d 2 -t -g
-//TESTARGS -ceed {ceed_resource} -d 3 -t -g
+//TESTARGS(name="1D_user_QFunction") -ceed {ceed_resource} -d 1 -t
+//TESTARGS(name="2D_user_QFunction") -ceed {ceed_resource} -d 2 -t
+//TESTARGS(name="3D_user_QFunction") -ceed {ceed_resource} -d 3 -t
+//TESTARGS(name="1D_Gallery_QFunction") -ceed {ceed_resource} -d 1 -t -g
+//TESTARGS(name="2D_Gallery_QFunction") -ceed {ceed_resource} -d 2 -t -g
+//TESTARGS(name="3D_Gallery_QFunction") -ceed {ceed_resource} -d 3 -t -g
 
 /// @file
 /// libCEED example using mass operator to compute volume
