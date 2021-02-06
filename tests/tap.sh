@@ -26,9 +26,11 @@ if [ ${1::6} == "petsc-" ]; then
 elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    # get all test configurations
     numconfig=$(grep -F C_TESTARGS examples/nek/bps/${1:4}.usr* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/nek/bps/${1:4}.usr*)")
+      # get all test configurations
       allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "fluids-" ]; then
@@ -42,9 +44,11 @@ elif [ ${1::7} == "fluids-" ]; then
 elif [ ${1::7} == "solids-" ]; then
     allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
 elif [ ${1::2} == "ex" ]; then
-    # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/ceed/$1.c)")
+      # get all test configurations
       allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/ceed/$1.c | cut -d\  -f2- )")
     done
 else
@@ -59,7 +63,9 @@ trap 'rm -f ${tmpfiles}' EXIT
 # test configurations loop
 for ((j=0;j<${#allargs[@]};++j)); do
 args=${allargs[$j]}
-printf "# Test Name: ${names[$j]}\n"
+if [ -n "${names[$j]}" ]; then
+      printf "# Test Name: ${names[$j]}\n"
+fi
 printf "# TESTARGS: $args\n"
 
 # backends loop

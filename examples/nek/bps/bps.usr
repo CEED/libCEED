@@ -16,8 +16,8 @@ C testbed platforms, in support of the nation's exascale computing imperative.
 
 C> @file
 C> Mass and diffusion operators examples using Nek5000
-C_TESTARGS -c {ceed_resource} -e bp1 -n 1 -b 4 -test
-C_TESTARGS -c {ceed_resource} -e bp3 -n 1 -b 4 -test
+C_TESTARGS(name="BP1") -c {ceed_resource} -e bp1 -n 1 -b 4 -test
+C_TESTARGS(name="BP3") -c {ceed_resource} -e bp3 -n 1 -b 4 -test
 
 C-----------------------------------------------------------------------
       subroutine masssetupf(ctx,q,u1,u2,u3,u4,u5,u6,u7,
@@ -168,8 +168,8 @@ C       RHS
         v2(i) = u3(i)*jacmq*pi*pi
      $            *dsin(pi*(c(1)+k(1)*u1(i+0*q)))
      $            *dsin(pi*(c(2)+k(2)*u1(i+1*q)))
-     $            *dsin(pi*(c(3)+k(3)*u1(i+2*q)))  
-     $            *(k(1)*k(1)+k(2)*k(2)+k(3)*k(3)) 
+     $            *dsin(pi*(c(3)+k(3)*u1(i+2*q)))
+     $            *(k(1)*k(1)+k(2)*k(2)+k(3)*k(3))
 
       enddo
 
@@ -453,11 +453,11 @@ C     Input: ur,us,ut,N,D,Dt        Output: u
        real*8 ur(0:N,0:N,0:N),us(0:N,0:N,0:N),ut(0:N,0:N,0:N)
        real*8 D (0:N,0:N),Dt(0:N,0:N)
        real*8 w (0:N,0:N,0:N)
- 
+
        m1 = N+1
        m2 = m1*m1
        m3 = m1*m1*m1
- 
+
        call mxm(Dt,m1,ur,m1,u(0,0,0),m2)
        do k=0,N
           call mxm(us(0,0,k),m1,D ,m1,w(0,0,k),m1)
@@ -1154,7 +1154,7 @@ C     Create ceed qfunctions for diffsetupf and diffusionf
       call ceedqfunctionaddinput(qf_diffusion,'qdata',ngeo,
      $  ceed_eval_none,err)
       call ceedqfunctionaddoutput(qf_diffusion,'v',ncompu*ldim,
-     $  ceed_eval_grad,err)  
+     $  ceed_eval_grad,err)
 
 C     Create ceed operators
       call ceedoperatorcreate(ceed,qf_setup,
