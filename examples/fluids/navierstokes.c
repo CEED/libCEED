@@ -820,22 +820,11 @@ int main(int argc, char **argv) {
                             "1 Kelvin in scaled temperature units",
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
-  ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
+
+
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                            NULL, N, &N, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
-                            NULL, cv, &cv, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
-                            NULL, cp, &cp, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                            NULL, g, &g, NULL); CHKERRQ(ierr);
+
   ierr = PetscOptionsScalar("-lambda",
                             "Stokes hypothesis second viscosity coefficient",
                             NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
@@ -860,37 +849,15 @@ int main(int argc, char **argv) {
   //                     "Warning! Problem density_current does not support -CtauS or -strong_form\n");
   //  CHKERRQ(ierr);
   //}
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
+
   ierr = PetscOptionsScalar("-resx","Target resolution in x",
                             NULL, resx, &resx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-resy","Target resolution in y",
                             NULL, resy, &resy, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-resz","Target resolution in z",
                             NULL, resz, &resz, NULL); CHKERRQ(ierr);
-  n = problem->dim;
-  center[0] = 0.5 * lx;
-  center[1] = 0.5 * ly;
-  center[2] = 0.5 * lz;
-  ierr = PetscOptionsRealArray("-center", "Location of bubble center",
-                               NULL, center, &n, NULL); CHKERRQ(ierr);
-  n = problem->dim;
-  ierr = PetscOptionsRealArray("-dc_axis",
-                               "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
-                               NULL, dc_axis, &n, NULL); CHKERRQ(ierr);
-  {
-    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) +
-                                   PetscSqr(dc_axis[1]) + PetscSqr(dc_axis[2]));
-    if (norm > 0) {
-      for (int i=0; i<3; i++) dc_axis[i] /= norm;
-    }
-  }
+
+
   ierr = PetscOptionsInt("-output_freq",
                          "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -905,12 +872,7 @@ int main(int argc, char **argv) {
                          "Number of extra quadrature points on in/outflow faces",
                          NULL, qextraSur, &qextraSur, &userQextraSur);
   CHKERRQ(ierr);
-  //if ((wind_type == ADVECTION_WIND_ROTATION
-  //     || strcmp(problemName, "density_current") == 0) && userQextraSur) {
-  //  ierr = PetscPrintf(comm,
-  //                     "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
-  //  CHKERRQ(ierr);
-  //}
+
   ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-of", "Output folder",
                             NULL, user->outputfolder, user->outputfolder,
@@ -925,11 +887,14 @@ int main(int argc, char **argv) {
 
   {
     // Choose the problem from the list of registered problems
-    PetscErrorCode (*p)(problemData *);
+    PetscErrorCode (*p)(problemData *, void **);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
-    ierr = (*p)(problem); CHKERRQ(ierr);
+    ierr = (*p)(problem, &ctxSetupData); CHKERRQ(ierr);
   }
+
+  // Set up the libCEED context
+  ctxSetupData->time = 0;
 
   // Define derived units
   Pascal = kilogram / (meter * PetscSqr(second));
@@ -942,52 +907,29 @@ int main(int argc, char **argv) {
   Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
 
   // Scale variables to desired units
-  theta0 *= Kelvin;
-  thetaC *= Kelvin;
-  P0 *= Pascal;
+  ctxSetupData->theta0 *= Kelvin;
+  ctxSetupData->thetaC *= Kelvin;
+  ctxSetupData->P0 *= Pascal;
   E_wind *= Joule;
-  N *= (1./second);
-  cv *= JperkgK;
-  cp *= JperkgK;
+  N = ctxSetupData->N *= (1./second);
+  cv = ctxSetupData->cv *= JperkgK;
+  cp = ctxSetupData->cp *= JperkgK;
   Rd = cp - cv;
-  g *= mpersquareds;
+  ctxSetupData->Rd = Rd;
+  ctxSetupData->g *= mpersquareds;
   mu *= Pascal * second;
   k *= WpermK;
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
-  rc = fabs(rc) * meter;
+  ctxSetupData->lx = fabs(lx) * meter;
+  ctxSetupData->ly = fabs(ly) * meter;
+  ctxSetupData->lz = fabs(lz) * meter;
+  ctxSetupData->rc = fabs(rc) * meter;
   resx = fabs(resx) * meter;
   resy = fabs(resy) * meter;
   resz = fabs(resz) * meter;
-  for (int i=0; i<3; i++) center[i] *= meter;
+  for (int i=0; i<3; i++) ctxSetupData->center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
-  // Set up the libCEED context
-  ctxSetupData->theta0 = theta0;
-  ctxSetupData->thetaC = thetaC;
-  ctxSetupData->P0 = P0;
-  ctxSetupData->N = N;
-  ctxSetupData->cv = cv;
-  ctxSetupData->cp = cp;
-  ctxSetupData->Rd = Rd;
-  ctxSetupData->g = g;
-  ctxSetupData->rc = rc;
-  ctxSetupData->lx = lx;
-  ctxSetupData->ly = ly;
-  ctxSetupData->lz = lz;
-  ctxSetupData->center[0] = center[0];
-  ctxSetupData->center[1] = center[1];
-  ctxSetupData->center[2] = center[2];
-  ctxSetupData->dc_axis[0] = dc_axis[0];
-  ctxSetupData->dc_axis[1] = dc_axis[1];
-  ctxSetupData->dc_axis[2] = dc_axis[2];
-  ctxSetupData->wind[0] = wind[0];
-  ctxSetupData->wind[1] = wind[1];
-  ctxSetupData->wind[2] = wind[2];
-  ctxSetupData->time = 0;
-  ctxSetupData->wind_type = wind_type;
 
   // Create the mesh
   {

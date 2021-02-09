@@ -1,6 +1,6 @@
 #include "navierstokes.h"
 
-PetscErrorCode NS_ADVECTION(problemData *problem) {
+PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData) {
 
   PetscFunctionBeginUser;
   problem->dim                       = 3;
