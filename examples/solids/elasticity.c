@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // Wrap context in libCEED objects
-  CeedQFunctionContextCreate(ceed, &ctxPhys);
+  CeedQFunctionContextCreate(ceed, &ctxPhys); //TO-DO -> needs model flexibility
   CeedQFunctionContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(*phys), phys);
   if (physSmoother) {
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
                                  ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
-                                 forceCeed);
+                                 forceCeed); //TO-DO
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction

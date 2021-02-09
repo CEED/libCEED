@@ -36,7 +36,7 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-problemData problemOptions[3] = {
+problemData problemOptions[5] = {
   [ELAS_LIN] = {
     .qdatasize = 10, // For linear elasticity, 6 would be sufficient
     .setupgeo = SetupGeo,
@@ -65,17 +65,48 @@ problemData problemOptions[3] = {
     .diagnosticfname = HyperSSDiagnostic_loc,
     .qmode = CEED_GAUSS
   },
-  [ELAS_HYPER_FS] = {
+  //Neo-Hookean
+  [ELAS_HYPER_FS] = { 
     .qdatasize = 10,
     .setupgeo = SetupGeo,
     .apply = HyperFSF,
     .jacob = HyperFSdF,
-    .energy = HyperFSEnergy,
+    .energy = HyperFSEnergy_NH,
     .diagnostic = HyperFSDiagnostic,
     .setupgeofname = SetupGeo_loc,
     .applyfname = HyperFSF_loc,
     .jacobfname = HyperFSdF_loc,
-    .energyfname = HyperFSEnergy_loc,
+    .energyfname = HyperFSEnergy_NH_loc,
+    .diagnosticfname = HyperFSDiagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  //Mooney-Rivlin
+  [ELAS_HYPER_FS_MR] = { 
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = HyperFSF,
+    .jacob = HyperFSdF,
+    .energy = HyperFSEnergy_MR,
+    .diagnostic = HyperFSDiagnostic,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = HyperFSF_loc,
+    .jacobfname = HyperFSdF_loc,
+    .energyfname = HyperFSEnergy_MR_loc,
+    .diagnosticfname = HyperFSDiagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  //Generalized Polynomial
+  [ELAS_HYPER_FS_GP] = { 
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = HyperFSF,
+    .jacob = HyperFSdF,
+    .energy = HyperFSEnergy_GP,
+    .diagnostic = HyperFSDiagnostic,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = HyperFSF_loc,
+    .jacobfname = HyperFSdF_loc,
+    .energyfname = HyperFSEnergy_GP_loc,
     .diagnosticfname = HyperFSDiagnostic_loc,
     .qmode = CEED_GAUSS
   }
@@ -361,7 +392,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddOutput(qfApply, "dv", ncompu*dim, CEED_EVAL_GRAD);
   if (problemChoice != ELAS_LIN)
     CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
-  CeedQFunctionSetContext(qfApply, physCtx);
+  CeedQFunctionSetContext(qfApply, physCtx); //set context here TO-DO
 
   // -- Operator
   CeedOperatorCreate(ceed, qfApply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -627,7 +658,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
 PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
                                  CeedData *data, PetscInt level,
                                  PetscInt ncompu, PetscInt Ugsz,
-                                 PetscInt Ulocsz, CeedVector fineMult) {
+                                 PetscInt Ulocsz, CeedVector fineMult) {//TO-DO
   PetscErrorCode ierr;
   CeedInt        fineLevel = appCtx->numLevels - 1;
   CeedInt        P = appCtx->levelDegrees[level] + 1;

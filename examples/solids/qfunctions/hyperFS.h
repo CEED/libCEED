@@ -24,16 +24,47 @@
 #  include <math.h>
 #endif
 
+// -----------------------------------------------------------------------------
+// Neo-Hookean context
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
 typedef struct Physics_private *Physics;
-struct Physics_private { // add parameters for MR/GP?
+
+struct Physics_private { 
   CeedScalar   nu;      // Poisson's ratio
   CeedScalar   E;       // Young's Modulus
 };
 #endif
 
+// -----------------------------------------------------------------------------
+// Mooney-Rivlin context
+#ifndef PHYSICS_STRUCT_MR
+#define PHYSICS_STRUCT_MR
+typedef struct Physics_private_MR *Physics_MR;
 
+struct Physics_private_MR { 
+  CeedScalar   nu;      // Poisson's ratio
+  CeedScalar   E;       // Young's Modulus
+  //TO-DO update with MR specific inputs
+};
+#endif
+
+// -----------------------------------------------------------------------------
+// Generalized Polynomial context
+#ifndef PHYSICS_STRUCT_GP
+#define PHYSICS_STRUCT_GP
+typedef struct Physics_private_GP *Physics_GP;
+
+struct Physics_private_GP { 
+  CeedScalar   nu;      // Poisson's ratio
+  CeedScalar   E;       // Young's Modulus
+  //TO-DO update with GP specific inputs
+};
+
+#endif
+// -----------------------------------------------------------------------------
+// end of contexts
+// -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
 // Series approximation of log1p()
@@ -86,12 +117,53 @@ static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
+
+CeedScalar NH_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+  //requires unpacking the ctx struct again; 
+  const Physics context = (Physics)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+
+  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+}
+
+
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
+CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+  //requires unpacking the ctx struct again; 
+  const Physics_MR context = (Physics_MR)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  //TO-DO unpack remaining needed for MR
 
+  //TO-DO update with correct energy model
+  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+}
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-
+CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+  //requires unpacking the ctx struct again; 
+  const Physics_GP context = (Physics_GP)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  // TO-DO unpack remaining needed for GP
+  
+  //TO-DO update with correct energy model
+  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+}
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
@@ -150,7 +222,7 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
   for (CeedInt m = 0; m < 6; m++) {
     Swork[m] = (*llnj)*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
-      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]];
+      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]]; // TO-DO: requires model specific derivatives
   }
 
   return 0;
@@ -481,8 +553,8 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, finite strain                 UPDATE TO ALLOW FOR CALLING DIFFERENT MODEL TYPES
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out) { // ADD ARGUMENT FOR POINTER TO ENERGY FUNCTION; CAN BE STATIC FUNC
+CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar logj, CeedScalar E2[][3])) { // ADD ARGUMENT FOR POINTER TO ENERGY FUNCTION; CAN BE STATIC FUNC
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -493,13 +565,14 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-ON*
 
   // Context - PASS IN THE OTHER COEFFS FOR MR HERE; ADD TO STRUCT AND JUST NOT USE IF NOT DOING MR/GP?
-  const Physics context = (Physics)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  //remove and just unpack in energy function?
+  // const Physics context = (Physics)ctx;
+  // const CeedScalar E  = context->E;
+  // const CeedScalar nu = context->nu;
+  // const CeedScalar TwoMu = E / (1 + nu);
+  // const CeedScalar mu = TwoMu / 2;
+  // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -560,12 +633,28 @@ CEED_QFUNCTION(HyperFSEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Strain energy Phi(E) for compressible Neo-Hookean SPLIT INTO A FUNCTION AND MULTIPLY BY WDETJ
     CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
-    energy[i] = (lambda*logj*logj/2. - mu*logj +
-                 mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
-
+    // energy[i] = (lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ; ORIGINAL 
+    energy[i] = energyFunc(ctx, logj, E2) * wdetJ; // NEW
   } // End of Quadrature Point Loop
 
   return 0;
+}
+// -----------------------------------------------------------------------------
+// method signatures for Finite Strain Energy Models
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(HyperFSEnergy_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Neo-Hookean
+    return HyperFSEnergy_Generic(ctx, Q, in, out, NH_energyModel);
+}
+
+CEED_QFUNCTION(HyperFSEnergy_MR)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Mooney-Rivlin
+    return HyperFSEnergy_Generic(ctx, Q, in, out, MR_energyModel);
+}
+
+CEED_QFUNCTION(HyperFSEnergy_GP)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Generalized Polynomial
+    return HyperFSEnergy_Generic(ctx, Q, in, out, GP_energyModel);
 }
 
 // -----------------------------------------------------------------------------

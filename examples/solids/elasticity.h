@@ -45,12 +45,12 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 // Problem options
 typedef enum {
-  ELAS_LIN = 0, ELAS_HYPER_SS = 1, ELAS_HYPER_FS = 2
+  ELAS_LIN = 0, ELAS_HYPER_SS = 1, ELAS_HYPER_FS = 2, ELAS_HYPER_FS_MR = 3, ELAS_HYPER_FS_GP = 4 
 } problemType;
 static const char *const problemTypes[] = {"linElas",
                                            "hyperSS",
                                            "hyperFS",
-                                           "problemType","ELAS_",0
+                                           "problemType","ELAS_",0 //TO-DO update with new options; will need to change the structs depending on input
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyper elasticity small strain",
@@ -147,7 +147,7 @@ typedef struct {
 // *INDENT-ON*
 
 // Data specific to each problem option
-extern problemData problemOptions[3];
+extern problemData problemOptions[5];
 
 // Forcing function data
 typedef struct {
