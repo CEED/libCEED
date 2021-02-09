@@ -672,6 +672,7 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
+  SetupContext ctxSetupData;
   char ceedresource[4096] = "/cpu/self", problemName[] = "density_current";
   PetscFunctionList problems = NULL;
   PetscInt localNelemVol, lnodes, gnodes, steps;
@@ -751,6 +752,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
@@ -963,31 +965,29 @@ int main(int argc, char **argv) {
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
   // Set up the libCEED context
-  struct SetupContext_ ctxSetupData = {
-    .theta0 = theta0,
-    .thetaC = thetaC,
-    .P0 = P0,
-    .N = N,
-    .cv = cv,
-    .cp = cp,
-    .Rd = Rd,
-    .g = g,
-    .rc = rc,
-    .lx = lx,
-    .ly = ly,
-    .lz = lz,
-    .center[0] = center[0],
-    .center[1] = center[1],
-    .center[2] = center[2],
-    .dc_axis[0] = dc_axis[0],
-    .dc_axis[1] = dc_axis[1],
-    .dc_axis[2] = dc_axis[2],
-    .wind[0] = wind[0],
-    .wind[1] = wind[1],
-    .wind[2] = wind[2],
-    .time = 0,
-    .wind_type = wind_type,
-  };
+  ctxSetupData->theta0 = theta0;
+  ctxSetupData->thetaC = thetaC;
+  ctxSetupData->P0 = P0;
+  ctxSetupData->N = N;
+  ctxSetupData->cv = cv;
+  ctxSetupData->cp = cp;
+  ctxSetupData->Rd = Rd;
+  ctxSetupData->g = g;
+  ctxSetupData->rc = rc;
+  ctxSetupData->lx = lx;
+  ctxSetupData->ly = ly;
+  ctxSetupData->lz = lz;
+  ctxSetupData->center[0] = center[0];
+  ctxSetupData->center[1] = center[1];
+  ctxSetupData->center[2] = center[2];
+  ctxSetupData->dc_axis[0] = dc_axis[0];
+  ctxSetupData->dc_axis[1] = dc_axis[1];
+  ctxSetupData->dc_axis[2] = dc_axis[2];
+  ctxSetupData->wind[0] = wind[0];
+  ctxSetupData->wind[1] = wind[1];
+  ctxSetupData->wind[2] = wind[2];
+  ctxSetupData->time = 0;
+  ctxSetupData->wind_type = wind_type;
 
   // Create the mesh
   {
@@ -1015,7 +1015,7 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, bc, &ctxSetupData); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, bc, ctxSetupData); CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -1035,7 +1035,7 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, &ctxSetupData);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, ctxSetupData);
       CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
@@ -1285,7 +1285,7 @@ int main(int argc, char **argv) {
   // Set up contex for QFunctions
   CeedQFunctionContextCreate(ceed, &ctxSetup);
   CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxSetupData, &ctxSetupData);
+                              sizeof *ctxSetupData, ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
   CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
@@ -1551,6 +1551,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
+  ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
