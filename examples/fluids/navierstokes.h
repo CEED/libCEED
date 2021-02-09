@@ -109,7 +109,8 @@ struct Units_ {
 };
 
 // Setup function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData);
+extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
+    void **ctxSetupData);
 extern PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData);
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData);
 
