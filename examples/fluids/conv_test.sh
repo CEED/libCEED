@@ -37,7 +37,10 @@ declare -A test_flags
     test_flags[res_stride]=2
     test_flags[res_end]=10
 
-echo ",mesh_res,degree,rel_error" > conv_test_result.csv
+file_name=conv_test_result.csv
+
+echo ",mesh_res,degree,rel_error" > $file_name
+
 i=0
 for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_flags[degree_stride]})); do
     run_flags[degree]=$d
@@ -49,10 +52,13 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_fla
                 args="$args -$arg ${run_flags[$arg]}"
             fi
         done
-        ./navierstokes $args | grep "Relative Error:" | awk -v i="$i" -v res="$res" -v d="$d" '{ print i","res","d","$3}' >> conv_test_result.csv
+        ./navierstokes $args | grep "Relative Error:" | awk -v i="$i" -v res="$res" -v d="$d" '{ print i","res","d","$3}' >> $file_name
         i=$((i+1))
     done
 done
 
 # Compare the output CSV file with the reference file
-diff conv_test_result.csv tests-output/fluids_navierstokes_etv.csv
+count=$(diff conv_test_result.csv tests-output/fluids_navierstokes_etv.csv | grep "^>" | wc -l)
+if [ ${count} != 0 ]; then
+    printf "\n# TEST FAILED!\n\n"
+fi
