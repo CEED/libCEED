@@ -64,7 +64,7 @@ trap 'rm -f ${tmpfiles}' EXIT
 for ((j=0;j<${#allargs[@]};++j)); do
 args=${allargs[$j]}
 if [ -n "${names[$j]}" ]; then
-      printf "# Test Name: ${names[$j]}\n"
+    printf "# Test Name: ${names[$j]}\n"
 fi
 printf "# TESTARGS: $args\n"
 
