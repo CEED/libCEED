@@ -6,12 +6,21 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'juni
 from junit_xml import TestCase, TestSuite
 
 def parse_testargs(file):
+    allargs = []
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
-        return sum([[line.split()[1:]] for line in open(file).readlines()
-                    if line.startswith('//TESTARGS')], [])
+        for line in open(file).readlines():
+            if line.startswith('//TESTARGS'):
+                args = [line.split()[1:]]
+                args.append([line.split()[0].strip('//TESTARGS(name=').strip(')')])
+                allargs.append(args)
+        return allargs
     elif os.path.splitext(file)[1] == '.usr':
-        return sum([[line.split()[1:]] for line in open(file).readlines()
-                    if line.startswith('C_TESTARGS')], [])
+        for line in open(file).readlines():
+            if line.startswith('C_TESTARGS'):
+                args = [line.split()[1:]]
+                args.append([line.split()[0].strip('C_TESTARGS(name=').strip(')')])
+                allargs.append(args)
+        return allargs
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
@@ -31,7 +40,7 @@ def get_source(test):
 def get_testargs(test):
     source = get_source(test)
     if source is None:
-        return [['{ceed_resource}']]
+        return [[['{ceed_resource}'], ['']]]
     return parse_testargs(source)
 
 def check_required_failure(case, stderr, required):
@@ -60,7 +69,7 @@ def run(test, backends):
     allargs = get_testargs(test)
 
     testcases = []
-    for args in allargs:
+    for args, name in allargs:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
             rargs[rargs.index('{ceed_resource}')] = ceed_resource
@@ -80,7 +89,7 @@ def run(test, backends):
                 proc.stdout = proc.stdout.decode('utf-8')
                 proc.stderr = proc.stderr.decode('utf-8')
 
-                case = TestCase('{} {}'.format(test, ceed_resource),
+                case = TestCase('{} {} {}'.format(test, *name, ceed_resource),
                                 elapsed_sec=time.time()-start,
                                 timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                                 stdout=proc.stdout,
