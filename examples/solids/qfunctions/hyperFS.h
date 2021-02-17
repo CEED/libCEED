@@ -197,7 +197,8 @@ CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   //TO-DO unpack remaining needed for MR
 
-  //TO-DO update with correct energy model
+  //TO-DO update with correct energy model:
+  // phi = (mu_1/2)(bar_I_1 - 3) + (mu_2/2)(bar_I_2 - 3) + (K/2)(J-1)^2
   return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
 }
 // -----------------------------------------------------------------------------
@@ -212,8 +213,12 @@ CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   // TO-DO unpack remaining needed for GP
+  const CeedScalar C_mat = context -> C_mat; //material constant C
+  const CeedScalar K = context -> K; //material constant K 
+  const CeedScalar N = context -> N; //Max value to sum to
   
   //TO-DO update with correct energy model
+  // phi = sum_{i+j = 1}^N C_mat_[i,j](\bar_I_1 -3)^i(\bar_I_2 -3)^j + sum_{i=1}^N(K[i]/2)(J - 1)^{2i}
   return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
 }
 // -----------------------------------------------------------------------------
