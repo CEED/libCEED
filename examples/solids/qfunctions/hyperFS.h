@@ -43,8 +43,8 @@ struct Physics_private {
 typedef struct Physics_private_MR *Physics_MR;
 
 struct Physics_private_MR { 
-  CeedScalar   nu;      // Poisson's ratio
-  CeedScalar   E;       // Young's Modulus
+  CeedScalar   nu;      // Poisson's ratio rm
+  CeedScalar   E;       // Young's Modulus rm
   //material properties for MR
   CeedScalar mu_1; // 
   CeedScalar mu_2; // 
@@ -59,8 +59,8 @@ struct Physics_private_MR {
 typedef struct Physics_private_GP *Physics_GP;
 
 struct Physics_private_GP { 
-  CeedScalar   nu;      // Poisson's ratio
-  CeedScalar   E;       // Young's Modulus
+  CeedScalar   nu;      // Poisson's ratio rm
+  CeedScalar   E;       // Young's Modulus rm
   //material properties for GP
   CeedScalar C_mat; // 2D matrix
   CeedScalar K; // 1D array
@@ -136,7 +136,6 @@ CeedScalar NH_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
 
   return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
 }
-
 
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
