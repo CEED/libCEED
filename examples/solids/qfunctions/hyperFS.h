@@ -45,7 +45,10 @@ typedef struct Physics_private_MR *Physics_MR;
 struct Physics_private_MR { 
   CeedScalar   nu;      // Poisson's ratio
   CeedScalar   E;       // Young's Modulus
-  //TO-DO update with MR specific inputs
+  //material properties for MR
+  CeedScalar mu_1; // 
+  CeedScalar mu_2; // 
+  CeedScalar k_1; // 
 };
 #endif
 
@@ -58,7 +61,10 @@ typedef struct Physics_private_GP *Physics_GP;
 struct Physics_private_GP { 
   CeedScalar   nu;      // Poisson's ratio
   CeedScalar   E;       // Young's Modulus
-  //TO-DO update with GP specific inputs
+  //material properties for GP
+  CeedScalar C_mat; // 2D matrix
+  CeedScalar K; // 1D array
+  CeedScalar N; // max value of the sum; usually 1 or 2
 };
 
 #endif
@@ -144,8 +150,12 @@ CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   //TO-DO unpack remaining needed for MR
+  const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
+  const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
+  const CeedScalar k_1 = context -> k_1; // material constant k_1
 
-  //TO-DO update with correct energy model
+  //TO-DO update with correct energy model:
+  // phi = (mu_1/2)(bar_I_1 - 3) + (mu_2/2)(bar_I_2 - 3) + (K/2)(J-1)^2
   return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
 }
 // -----------------------------------------------------------------------------
@@ -160,10 +170,27 @@ CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   // TO-DO unpack remaining needed for GP
+  const CeedScalar C_mat = context -> C_mat; //material constant C
+  const CeedScalar K = context -> K; //material constant K 
+  const CeedScalar N = context -> N; //Max value to sum to
   
   //TO-DO update with correct energy model
+  // phi = sum_{i+j = 1}^N C_mat_[i,j](\bar_I_1 -3)^i(\bar_I_2 -3)^j + sum_{i=1}^N(K[i]/2)(J - 1)^{2i}
   return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
 }
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Energy derivations S for models CALL IN COMMONFS WHERE COMMENTED IN
+// -----------------------------------------------------------------------------
+// Neo-Hookean model
+
+// -----------------------------------------------------------------------------
+// Mooney-Rivlin model
+
+// -----------------------------------------------------------------------------
+// Generalized Polynomial model
+
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------

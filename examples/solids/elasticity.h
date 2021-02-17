@@ -50,11 +50,15 @@ typedef enum {
 static const char *const problemTypes[] = {"linElas",
                                            "hyperSS",
                                            "hyperFS",
+                                           "hyperFS-MR",
+                                           "hyperFS-GP",
                                            "problemType","ELAS_",0 //TO-DO update with new options; will need to change the structs depending on input
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyper elasticity small strain",
-                                                  "Hyper elasticity finite strain"
+                                                  "Hyper elasticity finite strain",
+                                                  "Hyper elasticity finite strain - Mooney Rivlin",
+                                                  "Hyper elasticity finite strain - Generalized Polynomial"
                                                  };
 
 // Forcing function options

@@ -398,7 +398,7 @@ Carrying through the differentiation for the model :math:numref:`neo-hookean-ene
    .. math::
       :label: generalized-polynomial-stress
 
-      \bm S = \sum_{i + j = 1}^N 2C_{ij}\left( j(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^{j-1}J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + i(\mathbb{\bar I}_2 -3)^j(\mathbb{\bar I}_1 -3)^{i-1} J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \right) + \sum_{i = 1}^N k_1 i(J -1)^{2i-1}J\bm C^{-1},
+      \bm S = \sum_{i + j = 1}^N 2C_{ij}\left( j(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^{j-1}J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + i(\mathbb{\bar I}_2 -3)^j(\mathbb{\bar I}_1 -3)^{i-1} J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \right) + \sum_{i = 1}^N k_i i(J -1)^{2i-1}J\bm C^{-1},
 
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
