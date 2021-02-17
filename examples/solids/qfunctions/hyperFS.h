@@ -186,10 +186,36 @@ CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
 
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
+CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+  //requires unpacking the ctx struct again; 
+  const Physics_MR context = (Physics_MR)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  //TO-DO unpack remaining needed for MR
 
+  //TO-DO update with correct energy model
+  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+}
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-
+CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+  //requires unpacking the ctx struct again; 
+  const Physics_GP context = (Physics_GP)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  // TO-DO unpack remaining needed for GP
+  
+  //TO-DO update with correct energy model
+  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+}
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 

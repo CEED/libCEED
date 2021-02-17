@@ -48,8 +48,11 @@ typedef enum {
 static const char *const problemTypes[] = {"linElas",
                                            "hyperSS",
                                            "hyperFS",
+<<<<<<< HEAD
                                            "hyperFS-MR",
                                            "hyperFS-GP",
+=======
+>>>>>>> 1bb95495... adding new energy functions for MR
                                            "problemType","ELAS_",0 //TO-DO update with new options; will need to change the structs depending on input
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
