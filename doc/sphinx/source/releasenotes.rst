@@ -51,7 +51,11 @@ Interface changes
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * New HIP backend: ``/gpu/hip/ref``.
+<<<<<<< HEAD
 * CeedQFunction support for user ``CUfunction``\s in some backends
+=======
+* CeedQFunction support for user ``CUfunction`` in some backends
+>>>>>>> b4fdb08c... doc: fix anchor syntax
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
