@@ -288,6 +288,7 @@ int main(int argc, char **argv) {
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
                                  ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
+                                 forceCeed);
                                  forceCeed, neumannCeed);
     CHKERRQ(ierr);
   }
