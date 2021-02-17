@@ -85,6 +85,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
             "Cannot use constant forcing and finite strain formulation. "
             "Constant forcing in reference frame currently unavaliable.");
 
+  // Dirichlet boundary conditions
   appCtx->bcClampCount = 16;
   ierr = PetscOptionsIntArray("-bc_clamp",
                               "Face IDs to apply incremental Dirichlet BC",
@@ -96,10 +97,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     char optionName[25];
     for (PetscInt j = 0; j < 7; j++)
       appCtx->bcClampMax[i][j] = 0.;
+
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
              appCtx->bcClampFaces[i]);
     maxn = 3;
-
     ierr = PetscOptionsScalarArray(optionName,
                                    "Vector to translate clamped end by", NULL,
                                    appCtx->bcClampMax[i], &maxn, NULL);
@@ -122,6 +123,33 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
       norm = 1;
     for (PetscInt j = 0; j < 3; j++)
       appCtx->bcClampMax[i][3 + j] /= norm;
+  }
+
+  // Neumann boundary conditions
+  appCtx->bcTractionCount = 16;
+  ierr = PetscOptionsIntArray("-bc_traction",
+                              "Face IDs to apply traction (Neumann) BC",
+                              NULL, appCtx->bcTractionFaces,
+                              &appCtx->bcTractionCount, NULL); CHKERRQ(ierr);
+  // Set vector for each traction BC
+  for (PetscInt i = 0; i < appCtx->bcTractionCount; i++) {
+    // Translation vector
+    char optionName[25];
+    for (PetscInt j = 0; j < 3; j++)
+      appCtx->bcTractionVector[i][j] = 0.;
+
+    snprintf(optionName, sizeof optionName, "-bc_traction_%d",
+             appCtx->bcTractionFaces[i]);
+    maxn = 3;
+    PetscBool set = false;
+    ierr = PetscOptionsScalarArray(optionName,
+                                   "Traction vector for constrained face", NULL,
+                                   appCtx->bcTractionVector[i], &maxn, &set);
+    CHKERRQ(ierr);
+
+    if (!set)
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+              "Traction vector must be set for all traction boundary conditions.");
   }
 
   appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;

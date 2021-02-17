@@ -180,62 +180,185 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   PetscFunctionReturn(0);
 };
 
-// Get libCEED restriction data from DMPlex
-PetscErrorCode CreateRestrictionPlex(Ceed ceed, CeedInt P, CeedInt ncomp,
-                                     CeedElemRestriction *Erestrict, DM dm) {
-  PetscInt ierr;
-  PetscInt c, cStart, cEnd, nelem, nnodes, *erestrict, eoffset;
+// Utility function - essential BC dofs are encoded in closure indices as -(i+1)
+PetscInt Involute(PetscInt i) {
+  return i >= 0 ? i : -(i + 1);
+};
+
+// Utility function to create local CEED restriction from DMPlex
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
+    CeedInt height, DMLabel domainLabel, CeedInt value,
+    CeedElemRestriction *Erestrict) {
+
   PetscSection section;
+  PetscInt p, Nelem, Ndof, *erestrict, eoffset, nfields, dim, depth;
+  DMLabel depthLabel;
+  IS depthIS, iterIS;
   Vec Uloc;
+  const PetscInt *iterIndices;
+  PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
 
-  // Get Nelem
-  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
-  nelem = cEnd - cStart;
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  dim -= height;
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+  ierr = PetscSectionGetNumFields(section, &nfields); CHKERRQ(ierr);
+  PetscInt ncomp[nfields], fieldoff[nfields+1];
+  fieldoff[0] = 0;
+  for (PetscInt f = 0; f < nfields; f++) {
+    ierr = PetscSectionGetFieldComponents(section, f, &ncomp[f]); CHKERRQ(ierr);
+    fieldoff[f+1] = fieldoff[f] + ncomp[f];
+  }
 
-  // Get indices
-  ierr = PetscMalloc1(nelem*P*P*P, &erestrict); CHKERRQ(ierr);
-  for (c=cStart, eoffset=0; c<cEnd; c++) {
-    PetscInt numindices, *indices, i;
+  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthLabel(dm, &depthLabel); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumIS(depthLabel, depth - height, &depthIS); CHKERRQ(ierr);
+  if (domainLabel) {
+    IS domainIS;
+    ierr = DMLabelGetStratumIS(domainLabel, value, &domainIS); CHKERRQ(ierr);
+    if (domainIS) { // domainIS is non-empty
+      ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
+      ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
+    } else { // domainIS is NULL (empty)
+      iterIS = NULL;
+    }
+    ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
+  } else {
+    iterIS = depthIS;
+  }
+  if (iterIS) {
+    ierr = ISGetLocalSize(iterIS, &Nelem); CHKERRQ(ierr);
+    ierr = ISGetIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  } else {
+    Nelem = 0;
+    iterIndices = NULL;
+  }
+  ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
+  for (p = 0, eoffset = 0; p < Nelem; p++) {
+    PetscInt c = iterIndices[p];
+    PetscInt numindices, *indices, nnodes;
     ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
                                    &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
-    for (i=0; i<numindices; i+=ncomp) {
-      for (PetscInt j=0; j<ncomp; j++) {
-        if (indices[i+j] != indices[i] + (PetscInt)(copysign(j, indices[i])))
-          SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                   "Cell %D closure indices not interlaced", c);
+    bool flip = false;
+    if (height > 0) {
+      PetscInt numCells, numFaces, start = -1;
+      const PetscInt *orients, *faces, *cells;
+      ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
+      ierr = DMPlexGetSupportSize(dm, c, &numCells); CHKERRQ(ierr);
+      if (numCells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+                                    "Expected one cell in support of exterior face, but got %D cells",
+                                    numCells);
+      ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
+      ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
+      for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == c) start = i;}
+      if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT,
+                                "Could not find face %D in cone of its support",
+                                c);
+      ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
+      if (orients[start] < 0) flip = true;
+    }
+    if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
+          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
+          c);
+    nnodes = numindices / fieldoff[nfields];
+    for (PetscInt i = 0; i < nnodes; i++) {
+      PetscInt ii = i;
+      if (flip) {
+        if (P == nnodes) ii = nnodes - 1 - i;
+        else if (P*P == nnodes) {
+          PetscInt row = i / P, col = i % P;
+          ii = row + col * P;
+        } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                          "No support for flipping point with %D nodes != P (%D) or P^2",
+                          nnodes, P);
       }
-      // Essential boundary conditions are encoded as -(loc+1)
-      PetscInt loc = indices[i] >= 0 ? indices[i] : -(indices[i] + 1);
+      // Check that indices are blocked by node and thus can be coalesced as a single field with
+      // fieldoff[nfields] = sum(ncomp) components.
+      for (PetscInt f = 0; f < nfields; f++) {
+        for (PetscInt j = 0; j < ncomp[f]; j++) {
+          if (Involute(indices[fieldoff[f]*nnodes + ii*ncomp[f] + j])
+              != Involute(indices[ii*ncomp[0]]) + fieldoff[f] + j)
+            SETERRQ4(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+                     "Cell %D closure indices not interlaced for node %D field %D component %D",
+                     c, ii, f, j);
+        }
+      }
+      // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
+      PetscInt loc = Involute(indices[ii*ncomp[0]]);
       erestrict[eoffset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
                                        &numindices, &indices, NULL, NULL);
     CHKERRQ(ierr);
   }
+  if (eoffset != Nelem*PetscPowInt(P, dim))
+    SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
+             "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
+             PetscPowInt(P, dim),eoffset);
+  if (iterIS) {
+    ierr = ISRestoreIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  }
+  ierr = ISDestroy(&iterIS); CHKERRQ(ierr);
 
-  // Setup CEED restriction
   ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Uloc, &nnodes); CHKERRQ(ierr);
-
+  ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, nelem, P*P*P, ncomp, 1, nnodes, CEED_MEM_HOST,
-                            CEED_COPY_VALUES, erestrict, Erestrict);
+  CeedElemRestrictionCreate(ceed, Nelem, PetscPowInt(P, dim), fieldoff[nfields],
+                            1, Ndof, CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
+                            Erestrict);
   ierr = PetscFree(erestrict); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};
+
+// Utility function to get Ceed Restriction for each domain
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
+                                       DMLabel domainLabel, PetscInt value,
+                                       CeedInt P, CeedInt Q, CeedInt qdatasize,
+                                       CeedElemRestriction *restrictq,
+                                       CeedElemRestriction *restrictx,
+                                       CeedElemRestriction *restrictqdi) {
+
+  DM dmcoord;
+  CeedInt dim, localNelem;
+  CeedInt Qdim;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  dim -= height;
+  Qdim = CeedIntPow(Q, dim);
+  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
+  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
+  CHKERRQ(ierr);
+  if (restrictq) {
+    ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domainLabel, value,
+                                     restrictq); CHKERRQ(ierr);
+  }
+  if (restrictx) {
+    ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, height, domainLabel,
+                                     value, restrictx); CHKERRQ(ierr);
+  }
+  if (restrictqdi) {
+    CeedElemRestrictionGetNumElements(*restrictq, &localNelem);
+    CeedElemRestrictionCreateStrided(ceed, localNelem, Qdim,
+                                     qdatasize, qdatasize*localNelem*Qdim,
+                                     CEED_STRIDES_BACKEND, restrictqdi);
+  }
 
   PetscFunctionReturn(0);
 };
 
-// Set up libCEED for a given degree
+// Set up libCEED on the fine grid for a given degree
 PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                      Ceed ceed, AppCtx appCtx,
                                      CeedQFunctionContext physCtx,
                                      CeedData *data, PetscInt fineLevel,
                                      PetscInt ncompu, PetscInt Ugsz,
-                                     PetscInt Ulocsz, CeedVector forceCeed) {
+                                     PetscInt Ulocsz, CeedVector forceCeed,
+                                     CeedVector neumannCeed) {
   int           ierr;
   CeedInt       P = appCtx->levelDegrees[fineLevel] + 1;
   CeedInt       Q = appCtx->levelDegrees[fineLevel] + 1 + appCtx->qextra;
@@ -265,19 +388,21 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CHKERRQ(ierr);
 
   // -- Coordinate restriction
-  ierr = CreateRestrictionPlex(ceed, 2, ncompx, &(data[fineLevel]->Erestrictx),
-                               dmcoord); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, 0, 0, 0,
+                                   &(data[fineLevel]->Erestrictx));
+  CHKERRQ(ierr);
   // -- Solution restriction
-  ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[fineLevel]->Erestrictu,
-                               dm); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dm, P, 0, 0, 0,
+                                   &data[fineLevel]->Erestrictu);
+  CHKERRQ(ierr);
   // -- Energy restriction
-  ierr = CreateRestrictionPlex(ceed, P, ncompe,
-                               &data[fineLevel]->ErestrictEnergy, dmEnergy);
+  ierr = CreateRestrictionFromPlex(ceed, dmEnergy, P, 0, 0, 0,
+                                   &data[fineLevel]->ErestrictEnergy);
   CHKERRQ(ierr);
   // -- Pressure restriction
-  ierr = CreateRestrictionPlex(ceed, P, ncompu + ncompd,
-                               &data[fineLevel]->ErestrictDiagnostic,
-                               dmDiagnostic); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dmDiagnostic, P, 0, 0, 0,
+                                   &data[fineLevel]->ErestrictDiagnostic);
+  CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   nelem = cEnd - cStart;
@@ -443,6 +568,78 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   // -- Save libCEED data
   data[fineLevel]->qfJacob = qfJacob;
   data[fineLevel]->opJacob = opJacob;
+
+  // ---------------------------------------------------------------------------
+  // Traction boundary conditions, if needed
+  // ---------------------------------------------------------------------------
+  if (appCtx->bcTractionCount > 0) {
+    // -- Setup
+    DMLabel domainLabel;
+    ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
+    ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+    // -- Basis
+    CeedInt height = 1;
+    CeedBasis basisuFace, basisxFace;
+    CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompu, P, Q,
+                                    problemOptions[problemChoice].qmode,
+                                    &basisuFace);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim - height, ncompx, 2, Q,
+                                    problemOptions[problemChoice].qmode,
+                                    &basisxFace);
+
+    // -- QFunction
+    CeedQFunction qfTraction;
+    CeedQFunctionContext tractionCtx;
+    CeedQFunctionCreateInterior(ceed, 1, SetupTractionBCs, SetupTractionBCs_loc,
+                                &qfTraction);
+    CeedQFunctionContextCreate(ceed, &tractionCtx);
+    CeedQFunctionSetContext(qfTraction, tractionCtx);
+    CeedQFunctionAddInput(qfTraction, "dx", ncompx*(ncompx - height),
+                          CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qfTraction, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(qfTraction, "v", ncompu, CEED_EVAL_INTERP);
+
+    // -- Compute contribution on each boundary face
+    for (CeedInt i = 0; i < appCtx->bcTractionCount; i++) {
+      CeedElemRestriction ErestrictuFace, ErestrictxFace;
+      CeedOperator opTraction;
+      CeedQFunctionContextSetData(tractionCtx, CEED_MEM_HOST, CEED_USE_POINTER,
+                                  3 * sizeof(CeedScalar),
+                                  appCtx->bcTractionVector[i]);
+
+      // Setup restriction
+      ierr = GetRestrictionForDomain(ceed, dm, height, domainLabel,
+                                     appCtx->bcTractionFaces[i], P, Q,
+                                     0, &ErestrictuFace, &ErestrictxFace, NULL);
+      CHKERRQ(ierr);
+
+      // ---- Create boundary Operator
+      CeedOperatorCreate(ceed, qfTraction, NULL, NULL, &opTraction);
+      CeedOperatorSetField(opTraction, "dx", ErestrictxFace, basisxFace,
+                           CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(opTraction, "weight", CEED_ELEMRESTRICTION_NONE,
+                           basisxFace, CEED_VECTOR_NONE);
+      CeedOperatorSetField(opTraction, "v", ErestrictuFace,
+                           basisuFace, CEED_VECTOR_ACTIVE);
+
+      // ---- Compute traction on face
+      CeedOperatorApplyAdd(opTraction, xcoord, neumannCeed,
+                           CEED_REQUEST_IMMEDIATE);
+
+      // ---- Cleanup
+      CeedElemRestrictionDestroy(&ErestrictuFace);
+      CeedElemRestrictionDestroy(&ErestrictxFace);
+      CeedOperatorDestroy(&opTraction);
+    }
+
+    // -- Cleanup
+    CeedBasisDestroy(&basisuFace);
+    CeedBasisDestroy(&basisxFace);
+    CeedQFunctionDestroy(&qfTraction);
+    CeedQFunctionContextDestroy(&tractionCtx);
+  }
+
 
   // ---------------------------------------------------------------------------
   // Forcing term, if needed
@@ -674,7 +871,8 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx appCtx,
   // libCEED restrictions
   // ---------------------------------------------------------------------------
   // -- Solution restriction
-  ierr = CreateRestrictionPlex(ceed, P, ncompu, &data[level]->Erestrictu, dm);
+  ierr = CreateRestrictionFromPlex(ceed, dm, P, 0, 0, 0,
+                                   &data[level]->Erestrictu);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------

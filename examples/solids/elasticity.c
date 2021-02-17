@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
   DM             *levelDMs;
   Vec            U, *Ug, *Uloc;          // U: solution, R: residual, F: forcing
   Vec            R, Rloc, F, Floc;       // g: global, loc: local
+  Vec            NBCs = NULL, NBCsloc = NULL;
   SNES           snes, snesCoarse = NULL;
   Mat            *jacobMat, jacobMatCoarse, *prolongRestrMat;
   // PETSc data
@@ -252,6 +253,22 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(forceCeed, appCtx->memTypeRequested, CEED_USE_POINTER, f);
   }
 
+  // -- Create libCEED local Neumann BCs vector
+  CeedVector neumannCeed;
+  CeedScalar *n;
+  if (appCtx->bcTractionCount > 0) {
+    ierr = VecDuplicate(U, &NBCs); CHKERRQ(ierr);
+    ierr = VecDuplicate(Uloc[fineLevel], &NBCsloc); CHKERRQ(ierr);
+    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+      ierr = VecGetArray(NBCsloc, &n); CHKERRQ(ierr);
+    } else {
+      ierr = VecCUDAGetArray(NBCsloc, &n); CHKERRQ(ierr);
+    }
+    CeedVectorCreate(ceed, Ulocsz[fineLevel], &neumannCeed);
+    CeedVectorSetArray(neumannCeed, appCtx->memTypeRequested,
+                       CEED_USE_POINTER, n);
+  }
+
   // -- Setup libCEED objects
   ierr = PetscMalloc1(numLevels, &ceedData); CHKERRQ(ierr);
   // ---- Setup residual, Jacobian evaluator and geometric information
@@ -261,6 +278,7 @@ int main(int argc, char **argv) {
                                  ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
                                  forceCeed); //TO-DO
+                                 forceCeed, neumannCeed);
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction
@@ -307,7 +325,7 @@ int main(int argc, char **argv) {
   ierr = PetscLogStagePop();
 
   // ---------------------------------------------------------------------------
-  // Setup global forcing vector
+  // Setup global forcing and Neumann BC vectors
   // ---------------------------------------------------------------------------
   ierr = VecZeroEntries(F); CHKERRQ(ierr);
 
@@ -321,6 +339,19 @@ int main(int argc, char **argv) {
     ierr = DMLocalToGlobal(levelDMs[fineLevel], Floc, ADD_VALUES, F);
     CHKERRQ(ierr);
     CeedVectorDestroy(&forceCeed);
+  }
+
+  if (appCtx->bcTractionCount > 0) {
+    ierr = VecZeroEntries(NBCs); CHKERRQ(ierr);
+    CeedVectorTakeArray(neumannCeed, appCtx->memTypeRequested, NULL);
+    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+      ierr = VecRestoreArray(NBCsloc, &n); CHKERRQ(ierr);
+    } else {
+      ierr = VecCUDARestoreArray(NBCsloc, &n); CHKERRQ(ierr);
+    }
+    ierr = DMLocalToGlobal(levelDMs[fineLevel], NBCsloc, ADD_VALUES, NBCs);
+    CHKERRQ(ierr);
+    CeedVectorDestroy(&neumannCeed);
   }
 
   // ---------------------------------------------------------------------------
@@ -434,11 +465,15 @@ int main(int argc, char **argv) {
   formJacobCtx->jacobMat = jacobMat;
 
   // -- Residual evaluation function
-  ierr = PetscMalloc1(1, &resCtx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &resCtx); CHKERRQ(ierr);
   ierr = PetscMemcpy(resCtx, jacobCtx[fineLevel],
                      sizeof(*jacobCtx[fineLevel])); CHKERRQ(ierr);
   resCtx->op = ceedData[fineLevel]->opApply;
   resCtx->qf = ceedData[fineLevel]->qfApply;
+  if (appCtx->bcTractionCount > 0)
+    resCtx->NBCs = NBCs;
+  else
+    resCtx->NBCs = NULL;
   ierr = SNESSetFunction(snes, R, FormResidual_Ceed, resCtx); CHKERRQ(ierr);
 
   // -- Prolongation/Restriction evaluation
@@ -918,6 +953,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&Rloc); CHKERRQ(ierr);
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = VecDestroy(&Floc); CHKERRQ(ierr);
+  ierr = VecDestroy(&NBCs); CHKERRQ(ierr);
+  ierr = VecDestroy(&NBCsloc); CHKERRQ(ierr);
   ierr = MatDestroy(&jacobMatCoarse); CHKERRQ(ierr);
   ierr = SNESDestroy(&snes); CHKERRQ(ierr);
   ierr = SNESDestroy(&snesCoarse); CHKERRQ(ierr);
