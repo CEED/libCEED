@@ -267,6 +267,22 @@ int main(int argc, char **argv) {
                        CEED_USE_POINTER, n);
   }
 
+  // -- Create libCEED local Neumann BCs vector
+  CeedVector neumannCeed;
+  CeedScalar *n;
+  if (appCtx->bcTractionCount > 0) {
+    ierr = VecDuplicate(U, &NBCs); CHKERRQ(ierr);
+    ierr = VecDuplicate(Uloc[fineLevel], &NBCsloc); CHKERRQ(ierr);
+    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+      ierr = VecGetArray(NBCsloc, &n); CHKERRQ(ierr);
+    } else {
+      ierr = VecCUDAGetArray(NBCsloc, &n); CHKERRQ(ierr);
+    }
+    CeedVectorCreate(ceed, Ulocsz[fineLevel], &neumannCeed);
+    CeedVectorSetArray(neumannCeed, appCtx->memTypeRequested,
+                       CEED_USE_POINTER, n);
+  }
+
   // -- Setup libCEED objects
   ierr = PetscMalloc1(numLevels, &ceedData); CHKERRQ(ierr);
   // ---- Setup residual, Jacobian evaluator and geometric information
@@ -275,9 +291,7 @@ int main(int argc, char **argv) {
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
                                  ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
-                                 forceCeed); //TO-DO
                                  forceCeed, neumannCeed);
-                                 forceCeed); //TO-DO
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction
@@ -331,8 +345,17 @@ int main(int argc, char **argv) {
 
   if (appCtx->bcTractionCount > 0) {
     ierr = VecZeroEntries(NBCs); CHKERRQ(ierr);
+<<<<<<< HEAD
     CeedVectorTakeArray(neumannCeed, MemTypeP2C(nmemtype), NULL);
     ierr = VecRestoreArrayAndMemType(NBCsloc, &n); CHKERRQ(ierr);
+=======
+    CeedVectorTakeArray(neumannCeed, appCtx->memTypeRequested, NULL);
+    if (appCtx->memTypeRequested == CEED_MEM_HOST) {
+      ierr = VecRestoreArray(NBCsloc, &n); CHKERRQ(ierr);
+    } else {
+      ierr = VecCUDARestoreArray(NBCsloc, &n); CHKERRQ(ierr);
+    }
+>>>>>>> fe394131... solids - traction BCs
     ierr = DMLocalToGlobal(levelDMs[fineLevel], NBCsloc, ADD_VALUES, NBCs);
     CHKERRQ(ierr);
     CeedVectorDestroy(&neumannCeed);
