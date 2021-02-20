@@ -60,19 +60,19 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
 
   PetscFunctionBeginUser;
   PetscScalar
-  // translation vector
+  // Translation vector
   lx = clampMax[0]*loadIncrement,
   ly = clampMax[1]*loadIncrement,
   lz = clampMax[2]*loadIncrement,
-  // normalized rotation axis
+  // Normalized rotation axis
   kx = clampMax[3],
   ky = clampMax[4],
   kz = clampMax[5],
-  // rotation polynomial
+  // Rotation polynomial
   c_0 = clampMax[6] * M_PI,
   c_1 = clampMax[7] * M_PI,
   cx = kx * x + ky * y + kz * z,
-  // rotation magnitude
+  // Rotation magnitude
   theta = (c_0 + c_1 * cx) * loadIncrement;
   PetscScalar c = cos(theta), s = sin(theta);
 
