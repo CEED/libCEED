@@ -9,6 +9,7 @@ noether-rocm:
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - echo "---------- nproc-----------" && echo $(nproc)
     - echo "---------- CC -------------" && $CC --version
     - echo "---------- CXX ------------" && $CXX --version
     - echo "---------- FC -------------" && $FC --version
