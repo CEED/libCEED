@@ -230,7 +230,6 @@ hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
-hip-shared.hip := $(sort $(wildcard backends/hip-shared/kernels/*.hip.cpp))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 
@@ -399,7 +398,7 @@ ifneq ($(HIP_LIB_DIR),)
   libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
   libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip += $(hip.hip) $(hip-shared.hip)
+  libceed.hip += $(hip.hip)
   BACKENDS    += $(HIP_BACKENDS)
 endif
 
