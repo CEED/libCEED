@@ -30,7 +30,7 @@ magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
-    magma_int_t threads = 256;
+    magma_int_t threads = MAGMA_ERSTR_THREADS;
 
     hipLaunchKernelGGL(magma_readDofsOffset_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
       esize, nelem, offsets, du, dv);
@@ -46,7 +46,7 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
-    magma_int_t threads = 256;
+    magma_int_t threads = MAGMA_ERSTR_THREADS;
 
     hipLaunchKernelGGL(magma_readDofsStrided_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem, 
       strides, du, dv);
@@ -62,7 +62,7 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
-    magma_int_t threads = 256;
+    magma_int_t threads = MAGMA_ERSTR_THREADS;
 
     hipLaunchKernelGGL(magma_writeDofsOffset_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
       esize, nelem, offsets, du, dv);
@@ -78,7 +78,7 @@ magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                        magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
-    magma_int_t threads = 256;
+    magma_int_t threads = MAGMA_ERSTR_THREADS;
 
     hipLaunchKernelGGL(magma_writeDofsStrided_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem, 
       strides, du, dv);

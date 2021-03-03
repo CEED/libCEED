@@ -23,8 +23,8 @@
 #include "grad_device.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int DIM, int NCOMP, int P, int Q>
-static __global__ void
+template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __global__ void
 magma_grad_1d_kernel(  
     const T *dTgrad, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, 
@@ -78,7 +78,7 @@ magma_grad_1d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __global__ void
 magma_gradn_2d_kernel(
     const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
@@ -140,7 +140,7 @@ magma_gradn_2d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __global__ void
 magma_gradt_2d_kernel(
     const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
@@ -206,7 +206,7 @@ magma_gradt_2d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_gradn_3d_kernel(
     const T* dinterp1d, const T* dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
@@ -276,7 +276,7 @@ magma_gradn_3d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_gradt_3d_kernel(
     const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  

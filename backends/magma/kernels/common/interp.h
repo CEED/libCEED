@@ -23,8 +23,8 @@
 #include "interp_device.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int DIM, int NCOMP, int P, int Q>
-static __global__ void
+template<typename T, int DIM, int NCOMP, int P, int Q, int MAXPQ>
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __global__ void
 magma_interp_1d_kernel(  
     const T *dT, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, 
@@ -79,7 +79,7 @@ magma_interp_1d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __global__ void
 magma_interp_2d_kernel(
     const T *dT, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, 
@@ -129,7 +129,7 @@ magma_interp_2d_kernel(
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int NCOMP, int P, int Q, int MAXPQ>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_interp_3d_kernel(
     const T *dT, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, 
