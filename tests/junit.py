@@ -6,21 +6,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'juni
 from junit_xml import TestCase, TestSuite
 
 def parse_testargs(file):
-    allargs = []
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
-        for line in open(file).readlines():
-            if line.startswith('//TESTARGS'):
-                args = [line.split()[1:]]
-                args.append([line.split()[0].strip('//TESTARGS(name=').strip(')')])
-                allargs.append(args)
-        return allargs
+        return sum([[[line.split()[1:], [line.split()[0].strip('//TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
+                    if line.startswith('//TESTARGS')], [])
     elif os.path.splitext(file)[1] == '.usr':
-        for line in open(file).readlines():
-            if line.startswith('C_TESTARGS'):
-                args = [line.split()[1:]]
-                args.append([line.split()[0].strip('C_TESTARGS(name=').strip(')')])
-                allargs.append(args)
-        return allargs
+        return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
+                    if line.startswith('C_TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
