@@ -673,6 +673,7 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   SetupContext ctxSetupData;
+  NSContext ctxNSData;
   char ceedresource[4096] = "/cpu/self", problemName[] = "density_current";
   PetscFunctionList problems = NULL;
   PetscInt localNelemVol, lnodes, gnodes, steps;
@@ -753,6 +754,7 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxNSData); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
@@ -821,17 +823,16 @@ int main(int argc, char **argv) {
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
 
-
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsScalar("-lambda",
-                            "Stokes hypothesis second viscosity coefficient",
-                            NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
-                            NULL, mu, &mu, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-k", "Thermal conductivity",
-                            NULL, k, &k, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-lambda",
+  //                          "Stokes hypothesis second viscosity coefficient",
+  //                          NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
+  //                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-k", "Thermal conductivity",
+  //                          NULL, k, &k, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
@@ -887,46 +888,45 @@ int main(int argc, char **argv) {
 
   {
     // Choose the problem from the list of registered problems
-    PetscErrorCode (*p)(problemData *, void **);
+    PetscErrorCode (*p)(problemData *, void **, void **);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
-    ierr = (*p)(problem, &ctxSetupData); CHKERRQ(ierr);
+    ierr = (*p)(problem, &ctxSetupData, &units); CHKERRQ(ierr);
   }
 
   // Set up the libCEED context
   ctxSetupData->time = 0;
 
   // Define derived units
-  Pascal = kilogram / (meter * PetscSqr(second));
-  JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
-  mpersquareds = meter / PetscSqr(second);
-  WpermK = kilogram * meter / (pow(second,3) * Kelvin);
-  kgpercubicm = kilogram / pow(meter,3);
-  kgpersquaredms = kilogram / (PetscSqr(meter) * second);
-  Joulepercubicm = kilogram / (meter * PetscSqr(second));
-  Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
+  //Pascal = kilogram / (meter * PetscSqr(second));
+  //JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
+  //mpersquareds = meter / PetscSqr(second);
+  //WpermK = kilogram * meter / (pow(second,3) * Kelvin);
+  //kgpercubicm = kilogram / pow(meter,3);
+  //kgpersquaredms = kilogram / (PetscSqr(meter) * second);
+  //Joulepercubicm = kilogram / (meter * PetscSqr(second));
+  //Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
 
   // Scale variables to desired units
-  ctxSetupData->theta0 *= Kelvin;
-  ctxSetupData->thetaC *= Kelvin;
-  ctxSetupData->P0 *= Pascal;
-  E_wind *= Joule;
-  N = ctxSetupData->N *= (1./second);
-  cv = ctxSetupData->cv *= JperkgK;
-  cp = ctxSetupData->cp *= JperkgK;
-  Rd = cp - cv;
-  ctxSetupData->Rd = Rd;
-  ctxSetupData->g *= mpersquareds;
-  mu *= Pascal * second;
-  k *= WpermK;
-  ctxSetupData->lx = fabs(lx) * meter;
-  ctxSetupData->ly = fabs(ly) * meter;
-  ctxSetupData->lz = fabs(lz) * meter;
-  ctxSetupData->rc = fabs(rc) * meter;
-  resx = fabs(resx) * meter;
-  resy = fabs(resy) * meter;
-  resz = fabs(resz) * meter;
-  for (int i=0; i<3; i++) ctxSetupData->center[i] *= meter;
+  //theta0 *= Kelvin;
+  //thetaC *= Kelvin;
+  //P0 *= Pascal;
+  //E_wind *= Joule;
+  //N *= (1./second);
+  //cv *= JperkgK;
+  //cp *= JperkgK;
+  //Rd = cp - cv;
+  //g *= mpersquareds;
+  //mu *= Pascal * second;
+  //k *= WpermK;
+  //lx = fabs(lx) * meter;
+  //ly = fabs(ly) * meter;
+  //lz = fabs(lz) * meter;
+  //rc = fabs(rc) * meter;
+  //resx = fabs(resx) * meter;
+  //resy = fabs(resy) * meter;
+  //resz = fabs(resz) * meter;
+  //for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
@@ -1258,18 +1258,18 @@ int main(int argc, char **argv) {
 
   // Set up PETSc context
   // Set up units structure
-  units->meter = meter;
-  units->kilogram = kilogram;
-  units->second = second;
-  units->Kelvin = Kelvin;
-  units->Pascal = Pascal;
-  units->JperkgK = JperkgK;
-  units->mpersquareds = mpersquareds;
-  units->WpermK = WpermK;
-  units->kgpercubicm = kgpercubicm;
-  units->kgpersquaredms = kgpersquaredms;
-  units->Joulepercubicm = Joulepercubicm;
-  units->Joule = Joule;
+  //units->meter = meter;
+  //units->kilogram = kilogram;
+  //units->second = second;
+  //units->Kelvin = Kelvin;
+  //units->Pascal = Pascal;
+  //units->JperkgK = JperkgK;
+  //units->mpersquareds = mpersquareds;
+  //units->WpermK = WpermK;
+  //units->kgpercubicm = kgpercubicm;
+  //units->kgpersquaredms = kgpersquaredms;
+  //units->Joulepercubicm = Joulepercubicm;
+  //units->Joule = Joule;
 
   // Set up user structure
   user->comm = comm;
