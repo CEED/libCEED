@@ -27,9 +27,9 @@
 //
 // Sample runs:
 //
-//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
-//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_translate 0.1,0.2,0.3 -problem hyperSS -forcing none -ceed /cpu/self
-//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_rotate 1,0,0,0.2 -problem hyperFS -forcing none -ceed /gpu/cuda
+//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
+//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_translate 0.1,0.2,0.3 -problem SS-NH -forcing none -ceed /cpu/self
+//     ./elasticity -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -bc_clamp 998,999 -bc_clamp_998_rotate 1,0,0,0.2 -problem FSInitial-NH1 -forcing none -ceed /gpu/cuda
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //

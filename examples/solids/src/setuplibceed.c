@@ -20,9 +20,13 @@
 #include "../elasticity.h"
 
 #include "../qfunctions/common.h"            // Geometric factors
-#include "../qfunctions/linElas.h"           // Linear elasticity
-#include "../qfunctions/hyperSS.h"           // Hyperelasticity small strain
-#include "../qfunctions/hyperFS.h"           // Hyperelasticity finite strain
+#include "../qfunctions/Linear.h"            // Linear elasticity
+#include "../qfunctions/SS-NH.h"             // Hyperelasticity small strain
+// Hyperelasticity finite strain
+#include "../qfunctions/FSInitial-NH1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage
+#include "../qfunctions/FSInitial-NH2.h"     // -- Initial config 2 w/ dXref_dxinit, Grad(u), Cinv, constant storage
+#include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage
+#include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage
 #include "../qfunctions/constantForce.h"     // Constant forcing function
 #include "../qfunctions/manufacturedForce.h" // Manufactured solution forcing
 #include "../qfunctions/manufacturedTrue.h"  // Manufactured true solution
@@ -36,47 +40,89 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-problemData problemOptions[3] = {
-  [ELAS_LIN] = {
+problemData problemOptions[6] = {
+  [ELAS_LINEAR] = {
     .qdatasize = 10, // For linear elasticity, 6 would be sufficient
     .setupgeo = SetupGeo,
-    .apply = LinElasF,
-    .jacob = LinElasdF,
-    .energy = LinElasEnergy,
-    .diagnostic = LinElasDiagnostic,
+    .apply = ElasLinearF,
+    .jacob = ElasLineardF,
+    .energy = ElasLinearEnergy,
+    .diagnostic = ElasLinearDiagnostic,
     .setupgeofname = SetupGeo_loc,
-    .applyfname = LinElasF_loc,
-    .jacobfname = LinElasdF_loc,
-    .energyfname = LinElasEnergy_loc,
-    .diagnosticfname = LinElasDiagnostic_loc,
+    .applyfname = ElasLinearF_loc,
+    .jacobfname = ElasLineardF_loc,
+    .energyfname = ElasLinearEnergy_loc,
+    .diagnosticfname = ElasLinearDiagnostic_loc,
     .qmode = CEED_GAUSS
   },
-  [ELAS_HYPER_SS] = {
+  [ELAS_SS_NH] = {
     .qdatasize = 10,
     .setupgeo = SetupGeo,
-    .apply = HyperSSF,
-    .jacob = HyperSSdF,
-    .energy = HyperSSEnergy,
-    .diagnostic = HyperSSDiagnostic,
+    .apply = ElasSSNHF,
+    .jacob = ElasSSNHdF,
+    .energy = ElasSSNHEnergy,
+    .diagnostic = ElasSSNHDiagnostic,
     .setupgeofname = SetupGeo_loc,
-    .applyfname = HyperSSF_loc,
-    .jacobfname = HyperSSdF_loc,
-    .energyfname = HyperSSEnergy_loc,
-    .diagnosticfname = HyperSSDiagnostic_loc,
+    .applyfname = ElasSSNHF_loc,
+    .jacobfname = ElasSSNHdF_loc,
+    .energyfname = ElasSSNHEnergy_loc,
+    .diagnosticfname = ElasSSNHDiagnostic_loc,
     .qmode = CEED_GAUSS
   },
-  [ELAS_HYPER_FS] = {
+  [ELAS_FSInitial_NH1] = {
     .qdatasize = 10,
     .setupgeo = SetupGeo,
-    .apply = HyperFSF,
-    .jacob = HyperFSdF,
-    .energy = HyperFSEnergy,
-    .diagnostic = HyperFSDiagnostic,
+    .apply = ElasFSInitialNH1F,
+    .jacob = ElasFSInitialNH1dF,
+    .energy = ElasFSInitialNH1Energy,
+    .diagnostic = ElasFSInitialNH1Diagnostic,
     .setupgeofname = SetupGeo_loc,
-    .applyfname = HyperFSF_loc,
-    .jacobfname = HyperFSdF_loc,
-    .energyfname = HyperFSEnergy_loc,
-    .diagnosticfname = HyperFSDiagnostic_loc,
+    .applyfname = ElasFSInitialNH1F_loc,
+    .jacobfname = ElasFSInitialNH1dF_loc,
+    .energyfname = ElasFSInitialNH1Energy_loc,
+    .diagnosticfname = ElasFSInitialNH1Diagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  [ELAS_FSInitial_NH2] = {
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = ElasFSInitialNH2F,
+    .jacob = ElasFSInitialNH2dF,
+    .energy = ElasFSInitialNH2Energy,
+    .diagnostic = ElasFSInitialNH2Diagnostic,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = ElasFSInitialNH2F_loc,
+    .jacobfname = ElasFSInitialNH2dF_loc,
+    .energyfname = ElasFSInitialNH2Energy_loc,
+    .diagnosticfname = ElasFSInitialNH2Diagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  [ELAS_FSCurrent_NH1] = {
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = ElasFSCurrentNH1F,
+    .jacob = ElasFSCurrentNH1dF,
+    .energy = ElasFSCurrentNH1Energy,
+    .diagnostic = ElasFSCurrentNH1Diagnostic,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = ElasFSCurrentNH1F_loc,
+    .jacobfname = ElasFSCurrentNH1dF_loc,
+    .energyfname = ElasFSCurrentNH1Energy_loc,
+    .diagnosticfname = ElasFSCurrentNH1Diagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  [ELAS_FSCurrent_NH2] = {
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = ElasFSCurrentNH2F,
+    .jacob = ElasFSCurrentNH2dF,
+    .energy = ElasFSCurrentNH2Energy,
+    .diagnostic = ElasFSCurrentNH2Diagnostic,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = ElasFSCurrentNH2F_loc,
+    .jacobfname = ElasFSCurrentNH2dF_loc,
+    .energyfname = ElasFSCurrentNH2Energy_loc,
+    .diagnosticfname = ElasFSCurrentNH2Diagnostic_loc,
     .qmode = CEED_GAUSS
   }
 };
@@ -108,6 +154,11 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedVectorDestroy(&data->qdata);
   CeedVectorDestroy(&data->qdataDiagnostic);
   CeedVectorDestroy(&data->gradu);
+  CeedVectorDestroy(&data->Cinv);
+  CeedVectorDestroy(&data->lamlogJ);
+  CeedVectorDestroy(&data->dXdx);
+  CeedVectorDestroy(&data->tau);
+  CeedVectorDestroy(&data->Cc1);
   CeedVectorDestroy(&data->xceed);
   CeedVectorDestroy(&data->yceed);
   CeedVectorDestroy(&data->truesoln);
@@ -116,6 +167,11 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedElemRestrictionDestroy(&data->Erestrictu);
   CeedElemRestrictionDestroy(&data->Erestrictx);
   CeedElemRestrictionDestroy(&data->ErestrictGradui);
+  CeedElemRestrictionDestroy(&data->ErestrictCinv);
+  CeedElemRestrictionDestroy(&data->ErestrictlamlogJ);
+  CeedElemRestrictionDestroy(&data->ErestrictdXdx);
+  CeedElemRestrictionDestroy(&data->Erestricttau);
+  CeedElemRestrictionDestroy(&data->ErestrictCc1);
   CeedElemRestrictionDestroy(&data->Erestrictqdi);
   CeedElemRestrictionDestroy(&data->ErestrictEnergy);
   CeedElemRestrictionDestroy(&data->ErestrictDiagnostic);
@@ -382,11 +438,64 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                                    CEED_STRIDES_BACKEND,
                                    &data[fineLevel]->Erestrictqdi);
   // -- State vector gradient restriction
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  // ---- Linear Elasticity
+  case ELAS_LINEAR:
+    break;
+  // ---- Hyperelasticity at small strain
+  case ELAS_SS_NH:
     CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
                                      dim*ncompu*nelem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fineLevel]->ErestrictGradui);
+    break;
+  // ---- Hyperelasticity at finite strain
+  case ELAS_FSInitial_NH1:
+    // ------ storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
+                                     dim*ncompu*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictGradui);
+    break;
+  case ELAS_FSInitial_NH2:
+    // ------ storage: dXdx, Grad(u), Cinv, lamda*logJ
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
+                                     dim*ncompu*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictGradui);
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, (dim+1)*ncompu/2,
+                                     (dim+1)*ncompu*nelem*Q*Q*Q/2,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictCinv);
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, 1,
+                                     1*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictlamlogJ);
+    break;
+  case ELAS_FSCurrent_NH1:
+    // ------ storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
+                                     dim*ncompu*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictGradui);
+    break;
+  case ELAS_FSCurrent_NH2:
+    // ------ storage: dXdxcur, tau, mu - lamda*logJ
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, dim*ncompu,
+                                     dim*ncompu*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictdXdx);
+
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, (dim+1)*ncompu/2,
+                                     (dim+1)*ncompu*nelem*Q*Q*Q/2,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->Erestricttau);
+    CeedElemRestrictionCreateStrided(ceed, nelem, Q*Q*Q, 1,
+                                     1*nelem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fineLevel]->ErestrictCc1);
+    break;
+  }
   // -- Geometric data restriction
   CeedElemRestrictionCreateStrided(ceed, nelem, P*P*P, qdatasize,
                                    qdatasize*nelem*P*P*P,
@@ -433,8 +542,29 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedVectorCreate(ceed, qdatasize*nelem*P*P*P,
                    &data[fineLevel]->qdataDiagnostic);
   // -- State gradient vector
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  case ELAS_LINEAR:
+    break;
+  case ELAS_SS_NH:
     CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+    CeedVectorCreate(ceed, (dim+1)*ncompu*nelem*nqpts/2, &data[fineLevel]->Cinv);
+    CeedVectorCreate(ceed, 1*nelem*nqpts, &data[fineLevel]->lamlogJ);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->gradu);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedVectorCreate(ceed, dim*ncompu*nelem*nqpts, &data[fineLevel]->dXdx);
+    CeedVectorCreate(ceed, (dim+1)*ncompu*nelem*nqpts/2, &data[fineLevel]->tau);
+    CeedVectorCreate(ceed, 1*nelem*nqpts, &data[fineLevel]->Cc1);
+    break;
+  }
   // -- Operator action variables
   CeedVectorCreate(ceed, Ulocsz, &data[fineLevel]->xceed);
   CeedVectorCreate(ceed, Ulocsz, &data[fineLevel]->yceed);
@@ -484,8 +614,29 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
   CeedQFunctionAddInput(qfApply, "du", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfApply, "qdata", qdatasize, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfApply, "dv", ncompu*dim, CEED_EVAL_GRAD);
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  case ELAS_LINEAR:
+    break;
+  case ELAS_SS_NH:
     CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qfApply, "Cinv", ncompu*(dim+1)/2, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qfApply, "lamlogJ", 1, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedQFunctionAddOutput(qfApply, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedQFunctionAddOutput(qfApply, "dXdx", ncompu*dim, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qfApply, "tau", ncompu*(dim+1)/2, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qfApply, "Cc1", 1, CEED_EVAL_NONE);
+    break;
+  }
   CeedQFunctionSetContext(qfApply, physCtx);
 
   // -- Operator
@@ -497,9 +648,38 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                        CEED_BASIS_COLLOCATED, data[fineLevel]->qdata);
   CeedOperatorSetField(opApply, "dv", data[fineLevel]->Erestrictu,
                        data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  case ELAS_LINEAR:
+    break;
+  case ELAS_SS_NH:
     CeedOperatorSetField(opApply, "gradu", data[fineLevel]->ErestrictGradui,
-                         data[fineLevel]->basisu, data[fineLevel]->gradu);
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedOperatorSetField(opApply, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedOperatorSetField(opApply, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    CeedOperatorSetField(opApply, "Cinv", data[fineLevel]->ErestrictCinv,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->Cinv);
+    CeedOperatorSetField(opApply, "lamlogJ", data[fineLevel]->ErestrictlamlogJ,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->lamlogJ);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedOperatorSetField(opApply, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedOperatorSetField(opApply, "dXdx", data[fineLevel]->ErestrictdXdx,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->dXdx);
+    CeedOperatorSetField(opApply, "tau", data[fineLevel]->Erestricttau,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->tau);
+    CeedOperatorSetField(opApply, "Cc1", data[fineLevel]->ErestrictCc1,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->Cc1);
+    break;
+  }
   // -- Save libCEED data
   data[fineLevel]->qfApply = qfApply;
   data[fineLevel]->opApply = opApply;
@@ -516,8 +696,29 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                               &qfJacob);
   CeedQFunctionAddInput(qfJacob, "deltadu", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfJacob, "qdata", qdatasize, CEED_EVAL_NONE);
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  case ELAS_LINEAR:
+    break;
+  case ELAS_SS_NH:
     CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qfJacob, "Cinv", ncompu*(dim+1)/2, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qfJacob, "lamlogJ", 1, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedQFunctionAddInput(qfJacob, "gradu", ncompu*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedQFunctionAddInput(qfJacob, "dXdx", ncompu*dim, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qfJacob, "tau", ncompu*(dim+1)/2, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qfJacob, "Cc1", 1, CEED_EVAL_NONE);
+    break;
+  }
   CeedQFunctionAddOutput(qfJacob, "deltadv", ncompu*dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qfJacob, physCtx);
 
@@ -530,10 +731,38 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                        CEED_BASIS_COLLOCATED, data[fineLevel]->qdata);
   CeedOperatorSetField(opJacob, "deltadv", data[fineLevel]->Erestrictu,
                        data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
-  if (problemChoice != ELAS_LIN)
+  switch (problemChoice) {
+  case ELAS_LINEAR:
+    break;
+  case ELAS_SS_NH:
     CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
                          CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
-
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    CeedOperatorSetField(opJacob, "Cinv", data[fineLevel]->ErestrictCinv,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->Cinv);
+    CeedOperatorSetField(opJacob, "lamlogJ", data[fineLevel]->ErestrictlamlogJ,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->lamlogJ);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedOperatorSetField(opJacob, "gradu", data[fineLevel]->ErestrictGradui,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedOperatorSetField(opJacob, "dXdx", data[fineLevel]->ErestrictdXdx,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->dXdx);
+    CeedOperatorSetField(opJacob, "tau", data[fineLevel]->Erestricttau,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->tau);
+    CeedOperatorSetField(opJacob, "Cc1", data[fineLevel]->ErestrictCc1,
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->Cc1);
+    break;
+  }
   // -- Save libCEED data
   data[fineLevel]->qfJacob = qfJacob;
   data[fineLevel]->opJacob = opJacob;

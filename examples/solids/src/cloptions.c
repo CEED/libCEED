@@ -58,14 +58,14 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                             appCtx->meshFile, appCtx->meshFile,
                             sizeof(appCtx->meshFile), NULL); CHKERRQ(ierr);
 
-  appCtx->problemChoice  = ELAS_LIN;       // Default - Linear Elasticity
+  appCtx->problemChoice  = ELAS_LINEAR;       // Default - Linear Elasticity
   ierr = PetscOptionsEnum("-problem",
                           "Solves Elasticity & Hyperelasticity Problems",
                           NULL, problemTypes, (PetscEnum)appCtx->problemChoice,
                           (PetscEnum *)&appCtx->problemChoice, NULL);
   CHKERRQ(ierr);
 
-  appCtx->numIncrements = appCtx->problemChoice == ELAS_LIN ? 1 : 10;
+  appCtx->numIncrements = appCtx->problemChoice == ELAS_LINEAR ? 1 : 10;
   ierr = PetscOptionsInt("-num_steps", "Number of pseudo-time steps",
                          NULL, appCtx->numIncrements, &appCtx->numIncrements,
                          NULL); CHKERRQ(ierr);
@@ -85,7 +85,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                                  appCtx->forcingVector, &maxn, NULL);
   CHKERRQ(ierr);
 
-  if (appCtx->problemChoice == ELAS_HYPER_FS &&
+  if ((appCtx->problemChoice == ELAS_FSInitial_NH1
+       || appCtx->problemChoice == ELAS_FSInitial_NH2
+       || appCtx->problemChoice == ELAS_FSCurrent_NH1
+       || appCtx->problemChoice == ELAS_FSCurrent_NH2) &&
       appCtx->forcingChoice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "

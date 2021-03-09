@@ -43,6 +43,7 @@ extensions = [
     'hoverxref.extension',
     'recommonmark',
     'sphinx_markdown_tables',
+    'sphinx_panels',
     'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
@@ -157,6 +158,8 @@ hoverxref_mathjax = True
 
 latex_macros = r"""
 \def \diff {\operatorname{d}\!}
+\def \tcolon {\!:\!}
+\def \trace {\operatorname{trace}}
 """
 
 # Translate LaTeX macros to KaTeX and add to options for HTML builder
