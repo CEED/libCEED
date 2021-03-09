@@ -56,7 +56,7 @@ typedef struct {
   CeedQFunctionUser setup, ics, apply_explfunction, apply_implfunction,
                     apply_jacobian;
   const char *setup_loc, *ics_loc, *apply_explfunction_loc,
-  *apply_implfunction_loc, *apply_jacobian_loc;
+        *apply_implfunction_loc, *apply_jacobian_loc;
   const bool non_zero_time;
 } problemData;
 
@@ -235,12 +235,12 @@ PetscErrorCode VectorPlacePetscVec(CeedVector c, Vec p);
 // Auxiliary function to apply the ICs and eliminate repeated values in initial
 //   state vector, arising from restriction
 PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics,
-    CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
-    CeedElemRestriction restrictq, PhysicsContext ctx, CeedScalar time);
+                                   CeedVector xcorners, CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
+                                   CeedElemRestriction restrictq, PhysicsContext ctx, CeedScalar time);
 
 // Auxiliary function to compute the lumped mass matrix
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-    CeedElemRestriction restrictq, CeedBasis basisq,
-    CeedElemRestriction restrictqdi, CeedVector qdata, Vec M);
+                                       CeedElemRestriction restrictq, CeedBasis basisq,
+                                       CeedElemRestriction restrictqdi, CeedVector qdata, Vec M);
 
 #endif // sw_headers_h
