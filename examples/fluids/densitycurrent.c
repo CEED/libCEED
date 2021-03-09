@@ -1,12 +1,13 @@
 #include "navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
-                                  void **ctx) {
+                                  void **ctx, void **ctxQF) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   //User user = *(User *)ctx;
   Units units = *(Units *)ctx;
+  QFContext ctxQFData = *(QFContext *)ctxQF;
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
@@ -183,6 +184,8 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   ctxSetup->dc_axis[0] = dc_axis[0];
   ctxSetup->dc_axis[1] = dc_axis[1];
   ctxSetup->dc_axis[2] = dc_axis[2];
+
+  ctxQFData->ctxNSData->lambda = lambda;
 
   PetscFunctionReturn(0);
 }
