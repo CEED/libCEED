@@ -43,16 +43,23 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 // Problem options
 typedef enum {
-  ELAS_LIN = 0, ELAS_HYPER_SS = 1, ELAS_HYPER_FS = 2
+  ELAS_LINEAR = 0, ELAS_SS_NH = 1, ELAS_FSInitial_NH1 = 2, ELAS_FSInitial_NH2 = 3,
+  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5
 } problemType;
-static const char *const problemTypes[] = {"linElas",
-                                           "hyperSS",
-                                           "hyperFS",
+static const char *const problemTypes[] = {"Linear",
+                                           "SS-NH",
+                                           "FSInitial-NH1",
+                                           "FSInitial-NH2",
+                                           "FSCurrent-NH1",
+                                           "FSCurrent-NH2",
                                            "problemType","ELAS_",0
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
-                                                  "Hyper elasticity small strain",
-                                                  "Hyper elasticity finite strain"
+                                                  "Hyperelasticity small strain, Neo-Hookean",
+                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), Cinv, constant storage",
+                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
                                                  };
 
 // Forcing function options
@@ -144,7 +151,7 @@ typedef struct {
 // *INDENT-ON*
 
 // Data specific to each problem option
-extern problemData problemOptions[3];
+extern problemData problemOptions[6];
 
 // Forcing function data
 typedef struct {
@@ -194,13 +201,15 @@ typedef struct CeedData_private *CeedData;
 struct CeedData_private {
   Ceed                ceed;
   CeedBasis           basisx, basisu, basisCtoF, basisEnergy, basisDiagnostic;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi,
-                      ErestrictGradui, ErestrictEnergy, ErestrictDiagnostic,
-                      ErestrictqdDiagnostici;
+  CeedElemRestriction Erestrictx, Erestrictu, Erestrictqdi,ErestrictGradui,
+                      ErestrictEnergy, ErestrictDiagnostic,
+                      ErestrictdXdx, Erestricttau, ErestrictCc1,
+                      ErestrictCinv, ErestrictlamlogJ, ErestrictqdDiagnostici;
   CeedQFunction       qfApply, qfJacob, qfEnergy, qfDiagnostic;
   CeedOperator        opApply, opJacob, opRestrict, opProlong, opEnergy,
                       opDiagnostic;
-  CeedVector          qdata, qdataDiagnostic, gradu, xceed, yceed, truesoln;
+  CeedVector          qdata, qdataDiagnostic, gradu, xceed,
+                      yceed, truesoln, dXdx, tau, Cc1, Cinv, lamlogJ;
 };
 
 // Translate PetscMemType to CeedMemType

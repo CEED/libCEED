@@ -17,8 +17,8 @@
 /// @file
 /// Linear elasticity for solid mechanics example using PETSc
 
-#ifndef LIN_ELAS_H
-#define LIN_ELAS_H
+#ifndef ELAS_LINEAR_H
+#define ELAS_LINEAR_H
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -36,8 +36,8 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 // Residual evaluation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+CEED_QFUNCTION(ElasLinearF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                            CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -160,8 +160,8 @@ CEED_QFUNCTION(LinElasF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+CEED_QFUNCTION(ElasLineardF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                             CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -282,8 +282,9 @@ CEED_QFUNCTION(LinElasdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Strain energy computation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(LinElasEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out) {
+CEED_QFUNCTION(ElasLinearEnergy)(void *ctx, CeedInt Q,
+                                 const CeedScalar *const *in,
+                                 CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -373,9 +374,9 @@ CEED_QFUNCTION(LinElasEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Nodal diagnostic quantities for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
-                                  const CeedScalar *const *in,
-                                  CeedScalar *const *out) {
+CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in,
+                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -479,4 +480,4 @@ CEED_QFUNCTION(LinElasDiagnostic)(void *ctx, CeedInt Q,
 }
 // -----------------------------------------------------------------------------
 
-#endif //End of LIN_ELAS_H
+#endif //End of ELAS_LINEAR_H

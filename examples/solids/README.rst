@@ -73,7 +73,7 @@ As an alternative to specifying a mesh with :code:`-mesh`, the user may use a DM
 
 As an alternative example exploiting :code:`-dm_plex_box_faces`, we consider a :code:`4 x 4 x 4` mesh where essential (Drichlet) boundary condition is placed on all sides. Sides 1 through 6 are rotated around :math:`x`-axis::
 
-   ./elasticity -problem hyperFS -E 1 -nu 0.3 -num_steps 40 -snes_linesearch_type cp -dm_plex_box_faces 4,4,4 -bc_clamp 1,2,3,4,5,6 -bc_clamp_1_rotate 0,0,1,0,.3 -bc_clamp_2_rotate 0,0,1,0,.3 -bc_clamp_3_rotate 0,0,1,0,.3 -bc_clamp_4_rotate 0,0,1,0,.3 -bc_clamp_5_rotate 0,0,1,0,.3 -bc_clamp_6_rotate 0,0,1,0,.3   
+   ./elasticity -problem FSInitial-NH1 -E 1 -nu 0.3 -num_steps 40 -snes_linesearch_type cp -dm_plex_box_faces 4,4,4 -bc_clamp 1,2,3,4,5,6 -bc_clamp_1_rotate 0,0,1,0,.3 -bc_clamp_2_rotate 0,0,1,0,.3 -bc_clamp_3_rotate 0,0,1,0,.3 -bc_clamp_4_rotate 0,0,1,0,.3 -bc_clamp_5_rotate 0,0,1,0,.3 -bc_clamp_6_rotate 0,0,1,0,.3
 
 .. note::
 
@@ -103,8 +103,8 @@ The command line options just shown are the minimum requirements to run the mini
      -
 
    * - :code:`-problem`
-     - Problem to solve (:code:`linElas`, :code:`hyperSS` or :code:`hyperFS`)
-     - :code:`linElas`
+     - Problem to solve (:code:`Linear`, :code:`SS-NH`, :code:`FSInitial-NH1`, etc.)
+     - :code:`Linear`
 
    * - :code:`-forcing`
      -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
@@ -124,7 +124,7 @@ The command line options just shown are the minimum requirements to run the mini
 
    * - :code:`-num_steps`
      - Number of load increments for continuation method
-     - :code:`1` if :code:`linElas` else :code:`10`
+     - :code:`1` if :code:`Linear` else :code:`10`
 
    * - :code:`-view_soln`
      - Output solution at each load increment for viewing
