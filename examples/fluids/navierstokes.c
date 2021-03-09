@@ -673,7 +673,7 @@ int main(int argc, char **argv) {
   User user;
   Units units;
   SetupContext ctxSetupData;
-  NSContext ctxNSData;
+  QFContext ctxQFData;
   char ceedresource[4096] = "/cpu/self", problemName[] = "density_current";
   PetscFunctionList problems = NULL;
   PetscInt localNelemVol, lnodes, gnodes, steps;
@@ -754,7 +754,7 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &ctxNSData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxQFData); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
@@ -888,10 +888,10 @@ int main(int argc, char **argv) {
 
   {
     // Choose the problem from the list of registered problems
-    PetscErrorCode (*p)(problemData *, void **, void **);
+    PetscErrorCode (*p)(problemData *, void **, void **, void **);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
-    ierr = (*p)(problem, &ctxSetupData, &units); CHKERRQ(ierr);
+    ierr = (*p)(problem, &ctxSetupData, &units, &ctxQFData); CHKERRQ(ierr);
   }
 
   // Set up the libCEED context
@@ -1230,21 +1230,20 @@ int main(int argc, char **argv) {
                               sizeof *ctxSetupData, ctxSetupData);
   CeedQFunctionSetContext(qf_ics, ctxSetup);
 
-  CeedScalar ctxNSData[8] = {lambda, mu, k, cv, cp, g, Rd};
   CeedQFunctionContextCreate(ceed, &ctxNS);
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxNSData, &ctxNSData);
+                              sizeof ctxQFData->ctxNSData, ctxQFData->ctxNSData);
 
-  struct AdvectionContext_ ctxAdvectionData = {
-    .CtauS = CtauS,
-    .strong_form = strong_form,
-    .E_wind = E_wind,
-    .implicit = implicit,
-    .stabilization = stab,
-  };
+  //struct AdvectionContext_ ctxAdvectionData = {
+  //  .CtauS = CtauS,
+  //  .strong_form = strong_form,
+  //  .E_wind = E_wind,
+  //  .implicit = implicit,
+  //  .stabilization = stab,
+  //};
   CeedQFunctionContextCreate(ceed, &ctxAdvection);
   CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxAdvectionData, &ctxAdvectionData);
+                              sizeof ctxQFData->ctxAdvectionData, ctxQFData->ctxAdvectionData);
 
   if (strcmp(problemName, "density_current") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
@@ -1494,6 +1493,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
+  ierr = PetscFree(ctxQFData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
