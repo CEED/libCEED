@@ -22,7 +22,8 @@
 #include "../qfunctions/common.h"            // Geometric factors
 #include "../qfunctions/linElas.h"           // Linear elasticity
 #include "../qfunctions/hyperSS.h"           // Hyperelasticity small strain
-#include "../qfunctions/hyperFS.h"           // Hyperelasticity finite strain
+#include "../qfunctions/hyperFS.h"           // Hyperelasticity finite strain ref. config
+#include "../qfunctions/hyperFSCUR.h"        // Hyperelasticity finite strain cur. config
 #include "../qfunctions/constantForce.h"     // Constant forcing function
 #include "../qfunctions/manufacturedForce.h" // Manufactured solution forcing
 #include "../qfunctions/manufacturedTrue.h"  // Manufactured true solution
@@ -36,7 +37,7 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-problemData problemOptions[3] = {
+problemData problemOptions[4] = {
   [ELAS_LIN] = {
     .qdatasize = 10, // For linear elasticity, 6 would be sufficient
     .setupgeo = SetupGeo,
@@ -77,6 +78,20 @@ problemData problemOptions[3] = {
     .jacobfname = HyperFSdF_loc,
     .energyfname = HyperFSEnergy_loc,
     .diagnosticfname = HyperFSDiagnostic_loc,
+    .qmode = CEED_GAUSS
+  },
+  [ELAS_HYPER_FS_CUR] = {
+    .qdatasize = 10,
+    .setupgeo = SetupGeo,
+    .apply = HyperFSFcur,
+    .jacob = HyperFSdFcur,
+    .energy = HyperFSEnergycur,
+    .diagnostic = HyperFSDiagnosticcur,
+    .setupgeofname = SetupGeo_loc,
+    .applyfname = HyperFSFcur_loc,
+    .jacobfname = HyperFSdFcur_loc,
+    .energyfname = HyperFSEnergycur_loc,
+    .diagnosticfname = HyperFSDiagnosticcur_loc,
     .qmode = CEED_GAUSS
   }
 };
