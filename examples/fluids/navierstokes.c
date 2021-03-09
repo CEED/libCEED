@@ -892,6 +892,7 @@ int main(int argc, char **argv) {
 
   // Set up the libCEED context
   ctxSetupData->time = 0;
+  ctxQFData->ctxNSData->stabilization = stab;
 
   // Define derived units
   //Pascal = kilogram / (meter * PetscSqr(second));
@@ -1490,7 +1491,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
   ierr = PetscFree(ctxQFData); CHKERRQ(ierr);
+  ierr = PetscFree(ctxQFData->ctxNSData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
-

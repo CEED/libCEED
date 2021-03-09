@@ -5,9 +5,9 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
-  //User user = *(User *)ctx;
   Units units = *(Units *)ctx;
   QFContext ctxQFData = *(QFContext *)ctxQF;
+  ierr = PetscMalloc1(1, &ctxQFData->ctxNSData); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
@@ -166,6 +166,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   rc = fabs(rc) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
 
+  // -- Setup Context
   ctxSetup->theta0     = theta0;
   ctxSetup->thetaC     = thetaC;
   ctxSetup->P0         = P0;
@@ -185,7 +186,14 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   ctxSetup->dc_axis[1] = dc_axis[1];
   ctxSetup->dc_axis[2] = dc_axis[2];
 
+  // -- QFunction Context
   ctxQFData->ctxNSData->lambda = lambda;
+  ctxQFData->ctxNSData->mu = mu;
+  ctxQFData->ctxNSData->k = k;
+  ctxQFData->ctxNSData->cv = cv;
+  ctxQFData->ctxNSData->cp = cp;
+  ctxQFData->ctxNSData->g = g;
+  ctxQFData->ctxNSData->Rd = Rd;
 
   PetscFunctionReturn(0);
 }
