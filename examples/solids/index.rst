@@ -470,3 +470,95 @@ That is, given the linearization point :math:`\bm F` and solution increment :mat
    In the case where complete linearization is preferred, note the symmetry :math:`\mathsf C_{IJKL} = \mathsf C_{KLIJ}` evident in :math:numref:`eq-neo-hookean-incremental-stress-index`, thus :math:`\mathsf C` can be stored as a symmetric :math:`6\times 6` matrix, which has 21 unique entries.
    Along with 6 entries for :math:`\bm S`, this totals 27 entries of overhead compared to computing everything from :math:`\bm F`.
    This compares with 13 entries of overhead for direct storage of :math:`\{ \bm S, \bm C^{-1}, \log J \}`, which is sufficient for the Neo-Hookean model to avoid all but matrix products.
+
+
+.. _problem-hyperelasticity-finite-strain-current-configuration:
+
+Hyperelasticity at Finite Strain at Current configuration
+----------------------------------------
+
+In this section we rewrite :math:numref:`hyperelastic-weak-form` in current configuration. The first term can be rewritten in terms of symmetric Kirchhoff stress tensor 
+:math:`\bm{\tau}=J\bm{\sigma}=\bm{P}\bm{F}^T` as
+
+.. math::
+   \nabla_X \bm{v} \colon \bm{P} = \nabla_X \bm{v} \colon \bm{\tau}\bm{F}^{-T} = \nabla_X \bm{v}\bm{F}^{-1} \colon \bm{\tau} = \nabla_x \bm{v} \colon \bm{\tau}
+
+therefore, the weak form in terms of :math:`\bm{\tau}` and :math:`\nabla_x` is
+
+.. math::
+   :label: hyperelastic-weak-form-current
+
+    \int_{\Omega_0}{\nabla_x \bm{v} \colon \bm{\tau}} \, dV
+    - \int_{\Omega_0}{\bm{v} \cdot \rho_0 \bm{g}} \, dV
+    - \int_{\partial \Omega_0}{\bm{v}\cdot(\bm{P}\cdot\hat{\bm{N}})} \, dS
+    = 0, \quad \forall \bm v \in \mathcal V,
+    
+
+Newton linearization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To derive a Newton linearization of :math:numref:`hyperelastic-weak-form-current`, first we define :math:`d_c\bm F` as
+
+.. math::
+   :label: d_cF
+
+    d_c\bm{F} = \nabla_x (d\bm{u}) = \nabla_X(d\bm{u}) \bm{F}^{-1} = d\bm{F} \bm{F}^{-1}
+
+and :math:`\bm{\tau}` by pushing forward :math:numref:`neo-hookean-stress`
+
+.. math::
+   :label: tau
+
+    \bm{\tau} = \bm{F}\bm{S}\bm{F}^T = \mu \bm{b} + (\lambda \log J -\mu)\bm{I}_3
+
+where :math:`\bm{b}` is the left Cauchy-Green tensor. Then by expanding the directional derivative of :math:`\nabla_x \bm{v} \colon \bm{\tau}` we arrive at
+
+.. math::
+   :label: hyperelastic-linearization-current1
+
+    d(\nabla_x \bm{v} \colon \bm{\tau}) = d(\nabla_x \bm{v})\colon \bm{\tau} + \nabla_x \bm{v} \colon d(\bm{\tau})
+
+where (here we use :math:`d\bm{F}^{-1}=-\bm{F}^{-1} d\bm{F} \bm{F}^{-1}` and :math:numref:`d_cF`)
+
+.. math::
+   \begin{aligned}
+   d(\nabla_x \bm{v})\colon \bm{\tau} &= d(\nabla_X \bm{v} \bm{F}^{-1})\colon \bm{\tau} = \Big(\underbrace{\nabla_X (d\bm{v})}_{0}\bm{F}^{-1} +  \nabla_X \bm{v}d\bm{F}^{-1}\Big)\colon \bm{\tau}\\
+     &= \Big(-\nabla_X \bm{v} \bm{F}^{-1}d\bm{F}\bm{F}^{-1}\Big)\colon \bm{\tau}=\Big(-\nabla_x \bm{v} d\bm{F}\bm{F}^{-1}\Big)\colon \bm{\tau}\\
+     &= \Big(-\nabla_x \bm{v} d_c\bm{F}\Big)\colon \bm{\tau}= -\nabla_x \bm{v}\colon\bm{\tau}d_c\bm{F}^T \,,
+   \end{aligned}
+
+Then to derive :math:`d\bm{\tau}` we need
+
+.. math::
+    d(\log J) = \frac{\partial \log J}{\partial \bm{b}}\colon d\bm{b} = \frac{\partial J}{J\partial \bm{b}}\colon d\bm{b}=\frac{1}{2}\bm{b}^{-1}\colon d\bm{b}
+
+.. math::
+    d\bm{b} = d\bm{F} \bm{F}^T + \bm{F} d\bm{F}^T = d_c\bm{F} \bm{F} \bm{F}^T + \bm{F} \bm{F}^T d_c\bm{F}^T= d_c\bm{F}\bm{b} + \bm{b} d_c\bm{F}^T
+
+which gives
+
+.. math::
+   :label: dtau
+
+    d\bm{\tau} = \mu d\bm{b} + \frac{\lambda}{2}(\bm{b}^{-1}:d\bm{b})\bm{I}_3 
+
+Therefore relation :math:numref:`hyperelastic-linearization-current1` becomes
+
+.. math::
+    :label: hyperelastic-linearization-current2
+
+    d(\nabla_x \bm{v} \colon \bm{\tau}) = \nabla_x \bm{v}\colon\Big(-\bm{\tau}d_c\bm{F}^T + d\bm{\tau} \Big)
+
+Note that in initial configuration formulation, we have computed :math:`\nabla_X \bm{v}`, thus in :math:numref:`hyperelastic-weak-form-current` 
+and :math:numref:`hyperelastic-linearization-current2` we can rewrite :math:`\nabla_x \bm{v}` as
+
+.. math::
+   :label: hyperelastic-final-current
+
+   \begin{aligned}
+   \nabla_x \bm{v} \colon \bm{\tau} &= \nabla_X \bm{v} \bm{F}^{-1} \colon \bm{\tau} = \nabla_X \bm{v} \colon \bm{\tau} \bm{F}^{-T} \\
+   \nabla_x \bm{v}\colon\Big(-\bm{\tau}d_c\bm{F}^T + d\bm{\tau}\Big)&= \nabla_X \bm{v}\colon\Big(\bm{\tau}d\bm{F}^{-T} + d\bm{\tau}\bm{F}^{-T} \Big) \,,
+   \end{aligned}
+
+(Since we already have :math:`\nabla_X \bm{v}` in libCEED, it is easier to implement :math:numref:`hyperelastic-final-current` in residual evaluation and action of Jacobian respectively.
+Of course from beginning :math:numref:`hyperelastic-weak-form-current` we could work with :math:`\nabla_X \bm{v}\colon\bm{\tau}\bm{F}^{-T}` and don't define :math:`d_c \bm{F}`...)
