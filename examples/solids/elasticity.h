@@ -37,6 +37,7 @@ struct Physics_private {
   CeedScalar   E;       // Young's Modulus
 };
 #endif
+// TO-DO : add remaining structs here
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -49,7 +50,7 @@ static const char *const problemTypes[] = {"linElas",
                                            "hyperSS",
                                            "hyperFS",
                                            "hyperFS-MR",
-                                           "hyperFS-GP","problemType","ELAS_",0 //TO-DO update with new options; will need to change the structs depending on input
+                                           "hyperFS-GP","problemType","ELAS_",0 
 };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyper elasticity small strain",

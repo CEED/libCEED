@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
   // Context structs
   AppCtx         appCtx;                 // Contains problem options
   Physics        phys;                   // Contains physical constants
+  //TO-DO : make vars for other structs
   Physics        physSmoother = NULL;    // Separate context if nuSmoother set
   Units          units;                  // Contains units scaling
   // PETSc objects
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
   ierr = ProcessCommandLineOptions(comm, appCtx); CHKERRQ(ierr);
   numLevels = appCtx->numLevels;
   fineLevel = numLevels - 1;
-
+  //TO-DO : deal with using other structs and setting their vals
   // -- Set Poison's ratio, Young's Modulus
   ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
@@ -267,18 +268,6 @@ int main(int argc, char **argv) {
                        CEED_USE_POINTER, n);
   }
 
-  // -- Create libCEED local Neumann BCs vector
-  CeedVector neumannCeed;
-  CeedScalar *n;
-  PetscMemType nmemtype;
-  if (appCtx->bcTractionCount > 0) {
-    ierr = VecDuplicate(U, &NBCs); CHKERRQ(ierr);
-    ierr = VecDuplicate(Uloc[fineLevel], &NBCsloc); CHKERRQ(ierr);
-    ierr = VecGetArrayAndMemType(NBCsloc, &n, &nmemtype); CHKERRQ(ierr);
-    CeedVectorCreate(ceed, Ulocsz[fineLevel], &neumannCeed);
-    CeedVectorSetArray(neumannCeed, MemTypeP2C(nmemtype),
-                       CEED_USE_POINTER, n);
-  }
 
   // -- Setup libCEED objects
   ierr = PetscMalloc1(numLevels, &ceedData); CHKERRQ(ierr);
@@ -288,9 +277,7 @@ int main(int argc, char **argv) {
     ierr = SetupLibceedFineLevel(levelDMs[fineLevel], dmEnergy, dmDiagnostic,
                                  ceed, appCtx, ctxPhys, ceedData, fineLevel,
                                  ncompu, Ugsz[fineLevel], Ulocsz[fineLevel],
-                                 forceCeed);
-                                 forceCeed, neumannCeed);
-                                 forceCeed); //TO-DO
+                                 forceCeed, neumannCeed); //TO-DO
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction

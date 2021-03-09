@@ -62,8 +62,8 @@ struct Physics_private_GP {
   CeedScalar   nu;      // Poisson's ratio rm
   CeedScalar   E;       // Young's Modulus rm
   //material properties for GP
-  CeedScalar C_mat; // 2D matrix
-  CeedScalar K; // 1D array
+  CeedScalar C_mat[6][6]; // 2D matrix
+  CeedScalar K[6]; // 1D array
   CeedScalar N; // max value of the sum; usually 1 or 2
 };
 
@@ -124,7 +124,7 @@ static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
 
-CeedScalar NH_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+CeedScalar NH_energyModel(void *ctx, const CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ){
   //requires unpacking the ctx struct again; 
   const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
@@ -133,92 +133,80 @@ CeedScalar NH_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
   const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  
+  CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
 
-  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+  return (lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.)* wdetJ;
 }
 
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
-CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+CeedScalar MR_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ){
   //requires unpacking the ctx struct again; 
   const Physics_MR context = (Physics_MR)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  // const CeedScalar E  = context->E;
+  // const CeedScalar nu = context->nu;
+  // const CeedScalar TwoMu = E / (1 + nu);
+  // const CeedScalar mu = TwoMu / 2;
+  // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   //TO-DO unpack remaining needed for MR
   const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
   const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
   const CeedScalar k_1 = context -> k_1; // material constant k_1
 
-  //TO-DO update with correct energy model:
+  //energy model:
+  const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                              {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                              {E2[0][2], E2[1][2], 1 + E2[2][2]}
+                             };
+  
+  CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
+  CeedScalar I_2 = pow(I_1, 2);
+  CeedScalar bar_I_1 = pow(detC_m1, -2/3)* I_1; //using detC_m1 as J
+  CeedScalar bar_I_2 = pow(detC_m1, -4/3)* I_2; //using detC_m1 as J
+
   // phi = (mu_1/2)(bar_I_1 - 3) + (mu_2/2)(bar_I_2 - 3) + (K/2)(J-1)^2
-  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+  return (mu_1/2)*(bar_I_1 - 3) + (mu_2/2)*(bar_I_2 - 3) + (k_1/2) * pow((detC_m1-1), 2);
 }
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
+CeedScalar GP_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ){
   //requires unpacking the ctx struct again; 
-  const Physics_GP context = (Physics_GP)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  // const Physics_GP context = (Physics_GP)ctx;
+  // const CeedScalar E  = context->E;
+  // const CeedScalar nu = context->nu;
+  // const CeedScalar TwoMu = E / (1 + nu);
+  // const CeedScalar mu = TwoMu / 2;
+  // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
   // TO-DO unpack remaining needed for GP
-  const CeedScalar C_mat = context -> C_mat; //material constant C
-  const CeedScalar K = context -> K; //material constant K 
-  const CeedScalar N = context -> N; //Max value to sum to
+  // const CeedScalar *C_mat = context -> C_mat; //material constant C
+  // const CeedScalar *K = context -> K; //material constant K 
+  // const CeedScalar N = context -> N; //Max value to sum to
   
   //TO-DO update with correct energy model
   // phi = sum_{i+j = 1}^N C_mat_[i,j](\bar_I_1 -3)^i(\bar_I_2 -3)^j + sum_{i=1}^N(K[i]/2)(J - 1)^{2i}
-  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+  return 0;
 }
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // Energy derivations S for models CALL IN COMMONFS WHERE COMMENTED IN
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
-
+CeedScalar NH_2nd_PK(){
+  return 0;
+}
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
-CeedScalar MR_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
-  //requires unpacking the ctx struct again; 
-  const Physics_MR context = (Physics_MR)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
-  //TO-DO unpack remaining needed for MR
-
-  //TO-DO update with correct energy model:
-  // phi = (mu_1/2)(bar_I_1 - 3) + (mu_2/2)(bar_I_2 - 3) + (K/2)(J-1)^2
-  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+CeedScalar MR_2nd_PK(){
+  // 
+  return 0;
 }
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-CeedScalar GP_energyModel(void *ctx, CeedScalar logj, CeedScalar E2[][3]){
-  //requires unpacking the ctx struct again; 
-  const Physics_GP context = (Physics_GP)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
-  // TO-DO unpack remaining needed for GP
-  const CeedScalar C_mat = context -> C_mat; //material constant C
-  const CeedScalar K = context -> K; //material constant K 
-  const CeedScalar N = context -> N; //Max value to sum to
-  
-  //TO-DO update with correct energy model
-  // phi = sum_{i+j = 1}^N C_mat_[i,j](\bar_I_1 -3)^i(\bar_I_2 -3)^j + sum_{i=1}^N(K[i]/2)(J - 1)^{2i}
-  return lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.;
+CeedScalar GP_2nd_PK(){
+  return 0;
 }
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -267,12 +255,17 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
   for (CeedInt m = 0; m < 6; m++)
     Cinvwork[m] = A[m] / (*detC_m1 + 1.);
 
-  // *INDENT-OFF*
+  // *INDENT-OFF* //
   const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
                                  {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
                                  {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
                                 };
   // *INDENT-ON*
+  //temp calcs - need to go elsewhere?
+  // CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
+  // CeedScalar I_2 = pow(I_1, 2);
+  // CeedScalar bar_I_1 = pow(*detC_m1, -2/3)* I_1; //using detC_m1 as J
+  // CeedScalar bar_I_2 = pow(*detC_m1, -4/3)* I_2;  //using detC_m1 as J
 
   // Compute the Second Piola-Kirchhoff (S) 
   (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
@@ -611,7 +604,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // Strain energy computation for hyperelasticity, finite strain                 UPDATE TO ALLOW FOR CALLING DIFFERENT MODEL TYPES
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar logj, CeedScalar E2[][3])) { // ADD ARGUMENT FOR POINTER TO ENERGY FUNCTION; CAN BE STATIC FUNC
+                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ)) { // ADD ARGUMENT FOR POINTER TO ENERGY FUNCTION; CAN BE STATIC FUNC
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -689,9 +682,9 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar detC_m1 = computeDetCM1(E2work); // note
 
     // Strain energy Phi(E) for compressible Neo-Hookean SPLIT INTO A FUNCTION AND MULTIPLY BY WDETJ
-    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
+    // CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
     // energy[i] = (lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ; ORIGINAL 
-    energy[i] = energyFunc(ctx, logj, E2) * wdetJ; // NEW
+    energy[i] = energyFunc(ctx, detC_m1, E2, wdetJ); // NEW
   } // End of Quadrature Point Loop
 
   return 0;
