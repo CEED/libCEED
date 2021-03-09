@@ -1,16 +1,16 @@
 #include "navierstokes.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData) {
-
-  MPI_Comm comm = PETSC_COMM_WORLD;
+PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
+                                  void **ctx) {
   PetscInt ierr;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
-  SetupContext ctxSetup_;
-  ierr = PetscMalloc1(1, &ctxSetup_); CHKERRQ(ierr);
+  //User user = *(User *)ctx;
+  Units units = *(Units *)ctx;
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
-  //                  SET UP PROBLEM
+  //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
   problem->dim                       = 3;
   problem->qdatasizeVol              = 10;
@@ -31,89 +31,158 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData) {
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  ctxSetup_->theta0      = 300.;     // K
-  ctxSetup_->thetaC      = -15.;     // K
-  ctxSetup_->P0          = 1.e5;     // Pa
-  ctxSetup_->N           = 0.01;     // 1/s
-  ctxSetup_->cv          = 717.;     // J/(kg K)
-  ctxSetup_->cp          = 1004.;    // J/(kg K)
-  ctxSetup_->g           = 9.81;     // m/s^2
-  ctxSetup_->lx          = 8000.;    // m
-  ctxSetup_->ly          = 8000.;    // m
-  ctxSetup_->lz          = 4000.;    // m
-  ctxSetup_->rc          = 1000.;    // m (Radius of bubble)
-  ctxSetup_->dc_axis[0] = 0;
-  ctxSetup_->dc_axis[1] = 0;
-  ctxSetup_->dc_axis[2] = 0;
+  CeedScalar theta0      = 300.;   // K
+  CeedScalar thetaC      = -15.;   // K
+  CeedScalar P0          = 1.e5;   // Pa
+  CeedScalar N           = 0.01;   // 1/s
+  CeedScalar cv          = 717.;   // J/(kg K)
+  CeedScalar cp          = 1004.;  // J/(kg K)
+  CeedScalar g           = 9.81;   // m/s^2
+  CeedScalar lambda      = -2./3.;   // -
+  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
+  // mu = 75 is not physical for air, but is good for numerical stability
+  CeedScalar k           = 0.02638;  // W/(m K)
+  PetscScalar lx         = 8000.;  // m
+  PetscScalar ly         = 8000.;  // m
+  PetscScalar lz         = 4000.;  // m
+  CeedScalar rc          = 1000.;  // m (Radius of bubble)
+  PetscReal center[3], dc_axis[3] = {0, 0, 0};
+  CeedScalar Rd;
+
+  // ------------------------------------------------------
+  //             Create the PETSc context
+  // ------------------------------------------------------
+  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
+  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
+  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar Kelvin   = 1;     // 1 Kelvin in scaled temperature units
+  PetscScalar WpermK, Pascal, JperkgK, mpersquareds;
 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
   ierr = PetscOptionsBegin(comm, NULL, "Options for DC",
                            NULL); CHKERRQ(ierr);
-
+  // -- Physics
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                            NULL, ctxSetup_->theta0, &ctxSetup_->theta0, NULL); CHKERRQ(ierr);
+                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                            NULL, ctxSetup_->thetaC, &ctxSetup_->thetaC, NULL); CHKERRQ(ierr);
+                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                            NULL, ctxSetup_->P0, &ctxSetup_->P0, NULL); CHKERRQ(ierr);
+                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                            NULL, ctxSetup_->N, &ctxSetup_->N, NULL); CHKERRQ(ierr);
+                            NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
-                            NULL, ctxSetup_->cv, &ctxSetup_->cv, NULL); CHKERRQ(ierr);
+                            NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
-                            NULL, ctxSetup_->cp, &ctxSetup_->cp, NULL); CHKERRQ(ierr);
+                            NULL, cp, &cp, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                            NULL, ctxSetup_->g, &ctxSetup_->g, NULL); CHKERRQ(ierr);
+                            NULL, g, &g, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-lambda",
+                            "Stokes hypothesis second viscosity coefficient",
+                            NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
+                            NULL, mu, &mu, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-k", "Thermal conductivity",
+                            NULL, k, &k, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, ctxSetup_->lx, &ctxSetup_->lx, NULL); CHKERRQ(ierr);
+                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ctxSetup_->ly, &ctxSetup_->ly, NULL); CHKERRQ(ierr);
+                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, ctxSetup_->lz, &ctxSetup_->lz, NULL); CHKERRQ(ierr);
+                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                            NULL, ctxSetup_->rc, &ctxSetup_->rc, NULL); CHKERRQ(ierr);
+                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  ctxSetup_->center[0] = 0.5 * ctxSetup_->lx;
-  ctxSetup_->center[1] = 0.5 * ctxSetup_->ly;
-  ctxSetup_->center[2] = 0.5 * ctxSetup_->lz;
+  center[0] = 0.5 * lx;
+  center[1] = 0.5 * ly;
+  center[2] = 0.5 * lz;
   ierr = PetscOptionsRealArray("-center", "Location of bubble center",
-                               NULL, ctxSetup_->center, &n, NULL); CHKERRQ(ierr);
+                               NULL, center, &n, NULL); CHKERRQ(ierr);
   n = problem->dim;
   ierr = PetscOptionsRealArray("-dc_axis",
                                "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
-                               NULL, ctxSetup_->dc_axis, &n, NULL); CHKERRQ(ierr);
+                               NULL, dc_axis, &n, NULL); CHKERRQ(ierr);
   {
-    PetscReal norm = PetscSqrtReal(PetscSqr(ctxSetup_->dc_axis[0]) +
-                                   PetscSqr(ctxSetup_->dc_axis[1]) +
-                                   PetscSqr(ctxSetup_->dc_axis[2]));
+    PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(dc_axis[1]) +
+                                   PetscSqr(dc_axis[2]));
     if (norm > 0) {
-      for (int i=0; i<3; i++) ctxSetup_->dc_axis[i] /= norm;
+      for (int i=0; i<3; i++)  dc_axis[i] /= norm;
     }
   }
+  // -- Units
+  ierr = PetscOptionsScalar("-units_privatemeter", "1 meter in scaled length units",
+                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  meter = fabs(meter);
+  ierr = PetscOptionsScalar("-units_privatekilogram","1 kilogram in scaled mass units",
+                            NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
+  kilogram = fabs(kilogram);
+  ierr = PetscOptionsScalar("-units_privatesecond","1 second in scaled time units",
+                            NULL, second, &second, NULL); CHKERRQ(ierr);
+  second = fabs(second);
+  ierr = PetscOptionsScalar("-units_privateKelvin",
+                            "1 Kelvin in scaled temperature units",
+                            NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
+  Kelvin = fabs(Kelvin);
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // ------------------------------------------------------
+  //           Set up the PETSc context
+  // ------------------------------------------------------
+  // -- Define derived units
+  Pascal = kilogram / (meter * PetscSqr(second));
+  JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
+  mpersquareds = meter / PetscSqr(second);
+  WpermK = kilogram * meter / (pow(second,3) * Kelvin);
+
+  units->meter = meter;
+  units->kilogram = kilogram;
+  units->second = second;
+  units->Kelvin = Kelvin;
+  units->Pascal = Pascal;
+  units->JperkgK = JperkgK;
+  units->mpersquareds = mpersquareds;
+  units->WpermK = WpermK;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
   // ------------------------------------------------------
-  ctxSetup->theta0 = ctxSetup_->theta0;
-  ctxSetup->thetaC = ctxSetup_->thetaC;
-  ctxSetup->P0 = ctxSetup_->P0;
-  ctxSetup->N = ctxSetup_->N;
-  ctxSetup->cv = ctxSetup_->cv;
-  ctxSetup->cp = ctxSetup_->cp;
-  ctxSetup->g = ctxSetup_->g;
-  ctxSetup->rc = ctxSetup_->rc;
-  ctxSetup->lx = ctxSetup_->lx;
-  ctxSetup->ly = ctxSetup_->ly;
-  ctxSetup->lz = ctxSetup_->lz;
-  ctxSetup->center[0] = ctxSetup_->center[0];
-  ctxSetup->center[1] = ctxSetup_->center[1];
-  ctxSetup->center[2] = ctxSetup_->center[2];
-  ctxSetup->dc_axis[0] = ctxSetup_->dc_axis[0];
-  ctxSetup->dc_axis[1] = ctxSetup_->dc_axis[1];
-  ctxSetup->dc_axis[2] = ctxSetup_->dc_axis[2];
+  // -- Scale variables to desired units
+  theta0 *= Kelvin;
+  thetaC *= Kelvin;
+  P0 *= Pascal;
+  N *= (1./second);
+  cv *= JperkgK;
+  cp *= JperkgK;
+  Rd = cp - cv;
+  g *= mpersquareds;
+  mu *= Pascal * second;
+  k *= WpermK;
+  lx = fabs(lx) * meter;
+  ly = fabs(ly) * meter;
+  lz = fabs(lz) * meter;
+  rc = fabs(rc) * meter;
+  for (int i=0; i<3; i++) center[i] *= meter;
+
+  ctxSetup->theta0     = theta0;
+  ctxSetup->thetaC     = thetaC;
+  ctxSetup->P0         = P0;
+  ctxSetup->N          = N;
+  ctxSetup->cv         = cv;
+  ctxSetup->cp         = cp;
+  ctxSetup->Rd         = Rd;
+  ctxSetup->g          = g;
+  ctxSetup->rc         = rc;
+  ctxSetup->lx         = lx;
+  ctxSetup->ly         = ly;
+  ctxSetup->lz         = lz;
+  ctxSetup->center[0]  = center[0];
+  ctxSetup->center[1]  = center[1];
+  ctxSetup->center[2]  = center[2];
+  ctxSetup->dc_axis[0] = dc_axis[0];
+  ctxSetup->dc_axis[1] = dc_axis[1];
+  ctxSetup->dc_axis[2] = dc_axis[2];
 
   PetscFunctionReturn(0);
 }
