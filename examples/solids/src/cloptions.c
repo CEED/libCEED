@@ -79,7 +79,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                                  appCtx->forcingVector, &maxn, NULL);
   CHKERRQ(ierr);
 
-  if ((appCtx->problemChoice == ELAS_HYPER_FS || appCtx->problemChoice == ELAS_HYPER_FS_CUR) &&
+  if ((appCtx->problemChoice == ELAS_HYPER_FS
+       || appCtx->problemChoice == ELAS_HYPER_FS_CUR) &&
       appCtx->forcingChoice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "

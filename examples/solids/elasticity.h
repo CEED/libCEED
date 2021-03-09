@@ -48,13 +48,13 @@ typedef enum {
 static const char *const problemTypes[] = {"linElas",
                                            "hyperSS",
                                            "hyperFS",
-					   "hyperFSCUR",
+                                           "hyperFSCUR",
                                            "problemType","ELAS_",0
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity small strain",
                                                   "Hyperelasticity finite strain ref. config",
-						  "Hyperelasticity finite strain cur. config."
+                                                  "Hyperelasticity finite strain cur. config."
                                                  };
 
 // Forcing function options
