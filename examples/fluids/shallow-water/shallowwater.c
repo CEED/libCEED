@@ -38,7 +38,8 @@
 /// @file
 /// Shallow-water equations example using PETSc
 
-const char help[] = "Solve the shallow-water equations using PETSc and libCEED\n";
+const char help[] =
+  "Solve the shallow-water equations using PETSc and libCEED\n";
 
 #include "sw_headers.h"
 
@@ -78,7 +79,8 @@ int main(int argc, char **argv) {
   PetscScalar R_e        = 6.37122e6;  // Earth radius (m)
   PetscScalar g          = 9.81;       // gravitational acceleration (m/s^2)
   PetscScalar H0         = 0;          // constant mean height (m)
-  PetscScalar gamma      = 0;          // angle between axis of rotation and polar axis
+  PetscScalar gamma      =
+    0;          // angle between axis of rotation and polar axis
   PetscScalar mpersquareds;
   // Check PETSc CUDA support
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
@@ -102,7 +104,8 @@ int main(int argc, char **argv) {
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
-  ierr = PetscOptionsBegin(comm, NULL, "Shallow-water equations in PETSc with libCEED",
+  ierr = PetscOptionsBegin(comm, NULL,
+                           "Shallow-water equations in PETSc with libCEED",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, ceedresource, ceedresource,
@@ -152,7 +155,8 @@ int main(int argc, char **argv) {
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
   outputfreq = 10;
-  ierr = PetscOptionsInt("-output_freq", "Frequency of output, in number of steps",
+  ierr = PetscOptionsInt("-output_freq",
+                         "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
   contsteps = 0;
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
@@ -167,7 +171,8 @@ int main(int argc, char **argv) {
                             NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-H0", "Mean height",
                             NULL, H0, &H0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-H0", "Angle between axis of rotation and polar axis",
+  ierr = PetscOptionsScalar("-H0",
+                            "Angle between axis of rotation and polar axis",
                             NULL, gamma, &gamma, NULL); CHKERRQ(ierr);
   PetscStrncpy(user->outputfolder, ".", 2);
   ierr = PetscOptionsString("-of", "Output folder",
@@ -563,7 +568,7 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dmviz); CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
-  ierr = MatDestroy(&J);CHKERRQ(ierr);
+  ierr = MatDestroy(&J); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
