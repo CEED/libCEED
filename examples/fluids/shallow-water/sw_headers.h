@@ -202,10 +202,6 @@ PetscErrorCode FormRHSFunction_SW(TS ts, PetscReal t, Vec Q, Vec G,
 PetscErrorCode FormIFunction_SW(TS ts, PetscReal t, Vec Q, Vec Qdot,
                                 Vec F, void *userData);
 
-// This forms the RHS of the IMEX ODE, given as F(t,Q,Q_t) = G(t,Q)
-PetscErrorCode FormRHSFunction_SW(TS ts, PetscReal t, Vec Q, Vec G,
-                                  void *userData);
-
 // -----------------------------------------------------------------------------
 // Jacobian setup and apply
 // -----------------------------------------------------------------------------
