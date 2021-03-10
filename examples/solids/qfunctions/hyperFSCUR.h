@@ -167,7 +167,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   F_inv[2][2] = F_invwork[2];
 
   // Compute the Kirchhoff stress (tau)
-  (*llnj) = lambda*log1p_series_shiftedcur(*detC_m1)/2.;
+  (*llnj) = lambda*(*logJ);
 
   tau_work[0] = (*llnj-mu)+mu*b[0][0];
   tau_work[1] = (*llnj-mu)+mu*b[1][1];
