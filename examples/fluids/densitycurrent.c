@@ -112,16 +112,16 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
     }
   }
   // -- Units
-  ierr = PetscOptionsScalar("-units_privatemeter", "1 meter in scaled length units",
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
-  ierr = PetscOptionsScalar("-units_privatekilogram","1 kilogram in scaled mass units",
+  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
                             NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
   kilogram = fabs(kilogram);
-  ierr = PetscOptionsScalar("-units_privatesecond","1 second in scaled time units",
+  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
-  ierr = PetscOptionsScalar("-units_privateKelvin",
+  ierr = PetscOptionsScalar("-units_Kelvin",
                             "1 Kelvin in scaled temperature units",
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
