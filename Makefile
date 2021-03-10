@@ -74,7 +74,9 @@ MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+CUDA_ARCH ?= 
 HIP_DIR ?= /opt/rocm
+HIP_ARCH ?=
 
 # Check for PETSc in ../petsc
 ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
@@ -126,7 +128,13 @@ CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+ifneq ($(CUDA_ARCH),)
+  NVCCFLAGS += -arch=$(CUDA_ARCH)
+endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
+ifneq ($(HIP_ARCH),)
+  HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
+endif
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -698,7 +706,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR
+	MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR HIP_ARCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
