@@ -85,7 +85,7 @@ static inline CeedScalar computeDetCM1cur(CeedScalar E2work[6]) {
 static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                              const CeedScalar gradu[3][3], CeedScalar F_inv[3][3],
                              CeedScalar tau_work[6], CeedScalar b_invwork[6],
-                             CeedScalar *J, CeedScalar *llnj) {
+                             CeedScalar *logj, CeedScalar *llnj) {
 
 
   // Compute The Deformation Gradient : F = I3 + gradu
@@ -124,7 +124,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
   (*detC_m1) = computeDetCM1(E2work);
 
-  (*J) = log1p_series_shifted(*detC_m1)/2.;
+  (*logj) = log1p_series_shiftedcur(*detC_m1)/2.;
 
 
   // *INDENT-ON*
@@ -139,7 +139,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                     };
   // *INDENT-ON*
   for (CeedInt m = 0; m < 6; m++)
-    b_invwork[m] = A[m] / ((*J)*(*J));
+    b_invwork[m] = A[m] / ((*logj)*(*logj));
 
 
   // *INDENT-OFF*
@@ -157,7 +157,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*                 
   CeedScalar F_invwork[9];
   for (CeedInt m = 0; m < 9; m++)
-    F_invwork[m] = B[m] / (*J);
+    F_invwork[m] = B[m] / (*logj);
 
   F_inv[0][0] = F_invwork[0];
   F_inv[0][1] = F_invwork[5];
@@ -170,7 +170,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   F_inv[2][2] = F_invwork[2];
 
   // Compute the Second Piola-Kirchhoff (S)
-  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
+  (*llnj) = lambda*log1p_series_shiftedcur(*detC_m1)/2.;
 
 
   tau_work[0] = (*llnj-mu)+mu*b[0][0];
@@ -274,9 +274,9 @@ CEED_QFUNCTION(HyperFSFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], J, llnj;
+    CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], logj, llnj;
 
-    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &J, &llnj);
+    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &logj, &llnj);
     // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
@@ -399,10 +399,10 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], J, llnj;
+    CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], logj, llnj;
 
     // Common components of finite strain calculations (cur. config.)
-    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &J, &llnj);
+    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &logj, &llnj);
     // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
