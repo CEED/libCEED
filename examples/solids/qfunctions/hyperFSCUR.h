@@ -79,42 +79,29 @@ static inline CeedScalar computeDetCM1cur(CeedScalar E2work[6]) {
          E2work[4]*E2work[4] - E2work[3]*E2work[3];
 };
 
-
-// -----------------------------------------------------------------------------
-// Compute det F
-// -----------------------------------------------------------------------------
-static inline CeedScalar computeDetF(CeedScalar F[3][3]) {
-  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2]; 
-  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0]; 
-  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1]; 
-  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0]; 
-  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1]; 
-  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
-  
-  return (a1+a2+a3) - (a4+a5+a6); 
-};
-
 // -----------------------------------------------------------------------------
 // Common computations between Ftau and dFtau
 // -----------------------------------------------------------------------------
 static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
-                           const CeedScalar gradu[3][3], CeedScalar F_inv[3][3], 
-			   CeedScalar tau_work[6], CeedScalar b_invwork[6], 
-			   CeedScalar *J, CeedScalar *llnj) {
+                             const CeedScalar gradu[3][3], CeedScalar F_inv[3][3],
+                             CeedScalar tau_work[6], CeedScalar b_invwork[6],
+                             CeedScalar *J, CeedScalar *llnj) {
 
-  
+
   // Compute The Deformation Gradient : F = I3 + gradu
-  CeedScalar F[3][3] =  {{gradu[0][0] + 1,
-                          gradu[0][1],
-                          gradu[0][2]},
-                         {gradu[1][0],
-                          gradu[1][1] + 1,
-                          gradu[1][2]},
-                         {gradu[2][0],
-                          gradu[2][1],
-                          gradu[2][2] + 1}
+  // *INDENT-OFF*
+  CeedScalar F[3][3] =  {{gradu[0][0][i] + 1,
+                          gradu[0][1][i],
+                          gradu[0][2][i]},
+                         {gradu[1][0][i],
+                          gradu[1][1][i] + 1,
+                          gradu[1][2][i]},
+                         {gradu[2][0][i],
+                          gradu[2][1][i],
+                          gradu[2][2][i] + 1}
                         };
-  // b - left Cauchy-Green 
+  // *INDENT-ON*
+  // b - left Cauchy-Green
   // b =  F*F^T
   CeedScalar b[3][3];
   for (CeedInt j = 0; j < 3; j++)
@@ -123,13 +110,26 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
       for (CeedInt m = 0; m < 3; m++)
         b[j][k] += F[j][m] * F[k][m]; // F * F^T
     }
-    
+
+  // E - Green-Lagrange strain tensor
+  //     E = 1/2 (gradu + gradu^T + gradu^T*gradu)
+  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+  CeedScalar E2work[6];
+  for (CeedInt m = 0; m < 6; m++) {
+    E2work[m] = gradu[indj[m]][indk[m]] + gradu[indk[m]][indj[m]];
+    for (CeedInt n = 0; n < 3; n++)
+      E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
+  }
+
   // *INDENT-ON*
-  (*J) = computeDetF(F);
+  (*detC_m1) = computeDetCM1(E2work);
+
+  (*J) = log1p_series_shifted(*detC_m1)/2.;
 
 
   // *INDENT-ON*
   // Compute b^(-1) : b-Inverse
+  // *INDENT-OFF*
   CeedScalar A[6] = {b[1][1]*b[2][2] - b[1][2]*b[2][1], /* *NOPAD* */
                      b[0][0]*b[2][2] - b[0][2]*b[2][0], /* *NOPAD* */
                      b[0][0]*b[1][1] - b[0][1]*b[1][0], /* *NOPAD* */
@@ -137,11 +137,12 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                      b[0][1]*b[1][2] - b[0][2]*b[1][1], /* *NOPAD* */
                      b[0][2]*b[2][1] - b[0][1]*b[2][2] /* *NOPAD* */
                     };
+  // *INDENT-ON*
   for (CeedInt m = 0; m < 6; m++)
     b_invwork[m] = A[m] / ((*J)*(*J));
 
-  
-  // *INDENT-ON*
+
+  // *INDENT-OFF*
   //Computer F^(-1)
   CeedScalar B[9] = {F[1][1]*F[2][2] - F[1][2]*F[2][1], /* *NOPAD* */
                      F[0][0]*F[2][2] - F[0][2]*F[2][0], /* *NOPAD* */
@@ -149,15 +150,15 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                      F[0][2]*F[1][0] - F[0][0]*F[1][2], /* *NOPAD* */
                      F[0][1]*F[1][2] - F[0][2]*F[1][1], /* *NOPAD* */
                      F[0][2]*F[2][1] - F[0][1]*F[2][2], /* *NOPAD* */
-		                 F[0][1]*F[2][0] - F[0][0]*F[2][1], /* *NOPAD* */
+                     F[0][1]*F[2][0] - F[0][0]*F[2][1], /* *NOPAD* */
                      F[1][0]*F[2][1] - F[1][1]*F[2][0], /* *NOPAD* */
                      F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
                     };
+  // *INDENT-ON*                 
   CeedScalar F_invwork[9];
   for (CeedInt m = 0; m < 9; m++)
     F_invwork[m] = B[m] / (*J);
 
-  // *INDENT-OFF*
   F_inv[0][0] = F_invwork[0];
   F_inv[0][1] = F_invwork[5];
   F_inv[0][2] = F_invwork[4];
@@ -168,19 +169,17 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   F_inv[2][1] = F_invwork[6];
   F_inv[2][2] = F_invwork[2];
 
-  // *INDENT-ON*
-
   // Compute the Second Piola-Kirchhoff (S)
-  (*llnj) = lambda*log(*J);
-  
+  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
 
- tau_work[0] = (*llnj-mu)+mu*b[0][0];
- tau_work[1] = (*llnj-mu)+mu*b[1][1];
- tau_work[2] = (*llnj-mu)+mu*b[2][2];
- tau_work[3] = mu*b[1][2]; 
- tau_work[4] = mu*b[0][2];
- tau_work[5] = mu*b[0][1];
- 
+
+  tau_work[0] = (*llnj-mu)+mu*b[0][0];
+  tau_work[1] = (*llnj-mu)+mu*b[1][1];
+  tau_work[2] = (*llnj-mu)+mu*b[2][2];
+  tau_work[3] = mu*b[1][2];
+  tau_work[4] = mu*b[0][2];
+  tau_work[5] = mu*b[0][1];
+
   return 0;
 };
 
@@ -188,7 +187,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+                            CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -253,14 +252,15 @@ CEED_QFUNCTION(HyperFSFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Compute gradu
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = gradu
- 
+
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         gradu[j][k][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
           gradu[j][k][i] += dXdx[m][k] * du[j][m];
       }
-    
+
+    // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
                                           gradu[0][2][i]},
@@ -271,18 +271,18 @@ CEED_QFUNCTION(HyperFSFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][1][i],
                                           gradu[2][2][i]}
                                         };
+    // *INDENT-ON*
 
     // Common components of finite strain calculations
     CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], J, llnj;
 
     commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &J, &llnj);
-
-
+    // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
                                   {tau_work[4], tau_work[3], tau_work[2]}
                                  };
-
+    // *INDENT-ON*
     // Compute the intermediate stress: stress = tau*F_inv^(T)
     CeedScalar stress[3][3];
     for (CeedInt j = 0; j < 3; j++)
@@ -309,7 +309,7 @@ CEED_QFUNCTION(HyperFSFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+                             CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -372,17 +372,19 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
           graddeltau[j][k] += dXdx[m][k] * deltadu[j][m];
       }
 
-    CeedScalar F[3][3] =  {{gradu[0][0][i] + 1,
-                            gradu[0][1][i],
-                            gradu[0][2][i]},
-                           {gradu[1][0][i],
-                            gradu[1][1][i] + 1,
-                            gradu[1][2][i]},
-                           {gradu[2][0][i],
-                            gradu[2][1][i],
-                            gradu[2][2][i] + 1}
-                          };
-
+    // I3 : 3x3 Identity matrix
+    // Deformation Gradient : F = I3 + gradu
+    // *INDENT-OFF*
+    const CeedScalar F[3][3] =  {{gradu[0][0][i] + 1,
+                                  gradu[0][1][i],
+                                  gradu[0][2][i]},
+                                 {gradu[1][0][i],
+                                  gradu[1][1][i] + 1,
+                                  gradu[1][2][i]},
+                                 {gradu[2][0][i],
+                                  gradu[2][1][i],
+                                  gradu[2][2][i] + 1}
+                                };
 
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
@@ -394,19 +396,19 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][1][i],
                                           gradu[2][2][i]}
                                         };
+    // *INDENT-ON*
 
     // Common components of finite strain calculations
     CeedScalar F_inv[3][3], tau_work[6], b_invwork[6], J, llnj;
 
     // Common components of finite strain calculations (cur. config.)
     commonFtau(lambda, mu, tempgradu, F_inv, tau_work, b_invwork, &J, &llnj);
-
-
+    // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
                                   {tau_work[4], tau_work[3], tau_work[2]}
                                  };
-
+    // *INDENT-ON*
     // delta_b - derivative of left Cauchy-Green tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar delta_bwork[6];
@@ -414,39 +416,37 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       delta_bwork[m] = 0;
       for (CeedInt n = 0; n < 3; n++)
         delta_bwork[m] += (graddeltau[indj[m]][n]*F[indk[m]][n] +
-                          F[indj[m]][n]*graddeltau[indk[m]][n]);
+                           F[indj[m]][n]*graddeltau[indk[m]][n]);
     }
     // *INDENT-OFF*
     CeedScalar delta_b[3][3] = {{delta_bwork[0], delta_bwork[5], delta_bwork[4]},
                                 {delta_bwork[5], delta_bwork[1], delta_bwork[3]},
                                 {delta_bwork[4], delta_bwork[3], delta_bwork[2]}
                               };
-    // *INDENT-ON*
 
     // b : left Cauchy-Green tensor
     // b^(-1) : b-Inverse
-    // *INDENT-OFF*
     const CeedScalar b_inv[3][3] = {{b_invwork[0], b_invwork[5], b_invwork[4]},
                                     {b_invwork[5], b_invwork[1], b_invwork[3]},
                                     {b_invwork[4], b_invwork[3], b_invwork[2]}
                                   };
     // *INDENT-ON*
 
-
     // -- b_inv:delta_b : cll it bvCdb
     CeedScalar bvCdb = 0;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
         bvCdb += b_inv[j][k]*delta_b[j][k];
-    
+
     //delta_tau = mu * delta_b + 0.5 * lambda * bvCdb * I3
-    CeedScalar delta_tau[3][3] = {{0.5*lambda*bvCdb + mu*delta_b[0][0], mu*delta_b[0][1], mu*delta_b[0][2]},
-                                  {mu*delta_b[1][0], 0.5*lambda*bvCdb + mu*delta_b[1][1], mu*delta_b[1][2]},
-                                  {mu*delta_b[2][0], mu*delta_b[2][1], 0.5*lambda*bvCdb + mu*delta_b[2][2]}};
-    
-    // --deltaF_inv = -F_inv * graddeltau * F_inv 
-    
-    // -- (-F_inv)*graddeltau 
+    // *INDENT-OFF*
+    CeedScalar delta_tau[3][3] = {{0.5*lambda *bvCdb + mu *delta_b[0][0], mu *delta_b[0][1], mu *delta_b[0][2]},
+                                  {mu *delta_b[1][0], 0.5*lambda *bvCdb + mu *delta_b[1][1], mu *delta_b[1][2]},
+                                  {mu *delta_b[2][0], mu *delta_b[2][1], 0.5*lambda *bvCdb + mu *delta_b[2][2]}
+                                 };
+    // *INDENT-ON*
+    // --deltaF_inv = -F_inv * graddeltau * F_inv
+    // -- (-F_inv)*graddeltau
     CeedScalar negFg[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
@@ -463,7 +463,7 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
           deltaF_inv[j][k] += negFg[j][m]*F_inv[m][k];
       }
 
-    // deltaStress = tau * deltaF_inv^(T) + delta_tau * F_inv^(T) 
+    // deltaStress = tau * deltaF_inv^(T) + delta_tau * F_inv^(T)
     CeedScalar deltaStress[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
@@ -488,8 +488,9 @@ CEED_QFUNCTION(HyperFSdFcur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(HyperFSEnergycur)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out) {
+CEED_QFUNCTION(HyperFSEnergycur)(void *ctx, CeedInt Q,
+                                 const CeedScalar *const *in,
+                                 CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -579,8 +580,8 @@ CEED_QFUNCTION(HyperFSEnergycur)(void *ctx, CeedInt Q, const CeedScalar *const *
 // Nodal diagnostic quantities for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSDiagnosticcur)(void *ctx, CeedInt Q,
-                                  const CeedScalar *const *in,
-                                  CeedScalar *const *out) {
+                                     const CeedScalar *const *in,
+                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
