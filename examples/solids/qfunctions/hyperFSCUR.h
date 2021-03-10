@@ -67,6 +67,21 @@ static inline CeedScalar log1p_series_shiftedcur(CeedScalar x) {
 };
 
 // -----------------------------------------------------------------------------
+// Compute det F
+// -----------------------------------------------------------------------------
+static inline CeedScalar computeDetF(CeedScalar F[3][3]) {
+  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2];
+  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0];
+  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1];
+  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0];
+  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1];
+  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
+
+  return (a1+a2+a3) - (a4+a5+a6);
+};
+
+
+// -----------------------------------------------------------------------------
 // Compute det C - 1
 // -----------------------------------------------------------------------------
 static inline CeedScalar computeDetCM1cur(CeedScalar E2work[6]) {
@@ -90,15 +105,15 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
 
   // Compute The Deformation Gradient : F = I3 + gradu
   // *INDENT-OFF*
-  CeedScalar F[3][3] =  {{gradu[0][0][i] + 1,
-                          gradu[0][1][i],
-                          gradu[0][2][i]},
-                         {gradu[1][0][i],
-                          gradu[1][1][i] + 1,
-                          gradu[1][2][i]},
-                         {gradu[2][0][i],
-                          gradu[2][1][i],
-                          gradu[2][2][i] + 1}
+  CeedScalar F[3][3] =  {{gradu[0][0] + 1,
+                          gradu[0][1],
+                          gradu[0][2]},
+                         {gradu[1][0],
+                          gradu[1][1] + 1,
+                          gradu[1][2]},
+                         {gradu[2][0],
+                          gradu[2][1],
+                          gradu[2][2] + 1}
                         };
   // *INDENT-ON*
   // b - left Cauchy-Green
@@ -122,9 +137,13 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   }
 
   // *INDENT-ON*
-  (*detC_m1) = computeDetCM1(E2work);
+  CeedScalar detC_m1;
+  (detC_m1) = computeDetCM1(E2work);
 
-  (*logJ) = log1p_series_shiftedcur(*detC_m1)/2.;
+  (*logJ) = log1p_series_shiftedcur(detC_m1)/2.;
+
+
+  CeedScalar J = computeDetF(F);
 
   // Compute b^(-1) : b-Inverse
   // *INDENT-OFF*
@@ -137,7 +156,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                     };
   // *INDENT-ON*
   for (CeedInt m = 0; m < 6; m++)
-    b_invwork[m] = A[m] / ((*logJ)*(*logJ));
+    b_invwork[m] = A[m] / (J*J);
 
   // *INDENT-OFF*
   //Computer F^(-1)
@@ -154,7 +173,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*                 
   CeedScalar F_invwork[9];
   for (CeedInt m = 0; m < 9; m++)
-    F_invwork[m] = B[m] / (*logJ);
+    F_invwork[m] = B[m] / J;
 
   F_inv[0][0] = F_invwork[0];
   F_inv[0][1] = F_invwork[5];
