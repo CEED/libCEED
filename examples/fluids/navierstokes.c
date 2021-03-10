@@ -691,8 +691,8 @@ int main(int argc, char **argv) {
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
-  PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
-              kgpersquaredms, Joulepercubicm, Joule;
+  //PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
+  //            kgpersquaredms, Joulepercubicm, Joule;
   problemData *problem = NULL;
   WindType wind_type;
   StabilizationType stab;
@@ -713,37 +713,37 @@ int main(int argc, char **argv) {
   // *INDENT-ON*
 
   // Create the libCEED contexts
-  PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
-  PetscScalar second     = 1e-2;     // 1 second in scaled time units
-  PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
-  PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
-  CeedScalar theta0      = 300.;     // K
-  CeedScalar thetaC      = -15.;     // K
-  CeedScalar P0          = 1.e5;     // Pa
+  //PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
+  //PetscScalar second     = 1e-2;     // 1 second in scaled time units
+  //PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
+  //PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
+  //CeedScalar theta0      = 300.;     // K
+  //CeedScalar thetaC      = -15.;     // K
+  //CeedScalar P0          = 1.e5;     // Pa
   CeedScalar E_wind      = 1.e6;     // J
-  CeedScalar N           = 0.01;     // 1/s
-  CeedScalar cv          = 717.;     // J/(kg K)
-  CeedScalar cp          = 1004.;    // J/(kg K)
-  CeedScalar g           = 9.81;     // m/s^2
-  CeedScalar lambda      = -2./3.;   // -
-  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
+  //CeedScalar N           = 0.01;     // 1/s
+  //CeedScalar cv          = 717.;     // J/(kg K)
+  //CeedScalar cp          = 1004.;    // J/(kg K)
+  //CeedScalar g           = 9.81;     // m/s^2
+  //CeedScalar lambda      = -2./3.;   // -
+  //CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k           = 0.02638;  // W/(m K)
+  //CeedScalar k           = 0.02638;  // W/(m K)
   CeedScalar CtauS       = 0.;       // dimensionless
   CeedScalar strong_form = 0.;       // [0,1]
-  PetscScalar lx         = 8000.;    // m
-  PetscScalar ly         = 8000.;    // m
-  PetscScalar lz         = 4000.;    // m
-  CeedScalar rc          = 1000.;    // m (Radius of bubble)
-  PetscScalar resx       = 1000.;    // m (resolution in x)
-  PetscScalar resy       = 1000.;    // m (resolution in y)
-  PetscScalar resz       = 1000.;    // m (resolution in z)
+  //PetscScalar lx         = 8000.;    // m
+  //PetscScalar ly         = 8000.;    // m
+  //PetscScalar lz         = 4000.;    // m
+  //CeedScalar rc          = 1000.;    // m (Radius of bubble)
+  //PetscScalar resx       = 1000.;    // m (resolution in x)
+  //PetscScalar resy       = 1000.;    // m (resolution in y)
+  //PetscScalar resz       = 1000.;    // m (resolution in z)
   PetscInt outputfreq    = 10;       // -
   PetscInt contsteps     = 0;        // -
   PetscInt degree        = 1;        // -
   PetscInt qextra        = 2;        // -
   PetscInt qextraSur     = 2;        // -
-  PetscReal center[3], dc_axis[3] = {0, 0, 0}, wind[3] = {1., 0, 0};
+  PetscReal wind[3] = {1., 0, 0}; //center[3], dc_axis[3] = {0, 0, 0},
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -809,19 +809,19 @@ int main(int argc, char **argv) {
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
-                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
-  meter = fabs(meter);
-  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
-                            NULL, second, &second, NULL); CHKERRQ(ierr);
-  second = fabs(second);
-  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
-                            NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
-  kilogram = fabs(kilogram);
-  ierr = PetscOptionsScalar("-units_Kelvin",
-                            "1 Kelvin in scaled temperature units",
-                            NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
-  Kelvin = fabs(Kelvin);
+  //ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+  //                          NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  //meter = fabs(meter);
+  //ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
+  //                          NULL, second, &second, NULL); CHKERRQ(ierr);
+  //second = fabs(second);
+  //ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
+  //                          NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
+  //kilogram = fabs(kilogram);
+  //ierr = PetscOptionsScalar("-units_Kelvin",
+  //                          "1 Kelvin in scaled temperature units",
+  //                          NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
+  //Kelvin = fabs(Kelvin);
 
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
@@ -851,12 +851,12 @@ int main(int argc, char **argv) {
   //  CHKERRQ(ierr);
   //}
 
-  ierr = PetscOptionsScalar("-resx","Target resolution in x",
-                            NULL, resx, &resx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-resy","Target resolution in y",
-                            NULL, resy, &resy, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-resz","Target resolution in z",
-                            NULL, resz, &resz, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-resx","Target resolution in x",
+  //                          NULL, resx, &resx, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-resy","Target resolution in y",
+  //                          NULL, resy, &resy, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-resz","Target resolution in z",
+  //                          NULL, resz, &resz, NULL); CHKERRQ(ierr);
 
 
   ierr = PetscOptionsInt("-output_freq",
@@ -934,7 +934,7 @@ int main(int argc, char **argv) {
 
   // Create the mesh
   {
-    const PetscReal scale[3] = {lx, ly, lz};
+    const PetscReal scale[3] = {ctxSetupData->lx, ctxSetupData->ly, ctxSetupData->lz};
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
                                NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
