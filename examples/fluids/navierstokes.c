@@ -1495,7 +1495,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
   ierr = PetscFree(ctxQFData); CHKERRQ(ierr);
-  ierr = PetscFree(ctxQFData->ctxNSData); CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
   return PetscFinalize();
 }
