@@ -47,9 +47,7 @@ def plot():
         p = data['degree'].values[0]
         h = 1/data[res]
         E = data['rel_error']
-        h_min = amin(h)
-        E_min = amin(E)
-        H =  E_min * (h/h_min)**p
+        H =  amin(E) * (h/amin(h))**p
         ax.loglog(h, E, 'o', color=colors[i])
         ax.loglog(h, H, '--', color=colors[i], label='O(h$^' + str(p) + '$)')
         i = i + 1
