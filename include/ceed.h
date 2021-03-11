@@ -594,6 +594,8 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearFullAssemble(CeedOperator op,
+    CeedInt *nentries, CeedInt **rows, CeedInt **cols, CeedScalar **vals);
 CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator opFine,
     CeedVector PMultFine, CeedElemRestriction rstrCoarse, CeedBasis basisCoarse,
     CeedOperator *opCoarse, CeedOperator *opProlong, CeedOperator *opRestrict);
