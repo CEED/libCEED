@@ -109,15 +109,15 @@ struct Units_ {
 };
 
 // Setup Context for QFunctions
-typedef struct QFContext_ *QFContext;
-struct QFContext_ {
+typedef struct Physics_ *Physics;
+struct Physics_ {
   NSContext ctxNSData;
   AdvectionContext ctxAdvectionData;
 };
 
 // Setup function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
-    void **ctxSetupData, void **ctx, void **ctxQF);
+    void **ctxSetupData, void **ctx, void **ctxPhys);
 extern PetscErrorCode NS_ADVECTION(problemData *problem,
                                    void **ctxSetupData, void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem,

@@ -1,13 +1,13 @@
 #include "navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
-                                  void **ctx, void **ctxQF) {
+                                  void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
-  QFContext ctxQFData = *(QFContext *)ctxQF;
-  ierr = PetscMalloc1(1, &ctxQFData->ctxNSData); CHKERRQ(ierr);
+  Physics ctxPhysData = *(Physics *)ctxPhys;
+  ierr = PetscMalloc1(1, &ctxPhysData->ctxNSData); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
@@ -187,13 +187,13 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   ctxSetup->dc_axis[2] = dc_axis[2];
 
   // -- QFunction Context
-  ctxQFData->ctxNSData->lambda = lambda;
-  ctxQFData->ctxNSData->mu = mu;
-  ctxQFData->ctxNSData->k = k;
-  ctxQFData->ctxNSData->cv = cv;
-  ctxQFData->ctxNSData->cp = cp;
-  ctxQFData->ctxNSData->g = g;
-  ctxQFData->ctxNSData->Rd = Rd;
+  ctxPhysData->ctxNSData->lambda = lambda;
+  ctxPhysData->ctxNSData->mu = mu;
+  ctxPhysData->ctxNSData->k = k;
+  ctxPhysData->ctxNSData->cv = cv;
+  ctxPhysData->ctxNSData->cp = cp;
+  ctxPhysData->ctxNSData->g = g;
+  ctxPhysData->ctxNSData->Rd = Rd;
 
   PetscFunctionReturn(0);
 }
