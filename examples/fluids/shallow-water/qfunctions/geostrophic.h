@@ -154,7 +154,9 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Explicit spatial terms of G_1(t,q):
     // Explicit terms multiplying v
     // - (omega + f) * khat curl u - grad(|u|^2/2) // TODO: needs fix with weak form
-    v[0][i] = - wdetJ*(u[0]*du[0][0] + u[1]*du[0][1] + f*u[1]);
+    // --  grad(|u|^2/2) = u^T grad u
+    // --  khat curl u = [-u_1, u_0]
+    v[0][i] = - wdetJ*(u[0]*du[0][0] + u[1]*du[1][0] - f*u[1]);
     // No explicit terms multiplying dv
     dv[0][0][i] = 0;
     dv[1][0][i] = 0;
@@ -162,7 +164,9 @@ CEED_QFUNCTION(SWExplicit)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Explicit spatial terms of G_2(t,q):
     // Explicit terms multiplying v
     // - (omega + f) * khat curl u - grad(|u|^2/2) // TODO: needs fix with weak form
-    v[1][i] = - wdetJ*(u[0]*du[1][0] + u[1]*du[1][1] - f*u[0]);
+    // --  grad(|u|^2/2) = u^T grad u
+    // --  khat curl u = [-u_1, u_0]
+    v[1][i] = - wdetJ*(u[0]*du[0][1] + u[1]*du[1][1] + f*u[0]);
     // No explicit terms multiplying dv
     dv[0][1][i] = 0;
     dv[1][1][i] = 0;
