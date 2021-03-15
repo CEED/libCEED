@@ -695,7 +695,7 @@ int main(int argc, char **argv) {
   //            kgpersquaredms, Joulepercubicm, Joule;
   problemData *problem = NULL;
   WindType wind_type;
-  StabilizationType stab;
+  //StabilizationType stab;
   testType testChoice;
   testData *test = NULL;
   PetscBool implicit;
@@ -799,9 +799,9 @@ int main(int argc, char **argv) {
   //  SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
   //          "-problem_advection_wind translation is not defined for -problem density_current");
   //}
-  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+  //                        StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+  //                        (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -836,11 +836,11 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
-  if (stab == STAB_NONE && CtauS != 0) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
-    CHKERRQ(ierr);
-  }
+  //if (stab == STAB_NONE && CtauS != 0) {
+  //  ierr = PetscPrintf(comm,
+  //                     "Warning! Use -CtauS only with -stab su or -stab supg\n");
+  //  CHKERRQ(ierr);
+  //}
   ierr = PetscOptionsScalar("-strong_form",
                             "Strong (1) or weak/integrated by parts (0) advection residual",
                             NULL, strong_form, &strong_form, NULL);
@@ -896,7 +896,7 @@ int main(int argc, char **argv) {
 
   // Set up the libCEED context
   ctxSetupData->time = 0;
-  ctxPhysData->ctxNSData->stabilization = stab;
+  //ctxPhysData->ctxNSData->stabilization = stab;
 
   // Define derived units
   //Pascal = kilogram / (meter * PetscSqr(second));
@@ -1053,7 +1053,7 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, problemName, StabilizationTypes[stab],
+                       comm_size, problemName, StabilizationTypes[ctxPhysData->stab],
                        box_faces_str, usedresource, CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
                        numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);

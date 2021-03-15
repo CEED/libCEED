@@ -4,6 +4,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
                                   void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
+  StabilizationType stab;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
@@ -125,6 +126,9 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
                             "1 Kelvin in scaled temperature units",
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -194,6 +198,8 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   ctxPhysData->ctxNSData->cp = cp;
   ctxPhysData->ctxNSData->g = g;
   ctxPhysData->ctxNSData->Rd = Rd;
+  ctxPhysData->stab = stab;
+  ctxPhysData->ctxNSData->stabilization = stab;
 
   PetscFunctionReturn(0);
 }

@@ -113,6 +113,7 @@ typedef struct Physics_ *Physics;
 struct Physics_ {
   NSContext ctxNSData;
   AdvectionContext ctxAdvectionData;
+  StabilizationType stab;
 };
 
 // Setup function for each problem
