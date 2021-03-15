@@ -108,12 +108,16 @@ int main(int argc, char **argv) {
   CeedInt nentries;
   CeedInt *rows;
   CeedInt *cols;
-  CeedScalar *vals;
-  CeedOperatorLinearFullAssemble(op_diff, &nentries, &rows, &cols,
-                                 &vals);
+  CeedVector values;
+  CeedOperatorLinearAssembleSymbolic(op_diff, &nentries, &rows, &cols);
+  CeedVectorCreate(ceed, nentries, &values);
+  CeedOperatorLinearAssemble(op_diff, values);
+  const CeedScalar *vals;
+  CeedVectorGetArrayRead(values, CEED_MEM_HOST, &vals);
   for (int k=0; k<nentries; ++k) {
     assembled[rows[k]*ndofs + cols[k]] += vals[k];
   }
+  CeedVectorRestoreArrayRead(values, &vals);
 
   // Manually assemble operator
   CeedVectorCreate(ceed, ndofs, &U);
@@ -149,7 +153,7 @@ int main(int argc, char **argv) {
   // Cleanup
   free(rows);
   free(cols);
-  free(vals);
+  CeedVectorDestroy(&values);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_diff);
   CeedOperatorDestroy(&op_setup);
