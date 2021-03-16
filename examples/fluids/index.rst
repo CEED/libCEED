@@ -377,7 +377,9 @@ where the time derivative :math:`\bm{\dot q}` is defined by
   \bm{\dot q}(\bm q) = \sigma \bm q + \bm z
 
 in terms of :math:`\bm z` from prior state and :math:`\sigma > 0`,
-both of which depend on the specific time integration scheme. We split the implicit and explicit terms as follows:
+both of which depend on the specific time integration scheme. We split the time 
+integration scheme into implicit and explicit parts where the implicit terms is 
+given in what follows.
 
 .. math::
    :label: eq-swe-implicit-part
@@ -399,8 +401,8 @@ While for the explicit part we specify
    \bm G(t, \bm q) := 
    \left\{
          \begin{array}{l}
-             G_1 (u_{\lambda}, u_{\theta}, h) = - u_{\lambda} \frac{\partial u_{\lambda}}{\partial \alpha} - u_{\theta} \frac{\partial u_{\lambda}}{\partial \beta} - f u_{\theta}\\
-             G_2 (u_{\lambda}, u_{\theta}, h) =  - u_{\lambda} \frac{\partial u_{\theta}}{\partial \alpha} - u_{\theta} \frac{\partial u_{\theta}}{\partial \beta} + f u_{\lambda}\\
+             G_1 (u_{\lambda}, u_{\theta}, h) = - u_{\lambda} \frac{\partial u_{\lambda}}{\partial \alpha} - u_{\theta} \frac{\partial u_{\theta}}{\partial \alpha} + f u_{\theta}\\
+             G_2 (u_{\lambda}, u_{\theta}, h) =  - u_{\lambda} \frac{\partial u_{\lambda}}{\partial \beta} - u_{\theta} \frac{\partial u_{\theta}}{\partial \beta} - f u_{\lambda}\\
              G_3 (u_{\lambda}, u_{\theta}, h) = 0 .
          \end{array}
    \right.
