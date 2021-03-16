@@ -47,8 +47,9 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         appCtx;                 // Contains problem options
-  Physics        phys;                   // Contains physical constants
-  //TO-DO : make vars for other structs
+  Physics        phys;                   // Contains physical constants - Neo Hookean
+  Physics_MR     phys_MR;                   // Contains physical constants - Neo Hookean
+  //TO-DO : make var for GP 
   Physics        physSmoother = NULL;    // Separate context if nuSmoother set
   Units          units;                  // Contains units scaling
   // PETSc objects
@@ -94,15 +95,29 @@ int main(int argc, char **argv) {
   ierr = ProcessCommandLineOptions(comm, appCtx); CHKERRQ(ierr);
   numLevels = appCtx->numLevels;
   fineLevel = numLevels - 1;
-  //TO-DO : deal with using other structs and setting their vals
-  // -- Set Poison's ratio, Young's Modulus
-  ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
+
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-  ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
-  if (fabs(appCtx->nuSmoother) > 1E-14) {
-    ierr = PetscMalloc1(1, &physSmoother); CHKERRQ(ierr);
-    ierr = PetscMemcpy(physSmoother, phys, sizeof(*phys)); CHKERRQ(ierr);
-    physSmoother->nu = appCtx->nuSmoother;
+
+  //TO-DO : deal with using other structs and setting their vals based on problem type
+  if (appCtx->problemChoice == ELAS_HYPER_FS_MR){
+    // -- Set Mooney-Rivlin parameters
+    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+    // if (fabs(appCtx->nuSmoother) > 1E-14) {
+    //   ierr = PetscMalloc1(1, &physSmoother); CHKERRQ(ierr);
+    //   ierr = PetscMemcpy(physSmoother, phys_MR, sizeof(*phys_MR)); CHKERRQ(ierr);
+    //   physSmoother->nu = appCtx->nuSmoother;
+    //}
+  }
+  else{
+    // -- Set Poison's ratio, Young's Modulus
+    ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
+    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+    if (fabs(appCtx->nuSmoother) > 1E-14) {
+      ierr = PetscMalloc1(1, &physSmoother); CHKERRQ(ierr);
+      ierr = PetscMemcpy(physSmoother, phys, sizeof(*phys)); CHKERRQ(ierr);
+      physSmoother->nu = appCtx->nuSmoother;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -117,8 +132,14 @@ int main(int argc, char **argv) {
 
   // Wrap context in libCEED objects
   CeedQFunctionContextCreate(ceed, &ctxPhys); //TO-DO -> needs model flexibility
-  CeedQFunctionContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
+  if (appCtx->problemChoice == ELAS_HYPER_FS_MR){
+    CeedQFunctionContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof(*phys_MR), phys_MR);
+  }
+  else{
+    CeedQFunctionContextSetData(ctxPhys, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(*phys), phys);
+  }
   if (physSmoother) {
     CeedQFunctionContextCreate(ceed, &ctxPhysSmoother);
     CeedQFunctionContextSetData(ctxPhysSmoother, CEED_MEM_HOST, CEED_USE_POINTER,

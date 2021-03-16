@@ -37,7 +37,36 @@ struct Physics_private {
   CeedScalar   E;       // Young's Modulus
 };
 #endif
-// TO-DO : add remaining structs here
+
+// Mooney-Rivlin context
+#ifndef PHYSICS_STRUCT_MR
+#define PHYSICS_STRUCT_MR
+typedef struct Physics_private_MR *Physics_MR;
+
+struct Physics_private_MR { 
+  //material properties for MR
+  CeedScalar mu_1; // 
+  CeedScalar mu_2; // 
+  CeedScalar k_1; // 
+};
+#endif
+
+// -----------------------------------------------------------------------------
+// Generalized Polynomial context
+#ifndef PHYSICS_STRUCT_GP
+#define PHYSICS_STRUCT_GP
+typedef struct Physics_private_GP *Physics_GP;
+
+struct Physics_private_GP { 
+  CeedScalar   nu;      // Poisson's ratio rm
+  CeedScalar   E;       // Young's Modulus rm
+  //material properties for GP
+  CeedScalar C_mat[6][6]; // 2D matrix
+  CeedScalar K[6]; // 1D array
+  CeedScalar N; // max value of the sum; usually 1 or 2
+};
+
+#endif
 
 // -----------------------------------------------------------------------------
 // Command Line Options

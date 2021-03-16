@@ -43,8 +43,6 @@ struct Physics_private {
 typedef struct Physics_private_MR *Physics_MR;
 
 struct Physics_private_MR { 
-  CeedScalar   nu;      // Poisson's ratio rm
-  CeedScalar   E;       // Young's Modulus rm
   //material properties for MR
   CeedScalar mu_1; // 
   CeedScalar mu_2; // 
@@ -144,13 +142,6 @@ CeedScalar NH_energyModel(void *ctx, const CeedScalar detC_m1, CeedScalar E2[][3
 CeedScalar MR_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ){
   //requires unpacking the ctx struct again; 
   const Physics_MR context = (Physics_MR)ctx;
-  // const CeedScalar E  = context->E;
-  // const CeedScalar nu = context->nu;
-  // const CeedScalar TwoMu = E / (1 + nu);
-  // const CeedScalar mu = TwoMu / 2;
-  // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
-  //TO-DO unpack remaining needed for MR
   const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
   const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
   const CeedScalar k_1 = context -> k_1; // material constant k_1
