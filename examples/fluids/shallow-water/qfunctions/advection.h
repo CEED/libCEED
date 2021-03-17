@@ -185,13 +185,13 @@ CEED_QFUNCTION(SWExplicit_Advection)(void *ctx, CeedInt Q,
     // -- Height:
     // Evaluate the strong form using
     // div((h + H0) u) = u . grad(h) + (h + H0) div(u), with H0 constant
-    // or in index notation: (u_j h)_{,j} = u_j h_j + (h + H0) u_{j,j}
+    // or in index notation: (u_j h)_{,j} = u_j h_{,j} + (h + H0) u_{j,j}
     CeedScalar div_u = 0, u_dot_grad_h = 0;
-    for (CeedInt j=0; j<2; j++) {
+    for (CeedInt j=0; j<2; j++) { // we skip j=2 since dqdx[2] is zero
       CeedScalar dhdx_j = 0;
-      for (CeedInt k=0; k<2; k++) { // TODO: check indices! in this case dXdx is 2x3
+      for (CeedInt k=0; k<2; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
-        dhdx_j += dh[k] * dXdx[k][j];
+        dhdx_j += dh[k] * dXdx[k][j];   // h_{,j} = h_K X_{K,j}
       }
       u_dot_grad_h += u[j] * dhdx_j;
     }
@@ -310,13 +310,13 @@ CEED_QFUNCTION(SWImplicit_Advection)(void *ctx, CeedInt Q,
      // -- Height:
      // Evaluate the strong form using
      // div((h + H0) u) = u . grad(h) + (h + H0) div(u), with H0 constant
-     // or in index notation: (u_j h)_{,j} = u_j h_j + (h + H0) u_{j,j}
+     // or in index notation: (u_j h)_{,j} = u_j h_{,j} + (h + H0) u_{j,j}
      CeedScalar div_u = 0, u_dot_grad_h = 0;
-     for (CeedInt j=0; j<2; j++) {
+     for (CeedInt j=0; j<2; j++) { // we skip j=2 since dqdx[2] is zero
        CeedScalar dhdx_j = 0;
-       for (CeedInt k=0; k<2; k++) { // TODO: check indices! in this case dXdx is 2x3
+       for (CeedInt k=0; k<2; k++) {
          div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
-         dhdx_j += dh[k] * dXdx[k][j];
+         dhdx_j += dh[k] * dXdx[k][j];   // h_{,j} = h_K X_{K,j}
        }
        u_dot_grad_h += u[j] * dhdx_j;
      }
@@ -461,13 +461,13 @@ CEED_QFUNCTION(SWJacobian_Advection)(void *ctx, CeedInt Q,
     // -- Height:
     // Evaluate the strong form of the action of the Jacobian using
     // div((h + H0) delta u) = delta u . grad(h) + (h + H0) div(delta u), with H0 constant
-    // or in index notation: (delta u_j h)_{,j} = delta u_j h_j + (h + H0) delta u_{j,j}
+    // or in index notation: (delta u_j h)_{,j} = delta u_j h_{,j} + (h + H0) delta u_{j,j}
     CeedScalar div_deltau = 0, deltau_dot_grad_h = 0;
-    for (CeedInt j=0; j<2; j++) {
+    for (CeedInt j=0; j<2; j++) { // we skip j=2 since dqdx[2] is zero
       CeedScalar dhdx_j = 0;
-      for (CeedInt k=0; k<2; k++) { // TODO: check indices! in this case dXdx is 2x3
-        div_deltau += deltadu[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
-        dhdx_j += dh[k] * dXdx[k][j];
+      for (CeedInt k=0; k<2; k++) {
+        div_deltau += deltadu[j][k] * dXdx[k][j]; // deltau_{j,j} = deltau_{j,K} X_{K,j}
+        dhdx_j += dh[k] * dXdx[k][j];             // h_{,j} = h_K X_{K,j}
       }
       deltau_dot_grad_h += deltau[j] * dhdx_j;
     }
