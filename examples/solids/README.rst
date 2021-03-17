@@ -142,6 +142,10 @@ The command line options just shown are the minimum requirements to run the mini
      - View PETSc performance log
      -
 
+   * - :code:`-output_dir`
+     - Output directory
+     - :code:`.`
+
    * - :code:`-help`
      - View comprehensive information about run-time options
      -

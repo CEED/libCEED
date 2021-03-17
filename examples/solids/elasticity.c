@@ -640,7 +640,7 @@ int main(int argc, char **argv) {
 
   // View solution
   if (appCtx->viewSoln) {
-    ierr = ViewSolution(comm, U, 0, 0.0); CHKERRQ(ierr);
+    ierr = ViewSolution(comm, appCtx, U, 0, 0.0); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------
@@ -682,7 +682,7 @@ int main(int argc, char **argv) {
 
     // -- View solution
     if (appCtx->viewSoln) {
-      ierr = ViewSolution(comm, U, increment, loadIncrement); CHKERRQ(ierr);
+      ierr = ViewSolution(comm, appCtx, U, increment, loadIncrement); CHKERRQ(ierr);
     }
 
     // -- Update SNES iteration count
@@ -860,7 +860,8 @@ int main(int argc, char **argv) {
     diagnosticCtx->op = ceedData[fineLevel]->opDiagnostic;
 
     // -- Compute and output
-    ierr = ViewDiagnosticQuantities(comm, levelDMs[fineLevel], diagnosticCtx, U,
+    ierr = ViewDiagnosticQuantities(comm, levelDMs[fineLevel], diagnosticCtx,
+                                    appCtx, U,
                                     ceedData[fineLevel]->ErestrictDiagnostic);
     CHKERRQ(ierr);
 

@@ -38,6 +38,12 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                             sizeof(appCtx->ceedResource), &ceedFlag);
   CHKERRQ(ierr);
 
+  ierr = PetscStrncpy(appCtx->outputdir, ".", 2);
+  CHKERRQ(ierr); // Default - current directory
+  ierr = PetscOptionsString("-output_dir", "Output directory",
+                            NULL, appCtx->outputdir, appCtx->outputdir,
+                            sizeof(appCtx->outputdir), NULL); CHKERRQ(ierr);
+
   appCtx->degree         = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, appCtx->degree, &appCtx->degree, NULL);
