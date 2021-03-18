@@ -1315,33 +1315,6 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 }
 
 /**
-   @brief Perform dense matrix-matrix multiply C += A B
-
-   Given m by n matrix A and n by p matrix B, add the matrix-matrix
-   product AB into the existing matrix C.
-
-   All matrices are stored in column-major order.
-
-   This could, probably should, be a GPU kernel.
-
-   @ref Utility
-**/
-static int MatrixMatrixMultiply(CeedInt m, CeedInt n, CeedInt p,
-                                const CeedScalar *A,
-                                const CeedScalar *B,
-                                CeedScalar *C) {
-  for (int i = 0; i < m; ++i) {
-    for (int j = 0; j < p; ++j) {
-      for (int k = 0; k < n; ++k) {
-        C[j*m + i] += A[k*m + i] * B[j*n + k];
-      }
-    }
-  }
-
-  return 0;
-}
-
-/**
    @brief Build nonzero pattern for non-composite operator.
 
    Users should generally use CeedOperatorLinearAssembleSymbolic()
@@ -1407,7 +1380,6 @@ int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
 
             rows[offset + count] = row;
             cols[offset + count] = col;
-            // vals[offset + count] = val;
             count++;
           }
         }
@@ -1560,6 +1532,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   ierr = CeedElemRestrictionGetELayout(rstr_q, &layout_qf); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_q); CeedChk(ierr);
 
+  // we store Bmat_in, Bmat_out, BTD, elem_mat in row-major order
   CeedScalar Bmat_in[(nqpts * numemodein) * elemsize];
   CeedScalar Bmat_out[(nqpts * numemodeout) * elemsize];
   CeedScalar Dmat[numemodeout * numemodein * nqpts]; // logically 3-tensor
@@ -1589,12 +1562,12 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
           for (int n = 0; n < elemsize; ++n) {
             CeedInt din = -1;
             for (int ein = 0; ein < numemodein; ++ein) {
+              const int qq = numemodein*q;
               if (emodein[ein] == CEED_EVAL_INTERP) {
-                Bmat_in[n*(nqpts*numemodein) + (numemodein*q+ein)] +=
-                  interpin[q * elemsize + n];
+                Bmat_in[(qq+ein)*elemsize + n] += interpin[q * elemsize + n];
               } else if (emodein[ein] == CEED_EVAL_GRAD) {
                 din += 1;
-                Bmat_in[n*(nqpts*numemodein) + (numemodein*q+ein)] +=
+                Bmat_in[(qq+ein)*elemsize + n] +=
                   gradin[(din*nqpts+q) * elemsize + n];
               } else {
                 // LCOV_EXCL_START
@@ -1604,12 +1577,12 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
             }
             CeedInt dout = -1;
             for (int eout = 0; eout < numemodeout; ++eout) {
+              const int qq = numemodeout*q;
               if (emodeout[eout] == CEED_EVAL_INTERP) {
-                Bmat_out[n*(nqpts*numemodeout) + (numemodeout*q+eout)] +=
-                  interpin[q * elemsize + n];
+                Bmat_out[(qq+eout)*elemsize + n] += interpin[q * elemsize + n];
               } else if (emodeout[eout] == CEED_EVAL_GRAD) {
                 dout += 1;
-                Bmat_out[n*(nqpts*numemodeout) + (numemodeout*q+eout)] +=
+                Bmat_out[(qq+eout)*elemsize + n] +=
                   gradin[(dout*nqpts+q) * elemsize + n];
               } else {
                 // LCOV_EXCL_START
@@ -1635,21 +1608,20 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
             int qq = numemodeout*q;
             for (int ei = 0; ei < numemodein; ++ei) {
               for (int ej = 0; ej < numemodeout; ++ej) {
-                BTD[(qq+ei)*elemsize + j] += Bmat_out[j*(nqpts*numemodeout) + (qq+ej)] *
-                                             Dmat[(ei*numemodein+ej)*nqpts + q];
+                BTD[j*(nqpts*numemodein) + (qq+ei)] +=
+                  Bmat_out[(qq+ej)*elemsize + j] * Dmat[(ei*numemodein+ej)*nqpts + q];
               }
             }
           }
         }
 
-        ierr = MatrixMatrixMultiply(elemsize, nqpts*numemodein, elemsize,
-                                    BTD, Bmat_in, elem_mat); CeedChk(ierr);
+        ierr = CeedMatrixMultiply(ceed, BTD, Bmat_in, elem_mat, elemsize,
+                                  elemsize, nqpts*numemodein); CeedChk(ierr);
 
         // put element matrix in coordinate data structure
         for (int i=0; i < elemsize; ++i) {
           for (int j=0; j < elemsize; ++j) {
-            const CeedScalar val = elem_mat[j*elemsize + i];
-            vals[offset + count] = val;
+            vals[offset + count] = elem_mat[i*elemsize + j];
             count++;
           }
         }
