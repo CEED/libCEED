@@ -205,10 +205,6 @@ struct CeedBasis_private {
   void *data;                  /* place for the backend to store any data */
 };
 
-int CeedMatrixMultiply(Ceed ceed, const CeedScalar *matA,
-                       const CeedScalar *matB, CeedScalar *matC, CeedInt m,
-                       CeedInt n, CeedInt kk);
-
 struct CeedTensorContract_private {
   Ceed ceed;
   int (*Apply)(CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt,
