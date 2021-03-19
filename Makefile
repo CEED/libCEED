@@ -74,7 +74,9 @@ MAGMA_DIR ?= ../magma
 # If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
 CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
                $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+CUDA_ARCH ?= 
 HIP_DIR ?= /opt/rocm
+HIP_ARCH ?=
 
 # Check for PETSc in ../petsc
 ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
@@ -126,7 +128,13 @@ CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+ifneq ($(CUDA_ARCH),)
+  NVCCFLAGS += -arch=$(CUDA_ARCH)
+endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
+ifneq ($(HIP_ARCH),)
+  HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
+endif
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -230,7 +238,6 @@ hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
-hip-shared.hip := $(sort $(wildcard backends/hip-shared/kernels/*.hip.cpp))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 
@@ -399,7 +406,7 @@ ifneq ($(HIP_LIB_DIR),)
   libceed.c   += interface/ceed-hip.c
   libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
   libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip += $(hip.hip) $(hip-shared.hip)
+  libceed.hip += $(hip.hip)
   BACKENDS    += $(HIP_BACKENDS)
 endif
 
@@ -699,7 +706,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR
+	MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR HIP_ARCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

@@ -95,7 +95,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
   for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
     // Translation vector
     char optionName[25];
-    for (PetscInt j = 0; j < 7; j++)
+    const size_t nclamp_params = sizeof(appCtx->bcClampMax[0])/sizeof(
+                                   appCtx->bcClampMax[0][0]);
+    for (PetscInt j = 0; j < nclamp_params; j++)
       appCtx->bcClampMax[i][j] = 0.;
 
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
@@ -107,7 +109,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
     CHKERRQ(ierr);
 
     // Rotation vector
-    maxn = 4;
+    maxn = 5;
     snprintf(optionName, sizeof optionName, "-bc_clamp_%d_rotate",
              appCtx->bcClampFaces[i]);
     ierr = PetscOptionsScalarArray(optionName,

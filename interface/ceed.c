@@ -850,6 +850,10 @@ int CeedDestroy(Ceed *ceed) {
 
 // LCOV_EXCL_START
 const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
+  if (ceed->parent)
+    return CeedErrorFormat(ceed->parent, format, args);
+  if (ceed->opfallbackparent)
+    return CeedErrorFormat(ceed->opfallbackparent, format, args);
   vsnprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, format, *args);
   return ceed->errmsg;
 }
@@ -995,6 +999,10 @@ int CeedSetErrorHandler(Ceed ceed,
   @ref Developer
 **/
 int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
+  if (ceed->parent)
+    return CeedGetErrorMessage(ceed->parent, errmsg);
+  if (ceed->opfallbackparent)
+    return CeedGetErrorMessage(ceed->opfallbackparent, errmsg);
   *errmsg = ceed->errmsg;
   return 0;
 }
@@ -1011,6 +1019,10 @@ int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
   @ref Developer
 **/
 int CeedResetErrorMessage(Ceed ceed, const char **errmsg) {
+  if (ceed->parent)
+    return CeedResetErrorMessage(ceed->parent, errmsg);
+  if (ceed->opfallbackparent)
+    return CeedResetErrorMessage(ceed->opfallbackparent, errmsg);
   *errmsg = NULL;
   memcpy(ceed->errmsg, "No error message stored", 24);
   return 0;
