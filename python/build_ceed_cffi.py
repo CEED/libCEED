@@ -19,7 +19,7 @@ import re
 from cffi import FFI
 ffibuilder = FFI()
 
-ceed_version_ge = re.compile('\s+\(!?CEED_VERSION.*')
+ceed_version_ge = re.compile(r'\s+\(!?CEED_VERSION.*')
 
 # ------------------------------------------------------------------------------
 # Provide C definitions to CFFI
