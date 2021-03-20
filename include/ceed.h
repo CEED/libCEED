@@ -190,6 +190,41 @@ CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
 CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
 CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 
+/// libCEED library version numbering
+/// @ingroup Ceed
+#define CEED_VERSION_MAJOR 0
+#define CEED_VERSION_MINOR 7
+#define CEED_VERSION_PATCH 0
+#define CEED_VERSION_RELEASE false
+
+/// Compile-time check that the the current library version is at least as
+/// recent as the specified version. This macro is typically used in
+/// @code
+/// #if CEED_VERSION_GE(0, 8, 0)
+///   code path that needs at least 0.8.0
+/// #else
+///   fallback code for older versions
+/// #endif
+/// @endcode
+///
+/// A non-release version always compares as positive infinity.
+///
+/// @param major   Major version
+/// @param minor   Minor version
+/// @param patch   Patch (subminor) version
+///
+/// @ingroup Ceed
+/// @sa CeedGetVersion()
+#define CEED_VERSION_GE(major, minor, patch)                                   \
+  (!CEED_VERSION_RELEASE ||                                                    \
+   (CEED_VERSION_MAJOR > major ||                                              \
+    (CEED_VERSION_MAJOR == major &&                                            \
+     (CEED_VERSION_MINOR > minor ||                                            \
+      (CEED_VERSION_MINOR == minor && CEED_VERSION_PATCH >= patch)))))
+
+CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
+                               bool *release);
+
 /// Specify memory type
 ///
 /// Many Ceed interfaces take or return pointers to memory.  This enum is used to

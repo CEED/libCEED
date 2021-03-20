@@ -1028,4 +1028,29 @@ int CeedResetErrorMessage(Ceed ceed, const char **errmsg) {
   return 0;
 }
 
+/**
+  @brief Get libCEED library version info
+
+  libCEED version numbers have the form major.minor.patch. Non-release versions
+  may contain unstable interfaces.
+
+  @param[out] major    Major version of the library
+  @param[out] minor    Minor version of the library
+  @param[out] patch    Patch (subminor) version of the library
+  @param[out] release  True for releases; false for development branches.
+
+  The caller may pass NULL for any arguments that are not needed.
+
+  @sa CEED_VERSION_GE()
+
+  @ref Developer
+*/
+int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
+  if (major) *major = CEED_VERSION_MAJOR;
+  if (minor) *minor = CEED_VERSION_MINOR;
+  if (patch) *patch = CEED_VERSION_PATCH;
+  if (release) *release = CEED_VERSION_RELEASE;
+  return 0;
+}
+
 /// @}
