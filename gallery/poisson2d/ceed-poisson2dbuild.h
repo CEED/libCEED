@@ -50,7 +50,7 @@ CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q,
     qd[i+Q*2] = - w * (J11*J12 + J21*J22);
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson2dbuild_h

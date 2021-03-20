@@ -51,12 +51,12 @@
 int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blkoffsets,
                           CeedInt nblk, CeedInt nelem, CeedInt blksize,
                           CeedInt elemsize) {
-  for (CeedInt e = 0; e < nblk*blksize; e+=blksize)
-    for (int j = 0; j < blksize; j++)
-      for (int k = 0; k < elemsize; k++)
+  for (CeedInt e=0; e<nblk*blksize; e+=blksize)
+    for (int j=0; j<blksize; j++)
+      for (int k=0; k<elemsize; k++)
         blkoffsets[e*elemsize + k*blksize + j]
           = offsets[CeedIntMin(e+j,nelem-1)*elemsize + k];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -79,7 +79,7 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blkoffsets,
 **/
 int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
   *ceed = rstr->ceed;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -97,12 +97,13 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
                                   CeedInt (*strides)[3]) {
   if (!rstr->strides)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+    return CeedError(rstr->ceed, CEED_ERROR_MINOR,
+                     "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*strides)[i] = rstr->strides[i];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -124,12 +125,13 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mtype,
 
   if (!rstr->GetOffsets)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "Backend does not support GetOffsets");
+    return CeedError(rstr->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support GetOffsets");
   // LCOV_EXCL_STOP
 
   ierr = rstr->GetOffsets(rstr, mtype, offsets); CeedChk(ierr);
   rstr->numreaders++;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -146,7 +148,7 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
                                       const CeedInt **offsets) {
   *offsets = NULL;
   rstr->numreaders--;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -160,8 +162,8 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
   @ref Backend
 **/
 int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *isstrided) {
-  *isstrided = rstr->strides ? 1 : 0;
-  return 0;
+  *isstrided = rstr->strides ? true : false;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -178,13 +180,14 @@ int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr,
     bool *hasbackendstrides) {
   if (!rstr->strides)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "ElemRestriction has no stride data");
+    return CeedError(rstr->ceed, CEED_ERROR_MINOR,
+                     "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
   *hasbackendstrides = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) &&
                         (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
                         (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -206,12 +209,13 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
                                   CeedInt (*layout)[3]) {
   if (!rstr->layout[0])
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 1, "ElemRestriction has no layout data");
+    return CeedError(rstr->ceed, CEED_ERROR_MINOR,
+                     "ElemRestriction has no layout data");
   // LCOV_EXCL_STOP
 
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*layout)[i] = rstr->layout[i];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -233,7 +237,7 @@ int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
                                   CeedInt layout[3]) {
   for (int i = 0; i<3; i++)
     rstr->layout[i] = layout[i];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -248,7 +252,7 @@ int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
 **/
 int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data) {
   *(void **)data = rstr->data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -263,7 +267,7 @@ int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data) {
 **/
 int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data) {
   rstr->data = data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
@@ -327,13 +331,14 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support ElemRestrictionCreate");
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreate(delegate, nelem, elemsize, ncomp,
                                      compstride, lsize, mtype, cmode,
                                      offsets, rstr); CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
@@ -349,7 +354,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->blksize = 1;
   ierr = ceed->ElemRestrictionCreate(mtype, cmode, offsets, *rstr);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -388,13 +393,14 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support ElemRestrictionCreate");
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support ElemRestrictionCreate");
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateStrided(delegate, nelem, elemsize, ncomp,
                                             lsize, strides, rstr);
     CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
@@ -408,12 +414,12 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->nblk = nelem;
   (*rstr)->blksize = 1;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL,
                                      *rstr);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -465,7 +471,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support "
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support "
                        "ElemRestrictionCreateBlocked");
     // LCOV_EXCL_STOP
 
@@ -473,7 +479,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
                                             ncomp, compstride, lsize, mtype,
                                             cmode, offsets, rstr);
     CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
@@ -495,12 +501,10 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt nelem, CeedInt elemsize,
   (*rstr)->blksize = blksize;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          (const CeedInt *) blkoffsets, *rstr); CeedChk(ierr);
-
   if (cmode == CEED_OWN_POINTER) {
     ierr = CeedFree(&offsets); CeedChk(ierr);
   }
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -540,14 +544,14 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support "
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support "
                        "ElemRestrictionCreateBlocked");
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateBlockedStrided(delegate, nelem, elemsize,
            blksize, ncomp, lsize, strides, rstr);
     CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
@@ -562,12 +566,11 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt nelem,
   (*rstr)->nblk = nblk;
   (*rstr)->blksize = blksize;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i = 0; i<3; i++)
+  for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          NULL, *rstr); CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -593,7 +596,7 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec,
   if (evec) {
     ierr = CeedVectorCreate(rstr->ceed, n, evec); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -626,17 +629,18 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode tmode,
   }
   if (n != u->length)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 2, "Input vector size %d not compatible with "
+    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
+                     "Input vector size %d not compatible with "
                      "element restriction (%d, %d)", u->length, m, n);
   // LCOV_EXCL_STOP
   if (m != ru->length)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 2, "Output vector size %d not compatible with "
+    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
+                     "Output vector size %d not compatible with "
                      "element restriction (%d, %d)", ru->length, m, n);
   // LCOV_EXCL_STOP
   ierr = rstr->Apply(rstr, tmode, u, ru, request); CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -672,24 +676,26 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   }
   if (n != u->length)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 2, "Input vector size %d not compatible with "
+    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
+                     "Input vector size %d not compatible with "
                      "element restriction (%d, %d)", u->length, m, n);
   // LCOV_EXCL_STOP
   if (m != ru->length)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 2, "Output vector size %d not compatible with "
+    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
+                     "Output vector size %d not compatible with "
                      "element restriction (%d, %d)", ru->length, m, n);
   // LCOV_EXCL_STOP
   if (rstr->blksize*block > rstr->nelem)
     // LCOV_EXCL_START
-    return CeedError(rstr->ceed, 2, "Cannot retrieve block %d, element %d > "
+    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
+                     "Cannot retrieve block %d, element %d > "
                      "total elements %d", block, rstr->blksize*block,
                      rstr->nelem);
   // LCOV_EXCL_STOP
   ierr = rstr->ApplyBlock(rstr, block, tmode, u, ru, request);
   CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -705,7 +711,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
                                      CeedInt *compstride) {
   *compstride = rstr->compstride;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -721,7 +727,7 @@ int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
 int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
                                       CeedInt *numelem) {
   *numelem = rstr->nelem;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -737,7 +743,7 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
                                       CeedInt *elemsize) {
   *elemsize = rstr->elemsize;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -753,7 +759,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
                                       CeedInt *lsize) {
   *lsize = rstr->lsize;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -770,7 +776,7 @@ int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
 int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
                                         CeedInt *numcomp) {
   *numcomp = rstr->ncomp;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -786,7 +792,7 @@ int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
 int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
                                     CeedInt *numblock) {
   *numblock = rstr->nblk;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -802,7 +808,7 @@ int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
 int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
                                     CeedInt *blksize) {
   *blksize = rstr->blksize;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -831,8 +837,7 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
 
   // Cleanup
   ierr = CeedVectorDestroy(&evec); CeedChk(ierr);
-
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -857,7 +862,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
           "nodes each and %s %s\n", rstr->blksize > 1 ? "Blocked " : "",
           rstr->lsize, rstr->ncomp, rstr->nelem, rstr->elemsize,
           rstr->strides ? "strides" : "component stride", stridesstr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -872,9 +877,10 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
 int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   int ierr;
 
-  if (!*rstr || --(*rstr)->refcount > 0) return 0;
+  if (!*rstr || --(*rstr)->refcount > 0) return CEED_ERROR_SUCCESS;
   if ((*rstr)->numreaders)
-    return CeedError((*rstr)->ceed, 1, "Cannot destroy CeedElemRestriction, "
+    return CeedError((*rstr)->ceed, CEED_ERROR_ACCESS,
+                     "Cannot destroy CeedElemRestriction, "
                      "a process has read access to the offset data");
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
@@ -882,7 +888,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   ierr = CeedFree(&(*rstr)->strides); CeedChk(ierr);
   ierr = CeedDestroy(&(*rstr)->ceed); CeedChk(ierr);
   ierr = CeedFree(rstr); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}

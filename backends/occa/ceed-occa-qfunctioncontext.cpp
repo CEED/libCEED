@@ -109,12 +109,12 @@ namespace ceed {
           setCurrentHostCtxBufferIfNeeded();
           ::memcpy(currentHostBuffer, data, ctxSize);
           syncState = SyncState::host;
-          return 0;
+          return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
           setCurrentCtxMemoryIfNeeded();
           currentMemory.copyFrom(dataToMemory(data));
           syncState = SyncState::device;
-          return 0;
+          return CEED_ERROR_SUCCESS;
       }
       return ceedError("Invalid CeedMemType passed");
     }
@@ -125,12 +125,12 @@ namespace ceed {
           freeHostCtxBuffer();
           hostBuffer = currentHostBuffer = data;
           syncState = SyncState::host;
-          return 0;
+          return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
           memory.free();
           memory = currentMemory = dataToMemory(data);
           syncState = SyncState::device;
-          return 0;
+          return CEED_ERROR_SUCCESS;
       }
       return ceedError("Invalid CeedMemType passed");
     }
@@ -141,12 +141,12 @@ namespace ceed {
           freeHostCtxBuffer();
           currentHostBuffer = data;
           syncState = SyncState::host;
-          return 0;
+          return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
           memory.free();
           currentMemory = dataToMemory(data);
           syncState = SyncState::device;
-          return 0;
+          return CEED_ERROR_SUCCESS;
       }
       return ceedError("Invalid CeedMemType passed");
     }
@@ -163,7 +163,7 @@ namespace ceed {
           }
           syncState = SyncState::host;
           *(void **)data = currentHostBuffer;
-          return 0;
+          return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
           setCurrentCtxMemoryIfNeeded();
           if (syncState == SyncState::host) {
@@ -172,13 +172,13 @@ namespace ceed {
           }
           syncState = SyncState::device;
           *(void **)data = memoryToData(currentMemory);
-          return 0;
+          return CEED_ERROR_SUCCESS;
       }
       return ceedError("Invalid CeedMemType passed");
     }
 
     int QFunctionContext::restoreData() {
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     ::occa::memory QFunctionContext::getKernelArg() {
@@ -211,7 +211,7 @@ namespace ceed {
       QFunctionContext *ctx_ = new QFunctionContext();
       ierr = CeedQFunctionContextSetBackendData(ctx, ctx_); CeedChk(ierr);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int QFunctionContext::ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
@@ -242,7 +242,7 @@ namespace ceed {
 
     int QFunctionContext::ceedDestroy(CeedQFunctionContext ctx) {
       delete QFunctionContext::from(ctx);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

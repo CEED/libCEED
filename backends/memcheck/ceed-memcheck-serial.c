@@ -27,7 +27,8 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self/memcheck")
       && strcmp(resource, "/cpu/self/memcheck/serial"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Valgrind Memcheck backend cannot use resource: %s",
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Valgrind Memcheck backend cannot use resource: %s",
                      resource);
   // LCOV_EXCL_STOP
 
@@ -35,12 +36,12 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Memcheck); CeedChk(ierr);
+                                CeedQFunctionCreate_Memcheck); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

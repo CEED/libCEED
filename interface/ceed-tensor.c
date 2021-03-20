@@ -50,21 +50,22 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
 
     if (!delegate)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1, "Backend does not support TensorContractCreate");
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support TensorContractCreate");
     // LCOV_EXCL_STOP
 
     ierr = CeedTensorContractCreate(delegate, basis, contract);
     CeedChk(ierr);
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1,contract); CeedChk(ierr);
+  ierr = CeedCalloc(1, contract); CeedChk(ierr);
 
   (*contract)->ceed = ceed;
   ceed->refcount++;
   ierr = ceed->TensorContractCreate(basis, *contract);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -100,7 +101,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
 
   ierr = contract->Apply(contract, A, B, C, J, t, tmode, add,  u, v);
   CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -115,7 +116,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
   *ceed = contract->ceed;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -130,7 +131,7 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 **/
 int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
   *(void **)data = contract->data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -145,7 +146,7 @@ int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
 **/
 int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
   contract->data = data;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -160,13 +161,13 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
   int ierr;
 
-  if (!*contract || --(*contract)->refcount > 0) return 0;
+  if (!*contract || --(*contract)->refcount > 0) return CEED_ERROR_SUCCESS;
   if ((*contract)->Destroy) {
     ierr = (*contract)->Destroy(*contract); CeedChk(ierr);
   }
   ierr = CeedDestroy(&(*contract)->ceed); CeedChk(ierr);
   ierr = CeedFree(contract); CeedChk(ierr);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}

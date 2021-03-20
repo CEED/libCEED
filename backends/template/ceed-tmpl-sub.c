@@ -26,30 +26,31 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl/sub"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Tmpl backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   // Create reference CEED for objects
   Ceed basisceedref;
   CeedInit("/cpu/self/ref/blocked", &basisceedref);
   ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   Ceed tensorceedref;
   CeedInit("/cpu/self/ref/blocked", &tensorceedref);
   ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   Ceed opceedref;
   CeedInit("/cpu/self/ref/blocked", &opceedref);
   ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

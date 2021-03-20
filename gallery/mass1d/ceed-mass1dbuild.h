@@ -35,7 +35,7 @@ CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q,
     qd[i] = J[i] * qw[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // mass1dbuild_h

@@ -183,10 +183,10 @@ CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int,
                                const char *, va_list *);
 CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int,
                               const char *, va_list *);
-CEED_EXTERN int CeedSetErrorHandler(Ceed ceed,
-                                    int (*eh)(Ceed, const char *, int,
-                                        const char *, int, const char *,
-                                        va_list *));
+typedef int (*CeedErrorHandler)(Ceed, const char *, int,
+                                const char *, int, const char *,
+                                va_list *);
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh);
 CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **errmsg);
 CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 
@@ -224,6 +224,35 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
                                bool *release);
+
+/// Ceed Errors
+///
+/// This enum is used to specify the type of error returned by a function.
+/// A zero error code is success, negative error codes indicate terminal errors
+/// and positive error codes indicate nonterminal errors. With nonterminal errors
+/// the object state has not been modifiend, but with terminal errors the object
+/// data is likely modified or corrupted.
+/// @ingroup Ceed
+typedef enum {
+  /// Sucess error code
+  CEED_ERROR_SUCCESS     = 0,
+  /// Minor error, generic
+  CEED_ERROR_MINOR       = 1,
+  /// Minor error, dimension mismatch in inputs
+  CEED_ERROR_DIMENSION   = 2,
+  /// Minor error, incomplete object setup
+  CEED_ERROR_INCOMPLETE  = 3,
+  /// Minor error, access lock problem
+  CEED_ERROR_ACCESS      = 4,
+  /// Major error, generic
+  CEED_ERROR_MAJOR       = -1,
+  /// Major error, internal backend error
+  CEED_ERROR_BACKEND     = -2,
+  /// Major error, operation unsupported by current backend
+  CEED_ERROR_UNSUPPORTED = -3,
+} CeedErrorType;
+
+CEED_EXTERN const char *const *CeedErrorTypes;
 
 /// Specify memory type
 ///

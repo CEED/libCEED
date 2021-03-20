@@ -28,20 +28,21 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/avx/serial"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "AVX backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/opt/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Avx); CeedChk(ierr);
-  return 0;
+                                CeedTensorContractCreate_Avx); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

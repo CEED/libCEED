@@ -28,20 +28,21 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/ref/blocked"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Blocked backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Blocked backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
   CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Blocked); CeedChk(ierr);
+                                CeedOperatorCreate_Blocked); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

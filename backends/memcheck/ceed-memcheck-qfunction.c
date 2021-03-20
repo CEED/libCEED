@@ -26,47 +26,47 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
                                        CeedVector *U, CeedVector *V) {
   int ierr;
   CeedQFunction_Memcheck *impl;
-  ierr = CeedQFunctionGetData(qf, &impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &impl); CeedChkBackend(ierr);
 
   CeedQFunctionContext ctx;
-  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChkBackend(ierr);
   void *ctxData = NULL;
   if (ctx) {
     ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxData);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
 
   CeedQFunctionUser f = NULL;
-  ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChk(ierr);
+  ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChkBackend(ierr);
 
   CeedInt nIn, nOut;
-  ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChk(ierr);
+  ierr = CeedQFunctionGetNumArgs(qf, &nIn, &nOut); CeedChkBackend(ierr);
 
   for (int i = 0; i<nIn; i++) {
     ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
   for (int i = 0; i<nOut; i++) {
     ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     CeedInt len;
-    ierr = CeedVectorGetLength(V[i], &len); CeedChk(ierr);
+    ierr = CeedVectorGetLength(V[i], &len); CeedChkBackend(ierr);
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
   }
 
-  ierr = f(ctxData, Q, impl->inputs, impl->outputs); CeedChk(ierr);
+  ierr = f(ctxData, Q, impl->inputs, impl->outputs); CeedChkBackend(ierr);
 
   for (int i = 0; i<nIn; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChkBackend(ierr);
   }
   for (int i = 0; i<nOut; i++) {
-    ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChk(ierr);
+    ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChkBackend(ierr);
   }
   if (ctx) {
-    ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChk(ierr);
+    ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChkBackend(ierr);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -75,13 +75,13 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Memcheck *impl;
-  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void *)&impl); CeedChkBackend(ierr);
 
-  ierr = CeedFree(&impl->inputs); CeedChk(ierr);
-  ierr = CeedFree(&impl->outputs); CeedChk(ierr);
-  ierr = CeedFree(&impl); CeedChk(ierr);
+  ierr = CeedFree(&impl->inputs); CeedChkBackend(ierr);
+  ierr = CeedFree(&impl->outputs); CeedChkBackend(ierr);
+  ierr = CeedFree(&impl); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -90,19 +90,19 @@ static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
 int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   int ierr;
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
 
   CeedQFunction_Memcheck *impl;
-  ierr = CeedCalloc(1, &impl); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->inputs); CeedChk(ierr);
-  ierr = CeedCalloc(16, &impl->outputs); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, impl); CeedChk(ierr);
+  ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
+  ierr = CeedCalloc(16, &impl->inputs); CeedChkBackend(ierr);
+  ierr = CeedCalloc(16, &impl->outputs); CeedChkBackend(ierr);
+  ierr = CeedQFunctionSetData(qf, impl); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Memcheck); CeedChk(ierr);
+                                CeedQFunctionApply_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Memcheck); CeedChk(ierr);
+                                CeedQFunctionDestroy_Memcheck); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

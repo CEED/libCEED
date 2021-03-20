@@ -43,14 +43,14 @@ int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
         for (CeedInt c=0; c<C; c++)
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Tensor Contract Destroy
 //------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Ref(CeedTensorContract contract) {
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -59,13 +59,13 @@ static int CeedTensorContractDestroy_Ref(CeedTensorContract contract) {
 int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
-  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChk(ierr);
+  ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
-                                CeedTensorContractApply_Ref); CeedChk(ierr);
+                                CeedTensorContractApply_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
-                                CeedTensorContractDestroy_Ref); CeedChk(ierr);
+                                CeedTensorContractDestroy_Ref); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
