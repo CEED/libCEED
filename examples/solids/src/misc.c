@@ -123,18 +123,25 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx) {
 // -----------------------------------------------------------------------------
 // Output solution for visualization
 // -----------------------------------------------------------------------------
-PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
+PetscErrorCode ViewSolution(MPI_Comm comm, AppCtx appCtx, Vec U,
+                            PetscInt increment,
                             PetscScalar loadIncrement) {
   PetscErrorCode ierr;
   DM dm;
   PetscViewer viewer;
   char outputFilename[PETSC_MAX_PATH_LEN];
+  PetscMPIInt rank;
 
   PetscFunctionBeginUser;
 
+  // Create output directory
+  MPI_Comm_rank(comm, &rank);
+  if (!rank) {ierr = PetscMkdir(appCtx->outputdir); CHKERRQ(ierr);}
+
   // Build file name
   ierr = PetscSNPrintf(outputFilename, sizeof outputFilename,
-                       "solution-%03D.vtu", increment); CHKERRQ(ierr);
+                       "%s/solution-%03D.vtu", appCtx->outputdir,
+                       increment); CHKERRQ(ierr);
 
   // Increment sequence
   ierr = VecGetDM(U, &dm); CHKERRQ(ierr);
@@ -153,7 +160,7 @@ PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
 // Output diagnostic quantities for visualization
 // -----------------------------------------------------------------------------
 PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
-                                        UserMult user, Vec U,
+                                        UserMult user, AppCtx appCtx, Vec U,
                                         CeedElemRestriction ErestrictDiagnostic) {
   PetscErrorCode ierr;
   Vec Diagnostic, Yloc, MultVec;
@@ -162,7 +169,7 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   PetscMemType xmemtype, ymemtype;
   PetscInt lsz;
   PetscViewer viewer;
-  const char *outputFilename = "diagnostic_quantities.vtu";
+  char outputFilename[PETSC_MAX_PATH_LEN];
 
   PetscFunctionBeginUser;
 
@@ -232,6 +239,9 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   // ---------------------------------------------------------------------------
   // Output solution vector
   // ---------------------------------------------------------------------------
+  ierr = PetscSNPrintf(outputFilename, sizeof outputFilename,
+                       "%s/diagnostic_quantities.vtu",
+                       appCtx->outputdir); CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(comm, outputFilename, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(Diagnostic, viewer); CHKERRQ(ierr);

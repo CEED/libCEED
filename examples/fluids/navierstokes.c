@@ -228,7 +228,7 @@ struct User_ {
   CeedVector qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
   Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
+  char outputdir[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
 };
 
@@ -646,7 +646,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
   // Output
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vtu",
-                       user->outputfolder, stepno + user->contsteps);
+                       user->outputdir, stepno + user->contsteps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
@@ -667,7 +667,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     CHKERRQ(ierr);
     ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined,
                          "%s/nsrefined-%03D.vtu",
-                         user->outputfolder, stepno + user->contsteps);
+                         user->outputdir, stepno + user->contsteps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined),
                               filepath_refined,
@@ -681,7 +681,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
   // Save data in a binary file for continuation of simulations
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
-                       user->outputfolder); CHKERRQ(ierr);
+                       user->outputdir); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(Q, viewer); CHKERRQ(ierr);
@@ -691,7 +691,7 @@ static PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Dimensionalize time back
   time /= user->units->second;
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
-                       user->outputfolder); CHKERRQ(ierr);
+                       user->outputdir); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   #if PETSC_VERSION_GE(3,13,0)
@@ -1148,10 +1148,10 @@ int main(int argc, char **argv) {
                        "Warning! Use -qextra_boundary only with -problem_advection_wind translation\n");
     CHKERRQ(ierr);
   }
-  ierr = PetscStrncpy(user->outputfolder, ".", 2); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-of", "Output folder",
-                            NULL, user->outputfolder, user->outputfolder,
-                            sizeof(user->outputfolder), NULL); CHKERRQ(ierr);
+  ierr = PetscStrncpy(user->outputdir, ".", 2); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-output_dir", "Output directory",
+                            NULL, user->outputdir, user->outputdir,
+                            sizeof(user->outputdir), NULL); CHKERRQ(ierr);
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
   ierr = PetscOptionsEnum("-memtype",
                           "CEED MemType requested", NULL,
@@ -1612,7 +1612,7 @@ int main(int argc, char **argv) {
   }
 
   MPI_Comm_rank(comm, &rank);
-  if (!rank) {ierr = PetscMkdir(user->outputfolder); CHKERRQ(ierr);}
+  if (!rank) {ierr = PetscMkdir(user->outputdir); CHKERRQ(ierr);}
   // Gather initial Q values
   // In case of continuation of simulation, set up initial values from binary file
   if (contsteps) { // continue from existent solution
@@ -1620,7 +1620,7 @@ int main(int argc, char **argv) {
     char filepath[PETSC_MAX_PATH_LEN];
     // Read input
     ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
-                         user->outputfolder);
+                         user->outputdir);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
@@ -1665,7 +1665,7 @@ int main(int argc, char **argv) {
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
-                         user->outputfolder); CHKERRQ(ierr);
+                         user->outputdir); CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
@@ -1794,4 +1794,3 @@ int main(int argc, char **argv) {
   ierr = PetscFree(user); CHKERRQ(ierr);
   return PetscFinalize();
 }
-

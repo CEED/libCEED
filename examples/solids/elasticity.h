@@ -108,6 +108,7 @@ typedef struct AppCtx_private *AppCtx;
 struct AppCtx_private {
   char          ceedResource[PETSC_MAX_PATH_LEN];     // libCEED backend
   char          meshFile[PETSC_MAX_PATH_LEN];         // exodusII mesh file
+  char          outputdir[PETSC_MAX_PATH_LEN];
   PetscBool     testMode;
   PetscBool     viewSoln;
   PetscBool     viewFinalSoln;
@@ -290,11 +291,12 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat Jpre, void *ctx);
 // -----------------------------------------------------------------------------
 // Solution output
 // -----------------------------------------------------------------------------
-PetscErrorCode ViewSolution(MPI_Comm comm, Vec U, PetscInt increment,
+PetscErrorCode ViewSolution(MPI_Comm comm, AppCtx appCtx, Vec U,
+                            PetscInt increment,
                             PetscScalar loadIncrement);
 
 PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
-                                        UserMult user, Vec U,
+                                        UserMult user, AppCtx appCtx, Vec U,
                                         CeedElemRestriction ErestrictDiagnostic);
 
 // -----------------------------------------------------------------------------

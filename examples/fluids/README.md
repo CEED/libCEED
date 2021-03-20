@@ -64,7 +64,7 @@ Available runtime options are:
 | `-degree`                             | Polynomial degree of tensor product basis                                                       |
 | `-qextra`                             | Number of extra quadrature points                                                               |
 | `-qextra_boundary`                    | Number of extra quadrature points on in/outflow faces                                           |
-| `-of`                                 | Output folder                                                                                   |
+| `-output_dir`                         | Output directory                                                                                |
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,
 `-bc_slip_y`, and `-bc_slip_z` are:
