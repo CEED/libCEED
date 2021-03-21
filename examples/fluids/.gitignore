@@ -1,5 +1,10 @@
-navierstokes
-*.vtr
-*.vts
-*.bin*
-*.vtu
+navier-stokes/navierstokes
+shallow-water/shallowwater
+navier-stokes/*.vtr
+navier-stokes/*.vts
+navier-stokes/*.bin*
+navier-stokes/*.vtu
+shallow-water/*.vtr
+shallow-water/*.vts
+shallow-water/*.bin*
+shallow-water/*.vtu
