@@ -1694,27 +1694,17 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
   bool isComposite;
   ierr = CeedOperatorCheckReady(op->ceed, op); CeedChk(ierr);
 
-  // Use backend version, if available
+  // Use backend or fallback version, if available
   if (op->LinearAssembleSymbolic) {
     return op->LinearAssembleSymbolic(op, nentries, rows, cols);
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallbackresource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
-    if (strcmp(fallbackresource, "") && strcmp(resource, fallbackresource)) {
-      // Fallback to reference Ceed
-      if (!op->opfallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      if (op->opfallback->LinearAssembleSymbolic) {
-        return op->opfallback->LinearAssembleSymbolic(
-                 op->opfallback, nentries, rows, cols);
-      }
+    if (op->opfallback && op->opfallback->LinearAssembleSymbolic) {
+      return op->opfallback->LinearAssembleSymbolic(
+               op->opfallback, nentries, rows, cols);
     }
   }
 
-  // if fallback resource is not valid, or if it does not provide
+  // if neither backend nor fallback resource proivdes
   // LinearAssembleSymbolic, continue with interface-level implementation
 
   // count entries and allocate rows, cols arrays
@@ -1780,26 +1770,16 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   CeedOperator *suboperators;
   ierr = CeedOperatorCheckReady(op->ceed, op); CeedChk(ierr);
 
-  // Use backend version, if available
+  // Use backend or fallback version, if available
   if (op->LinearAssemble) {
     return op->LinearAssemble(op, values);
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallbackresource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
-    if (strcmp(fallbackresource, "") && strcmp(resource, fallbackresource)) {
-      // Fallback to reference Ceed
-      if (!op->opfallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      if (op->opfallback->LinearAssemble) {
-        return op->opfallback->LinearAssemble(op->opfallback, values);
-      }
+    if (op->opfallback && op->opfallback->LinearAssemble) {
+      return op->opfallback->LinearAssemble(op->opfallback, values);
     }
   }
 
-  // if fallback resource is not valid, or if it does not provide
+  // if neither backend nor fallback resource provides
   // LinearAssemble, continue with interface-level implementation
 
   bool isComposite;
