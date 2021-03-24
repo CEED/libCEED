@@ -204,7 +204,8 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, void *ctxSetupData) {
+PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, WindType wind_type,
+                                  void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscInt len;

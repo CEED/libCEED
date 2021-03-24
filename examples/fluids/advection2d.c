@@ -1,7 +1,7 @@
 #include "navierstokes.h"
 
 PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
-                                  void **ctx, void **ctxPhys) {
+                              void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
@@ -43,7 +43,7 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
   CeedScalar CtauS       = 0.;          // dimensionless
   CeedScalar strong_form = 0.;          // [0,1]
   CeedScalar E_wind      = 1.e6;        // J
-  PetscReal wind[3]      = {1., 0};  // m/s
+  PetscReal wind[3]      = {1., 0, 0};  // m/s
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -140,22 +140,27 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData) {
+PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
+                              void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscInt len;
   PetscBool flg;
   MPI_Comm comm = PETSC_COMM_WORLD;
 
-  // Default boundary conditions
-  //   slip bc on all faces and no wall bc
-  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
-  bc->slips[0][0] = 5;
-  bc->slips[0][1] = 6;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
+  // Set up BCs
+  if (wind_type == ADVECTION_WIND_TRANSLATION) {
+    bc->nwall = 0;
+    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+  } else { // Default boundary conditions
+    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
+    bc->slips[0][0] = 5;
+    bc->slips[0][1] = 6;
+    bc->slips[1][0] = 3;
+    bc->slips[1][1] = 4;
+    bc->slips[2][0] = 1;
+    bc->slips[2][1] = 2;
+  }
 
   PetscFunctionBeginUser;
   // Parse command line options
@@ -215,6 +220,7 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData) {
   {
     // Wall boundary conditions
     //   zero energy density and zero flux
+    //   ToDo: need to set "wall" as the default BC after checking with the regression tests
     PetscInt comps[1] = {4};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                          1, comps, (void(*)(void))Exact_Advection2d, NULL,

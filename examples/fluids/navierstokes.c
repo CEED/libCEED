@@ -273,8 +273,8 @@ static PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                               op_applyVol); // Apply a Sub-Operator for the volume
 
   if (wind_type == ADVECTION_WIND_TRANSLATION) {
-    bc->nwall = 0;
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+    //bc->nwall = 0;
+    //bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
     ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Xloc, &lsize); CHKERRQ(ierr);
     ierr = CeedVectorCreate(ceed, lsize, &xcorners); CHKERRQ(ierr);
@@ -625,7 +625,7 @@ static PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 }
 
 static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                              SimpleBC bc, void *ctxSetupData) {
+                              SimpleBC bc, WindType wind_type, void *ctxSetupData) {
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -639,7 +639,7 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    ierr = problem->bc(dm, bc, ctxSetupData);
+    ierr = problem->bc(dm, bc, wind_type, ctxSetupData);
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -958,7 +958,8 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, bc, ctxSetupData); CHKERRQ(ierr);
+  ierr = SetUpDM(dm, problem, degree, bc, ctxPhysData->wind_type, ctxSetupData);
+  CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
@@ -978,8 +979,8 @@ int main(int argc, char **argv) {
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
       if (i + 1 == viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, ctxSetupData);
-      CHKERRQ(ierr);
+      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, ctxPhysData->wind_type,
+                     ctxSetupData); CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
                                    &interp_next, NULL); CHKERRQ(ierr);
       if (!i) interpviz = interp_next;
@@ -1213,7 +1214,8 @@ int main(int argc, char **argv) {
 
   // Create CEED Operator for the whole domain
   if (!implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type, user->op_rhs_vol,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type,
+                                   user->op_rhs_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, basisxSur, basisqSur,

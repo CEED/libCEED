@@ -69,7 +69,7 @@ typedef struct {
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
         *applyVol_ifunction_loc, *applySur_loc;
   bool non_zero_time;
-  PetscErrorCode (*bc)(DM, SimpleBC, void *);
+  PetscErrorCode (*bc)(DM, SimpleBC, WindType, void *);
 } problemData;
 
 // PETSc user data
@@ -121,14 +121,16 @@ struct Physics_ {
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
     void **ctxSetupData, void **ctx, void **ctxPhys);
 extern PetscErrorCode NS_ADVECTION(problemData *problem,
-    void **ctxSetupData, void **ctx, void **ctxPhys);
+                                   void **ctxSetupData, void **ctx, void **ctxPhys);
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
-    void **ctxSetupData, void **ctx, void **ctxPhys);
+                                     void **ctxSetupData, void **ctx, void **ctxPhys);
 
 // Boundary Condition Functions
-extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc,
+extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, WindType wind_type,
     void *ctxSetupData);
-extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, void *ctxSetupData);
-extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, void *ctxSetupData);
+extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
+                                   void *ctxSetupData);
+extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
+                                     void *ctxSetupData);
 
 #endif

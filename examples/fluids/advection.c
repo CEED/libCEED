@@ -1,7 +1,7 @@
 #include "navierstokes.h"
 
 PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
-                                  void **ctx, void **ctxPhys) {
+                            void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
@@ -141,7 +141,8 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, void *ctxSetupData) {
+PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
+                            void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -216,6 +217,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, void *ctxSetupData) {
   {
     // Wall boundary conditions
     //   zero energy density and zero flux
+    //   ToDo: need to set "wall" as the default BC after checking with the regression tests
     PetscInt comps[1] = {4};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                          1, comps, (void(*)(void))Exact_Advection, NULL,
