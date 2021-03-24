@@ -4,6 +4,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
                                   void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
+  WindType wind_type;
   StabilizationType stab;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
@@ -79,6 +80,13 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
                             NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
+                          NULL, WindTypes,
+                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+                          (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -89,9 +97,6 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
   ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
-  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -123,11 +128,13 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
   ctxSetup->wind[0]  = wind[0];
   ctxSetup->wind[1]  = wind[1];
   ctxSetup->wind[2]  = wind[2];
+  ctxSetup->wind_type = wind_type;
 
   // -- QFunction Context
   ctxPhysData->ctxAdvectionData->CtauS = CtauS;
   ctxPhysData->ctxAdvectionData->strong_form = strong_form;
   ctxPhysData->ctxAdvectionData->E_wind = E_wind;
+  ctxPhysData->wind_type = wind_type;
   ctxPhysData->stab = stab;
   ctxPhysData->ctxAdvectionData->stabilization = stab;
 

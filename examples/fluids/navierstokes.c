@@ -694,7 +694,7 @@ int main(int argc, char **argv) {
   //PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
   //            kgpersquaredms, Joulepercubicm, Joule;
   problemData *problem = NULL;
-  WindType wind_type;
+  //WindType wind_type;
   //StabilizationType stab;
   testType testChoice;
   testData *test = NULL;
@@ -780,10 +780,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
                            problemName, problemName, sizeof(problemName),
                            NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
-                          NULL, WindTypes,
-                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
-                          (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
+  //                        NULL, WindTypes,
+  //                        (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+  //                        (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
   //PetscInt n = problem->dim;
   //PetscBool userWind;
   //ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
@@ -896,7 +896,7 @@ int main(int argc, char **argv) {
 
   // Set up the libCEED context
   ctxSetupData->time = 0;
-  ctxPhysData->ctxAdvectionData->implicit = implicit;
+  //ctxPhysData->ctxAdvectionData->implicit = implicit;
 
   // Define derived units
   //Pascal = kilogram / (meter * PetscSqr(second));
@@ -1213,13 +1213,13 @@ int main(int argc, char **argv) {
 
   // Create CEED Operator for the whole domain
   if (!implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, bc, wind_type, user->op_rhs_vol,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type, user->op_rhs_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, basisxSur, basisqSur,
                                    &user->op_rhs); CHKERRQ(ierr);
   if (implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, bc, wind_type,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type,
                                    user->op_ifunction_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,

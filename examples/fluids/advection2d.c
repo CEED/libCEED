@@ -2,8 +2,19 @@
 
 PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
                                   void **ctx, void **ctxPhys) {
+  PetscInt ierr;
+  MPI_Comm comm = PETSC_COMM_WORLD;
+  WindType wind_type;
+  StabilizationType stab;
+  SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
+  Units units = *(Units *)ctx;
+  Physics ctxPhysData = *(Physics *)ctxPhys;
+  ierr = PetscMalloc1(1, &ctxPhysData->ctxAdvectionData); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
+  // ------------------------------------------------------
+  //               SET UP ADVECTION2D
+  // ------------------------------------------------------
   problem->dim                       = 2;
   problem->qdatasizeVol              = 5;
   problem->qdatasizeSur              = 3;
@@ -21,6 +32,111 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
   problem->applySur_loc              = Advection2d_Sur_loc;
   problem->bc                        = BC_ADVECTION2D;
   problem->non_zero_time             = PETSC_TRUE;
+
+  // ------------------------------------------------------
+  //             Create the libCEED context
+  // ------------------------------------------------------
+  PetscScalar lx         = 8000.;       // m
+  PetscScalar ly         = 8000.;       // m
+  PetscScalar lz         = 4000.;       // m
+  CeedScalar rc          = 1000.;       // m (Radius of bubble)
+  CeedScalar CtauS       = 0.;          // dimensionless
+  CeedScalar strong_form = 0.;          // [0,1]
+  CeedScalar E_wind      = 1.e6;        // J
+  PetscReal wind[3]      = {1., 0};  // m/s
+
+  // ------------------------------------------------------
+  //             Create the PETSc context
+  // ------------------------------------------------------
+  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
+  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
+  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar Joule;
+
+  // ------------------------------------------------------
+  //              Command line Options
+  // ------------------------------------------------------
+  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION",
+                           NULL); CHKERRQ(ierr);
+  // -- Physics
+  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
+                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
+                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
+                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
+                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  PetscInt n = problem->dim;
+  PetscBool userWind;
+  ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
+                               "Constant wind vector",
+                               NULL, wind, &n, &userWind); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-CtauS",
+                            "Scale coefficient for tau (nondimensional)",
+                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-strong_form",
+                            "Strong (1) or weak/integrated by parts (0) advection residual",
+                            NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
+                            NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
+                          NULL, WindTypes,
+                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+                          (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  // -- Units
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  meter = fabs(meter);
+  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
+                            NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
+  kilogram = fabs(kilogram);
+  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
+                            NULL, second, &second, NULL); CHKERRQ(ierr);
+  second = fabs(second);
+
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // ------------------------------------------------------
+  //           Set up the PETSc context
+  // ------------------------------------------------------
+  // -- Define derived units
+  Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
+
+  units->meter = meter;
+  units->kilogram = kilogram;
+  units->second = second;
+  units->Joule = Joule;
+
+  // ------------------------------------------------------
+  //           Set up the libCEED context
+  // ------------------------------------------------------
+  // -- Scale variables to desired units
+  lx = fabs(lx) * meter;
+  ly = fabs(ly) * meter;
+  lz = fabs(lz) * meter;
+  rc = fabs(rc) * meter;
+
+  // -- Setup Context
+  ctxSetup->rc         = rc;
+  ctxSetup->lx         = lx;
+  ctxSetup->ly         = ly;
+  ctxSetup->lz         = lz;
+  ctxSetup->wind[0]  = wind[0];
+  ctxSetup->wind[1]  = wind[1];
+  ctxSetup->wind_type = wind_type;
+
+  // -- QFunction Context
+  ctxPhysData->ctxAdvectionData->CtauS = CtauS;
+  ctxPhysData->ctxAdvectionData->strong_form = strong_form;
+  ctxPhysData->ctxAdvectionData->E_wind = E_wind;
+  ctxPhysData->wind_type = wind_type;
+  ctxPhysData->stab = stab;
+  ctxPhysData->ctxAdvectionData->stabilization = stab;
+
   PetscFunctionReturn(0);
 }
 
