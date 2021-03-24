@@ -720,7 +720,7 @@ int main(int argc, char **argv) {
   //CeedScalar theta0      = 300.;     // K
   //CeedScalar thetaC      = -15.;     // K
   //CeedScalar P0          = 1.e5;     // Pa
-  CeedScalar E_wind      = 1.e6;     // J
+  //CeedScalar E_wind      = 1.e6;     // J
   //CeedScalar N           = 0.01;     // 1/s
   //CeedScalar cv          = 717.;     // J/(kg K)
   //CeedScalar cp          = 1004.;    // J/(kg K)
@@ -729,8 +729,8 @@ int main(int argc, char **argv) {
   //CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   //CeedScalar k           = 0.02638;  // W/(m K)
-  CeedScalar CtauS       = 0.;       // dimensionless
-  CeedScalar strong_form = 0.;       // [0,1]
+  //CeedScalar CtauS       = 0.;       // dimensionless
+  //CeedScalar strong_form = 0.;       // [0,1]
   //PetscScalar lx         = 8000.;    // m
   //PetscScalar ly         = 8000.;    // m
   //PetscScalar lz         = 4000.;    // m
@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
   PetscInt degree        = 1;        // -
   PetscInt qextra        = 2;        // -
   PetscInt qextraSur     = 2;        // -
-  PetscReal wind[3] = {1., 0, 0}; //center[3], dc_axis[3] = {0, 0, 0},
+  //PetscReal wind[3] = {1., 0, 0}; //center[3], dc_axis[3] = {0, 0, 0},
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -784,11 +784,11 @@ int main(int argc, char **argv) {
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
-  PetscInt n = problem->dim;
-  PetscBool userWind;
-  ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
-                               "Constant wind vector",
-                               NULL, wind, &n, &userWind); CHKERRQ(ierr);
+  //PetscInt n = problem->dim;
+  //PetscBool userWind;
+  //ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
+  //                             "Constant wind vector",
+  //                             NULL, wind, &n, &userWind); CHKERRQ(ierr);
   //if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
   //  ierr = PetscPrintf(comm,
   //                     "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
@@ -823,8 +823,8 @@ int main(int argc, char **argv) {
   //                          NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   //Kelvin = fabs(Kelvin);
 
-  ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
-                            NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
+  //                          NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
 
   //ierr = PetscOptionsScalar("-lambda",
   //                          "Stokes hypothesis second viscosity coefficient",
@@ -833,18 +833,18 @@ int main(int argc, char **argv) {
   //                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
   //ierr = PetscOptionsScalar("-k", "Thermal conductivity",
   //                          NULL, k, &k, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-CtauS",
-                            "Scale coefficient for tau (nondimensional)",
-                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-CtauS",
+  //                          "Scale coefficient for tau (nondimensional)",
+  //                          NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
   //if (stab == STAB_NONE && CtauS != 0) {
   //  ierr = PetscPrintf(comm,
   //                     "Warning! Use -CtauS only with -stab su or -stab supg\n");
   //  CHKERRQ(ierr);
   //}
-  ierr = PetscOptionsScalar("-strong_form",
-                            "Strong (1) or weak/integrated by parts (0) advection residual",
-                            NULL, strong_form, &strong_form, NULL);
-  CHKERRQ(ierr);
+  //ierr = PetscOptionsScalar("-strong_form",
+  //                          "Strong (1) or weak/integrated by parts (0) advection residual",
+  //                          NULL, strong_form, &strong_form, NULL);
+  //CHKERRQ(ierr);
   //if (strcmp(problemName, "density_current") == 0 && (CtauS != 0 || strong_form != 0)) {
   //  ierr = PetscPrintf(comm,
   //                     "Warning! Problem density_current does not support -CtauS or -strong_form\n");
@@ -896,7 +896,7 @@ int main(int argc, char **argv) {
 
   // Set up the libCEED context
   ctxSetupData->time = 0;
-  //ctxPhysData->ctxNSData->stabilization = stab;
+  ctxPhysData->ctxAdvectionData->implicit = implicit;
 
   // Define derived units
   //Pascal = kilogram / (meter * PetscSqr(second));
