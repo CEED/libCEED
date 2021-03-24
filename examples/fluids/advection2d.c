@@ -148,11 +148,11 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
   PetscBool flg;
   MPI_Comm comm = PETSC_COMM_WORLD;
 
-  // Set up BCs
+  // Default boundary conditions
   if (wind_type == ADVECTION_WIND_TRANSLATION) {
     bc->nwall = 0;
     bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
-  } else { // Default boundary conditions
+  } else { // ToDo: fix the dimension
     bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
     bc->slips[0][0] = 5;
     bc->slips[0][1] = 6;
