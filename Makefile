@@ -644,7 +644,7 @@ DOXYGEN ?= doxygen
 doxygen :
 	$(DOXYGEN) Doxyfile
 
-doc-html doc-latexpdf doc-epub : doc-% : doxygen
+doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 	make -C doc/sphinx $*
 
 doc : doc-html
