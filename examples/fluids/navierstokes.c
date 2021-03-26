@@ -691,11 +691,7 @@ int main(int argc, char **argv) {
   CeedOperator op_setupVol, op_ics;
   CeedScalar Rd;
   CeedMemType memtyperequested;
-  //PetscScalar WpermK, Pascal, JperkgK, mpersquareds, kgpercubicm,
-  //            kgpersquaredms, Joulepercubicm, Joule;
   problemData *problem = NULL;
-  //WindType wind_type;
-  //StabilizationType stab;
   testType testChoice;
   testData *test = NULL;
   PetscBool implicit;
@@ -712,38 +708,11 @@ int main(int argc, char **argv) {
   #endif
   // *INDENT-ON*
 
-  // Create the libCEED contexts
-  //PetscScalar meter      = 1e-2;     // 1 meter in scaled length units
-  //PetscScalar second     = 1e-2;     // 1 second in scaled time units
-  //PetscScalar kilogram   = 1e-6;     // 1 kilogram in scaled mass units
-  //PetscScalar Kelvin     = 1;        // 1 Kelvin in scaled temperature units
-  //CeedScalar theta0      = 300.;     // K
-  //CeedScalar thetaC      = -15.;     // K
-  //CeedScalar P0          = 1.e5;     // Pa
-  //CeedScalar E_wind      = 1.e6;     // J
-  //CeedScalar N           = 0.01;     // 1/s
-  //CeedScalar cv          = 717.;     // J/(kg K)
-  //CeedScalar cp          = 1004.;    // J/(kg K)
-  //CeedScalar g           = 9.81;     // m/s^2
-  //CeedScalar lambda      = -2./3.;   // -
-  //CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
-  // mu = 75 is not physical for air, but is good for numerical stability
-  //CeedScalar k           = 0.02638;  // W/(m K)
-  //CeedScalar CtauS       = 0.;       // dimensionless
-  //CeedScalar strong_form = 0.;       // [0,1]
-  //PetscScalar lx         = 8000.;    // m
-  //PetscScalar ly         = 8000.;    // m
-  //PetscScalar lz         = 4000.;    // m
-  //CeedScalar rc          = 1000.;    // m (Radius of bubble)
-  //PetscScalar resx       = 1000.;    // m (resolution in x)
-  //PetscScalar resy       = 1000.;    // m (resolution in y)
-  //PetscScalar resz       = 1000.;    // m (resolution in z)
   PetscInt outputfreq    = 10;       // -
   PetscInt contsteps     = 0;        // -
   PetscInt degree        = 1;        // -
   PetscInt qextra        = 2;        // -
   PetscInt qextraSur     = 2;        // -
-  //PetscReal wind[3] = {1., 0, 0}; //center[3], dc_axis[3] = {0, 0, 0},
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -780,28 +749,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
                            problemName, problemName, sizeof(problemName),
                            NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
-  //                        NULL, WindTypes,
-  //                        (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
-  //                        (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
-  //PetscInt n = problem->dim;
-  //PetscBool userWind;
-  //ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
-  //                             "Constant wind vector",
-  //                             NULL, wind, &n, &userWind); CHKERRQ(ierr);
-  //if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
-  //  ierr = PetscPrintf(comm,
-  //                     "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
-  //  CHKERRQ(ierr);
-  //}
-  //if (wind_type == ADVECTION_WIND_TRANSLATION
-  //    && strcmp(problemName, "density_current") == 0) {
-  //  SETERRQ(comm, PETSC_ERR_ARG_INCOMP,
-  //          "-problem_advection_wind translation is not defined for -problem density_current");
-  //}
-  //ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-  //                        StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-  //                        (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -809,56 +756,6 @@ int main(int argc, char **argv) {
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
   CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
-  //                          NULL, meter, &meter, NULL); CHKERRQ(ierr);
-  //meter = fabs(meter);
-  //ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
-  //                          NULL, second, &second, NULL); CHKERRQ(ierr);
-  //second = fabs(second);
-  //ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
-  //                          NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
-  //kilogram = fabs(kilogram);
-  //ierr = PetscOptionsScalar("-units_Kelvin",
-  //                          "1 Kelvin in scaled temperature units",
-  //                          NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
-  //Kelvin = fabs(Kelvin);
-
-  //ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
-  //                          NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-
-  //ierr = PetscOptionsScalar("-lambda",
-  //                          "Stokes hypothesis second viscosity coefficient",
-  //                          NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-mu", "Shear dynamic viscosity coefficient",
-  //                          NULL, mu, &mu, NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-k", "Thermal conductivity",
-  //                          NULL, k, &k, NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-CtauS",
-  //                          "Scale coefficient for tau (nondimensional)",
-  //                          NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
-  //if (stab == STAB_NONE && CtauS != 0) {
-  //  ierr = PetscPrintf(comm,
-  //                     "Warning! Use -CtauS only with -stab su or -stab supg\n");
-  //  CHKERRQ(ierr);
-  //}
-  //ierr = PetscOptionsScalar("-strong_form",
-  //                          "Strong (1) or weak/integrated by parts (0) advection residual",
-  //                          NULL, strong_form, &strong_form, NULL);
-  //CHKERRQ(ierr);
-  //if (strcmp(problemName, "density_current") == 0 && (CtauS != 0 || strong_form != 0)) {
-  //  ierr = PetscPrintf(comm,
-  //                     "Warning! Problem density_current does not support -CtauS or -strong_form\n");
-  //  CHKERRQ(ierr);
-  //}
-
-  //ierr = PetscOptionsScalar("-resx","Target resolution in x",
-  //                          NULL, resx, &resx, NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-resy","Target resolution in y",
-  //                          NULL, resy, &resy, NULL); CHKERRQ(ierr);
-  //ierr = PetscOptionsScalar("-resz","Target resolution in z",
-  //                          NULL, resz, &resz, NULL); CHKERRQ(ierr);
-
-
   ierr = PetscOptionsInt("-output_freq",
                          "Frequency of output, in number of steps",
                          NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
@@ -894,40 +791,8 @@ int main(int argc, char **argv) {
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
-  // Set up the libCEED context
+  // Set up the libCEED context // ToDo: move this to each problem file.
   ctxSetupData->time = 0;
-  //ctxPhysData->ctxAdvectionData->implicit = implicit;
-
-  // Define derived units
-  //Pascal = kilogram / (meter * PetscSqr(second));
-  //JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
-  //mpersquareds = meter / PetscSqr(second);
-  //WpermK = kilogram * meter / (pow(second,3) * Kelvin);
-  //kgpercubicm = kilogram / pow(meter,3);
-  //kgpersquaredms = kilogram / (PetscSqr(meter) * second);
-  //Joulepercubicm = kilogram / (meter * PetscSqr(second));
-  //Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
-
-  // Scale variables to desired units
-  //theta0 *= Kelvin;
-  //thetaC *= Kelvin;
-  //P0 *= Pascal;
-  //E_wind *= Joule;
-  //N *= (1./second);
-  //cv *= JperkgK;
-  //cp *= JperkgK;
-  //Rd = cp - cv;
-  //g *= mpersquareds;
-  //mu *= Pascal * second;
-  //k *= WpermK;
-  //lx = fabs(lx) * meter;
-  //ly = fabs(ly) * meter;
-  //lz = fabs(lz) * meter;
-  //rc = fabs(rc) * meter;
-  //resx = fabs(resx) * meter;
-  //resy = fabs(resy) * meter;
-  //resz = fabs(resz) * meter;
-  //for (int i=0; i<3; i++) center[i] *= meter;
 
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
@@ -1257,21 +1122,6 @@ int main(int argc, char **argv) {
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection);
     if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxAdvection);
   }
-
-  // Set up PETSc context
-  // Set up units structure
-  //units->meter = meter;
-  //units->kilogram = kilogram;
-  //units->second = second;
-  //units->Kelvin = Kelvin;
-  //units->Pascal = Pascal;
-  //units->JperkgK = JperkgK;
-  //units->mpersquareds = mpersquareds;
-  //units->WpermK = WpermK;
-  //units->kgpercubicm = kgpercubicm;
-  //units->kgpersquaredms = kgpersquaredms;
-  //units->Joulepercubicm = Joulepercubicm;
-  //units->Joule = Joule;
 
   // Set up user structure
   user->comm = comm;
