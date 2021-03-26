@@ -120,6 +120,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
+
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -134,6 +135,13 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
                             "1 Kelvin in scaled temperature units",
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
+
+  // -- Warnings
+  if (stab == STAB_SUPG && !implicit) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -stab supg only with -implicit\n");
+    CHKERRQ(ierr);
+  }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 

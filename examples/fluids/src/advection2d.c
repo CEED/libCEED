@@ -114,7 +114,11 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
                        "Warning! Use -CtauS only with -stab su or -stab supg\n");
     CHKERRQ(ierr);
   }
-  // ToDo: add a warning for implicit+su
+  if (stab == STAB_SUPG && !implicit) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -stab supg only with -implicit\n");
+    CHKERRQ(ierr);
+  }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
