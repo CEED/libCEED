@@ -98,6 +98,19 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
 
+  // -- Warnings
+  if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+    CHKERRQ(ierr);
+  }
+  if (stab == STAB_NONE && CtauS != 0) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
+    CHKERRQ(ierr);
+  }
+  // ToDo: add a warning for implicit+su
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -150,7 +163,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   // Default boundary conditions
-  if (wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (wind_type == ADVECTION_WIND_TRANSLATION) { // ToDo: check translation w/tests
     bc->nwall = 0;
     bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
   } else { // Default boundary conditions
