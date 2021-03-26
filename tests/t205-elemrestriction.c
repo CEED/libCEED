@@ -2,7 +2,7 @@
 /// Test creation, use, and destruction of an interlaced multicomponent element restriction
 /// \test Test creation, use, and destruction of an interlaced multicomponent element restriction
 #include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/backend.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;

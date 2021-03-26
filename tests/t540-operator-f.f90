@@ -6,7 +6,7 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err,i,j
       integer stridesx(3),stridesu(3),stridesq(3)

@@ -21,7 +21,6 @@
 #include "ceed-occa-gpu-operator.hpp"
 #include "ceed-occa-qfunction.hpp"
 
-
 namespace ceed {
   namespace occa {
     Operator::Operator() :
@@ -124,7 +123,6 @@ namespace ceed {
 
       return CEED_ERROR_SUCCESS;
     }
-
 
     int Operator::ceedLinearAssembleQFunction(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction");

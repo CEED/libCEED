@@ -16,7 +16,6 @@
 
 #include "ceed-occa-qfunction-field.hpp"
 
-
 namespace ceed {
   namespace occa {
     QFunctionField::QFunctionField(CeedQFunctionField qfField) :

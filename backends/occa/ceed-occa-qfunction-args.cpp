@@ -23,7 +23,6 @@ namespace ceed {
         _inputCount(0),
         _outputCount(0) {}
 
-
     QFunctionArgs::QFunctionArgs(CeedQFunction qf) :
         _isValid(false),
         _inputCount(0),
@@ -59,7 +58,6 @@ namespace ceed {
         _isValid &= field.isValid();
       }
     }
-
 
 
     bool QFunctionArgs::isValid() const {

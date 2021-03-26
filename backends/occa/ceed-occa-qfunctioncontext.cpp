@@ -16,7 +16,6 @@
 
 #include "ceed-occa-qfunctioncontext.hpp"
 
-
 namespace ceed {
   namespace occa {
     QFunctionContext::QFunctionContext() :

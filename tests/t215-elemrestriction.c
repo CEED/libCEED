@@ -1,7 +1,7 @@
 /// @file
 /// Test element restriction state counter
 /// \test Test element restriction state counter
-#include <ceed-backend.h>
+#include <ceed/backend.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;

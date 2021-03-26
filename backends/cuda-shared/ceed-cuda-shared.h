@@ -17,8 +17,8 @@
 #ifndef _ceed_cuda_shared_h
 #define _ceed_cuda_shared_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <cuda.h>
 #include "../cuda/ceed-cuda.h"
 

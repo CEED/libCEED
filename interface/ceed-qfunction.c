@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed-impl.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -144,7 +144,6 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt fieldnumber,
           CeedEvalModes[field->emode]);
   return CEED_ERROR_SUCCESS;
 }
-
 
 /**
   @brief Set flag to determine if Fortran interface is used

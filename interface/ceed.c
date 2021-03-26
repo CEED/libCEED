@@ -15,8 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #define _POSIX_C_SOURCE 200112
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed-impl.h>
 #include <limits.h>
 #include <stdarg.h>

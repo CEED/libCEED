@@ -426,7 +426,6 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 //   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
 //   x_j and u_j are jth  physical position and velocity components
 
-
     // The Physics
 
     // No Change in density or momentum

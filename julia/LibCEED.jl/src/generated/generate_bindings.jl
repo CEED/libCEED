@@ -10,7 +10,7 @@ modifications) to create the low-level C interface LibCEED.C for the LibCEED.jl
 package.
 """
 function generate_ceed_wrapper(ceed_path)
-    headers = ["ceed.h", "ceed-cuda.h", "ceed-backend.h"]
+    headers = ["ceed/ceed.h", "ceed/cuda.h", "ceed/backend.h"]
     ceed_include = joinpath(ceed_path, "include")
     ceed_headers = [joinpath(ceed_include, header) for header in headers]
 

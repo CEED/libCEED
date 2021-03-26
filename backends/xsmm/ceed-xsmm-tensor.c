@@ -14,10 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <ceed-backend.h>
-#include <ceed-hash.h>
-#include <ceed-khash.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <ceed/hash.h>
+#include <ceed/khash.h>
 #include <libxsmm.h>
 #include <stddef.h>
 #include "ceed-xsmm.h"

@@ -17,7 +17,7 @@
 #ifndef CEED_MAGMA_WEIGHT_H
 #define CEED_MAGMA_WEIGHT_H
 
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include <magma_v2.h>
 #include "magma_common_device.h"
 #include "weight_device.h"

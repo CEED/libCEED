@@ -28,7 +28,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, nelem, 2, 1, 1, Nx, CEED_MEM_HOST,
                             CEED_USE_POINTER, indx, &Erestrictx);
 
-
   for (CeedInt i=0; i<nelem; i++) {
     for (CeedInt j=0; j<P; j++) {
       indu[P*i+j] = 2*(i*(P-1) + j);

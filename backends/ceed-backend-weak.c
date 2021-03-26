@@ -1,4 +1,4 @@
-#include <ceed-backend.h>
+#include <ceed/backend.h>
 #include <stdlib.h>
 #include <stdio.h>
 

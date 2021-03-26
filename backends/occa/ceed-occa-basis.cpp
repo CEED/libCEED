@@ -17,7 +17,6 @@
 #include "ceed-occa-basis.hpp"
 #include "ceed-occa-tensor-basis.hpp"
 
-
 namespace ceed {
   namespace occa {
     Basis::Basis() :

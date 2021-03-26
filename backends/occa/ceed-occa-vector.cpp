@@ -16,7 +16,6 @@
 
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     Vector::Vector() :

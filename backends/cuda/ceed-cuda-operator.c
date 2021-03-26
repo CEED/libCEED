@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <assert.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -654,7 +654,6 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
     ierr = CeedQFunctionApply(qf, Q*numelements, impl->qvecsin, impl->qvecsout);
     CeedChkBackend(ierr);
   }
-
 
   // Un-set output Qvecs to prevent accidental overwrite of Assembled
   for (CeedInt out=0; out<numoutputfields; out++) {

@@ -343,5 +343,4 @@ magma_interp_generic_device(
 #undef C
 }
 
-
 #endif    // CEED_MAGMA_INTERP_DEVICE_H

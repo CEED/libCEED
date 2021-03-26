@@ -17,9 +17,9 @@
 #ifndef _ceed_xsmm_h
 #define _ceed_xsmm_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
-#include <ceed-hash.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <ceed/hash.h>
 #include <libxsmm.h>
 
 // Instantiate khash structs and methods

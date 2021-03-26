@@ -19,8 +19,8 @@
 #ifndef _ceed_impl_h
 #define _ceed_impl_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <stdbool.h>
 
 /** @defgroup CeedUser Public API for Ceed

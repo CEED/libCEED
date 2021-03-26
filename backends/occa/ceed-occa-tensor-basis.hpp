@@ -19,7 +19,6 @@
 
 #include "ceed-occa-basis.hpp"
 
-
 namespace ceed {
   namespace occa {
     class TensorBasis : public Basis {

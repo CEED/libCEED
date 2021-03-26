@@ -2,7 +2,6 @@
 /// Test creation, evaluation, and destruction for qfunction
 /// \test Test creation, evaluation, and destruction for qfunction
 #include <ceed.h>
-
 #include "t400-qfunction.h"
 
 int main(int argc, char **argv) {
@@ -13,7 +12,6 @@ int main(int argc, char **argv) {
   CeedInt Q = 8;
   const CeedScalar *vv;
   CeedScalar w[Q], u[Q], v[Q];
-
 
   CeedInit(argv[1], &ceed);
 

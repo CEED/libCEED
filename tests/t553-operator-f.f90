@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       program test
 
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err,i,j
       integer stridesu(3)

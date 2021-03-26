@@ -17,7 +17,7 @@
 #ifndef CEED_OCCA_TYPES_HEADER
 #define CEED_OCCA_TYPES_HEADER
 
-#include <ceed-backend.h>
+#include <ceed/backend.h>
 #include <occa.hpp>
 
 #define CeedOccaFromChk(ierr)                   \
@@ -55,7 +55,6 @@
     ceed, object, name,                              \
     CeedOccaCastRegisterFunction(func)               \
   ); CeedChk(ierr)
-
 
 namespace ceed {
   namespace occa {

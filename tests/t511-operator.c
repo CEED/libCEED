@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateStrided(ceed, nelem, Q, 1, nqpts, stridesu,
                                    &Erestrictui);
 
-
   // Bases
   buildmats(qref, qweight, interp, grad);
   CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P, Q, interp, grad, qref,

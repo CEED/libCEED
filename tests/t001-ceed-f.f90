@@ -1,12 +1,11 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,mtype,err
       character arg*32
       mtype = 1024
-
 
       call getarg(1,arg)
 

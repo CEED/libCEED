@@ -18,8 +18,8 @@
 #ifndef _ceed_mamga_h
 #define _ceed_magma_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <magma_v2.h>
 
 typedef enum {
@@ -188,7 +188,6 @@ CEED_INTERN {
                               magma_int_t Q,
                               double *dqweight, double *dv, magma_queue_t queue);
 
-
   void magma_readDofsOffset(const magma_int_t NCOMP,
                             const magma_int_t compstride,
                             const magma_int_t esize, const magma_int_t nelem,
@@ -218,7 +217,6 @@ CEED_INTERN {
     const double *dB, magma_int_t lddb,
     double beta,  double *dC, magma_int_t lddc,
     magma_queue_t queue );
-
 
   magma_int_t
   magma_isdevptr(const void *A);

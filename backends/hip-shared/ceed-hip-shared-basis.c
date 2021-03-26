@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <hip/hip_runtime.h>
 #include <stddef.h>
 #include "ceed-hip-shared.h"
@@ -135,7 +135,6 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
   const int tidx = threadIdx.x;
   const int tidy = threadIdx.y;
   const int tidz = threadIdx.z;
-
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
@@ -707,7 +706,6 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
     w[ind] = weight;
   }
 }
-
 
 //------------------------------------------------------------------------------
 // Basis kernels

@@ -708,7 +708,7 @@ C     Solution to BP1 using libCEED
       include 'TOTAL'
       include 'CTIMER'  ! ifsync
       include 'FDMH1'
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       parameter (lzq=lx1+1)
       parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2),lq=lzq**ldim)
@@ -1017,7 +1017,7 @@ C     Solution to BP3 using libCEED
       include 'TOTAL'
       include 'CTIMER'  ! ifsync
       include 'FDMH1'
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       parameter (lzq=lx1+1)
       parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2),lq=lzq**ldim)
@@ -1450,7 +1450,7 @@ C     Input: pap,p1,h1,h2,bpname,ceed,ceed_op,vec_ap1,vec_p1
 C     Output: ap1
       include 'SIZE'
       include 'TOTAL'
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       parameter (lx=lx1*ly1*lz1,lg=3+3*(ldim-2))
       real*8       gf(lg,lx,lelt)             ! Equivalence new gf() data

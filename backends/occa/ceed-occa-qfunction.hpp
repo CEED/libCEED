@@ -20,7 +20,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-qfunction-args.hpp"
 
-
 namespace ceed {
   namespace occa {
     class QFunction : public CeedObject {

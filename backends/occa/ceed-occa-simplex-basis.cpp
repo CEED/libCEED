@@ -17,7 +17,6 @@
 #include "ceed-occa-kernels.hpp"
 #include "ceed-occa-simplex-basis.hpp"
 
-
 namespace ceed {
   namespace occa {
     SimplexBasis::SimplexBasis(CeedBasis basis,

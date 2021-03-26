@@ -621,13 +621,21 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
-	  "$(libdir)" "$(pkgconfigdir)")
-	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
+	  "$(includedir)/ceed/" "$(libdir)" "$(pkgconfigdir)")
+	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/hash.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/khash.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
+	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-backend.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 
 .PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends
 

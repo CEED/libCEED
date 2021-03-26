@@ -17,8 +17,8 @@
 #ifndef _ceed_hip_shared_h
 #define _ceed_hip_shared_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <hip/hip_runtime.h>
 #include "../hip/ceed-hip.h"
 

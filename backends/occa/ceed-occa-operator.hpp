@@ -22,7 +22,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-operator-args.hpp"
 
-
 namespace ceed {
   namespace occa {
     typedef std::vector<ceed::occa::Vector*> VectorVector_t;

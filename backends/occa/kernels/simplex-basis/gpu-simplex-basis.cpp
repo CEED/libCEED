@@ -16,7 +16,6 @@
 
 #include "../kernel-defines.hpp"
 
-
 const char *occa_simplex_basis_gpu_source = STRINGIFY_SOURCE(
 
 @directive("#if TRANSPOSE")
