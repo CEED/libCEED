@@ -33,7 +33,6 @@
 //
 //TESTARGS -ceed {ceed_resource} -test explicit -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3
 //TESTARGS -ceed {ceed_resource} -test implicit_stab_none -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha
-//TESTARGS -ceed {ceed_resource} -test implicit_stab_supg -degree 3 -dm_plex_box_faces 1,1,2 -units_kilogram 1e-9 -lx 125 -ly 125 -lz 250 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -stab supg
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -73,10 +72,6 @@ testData testOptions[] = {
   [TEST_IMPLICIT_STAB_NONE] = {
     .testtol = 5E-4,
     .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-none.bin"
-  },
-  [TEST_IMPLICIT_STAB_SUPG] = {
-    .testtol = 5E-4,
-    .filepath = "examples/fluids/tests-output/fluids-navierstokes-implicit-stab-supg.bin"
   }
 };
 
