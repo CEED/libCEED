@@ -780,7 +780,7 @@ int main(int argc, char **argv) {
 
   {
     // Choose the problem from the list of registered problems
-    PetscErrorCode (*p)(problemData *, void **, void **, void **);
+    PetscErrorCode (*p)(problemData *, void *, void *, void *);
     ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);

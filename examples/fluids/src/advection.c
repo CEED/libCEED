@@ -1,7 +1,7 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
-                            void **ctx, void **ctxPhys) {
+PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
+                            void *ctx, void *ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
