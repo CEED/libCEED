@@ -142,6 +142,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   ctxSetup->wind[1]  = wind[1];
   ctxSetup->wind[2]  = wind[2];
   ctxSetup->wind_type = wind_type;
+  ctxSetup->time = 0;
 
   // -- QFunction Context
   ctxPhysData->ctxAdvectionData->CtauS = CtauS;

@@ -189,6 +189,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   ctxSetup->dc_axis[0] = dc_axis[0];
   ctxSetup->dc_axis[1] = dc_axis[1];
   ctxSetup->dc_axis[2] = dc_axis[2];
+  ctxSetup->time = 0;
 
   // -- QFunction Context
   ctxPhysData->ctxNSData->lambda = lambda;

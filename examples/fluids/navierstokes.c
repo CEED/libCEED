@@ -786,9 +786,6 @@ int main(int argc, char **argv) {
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
-  // Set up the libCEED context // ToDo: move this to each problem file.
-  ctxSetupData->time = 0;
-
   const CeedInt dim = problem->dim, ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
 
