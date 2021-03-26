@@ -1,4 +1,4 @@
-#include "navierstokes.h"
+#include "../navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void **ctxSetupData,
                                   void **ctx, void **ctxPhys) {

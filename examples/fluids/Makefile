@@ -22,27 +22,40 @@ CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
-CFLAGS = -std=c99 $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) $(call pkgconf, --cflags-only-other $(PETSc.pc)) $(OPT) -Wno-unused-variable
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc))
+CFLAGS = -std=c99 \
+  $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
+  $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
+  $(OPT)
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+  $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-navierstokes.c := $(wildcard *.c)
-navierstokes.o := $(navierstokes.c:%.c=%.o)
+OBJDIR := build
+SRCDIR := src
+
+src.c := navierstokes.c $(sort $(wildcard $(SRCDIR)/*.c))
+src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: navierstokes
-navierstokes: $(navierstokes.o) | $(PETSc.pc) $(ceed.pc)
+
+navierstokes: $(src.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+.SECONDEXPANSION: # to expand $$(@D)/.DIR
+%/.DIR :
+	@mkdir -p $(@D)
+	@touch $@
 
 # Quiet, color output
 quiet ?= $($(1))
 
-# Rules for building the example
-%.o : %.c | $$(@D)/.DIR
+$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
-% : %.o | $$(@D)/.DIR
-	$(call quiet,LINK.o) $^ $(LDLIBS) -o $@
+# Rules for building the examples
+#%: %.c
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
@@ -54,7 +67,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(navierstokes) *.vtr *.vts *.vtu *.bin* *.o
+	$(RM) -r $(OBJDIR) navierstokes *.vtu *.bin*
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
@@ -63,3 +76,5 @@ $(PETSc.pc):
 .PHONY: all print clean
 
 pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
+
+-include $(src.o:%.o=%.d)

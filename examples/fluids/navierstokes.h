@@ -4,11 +4,11 @@
 #include <ceed.h>
 #include <petscdm.h>
 
-#include "common.h"
-#include "setup-boundary.h"
-#include "advection.h"
-#include "advection2d.h"
-#include "densitycurrent.h"
+#include "qfunctions/common.h"
+#include "qfunctions/setup-boundary.h"
+#include "qfunctions/advection.h"
+#include "qfunctions/advection2d.h"
+#include "qfunctions/densitycurrent.h"
 
 // Wind Options for Advection
 typedef enum {

@@ -1,7 +1,7 @@
-#include "navierstokes.h"
+#include "../navierstokes.h"
 
-PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
-                            void **ctx, void **ctxPhys) {
+PetscErrorCode NS_ADVECTION2D(problemData *problem, void **ctxSetupData,
+                              void **ctx, void **ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
@@ -13,25 +13,25 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
-  //               SET UP ADVECTION
+  //               SET UP ADVECTION2D
   // ------------------------------------------------------
-  problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
-  problem->ics                       = ICsAdvection;
-  problem->ics_loc                   = ICsAdvection_loc;
-  problem->applyVol_rhs              = Advection;
-  problem->applyVol_rhs_loc          = Advection_loc;
-  problem->applyVol_ifunction        = IFunction_Advection;
-  problem->applyVol_ifunction_loc    = IFunction_Advection_loc;
-  problem->applySur                  = Advection_Sur;
-  problem->applySur_loc              = Advection_Sur_loc;
-  problem->bc                        = BC_ADVECTION;
-  problem->non_zero_time             = PETSC_FALSE;
+  problem->dim                       = 2;
+  problem->qdatasizeVol              = 5;
+  problem->qdatasizeSur              = 3;
+  problem->setupVol                  = Setup2d;
+  problem->setupVol_loc              = Setup2d_loc;
+  problem->setupSur                  = SetupBoundary2d;
+  problem->setupSur_loc              = SetupBoundary2d_loc;
+  problem->ics                       = ICsAdvection2d;
+  problem->ics_loc                   = ICsAdvection2d_loc;
+  problem->applyVol_rhs              = Advection2d;
+  problem->applyVol_rhs_loc          = Advection2d_loc;
+  problem->applyVol_ifunction        = IFunction_Advection2d;
+  problem->applyVol_ifunction_loc    = IFunction_Advection2d_loc;
+  problem->applySur                  = Advection2d_Sur;
+  problem->applySur_loc              = Advection2d_Sur_loc;
+  problem->bc                        = BC_ADVECTION2D;
+  problem->non_zero_time             = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -140,7 +140,6 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
   ctxSetup->lz         = lz;
   ctxSetup->wind[0]  = wind[0];
   ctxSetup->wind[1]  = wind[1];
-  ctxSetup->wind[2]  = wind[2];
   ctxSetup->wind_type = wind_type;
 
   // -- QFunction Context
@@ -154,8 +153,8 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void **ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
-                            void *ctxSetupData) {
+PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
+                              void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -166,7 +165,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
   if (wind_type == ADVECTION_WIND_TRANSLATION) { // ToDo: check translation w/tests
     bc->nwall = 0;
     bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
-  } else { // Default boundary conditions
+  } else { // ToDo: fix the dimension
     bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
     bc->slips[0][0] = 5;
     bc->slips[0][1] = 6;
@@ -178,7 +177,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
 
   PetscFunctionBeginUser;
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for advection",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for advection2d",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",
@@ -237,7 +236,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
     //   ToDo: need to set "wall" as the default BC after checking with the regression tests
     PetscInt comps[1] = {4};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                         1, comps, (void(*)(void))Exact_Advection, NULL,
+                         1, comps, (void(*)(void))Exact_Advection2d, NULL,
                          bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
