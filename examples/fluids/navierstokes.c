@@ -689,7 +689,6 @@ int main(int argc, char **argv) {
   problemData *problem = NULL;
   testType testChoice;
   testData *test = NULL;
-  PetscBool implicit;
   PetscInt    viz_refine = 0;
   SimpleBC bc;
   double start, cpu_time_used;
@@ -744,9 +743,6 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
                            problemName, problemName, sizeof(problemName),
                            NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
-                          NULL, implicit=PETSC_FALSE, &implicit, NULL);
-  CHKERRQ(ierr);
   ierr = PetscOptionsInt("-viz_refine",
                          "Regular refinement levels for visualization",
                          NULL, viz_refine, &viz_refine, NULL);
@@ -1070,14 +1066,14 @@ int main(int argc, char **argv) {
   }
 
   // Create CEED Operator for the whole domain
-  if (!implicit)
+  if (!ctxPhysData->implicit)
     ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type,
                                    user->op_rhs_vol,
                                    qf_applySur, qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, basisxSur, basisqSur,
                                    &user->op_rhs); CHKERRQ(ierr);
-  if (implicit)
+  if (ctxPhysData->implicit)
     ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData->wind_type,
                                    user->op_ifunction_vol,
                                    qf_applySur, qf_setupSur,
@@ -1094,13 +1090,6 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxPhysData->ctxNSData, ctxPhysData->ctxNSData);
 
-  //struct AdvectionContext_ ctxAdvectionData = {
-  //  .CtauS = CtauS,
-  //  .strong_form = strong_form,
-  //  .E_wind = E_wind,
-  //  .implicit = implicit,
-  //  .stabilization = stab,
-  //};
   CeedQFunctionContextCreate(ceed, &ctxAdvection);
   CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxPhysData->ctxAdvectionData, ctxPhysData->ctxAdvectionData);
@@ -1176,7 +1165,7 @@ int main(int argc, char **argv) {
 // Create and setup TS
   ierr = TSCreate(comm, &ts); CHKERRQ(ierr);
   ierr = TSSetDM(ts, dm); CHKERRQ(ierr);
-  if (implicit) {
+  if (ctxPhysData->implicit) {
     ierr = TSSetType(ts, TSBDF); CHKERRQ(ierr);
     if (user->op_ifunction) {
       ierr = TSSetIFunction(ts, NULL, IFunction_NS, &user); CHKERRQ(ierr);

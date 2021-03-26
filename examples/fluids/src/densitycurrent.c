@@ -5,6 +5,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   StabilizationType stab;
+  PetscBool implicit;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
@@ -112,6 +113,13 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
       for (int i=0; i<3; i++)  dc_axis[i] /= norm;
     }
   }
+  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
+                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
+                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
+                          NULL, implicit=PETSC_FALSE, &implicit, NULL);
+  CHKERRQ(ierr);
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -126,9 +134,6 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
                             "1 Kelvin in scaled temperature units",
                             NULL, Kelvin, &Kelvin, NULL); CHKERRQ(ierr);
   Kelvin = fabs(Kelvin);
-  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -192,6 +197,8 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   ctxSetup->time = 0;
 
   // -- QFunction Context
+  ctxPhysData->stab = stab;
+  ctxPhysData->implicit = implicit;
   ctxPhysData->ctxNSData->lambda = lambda;
   ctxPhysData->ctxNSData->mu = mu;
   ctxPhysData->ctxNSData->k = k;
@@ -199,7 +206,6 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   ctxPhysData->ctxNSData->cp = cp;
   ctxPhysData->ctxNSData->g = g;
   ctxPhysData->ctxNSData->Rd = Rd;
-  ctxPhysData->stab = stab;
   ctxPhysData->ctxNSData->stabilization = stab;
 
   PetscFunctionReturn(0);

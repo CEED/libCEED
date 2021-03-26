@@ -6,6 +6,7 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
   StabilizationType stab;
+  PetscBool implicit;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
@@ -87,6 +88,10 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
+                          NULL, implicit=PETSC_FALSE, &implicit, NULL);
+  CHKERRQ(ierr);
+
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -144,11 +149,13 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   ctxSetup->time = 0;
 
   // -- QFunction Context
+  ctxPhysData->stab = stab;
+  ctxPhysData->wind_type = wind_type;
+  ctxPhysData->implicit = implicit;
   ctxPhysData->ctxAdvectionData->CtauS = CtauS;
   ctxPhysData->ctxAdvectionData->strong_form = strong_form;
   ctxPhysData->ctxAdvectionData->E_wind = E_wind;
-  ctxPhysData->wind_type = wind_type;
-  ctxPhysData->stab = stab;
+  ctxPhysData->ctxAdvectionData->implicit = implicit;
   ctxPhysData->ctxAdvectionData->stabilization = stab;
 
   PetscFunctionReturn(0);

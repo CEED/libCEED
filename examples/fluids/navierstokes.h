@@ -115,6 +115,7 @@ struct Physics_ {
   AdvectionContext ctxAdvectionData;
   WindType wind_type;
   StabilizationType stab;
+  PetscBool implicit;
 };
 
 // Setup function for each problem
