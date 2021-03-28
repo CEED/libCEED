@@ -21,6 +21,7 @@ const char *const CeedErrorTypesShifted[] = {
   [CEED_ERROR_MINOR - CEED_ERROR_UNSUPPORTED] = "generic minor error",
   [CEED_ERROR_DIMENSION - CEED_ERROR_UNSUPPORTED] = "dimension mismatch",
   [CEED_ERROR_INCOMPLETE - CEED_ERROR_UNSUPPORTED] = "object setup incomplete",
+  [CEED_ERROR_INCOMPATIBLE - CEED_ERROR_UNSUPPORTED] = "incompatible arguments",
   [CEED_ERROR_ACCESS - CEED_ERROR_UNSUPPORTED] = "access lock in use",
   [CEED_ERROR_MAJOR - CEED_ERROR_UNSUPPORTED] = "generic major error",
   [CEED_ERROR_BACKEND - CEED_ERROR_UNSUPPORTED] = "internal backend error",

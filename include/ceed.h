@@ -242,8 +242,10 @@ typedef enum {
   CEED_ERROR_DIMENSION   = 2,
   /// Minor error, incomplete object setup
   CEED_ERROR_INCOMPLETE  = 3,
+  /// Minor error, incompatible arguments/configuration
+  CEED_ERROR_INCOMPATIBLE = 4,
   /// Minor error, access lock problem
-  CEED_ERROR_ACCESS      = 4,
+  CEED_ERROR_ACCESS      = 5,
   /// Major error, generic
   CEED_ERROR_MAJOR       = -1,
   /// Major error, internal backend error

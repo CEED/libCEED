@@ -108,22 +108,36 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
   CeedInt dim = 1, ncomp = 1, restr_ncomp = 1, size = qfield->size;
   // Restriction
   if (r != CEED_ELEMRESTRICTION_NONE) {
+    if (emode == CEED_EVAL_WEIGHT) {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
+                       "CEED_ELEMRESTRICTION_NONE should be used "
+                       "for a field with eval mode CEED_EVAL_WEIGHT");
+      // LCOV_EXCL_STOP
+    }
     ierr = CeedElemRestrictionGetNumComponents(r, &restr_ncomp);
-  } else if (emode != CEED_EVAL_WEIGHT) {
+  }
+  if ((r == CEED_ELEMRESTRICTION_NONE) != (emode == CEED_EVAL_WEIGHT)) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR,
-                     "CEED_ELEMRESTRICTION_NONE can only be used "
-                     "for a field with eval mode CEED_EVAL_WEIGHT");
+    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
+                     "CEED_ELEMRESTRICTION_NONE and CEED_EVAL_WEIGHT "
+                     "must be used together.");
     // LCOV_EXCL_STOP
   }
   // Basis
   if (b != CEED_BASIS_COLLOCATED) {
+    if (emode == CEED_EVAL_NONE)
+      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
+                       "Field '%s' configured with CEED_EVAL_NONE must be used with CEED_BASIS_COLLOCATED",
+                       qfield->fieldname);
     ierr = CeedBasisGetDimension(b, &dim); CeedChk(ierr);
     ierr = CeedBasisGetNumComponents(b, &ncomp); CeedChk(ierr);
     if (r != CEED_ELEMRESTRICTION_NONE && restr_ncomp != ncomp) {
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
-                       "ElemRestriction and Basis have incompatible numbers of components");
+                       "Field '%s' of size %d and EvalMode %s: ElemRestriction has %d components, but Basis has %d components",
+                       qfield->fieldname, qfield->size, CeedEvalModes[qfield->emode], restr_ncomp,
+                       ncomp);
       // LCOV_EXCL_STOP
     }
   }
@@ -133,24 +147,24 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qfield,
     if (size != restr_ncomp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
-                       "Incompatible QFunction field size and Operator field "
-                       "ElemRestriction number of components");
+                       "Field '%s' of size %d and EvalMode %s: ElemRestriction has %d components",
+                       qfield->fieldname, qfield->size, CeedEvalModes[qfield->emode], restr_ncomp);
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_INTERP:
     if (size != ncomp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
-                       "Incompatible QFunction field size and Operator field "
-                       "Basis number of components");
+                       "Field '%s' of size %d and EvalMode %s: ElemRestriction/Basis has %d components",
+                       qfield->fieldname, qfield->size, CeedEvalModes[qfield->emode], ncomp);
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_GRAD:
     if (size != ncomp * dim)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
-                       "Incompatible QFunction field size and Operator field "
-                       "Basis dimension and number of components");
+                       "Field '%s' of size %d and EvalMode %s in %d dimensions: ElemRestriction/Basis has %d components",
+                       qfield->fieldname, qfield->size, CeedEvalModes[qfield->emode], dim, ncomp);
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_WEIGHT:
@@ -958,24 +972,24 @@ int CeedOperatorSetField(CeedOperator op, const char *fieldname,
   int ierr;
   if (op->composite)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
+    return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "Cannot add field to composite operator.");
   // LCOV_EXCL_STOP
   if (!r)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
+    return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "ElemRestriction r for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!b)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
+    return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "Basis b for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
   if (!v)
     // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
+    return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "Vector v for field \"%s\" must be non-NULL.",
                      fieldname);
   // LCOV_EXCL_STOP
