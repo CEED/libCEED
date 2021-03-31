@@ -41,6 +41,71 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 #define multigrid
 #include "setup.h"
 
+// Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
+// smooth -- see the commented versions at the end.
+static double step(const double a, const double b, double x) {
+  if (x <= 0) return a;
+  if (x >= 1) return b;
+  return a + (b-a) * (x);
+}
+
+// 1D transformation at the right boundary
+static double right(const double eps, const double x) {
+  return (x <= 0.5) ? (2-eps) * x : 1 + eps*(x-1);
+}
+
+// 1D transformation at the left boundary
+static double left(const double eps, const double x) {
+  return 1-right(eps,1-x);
+}
+
+// Apply 3D Kershaw mesh transformation
+// The eps parameters are in (0, 1]
+// Uniform mesh is recovered for eps=1
+static PetscErrorCode kershaw(DM dmorig, PetscScalar eps) {
+  PetscErrorCode ierr;
+  Vec coord;
+  PetscInt ncoord;
+  PetscScalar *c;
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinatesLocal(dmorig, &coord); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coord, &ncoord); CHKERRQ(ierr);
+  ierr = VecGetArray(coord, &c); CHKERRQ(ierr);
+
+  for (PetscInt i = 0; i < ncoord; i += 3) {
+    PetscScalar x = c[i], y = c[i+1], z = c[i+2];
+    PetscInt layer = x*6;
+    PetscScalar lambda = (x-layer/6.0)*6;
+    c[i] = x;
+
+    switch (layer) {
+    case 0:
+      c[i+1] = left(eps, y);
+      c[i+2] = left(eps, z);
+      break;
+    case 1:
+    case 4:
+      c[i+1] = step(left(eps, y), right(eps, y), lambda);
+      c[i+2] = step(left(eps, z), right(eps, z), lambda);
+      break;
+    case 2:
+      c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
+      c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
+      break;
+    case 3:
+      c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
+      c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
+      break;
+    default:
+      c[i+1] = right(eps, y);
+      c[i+2] = right(eps, z);
+    }
+  }
+  ierr = VecRestoreArray(coord, &c); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
@@ -50,6 +115,7 @@ int main(int argc, char **argv) {
   PetscInt degree = 3, qextra, *lsize, *xlsize, *gsize, dim = 3, fineLevel,
            melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
   PetscScalar *r;
+  PetscScalar eps = 1.0;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
   PetscLogStage solvestage;
   DM  *dm, dmorig;
@@ -95,6 +161,11 @@ int main(int argc, char **argv) {
                           "Write solution for visualization",
                           NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-eps",
+                            "Epsilon parameter for Kershaw mesh transformation",
+                            NULL, eps, &eps, NULL);
+  if (eps > 1 || eps <= 0) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
+                                      "-eps %D must be (0,1]", eps);
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
@@ -148,6 +219,9 @@ int main(int argc, char **argv) {
       dmorig = dmDist;
     }
   }
+
+  // apply Kershaw mesh transformation
+  ierr = kershaw(dmorig, eps); CHKERRQ(ierr);
 
   VecType vectype;
   switch (memtypebackend) {
@@ -578,7 +652,7 @@ int main(int argc, char **argv) {
 
     ierr = PetscViewerCreate(comm, &vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
-    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk"); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtu"); CHKERRQ(ierr);
     ierr = VecView(X[fineLevel], vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
