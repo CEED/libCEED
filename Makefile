@@ -71,11 +71,13 @@ OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
-# If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
-CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
-               $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
+
+# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support HIP
+CUDA_DIR  ?=
 CUDA_ARCH ?= 
-HIP_DIR ?= /opt/rocm
+
+# Often /opt/rocm, but sometimes present on machines that don't support HIP
+HIP_DIR ?=
 HIP_ARCH ?=
 
 # Check for PETSc in ../petsc

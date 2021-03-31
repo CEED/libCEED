@@ -104,6 +104,15 @@ or::
 if your compiler does not support gcc-style options, if you are cross
 compiling, etc.
 
+To enable CUDA support, add ``CUDA_DIR=/opt/cuda`` or an appropriate directory
+to your ``make`` invocation. To enable HIP support, add ``HIP_DIR=/opt/rocm`` or
+an appropriate directory. To store these or other arguments as defaults for
+future invocations of ``make``, use::
+
+    make configure CUDA_DIR=/usr/local/cuda HIP_DIR=/opt/rocm OPT='-O3 -march=znver2'
+
+which stores these variables in ``config.mk``.
+
 Additional Language Interfaces
 ----------------------------------------
 

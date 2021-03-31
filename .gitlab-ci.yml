@@ -24,7 +24,7 @@ noether-rocm:
 # OCCA v1.1.0
     - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && make -C $OCCA_VERSION info && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
 # libCEED
-    - make info
+    - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - make -j$NPROC_CPU
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
