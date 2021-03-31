@@ -1064,8 +1064,7 @@ int CeedCompositeOperatorAddSub(CeedOperator compositeop, CeedOperator subop) {
   if (!compositeop->composite)
     // LCOV_EXCL_START
     return CeedError(compositeop->ceed, CEED_ERROR_MINOR,
-                     "CeedOperator is not a composite "
-                     "operator");
+                     "CeedOperator is not a composite operator");
   // LCOV_EXCL_STOP
 
   if (compositeop->numsub == CEED_COMPOSITE_MAX)
