@@ -1163,7 +1163,8 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    return CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
+    return CeedOperatorLinearAssembleAddDiagonal(op->opfallback, assembled,
+           request);
   }
 }
 
