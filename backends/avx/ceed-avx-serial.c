@@ -39,7 +39,6 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/opt/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
-
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Avx); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;

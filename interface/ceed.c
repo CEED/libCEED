@@ -710,7 +710,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   memcpy((*ceed)->foffsets, foffsets, sizeof(foffsets));
 
   // Set fallback for advanced CeedOperator functions
-  const char fallbackresource[] = "/cpu/self/ref/serial";
+  const char fallbackresource[] = "";
   ierr = CeedSetOperatorFallbackResource(*ceed, fallbackresource);
   CeedChk(ierr);
 
