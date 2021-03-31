@@ -16,7 +16,6 @@ int main(int argc, char **argv) {
   const CeedScalar *vv;
   CeedScalar w[Q], u[Q], v[Q], ctxData[5] = {1, 2, 3, 4, 5};
 
-
   CeedInit(argv[1], &ceed);
 
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);

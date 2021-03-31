@@ -16,8 +16,8 @@
 
 #define CEED_DEBUG_COLOR 12
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <iostream>
 #include <string>
 #include <sstream>

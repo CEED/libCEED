@@ -838,7 +838,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
     CeedQFunctionContextDestroy(&tractionCtx);
   }
 
-
   // ---------------------------------------------------------------------------
   // Forcing term, if needed
   // ---------------------------------------------------------------------------

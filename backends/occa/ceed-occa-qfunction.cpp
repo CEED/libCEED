@@ -20,7 +20,6 @@
 #include "ceed-occa-qfunctioncontext.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     QFunction::QFunction(const std::string &source) :

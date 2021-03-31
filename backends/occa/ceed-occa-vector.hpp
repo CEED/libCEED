@@ -19,7 +19,6 @@
 
 #include "ceed-occa-ceed-object.hpp"
 
-
 namespace ceed {
   namespace occa {
     template <class TM>

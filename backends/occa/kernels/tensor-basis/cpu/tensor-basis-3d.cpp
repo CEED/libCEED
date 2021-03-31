@@ -16,7 +16,6 @@
 
 #include "../../kernel-defines.hpp"
 
-
 const char *occa_tensor_basis_3d_cpu_function_source = STRINGIFY_SOURCE(
 
 @directive("#define TENSOR_FUNCTION(FUNCTION_NAME) tensor_3d_ ## FUNCTION_NAME ## _Q ## Q1D ## _P ## P1D")

@@ -17,7 +17,7 @@
 #ifndef CEED_MAGMA_GRAD_H
 #define CEED_MAGMA_GRAD_H
 
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include <magma_v2.h>
 #include "magma_common_device.h"
 #include "grad_device.h"
@@ -180,7 +180,6 @@ magma_gradt_2d_kernel(
     const T beta = make_one<T>();
     readV_2d<T, Q, 1, NCOMP, Q, 0>
     (dV + (0*dstrdV), cstrdV, rV, tx);
-
 
     /* read U (idim = 0 for dU, iDIM = 0 for rU) -- 
        there is a sync at the end of this function */

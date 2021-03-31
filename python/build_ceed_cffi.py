@@ -24,7 +24,7 @@ ceed_version_ge = re.compile(r'\s+\(!?CEED_VERSION.*')
 # ------------------------------------------------------------------------------
 # Provide C definitions to CFFI
 # ------------------------------------------------------------------------------
-with open(os.path.abspath("include/ceed.h")) as f:
+with open(os.path.abspath("include/ceed/ceed.h")) as f:
     lines = [line.strip() for line in f if
              not line.startswith("#") and
              not line.startswith("  static") and

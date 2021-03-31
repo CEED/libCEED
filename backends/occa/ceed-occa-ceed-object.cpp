@@ -17,7 +17,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-context.hpp"
 
-
 namespace ceed {
   namespace occa {
     CeedObject::CeedObject(Ceed ceed_) :

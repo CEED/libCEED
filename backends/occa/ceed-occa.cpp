@@ -28,7 +28,6 @@
 #include "ceed-occa-types.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     typedef std::map<std::string, std::string> StringMap;

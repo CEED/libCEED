@@ -1,4 +1,4 @@
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include <magma_v2.h>
 #include <hip/hip_runtime.h>
 

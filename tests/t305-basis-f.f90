@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err,i,j,kk
       real*8 m(16), k(16), x(16), lambda(4), xxt(16)

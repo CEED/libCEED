@@ -65,7 +65,6 @@ int SetCartesianMeshCoords(int dim, int nxyz[3], int mesh_degree,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
-
 int main(int argc, const char *argv[]) {
   const char *ceed_spec = "/cpu/self";
   int dim        = 3;              // dimension of the mesh
@@ -303,7 +302,6 @@ int main(int argc, const char *argv[]) {
   CeedDestroy(&ceed);
   return 0;
 }
-
 
 int GetCartesianMeshSize(int dim, int degree, int prob_size, int nxyz[dim]) {
   // Use the approximate formula:

@@ -17,7 +17,6 @@
 #include "ceed-occa-gpu-operator.hpp"
 #include "ceed-occa-qfunction.hpp"
 
-
 namespace ceed {
   namespace occa {
     GpuOperator::GpuOperator() {}

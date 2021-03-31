@@ -17,8 +17,8 @@
 #ifndef _ceed_memcheck_h
 #define _ceed_memcheck_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 
 typedef struct {
   const CeedScalar **inputs;

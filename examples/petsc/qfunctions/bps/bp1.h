@@ -80,7 +80,6 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-
 // *****************************************************************************
 // This QFunction applies the mass operator for a scalar field.
 //

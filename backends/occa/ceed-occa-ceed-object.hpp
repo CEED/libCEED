@@ -19,7 +19,6 @@
 
 #include "ceed-occa-context.hpp"
 
-
 namespace ceed {
   namespace occa {
     class CeedObject {

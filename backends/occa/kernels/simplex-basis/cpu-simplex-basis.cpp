@@ -16,7 +16,6 @@
 
 #include "../kernel-defines.hpp"
 
-
 const char *occa_simplex_basis_cpu_function_source = STRINGIFY_SOURCE(
 
 @directive("#define SIMPLEX_FUNCTION(FUNCTION_NAME) simplex_ ## DIM ## d_ ## FUNCTION_NAME ## _Q ## Q ## _P ## P")

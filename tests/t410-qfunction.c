@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
   const CeedScalar *vv;
   CeedScalar j[Q], w[Q], u[Q], v[Q];
 
-
   CeedInit(argv[1], &ceed);
 
   CeedQFunctionCreateInteriorByName(ceed, "Mass1DBuild", &qf_setup);

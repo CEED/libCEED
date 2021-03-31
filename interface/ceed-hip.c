@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
-#include <ceed-hip.h>
+#include <ceed/hip.h>
 
 /**
   @brief Set HIP function pointer to evaluate action at quadrature points

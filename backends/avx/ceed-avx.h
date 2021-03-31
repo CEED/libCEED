@@ -17,9 +17,8 @@
 #ifndef _ceed_avx_h
 #define _ceed_avx_h
 
-#include <ceed.h>
-#include <ceed-backend.h>
-
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis,
     CeedTensorContract contract);
 

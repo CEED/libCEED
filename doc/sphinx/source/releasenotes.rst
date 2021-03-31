@@ -13,7 +13,8 @@ The current ``main`` (formerly called ``master``) branch contains bug fixes and 
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
-* Error handling improved to include enumerated error codes for C interface return values
+* Error handling improved to include enumerated error codes for C interface return values.
+* Installed headers that will follow semantic versioning were moved to :code:`include/ceed` directory. These headers have been renamed from :code:`ceed-*.h` to :code:`ceed/*.h`. Placeholder headers with the old naming schema are currently provided, but these headers will be removed in the libCEED v0.9 release.
 
 New features
 ^^^^^^^^^^^^

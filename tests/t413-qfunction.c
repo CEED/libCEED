@@ -7,7 +7,6 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunction qf_setup, qf_mass;
 
-
   CeedInit(argv[1], &ceed);
 
   CeedQFunctionCreateInteriorByName(ceed, "Mass1DBuild", &qf_setup);

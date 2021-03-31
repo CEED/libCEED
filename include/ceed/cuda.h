@@ -14,13 +14,13 @@
 /// software, applications, hardware, advanced system engineering and early
 /// testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef _ceed_hip_h
-#define _ceed_hip_h
+#ifndef _ceed_cuda_h
+#define _ceed_cuda_h
 
-#include <ceed.h>
-#include <hip/hip_runtime.h>
+#include <ceed/ceed.h>
+#include <cuda.h>
 
-CEED_EXTERN int CeedQFunctionSetHIPUserFunction(CeedQFunction qf,
-    hipFunction_t f);
+CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf,
+    CUfunction f);
 
 #endif

@@ -376,5 +376,4 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
     dwrite_V_reg2gsm<J>(C, tx_, rV, dV );
 } 
 
-
 #endif // CEED_MAGMA_COMMON_DEVICE_H

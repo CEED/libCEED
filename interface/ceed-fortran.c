@@ -15,8 +15,8 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // Fortran interface
-#include <ceed.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed-impl.h>
 #include <ceed-fortran-name.h>
 #include <stdbool.h>
