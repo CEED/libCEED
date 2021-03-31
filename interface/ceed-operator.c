@@ -319,11 +319,11 @@ static int CeedOperatorGetActiveElemRestriction(CeedOperator op,
     int ierr;
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_INCOMPLETE,
                      "No active ElemRestriction found!");
     // LCOV_EXCL_STOP
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1327,7 +1327,8 @@ int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
   Ceed ceed = op->ceed;
   if (op->composite) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Not suitable for composite operator");
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "Composite operator not supported");
     // LCOV_EXCL_STOP
   }
 
@@ -1388,12 +1389,12 @@ int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
   }
   if (count != local_nentries)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bad calculation of entries!");
+    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
   // LCOV_EXCL_STOP
   ierr = CeedVectorRestoreArrayRead(elem_dof, &elem_dof_a); CeedChk(ierr);
   ierr = CeedVectorDestroy(&elem_dof); CeedChk(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1409,7 +1410,8 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   Ceed ceed = op->ceed;;
   if (op->composite) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Not suitable for composite operator");
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "Composite operator not supported");
     // LCOV_EXCL_STOP
   }
 
@@ -1571,7 +1573,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                   gradin[(din*nqpts+q) * elemsize + n];
               } else {
                 // LCOV_EXCL_START
-                return CeedError(ceed, 1, "Not implemented!");
+                return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Not implemented!");
                 // LCOV_EXCL_STOP
               }
             }
@@ -1586,7 +1588,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                   gradin[(dout*nqpts+q) * elemsize + n];
               } else {
                 // LCOV_EXCL_START
-                return CeedError(ceed, 1, "Not implemented!");
+                return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Not implemented!");
                 // LCOV_EXCL_STOP
               }
             }
@@ -1630,7 +1632,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   }
   if (count != local_nentries)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Bad calculation of entries!");
+    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing entries");
   // LCOV_EXCL_STOP
   ierr = CeedVectorRestoreArray(values, &vals); CeedChk(ierr);
 
@@ -1640,7 +1642,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   ierr = CeedFree(&emodein); CeedChk(ierr);
   ierr = CeedFree(&emodeout); CeedChk(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1653,7 +1655,8 @@ int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *nentries) {
 
   if (op->composite) {
     // LCOV_EXCL_START
-    return CeedError(op->ceed, 1, "Not implemented for composite operator");
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Composite operator not supported");
     // LCOV_EXCL_STOP
   }
   ierr = CeedOperatorGetActiveElemRestriction(op, &rstr); CeedChk(ierr);
@@ -1662,7 +1665,7 @@ int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *nentries) {
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChk(ierr);
   *nentries = elemsize*ncomp * elemsize*ncomp * nelem;
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1743,7 +1746,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
     CeedChk(ierr);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1800,7 +1803,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
     ierr = CeedSingleOperatorAssemble(op, offset, values); CeedChk(ierr);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
