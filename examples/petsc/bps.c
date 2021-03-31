@@ -340,7 +340,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
 
     ierr = PetscViewerCreate(rp->comm, &vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
-    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtk"); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtu"); CHKERRQ(ierr);
     ierr = VecView(X, vtkviewersoln); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
   }
