@@ -355,8 +355,8 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
 
    cd solids/
    make
-   ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
-   ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
+   ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
+   ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
    cd ..
 
 For the last example shown, sample meshes to be used in place of

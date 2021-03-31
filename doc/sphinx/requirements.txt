@@ -9,3 +9,4 @@ sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
 sphinx-hoverxref>=0.3b1
 sphinx-markdown-tables
+sphinx-panels
