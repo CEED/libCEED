@@ -43,36 +43,35 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 
 // Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
 // smooth -- see the commented versions at the end.
-static double step(const double a, const double b, double x)
-{
+static double step(const double a, const double b, double x) {
   if (x <= 0) return a;
   if (x >= 1) return b;
   return a + (b-a) * (x);
 }
 
 // 1D transformation at the right boundary
-static double right(const double eps, const double x)
-{
+static double right(const double eps, const double x) {
   return (x <= 0.5) ? (2-eps) * x : 1 + eps*(x-1);
 }
 
 // 1D transformation at the left boundary
-static double left(const double eps, const double x)
-{
+static double left(const double eps, const double x) {
   return 1-right(eps,1-x);
 }
 
 // Apply 3D Kershaw mesh transformation
 // The eps parameters are in (0, 1]
 // Uniform mesh is recovered for eps=1
-static void kershaw(DM dmorig, PetscScalar eps)
-{
+static PetscErrorCode kershaw(DM dmorig, PetscScalar eps) {
+  PetscErrorCode ierr;
   Vec coord;
   PetscInt ncoord;
   PetscScalar *c;
-  DMGetCoordinatesLocal(dmorig, &coord);
-  VecGetLocalSize(coord, &ncoord);
-  VecGetArray(coord, &c);
+
+  PetscFunctionBeginUser;
+  ierr = DMGetCoordinatesLocal(dmorig, &coord); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(coord, &ncoord); CHKERRQ(ierr);
+  ierr = VecGetArray(coord, &c); CHKERRQ(ierr);
 
   for (PetscInt i = 0; i < ncoord; i += 3) {
     PetscScalar x = c[i], y = c[i+1], z = c[i+2];
@@ -81,28 +80,30 @@ static void kershaw(DM dmorig, PetscScalar eps)
     c[i] = x;
 
     switch (layer) {
-      case 0:
-        c[i+1] = left(eps, y);
-        c[i+2] = left(eps, z);
-        break;
-      case 1:
-      case 4:
-        c[i+1] = step(left(eps, y), right(eps, y), lambda);
-        c[i+2] = step(left(eps, z), right(eps, z), lambda);
-        break;
-      case 2:
-        c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
-        c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
-        break;
-      case 3:
-        c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
-        c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
-        break;
-      default:
-        c[i+1] = right(eps, y);
-        c[i+2] = right(eps, z);
+    case 0:
+      c[i+1] = left(eps, y);
+      c[i+2] = left(eps, z);
+      break;
+    case 1:
+    case 4:
+      c[i+1] = step(left(eps, y), right(eps, y), lambda);
+      c[i+2] = step(left(eps, z), right(eps, z), lambda);
+      break;
+    case 2:
+      c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
+      c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
+      break;
+    case 3:
+      c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
+      c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
+      break;
+    default:
+      c[i+1] = right(eps, y);
+      c[i+2] = right(eps, z);
     }
   }
+  ierr = VecRestoreArray(coord, &c); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -160,10 +161,11 @@ int main(int argc, char **argv) {
                           "Write solution for visualization",
                           NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-eps", "Epsilon parameter for Kershaw mesh transformation",
+  ierr = PetscOptionsScalar("-eps",
+                            "Epsilon parameter for Kershaw mesh transformation",
                             NULL, eps, &eps, NULL);
   if (eps > 1 || eps <= 0) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                             "-eps %D must be (0,1]", eps);
+                                      "-eps %D must be (0,1]", eps);
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
@@ -217,9 +219,9 @@ int main(int argc, char **argv) {
       dmorig = dmDist;
     }
   }
-  
-  // apply kershaw mesh transformation 
-  kershaw(dmorig, eps);
+
+  // apply Kershaw mesh transformation
+  ierr = kershaw(dmorig, eps); CHKERRQ(ierr);
 
   VecType vectype;
   switch (memtypebackend) {
