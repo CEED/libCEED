@@ -39,6 +39,11 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/ref/serial", &ceedref);
   ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
+  // Set fallback CEED resource for advanced operator functionality
+  const char fallbackresource[] = "/cpu/self/ref/serial";
+  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
+  CeedChkBackend(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Blocked); CeedChkBackend(ierr);
 

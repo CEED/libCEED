@@ -694,6 +694,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemblePointBlockDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddPointBlockDiagonal),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSymbolic),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssemble),
     CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),
@@ -708,7 +710,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   memcpy((*ceed)->foffsets, foffsets, sizeof(foffsets));
 
   // Set fallback for advanced CeedOperator functions
-  const char fallbackresource[] = "/cpu/self/ref/serial";
+  const char fallbackresource[] = "";
   ierr = CeedSetOperatorFallbackResource(*ceed, fallbackresource);
   CeedChk(ierr);
 
