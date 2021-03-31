@@ -318,6 +318,42 @@ different wind types.
       ./navierstokes -problem advection2d -problem_advection_wind translation -problem_advection_wind translation 1,-.5
 
 
+.. _problem-euler-vortex:
+
+Euler Traveling Vortex
+----------------------------------------
+
+Three-dimensional Euler equations, which are simplified version of system :math:numref:`eq-ns`
+and account only for the convective fluxes, are given by
+
+.. math::
+   :label: eq-euler
+
+   \begin{aligned}
+   \frac{\partial \rho}{\partial t} + \nabla \cdot \bm{U} &= 0 \\
+   \frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \bm{I}_3 \right) &= 0 \\
+   \frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\bm{U}}{\rho} \right) &= 0 \, , \\
+   \end{aligned}
+
+Following the setup given in :cite:`zhang2011verification`, the mean flow for this problem is
+:math:`\rho=1`, :math:`P=1`, :math:`T=P/\rho= 1`, and :math:`\bm{u}=(u_1,u_2,0)` while the perturbation :math:`\delta \bm{u}`,
+and :math:`\delta T` are defined as
+
+.. math::
+   \begin{aligned}
+   (\delta u_1, \, \delta u_2) &= \frac{\epsilon}{2 \pi} \, e^{0.5(1-r^2)} \, (-\bar{y}, \, \bar{x}) \, , \\
+   \delta T &= - \frac{(\gamma-1) \, \epsilon^2}{8 \, \gamma \, \pi^2} \, e^{1-r^2} \, , \\
+   \end{aligned}
+
+where :math:`(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)`, :math:`(x_c, \, y_c)` represents the center of the domain,
+:math:`r^2=\bar{x}^2 + \bar{y}^2`, and :math:`\epsilon` is the vortex strength. There is no perturbation in the entropy
+:math:`S=P/\rho^\gamma` (:math:`\delta S=0)`.
+
+This problem can be run with::
+
+   ./navierstokes -problem euler_vortex -problem_euler_mean_velocity .5,-.8,0. -dm_plex_box_faces 20,20,1 -lx 1000 -ly 1000 -lz 1
+
+
 .. _problem-density-current:
 
 Density Current
@@ -341,3 +377,4 @@ and non-penetration boundary conditions for :math:`\bm{u}`, and no-flux
 for mass and energy densities. This problem can be run with::
 
    ./navierstokes -problem density_current
+

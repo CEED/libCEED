@@ -69,7 +69,7 @@ struct SurfaceContext_ {
 #endif
 
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
+// This QFunction sets the initial conditions and the boundary conditions
 //   for two test cases: ROTATION and TRANSLATION
 //
 // -- ROTATION (default)
