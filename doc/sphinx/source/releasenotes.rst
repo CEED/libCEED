@@ -13,6 +13,7 @@ The current ``main`` (formerly called ``master``) branch contains bug fixes and 
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
+* Error handling improved to include enumerated error codes for C interface return values
 
 New features
 ^^^^^^^^^^^^
@@ -20,13 +21,15 @@ New features
 * Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
 * New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
 * Static libraries can be built with ``make STATIC=1`` and the pkg-config file is installed accordingly.
+* Add :cpp:func:`CeedOperatorLinearAssembleSymbolic` and :cpp:func:`CeedOperatorLinearAssemble` to support full assembly of libCEED operators.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Examples
 ^^^^^^^^
-* :ref:`example-petsc-elasticity` example updated with traction boundary conditions.
+* :ref:`example-petsc-elasticity` example updated with traction boundary conditions and improved Dirichlet boundary conditions.
+* :ref:`example-petsc-elasticity` example updated with Neo-Hookean hyperelasticity in current configuration as well as improved Neo-Hookean hyperelasticity exploring storage vs computation tradeoffs.
 
 .. _v0.7:
 
