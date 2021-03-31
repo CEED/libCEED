@@ -1345,8 +1345,8 @@ int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
   for (int e = 0; e < nelem; ++e) {
     for (int compin = 0; compin < ncomp; ++compin) {
       for (int compout = 0; compout < ncomp; ++compout) {
-        for (int i=0; i < elemsize; ++i) {
-          for (int j=0; j < elemsize; ++j) {
+        for (int i = 0; i < elemsize; ++i) {
+          for (int j = 0; j < elemsize; ++j) {
             const CeedInt edof_index_row = (i)*layout_er[0] +
                                            (compout)*layout_er[1] + e*layout_er[2];
             const CeedInt edof_index_col = (j)*layout_er[0] +
@@ -1577,11 +1577,11 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
           }
         }
         // Compute B^T*D
-        for (int ell=0; ell < elemsize*nqpts*numemodein; ++ell) {
+        for (int ell = 0; ell < elemsize*nqpts*numemodein; ++ell) {
           BTD[ell] = 0.0;
         }
-        for (int j=0; j<elemsize; ++j) {
-          for (int q=0; q<nqpts; ++q) {
+        for (int j = 0; j<elemsize; ++j) {
+          for (int q = 0; q<nqpts; ++q) {
             int qq = numemodeout*q;
             for (int ei = 0; ei < numemodein; ++ei) {
               for (int ej = 0; ej < numemodeout; ++ej) {
@@ -1596,8 +1596,8 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                                   elemsize, nqpts*numemodein); CeedChk(ierr);
 
         // put element matrix in coordinate data structure
-        for (int i=0; i < elemsize; ++i) {
-          for (int j=0; j < elemsize; ++j) {
+        for (int i = 0; i < elemsize; ++i) {
+          for (int j = 0; j < elemsize; ++j) {
             vals[offset + count] = elem_mat[i*elemsize + j];
             count++;
           }
@@ -1671,17 +1671,25 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
   bool isComposite;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Use backend or fallback version, if available
+  // Use backend version, if available
   if (op->LinearAssembleSymbolic) {
     return op->LinearAssembleSymbolic(op, nentries, rows, cols);
   } else {
-    if (op->opfallback && op->opfallback->LinearAssembleSymbolic) {
-      return op->opfallback->LinearAssembleSymbolic(
-               op->opfallback, nentries, rows, cols);
+    // Check for valid fallback resource
+    const char *resource, *fallbackresource;
+    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
+    if (strcmp(fallbackresource, "") && strcmp(resource, fallbackresource)) {
+      // Fallback to reference Ceed
+      if (!op->opfallback) {
+        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+      }
+      // Assemble
+      return CeedOperatorLinearAssembleSymbolic(op->opfallback, nentries, rows, cols);
     }
   }
 
-  // if neither backend nor fallback resource proivdes
+  // if neither backend nor fallback resource provides
   // LinearAssembleSymbolic, continue with interface-level implementation
 
   // count entries and allocate rows, cols arrays
@@ -1747,12 +1755,21 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   CeedOperator *suboperators;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Use backend or fallback version, if available
+  // Use backend version, if available
   if (op->LinearAssemble) {
     return op->LinearAssemble(op, values);
   } else {
-    if (op->opfallback && op->opfallback->LinearAssemble) {
-      return op->opfallback->LinearAssemble(op->opfallback, values);
+    // Check for valid fallback resource
+    const char *resource, *fallbackresource;
+    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallbackresource);
+    if (strcmp(fallbackresource, "") && strcmp(resource, fallbackresource)) {
+      // Fallback to reference Ceed
+      if (!op->opfallback) {
+        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+      }
+      // Assemble
+      return CeedOperatorLinearAssemble(op->opfallback, values);
     }
   }
 
