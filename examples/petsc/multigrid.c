@@ -41,6 +41,16 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 #define multigrid
 #include "setup.h"
 
+// Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
+// smooth -- see the commented versions at the end.
+static double step(const double a, const double b, double x)
+{
+  if (x <= 0) return a;
+  if (x >= 1) return b;
+  return a + (b-a) * (x);
+}
+
+// 1D transformation at the right boundary
 static double right(const double eps, const double x)
 {
   return (x <= 0.5) ? (2-eps) * x : 1 + eps*(x-1);
@@ -52,13 +62,47 @@ static double left(const double eps, const double x)
   return 1-right(eps,1-x);
 }
 
-// Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
-// smooth -- see the commented versions at the end.
-static double step(const double a, const double b, double x)
+// Apply 3D Kershaw mesh transformation
+// The eps parameters are in (0, 1]
+// Uniform mesh is recovered for eps=1
+static void kershaw(DM dmorig, PetscScalar eps)
 {
-  if (x <= 0) return a;
-  if (x >= 1) return b;
-  return a + (b-a) * (x);
+  Vec coord;
+  PetscInt ncoord;
+  PetscScalar *c;
+  DMGetCoordinatesLocal(dmorig, &coord);
+  VecGetLocalSize(coord, &ncoord);
+  VecGetArray(coord, &c);
+
+  for (PetscInt i = 0; i < ncoord; i += 3) {
+    PetscScalar x = c[i], y = c[i+1], z = c[i+2];
+    PetscInt layer = x*6;
+    PetscScalar lambda = (x-layer/6.0)*6;
+    c[i] = x;
+
+    switch (layer) {
+      case 0:
+        c[i+1] = left(eps, y);
+        c[i+2] = left(eps, z);
+        break;
+      case 1:
+      case 4:
+        c[i+1] = step(left(eps, y), right(eps, y), lambda);
+        c[i+2] = step(left(eps, z), right(eps, z), lambda);
+        break;
+      case 2:
+        c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
+        c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
+        break;
+      case 3:
+        c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
+        c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
+        break;
+      default:
+        c[i+1] = right(eps, y);
+        c[i+2] = right(eps, z);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -173,44 +217,9 @@ int main(int argc, char **argv) {
       dmorig = dmDist;
     }
   }
-  {
-    // Apply Kershaw transformation
-    Vec coord;
-    PetscInt ncoord;
-    PetscScalar *c;
-    DMGetCoordinatesLocal(dmorig, &coord);
-    VecGetLocalSize(coord, &ncoord);
-    VecGetArray(coord, &c);
-
-    for (PetscInt i = 0; i < ncoord; i += 3) {
-      PetscScalar x = c[i], y = c[i+1], z = c[i+2];
-      PetscInt layer = x*6;
-      PetscScalar lambda = (x-layer/6.0)*6;
-      c[i] = x;
-      switch (layer) {
-        case 0:
-          c[i+1] = left(eps, y);
-          c[i+2] = left(eps, z);
-          break;
-        case 1:
-        case 4:
-          c[i+1] = step(left(eps, y), right(eps, y), lambda);
-          c[i+2] = step(left(eps, z), right(eps, z), lambda);
-          break;
-        case 2:
-          c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
-          c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
-          break;
-        case 3:
-          c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
-          c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
-          break;
-        default:
-          c[i+1] = right(eps, y);
-          c[i+2] = right(eps, z);
-      }
-    }
-  }
+  
+  // apply kershaw mesh transformation 
+  kershaw(dmorig, eps);
 
   VecType vectype;
   switch (memtypebackend) {
