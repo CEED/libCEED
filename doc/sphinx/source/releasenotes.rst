@@ -9,7 +9,25 @@ for each release of libCEED.
 Current Main
 ----------------------------------------
 
-The current ``main`` (formerly called ``master``) branch contains bug fixes and additional features.
+The current ``main`` branch contains bug fixes and additional features.
+
+Interface changes
+^^^^^^^^^^^^^^^^^
+
+New features
+^^^^^^^^^^^^
+
+Performance improvements
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Examples
+^^^^^^^^
+
+
+.. _v0.8:
+
+v0.8 (Mar 31, 2021)
+-------------------
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
@@ -18,14 +36,14 @@ Interface changes
 
 New features
 ^^^^^^^^^^^^
-* New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
 * Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
-* New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
 * Static libraries can be built with ``make STATIC=1`` and the pkg-config file is installed accordingly.
 * Add :cpp:func:`CeedOperatorLinearAssembleSymbolic` and :cpp:func:`CeedOperatorLinearAssemble` to support full assembly of libCEED operators.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
+* New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
+* New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
 
 Examples
 ^^^^^^^^

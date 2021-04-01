@@ -108,7 +108,7 @@ for example.  All issues reported by ``make tidy`` should be fixed.
 Header Files
 ----------------------------------------
 
-Header inclusion for source files should follow the principal of 'include what you use' rather than relying upon transitive ``#include``s to define all symbols.
+Header inclusion for source files should follow the principal of 'include what you use' rather than relying upon transitive ``#include`` to define all symbols.
 
 Every symbol that is used in the source file ``foo.c`` should be defined in ``foo.c``, ``foo.h``, or in a header file ``#include``d in one of these two locations.
 Please check your code by running the tool ``include-what-you-use`` to see recommendations for changes to your source.

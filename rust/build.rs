@@ -32,7 +32,7 @@ fn main() {
     };
     pkg_config::Config::new()
         .statik(statik)
-        .atleast_version("0.7")
+        .atleast_version("0.8")
         .probe(&ceed_pc)
         .unwrap();
 
