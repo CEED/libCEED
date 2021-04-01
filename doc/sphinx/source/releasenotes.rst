@@ -31,6 +31,8 @@ Examples
 ^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with traction boundary conditions and improved Dirichlet boundary conditions.
 * :ref:`example-petsc-elasticity` example updated with Neo-Hookean hyperelasticity in current configuration as well as improved Neo-Hookean hyperelasticity exploring storage vs computation tradeoffs.
+* :ref:`example-petsc-navier-stokes` example updated with Traveling Vortex test case which is the analytical solution to the Euler equations.
+* :ref:`example-petsc-navier-stokes` example updated with a support for performing convergence study and plotting the obtained results.
 
 .. _v0.7:
 
