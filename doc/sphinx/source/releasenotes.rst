@@ -31,6 +31,8 @@ Examples
 ^^^^^^^^
 * :ref:`example-petsc-elasticity` example updated with traction boundary conditions and improved Dirichlet boundary conditions.
 * :ref:`example-petsc-elasticity` example updated with Neo-Hookean hyperelasticity in current configuration as well as improved Neo-Hookean hyperelasticity exploring storage vs computation tradeoffs.
+* :ref:`example-petsc-navier-stokes` example updated with isentropic traveling vortex test case, an analytical solution to the Euler equations that is useful for testing boundary conditions, discretization stability, and order of accuracy.
+* :ref:`example-petsc-navier-stokes` example updated with support for performing convergence study and plotting order of convergence by polynomial degree.
 
 .. _v0.7:
 
@@ -546,4 +548,3 @@ Examples available in this release:
 +-------------------------+-----------------------------------+
 | ``petsc``               | BP1 (scalar mass operator)        |
 +-------------------------+-----------------------------------+
-
