@@ -281,7 +281,6 @@ def test_314(ceed_resource):
                     xx[d] = xq[d * Pdim + i]
                 u[i] = eval(dim, xx)
 
-        Xq.restore_array_read()
         U.set_array(u, cmode=libceed.USE_POINTER)
 
         # Calculate G u at quadrature points, G' * 1 at dofs
