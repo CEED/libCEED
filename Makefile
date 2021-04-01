@@ -72,7 +72,7 @@ OCCA_DIR ?= ../occa
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
 
-# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support HIP
+# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
 CUDA_DIR  ?=
 CUDA_ARCH ?= 
 
