@@ -1,7 +1,6 @@
 name = "LibCEED"
 uuid = "2cd74e05-b976-4426-91fa-5f1011f8952b"
-authors = ["Will Pazner <will.e.p@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
