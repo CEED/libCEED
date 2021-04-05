@@ -57,7 +57,7 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION2D problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
@@ -190,7 +190,7 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
 
   PetscFunctionBeginUser;
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for advection2d",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION2D BCs",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",

@@ -64,7 +64,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for DC",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
@@ -239,7 +239,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, WindType wind_type,
 
   PetscFunctionBeginUser;
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for density_current",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",

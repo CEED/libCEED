@@ -57,7 +57,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
@@ -155,7 +155,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
 
   // -- QFunction Context
   ctxPhysData->stab = stab;
-  ctxPhysData->wind_type = wind_type;
+  ctxPhysData->wind_type = wind_type; // to-do: check if passed correctly
   ctxPhysData->ctxAdvectionData->CtauS = CtauS;
   ctxPhysData->ctxAdvectionData->strong_form = strong_form;
   ctxPhysData->ctxAdvectionData->E_wind = E_wind;
@@ -190,7 +190,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
 
   PetscFunctionBeginUser;
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for advection",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION BCs",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",
