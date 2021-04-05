@@ -6,6 +6,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   MPI_Comm comm = PETSC_COMM_WORLD;
   StabilizationType stab;
   PetscBool implicit;
+  PetscBool hasCurrentTime = PETSC_FALSE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
@@ -28,7 +29,8 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   problem->applyVol_rhs_loc          = DC_loc;
   problem->applyVol_ifunction        = IFunction_DC;
   problem->applyVol_ifunction_loc    = IFunction_DC_loc;
-  problem->bc                        = BC_DENSITY_CURRENT;
+  problem->bc                        = Exact_DC;
+  problem->bc_fnc                    = BC_DENSITY_CURRENT;
   problem->non_zero_time             = PETSC_FALSE;
 
   // ------------------------------------------------------
@@ -207,6 +209,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   // -- QFunction Context
   ctxPhysData->stab = stab;
   ctxPhysData->implicit = implicit;
+  ctxPhysData->hasCurrentTime = hasCurrentTime;
   ctxPhysData->ctxNSData->lambda = lambda;
   ctxPhysData->ctxNSData->mu = mu;
   ctxPhysData->ctxNSData->k = k;
@@ -219,7 +222,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, WindType wind_type,
+PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
                                   void *ctxSetupData) {
 
   PetscErrorCode ierr;

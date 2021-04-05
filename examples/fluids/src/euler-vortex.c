@@ -1,178 +1,149 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
-                              void *ctx, void *ctxPhys) {
+PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
+                               void *ctx, void *ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
-  WindType wind_type;
-  StabilizationType stab;
+  EulerTestType eulertest;
   PetscBool implicit;
-  PetscBool hasCurrentTime = PETSC_FALSE;
+  PetscBool hasCurrentTime = PETSC_TRUE;
+  PetscBool hasNeumann = PETSC_TRUE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->ctxAdvectionData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxPhysData->ctxEulerData); CHKERRQ(ierr);
+
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
-  //               SET UP ADVECTION2D
+  //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->dim                       = 2;
-  problem->qdatasizeVol              = 5;
-  problem->qdatasizeSur              = 3;
-  problem->setupVol                  = Setup2d;
-  problem->setupVol_loc              = Setup2d_loc;
-  problem->setupSur                  = SetupBoundary2d;
-  problem->setupSur_loc              = SetupBoundary2d_loc;
-  problem->ics                       = ICsAdvection2d;
-  problem->ics_loc                   = ICsAdvection2d_loc;
-  problem->applyVol_rhs              = Advection2d;
-  problem->applyVol_rhs_loc          = Advection2d_loc;
-  problem->applyVol_ifunction        = IFunction_Advection2d;
-  problem->applyVol_ifunction_loc    = IFunction_Advection2d_loc;
-  problem->applySur                  = Advection2d_Sur;
-  problem->applySur_loc              = Advection2d_Sur_loc;
-  problem->bc                        = Exact_Advection2d;
-  problem->bc_fnc                    = BC_ADVECTION2D;
+  problem->dim                       = 3;
+  problem->qdatasizeVol              = 10;
+  problem->qdatasizeSur              = 4;
+  problem->setupVol                  = Setup;
+  problem->setupVol_loc              = Setup_loc;
+  problem->setupSur                  = SetupBoundary;
+  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->ics                       = ICsEuler;
+  problem->ics_loc                   = ICsEuler_loc;
+  problem->applyVol_rhs              = Euler;
+  problem->applyVol_rhs_loc          = Euler_loc;
+  problem->applyVol_ifunction        = IFunction_Euler;
+  problem->applyVol_ifunction_loc    = IFunction_Euler_loc;
+  problem->applySur                  = Euler_Sur;
+  problem->applySur_loc              = Euler_Sur_loc;
+  problem->bc                        = Exact_Euler;
+  problem->bc_fnc                    = BC_EULER_VORTEX;
   problem->non_zero_time             = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  PetscScalar lx         = 8000.;       // m
-  PetscScalar ly         = 8000.;       // m
-  PetscScalar lz         = 4000.;       // m
-  CeedScalar rc          = 1000.;       // m (Radius of bubble)
-  CeedScalar CtauS       = 0.;          // dimensionless
-  CeedScalar strong_form = 0.;          // [0,1]
-  CeedScalar E_wind      = 1.e6;        // J
-  PetscReal wind[3]      = {1., 0, 0};  // m/s
+  CeedScalar time; // todo: check if needed
+  CeedScalar currentTime     = 0.;
+  CeedScalar vortex_strength = 5.;      // -
+  PetscScalar lx             = 8000.;       // m
+  PetscScalar ly             = 8000.;       // m
+  PetscScalar lz             = 4000.;       // m
+  PetscReal center[3], etv_mean_velocity[3] = {1., 1., 0}; // to-do: etv -> euler
 
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
   PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
-  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
   PetscScalar second   = 1e-2;  // 1 second in scaled time units
-  PetscScalar Joule;
 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION2D problem",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for EULER_VORTEX problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
+  PetscBool userVortex;
+  ierr = PetscOptionsScalar("-vortex_strength", "Strength of Vortex",
+                            NULL, vortex_strength, &vortex_strength, &userVortex);
+  CHKERRQ(ierr);
+  PetscInt n = problem->dim;
+  ierr = PetscOptionsRealArray("-problem_euler_mean_velocity",
+                               "Mean velocity vector",
+                               NULL, etv_mean_velocity, &n, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                             NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
-  PetscInt n = problem->dim;
-  PetscBool userWind;
-  ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
-                               "Constant wind vector",
-                               NULL, wind, &n, &userWind); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-CtauS",
-                            "Scale coefficient for tau (nondimensional)",
-                            NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-strong_form",
-                            "Strong (1) or weak/integrated by parts (0) advection residual",
-                            NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
-                            NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-  PetscBool translation;
-  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
-                          NULL, WindTypes,
-                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
-                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) ctxPhysData->hasNeumann = translation;
-  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  n = problem->dim;
+  center[0] = 0.5 * lx;
+  center[1] = 0.5 * ly;
+  center[2] = 0.5 * lz;
+
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-euler_test", "Euler test option", NULL,
+                          EulerTestTypes, (PetscEnum)(eulertest = EULER_TEST_NONE),
+                          (PetscEnum *)&eulertest, NULL); CHKERRQ(ierr);
 
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
   meter = fabs(meter);
-  ierr = PetscOptionsScalar("-units_kilogram","1 kilogram in scaled mass units",
-                            NULL, kilogram, &kilogram, NULL); CHKERRQ(ierr);
-  kilogram = fabs(kilogram);
   ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
-
-  // -- Warnings
-  if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
-    CHKERRQ(ierr);
-  }
-  if (stab == STAB_NONE && CtauS != 0) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -CtauS only with -stab su or -stab supg\n");
-    CHKERRQ(ierr);
-  }
-  if (stab == STAB_SUPG && !implicit) {
-    ierr = PetscPrintf(comm,
-                       "Warning! Use -stab supg only with -implicit\n");
-    CHKERRQ(ierr);
-  }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //           Set up the PETSc context
   // ------------------------------------------------------
-  // -- Define derived units
-  Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
-
   units->meter = meter;
-  units->kilogram = kilogram;
   units->second = second;
-  units->Joule = Joule;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  E_wind *= Joule;
   lx = fabs(lx) * meter;
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
-  rc = fabs(rc) * meter;
+  for (int i=0; i<3; i++) center[i] *= meter;
+  // todo: scale etv_mean_velocity
 
   // -- Setup Context
-  ctxSetup->rc         = rc;
   ctxSetup->lx         = lx;
   ctxSetup->ly         = ly;
   ctxSetup->lz         = lz;
-  ctxSetup->wind[0]  = wind[0];
-  ctxSetup->wind[1]  = wind[1];
-  ctxSetup->wind_type = wind_type;
+  ctxSetup->center[0]  = center[0];
+  ctxSetup->center[1]  = center[1];
+  ctxSetup->center[2]  = center[2];
   ctxSetup->time = 0;
 
   // -- QFunction Context
-  ctxPhysData->stab = stab;
-  ctxPhysData->wind_type = wind_type;
-  ctxPhysData->implicit = implicit;  // todo: check
+  ctxPhysData->eulertest = eulertest;
+  ctxPhysData->implicit = implicit;
   ctxPhysData->hasCurrentTime = hasCurrentTime;
-  ctxPhysData->ctxAdvectionData->CtauS = CtauS;
-  ctxPhysData->ctxAdvectionData->strong_form = strong_form;
-  ctxPhysData->ctxAdvectionData->E_wind = E_wind;
-  ctxPhysData->ctxAdvectionData->implicit = implicit;
-  ctxPhysData->ctxAdvectionData->stabilization = stab;
+  ctxPhysData->hasNeumann = hasNeumann;
+  ctxPhysData->ctxEulerData->time = 0.; // todo: check if really needed
+  ctxPhysData->ctxEulerData->currentTime = 0.;
+  ctxPhysData->ctxEulerData->center[0]  = center[0];
+  ctxPhysData->ctxEulerData->center[1]  = center[1];
+  ctxPhysData->ctxEulerData->center[2]  = center[2];
+  ctxPhysData->ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
+  ctxPhysData->ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
+  ctxPhysData->ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
+  ctxPhysData->ctxEulerData->vortex_strength = vortex_strength;
+  ctxPhysData->ctxEulerData->implicit = implicit;
+  ctxPhysData->ctxEulerData->euler_test = eulertest;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
-                              void *ctxSetupData) {
+PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
+                               void *ctxSetupData) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -180,20 +151,14 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   // Default boundary conditions
-  // ToDo: fix the dimension
-  // todo: check if we can define bcs for translation in
-  //       function instead
-  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
-  bc->slips[0][0] = 5;
-  bc->slips[0][1] = 6;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
+  bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
+  bc->nslip[2] = 2;
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
   PetscFunctionBeginUser;
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION2D BCs",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",
@@ -248,11 +213,10 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   }
   {
     // Wall boundary conditions
-    //   zero energy density and zero flux
-    //   ToDo: need to set "wall" as the default BC after checking with the regression tests
-    PetscInt comps[1] = {4};
+    //   zero velocity and zero flux for mass density and energy density
+    PetscInt comps[3] = {1, 2, 3};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
-                         1, comps, (void(*)(void))Exact_Advection2d, NULL,
+                         3, comps, (void(*)(void))Exact_Euler, NULL,
                          bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);

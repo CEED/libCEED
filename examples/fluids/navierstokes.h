@@ -8,6 +8,7 @@
 #include "qfunctions/setup-boundary.h"
 #include "qfunctions/advection.h"
 #include "qfunctions/advection2d.h"
+#include "qfunctions/euler-vortex.h"
 #include "qfunctions/densitycurrent.h"
 
 // Wind Options for Advection
@@ -19,6 +20,23 @@ static const char *const WindTypes[] = {
   "rotation",
   "translation",
   "WindType", "ADVECTION_WIND_", NULL
+};
+
+// Euler test cases
+typedef enum {
+  EULER_TEST_NONE = 0,
+  EULER_TEST_1 = 1,
+  EULER_TEST_2 = 2,
+  EULER_TEST_3 = 3,
+  EULER_TEST_4 = 4,
+} EulerTestType;
+static const char *const EulerTestTypes[] = {
+  "none",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "EulerTestType", "EULER_TEST_", NULL
 };
 
 typedef enum {
@@ -33,27 +51,9 @@ static const char *const StabilizationTypes[] = {
   "StabilizationType", "STAB_", NULL
 };
 
-// Test Options
-typedef enum {
-  TEST_NONE = 0,               // Non test mode
-  TEST_EXPLICIT = 1,           // Explicit test
-  TEST_IMPLICIT_STAB_NONE = 2, // Implicit test no stab
-  TEST_IMPLICIT_STAB_SUPG = 3, // Implicit test supg stab
-} testType;
-static const char *const testTypes[] = {
-  "none",
-  "explicit",
-  "implicit_stab_none",
-  "implicit_stab_supg",
-  "testType", "TEST_", NULL
-};
-
-// Tests specific data
-typedef struct {
-  PetscScalar testtol;
-  const char *filepath;
-} testData;
-
+typedef struct User_ *User;
+typedef struct Units_ *Units;
+typedef struct Physics_ *Physics;
 typedef struct SimpleBC_ *SimpleBC;
 struct SimpleBC_ {
   PetscInt nwall, nslip[3];
@@ -69,12 +69,12 @@ typedef struct {
   const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
         *applyVol_ifunction_loc, *applySur_loc;
   bool non_zero_time;
-  PetscErrorCode (*bc)(DM, SimpleBC, WindType, void *);
+  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
+                       PetscScalar[], void *);
+  PetscErrorCode (*bc_fnc)(DM, SimpleBC, Physics, void *);
 } problemData;
 
 // PETSc user data
-typedef struct User_ *User;
-typedef struct Units_ *Units;
 
 struct User_ {
   MPI_Comm comm;
@@ -87,8 +87,9 @@ struct User_ {
   CeedVector qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
   Vec M;
-  char outputfolder[PETSC_MAX_PATH_LEN];
+  char outputdir[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
+  Physics phys;
 };
 
 struct Units_ {
@@ -109,29 +110,36 @@ struct Units_ {
 };
 
 // Setup Context for QFunctions
-typedef struct Physics_ *Physics;
 struct Physics_ {
   NSContext ctxNSData;
+  EulerContext ctxEulerData;
   AdvectionContext ctxAdvectionData;
   WindType wind_type;
+  EulerTestType eulertest;
   StabilizationType stab;
   PetscBool implicit;
+  PetscBool hasCurrentTime;
+  PetscBool hasNeumann;
 };
 
 // Setup function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
     void *ctxSetupData, void *ctx, void *ctxPhys);
+extern PetscErrorCode NS_EULER_VORTEX(problemData *problem,
+                                      void *ctxSetupData, void *ctx, void *ctxPhys);
 extern PetscErrorCode NS_ADVECTION(problemData *problem,
                                    void *ctxSetupData, void *ctx, void *ctxPhys);
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
                                      void *ctxSetupData, void *ctx, void *ctxPhys);
 
 // Boundary Condition Functions
-extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, WindType wind_type,
+extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     void *ctxSetupData);
-extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
+extern PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
+                                      void *ctxSetupData);
+extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                                    void *ctxSetupData);
-extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, WindType wind_type,
+extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                                      void *ctxSetupData);
 
 #endif

@@ -7,6 +7,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   WindType wind_type;
   StabilizationType stab;
   PetscBool implicit;
+  PetscBool hasCurrentTime = PETSC_FALSE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
@@ -31,7 +32,8 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   problem->applyVol_ifunction_loc    = IFunction_Advection_loc;
   problem->applySur                  = Advection_Sur;
   problem->applySur_loc              = Advection_Sur_loc;
-  problem->bc                        = BC_ADVECTION;
+  problem->bc                        = Exact_Advection;
+  problem->bc_fnc                    = BC_ADVECTION;
   problem->non_zero_time             = PETSC_FALSE;
 
   // ------------------------------------------------------
@@ -81,10 +83,12 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
                             NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
+  PetscBool translation;
   ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
-                          (PetscEnum *)&wind_type, NULL); CHKERRQ(ierr);
+                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
+  if (translation) ctxPhysData->hasNeumann = translation;
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -137,6 +141,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
+  E_wind *= Joule;
   lx = fabs(lx) * meter;
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
@@ -156,6 +161,8 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   // -- QFunction Context
   ctxPhysData->stab = stab;
   ctxPhysData->wind_type = wind_type; // to-do: check if passed correctly
+  ctxPhysData->implicit = implicit;
+  ctxPhysData->hasCurrentTime = hasCurrentTime;
   ctxPhysData->ctxAdvectionData->CtauS = CtauS;
   ctxPhysData->ctxAdvectionData->strong_form = strong_form;
   ctxPhysData->ctxAdvectionData->E_wind = E_wind;
@@ -165,7 +172,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
+PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                             void *ctxSetupData) {
 
   PetscErrorCode ierr;
@@ -174,19 +181,13 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, WindType wind_type,
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   // Default boundary conditions
-  if (wind_type == ADVECTION_WIND_TRANSLATION) {
-    // ToDo: check translation w/tests
-    bc->nwall = 0;
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
-  } else { // Default boundary conditions
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
-    bc->slips[0][0] = 5;
-    bc->slips[0][1] = 6;
-    bc->slips[1][0] = 3;
-    bc->slips[1][1] = 4;
-    bc->slips[2][0] = 1;
-    bc->slips[2][1] = 2;
-  }
+  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
+  bc->slips[0][0] = 5;
+  bc->slips[0][1] = 6;
+  bc->slips[1][0] = 3;
+  bc->slips[1][1] = 4;
+  bc->slips[2][0] = 1;
+  bc->slips[2][1] = 2;
 
   PetscFunctionBeginUser;
   // Parse command line options
