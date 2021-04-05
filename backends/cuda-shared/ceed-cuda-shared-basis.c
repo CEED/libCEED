@@ -773,7 +773,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt nelem,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
-  Ceed_Cuda_shared *ceed_Cuda;
+  Ceed_Cuda *ceed_Cuda;
   CeedGetData(ceed, &ceed_Cuda); CeedChkBackend(ierr);
   CeedBasis_Cuda_shared *data;
   CeedBasisGetData(basis, &data); CeedChkBackend(ierr);

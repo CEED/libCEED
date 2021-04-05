@@ -16,8 +16,8 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <stdarg.h>
 #include <string.h>
+#include <stdlib.h>
 #include "ceed-hip.h"
 
 //------------------------------------------------------------------------------
@@ -33,22 +33,23 @@ static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
 //------------------------------------------------------------------------------
 int CeedHipInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
-  const int rlen = strlen(resource);
-  const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
-  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : -1;
+  const char *device_spec = strstr(resource, ":device_id=");
+  const int deviceID = (device_spec) ? atoi(device_spec+11) : -1;
 
   int currentDeviceID;
   ierr = hipGetDevice(&currentDeviceID); CeedChk_Hip(ceed,ierr);
   if (deviceID >= 0 && currentDeviceID != deviceID) {
     ierr = hipSetDevice(deviceID); CeedChk_Hip(ceed,ierr);
+    currentDeviceID = deviceID;
   }
 
   struct hipDeviceProp_t deviceProp;
-  ierr = hipGetDeviceProperties(&deviceProp, deviceID); CeedChk_Hip(ceed,ierr);
+  ierr = hipGetDeviceProperties(&deviceProp, currentDeviceID);
+  CeedChk_Hip(ceed,ierr);
 
   Ceed_Hip *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  data->deviceId = deviceID;
+  data->deviceId = currentDeviceID;
   data->optblocksize = 256;
   return CEED_ERROR_SUCCESS;
 }
@@ -93,6 +94,7 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);

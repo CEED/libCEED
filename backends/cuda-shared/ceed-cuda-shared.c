@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <stdbool.h>
 #include <string.h>
 #include "ceed-cuda-shared.h"
 #include "../cuda/ceed-cuda.h"
@@ -34,14 +33,14 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
-  Ceed ceedref;
-  CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
-
-  Ceed_Cuda_shared *data;
+  Ceed_Cuda *data;
   ierr = CeedCalloc(1, &data); CeedChk(ierr);
   ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChk(ierr);
+
+  Ceed ceedref;
+  CeedInit("/gpu/cuda/ref", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared);

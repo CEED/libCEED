@@ -32,14 +32,14 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
                      "Cuda backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
-  Ceed ceedshared;
-  CeedInit("/gpu/cuda/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
-
-  Ceed_Cuda_gen *data;
+  Ceed_Cuda *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
   ierr = CeedCudaInit(ceed, resource, nrc); CeedChkBackend(ierr);
+
+  Ceed ceedshared;
+  CeedInit("/gpu/cuda/shared", &ceedshared);
+  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
 
   const char fallbackresource[] = "/gpu/cuda/ref";
   ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);

@@ -21,7 +21,6 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,22 +149,22 @@ static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
 //------------------------------------------------------------------------------
 int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
-  const int rlen = strlen(resource);
-  const bool slash = (rlen>nrc) ? (resource[nrc] == '/') : false;
-  const int deviceID = (slash && rlen > nrc + 1) ? atoi(&resource[nrc + 1]) : -1;
+  const char *device_spec = strstr(resource, ":device_id=");
+  const int deviceID = (device_spec) ? atoi(device_spec+11) : -1;
 
   int currentDeviceID;
   ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
   if (deviceID >= 0 && currentDeviceID != deviceID) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+    currentDeviceID = deviceID;
   }
-
   struct cudaDeviceProp deviceProp;
-  ierr = cudaGetDeviceProperties(&deviceProp, deviceID); CeedChk_Cu(ceed,ierr);
+  ierr = cudaGetDeviceProperties(&deviceProp, currentDeviceID);
+  CeedChk_Cu(ceed,ierr);
 
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  data->deviceId = deviceID;
+  data->deviceId = currentDeviceID;
   data->optblocksize = deviceProp.maxThreadsPerBlock;
   return CEED_ERROR_SUCCESS;
 }
@@ -210,6 +209,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Cuda backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
   Ceed_Cuda *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);

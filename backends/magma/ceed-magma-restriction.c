@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <string.h>
 #include "ceed-magma.h"
 
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,

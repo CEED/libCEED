@@ -44,10 +44,6 @@ typedef struct {
   void *d_c;
 } CeedQFunction_Hip_gen;
 
-typedef struct {
-  Ceed_Hip base;
-} Ceed_Hip_gen;
-
 CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Hip_gen(CeedOperator op);
