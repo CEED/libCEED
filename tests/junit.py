@@ -98,6 +98,8 @@ def run(test, backends):
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
+                if test[:4] in 't006 t007'.split():
+                    check_required_failure(case, proc.stderr, 'No suitable backend:')
                 if test[:4] in 't110 t111 t112 t113 t114'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector array access')
                 if test[:4] in 't115'.split():
