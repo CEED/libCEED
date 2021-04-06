@@ -202,7 +202,7 @@ bpData bpOptions[6] = {
   },
   [CEED_BP3] = {
     .ncompu = 1,
-    .qdatasize = 6,
+    .qdatasize = 7,
     .qextra = 1,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs,
@@ -218,7 +218,7 @@ bpData bpOptions[6] = {
   },
   [CEED_BP4] = {
     .ncompu = 3,
-    .qdatasize = 6,
+    .qdatasize = 7,
     .qextra = 1,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs3,
@@ -234,7 +234,7 @@ bpData bpOptions[6] = {
   },
   [CEED_BP5] = {
     .ncompu = 1,
-    .qdatasize = 6,
+    .qdatasize = 7,
     .qextra = 0,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs,
@@ -250,7 +250,7 @@ bpData bpOptions[6] = {
   },
   [CEED_BP6] = {
     .ncompu = 3,
-    .qdatasize = 6,
+    .qdatasize = 7,
     .qextra = 0,
     .setupgeo = SetupDiffGeo,
     .setuprhs = SetupDiffRhs3,
@@ -364,7 +364,7 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
 }
 
 // This function calculates the error in the final solution
-static PetscErrorCode ComputeErrorMax(User user, CeedOperator operror, Vec X,
+static PetscErrorCode ComputeErrorMax(User user, CeedOperator opError, Vec X,
                                       CeedVector target, PetscReal *maxerror) {
   PetscErrorCode ierr;
   PetscScalar *x;
@@ -389,7 +389,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator operror, Vec X,
   CeedVectorSetArray(user->xceed, MemTypeP2C(memtype), CEED_USE_POINTER, x);
 
   // Apply libCEED operator
-  CeedOperatorApply(operror, user->xceed, collocated_error,
+  CeedOperatorApply(opError, user->xceed, collocated_error,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
@@ -434,8 +434,8 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis basisx, basisu;
   CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
-  CeedQFunction qfsetupgeo, qfsetuprhs, qfapply, qferror;
-  CeedOperator opsetupgeo, opsetuprhs, opapply, operror;
+  CeedQFunction qfsetupgeo, qfsetuprhs, qfapply, qfError;
+  CeedOperator opsetupgeo, opsetuprhs, opapply, opError;
   CeedVector xcoord, qdata, rhsceed, target;
   CeedInt P, Q;
   const CeedInt dim = 3, ncompx = 3;
@@ -701,6 +701,7 @@ int main(int argc, char **argv) {
   // Create the Qfunction that builds the operator quadrature data
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].setupgeo,
                               bpOptions[bpchoice].setupgeofname, &qfsetupgeo);
+  CeedQFunctionAddInput(qfsetupgeo, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qfsetupgeo, "dx", ncompx*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qfsetupgeo, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qfsetupgeo, "qdata", bpOptions[bpchoice].qdatasize,
@@ -710,8 +711,8 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].setuprhs,
                               bpOptions[bpchoice].setuprhsfname, &qfsetuprhs);
   CeedQFunctionAddInput(qfsetuprhs, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qfsetuprhs, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qfsetuprhs, "weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qfsetuprhs, "qdata", bpOptions[bpchoice].qdatasize,
+                        CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfsetuprhs, "true_soln", ncompu, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qfsetuprhs, "rhs", ncompu, CEED_EVAL_INTERP);
 
@@ -730,10 +731,10 @@ int main(int argc, char **argv) {
 
   // Create the error qfunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
-                              bpOptions[bpchoice].errorfname, &qferror);
-  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
+                              bpOptions[bpchoice].errorfname, &qfError);
+  CeedQFunctionAddInput(qfError, "u", ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qfError, "true_soln", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfError, "error", ncompu, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
   CeedInt nqpts;
@@ -745,6 +746,8 @@ int main(int argc, char **argv) {
   // Create the operator that builds the quadrature data for the ceed operator
   CeedOperatorCreate(ceed, qfsetupgeo, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &opsetupgeo);
+  CeedOperatorSetField(opsetupgeo, "x", Erestrictx, basisx,
+                       CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(opsetupgeo, "dx", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(opsetupgeo, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
@@ -757,10 +760,8 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &opsetuprhs);
   CeedOperatorSetField(opsetuprhs, "x", Erestrictx, basisx,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(opsetuprhs, "dx", Erestrictx, basisx,
-                       CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(opsetuprhs, "weight", CEED_ELEMRESTRICTION_NONE, basisx,
-                       CEED_VECTOR_NONE);
+  CeedOperatorSetField(opsetuprhs, "qdata", Erestrictqdi, CEED_BASIS_COLLOCATED,
+                       qdata);
   CeedOperatorSetField(opsetuprhs, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(opsetuprhs, "rhs", Erestrictu, basisu,
@@ -775,12 +776,12 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(opapply, "v", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &operror);
-  CeedOperatorSetField(operror, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(operror, "true_soln", Erestrictui,
+  CeedOperatorCreate(ceed, qfError, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opError);
+  CeedOperatorSetField(opError, "u", Erestrictu, basisu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(opError, "true_soln", Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(operror, "error", Erestrictui, CEED_BASIS_COLLOCATED,
+  CeedOperatorSetField(opError, "error", Erestrictui, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -909,7 +910,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(user, operror, X, target, &maxerror);
+      ierr = ComputeErrorMax(user, opError, X, target, &maxerror);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || maxerror > tol) {
@@ -959,7 +960,7 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&opsetupgeo);
   CeedOperatorDestroy(&opsetuprhs);
   CeedOperatorDestroy(&opapply);
-  CeedOperatorDestroy(&operror);
+  CeedOperatorDestroy(&opError);
   CeedElemRestrictionDestroy(&Erestrictu);
   CeedElemRestrictionDestroy(&Erestrictx);
   CeedElemRestrictionDestroy(&Erestrictui);
@@ -967,7 +968,7 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qfsetupgeo);
   CeedQFunctionDestroy(&qfsetuprhs);
   CeedQFunctionDestroy(&qfapply);
-  CeedQFunctionDestroy(&qferror);
+  CeedQFunctionDestroy(&qfError);
   CeedBasisDestroy(&basisu);
   CeedBasisDestroy(&basisx);
   CeedDestroy(&ceed);

@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations when reference coordinates have a different
 //   dimension than the one of physical coordinates
@@ -70,8 +70,6 @@
 //
 //   qdata[1:3]: [dXdxdXdxT00 dXdxdXdxT01]
 //               [dXdxdXdxT01 dXdxdXdxT11]
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -169,10 +167,8 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -209,7 +205,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the diffusion operator for a scalar field.
 //
 // Inputs:
@@ -219,8 +215,6 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
 // Output:
 //   vg     - Output vector (test functions) gradient at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {

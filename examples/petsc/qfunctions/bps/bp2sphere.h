@@ -24,10 +24,8 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
@@ -66,7 +64,7 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the mass operator for a vector field of 3 components.
 //
 // Inputs:
@@ -76,8 +74,6 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
 // Output:
 //   v     - Output vector (test functions) at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {

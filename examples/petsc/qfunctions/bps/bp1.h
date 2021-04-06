@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required to apply the
 //   mass operator
 //
@@ -35,13 +35,11 @@
 //
 // Qdata: detJ * w
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
-  const CeedScalar *J = in[0], *w = in[1];
+  const CeedScalar *J = in[1], *w = in[2]; // Note: *X = in[0]
   CeedScalar *qdata = out[0];
 
   // Quadrature Point Loop
@@ -55,32 +53,25 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
-  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
+  const CeedScalar *x = in[0], *w = in[1];
   CeedScalar *true_soln = out[0], *rhs = out[1];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar det = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                            J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                            J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-
     true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-
-    rhs[i] = det * w[i] * true_soln[i];
+    rhs[i] = w[i] * true_soln[i];
   } // End of Quadrature Point Loop
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
@@ -90,8 +81,6 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
 // Output:
 //   v     - Output vector (test functions) at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {

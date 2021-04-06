@@ -38,8 +38,7 @@
 /// CEED BPs 1-6 multigrid example using PETSc
 const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 
-#define multigrid
-#include "setup.h"
+#include "bps.h"
 
 // Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
 // smooth -- see the commented versions at the end.
@@ -278,7 +277,10 @@ int main(int argc, char **argv) {
     ierr = DMClone(dmorig, &dm[i]); CHKERRQ(ierr);
     ierr = DMGetVecType(dmorig, &vectype); CHKERRQ(ierr);
     ierr = DMSetVecType(dm[i], vectype); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], leveldegrees[i], ncompu, bpchoice);
+    PetscInt dim;
+    ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm[i], leveldegrees[i], ncompu, dim,
+                           bpOptions[bpchoice].enforcebc, bpOptions[bpchoice].bcsfunc);
     CHKERRQ(ierr);
 
     // Create vectors
@@ -366,7 +368,7 @@ int main(int argc, char **argv) {
     }
     ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
     ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
-                                ncompu, gsize[i], xlsize[i], bpchoice,
+                                dim, ncompu, gsize[i], xlsize[i], bpOptions[bpchoice],
                                 ceeddata[i], i==(fineLevel), rhsceed, &target);
     CHKERRQ(ierr);
   }
@@ -385,9 +387,8 @@ int main(int argc, char **argv) {
                               &qfprolong);
 
   // Set up libCEED level transfer operators
-  ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpchoice, ceeddata,
-                                leveldegrees, qfrestrict, qfprolong);
-  CHKERRQ(ierr);
+  ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, ceeddata, leveldegrees,
+                                qfrestrict, qfprolong); CHKERRQ(ierr);
 
   // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
@@ -413,12 +414,12 @@ int main(int argc, char **argv) {
     // CEED vector
     ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
     ierr = VecGetArray(Xloc[i], &x); CHKERRQ(ierr);
-    CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+    CeedVectorSetArray(ceeddata[i]->Xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
     CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
-                                       ceeddata[i]->xceed);
-    CeedVectorSyncArray(ceeddata[i]->xceed, CEED_MEM_HOST);
+                                       ceeddata[i]->Xceed);
+    CeedVectorSyncArray(ceeddata[i]->Xceed, CEED_MEM_HOST);
 
     // Restore vector
     ierr = VecRestoreArray(Xloc[i], &x); CHKERRQ(ierr);
@@ -448,9 +449,9 @@ int main(int argc, char **argv) {
     userO[i]->dm = dm[i];
     userO[i]->Xloc = Xloc[i];
     ierr = VecDuplicate(Xloc[i], &userO[i]->Yloc); CHKERRQ(ierr);
-    userO[i]->xceed = ceeddata[i]->xceed;
-    userO[i]->yceed = ceeddata[i]->yceed;
-    userO[i]->op = ceeddata[i]->opapply;
+    userO[i]->Xceed = ceeddata[i]->Xceed;
+    userO[i]->Yceed = ceeddata[i]->Yceed;
+    userO[i]->op = ceeddata[i]->opApply;
     userO[i]->ceed = ceed;
 
     if (i > 0) {
@@ -461,10 +462,10 @@ int main(int argc, char **argv) {
       userPR[i]->locvecc = Xloc[i-1];
       userPR[i]->locvecf = userO[i]->Yloc;
       userPR[i]->multvec = mult[i];
-      userPR[i]->ceedvecc = userO[i-1]->xceed;
-      userPR[i]->ceedvecf = userO[i]->yceed;
-      userPR[i]->opprolong = ceeddata[i]->opprolong;
-      userPR[i]->oprestrict = ceeddata[i]->oprestrict;
+      userPR[i]->ceedvecc = userO[i-1]->Xceed;
+      userPR[i]->ceedvecf = userO[i]->Yceed;
+      userPR[i]->opProlong = ceeddata[i]->opProlong;
+      userPR[i]->opRestrict = ceeddata[i]->opRestrict;
       userPR[i]->ceed = ceed;
     }
   }

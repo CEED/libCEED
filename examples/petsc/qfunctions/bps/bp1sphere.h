@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations when reference coordinates have a different
 //   dimension than the one of physical coordinates
@@ -57,9 +57,7 @@
 //
 // Qdata: modJ * w
 //
-// *****************************************************************************
-
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
@@ -133,10 +131,8 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
@@ -165,7 +161,7 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
@@ -175,8 +171,6 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
 // Output:
 //   v     - Output vector (test functions) at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {

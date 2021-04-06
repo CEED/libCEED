@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factor required for integration when
 //   reference coordinates have a different dimension than the one of
 //   physical coordinates
@@ -53,8 +53,6 @@
 //
 // Qdata: w * det(dx_i/dX_j)
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
@@ -109,9 +107,8 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
   } // End of Quadrature Point Loop
   return 0;
 }
-// -----------------------------------------------------------------------------
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
@@ -121,8 +118,6 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 // Output:
 //   v     - Output vector (test function) at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {

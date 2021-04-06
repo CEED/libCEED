@@ -46,7 +46,7 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 #include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
-#include "setup.h"
+#include "bps.h"
 
 // -----------------------------------------------------------------------------
 // Utilities
@@ -76,8 +76,7 @@ static int Min3(const PetscInt a[3]) {
 typedef struct RunParams_ *RunParams;
 struct RunParams_ {
   MPI_Comm comm;
-  PetscBool test_mode, read_mesh, userlnodes,
-            petschavecuda, write_solution;
+  PetscBool test_mode, read_mesh, userlnodes, write_solution;
   char *filename, *hostname;
   PetscInt localnodes, degree, qextra, dim, ncompu, *melem;
   PetscInt ksp_max_it_clip[2];
@@ -101,8 +100,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   UserO userO;
   Ceed ceed;
   CeedData ceeddata;
-  CeedQFunction qferror;
-  CeedOperator operror;
+  CeedQFunction qfError;
+  CeedOperator opError;
   CeedVector rhsceed, target;
   VecType vectype;
   PetscMemType memtype;
@@ -199,8 +198,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
 
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, rp->degree, rp->dim, rp->qextra,
-                              rp->ncompu, gsize, xlsize, rp->bpchoice, ceeddata,
-                              true, rhsceed, &target); CHKERRQ(ierr);
+                              rp->dim, rp->ncompu, gsize, xlsize, bpOptions[rp->bpchoice],
+                              ceeddata, true, rhsceed, &target); CHKERRQ(ierr);
 
   // Gather RHS
   CeedVectorTakeArray(rhsceed, MemTypeP2C(memtype), NULL);
@@ -211,19 +210,19 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
 
   // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bpOptions[rp->bpchoice].error,
-                              bpOptions[rp->bpchoice].errorfname, &qferror);
-  CeedQFunctionAddInput(qferror, "u", rp->ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qferror, "true_soln", rp->ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qferror, "error", rp->ncompu, CEED_EVAL_NONE);
+                              bpOptions[rp->bpchoice].errorfname, &qfError);
+  CeedQFunctionAddInput(qfError, "u", rp->ncompu, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qfError, "true_soln", rp->ncompu, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qfError, "error", rp->ncompu, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &operror);
-  CeedOperatorSetField(operror, "u", ceeddata->Erestrictu,
+  CeedOperatorCreate(ceed, qfError, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &opError);
+  CeedOperatorSetField(opError, "u", ceeddata->Erestrictu,
                        ceeddata->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(operror, "true_soln", ceeddata->Erestrictui,
+  CeedOperatorSetField(opError, "true_soln", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(operror, "error", ceeddata->Erestrictui,
+  CeedOperatorSetField(opError, "error", ceeddata->Erestrictui,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
@@ -231,9 +230,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   userO->dm = dm;
   userO->Xloc = Xloc;
   ierr = VecDuplicate(Xloc, &userO->Yloc); CHKERRQ(ierr);
-  userO->xceed = ceeddata->xceed;
-  userO->yceed = ceeddata->yceed;
-  userO->op = ceeddata->opapply;
+  userO->Xceed = ceeddata->Xceed;
+  userO->Yceed = ceeddata->Yceed;
+  userO->op = ceeddata->opApply;
   userO->ceed = ceed;
 
   ierr = KSPCreate(rp->comm, &ksp); CHKERRQ(ierr);
@@ -313,7 +312,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     }
     {
       PetscReal maxerror;
-      ierr = ComputeErrorMax(userO, operror, X, target, &maxerror);
+      ierr = ComputeErrorMax(userO, opError, X, target, &maxerror);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!rp->test_mode || maxerror > tol) {
@@ -357,15 +356,15 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qferror);
-  CeedOperatorDestroy(&operror);
+  CeedQFunctionDestroy(&qfError);
+  CeedOperatorDestroy(&opError);
   CeedDestroy(&ceed);
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode Run(RunParams rp,
-                          PetscInt num_resources, char *const *ceedresources,
-                          PetscInt num_bpchoices, const bpType *bpchoices) {
+static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
+                          char *const *ceedresources, PetscInt num_bpchoices,
+                          const bpType *bpchoices) {
   PetscInt ierr;
   DM  dm;
 
@@ -417,8 +416,11 @@ static PetscErrorCode Run(RunParams rp,
     ierr = DMGetVecType(dm, &vectype); CHKERRQ(ierr);
     ierr = DMSetVecType(dm_deg, vectype); CHKERRQ(ierr);
     // Create DM
-    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->ncompu, rp->bpchoice);
-    CHKERRQ(ierr);
+    PetscInt dim;
+    ierr = DMGetDimension(dm_deg, &dim); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->ncompu, dim,
+                           bpOptions[rp->bpchoice].enforcebc,
+                           bpOptions[rp->bpchoice].bcsfunc); CHKERRQ(ierr);
     for (PetscInt r = 0; r < num_resources; r++) {
       ierr = RunWithDM(rp, dm_deg, ceedresources[r]); CHKERRQ(ierr);
     }
@@ -445,16 +447,6 @@ int main(int argc, char **argv) {
   PetscBool degree_set;
   bpType bpchoices[10];
   PetscInt num_bpchoices = 10;
-
-  // Check PETSc CUDA support
-  PetscBool petschavecuda;
-  // *INDENT-OFF*
-  #ifdef PETSC_HAVE_CUDA
-  petschavecuda = PETSC_TRUE;
-  #else
-  petschavecuda = PETSC_FALSE;
-  #endif
-  // *INDENT-ON*
 
   // Initialize PETSc
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -576,7 +568,6 @@ int main(int argc, char **argv) {
   ierr = PetscLogStageRegister("Solve Stage", &rp->solvestage);
   CHKERRQ(ierr);
 
-  rp->petschavecuda = petschavecuda;
   rp->hostname = hostname;
   rp->dim = dim;
   rp->melem = melem;

@@ -50,10 +50,10 @@ static const char help[] =
 #include <ceed.h>
 #include <petscdmplex.h>
 #include <string.h>
-#include "setuparea.h"
+#include "area.h"
 
 #ifndef M_PI
-#  define M_PI    3.14159265358979323846
+#  define M_PI 3.14159265358979323846
 #endif
 
 int main(int argc, char **argv) {
@@ -72,10 +72,12 @@ int main(int argc, char **argv) {
             simplex = PETSC_FALSE;
   Vec U, Uloc, V, Vloc;
   DM  dm;
-  User user;
+  UserO user;
   Ceed ceed;
   CeedData ceeddata;
   problemType problemChoice;
+  VecType vectype;
+  PetscMemType memtype;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -143,7 +145,8 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, ncompu, topodim); CHKERRQ(ierr);
+  ierr = SetupDMByDegree(dm, degree, ncompu, topodim, false, (BCFunction)NULL);
+  CHKERRQ(ierr);
 
   // Create vectors
   ierr = DMCreateGlobalVector(dm, &U); CHKERRQ(ierr);
@@ -159,6 +162,25 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   CeedInit(ceedresource, &ceed);
+  CeedMemType memtypebackend;
+  CeedGetPreferredMemType(ceed, &memtypebackend);
+
+  ierr = DMGetVecType(dm, &vectype); CHKERRQ(ierr);
+  if (!vectype) { // Not yet set by user -dm_vec_type
+    switch (memtypebackend) {
+    case CEED_MEM_HOST: vectype = VECSTANDARD; break;
+    case CEED_MEM_DEVICE: {
+      const char *resolved;
+      CeedGetResource(ceed, &resolved);
+      if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip/occa"))
+        vectype = VECSTANDARD; // https://github.com/CEED/libCEED/issues/678
+      else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
+      else vectype = VECSTANDARD;
+    }
+    }
+    ierr = DMSetVecType(dm, vectype); CHKERRQ(ierr);
+  }
 
   // Print summary
   if (!test_mode) {
@@ -169,27 +191,29 @@ int main(int argc, char **argv) {
                        "\n-- libCEED + PETSc Surface Area of a Manifold --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
+                       "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
                        "    Global nodes                       : %D\n"
                        "    DoF per node                       : %D\n"
                        "    Global DoFs                        : %D\n",
-                       usedresource, P, Q,  gsize/ncompu, ncompu, gsize);
-    CHKERRQ(ierr);
+                       usedresource, CeedMemTypes[memtypebackend], P, Q,
+                       gsize/ncompu, ncompu, gsize); CHKERRQ(ierr);
   }
 
   // Setup libCEED's objects and apply setup operator
   ierr = PetscMalloc1(1, &ceeddata); CHKERRQ(ierr);
-  ierr = SetupLibceedByDegree(dm, ceed, degree, topodim, qextra,
-                              ncompx, ncompu, xlsize, problemChoice,
-                              ceeddata); CHKERRQ(ierr);
+  ierr = SetupLibceedByDegree(dm, ceed, degree, topodim, qextra, ncompx, ncompu,
+                              gsize, xlsize, problemOptions[problemChoice], ceeddata,
+                              false, (CeedVector)NULL, (CeedVector *)NULL);
+  CHKERRQ(ierr);
 
   // Setup output vector
   PetscScalar *v;
   ierr = VecZeroEntries(Vloc); CHKERRQ(ierr);
-  ierr = VecGetArray(Vloc, &v);
-  CeedVectorSetArray(ceeddata->vceed, CEED_MEM_HOST, CEED_USE_POINTER, v);
+  ierr = VecGetArrayAndMemType(Vloc, &v, &memtype); CHKERRQ(ierr);
+  CeedVectorSetArray(ceeddata->Yceed, MemTypeP2C(memtype), CEED_USE_POINTER, v);
 
   // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
@@ -199,15 +223,15 @@ int main(int argc, char **argv) {
   }
 
   // Initialize u with ones
-  CeedVectorSetValue(ceeddata->uceed, 1.0);
+  CeedVectorSetValue(ceeddata->Xceed, 1.0);
 
   // Apply the mass operator: 'u' -> 'v'
-  CeedOperatorApply(ceeddata->op_apply, ceeddata->uceed, ceeddata->vceed,
+  CeedOperatorApply(ceeddata->opApply, ceeddata->Xceed, ceeddata->Yceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Gather output vector
-  CeedVectorTakeArray(ceeddata->vceed, CEED_MEM_HOST, NULL);
-  ierr = VecRestoreArray(Vloc, &v); CHKERRQ(ierr);
+  CeedVectorTakeArray(ceeddata->Yceed, CEED_MEM_HOST, NULL);
+  ierr = VecRestoreArrayAndMemType(Vloc, &v); CHKERRQ(ierr);
   ierr = VecZeroEntries(V); CHKERRQ(ierr);
   ierr = DMLocalToGlobalBegin(dm, Vloc, ADD_VALUES, V); CHKERRQ(ierr);
   ierr = DMLocalToGlobalEnd(dm, Vloc, ADD_VALUES, V); CHKERRQ(ierr);
@@ -227,11 +251,12 @@ int main(int argc, char **argv) {
   PetscReal tol = 5e-6;
   if (!test_mode || error > tol) {
     ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
-                       exact_surfarea); CHKERRQ(ierr);
+                       exact_surfarea);
+    CHKERRQ(ierr);
     ierr = PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area);
     CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Area error                 : % .14g\n",
-                       (double)error); CHKERRQ(ierr);
+    ierr = PetscPrintf(comm, "Area error                 : % .14g\n", error);
+    CHKERRQ(ierr);
   }
 
   // Cleanup
@@ -240,7 +265,8 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&Uloc); CHKERRQ(ierr);
   ierr = VecDestroy(&V); CHKERRQ(ierr);
   ierr = VecDestroy(&Vloc); CHKERRQ(ierr);
-  ierr = CeedDataDestroy(ceeddata); CHKERRQ(ierr);
+  ierr = PetscFree(user); CHKERRQ(ierr);
+  ierr = CeedDataDestroy(0, ceeddata); CHKERRQ(ierr);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }

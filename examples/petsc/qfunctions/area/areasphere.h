@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factor required for integration when
 //   reference coordinates have a different dimension than the one of
 //   physical coordinates
@@ -57,8 +57,6 @@
 //
 // Qdata: modJ * w
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
