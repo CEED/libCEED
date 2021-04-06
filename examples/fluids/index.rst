@@ -254,8 +254,8 @@ as
 where parameter :math:`\bm{\tau} \in \mathbb R^{3\times 3}` is an intrinsic time/space scale matrix.
 
 Currently, this demo provides two types of problems/physical models that can be selected
-at run time via the option ``-problem``. One is the problem of transport of energy in a
-uniform vector velocity field, called the :ref:`problem-advection` problem, and is the
+at run time via the option ``-problem``. One is the problem of the transport of energy in a
+uniform vector velocity field, called the :ref:`problem-advection` problem, and the other one is the
 so called :ref:`problem-density-current` problem.
 
 
