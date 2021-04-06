@@ -11,6 +11,7 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
                                      PetscBool isSimplex, const char prefix[],
                                      PetscInt order, PetscFE *fem);
 PetscErrorCode ProjectToUnitSphere(DM dm);
+PetscErrorCode kershaw(DM dmorig, PetscScalar eps);
 typedef PetscErrorCode (*BCFunction)(PetscInt dim, PetscReal time,
                                      const PetscReal x[],
                                      PetscInt ncompu, PetscScalar *u, void *ctx);
