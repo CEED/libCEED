@@ -7,8 +7,10 @@ int main(int argc, char **argv) {
   Ceed ceed;
 
   argv[1][1] = 'd';
-  CeedInit(argv[1], &ceed);
-  CeedDestroy(&ceed);
 
+  CeedInit(argv[1], &ceed);
+  // LCOV_EXCL_START
+  CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }
