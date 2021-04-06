@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef setuparea_h
-#define setuparea_h
+#ifndef area_h
+#define area_h
 
 #include "include/areaproblemdata.h"
 #include "include/petscmacros.h"
@@ -39,4 +39,4 @@ static const char *const problemTypes[] = {"cube", "sphere",
                                            "problemType", "AREA", NULL
                                           };
 
-#endif // setuparea_h
+#endif // area_h

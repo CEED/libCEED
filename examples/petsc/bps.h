@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef setup_h
-#define setup_h
+#ifndef bps_h
+#define bps_h
 
 #include "include/bpsproblemdata.h"
 #include "include/petscmacros.h"
@@ -61,4 +61,4 @@ static const char *const bpTypes[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
                                       "bpType", "CEED_BP", 0
                                      };
 
-#endif //setup_h
+#endif // bps_h

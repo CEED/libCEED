@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef setupsphere_h
-#define setupsphere_h
+#ifndef sphere_h
+#define sphere_h
 
 #include "include/sphereproblemdata.h"
 #include "include/petscmacros.h"
@@ -38,4 +38,4 @@ static const char *const bpTypes[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
                                       "bpType", "CEED_BP", 0
                                      };
 
-#endif // setupsphere_h
+#endif // sphere_h
