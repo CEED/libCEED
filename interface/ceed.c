@@ -596,8 +596,8 @@ int CeedSetData(Ceed ceed, void *data) {
 
 /**
   @brief Get the list of avaliable resource names for Ceed contexts
-  Note: The caller is responsible for freeing the resources and priorities arrays,
-          but should not free the contents of the resources array.
+  Note: The caller is responsible for `free()`ing the resources and priorities arrays,
+          but should not `free()` the contents of the resources array.
 
   @param[out] n          Number of avaliable resources
   @param[out] resources  List of avaliable resource names
@@ -610,14 +610,18 @@ int CeedSetData(Ceed ceed, void *data) {
 // LCOV_EXCL_START
 int CeedRegistryGetList(size_t *n, char ***const resources,
                         CeedInt **priorities) {
-  int ierr;
-
   *n = num_backends;
-  ierr = CeedMalloc(*n, resources); CeedChk(ierr);
-  ierr = CeedMalloc(*n, priorities); CeedChk(ierr);
+  *resources = malloc(num_backends * sizeof(**resources));
+  if (!resources)
+    return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  if (priorities) {
+    *priorities = malloc(num_backends * sizeof(**priorities));
+    if (!priorities)
+      return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  }
   for (size_t i=0; i<num_backends; i++) {
     *resources[i] = backends[i].prefix;
-    *priorities[i] = backends[i].priority;
+    if (priorities) *priorities[i] = backends[i].priority;
   }
   return CEED_ERROR_SUCCESS;
 };
