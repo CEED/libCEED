@@ -595,12 +595,12 @@ int CeedSetData(Ceed ceed, void *data) {
 /// @{
 
 /**
-  @brief Get the list of avaliable resource names for Ceed contexts
+  @brief Get the list of available resource names for Ceed contexts
   Note: The caller is responsible for `free()`ing the resources and priorities arrays,
           but should not `free()` the contents of the resources array.
 
-  @param[out] n           Number of avaliable resources
-  @param[out] resources   List of avaliable resource names
+  @param[out] n           Number of available resources
+  @param[out] resources   List of available resource names
   @param[out] priorities  Resource name prioritization values, lower is better
 
   @return An error code: 0 - success, otherwise - failure
@@ -631,7 +631,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
   @brief Initialize a \ref Ceed context to use the specified resource.
   Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self")
     will result in CeedInt printing the current libCEED version number
-    and a list of current avaliable backend resources to stderr.
+    and a list of current available backend resources to stderr.
 
   @param resource  Resource to use, e.g., "/cpu/self"
   @param ceed      The library context
@@ -661,7 +661,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR,
             CEED_VERSION_MINOR, CEED_VERSION_PATCH,
             CEED_VERSION_RELEASE ? "" : "+development");
-    fprintf(stderr, "Avaliable backend resources:\n");
+    fprintf(stderr, "Available backend resources:\n");
     for (size_t i=0; i<num_backends; i++) {
       fprintf(stderr, "  %s\n", backends[i].prefix);
     }
