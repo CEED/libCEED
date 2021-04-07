@@ -14,38 +14,38 @@
 // Problem options
 typedef enum {
   CUBE = 0, SPHERE = 1
-} problemType;
+} ProblemType;
 
-static bpData problemOptions[6] = {
+static BPData problem_options[6] = {
   [CUBE] = {
-    .ncompx = 3,
-    .ncompu = 1,
-    .topodim = 2,
-    .qdatasize = 1,
-    .qextra = 1,
-    .setupgeo = SetupMassGeoCube,
+    .num_comp_x = 3,
+    .num_comp_u = 1,
+    .topo_dim = 2,
+    .q_data_size = 1,
+    .q_extra = 1,
+    .setup_geo = SetupMassGeoCube,
     .apply = Mass,
-    .setupgeofname = SetupMassGeoCube_loc,
-    .applyfname = Mass_loc,
-    .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS,
-    .enforcebc = PETSC_FALSE,
+    .setup_geo_loc = SetupMassGeoCube_loc,
+    .apply_loc = Mass_loc,
+    .in_mode = CEED_EVAL_INTERP,
+    .out_mode = CEED_EVAL_INTERP,
+    .q_mode = CEED_GAUSS,
+    .enforce_bc = PETSC_FALSE,
   },
   [SPHERE] = {
-    .ncompx = 3,
-    .ncompu = 1,
-    .topodim = 2,
-    .qdatasize = 1,
-    .qextra = 1,
-    .setupgeo = SetupMassGeoSphere,
+    .num_comp_x = 3,
+    .num_comp_u = 1,
+    .topo_dim = 2,
+    .q_data_size = 1,
+    .q_extra = 1,
+    .setup_geo = SetupMassGeoSphere,
     .apply = Mass,
-    .setupgeofname = SetupMassGeoSphere_loc,
-    .applyfname = Mass_loc,
-    .inmode = CEED_EVAL_INTERP,
-    .outmode = CEED_EVAL_INTERP,
-    .qmode = CEED_GAUSS,
-    .enforcebc = PETSC_FALSE,
+    .setup_geo_loc = SetupMassGeoSphere_loc,
+    .apply_loc = Mass_loc,
+    .in_mode = CEED_EVAL_INTERP,
+    .out_mode = CEED_EVAL_INTERP,
+    .q_mode = CEED_GAUSS,
+    .enforce_bc = PETSC_FALSE,
   }
 };
 

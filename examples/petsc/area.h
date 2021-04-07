@@ -35,8 +35,8 @@
 // Command Line Options
 // -----------------------------------------------------------------------------
 
-static const char *const problemTypes[] = {"cube", "sphere",
-                                           "problemType", "AREA", NULL
-                                          };
+static const char *const problem_types[] = {"cube", "sphere",
+                                            "ProblemType", "AREA", NULL
+                                           };
 
 #endif // area_h

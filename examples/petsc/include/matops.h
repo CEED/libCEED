@@ -13,7 +13,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
 PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx);
 PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y);
 PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y);
-PetscErrorCode ComputeErrorMax(UserO user, CeedOperator opError,
-                               Vec X, CeedVector target, PetscReal *maxerror);
+PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
+                               Vec X, CeedVector target, PetscReal *max_error);
 
 #endif // matops_h

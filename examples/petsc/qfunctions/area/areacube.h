@@ -46,7 +46,7 @@
 //   (by chain rule)
 //   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j
 //
-// The quadrature data is stored in the array qdata.
+// The quadrature data is stored in the array q_data.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
@@ -60,7 +60,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
   // Inputs
   const CeedScalar *J = in[1], *w = in[2];
   // Outputs
-  CeedScalar *qdata = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -78,20 +78,20 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                                    };
 
     // Modulus of dxxdX column vectors
-    const CeedScalar modg1 = sqrt(dxxdX[0][0]*dxxdX[0][0] +
-                                  dxxdX[1][0]*dxxdX[1][0] +
-                                  dxxdX[2][0]*dxxdX[2][0]);
-    const CeedScalar modg2 = sqrt(dxxdX[0][1]*dxxdX[0][1] +
-                                  dxxdX[1][1]*dxxdX[1][1] +
-                                  dxxdX[2][1]*dxxdX[2][1]);
+    const CeedScalar mod_g_1 = sqrt(dxxdX[0][0]*dxxdX[0][0] +
+                                    dxxdX[1][0]*dxxdX[1][0] +
+                                    dxxdX[2][0]*dxxdX[2][0]);
+    const CeedScalar mod_g_2 = sqrt(dxxdX[0][1]*dxxdX[0][1] +
+                                    dxxdX[1][1]*dxxdX[1][1] +
+                                    dxxdX[2][1]*dxxdX[2][1]);
 
     // Use normalized column vectors of dxxdX as rows of dxdxx
-    const CeedScalar dxdxx[2][3] = {{dxxdX[0][0] / modg1,
-                                     dxxdX[1][0] / modg1,
-                                     dxxdX[2][0] / modg1},
-                                    {dxxdX[0][1] / modg2,
-                                     dxxdX[1][1] / modg2,
-                                     dxxdX[2][1] / modg2}
+    const CeedScalar dxdxx[2][3] = {{dxxdX[0][0] / mod_g_1,
+                                     dxxdX[1][0] / mod_g_1,
+                                     dxxdX[2][0] / mod_g_1},
+                                    {dxxdX[0][1] / mod_g_2,
+                                     dxxdX[1][1] / mod_g_2,
+                                     dxxdX[2][1] / mod_g_2}
                                    };
 
     CeedScalar dxdX[2][2];
@@ -102,7 +102,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
 
-    qdata[i+Q*0] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * w[i];
+    q_data[i+Q*0] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * w[i];
 
   } // End of Quadrature Point Loop
   return 0;
@@ -113,7 +113,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 //
 // Inputs:
 //   u     - Input vector at quadrature points
-//   qdata - Geometric factors
+//   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test function) at quadrature points
@@ -122,14 +122,14 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *u = in[0], *qdata = in[1];
+  const CeedScalar *u = in[0], *q_data = in[1];
   // Outputs
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++)
-    v[i] = qdata[i] * u[i];
+    v[i] = q_data[i] * u[i];
 
   return 0;
 }

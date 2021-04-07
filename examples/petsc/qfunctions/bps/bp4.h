@@ -68,7 +68,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q,
 //
 // Inputs:
 //   ug     - Input vector Jacobian at quadrature points
-//   qdata  - Geometric factors
+//   q_data  - Geometric factors
 //
 // Output:
 //   vJ     - Output vector (test functions) Jacobian at quadrature points
@@ -83,33 +83,33 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u components
-    const CeedScalar uJ[3][3]        = {{ug[i+(0+0*3)*Q],
-                                         ug[i+(0+1*3)*Q],
-                                         ug[i+(0+2*3)*Q]},
-                                        {ug[i+(1+0*3)*Q],
-                                         ug[i+(1+1*3)*Q],
-                                         ug[i+(1+2*3)*Q]},
-                                        {ug[i+(2+0*3)*Q],
-                                         ug[i+(2+1*3)*Q],
-                                         ug[i+(2+2*3)*Q]}
-                                       };
-    // Read qdata (dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
-                                         qd[i+1*Q],
-                                         qd[i+2*Q]},
-                                        {qd[i+1*Q],
-                                         qd[i+3*Q],
-                                         qd[i+4*Q]},
-                                        {qd[i+2*Q],
-                                         qd[i+4*Q],
-                                         qd[i+5*Q]}
-                                       };
+    const CeedScalar uJ[3][3]         = {{ug[i+(0+0*3)*Q],
+                                          ug[i+(0+1*3)*Q],
+                                          ug[i+(0+2*3)*Q]},
+                                         {ug[i+(1+0*3)*Q],
+                                          ug[i+(1+1*3)*Q],
+                                          ug[i+(1+2*3)*Q]},
+                                         {ug[i+(2+0*3)*Q],
+                                          ug[i+(2+1*3)*Q],
+                                          ug[i+(2+2*3)*Q]}
+                                        };
+    // Read q_data (dXdxdXdx_T symmetric matrix)
+    const CeedScalar dXdxdXdx_T[3][3] = {{qd[i+0*Q],
+                                          qd[i+1*Q],
+                                          qd[i+2*Q]},
+                                         {qd[i+1*Q],
+                                          qd[i+3*Q],
+                                          qd[i+4*Q]},
+                                         {qd[i+2*Q],
+                                          qd[i+4*Q],
+                                          qd[i+5*Q]}
+                                        };
 
     for (int k=0; k<3; k++) // k = component
       for (int j=0; j<3; j++) // j = direction of vg
-        vg[i+(k+j*3)*Q] = (uJ[k][0] * dXdxdXdxT[0][j] +
-                           uJ[k][1] * dXdxdXdxT[1][j] +
-                           uJ[k][2] * dXdxdXdxT[2][j]);
+        vg[i+(k+j*3)*Q] = (uJ[k][0] * dXdxdXdx_T[0][j] +
+                           uJ[k][1] * dXdxdXdx_T[1][j] +
+                           uJ[k][2] * dXdxdXdx_T[2][j]);
   } // End of Quadrature Point Loop
 
   return 0;

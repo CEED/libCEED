@@ -34,8 +34,8 @@
 // Command Line Options
 // -----------------------------------------------------------------------------
 
-static const char *const bpTypes[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
-                                      "bpType", "CEED_BP", 0
-                                     };
+static const char *const bp_types[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
+                                       "BPType", "CEED_BP", 0
+                                      };
 
 #endif // sphere_h

@@ -122,7 +122,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
 //
 // Inputs:
 //   ug     - Input vector gradient at quadrature points
-//   qdata  - Geometric factors
+//   q_data  - Geometric factors
 //
 // Output:
 //   vg     - Output vector (test functions) gradient at quadrature points
@@ -130,33 +130,33 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *ug = in[0], *qdata = in[1];
+  const CeedScalar *ug = in[0], *q_data = in[1];
   CeedScalar *vg = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar du[3]        =  {ug[i+Q*0],
-                                      ug[i+Q*1],
-                                      ug[i+Q*2]
-                                     };
-    // Read qdata (dXdxdXdxT symmetric matrix)
-    const CeedScalar dXdxdXdxT[3][3] = {{qdata[i+0*Q],
-                                         qdata[i+1*Q],
-                                         qdata[i+2*Q]},
-                                        {qdata[i+1*Q],
-                                         qdata[i+3*Q],
-                                         qdata[i+4*Q]},
-                                        {qdata[i+2*Q],
-                                         qdata[i+4*Q],
-                                         qdata[i+5*Q]}
-                                       };
+    const CeedScalar du[3]            =  {ug[i+Q*0],
+                                          ug[i+Q*1],
+                                          ug[i+Q*2]
+                                         };
+    // Read q_data (dXdxdXdx_T symmetric matrix)
+    const CeedScalar dXdxdXdx_T[3][3] = {{q_data[i+0*Q],
+                                          q_data[i+1*Q],
+                                          q_data[i+2*Q]},
+                                         {q_data[i+1*Q],
+                                          q_data[i+3*Q],
+                                          q_data[i+4*Q]},
+                                         {q_data[i+2*Q],
+                                          q_data[i+4*Q],
+                                          q_data[i+5*Q]}
+                                        };
 
     for (int j=0; j<3; j++) // j = direction of vg
-      vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
-                   du[1] * dXdxdXdxT[1][j] +
-                   du[2] * dXdxdXdxT[2][j]);
+      vg[i+j*Q] = (du[0] * dXdxdXdx_T[0][j] +
+                   du[1] * dXdxdXdx_T[1][j] +
+                   du[2] * dXdxdXdx_T[2][j]);
 
   } // End of Quadrature Point Loop
   return 0;

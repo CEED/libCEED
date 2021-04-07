@@ -58,7 +58,7 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
 //
 // Inputs:
 //   u     - Input vector at quadrature points
-//   qdata - Geometric factors
+//   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test functions) at quadrature points
@@ -66,19 +66,18 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *qdata = in[1];
+  const CeedScalar *u = in[0], *q_data = in[1];
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar r = qdata[i];
     // Component 1
-    v[i+0*Q] = r * u[i+0*Q];
+    v[i+0*Q] = q_data[i] * u[i+0*Q];
     // Component 2
-    v[i+1*Q] = r * u[i+1*Q];
+    v[i+1*Q] = q_data[i] * u[i+1*Q];
     // Component 3
-    v[i+2*Q] = r * u[i+2*Q];
+    v[i+2*Q] = q_data[i] * u[i+2*Q];
   } // End of Quadrature Point Loop
   return 0;
 }

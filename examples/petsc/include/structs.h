@@ -13,8 +13,8 @@ typedef struct UserO_ *UserO;
 struct UserO_ {
   MPI_Comm comm;
   DM dm;
-  Vec Xloc, Yloc, diag;
-  CeedVector Xceed, Yceed;
+  Vec X_loc, Y_loc, diag;
+  CeedVector x_ceed, y_ceed;
   CeedOperator op;
   Ceed ceed;
 };
@@ -24,9 +24,9 @@ typedef struct UserProlongRestr_ *UserProlongRestr;
 struct UserProlongRestr_ {
   MPI_Comm comm;
   DM dmc, dmf;
-  Vec locvecc, locvecf, multvec;
-  CeedVector ceedvecc, ceedvecf;
-  CeedOperator opProlong, opRestrict;
+  Vec loc_vec_c, loc_vec_f, mult_vec;
+  CeedVector ceed_vec_c, ceed_vec_f;
+  CeedOperator op_prolong, op_restrict;
   Ceed ceed;
 };
 
@@ -38,23 +38,23 @@ struct UserProlongRestr_ {
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   Ceed ceed;
-  CeedBasis basisx, basisu, basisctof;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui, Erestrictqdi;
-  CeedQFunction qfApply;
-  CeedOperator opApply, opRestrict, opProlong;
-  CeedVector qdata, Xceed, Yceed;
+  CeedBasis basis_x, basis_u, basis_c_to_f;
+  CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
+  CeedQFunction qf_apply;
+  CeedOperator op_apply, op_restrict, op_prolong;
+  CeedVector q_data, x_ceed, y_ceed;
 };
 
 // BP specific data
 typedef struct {
-  CeedInt ncompx, ncompu, topodim, qdatasize, qextra;
-  CeedQFunctionUser setupgeo, setuprhs, apply, error;
-  const char *setupgeofname, *setuprhsfname, *applyfname, *errorfname;
-  CeedEvalMode inmode, outmode;
-  CeedQuadMode qmode;
-  PetscBool enforcebc;
-  PetscErrorCode (*bcsfunc)(PetscInt, PetscReal, const PetscReal *,
+  CeedInt num_comp_x, num_comp_u, topo_dim, q_data_size, q_extra;
+  CeedQFunctionUser setup_geo, setup_rhs, apply, error;
+  const char *setup_geo_loc, *setup_rhs_loc, *apply_loc, *error_loc;
+  CeedEvalMode in_mode, out_mode;
+  CeedQuadMode q_mode;
+  PetscBool enforce_bc;
+  PetscErrorCode (*bc_func)(PetscInt, PetscReal, const PetscReal *,
                             PetscInt, PetscScalar *, void *);
-} bpData;
+} BPData;
 
 #endif // structs_h

@@ -11,15 +11,15 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
                                      PetscBool isSimplex, const char prefix[],
                                      PetscInt order, PetscFE *fem);
 PetscErrorCode ProjectToUnitSphere(DM dm);
-PetscErrorCode kershaw(DM dmorig, PetscScalar eps);
+PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps);
 typedef PetscErrorCode (*BCFunction)(PetscInt dim, PetscReal time,
                                      const PetscReal x[],
-                                     PetscInt ncompu, PetscScalar *u, void *ctx);
-PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt ncompu,
-                               PetscInt topodim,
-                               bool enforcebc,  BCFunction bcsfunc);
+                                     PetscInt num_comp_u, PetscScalar *u, void *ctx);
+PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
+                               PetscInt topo_dim,
+                               bool enforce_bc,  BCFunction bc_func);
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt topodim, CeedInt height, DMLabel domainLabel, CeedInt value,
-    CeedElemRestriction *Erestrict);
+    CeedInt topo_dim, CeedInt height, DMLabel domain_label, CeedInt value,
+    CeedElemRestriction *elem_restr);
 
 #endif // petscutils_h
