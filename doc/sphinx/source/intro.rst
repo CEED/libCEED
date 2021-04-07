@@ -24,7 +24,7 @@ a compact representation of the linearization at quadrature points (labeled as
 computational efficiency made sense historically, when the performance was mostly
 limited by processors' clockspeed. A more relevant performance plot for current
 state-of-the-art high-performance machines (for which the bottleneck of performance is
-mostly in the memory bandwith) is shown in the right panel of
+mostly in the memory bandwith) is shown in the left panel of
 :numref:`fig-assembledVsmatrix-free`, where the memory bandwith is measured in terms of
 bytes/DOF. We can see that high-order methods, implemented properly with only partial
 assembly, require optimal amount of memory transfers (with respect to the
