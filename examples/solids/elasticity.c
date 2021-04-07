@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         appCtx;                 // Contains problem options
-  Physics        phys;                   // Contains physical constants - Neo Hookean
-  Physics_MR     phys_MR;                // Contains physical constants - Mooney-Rivlin
+  Physics        phys = NULL;                   // Contains physical constants - Neo Hookean
+  Physics_MR     phys_MR = NULL;                // Contains physical constants - Mooney-Rivlin
   //TO-DO : make var for GP 
   Physics        physSmoother = NULL;    // Separate context if nuSmoother set
   Units          units;                  // Contains units scaling
@@ -958,6 +958,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(jacobCoarseCtx); CHKERRQ(ierr);
   ierr = PetscFree(appCtx); CHKERRQ(ierr);
   ierr = PetscFree(phys); CHKERRQ(ierr);
+  ierr = PetscFree(phys_MR); CHKERRQ(ierr);
   ierr = PetscFree(physSmoother); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
 
