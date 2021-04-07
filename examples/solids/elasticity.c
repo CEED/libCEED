@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   // Context structs
   AppCtx         appCtx;                 // Contains problem options
   Physics        phys;                   // Contains physical constants - Neo Hookean
-  Physics_MR     phys_MR;                   // Contains physical constants - Neo Hookean
+  Physics_MR     phys_MR;                // Contains physical constants - Mooney-Rivlin
   //TO-DO : make var for GP 
   Physics        physSmoother = NULL;    // Separate context if nuSmoother set
   Units          units;                  // Contains units scaling
