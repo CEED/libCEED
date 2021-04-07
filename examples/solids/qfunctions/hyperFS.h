@@ -182,49 +182,19 @@ CeedScalar GP_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], Cee
 }
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
-// Energy derivations S for models CALL IN COMMONFS WHERE COMMENTED IN
+// Energy derivations S for models; PASS IN FOR SWORK_FUNC IN COMMONFS_GENERIC
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
-CeedScalar NH_2nd_PK(){
-  return 0;
-}
-// -----------------------------------------------------------------------------
-// Mooney-Rivlin model
-CeedScalar MR_2nd_PK(){
-  // 
-  return 0;
-}
-// -----------------------------------------------------------------------------
-// Generalized Polynomial model
-CeedScalar GP_2nd_PK(){
-  return 0;
-}
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
-// Common computations between FS and dFS
-// -----------------------------------------------------------------------------
-static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
-                           const CeedScalar gradu[3][3], CeedScalar Swork[6],
-                           CeedScalar Cinvwork[6], CeedScalar *detC_m1,
-                           CeedScalar *llnj) {
-  // E - Green-Lagrange strain tensor
-  //     E = 1/2 (gradu + gradu^T + gradu^T*gradu)
-  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
-  CeedScalar E2work[6];
-  for (CeedInt m = 0; m < 6; m++) {
-    E2work[m] = gradu[indj[m]][indk[m]] + gradu[indk[m]][indj[m]];
-    for (CeedInt n = 0; n < 3; n++)
-      E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
-  }
-  // *INDENT-OFF*
-  CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
-                         {E2work[5], E2work[1], E2work[3]},
-                         {E2work[4], E2work[3], E2work[2]}
-                        };
-  // *INDENT-ON*
-  (*detC_m1) = computeDetCM1(E2work);
+CeedScalar NH_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+                           CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
+  // unpack ctx here
+  const Physics context = (Physics)ctx;
+  const CeedScalar E  = context->E;
+  const CeedScalar nu = context->nu;
+  const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
+  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
   // C : right Cauchy-Green tensor
   // C = I + 2E
@@ -251,20 +221,172 @@ static inline int commonFS(const CeedScalar lambda, const CeedScalar mu,
                                  {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
                                  {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
                                 };
+
+  // calculate 2nd PK 
+  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.; // lambda*logJ/2
+  for (CeedInt m = 0; m < 6; m++) {
+    Swork[m] = (*llnj)*Cinvwork[m];
+    for (CeedInt n = 0; n < 3; n++)
+      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]];
+  }
+  return 0;
+}
+// -----------------------------------------------------------------------------
+// Mooney-Rivlin model
+CeedScalar MR_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+                           CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
+  // unoack context
+  const Physics_MR context = (Physics_MR)ctx;
+  const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
+  const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
+  const CeedScalar k_1 = context -> k_1; // material constant k_1
+  // C : right Cauchy-Green tensor
+  // C = I + 2E
+  // *INDENT-OFF*
+  const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                              {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                              {E2[0][2], E2[1][2], 1 + E2[2][2]}
+                             };
   // *INDENT-ON*
-  //temp calcs - need to go elsewhere?
+
+  // Compute C^(-1) : C-Inverse
+  CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
+                     C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
+                     C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
+                     C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
+                     C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
+                     C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 6; m++)
+    Cinvwork[m] = A[m] / (*detC_m1 + 1.);
+
+  // *INDENT-OFF* //
+  const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
+                                 {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
+                                 {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
+                                };
+
+  // compute invariants
+  CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
+  CeedScalar I_2 = pow(I_1, 2);
+  // CeedScalar bar_I_1 = pow(*detC_m1, -2/3)* I_1; //using detC_m1 as J
+  // CeedScalar bar_I_2 = pow(*detC_m1, -4/3)* I_2;  //using detC_m1 as J
+  
+  const CeedScalar I3[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}; //I3 is identity matrix
+  CeedScalar mu_1_J_2 = mu_1*pow(*detC_m1, (-2/3)); //mu_1*J^(-2/3)
+  CeedScalar mu_2_J_4 = mu_2*pow(*detC_m1, (-4/3)); //mu_2*J^(-4/3)
+  CeedScalar k1_J2_J = k_1*(pow(*detC_m1, 2) - *detC_m1); //k_1*(J^2 -J)
+
+  //compute Swork: mu_1*J^(-2/3)*(I3-(1/3)*I_1*Cinv) + mu_2*J^(-4/3)*(I_1*I3 - C - (2/3)*I_2*Cinv) + k_1*(J^2 -J)* Cinv
+  for (CeedInt m = 0; m < 6; m++){
+    for(CeedInt n = 0; n < 3; n++)
+    Swork[m] = mu_1_J_2*(I3[indj[m]][n] - (I_1/3)*Cinv[indj[m]][n]) + mu_2_J_4*(I_1*I3[indj[m]][n] - C[indj[m]][n] - (2/3)*I_2*Cinv[indj[m]][n]) + k1_J2_J*Cinv[indj[m]][n];
+  }
+  return 0;
+}
+// -----------------------------------------------------------------------------
+// Generalized Polynomial model
+CeedScalar GP_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+                           CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
+  // // C : right Cauchy-Green tensor
+  // // C = I + 2E
+  // // *INDENT-OFF*
+  // const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+  //                             {E2[0][1], 1 + E2[1][1], E2[1][2]},
+  //                             {E2[0][2], E2[1][2], 1 + E2[2][2]}
+  //                            };
+  // // *INDENT-ON*
+
+  // // Compute C^(-1) : C-Inverse
+  // CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
+  //                    C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
+  //                    C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
+  //                    C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
+  //                    C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
+  //                    C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
+  //                   };
+  // for (CeedInt m = 0; m < 6; m++)
+  //   Cinvwork[m] = A[m] / (*detC_m1 + 1.);
+
+  // // *INDENT-OFF* //
+  // const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
+  //                                {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
+  //                                {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
+  //                               };
+
+  // compute invariants
   // CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
   // CeedScalar I_2 = pow(I_1, 2);
   // CeedScalar bar_I_1 = pow(*detC_m1, -2/3)* I_1; //using detC_m1 as J
   // CeedScalar bar_I_2 = pow(*detC_m1, -4/3)* I_2;  //using detC_m1 as J
+  return 0;
+}
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
-  // Compute the Second Piola-Kirchhoff (S) 
-  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
+// -----------------------------------------------------------------------------
+// Common computations between FS and dFS
+// -----------------------------------------------------------------------------
+static inline int commonFS_generic(void *ctx, const CeedScalar gradu[][3], CeedScalar Swork[6],
+                           CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+                           CeedScalar *llnj, 
+                           CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
+                           CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3])) {
+  // E - Green-Lagrange strain tensor
+  //     E = 1/2 (gradu + gradu^T + gradu^T*gradu)
+  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+  CeedScalar E2work[6];
   for (CeedInt m = 0; m < 6; m++) {
-    Swork[m] = (*llnj)*Cinvwork[m];
+    E2work[m] = gradu[indj[m]][indk[m]] + gradu[indk[m]][indj[m]];
     for (CeedInt n = 0; n < 3; n++)
-      Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]]; // TO-DO: requires model specific derivatives
+      E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
   }
+  // *INDENT-OFF*
+  CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
+                         {E2work[5], E2work[1], E2work[3]},
+                         {E2work[4], E2work[3], E2work[2]}
+                        };
+  // *INDENT-ON*
+  (*detC_m1) = computeDetCM1(E2work);
+  Swork_func(ctx, Swork, Cinvwork, detC_m1, llnj, indj, indk, E2);
+
+  // move below to Swork_func ------------------------------------
+  // C : right Cauchy-Green tensor
+  // C = I + 2E
+  // *INDENT-OFF*
+  // const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+  //                             {E2[0][1], 1 + E2[1][1], E2[1][2]},
+  //                             {E2[0][2], E2[1][2], 1 + E2[2][2]}
+  //                            };
+  // // *INDENT-ON*
+
+  // // Compute C^(-1) : C-Inverse
+  // CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
+  //                    C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
+  //                    C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
+  //                    C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
+  //                    C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
+  //                    C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
+  //                   };
+  // for (CeedInt m = 0; m < 6; m++)
+  //   Cinvwork[m] = A[m] / (*detC_m1 + 1.);
+
+  // // *INDENT-OFF* //
+  // const CeedScalar Cinv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
+  //                                {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
+  //                                {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
+  //                               };
+  // *INDENT-ON*
+
+  // Compute the Second Piola-Kirchhoff (S) //move this whole thing to new method. 
+  // (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.;
+  // for (CeedInt m = 0; m < 6; m++) {
+  //   Swork[m] = (*llnj)*Cinvwork[m];
+  //   for (CeedInt n = 0; n < 3; n++)
+  //     Swork[m] += mu*Cinv[indj[m]][n]*E2[n][indk[m]]; // TO-DO: requires model specific derivatives; unpack ctx in method
+  // }
+  // ------------------------------------
+  
 
   return 0;
 };
@@ -286,13 +408,13 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-ON*
 
   // Context
-  const Physics context = (Physics)ctx;
-  const CeedScalar E  = context->E;
-  const CeedScalar nu = context->nu;
-  const CeedScalar TwoMu = E / (1 + nu);
-  const CeedScalar mu = TwoMu / 2;
-  const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
-  const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+  // const Physics context = (Physics)ctx;
+  // const CeedScalar E  = context->E;
+  // const CeedScalar nu = context->nu;
+  // const CeedScalar TwoMu = E / (1 + nu);
+  // const CeedScalar mu = TwoMu / 2;
+  // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
+  // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
@@ -376,7 +498,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &detC_m1, &llnj);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, NH_2nd_PK);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -504,7 +626,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &detC_m1, &llnj);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, NH_2nd_PK);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -595,7 +717,10 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // Strain energy computation for hyperelasticity, finite strain                 UPDATE TO ALLOW FOR CALLING DIFFERENT MODEL TYPES
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ)) { // ADD ARGUMENT FOR POINTER TO ENERGY FUNCTION; CAN BE STATIC FUNC
+                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ), 
+                              CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
+                              CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]))
+                              { // update swork funcs
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -603,6 +728,7 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
 
   // Outputs
   CeedScalar (*energy) = (CeedScalar(*))out[0];
+  CeedScalar (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context - PASS IN THE OTHER COEFFS FOR MR HERE; ADD TO STRUCT AND JUST NOT USE IF NOT DOING MR/GP?
@@ -614,6 +740,8 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
   // const CeedScalar mu = TwoMu / 2;
   // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
+
+  CeedScalar Swork[6], Cinvwork[6], llnj;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -670,9 +798,10 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = computeDetCM1(E2work); // note
+    const CeedScalar detC_m1 = computeDetCM1(E2work); 
+    commonFS_generic(ctx, gradu, &Swork, &Cinvwork, &detC_m1, &llnj, Swork_func);
 
-    // Strain energy Phi(E) for compressible Neo-Hookean SPLIT INTO A FUNCTION AND MULTIPLY BY WDETJ
+    // Strain energy Phi(E) for compressible Neo-Hookean 
     // CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
     // energy[i] = (lambda*logj*logj/2. - mu*logj + mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ; ORIGINAL 
     energy[i] = energyFunc(ctx, detC_m1, E2, wdetJ); // NEW
@@ -685,17 +814,17 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSEnergy_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Neo-Hookean
-    return HyperFSEnergy_Generic(ctx, Q, in, out, NH_energyModel);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, NH_energyModel, NH_2nd_PK);
 }
 
 CEED_QFUNCTION(HyperFSEnergy_MR)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Mooney-Rivlin
-    return HyperFSEnergy_Generic(ctx, Q, in, out, MR_energyModel);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, MR_energyModel, MR_2nd_PK);
 }
 
 CEED_QFUNCTION(HyperFSEnergy_GP)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Generalized Polynomial
-    return HyperFSEnergy_Generic(ctx, Q, in, out, GP_energyModel);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, GP_energyModel, GP_2nd_PK);
 }
 
 // -----------------------------------------------------------------------------
