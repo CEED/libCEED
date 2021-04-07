@@ -595,7 +595,43 @@ int CeedSetData(Ceed ceed, void *data) {
 /// @{
 
 /**
+  @brief Get the list of avaliable resource names for Ceed contexts
+  Note: The caller is responsible for `free()`ing the resources and priorities arrays,
+          but should not `free()` the contents of the resources array.
+
+  @param[out] n          Number of avaliable resources
+  @param[out] resources  List of avaliable resource names
+  @param[out] priorities Resource name prioritization values, lower is better
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+// LCOV_EXCL_START
+int CeedRegistryGetList(size_t *n, char ***const resources,
+                        CeedInt **priorities) {
+  *n = num_backends;
+  *resources = malloc(num_backends * sizeof(**resources));
+  if (!resources)
+    return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  if (priorities) {
+    *priorities = malloc(num_backends * sizeof(**priorities));
+    if (!priorities)
+      return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  }
+  for (size_t i=0; i<num_backends; i++) {
+    *resources[i] = backends[i].prefix;
+    if (priorities) *priorities[i] = backends[i].priority;
+  }
+  return CEED_ERROR_SUCCESS;
+};
+// LCOV_EXCL_STOP
+
+/**
   @brief Initialize a \ref Ceed context to use the specified resource.
+  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self")
+    will result in CeedInt printing the current libCEED version number
+    and a list of current avaliable backend resources to stderr.
 
   @param resource  Resource to use, e.g., "/cpu/self"
   @param ceed      The library context
@@ -616,10 +652,34 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // LCOV_EXCL_STOP
   ierr = CeedRegisterAll(); CeedChk(ierr);
 
+  // Check for help request
+  const char *help_prefix = "help";
+  size_t match_help;
+  for (match_help=0; match_help<4
+       && resource[match_help] == help_prefix[match_help]; match_help++) {}
+  if (match_help == 4) {
+    fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR,
+            CEED_VERSION_MINOR, CEED_VERSION_PATCH,
+            CEED_VERSION_RELEASE ? "" : "+development");
+    fprintf(stderr, "Avaliable backend resources:\n");
+    for (size_t i=0; i<num_backends; i++) {
+      fprintf(stderr, "  %s\n", backends[i].prefix);
+    }
+    fflush(stderr);
+    match_help = 5; // Delineating character expected
+  } else {
+    match_help = 0;
+  }
+
+  // Find best match, currently computed as number of matching characters
+  //   from requested resource stem but may use Levenshtein in future
+  size_t stem_length;
+  for (stem_length=0; resource[stem_length+match_help]
+       && resource[stem_length+match_help] != ':'; stem_length++) {}
   for (size_t i=0; i<num_backends; i++) {
     size_t n;
     const char *prefix = backends[i].prefix;
-    for (n = 0; prefix[n] && prefix[n] == resource[n]; n++) {}
+    for (n=0; prefix[n] && prefix[n] == resource[n+match_help]; n++) {}
     priority = backends[i].priority;
     if (n > matchlen || (n == matchlen && matchpriority > priority)) {
       matchlen = n;
@@ -627,11 +687,17 @@ int CeedInit(const char *resource, Ceed *ceed) {
       matchidx = i;
     }
   }
-  if (matchlen <= 1)
+  if (matchlen <= 1) {
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
                      resource);
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  } else if (matchlen != stem_length) {
+    // LCOV_EXCL_START
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s "
+                     "Closest match: %s", resource, backends[matchidx].prefix);
+    // LCOV_EXCL_STOP
+  }
 
   // Setup Ceed
   ierr = CeedCalloc(1, ceed); CeedChk(ierr);
@@ -718,9 +784,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->debug = !!getenv("CEED_DEBUG") || !!getenv("DBG");
 
   // Backend specific setup
-  ierr = backends[matchidx].init(resource, *ceed); CeedChk(ierr);
+  ierr = backends[matchidx].init(&resource[match_help], *ceed); CeedChk(ierr);
 
-  // Copy resource prefix, if backend setup sucessful
+  // Copy resource prefix, if backend setup successful
   size_t len = strlen(backends[matchidx].prefix);
   char *tmp;
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
