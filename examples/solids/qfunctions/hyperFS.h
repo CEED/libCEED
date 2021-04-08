@@ -185,7 +185,7 @@ CeedScalar GP_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], Cee
 // Energy derivations S for models; PASS IN FOR SWORK_FUNC IN COMMONFS_GENERIC
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
-CeedScalar NH_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+CeedScalar NH_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
                            CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
   // unpack ctx here
   const Physics context = (Physics)ctx;
@@ -233,7 +233,7 @@ CeedScalar NH_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], Cee
 }
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
-CeedScalar MR_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+CeedScalar MR_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
                            CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
   // unoack context
   const Physics_MR context = (Physics_MR)ctx;
@@ -286,7 +286,7 @@ CeedScalar MR_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], Cee
 }
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-CeedScalar GP_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], CeedScalar *detC_m1,
+CeedScalar GP_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
                            CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]){
   // // C : right Cauchy-Green tensor
   // // C = I + 2E
@@ -394,8 +394,10 @@ static inline int commonFS_generic(void *ctx, const CeedScalar gradu[][3], CeedS
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) { // add helper to call specific model
+static inline int HyperFSF_Generic(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                         CeedScalar *const *out, 
+                         CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
+                         CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3])) { // add helper to call specific model
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -498,7 +500,7 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, NH_2nd_PK);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, Swork_func);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -533,8 +535,10 @@ CEED_QFUNCTION(HyperFSF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+static inline int HyperFSdF_Generic(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                          CeedScalar *const *out, 
+                          CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
+                          CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3])) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -626,7 +630,7 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, NH_2nd_PK);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, Swork_func);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -716,11 +720,11 @@ CEED_QFUNCTION(HyperFSdF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, finite strain                 UPDATE TO ALLOW FOR CALLING DIFFERENT MODEL TYPES
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ), 
-                              CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
-                              CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]))
-                              { // update swork funcs
+static inline int HyperFSEnergy_Generic(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out, CeedScalar (*energyFunc)(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], CeedScalar wdetJ)){//, 
+                              //CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
+                              //CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]))
+                              //{ // update swork funcs
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -728,7 +732,7 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
 
   // Outputs
   CeedScalar (*energy) = (CeedScalar(*))out[0];
-  CeedScalar (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  // CeedScalar (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context - PASS IN THE OTHER COEFFS FOR MR HERE; ADD TO STRUCT AND JUST NOT USE IF NOT DOING MR/GP?
@@ -741,7 +745,7 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
   // const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   // const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
-  CeedScalar Swork[6], Cinvwork[6], llnj;
+  // CeedScalar Swork[6], Cinvwork[6], llnj;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -799,7 +803,7 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
                           };
     // *INDENT-ON*
     const CeedScalar detC_m1 = computeDetCM1(E2work); 
-    commonFS_generic(ctx, gradu, &Swork, &Cinvwork, &detC_m1, &llnj, Swork_func);
+    //commonFS_generic(ctx, gradu, &Swork, &Cinvwork, &detC_m1, &llnj, Swork_func);
 
     // Strain energy Phi(E) for compressible Neo-Hookean 
     // CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
@@ -814,17 +818,48 @@ CEED_QFUNCTION(HyperFSEnergy_Generic)(void *ctx, CeedInt Q, const CeedScalar *co
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(HyperFSEnergy_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Neo-Hookean
-    return HyperFSEnergy_Generic(ctx, Q, in, out, NH_energyModel, NH_2nd_PK);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, NH_energyModel); //, NH_2nd_PK);
 }
 
 CEED_QFUNCTION(HyperFSEnergy_MR)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Mooney-Rivlin
-    return HyperFSEnergy_Generic(ctx, Q, in, out, MR_energyModel, MR_2nd_PK);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, MR_energyModel); //, MR_2nd_PK);
 }
 
 CEED_QFUNCTION(HyperFSEnergy_GP)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                               CeedScalar *const *out) { // Generalized Polynomial
-    return HyperFSEnergy_Generic(ctx, Q, in, out, GP_energyModel, GP_2nd_PK);
+    return HyperFSEnergy_Generic(ctx, Q, in, out, GP_energyModel); //, GP_2nd_PK);
+}
+// update below
+
+CEED_QFUNCTION(HyperFSF_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Neo-Hookean
+    return HyperFSF_Generic(ctx, Q, in, out, NH_2nd_PK);
+}
+
+CEED_QFUNCTION(HyperFSF_MR)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Mooney-Rivlin
+    return HyperFSF_Generic(ctx, Q, in, out, MR_2nd_PK);
+}
+
+CEED_QFUNCTION(HyperFSF_GP)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Generalized Polynomial
+    return HyperFSF_Generic(ctx, Q, in, out, GP_2nd_PK);
+}
+
+CEED_QFUNCTION(HyperFSdF_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Neo-Hookean
+    return HyperFSdF_Generic(ctx, Q, in, out, NH_2nd_PK);
+}
+
+CEED_QFUNCTION(HyperFSdF_MR)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Mooney-Rivlin
+    return HyperFSdF_Generic(ctx, Q, in, out, MR_2nd_PK);
+}
+
+CEED_QFUNCTION(HyperFSdF_GP)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                              CeedScalar *const *out) { // Generalized Polynomial
+    return HyperFSdF_Generic(ctx, Q, in, out, GP_2nd_PK);
 }
 
 // -----------------------------------------------------------------------------

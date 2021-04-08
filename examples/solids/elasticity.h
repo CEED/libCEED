@@ -246,6 +246,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx);
 
 // Process physics options
 PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
+PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units);
 
 // -----------------------------------------------------------------------------
 // Setup DM
