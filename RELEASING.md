@@ -65,7 +65,7 @@ diff --git a/julia/LibCEED.jl/Project.toml b/julia/LibCEED.jl/Project.toml
 Once this change is merged into libCEED's `main` branch, the updated package version can be
 registered using the GitHub registrator bot by commenting on the commit:
 
-> @JuliaRegistrator register branch=main subdir=julia/LibCEED.jl”
+> @JuliaRegistrator register branch=main subdir=julia/LibCEED.jl
 
 At this point, the bot should create against the [general Julia
 registry](https://github.com/JuliaRegistries/General), which should be merged automatically after a
