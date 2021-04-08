@@ -610,7 +610,7 @@ int CeedSetData(Ceed ceed, void *data) {
 // LCOV_EXCL_START
 int CeedRegistryGetList(size_t *n, char ***const resources,
                         CeedInt **priorities) {
-  *n = num_backends;
+  *n = 0;
   *resources = malloc(num_backends * sizeof(**resources));
   if (!resources)
     return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
@@ -620,8 +620,20 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
       return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
   }
   for (size_t i=0; i<num_backends; i++) {
-    *resources[i] = backends[i].prefix;
-    if (priorities) *priorities[i] = backends[i].priority;
+    // Only report compiled backends
+    if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) {
+      *resources[i] = backends[i].prefix;
+      if (priorities) *priorities[i] = backends[i].priority;
+      *n += 1;
+    }
+  }
+  *resources = realloc(*resources, *n * sizeof(**resources));
+  if (!resources)
+    return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+  if (priorities) {
+    *priorities = realloc(*priorities, *n * sizeof(**priorities));
+    if (!priorities)
+      return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
 };
@@ -643,7 +655,8 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t match_len = 0, match_idx = UINT_MAX, match_priority = UINT_MAX, priority;
+  size_t match_len = 0, match_idx = UINT_MAX,
+         match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
   if (!resource)
@@ -663,7 +676,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
             CEED_VERSION_RELEASE ? "" : "+development");
     fprintf(stderr, "Available backend resources:\n");
     for (size_t i=0; i<num_backends; i++) {
-      fprintf(stderr, "  %s\n", backends[i].prefix);
+      // Only report compiled backends
+      if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY)
+        fprintf(stderr, "  %s\n", backends[i].prefix);
     }
     fflush(stderr);
     match_help = 5; // Delineating character expected

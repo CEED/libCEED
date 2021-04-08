@@ -1,5 +1,4 @@
 #include <ceed/backend.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -18,7 +17,7 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   va_start(prefixes, num_prefixes);
   int ierr;
   for (int i=0; i<num_prefixes; i++) {
-    ierr = CeedRegister(va_arg(prefixes, const char*), CeedInit_Weak, UINT_MAX);
+    ierr = CeedRegister(va_arg(prefixes, const char*), CeedInit_Weak, CEED_MAX_BACKEND_PRIORITY);
     CeedChk(ierr);
   }
   va_end(prefixes);
