@@ -194,7 +194,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **errmsg);
 /// libCEED library version numbering
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 7
+#define CEED_VERSION_MINOR 8
 #define CEED_VERSION_PATCH 0
 #define CEED_VERSION_RELEASE false
 
