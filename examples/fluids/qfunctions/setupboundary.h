@@ -17,8 +17,8 @@
 /// @file
 /// Geometric factors for boundary integral in Navier-Stokes example using PETSc
 
-#ifndef setup_boundary_h
-#define setup_boundary_h
+#ifndef setupboundary_h
+#define setupboundary_h
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -153,4 +153,4 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 
-#endif // setup_boundary_h
+#endif // setupboundary_h

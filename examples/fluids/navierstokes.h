@@ -9,10 +9,10 @@
 #include <stdbool.h>
 
 #include "qfunctions/common.h"
-#include "qfunctions/setup-boundary.h"
+#include "qfunctions/setupboundary.h"
 #include "qfunctions/advection.h"
 #include "qfunctions/advection2d.h"
-#include "qfunctions/euler-vortex.h"
+#include "qfunctions/eulervortex.h"
 #include "qfunctions/densitycurrent.h"
 
 // -----------------------------------------------------------------------------
