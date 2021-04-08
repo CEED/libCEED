@@ -34,8 +34,9 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
 OBJDIR := build
 SRCDIR := src
+PROBLEMDIR := problems
 
-src.c := navierstokes.c $(sort $(wildcard $(SRCDIR)/*.c))
+src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: navierstokes
@@ -67,7 +68,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) navierstokes *.vtu *.bin*
+	$(RM) -r $(OBJDIR) navierstokes *.vtu *.bin* *.csv *.png
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
