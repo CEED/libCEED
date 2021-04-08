@@ -110,7 +110,6 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
-  //ierr = PetscMalloc1(1, &ctxEulerData); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
   ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
@@ -519,7 +518,7 @@ int main(int argc, char **argv) {
   user->dmviz = dmviz;
   user->interpviz = interpviz;
   user->ceed = ceed;
-  user->phys = ctxPhysData;  // todo: check if it works
+  user->phys = ctxPhysData;
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -708,7 +707,7 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_rhsVol);
   CeedQFunctionDestroy(&qf_ifunctionVol);
   CeedQFunctionContextDestroy(&ctxSetup);
-  CeedQFunctionContextDestroy(&ctxNS); // todo: shouldn't we delete these?
+  CeedQFunctionContextDestroy(&ctxNS);
   CeedQFunctionContextDestroy(&ctxAdvection);
   CeedQFunctionContextDestroy(&ctxEuler);
   CeedOperatorDestroy(&op_setupVol);
