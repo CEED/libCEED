@@ -46,6 +46,14 @@ Most issues reported by ``include-what-you-use`` should be fixed; however this r
 
 Header files should be listed in alphabetical order, with installed headers preceding local headers and ``ceed`` headers being listed first.
 
+.. code-block:: c
+
+  #include <ceed.h>
+  #include <ceed/backend.h>
+  #include <stdbool.h>
+  #include <string.h>
+  #include "ceed-avx.h"
+
 
 Shape
 ----------------------------------------
