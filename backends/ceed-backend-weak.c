@@ -6,7 +6,9 @@
 // This function provides improved error messages for uncompiled backends
 static int CeedInit_Weak(const char *resource, Ceed ceed) {
   return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                   "Backend not currently compiled: %s", resource);
+                   "Backend not currently compiled: %s\n"
+                   "Consult the installation instructions to compile this backend",
+                   resource);
 }
 
 // This function provides a debug target for weak symbols

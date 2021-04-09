@@ -709,7 +709,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     // LCOV_EXCL_STOP
   } else if (match_len != stem_length) {
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s "
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
                      "Closest match: %s", resource, backends[match_idx].prefix);
     // LCOV_EXCL_STOP
   }
