@@ -23,9 +23,9 @@
 // Process command line options
 // -----------------------------------------------------------------------------
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   PetscErrorCode ierr;
-  PetscBool ceedFlag     = PETSC_FALSE;
+  PetscBool ceed_flag = PETSC_FALSE;
 
   PetscFunctionBeginUser;
 
@@ -34,128 +34,128 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
                            NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, appCtx->ceedResource, appCtx->ceedResource,
-                            sizeof(appCtx->ceedResource), &ceedFlag);
+                            NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
+                            sizeof(app_ctx->ceed_resource), &ceed_flag);
   CHKERRQ(ierr);
 
-  ierr = PetscStrncpy(appCtx->outputdir, ".", 2);
+  ierr = PetscStrncpy(app_ctx->output_dir, ".", 2);
   CHKERRQ(ierr); // Default - current directory
   ierr = PetscOptionsString("-output_dir", "Output directory",
-                            NULL, appCtx->outputdir, appCtx->outputdir,
-                            sizeof(appCtx->outputdir), NULL); CHKERRQ(ierr);
+                            NULL, app_ctx->output_dir, app_ctx->output_dir,
+                            sizeof(app_ctx->output_dir), NULL); CHKERRQ(ierr);
 
-  appCtx->degree         = 3;
+  app_ctx->degree         = 3;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
-                         NULL, appCtx->degree, &appCtx->degree, NULL);
+                         NULL, app_ctx->degree, &app_ctx->degree, NULL);
   CHKERRQ(ierr);
 
-  appCtx->qextra         = 0;
+  app_ctx->q_extra         = 0;
   ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, appCtx->qextra, &appCtx->qextra, NULL);
+                         NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL);
   CHKERRQ(ierr);
 
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
-                            appCtx->meshFile, appCtx->meshFile,
-                            sizeof(appCtx->meshFile), NULL); CHKERRQ(ierr);
+                            app_ctx->mesh_file, app_ctx->mesh_file,
+                            sizeof(app_ctx->mesh_file), NULL); CHKERRQ(ierr);
 
-  appCtx->problemChoice  = ELAS_LINEAR;       // Default - Linear Elasticity
+  app_ctx->problem_choice  = ELAS_LINEAR;       // Default - Linear Elasticity
   ierr = PetscOptionsEnum("-problem",
                           "Solves Elasticity & Hyperelasticity Problems",
-                          NULL, problemTypes, (PetscEnum)appCtx->problemChoice,
-                          (PetscEnum *)&appCtx->problemChoice, NULL);
+                          NULL, problemTypes, (PetscEnum)app_ctx->problem_choice,
+                          (PetscEnum *)&app_ctx->problem_choice, NULL);
   CHKERRQ(ierr);
 
-  appCtx->numIncrements = appCtx->problemChoice == ELAS_LINEAR ? 1 : 10;
+  app_ctx->num_increments = app_ctx->problem_choice == ELAS_LINEAR ? 1 : 10;
   ierr = PetscOptionsInt("-num_steps", "Number of pseudo-time steps",
-                         NULL, appCtx->numIncrements, &appCtx->numIncrements,
+                         NULL, app_ctx->num_increments, &app_ctx->num_increments,
                          NULL); CHKERRQ(ierr);
 
-  appCtx->forcingChoice  = FORCE_NONE;     // Default - no forcing term
+  app_ctx->forcing_choice  = FORCE_NONE;     // Default - no forcing term
   ierr = PetscOptionsEnum("-forcing", "Set forcing function option", NULL,
-                          forcingTypes, (PetscEnum)appCtx->forcingChoice,
-                          (PetscEnum *)&appCtx->forcingChoice, NULL);
+                          forcing_types, (PetscEnum)app_ctx->forcing_choice,
+                          (PetscEnum *)&app_ctx->forcing_choice, NULL);
   CHKERRQ(ierr);
 
-  PetscInt maxn = 3;
-  appCtx->forcingVector[0] = 0;
-  appCtx->forcingVector[1] = -1;
-  appCtx->forcingVector[2] = 0;
+  PetscInt max_n = 3;
+  app_ctx->forcing_vector[0] = 0;
+  app_ctx->forcing_vector[1] = -1;
+  app_ctx->forcing_vector[2] = 0;
   ierr = PetscOptionsScalarArray("-forcing_vec",
                                  "Direction to apply constant force", NULL,
-                                 appCtx->forcingVector, &maxn, NULL);
+                                 app_ctx->forcing_vector, &max_n, NULL);
   CHKERRQ(ierr);
 
-  if ((appCtx->problemChoice == ELAS_FSInitial_NH1
-       || appCtx->problemChoice == ELAS_FSInitial_NH2
-       || appCtx->problemChoice == ELAS_FSCurrent_NH1
-       || appCtx->problemChoice == ELAS_FSCurrent_NH2) &&
-      appCtx->forcingChoice == FORCE_CONST)
+  if ((app_ctx->problem_choice == ELAS_FSInitial_NH1 ||
+       app_ctx->problem_choice == ELAS_FSInitial_NH2 ||
+       app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
+       app_ctx->problem_choice == ELAS_FSCurrent_NH2) &&
+      app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "
             "Constant forcing in reference frame currently unavaliable.");
 
   // Dirichlet boundary conditions
-  appCtx->bcClampCount = 16;
+  app_ctx->bc_clamp_count = 16;
   ierr = PetscOptionsIntArray("-bc_clamp",
                               "Face IDs to apply incremental Dirichlet BC",
-                              NULL, appCtx->bcClampFaces, &appCtx->bcClampCount,
+                              NULL, app_ctx->bc_clamp_faces, &app_ctx->bc_clamp_count,
                               NULL); CHKERRQ(ierr);
   // Set vector for each clamped BC
-  for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+  for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
     // Translation vector
-    char optionName[25];
-    const size_t nclamp_params = sizeof(appCtx->bcClampMax[0])/sizeof(
-                                   appCtx->bcClampMax[0][0]);
+    char option_name[25];
+    const size_t nclamp_params = sizeof(app_ctx->bc_clamp_max[0])/sizeof(
+                                   app_ctx->bc_clamp_max[0][0]);
     for (PetscInt j = 0; j < nclamp_params; j++)
-      appCtx->bcClampMax[i][j] = 0.;
+      app_ctx->bc_clamp_max[i][j] = 0.;
 
-    snprintf(optionName, sizeof optionName, "-bc_clamp_%d_translate",
-             appCtx->bcClampFaces[i]);
-    maxn = 3;
-    ierr = PetscOptionsScalarArray(optionName,
+    snprintf(option_name, sizeof option_name, "-bc_clamp_%d_translate",
+             app_ctx->bc_clamp_faces[i]);
+    max_n = 3;
+    ierr = PetscOptionsScalarArray(option_name,
                                    "Vector to translate clamped end by", NULL,
-                                   appCtx->bcClampMax[i], &maxn, NULL);
+                                   app_ctx->bc_clamp_max[i], &max_n, NULL);
     CHKERRQ(ierr);
 
     // Rotation vector
-    maxn = 5;
-    snprintf(optionName, sizeof optionName, "-bc_clamp_%d_rotate",
-             appCtx->bcClampFaces[i]);
-    ierr = PetscOptionsScalarArray(optionName,
+    max_n = 5;
+    snprintf(option_name, sizeof option_name, "-bc_clamp_%d_rotate",
+             app_ctx->bc_clamp_faces[i]);
+    ierr = PetscOptionsScalarArray(option_name,
                                    "Vector with axis of rotation and rotation, in radians",
-                                   NULL, &appCtx->bcClampMax[i][3], &maxn, NULL);
+                                   NULL, &app_ctx->bc_clamp_max[i][3], &max_n, NULL);
     CHKERRQ(ierr);
 
     // Normalize
-    PetscScalar norm = sqrt(appCtx->bcClampMax[i][3]*appCtx->bcClampMax[i][3] +
-                            appCtx->bcClampMax[i][4]*appCtx->bcClampMax[i][4] +
-                            appCtx->bcClampMax[i][5]*appCtx->bcClampMax[i][5]);
+    PetscScalar norm = sqrt(app_ctx->bc_clamp_max[i][3]*app_ctx->bc_clamp_max[i][3]
+                            + app_ctx->bc_clamp_max[i][4]*app_ctx->bc_clamp_max[i][4]
+                            + app_ctx->bc_clamp_max[i][5]*app_ctx->bc_clamp_max[i][5]);
     if (fabs(norm) < 1e-16)
       norm = 1;
     for (PetscInt j = 0; j < 3; j++)
-      appCtx->bcClampMax[i][3 + j] /= norm;
+      app_ctx->bc_clamp_max[i][3 + j] /= norm;
   }
 
   // Neumann boundary conditions
-  appCtx->bcTractionCount = 16;
+  app_ctx->bc_traction_count = 16;
   ierr = PetscOptionsIntArray("-bc_traction",
                               "Face IDs to apply traction (Neumann) BC",
-                              NULL, appCtx->bcTractionFaces,
-                              &appCtx->bcTractionCount, NULL); CHKERRQ(ierr);
+                              NULL, app_ctx->bc_traction_faces,
+                              &app_ctx->bc_traction_count, NULL); CHKERRQ(ierr);
   // Set vector for each traction BC
-  for (PetscInt i = 0; i < appCtx->bcTractionCount; i++) {
+  for (PetscInt i = 0; i < app_ctx->bc_traction_count; i++) {
     // Translation vector
-    char optionName[25];
+    char option_name[25];
     for (PetscInt j = 0; j < 3; j++)
-      appCtx->bcTractionVector[i][j] = 0.;
+      app_ctx->bc_traction_vector[i][j] = 0.;
 
-    snprintf(optionName, sizeof optionName, "-bc_traction_%d",
-             appCtx->bcTractionFaces[i]);
-    maxn = 3;
+    snprintf(option_name, sizeof option_name, "-bc_traction_%d",
+             app_ctx->bc_traction_faces[i]);
+    max_n = 3;
     PetscBool set = false;
-    ierr = PetscOptionsScalarArray(optionName,
+    ierr = PetscOptionsScalarArray(option_name,
                                    "Traction vector for constrained face", NULL,
-                                   appCtx->bcTractionVector[i], &maxn, &set);
+                                   app_ctx->bc_traction_vector[i], &max_n, &set);
     CHKERRQ(ierr);
 
     if (!set)
@@ -163,79 +163,79 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
               "Traction vector must be set for all traction boundary conditions.");
   }
 
-  appCtx->multigridChoice = MULTIGRID_LOGARITHMIC;
+  app_ctx->multigrid_choice = MULTIGRID_LOGARITHMIC;
   ierr = PetscOptionsEnum("-multigrid", "Set multigrid type option", NULL,
-                          multigridTypes, (PetscEnum)appCtx->multigridChoice,
-                          (PetscEnum *)&appCtx->multigridChoice, NULL);
+                          multigrid_types, (PetscEnum)app_ctx->multigrid_choice,
+                          (PetscEnum *)&app_ctx->multigrid_choice, NULL);
   CHKERRQ(ierr);
 
-  appCtx->nuSmoother = 0.;
+  app_ctx->nu_smoother = 0.;
   ierr = PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother",
-                            NULL, appCtx->nuSmoother, &appCtx->nuSmoother, NULL);
+                            NULL, app_ctx->nu_smoother, &app_ctx->nu_smoother, NULL);
   CHKERRQ(ierr);
 
-  appCtx->testMode = PETSC_FALSE;
+  app_ctx->test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
-                          NULL, appCtx->testMode, &(appCtx->testMode), NULL);
+                          NULL, app_ctx->test_mode, &(app_ctx->test_mode), NULL);
   CHKERRQ(ierr);
 
-  appCtx->viewSoln = PETSC_FALSE;
+  app_ctx->view_soln = PETSC_FALSE;
   ierr = PetscOptionsBool("-view_soln", "Write out solution vector for viewing",
-                          NULL, appCtx->viewSoln, &(appCtx->viewSoln), NULL);
+                          NULL, app_ctx->view_soln, &(app_ctx->view_soln), NULL);
   CHKERRQ(ierr);
 
-  appCtx->viewFinalSoln = PETSC_FALSE;
+  app_ctx->view_final_soln = PETSC_FALSE;
   ierr = PetscOptionsBool("-view_final_soln",
                           "Write out final solution vector for viewing",
-                          NULL, appCtx->viewFinalSoln, &(appCtx->viewFinalSoln),
+                          NULL, app_ctx->view_final_soln, &(app_ctx->view_final_soln),
                           NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set
-  if (!appCtx->testMode) {
-    if (!appCtx->bcClampCount && (appCtx->forcingChoice != FORCE_MMS)) {
+  if (!app_ctx->test_mode) {
+    if (!app_ctx->bc_clamp_count && (app_ctx->forcing_choice != FORCE_MMS)) {
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
     }
   } else {
-    appCtx->forcingChoice = FORCE_MMS;
+    app_ctx->forcing_choice = FORCE_MMS;
   }
 
   // Provide default ceed resource if not specified
-  if (!ceedFlag) {
-    const char *ceedResource = "/cpu/self";
-    strncpy(appCtx->ceedResource, ceedResource, 10);
+  if (!ceed_flag) {
+    const char *ceed_resource = "/cpu/self";
+    strncpy(app_ctx->ceed_resource, ceed_resource, 10);
   }
 
   // Determine number of levels
-  switch (appCtx->multigridChoice) {
+  switch (app_ctx->multigrid_choice) {
   case MULTIGRID_LOGARITHMIC:
-    appCtx->numLevels = ceil(log(appCtx->degree)/log(2)) + 1;
+    app_ctx->num_levels = ceil(log(app_ctx->degree)/log(2)) + 1;
     break;
   case MULTIGRID_UNIFORM:
-    appCtx->numLevels = appCtx->degree;
+    app_ctx->num_levels = app_ctx->degree;
     break;
   case MULTIGRID_NONE:
-    appCtx->numLevels = 1;
+    app_ctx->num_levels = 1;
     break;
   }
 
   // Populate array of degrees for each level for multigrid
-  ierr = PetscMalloc1(appCtx->numLevels, &(appCtx->levelDegrees));
+  ierr = PetscMalloc1(app_ctx->num_levels, &(app_ctx->level_degrees));
   CHKERRQ(ierr);
 
-  switch (appCtx->multigridChoice) {
+  switch (app_ctx->multigrid_choice) {
   case MULTIGRID_LOGARITHMIC:
-    for (int i = 0; i < appCtx->numLevels-1; i++)
-      appCtx->levelDegrees[i] = pow(2,i);
-    appCtx->levelDegrees[appCtx->numLevels-1] = appCtx->degree;
+    for (int i = 0; i < app_ctx->num_levels-1; i++)
+      app_ctx->level_degrees[i] = pow(2,i);
+    app_ctx->level_degrees[app_ctx->num_levels-1] = app_ctx->degree;
     break;
   case MULTIGRID_UNIFORM:
-    for (int i = 0; i < appCtx->numLevels; i++)
-      appCtx->levelDegrees[i] = i + 1;
+    for (int i = 0; i < app_ctx->num_levels; i++)
+      app_ctx->level_degrees[i] = i + 1;
     break;
   case MULTIGRID_NONE:
-    appCtx->levelDegrees[0] = appCtx->degree;
+    app_ctx->level_degrees[0] = app_ctx->degree;
     break;
   }
 
@@ -245,8 +245,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx appCtx) {
 // Process physics options
 PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
   PetscErrorCode ierr;
-  PetscBool nuFlag = PETSC_FALSE;
-  PetscBool YoungFlag = PETSC_FALSE;
+  PetscBool nu_flag = PETSC_FALSE;
+  PetscBool Young_flag = PETSC_FALSE;
   phys->nu = 0;
   phys->E = 0;
   units->meter     = 1;        // 1 meter in scaled length units
@@ -260,10 +260,10 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
                            NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsScalar("-nu", "Poisson's ratio", NULL, phys->nu, &phys->nu,
-                            &nuFlag); CHKERRQ(ierr);
+                            &nu_flag); CHKERRQ(ierr);
 
   ierr = PetscOptionsScalar("-E", "Young's Modulus", NULL, phys->E, &phys->E,
-                            &YoungFlag); CHKERRQ(ierr);
+                            &Young_flag); CHKERRQ(ierr);
 
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, units->meter, &units->meter, NULL);
@@ -283,10 +283,10 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
 
   // Check for all required options to be set
-  if (!nuFlag) {
+  if (!nu_flag) {
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-nu option needed");
   }
-  if (!YoungFlag) {
+  if (!Young_flag) {
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-E option needed");
   }
 

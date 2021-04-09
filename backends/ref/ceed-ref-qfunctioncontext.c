@@ -23,27 +23,27 @@
 // QFunctionContext Set Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mtype,
-    CeedCopyMode cmode, CeedScalar *data) {
+    CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
   CeedChkBackend(ierr);
-  size_t ctxsize;
-  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
+  size_t ctx_size;
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_size); CeedChkBackend(ierr);
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
-  if (mtype != CEED_MEM_HOST)
+  if (mem_type != CEED_MEM_HOST)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
   ierr = CeedFree(&impl->data_allocated); CeedChkBackend(ierr);
-  switch (cmode) {
+  switch (copy_mode) {
   case CEED_COPY_VALUES:
-    ierr = CeedMallocArray(1, ctxsize, &impl->data_allocated); CeedChkBackend(ierr);
+    ierr = CeedMallocArray(1, ctx_size, &impl->data_allocated);
+    CeedChkBackend(ierr);
     impl->data = impl->data_allocated;
-    memcpy(impl->data, data, ctxsize);
+    memcpy(impl->data, data, ctx_size);
     break;
   case CEED_OWN_POINTER:
     impl->data_allocated = data;
@@ -59,7 +59,7 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mtype, CeedScalar *data) {
+    CeedMemType mem_type, CeedScalar *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
@@ -67,7 +67,7 @@ static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
-  if (mtype != CEED_MEM_HOST)
+  if (mem_type != CEED_MEM_HOST)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
   // LCOV_EXCL_STOP

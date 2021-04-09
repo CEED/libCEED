@@ -182,9 +182,9 @@ void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
   Memory usage can be tracked by the library.  This ensures sufficient
     alignment for vectorization and should be used for large allocations.
 
-  @param n Number of units to allocate
-  @param unit Size of each unit
-  @param p Address of pointer to hold the result.
+  @param n     Number of units to allocate
+  @param unit  Size of each unit
+  @param p     Address of pointer to hold the result.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -208,9 +208,9 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 
   Memory usage can be tracked by the library.
 
-  @param n    Number of units to allocate
-  @param unit Size of each unit
-  @param p    Address of pointer to hold the result.
+  @param n     Number of units to allocate
+  @param unit  Size of each unit
+  @param p     Address of pointer to hold the result.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -234,9 +234,9 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 
   Memory usage can be tracked by the library.
 
-  @param n    Number of units to allocate
-  @param unit Size of each unit
-  @param p    Address of pointer to hold the result.
+  @param n     Number of units to allocate
+  @param unit  Size of each unit
+  @param p     Address of pointer to hold the result.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -257,9 +257,9 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 
 /** Free memory allocated using CeedMalloc() or CeedCalloc()
 
-  @param p address of pointer to memory.  This argument is of type void* to
-             avoid needing a cast, but is the address of the pointer (which is
-             zeroed) rather than the pointer.
+  @param p  address of pointer to memory.  This argument is of type void* to
+              avoid needing a cast, but is the address of the pointer (which is
+              zeroed) rather than the pointer.
 **/
 int CeedFree(void *p) {
   free(*(void **)p);
@@ -270,13 +270,13 @@ int CeedFree(void *p) {
 /**
   @brief Register a Ceed backend
 
-  @param prefix   Prefix of resources for this backend to respond to.  For
-                    example, the reference backend responds to "/cpu/self".
-  @param init     Initialization function called by CeedInit() when the backend
-                    is selected to drive the requested resource.
-  @param priority Integer priority.  Lower values are preferred in case the
-                    resource requested by CeedInit() has non-unique best prefix
-                    match.
+  @param prefix    Prefix of resources for this backend to respond to.  For
+                     example, the reference backend responds to "/cpu/self".
+  @param init      Initialization function called by CeedInit() when the backend
+                     is selected to drive the requested resource.
+  @param priority  Integer priority.  Lower values are preferred in case the
+                     resource requested by CeedInit() has non-unique best prefix
+                     match.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -300,23 +300,23 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
 /**
   @brief Return debugging status flag
 
-  @param ceed     Ceed context to get debugging flag
-  @param isDebug  Variable to store debugging flag
+  @param ceed      Ceed context to get debugging flag
+  @param is_debug  Variable to store debugging flag
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Bcakend
+  @ref Backend
 **/
-int CeedIsDebug(Ceed ceed, bool *isDebug) {
-  *isDebug = ceed->debug;
+int CeedIsDebug(Ceed ceed, bool *is_debug) {
+  *is_debug = ceed->debug;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Retrieve a parent Ceed context
 
-  @param ceed        Ceed context to retrieve parent of
-  @param[out] parent Address to save the parent to
+  @param ceed         Ceed context to retrieve parent of
+  @param[out] parent  Address to save the parent to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -335,8 +335,8 @@ int CeedGetParent(Ceed ceed, Ceed *parent) {
 /**
   @brief Retrieve a delegate Ceed context
 
-  @param ceed          Ceed context to retrieve delegate of
-  @param[out] delegate Address to save the delegate to
+  @param ceed           Ceed context to retrieve delegate of
+  @param[out] delegate  Address to save the delegate to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -372,19 +372,19 @@ int CeedSetDelegate(Ceed ceed, Ceed delegate) {
 
   @param ceed           Ceed context to retrieve delegate of
   @param[out] delegate  Address to save the delegate to
-  @param[in] objname    Name of the object type to retrieve delegate for
+  @param[in] obj_name   Name of the object type to retrieve delegate for
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
+int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
   CeedInt ierr;
 
   // Check for object delegate
-  for (CeedInt i=0; i<ceed->objdelegatecount; i++)
-    if (!strcmp(objname, ceed->objdelegates->objname)) {
-      *delegate = ceed->objdelegates->delegate;
+  for (CeedInt i=0; i<ceed->obj_delegate_count; i++)
+    if (!strcmp(obj_name, ceed->obj_delegates->obj_name)) {
+      *delegate = ceed->obj_delegates->delegate;
       return CEED_ERROR_SUCCESS;
     }
 
@@ -402,31 +402,31 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *objname) {
     CeedSetObjectDelegate(ceed, refceed, "Basis")
   uses refceed implementations for all CeedBasis backend functions.
 
-  @param ceed          Ceed context to set delegate of
-  @param[out] delegate Address to set the delegate to
-  @param[in] objname   Name of the object type to set delegate for
+  @param ceed           Ceed context to set delegate of
+  @param[out] delegate  Address to set the delegate to
+  @param[in] obj_name   Name of the object type to set delegate for
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
+int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
   CeedInt ierr;
-  CeedInt count = ceed->objdelegatecount;
+  CeedInt count = ceed->obj_delegate_count;
 
   // Malloc or Realloc
   if (count) {
-    ierr = CeedRealloc(count+1, &ceed->objdelegates); CeedChk(ierr);
+    ierr = CeedRealloc(count+1, &ceed->obj_delegates); CeedChk(ierr);
   } else {
-    ierr = CeedCalloc(1, &ceed->objdelegates); CeedChk(ierr);
+    ierr = CeedCalloc(1, &ceed->obj_delegates); CeedChk(ierr);
   }
-  ceed->objdelegatecount++;
+  ceed->obj_delegate_count++;
 
   // Set object delegate
-  ceed->objdelegates[count].delegate = delegate;
-  size_t slen = strlen(objname) + 1;
-  ierr = CeedMalloc(slen, &ceed->objdelegates[count].objname); CeedChk(ierr);
-  memcpy(ceed->objdelegates[count].objname, objname, slen);
+  ceed->obj_delegates[count].delegate = delegate;
+  size_t slen = strlen(obj_name) + 1;
+  ierr = CeedMalloc(slen, &ceed->obj_delegates[count].obj_name); CeedChk(ierr);
+  memcpy(ceed->obj_delegates[count].obj_name, obj_name, slen);
 
   // Set delegate parent
   delegate->parent = ceed;
@@ -436,8 +436,8 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 /**
   @brief Get the fallback resource for CeedOperators
 
-  @param ceed          Ceed context
-  @param[out] resource Variable to store fallback resource
+  @param ceed           Ceed context
+  @param[out] resource  Variable to store fallback resource
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -445,7 +445,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *objname) {
 **/
 
 int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
-  *resource = (const char *)ceed->opfallbackresource;
+  *resource = (const char *)ceed->op_fallback_resource;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -466,14 +466,14 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   int ierr;
 
   // Free old
-  ierr = CeedFree(&ceed->opfallbackresource); CeedChk(ierr);
+  ierr = CeedFree(&ceed->op_fallback_resource); CeedChk(ierr);
 
   // Set new
   size_t len = strlen(resource);
   char *tmp;
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, resource, len+1);
-  ceed->opfallbackresource = tmp;
+  ceed->op_fallback_resource = tmp;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -490,22 +490,22 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 **/
 
 int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
-  *parent = ceed->opfallbackparent;
+  *parent = ceed->op_fallback_parent;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Flag Ceed context as deterministic
 
-  @param ceed     Ceed to flag as deterministic
+  @param ceed  Ceed to flag as deterministic
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 
-int CeedSetDeterministic(Ceed ceed, bool isDeterministic) {
-  ceed->isDeterministic = isDeterministic;
+int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
+  ceed->is_deterministic = is_deterministic;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -520,30 +520,30 @@ int CeedSetDeterministic(Ceed ceed, bool isDeterministic) {
   sets the backend implementation of 'CeedBasisApply'. Note, the prefix 'Ceed'
   is not required for the object type ("Basis" vs "CeedBasis").
 
-  @param ceed           Ceed context for error handling
-  @param type           Type of Ceed object to set function for
-  @param[out] object    Ceed object to set function for
-  @param fname          Name of function to set
-  @param f              Function to set
+  @param ceed         Ceed context for error handling
+  @param type         Type of Ceed object to set function for
+  @param[out] object  Ceed object to set function for
+  @param func_name    Name of function to set
+  @param f            Function to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
-                           const char *fname, int (*f)()) {
-  char lookupname[CEED_MAX_RESOURCE_LEN+1] = "";
+                           const char *func_name, int (*f)()) {
+  char lookup_name[CEED_MAX_RESOURCE_LEN+1] = "";
 
   // Build lookup name
   if (strcmp(type, "Ceed"))
-    strncat (lookupname, "Ceed", CEED_MAX_RESOURCE_LEN);
-  strncat(lookupname, type, CEED_MAX_RESOURCE_LEN);
-  strncat(lookupname, fname, CEED_MAX_RESOURCE_LEN);
+    strncat (lookup_name, "Ceed", CEED_MAX_RESOURCE_LEN);
+  strncat(lookup_name, type, CEED_MAX_RESOURCE_LEN);
+  strncat(lookup_name, func_name, CEED_MAX_RESOURCE_LEN);
 
   // Find and use offset
-  for (CeedInt i = 0; ceed->foffsets[i].fname; i++)
-    if (!strcmp(ceed->foffsets[i].fname, lookupname)) {
-      size_t offset = ceed->foffsets[i].offset;
+  for (CeedInt i = 0; ceed->f_offsets[i].func_name; i++)
+    if (!strcmp(ceed->f_offsets[i].func_name, lookup_name)) {
+      size_t offset = ceed->f_offsets[i].offset;
       int (**fpointer)(void) = (int (**)(void))((char *)object + offset); // *NOPAD*
       *fpointer = f;
       return CEED_ERROR_SUCCESS;
@@ -552,15 +552,15 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object,
   // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                    "Requested function '%s' was not found for CEED "
-                   "object '%s'", fname, type);
+                   "object '%s'", func_name, type);
   // LCOV_EXCL_STOP
 }
 
 /**
   @brief Retrieve backend data for a Ceed context
 
-  @param ceed      Ceed context to retrieve data of
-  @param[out] data Address to save data to
+  @param ceed       Ceed context to retrieve data of
+  @param[out] data  Address to save data to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -574,8 +574,8 @@ int CeedGetData(Ceed ceed, void *data) {
 /**
   @brief Set backend data for a Ceed context
 
-  @param ceed           Ceed context to set data of
-  @param data           Address of data to set
+  @param ceed  Ceed context to set data of
+  @param data  Address of data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -599,9 +599,9 @@ int CeedSetData(Ceed ceed, void *data) {
   Note: The caller is responsible for `free()`ing the resources and priorities arrays,
           but should not `free()` the contents of the resources array.
 
-  @param[out] n          Number of avaliable resources
-  @param[out] resources  List of avaliable resource names
-  @param[out] priorities Resource name prioritization values, lower is better
+  @param[out] n           Number of avaliable resources
+  @param[out] resources   List of avaliable resource names
+  @param[out] priorities  Resource name prioritization values, lower is better
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -643,7 +643,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t matchlen = 0, matchidx = UINT_MAX, matchpriority = UINT_MAX, priority;
+  size_t match_len = 0, match_idx = UINT_MAX, match_priority = UINT_MAX, priority;
 
   // Find matching backend
   if (!resource)
@@ -681,21 +681,21 @@ int CeedInit(const char *resource, Ceed *ceed) {
     const char *prefix = backends[i].prefix;
     for (n=0; prefix[n] && prefix[n] == resource[n+match_help]; n++) {}
     priority = backends[i].priority;
-    if (n > matchlen || (n == matchlen && matchpriority > priority)) {
-      matchlen = n;
-      matchpriority = priority;
-      matchidx = i;
+    if (n > match_len || (n == match_len && match_priority > priority)) {
+      match_len = n;
+      match_priority = priority;
+      match_idx = i;
     }
   }
-  if (matchlen <= 1) {
+  if (match_len <= 1) {
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
                      resource);
     // LCOV_EXCL_STOP
-  } else if (matchlen != stem_length) {
+  } else if (match_len != stem_length) {
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s "
-                     "Closest match: %s", resource, backends[matchidx].prefix);
+                     "Closest match: %s", resource, backends[match_idx].prefix);
     // LCOV_EXCL_STOP
   }
 
@@ -710,12 +710,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
     (*ceed)->Error = CeedErrorStore;
   else
     (*ceed)->Error = CeedErrorAbort;
-  memcpy((*ceed)->errmsg, "No error message stored", 24);
-  (*ceed)->refcount = 1;
+  memcpy((*ceed)->err_msg, "No error message stored", 24);
+  (*ceed)->ref_count = 1;
   (*ceed)->data = NULL;
 
   // Set lookup table
-  foffset foffsets[] = {
+  FOffset f_offsets[] = {
     CEED_FTABLE_ENTRY(Ceed, Error),
     CEED_FTABLE_ENTRY(Ceed, GetPreferredMemType),
     CEED_FTABLE_ENTRY(Ceed, Destroy),
@@ -772,8 +772,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     {NULL, 0} // End of lookup table - used in SetBackendFunction loop
   };
 
-  ierr = CeedCalloc(sizeof(foffsets), &(*ceed)->foffsets); CeedChk(ierr);
-  memcpy((*ceed)->foffsets, foffsets, sizeof(foffsets));
+  ierr = CeedCalloc(sizeof(f_offsets), &(*ceed)->f_offsets); CeedChk(ierr);
+  memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
   // Set fallback for advanced CeedOperator functions
   const char fallbackresource[] = "";
@@ -784,13 +784,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->debug = !!getenv("CEED_DEBUG") || !!getenv("DBG");
 
   // Backend specific setup
-  ierr = backends[matchidx].init(&resource[match_help], *ceed); CeedChk(ierr);
+  ierr = backends[match_idx].init(&resource[match_help], *ceed); CeedChk(ierr);
 
   // Copy resource prefix, if backend setup successful
-  size_t len = strlen(backends[matchidx].prefix);
+  size_t len = strlen(backends[match_idx].prefix);
   char *tmp;
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, backends[matchidx].prefix, len+1);
+  memcpy(tmp, backends[match_idx].prefix, len+1);
   (*ceed)->resource = tmp;
   return CEED_ERROR_SUCCESS;
 }
@@ -798,8 +798,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
 /**
   @brief Get the full resource name for a Ceed context
 
-  @param ceed            Ceed context to get resource name of
-  @param[out] resource   Variable to store resource name
+  @param ceed           Ceed context to get resource name of
+  @param[out] resource  Variable to store resource name
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -814,26 +814,26 @@ int CeedGetResource(Ceed ceed, const char **resource) {
 /**
   @brief Return Ceed context preferred memory type
 
-  @param ceed      Ceed context to get preferred memory type of
-  @param[out] type Address to save preferred memory type to
+  @param ceed           Ceed context to get preferred memory type of
+  @param[out] mem_type  Address to save preferred memory type to
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
+int CeedGetPreferredMemType(Ceed ceed, CeedMemType *mem_type) {
   int ierr;
 
   if (ceed->GetPreferredMemType) {
-    ierr = ceed->GetPreferredMemType(type); CeedChk(ierr);
+    ierr = ceed->GetPreferredMemType(mem_type); CeedChk(ierr);
   } else {
     Ceed delegate;
     ierr = CeedGetDelegate(ceed, &delegate); CeedChk(ierr);
 
     if (delegate) {
-      ierr = CeedGetPreferredMemType(delegate, type); CeedChk(ierr);
+      ierr = CeedGetPreferredMemType(delegate, mem_type); CeedChk(ierr);
     } else {
-      *type = CEED_MEM_HOST;
+      *mem_type = CEED_MEM_HOST;
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -842,23 +842,23 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type) {
 /**
   @brief Get deterministic status of Ceed
 
-  @param[in] ceed              Ceed
-  @param[out] isDeterministic  Variable to store deterministic status
+  @param[in] ceed               Ceed
+  @param[out] is_deterministic  Variable to store deterministic status
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedIsDeterministic(Ceed ceed, bool *isDeterministic) {
-  *isDeterministic = ceed->isDeterministic;
+int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
+  *is_deterministic = ceed->is_deterministic;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief View a Ceed
 
-  @param[in] ceed          Ceed to view
-  @param[in] stream        Filestream to write to
+  @param[in] ceed    Ceed to view
+  @param[in] stream  Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -866,21 +866,21 @@ int CeedIsDeterministic(Ceed ceed, bool *isDeterministic) {
 **/
 int CeedView(Ceed ceed, FILE *stream) {
   int ierr;
-  CeedMemType memtype;
+  CeedMemType mem_type;
 
-  ierr = CeedGetPreferredMemType(ceed, &memtype); CeedChk(ierr);
+  ierr = CeedGetPreferredMemType(ceed, &mem_type); CeedChk(ierr);
 
   fprintf(stream, "Ceed\n"
           "  Ceed Resource: %s\n"
           "  Preferred MemType: %s\n",
-          ceed->resource, CeedMemTypes[memtype]);
+          ceed->resource, CeedMemTypes[mem_type]);
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Destroy a Ceed context
 
-  @param ceed Address of Ceed context to destroy
+  @param ceed  Address of Ceed context to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -888,27 +888,27 @@ int CeedView(Ceed ceed, FILE *stream) {
 **/
 int CeedDestroy(Ceed *ceed) {
   int ierr;
-  if (!*ceed || --(*ceed)->refcount > 0) return CEED_ERROR_SUCCESS;
+  if (!*ceed || --(*ceed)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*ceed)->delegate) {
     ierr = CeedDestroy(&(*ceed)->delegate); CeedChk(ierr);
   }
 
-  if ((*ceed)->objdelegatecount > 0) {
-    for (int i=0; i<(*ceed)->objdelegatecount; i++) {
-      ierr = CeedDestroy(&((*ceed)->objdelegates[i].delegate)); CeedChk(ierr);
-      ierr = CeedFree(&(*ceed)->objdelegates[i].objname); CeedChk(ierr);
+  if ((*ceed)->obj_delegate_count > 0) {
+    for (int i=0; i<(*ceed)->obj_delegate_count; i++) {
+      ierr = CeedDestroy(&((*ceed)->obj_delegates[i].delegate)); CeedChk(ierr);
+      ierr = CeedFree(&(*ceed)->obj_delegates[i].obj_name); CeedChk(ierr);
     }
-    ierr = CeedFree(&(*ceed)->objdelegates); CeedChk(ierr);
+    ierr = CeedFree(&(*ceed)->obj_delegates); CeedChk(ierr);
   }
 
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
 
-  ierr = CeedFree(&(*ceed)->foffsets); CeedChk(ierr);
+  ierr = CeedFree(&(*ceed)->f_offsets); CeedChk(ierr);
   ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);
-  ierr = CeedDestroy(&(*ceed)->opfallbackceed); CeedChk(ierr);
-  ierr = CeedFree(&(*ceed)->opfallbackresource); CeedChk(ierr);
+  ierr = CeedDestroy(&(*ceed)->op_fallback_ceed); CeedChk(ierr);
+  ierr = CeedFree(&(*ceed)->op_fallback_resource); CeedChk(ierr);
   ierr = CeedFree(ceed); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -917,10 +917,10 @@ int CeedDestroy(Ceed *ceed) {
 const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
   if (ceed->parent)
     return CeedErrorFormat(ceed->parent, format, args);
-  if (ceed->opfallbackparent)
-    return CeedErrorFormat(ceed->opfallbackparent, format, args);
-  vsnprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, format, *args);
-  return ceed->errmsg;
+  if (ceed->op_fallback_parent)
+    return CeedErrorFormat(ceed->op_fallback_parent, format, args);
+  vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args);
+  return ceed->err_msg;
 }
 // LCOV_EXCL_STOP
 
@@ -932,23 +932,23 @@ const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
                   int ecode, const char *format, ...) {
   va_list args;
-  int retval;
+  int ret_val;
   va_start(args, format);
   if (ceed) {
-    retval = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
+    ret_val = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
   } else {
     // LCOV_EXCL_START
     const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
     if (!ceed_error_handler)
       ceed_error_handler = "abort";
     if (!strcmp(ceed_error_handler, "return"))
-      retval = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
+      ret_val = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
     else
       // This function will not return
-      retval = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, &args);
+      ret_val = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, &args);
   }
   va_end(args);
-  return retval;
+  return ret_val;
   // LCOV_EXCL_STOP
 }
 
@@ -960,10 +960,10 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
   @ref Developer
 **/
 // LCOV_EXCL_START
-int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
-                    const char *func, int ecode, const char *format,
+int CeedErrorReturn(Ceed ceed, const char *filename, int line_no,
+                    const char *func, int err_code, const char *format,
                     va_list *args) {
-  return ecode;
+  return err_code;
 }
 // LCOV_EXCL_STOP
 
@@ -976,22 +976,22 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int lineno,
   @ref Developer
 **/
 // LCOV_EXCL_START
-int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
-                   const char *func, int ecode, const char *format,
+int CeedErrorStore(Ceed ceed, const char *filename, int line_no,
+                   const char *func, int err_code, const char *format,
                    va_list *args) {
   if (ceed->parent)
-    return CeedErrorStore(ceed->parent, filename, lineno, func, ecode, format,
+    return CeedErrorStore(ceed->parent, filename, line_no, func, err_code, format,
                           args);
-  if (ceed->opfallbackparent)
-    return CeedErrorStore(ceed->opfallbackparent, filename, lineno, func, ecode,
-                          format, args);
+  if (ceed->op_fallback_parent)
+    return CeedErrorStore(ceed->op_fallback_parent, filename, line_no, func,
+                          err_code, format, args);
 
   // Build message
   CeedInt len;
-  len = snprintf(ceed->errmsg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
-                 filename, lineno, func);
-  vsnprintf(ceed->errmsg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);
-  return ecode;
+  len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
+                 filename, line_no, func);
+  vsnprintf(ceed->err_msg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);
+  return err_code;
 }
 // LCOV_EXCL_STOP
 
@@ -1003,14 +1003,14 @@ int CeedErrorStore(Ceed ceed, const char *filename, int lineno,
   @ref Developer
 **/
 // LCOV_EXCL_START
-int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
-                   const char *func, int ecode, const char *format,
+int CeedErrorAbort(Ceed ceed, const char *filename, int line_no,
+                   const char *func, int err_code, const char *format,
                    va_list *args) {
-  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
+  fprintf(stderr, "%s:%d in %s(): ", filename, line_no, func);
   vfprintf(stderr, format, *args);
   fprintf(stderr, "\n");
   abort();
-  return ecode;
+  return err_code;
 }
 // LCOV_EXCL_STOP
 
@@ -1024,13 +1024,13 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int lineno,
 
   @ref Developer
 **/
-int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
-                  int ecode, const char *format, va_list *args) {
-  fprintf(stderr, "%s:%d in %s(): ", filename, lineno, func);
+int CeedErrorExit(Ceed ceed, const char *filename, int line_no,
+                  const char *func, int err_code, const char *format, va_list *args) {
+  fprintf(stderr, "%s:%d in %s(): ", filename, line_no, func);
   vfprintf(stderr, format, *args);
   fprintf(stderr, "\n");
-  exit(ecode);
-  return ecode;
+  exit(err_code);
+  return err_code;
 }
 
 /**
@@ -1042,11 +1042,11 @@ int CeedErrorExit(Ceed ceed, const char *filename, int lineno, const char *func,
 
   @ref Developer
 **/
-int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh) {
-  ceed->Error = eh;
-  if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, eh);
-  for (int i=0; i<ceed->objdelegatecount; i++)
-    CeedSetErrorHandler(ceed->objdelegates[i].delegate, eh);
+int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
+  ceed->Error = handler;
+  if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, handler);
+  for (int i=0; i<ceed->obj_delegate_count; i++)
+    CeedSetErrorHandler(ceed->obj_delegates[i].delegate, handler);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1056,17 +1056,17 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh) {
   The error message is only stored when using the error handler
     CeedErrorStore()
 
-  @param[in] ceed     Ceed contex to retrieve error message
-  @param[out] errmsg  Char pointer to hold error message
+  @param[in] ceed      Ceed contex to retrieve error message
+  @param[out] err_msg  Char pointer to hold error message
 
   @ref Developer
 **/
-int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
+int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent)
-    return CeedGetErrorMessage(ceed->parent, errmsg);
-  if (ceed->opfallbackparent)
-    return CeedGetErrorMessage(ceed->opfallbackparent, errmsg);
-  *errmsg = ceed->errmsg;
+    return CeedGetErrorMessage(ceed->parent, err_msg);
+  if (ceed->op_fallback_parent)
+    return CeedGetErrorMessage(ceed->op_fallback_parent, err_msg);
+  *err_msg = ceed->err_msg;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1076,18 +1076,18 @@ int CeedGetErrorMessage(Ceed ceed, const char **errmsg) {
   The error message is only stored when using the error handler
     CeedErrorStore()
 
-  @param[in] ceed     Ceed contex to restore error message
-  @param[out] errmsg  Char pointer that holds error message
+  @param[in] ceed      Ceed contex to restore error message
+  @param[out] err_msg  Char pointer that holds error message
 
   @ref Developer
 **/
-int CeedResetErrorMessage(Ceed ceed, const char **errmsg) {
+int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent)
-    return CeedResetErrorMessage(ceed->parent, errmsg);
-  if (ceed->opfallbackparent)
-    return CeedResetErrorMessage(ceed->opfallbackparent, errmsg);
-  *errmsg = NULL;
-  memcpy(ceed->errmsg, "No error message stored", 24);
+    return CeedResetErrorMessage(ceed->parent, err_msg);
+  if (ceed->op_fallback_parent)
+    return CeedResetErrorMessage(ceed->op_fallback_parent, err_msg);
+  *err_msg = NULL;
+  memcpy(ceed->err_msg, "No error message stored", 24);
   return CEED_ERROR_SUCCESS;
 }
 

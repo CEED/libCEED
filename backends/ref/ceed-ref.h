@@ -24,7 +24,7 @@
 
 typedef struct {
   CeedScalar *collograd1d;
-  bool collointerp;
+  bool collo_interp;
 } CeedBasis_Ref;
 
 typedef struct {
@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
-  bool setupdone;
+  bool setup_done;
 } CeedQFunction_Ref;
 
 typedef struct {
@@ -52,34 +52,34 @@ typedef struct {
 } CeedQFunctionContext_Ref;
 
 typedef struct {
-  bool identityqf;
+  bool identity_qf;
   CeedVector
-  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  uint64_t *inputstate;  /// State counter of inputs
-  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
-  CeedVector *evecsout;  /// Output E-vectors needed to apply operator
-  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
-  CeedVector *qvecsout;  /// Output Q-vectors needed to apply operator
-  CeedInt    numein;
-  CeedInt    numeout;
+  *e_vecs;   /* E-vectors needed to apply operator (input followed by outputs) */
+  CeedScalar **e_data;
+  uint64_t *input_state;   /* State counter of inputs */
+  CeedVector *e_vecs_in;   /* Input E-vectors needed to apply operator */
+  CeedVector *e_vecs_out;  /* Output E-vectors needed to apply operator */
+  CeedVector *q_vecs_in;   /* Input Q-vectors needed to apply operator */
+  CeedVector *q_vecs_out;  /* Output Q-vectors needed to apply operator */
+  CeedInt    num_e_vecs_in;
+  CeedInt    num_e_vecs_out;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type,
+    CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d,
+    CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+    const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
-                                      CeedInt dim, CeedInt ndof, CeedInt nqpts,
+                                      CeedInt dim, CeedInt num_dof, CeedInt num_qpts,
                                       const CeedScalar *interp,
                                       const CeedScalar *grad,
-                                      const CeedScalar *qref,
-                                      const CeedScalar *qweight,
+                                      const CeedScalar *q_ref,
+                                      const CeedScalar *q_weight,
                                       CeedBasis basis);
 
 CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,

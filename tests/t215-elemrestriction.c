@@ -5,18 +5,18 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInt ne = 3;
-  CeedInt ind[2*ne];
+  CeedInt num_elem = 3;
+  CeedInt ind[2*num_elem];
   const CeedInt *offsets;
   CeedElemRestriction r;
 
   CeedInit(argv[1], &ceed);
 
-  for (CeedInt i=0; i<ne; i++) {
+  for (CeedInt i=0; i<num_elem; i++) {
     ind[2*i+0] = i;
     ind[2*i+1] = i+1;
   }
-  CeedElemRestrictionCreate(ceed, ne, 2, 1, 1, ne+1, CEED_MEM_HOST,
+  CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_elem+1, CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
 
   // Get offsets and fail to restore them

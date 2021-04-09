@@ -28,8 +28,8 @@
 // BCMMS - boundary function
 // Values on all points of the mesh is set based on given solution below
 // for u[0], u[1], u[2]
-PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
-                     const PetscReal coords[], PetscInt ncompu,
+PetscErrorCode BCMMS(PetscInt dim, PetscReal load_increment,
+                     const PetscReal coords[], PetscInt num_comp_u,
                      PetscScalar *u, void *ctx) {
   PetscScalar x = coords[0];
   PetscScalar y = coords[1];
@@ -37,9 +37,9 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
 
   PetscFunctionBeginUser;
 
-  u[0] = exp(2*x)*sin(3*y)*cos(4*z) / 1e8 * loadIncrement;
-  u[1] = exp(3*y)*sin(4*z)*cos(2*x) / 1e8 * loadIncrement;
-  u[2] = exp(4*z)*sin(2*x)*cos(3*y) / 1e8 * loadIncrement;
+  u[0] = exp(2*x)*sin(3*y)*cos(4*z) / 1e8 * load_increment;
+  u[1] = exp(3*y)*sin(4*z)*cos(2*x) / 1e8 * load_increment;
+  u[2] = exp(4*z)*sin(2*x)*cos(3*y) / 1e8 * load_increment;
 
   PetscFunctionReturn(0);
 };
@@ -50,8 +50,8 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal loadIncrement,
 
 // BCClamp - fix boundary values with affine transformation at fraction of load
 //   increment
-PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
-                       const PetscReal coords[], PetscInt ncompu,
+PetscErrorCode BCClamp(PetscInt dim, PetscReal load_increment,
+                       const PetscReal coords[], PetscInt num_comp_u,
                        PetscScalar *u, void *ctx) {
   PetscScalar x = coords[0];
   PetscScalar y = coords[1];
@@ -61,9 +61,9 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
   PetscFunctionBeginUser;
   PetscScalar
   // Translation vector
-  lx = clampMax[0]*loadIncrement,
-  ly = clampMax[1]*loadIncrement,
-  lz = clampMax[2]*loadIncrement,
+  lx = clampMax[0]*load_increment,
+  ly = clampMax[1]*load_increment,
+  lz = clampMax[2]*load_increment,
   // Normalized rotation axis
   kx = clampMax[3],
   ky = clampMax[4],
@@ -73,7 +73,7 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal loadIncrement,
   c_1 = clampMax[7] * M_PI,
   cx = kx * x + ky * y + kz * z,
   // Rotation magnitude
-  theta = (c_0 + c_1 * cx) * loadIncrement;
+  theta = (c_0 + c_1 * cx) * load_increment;
   PetscScalar c = cos(theta), s = sin(theta);
 
   u[0] = lx + s*(-kz*y + ky*z) + (1-c)*(-(ky*ky+kz*kz)*x + kx*ky*y + kx*kz*z);

@@ -28,21 +28,21 @@
 static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
                                       CeedInt A, CeedInt B, CeedInt C,
                                       CeedInt J, const CeedScalar *restrict t,
-                                      CeedTransposeMode tmode,
+                                      CeedTransposeMode t_mode,
                                       const CeedInt add,
                                       const CeedScalar *restrict u,
                                       CeedScalar *restrict v) {
   CeedScalar alpha = 1.0, beta = 1.0;
-  char transu = 'N', transt = 'N';
-  if ((tmode == CEED_TRANSPOSE && C != 1)
-      || (tmode == CEED_NOTRANSPOSE && C == 1))
-    transt = 'T';
+  char trans_u = 'N', trans_t = 'N';
+  if ((t_mode == CEED_TRANSPOSE && C != 1)
+      || (t_mode == CEED_NOTRANSPOSE && C == 1))
+    trans_t = 'T';
 
   if (!add)
     beta = 0.0;
 
   // libXSMM GEMM
-  libxsmm_dgemm(&transt, &transu, &J, &A, &B,
+  libxsmm_dgemm(&trans_t, &trans_u, &J, &A, &B,
                 &alpha, &t[0], NULL, &u[0], NULL,
                 &beta, &v[0], NULL);
 
@@ -55,7 +55,7 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
                                         const CeedScalar *restrict t,
-                                        CeedTransposeMode tmode,
+                                        CeedTransposeMode t_mode,
                                         const CeedInt add,
                                         const CeedScalar *restrict u,
                                         CeedScalar *restrict v) {
@@ -65,7 +65,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
 
   // Get kernel
   libxsmm_dmmfunction kernel;
-  CeedHashIJKLMKey key = {B, C, J, tmode, add};
+  CeedHashIJKLMKey key = {B, C, J, t_mode, add};
   khint_t k = kh_get(m32, impl->lookup, key);
   CeedHashGetValue(impl->lookup, k, kernel);
 
@@ -74,7 +74,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
     for (CeedInt a=0; a<A; a++)
       kernel(&u[a*B*C], &t[0], &v[a*J*C], NULL, NULL, NULL);
   else
-    CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, tmode, add, u, v);
+    CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, t_mode, add, u, v);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -110,23 +110,23 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
   impl->lookup = kh_init(m32);
 
   // Set up pointers to kernels
-  ierr = CeedBasisIsTensor(basis, &impl->isTensor); CeedChkBackend(ierr);
-  if (impl->isTensor) {
+  ierr = CeedBasisIsTensor(basis, &impl->is_tensor); CeedChkBackend(ierr);
+  if (impl->is_tensor) {
     ierr = CeedBasisGetNumNodes1D(basis, &impl->P); CeedChkBackend(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &impl->Q); CeedChkBackend(ierr);
     ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChkBackend(ierr);
     // Build all required kernels
-    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+    for (CeedInt num_elem = 1; num_elem <= 8; num_elem+=7)
       for (CeedInt add = 0; add <= 1; add++)
-        for (CeedInt tmode = 0; tmode <= 1; tmode++)
+        for (CeedInt t_mode = 0; t_mode <= 1; t_mode++)
           for (CeedInt grad = 0; grad <=1; grad++)
             for (CeedInt dim = 0; dim < impl->dim; dim++) {
-              const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
-              CeedInt B = grad ? impl->Q : (tmode ? impl->Q : impl->P),
-                      J = grad ? impl->Q : (tmode ? impl->P : impl->Q),
-                      C = nelem*CeedIntPow(J, dim);
+              const int flags = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+              CeedInt B = grad ? impl->Q : (t_mode ? impl->Q : impl->P),
+                      J = grad ? impl->Q : (t_mode ? impl->P : impl->Q),
+                      C = num_elem*CeedIntPow(J, dim);
               // Add key, kernel pair to hash table
-              CeedHashIJKLMKey key = {B, C, J, tmode, add};
+              CeedHashIJKLMKey key = {B, C, J, t_mode, add};
               int new_item;
               khint_t k = kh_put(m32, impl->lookup, key, &new_item);
               if (new_item) {
@@ -148,17 +148,17 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
     ierr = CeedBasisGetNumQuadraturePoints(basis, &impl->Q); CeedChkBackend(ierr);
     ierr = CeedBasisGetDimension(basis, &impl->dim); CeedChkBackend(ierr);
     // Build all required kernels
-    for (CeedInt nelem = 1; nelem <= 8; nelem+=7)
+    for (CeedInt num_elem = 1; num_elem <= 8; num_elem+=7)
       for (CeedInt add = 0; add <= 1; add++)
-        for (CeedInt tmode = 0; tmode <= 1; tmode++) {
+        for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
           CeedInt gradstride = CeedIntMax(impl->dim-1, 1);
           for (CeedInt grad = 1; grad <= impl->dim; grad+=gradstride) {
-            const int flags = LIBXSMM_GEMM_FLAGS('N', tmode ? 'T' : 'N');
-            CeedInt B = tmode ? grad*impl->Q : impl->P,
-                    J = tmode ? impl->P : grad*impl->Q,
-                    C = nelem;
+            const int flags = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+            CeedInt B = t_mode ? grad*impl->Q : impl->P,
+                    J = t_mode ? impl->P : grad*impl->Q,
+                    C = num_elem;
             // Add key, kernel pair to hash table
-            CeedHashIJKLMKey key = {B, C, J, tmode, add};
+            CeedHashIJKLMKey key = {B, C, J, t_mode, add};
             int new_item;
             khint_t k = kh_put(m32, impl->lookup, key, &new_item);
             if (new_item) {

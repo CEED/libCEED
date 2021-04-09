@@ -32,22 +32,22 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   // Create reference CEED for objects
-  Ceed basisceedref;
-  CeedInit("/cpu/self/ref/blocked", &basisceedref);
-  ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
+  Ceed basis_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &basis_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, basis_ceed_ref, "Basis");
   CeedChkBackend(ierr);
-  Ceed tensorceedref;
-  CeedInit("/cpu/self/ref/blocked", &tensorceedref);
-  ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
+  Ceed tensor_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &tensor_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, tensor_ceed_ref, "TensorContract");
   CeedChkBackend(ierr);
-  Ceed opceedref;
-  CeedInit("/cpu/self/ref/blocked", &opceedref);
-  ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
+  Ceed op_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &op_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, op_ceed_ref, "Operator");
   CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;

@@ -32,8 +32,8 @@
 /**
   @brief Get the Ceed associated with a CeedQFunctionContext
 
-  @param ctx             CeedQFunctionContext
-  @param[out] ceed       Variable to store Ceed
+  @param ctx        CeedQFunctionContext
+  @param[out] ceed  Variable to store Ceed
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -47,8 +47,8 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 /**
   @brief Get the state of a CeedQFunctionContext
 
-  @param ctx           CeedQFunctionContext to retrieve state
-  @param[out] state    Variable to store state
+  @param ctx         CeedQFunctionContext to retrieve state
+  @param[out] state  Variable to store state
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -62,24 +62,24 @@ int CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state) {
 /**
   @brief Get data size for a Context
 
-  @param ctx             CeedQFunctionContext
-  @param[out] ctxsize    Variable to store size of context data values
+  @param ctx            CeedQFunctionContext
+  @param[out] ctx_size  Variable to store size of context data values
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
-                                       size_t *ctxsize) {
-  *ctxsize = ctx->ctxsize;
+                                       size_t *ctx_size) {
+  *ctx_size = ctx->ctx_size;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Get backend data of a CeedQFunctionContext
 
-  @param ctx             CeedQFunctionContext
-  @param[out] data       Variable to store data
+  @param ctx        CeedQFunctionContext
+  @param[out] data  Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -93,8 +93,8 @@ int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data) {
 /**
   @brief Set backend data of a CeedQFunctionContext
 
-  @param[out] ctx        CeedQFunctionContext
-  @param data            Data to set
+  @param[out] ctx  CeedQFunctionContext
+  @param data      Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -116,9 +116,9 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 /**
   @brief Create a CeedQFunctionContext for storing CeedQFunction user context data
 
-  @param ceed       A Ceed object where the CeedQFunctionContext will be created
-  @param[out] ctx   Address of the variable where the newly created
-                      CeedQFunctionContext will be stored
+  @param ceed      A Ceed object where the CeedQFunctionContext will be created
+  @param[out] ctx  Address of the variable where the newly created
+                     CeedQFunctionContext will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -143,8 +143,8 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 
   ierr = CeedCalloc(1, ctx); CeedChk(ierr);
   (*ctx)->ceed = ceed;
-  ceed->refcount++;
-  (*ctx)->refcount = 1;
+  ceed->ref_count++;
+  (*ctx)->ref_count = 1;
   ierr = ceed->QFunctionContextCreate(*ctx); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -155,17 +155,17 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
            memtype, such as during @ref CeedQFunctionApply().
            See also @ref CeedQFunctionContextTakeData().
 
-  @param ctx   CeedQFunctionContext
-  @param mtype Memory type of the data being passed
-  @param cmode Copy mode for the data
-  @param data  Data to be used
+  @param ctx        CeedQFunctionContext
+  @param mem_type   Memory type of the data being passed
+  @param copy_mode  Copy mode for the data
+  @param data       Data to be used
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
-                                CeedCopyMode cmode,
+int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type,
+                                CeedCopyMode copy_mode,
                                 size_t size, void *data) {
   int ierr;
 
@@ -182,8 +182,8 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
                      "access lock is already in use");
   // LCOV_EXCL_STOP
 
-  ctx->ctxsize = size;
-  ierr = ctx->SetData(ctx, mtype, cmode, data); CeedChk(ierr);
+  ctx->ctx_size = size;
+  ierr = ctx->SetData(ctx, mem_type, copy_mode, data); CeedChk(ierr);
   ctx->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -193,9 +193,9 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
            Restore access with @ref CeedQFunctionContextRestoreData().
 
   @param ctx        CeedQFunctionContext to access
-  @param mtype      Memory type on which to access the data. If the backend
-                    uses a different memory type, this will perform a copy.
-  @param[out] data  Data on memory type mtype
+  @param mem_type   Memory type on which to access the data. If the backend
+                      uses a different memory type, this will perform a copy.
+  @param[out] data  Data on memory type mem_type
 
   @note The CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions
     provide access to array pointers in the desired memory space. Pairing
@@ -205,7 +205,7 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mtype,
 
   @ref User
 **/
-int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
+int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
                                 void *data) {
   int ierr;
 
@@ -222,7 +222,7 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
                      "access lock is already in use");
   // LCOV_EXCL_STOP
 
-  ierr = ctx->GetData(ctx, mtype, data); CeedChk(ierr);
+  ierr = ctx->GetData(ctx, mem_type, data); CeedChk(ierr);
   ctx->state += 1;
   return CEED_ERROR_SUCCESS;
 }
@@ -230,8 +230,8 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mtype,
 /**
   @brief Restore data obtained using @ref CeedQFunctionContextGetData()
 
-  @param ctx     CeedQFunctionContext to restore
-  @param data    Data to restore
+  @param ctx   CeedQFunctionContext to restore
+  @param data  Data to restore
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -262,8 +262,8 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
 /**
   @brief View a CeedQFunctionContext
 
-  @param[in] ctx           CeedQFunctionContext to view
-  @param[in] stream        Filestream to write to
+  @param[in] ctx     CeedQFunctionContext to view
+  @param[in] stream  Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -271,14 +271,14 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
 **/
 int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
   fprintf(stream, "CeedQFunctionContext\n");
-  fprintf(stream, "  Context Data Size: %ld\n", ctx->ctxsize);
+  fprintf(stream, "  Context Data Size: %ld\n", ctx->ctx_size);
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Destroy a CeedQFunctionContext
 
-  @param ctx   CeedQFunctionContext to destroy
+  @param ctx  CeedQFunctionContext to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -287,7 +287,7 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
   int ierr;
 
-  if (!*ctx || --(*ctx)->refcount > 0)
+  if (!*ctx || --(*ctx)->ref_count > 0)
     return CEED_ERROR_SUCCESS;
 
   if ((*ctx) && ((*ctx)->state % 2) == 1)

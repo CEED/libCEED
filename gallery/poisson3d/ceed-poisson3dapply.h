@@ -27,7 +27,7 @@ CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
                                CeedScalar *const *out) {
   // in[0] is gradient u, shape [3, nc=1, Q]
   // in[1] is quadrature data, size (6*Q)
-  const CeedScalar *ug = in[0], *qd = in[1];
+  const CeedScalar *ug = in[0], *q_data = in[1];
 
   // out[0] is output to multiply against gradient v, shape [3, nc=1, Q]
   CeedScalar *vg = out[0];
@@ -47,15 +47,15 @@ CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
     // 5 1 3
     // 4 3 2
     // *INDENT-OFF*
-    const CeedScalar dXdxdXdxT[3][3] = {{qd[i+0*Q],
-                                         qd[i+5*Q],
-                                         qd[i+4*Q]},
-                                        {qd[i+5*Q],
-                                         qd[i+1*Q],
-                                         qd[i+3*Q]},
-                                        {qd[i+4*Q],
-                                         qd[i+3*Q],
-                                         qd[i+2*Q]}
+    const CeedScalar dXdxdXdxT[3][3] = {{q_data[i+0*Q],
+                                         q_data[i+5*Q],
+                                         q_data[i+4*Q]},
+                                        {q_data[i+5*Q],
+                                         q_data[i+1*Q],
+                                         q_data[i+3*Q]},
+                                        {q_data[i+4*Q],
+                                         q_data[i+3*Q],
+                                         q_data[i+2*Q]}
                                        };
     // *INDENT-ON*
 

@@ -38,7 +38,7 @@
 //   dXdx_i,j = Aij / detJ
 //
 // Stored: Aij / detJ
-//   in qdata[1:9] as
+//   in q_data[1:9] as
 //              [A11 A12 A13]
 //  (detJ^-1) * [A21 A22 A23]
 //              [A31 A32 A33]
@@ -52,7 +52,7 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       (*w) = in[1];
 
      // Outputs
-     CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+     CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
      // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -80,20 +80,20 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
 
     // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
+    // -- Interp-to-Interp q_data
+    q_data[0][i] = w[i] * detJ;
 
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] = A11 / detJ;
-    qdata[2][i] = A12 / detJ;
-    qdata[3][i] = A13 / detJ;
-    qdata[4][i] = A21 / detJ;
-    qdata[5][i] = A22 / detJ;
-    qdata[6][i] = A23 / detJ;
-    qdata[7][i] = A31 / detJ;
-    qdata[8][i] = A32 / detJ;
-    qdata[9][i] = A33 / detJ;
+    q_data[1][i] = A11 / detJ;
+    q_data[2][i] = A12 / detJ;
+    q_data[3][i] = A13 / detJ;
+    q_data[4][i] = A21 / detJ;
+    q_data[5][i] = A22 / detJ;
+    q_data[6][i] = A23 / detJ;
+    q_data[7][i] = A31 / detJ;
+    q_data[8][i] = A32 / detJ;
+    q_data[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 
@@ -149,7 +149,7 @@ CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q,
     const CeedScalar J3 = dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1];
 
     // Qdata
-    // -- Interp-to-Interp qdata
+    // -- Interp-to-Interp q_data
     CeedScalar wdetJb = w[i] * sqrt(J1 * J1 + J2 * J2 + J3 * J3);
 
     // Traction surface integral

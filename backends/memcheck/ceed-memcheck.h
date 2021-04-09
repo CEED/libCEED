@@ -23,7 +23,7 @@
 typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
-  bool setupdone;
+  bool setup_done;
 } CeedQFunction_Memcheck;
 
 CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
