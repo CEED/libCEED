@@ -18,19 +18,19 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in,
                       CeedScalar *const *out) {
   const CeedScalar *w = in[0];
-  CeedScalar *qdata = out[0];
+  CeedScalar *q_data = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    qdata[i] = w[i];
+    q_data[i] = w[i];
   }
   return 0;
 }
 
 CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                      CeedScalar *const *out) {
-  const CeedScalar *qdata = in[0], *u = in[1];
+  const CeedScalar *q_data = in[0], *u = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = qdata[i] * u[i];
+    v[i] = q_data[i] * u[i];
   }
   return 0;
 }

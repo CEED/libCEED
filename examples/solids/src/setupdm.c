@@ -37,11 +37,11 @@ PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
 };
 
 // Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx appCtx, DM *dm) {
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
   PetscErrorCode  ierr;
-  const char      *filename = appCtx->meshFile;
+  const char      *filename = app_ctx->mesh_file;
   PetscBool       interpolate = PETSC_TRUE;
-  DM              distributedMesh = NULL;
+  DM              distributed_mesh = NULL;
   PetscPartitioner part;
 
   PetscFunctionBeginUser;
@@ -57,10 +57,10 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx appCtx, DM *dm) {
   // Distribute DM in parallel
   ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
   ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(*dm, 0, NULL, &distributedMesh); CHKERRQ(ierr);
-  if (distributedMesh) {
+  ierr = DMPlexDistribute(*dm, 0, NULL, &distributed_mesh); CHKERRQ(ierr);
+  if (distributed_mesh) {
     ierr = DMDestroy(dm); CHKERRQ(ierr);
-    *dm  = distributedMesh;
+    *dm  = distributed_mesh;
   }
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
@@ -135,21 +135,22 @@ PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
 }
 
 // Setup DM with FE space of appropriate degree
-PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
-                               PetscBool boundary, PetscInt ncompu) {
+PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
+                               PetscBool boundary, PetscInt num_comp_u) {
   PetscErrorCode  ierr;
   PetscInt        dim;
   PetscFE         fe;
-  IS              faceSetIS;           // Index Set for Face Sets
+  IS              face_set_is;         // Index Set for Face Sets
   const char      *name = "Face Sets"; // PETSc internal requirement
-  PetscInt        numFaceSets;         // Number of FaceSets in faceSetIS
-  const PetscInt  *faceSetIds;         // id of each FaceSet
+  PetscInt        num_face_sets;       // Number of FaceSets in face_set_is
+  const PetscInt  *face_set_ids;       // id of each FaceSet
 
   PetscFunctionBeginUser;
 
   // Setup DM
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  ierr = PetscFECreateByDegree(dm, dim, ncompu, PETSC_FALSE, NULL, order, &fe);
+  ierr = PetscFECreateByDegree(dm, dim, num_comp_u, PETSC_FALSE, NULL, order,
+                               &fe);
   CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
@@ -157,37 +158,37 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx appCtx, PetscInt order,
 
   // Add Dirichlet (Essential) boundary
   if (boundary) {
-    if (appCtx->testMode) {
+    if (app_ctx->test_mode) {
       // -- Test mode - box mesh
-      PetscBool hasLabel;
+      PetscBool has_label;
       PetscInt marker_ids[1] = {1};
-      DMHasLabel(dm, "marker", &hasLabel);
-      if (!hasLabel) {
+      DMHasLabel(dm, "marker", &has_label);
+      if (!has_label) {
         ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
       }
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "marker", 0, 0, NULL,
                            (void(*)(void))BCMMS, NULL, 1, marker_ids, NULL);
       CHKERRQ(ierr);
-    } else if (appCtx->forcingChoice == FORCE_MMS) {
+    } else if (app_ctx->forcing_choice == FORCE_MMS) {
       // -- ExodusII mesh with MMS
-      ierr = DMGetLabelIdIS(dm, name, &faceSetIS); CHKERRQ(ierr);
-      ierr = ISGetSize(faceSetIS,&numFaceSets); CHKERRQ(ierr);
-      ierr = ISGetIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
+      ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
+      ierr = ISGetSize(face_set_is,&num_face_sets); CHKERRQ(ierr);
+      ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCMMS, NULL, numFaceSets, faceSetIds, NULL);
+                           (void(*)(void))BCMMS, NULL, num_face_sets, face_set_ids, NULL);
       CHKERRQ(ierr);
-      ierr = ISRestoreIndices(faceSetIS, &faceSetIds); CHKERRQ(ierr);
-      ierr = ISDestroy(&faceSetIS); CHKERRQ(ierr);
+      ierr = ISRestoreIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
+      ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
     } else {
       // -- ExodusII mesh with user specified BCs
       // -- Clamp BCs
-      for (PetscInt i = 0; i < appCtx->bcClampCount; i++) {
+      for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
-        snprintf(bcName, sizeof bcName, "clamp_%d", appCtx->bcClampFaces[i]);
+        snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0,
                              NULL, (void(*)(void))BCClamp, NULL, 1,
-                             &appCtx->bcClampFaces[i],
-                             (void *)&appCtx->bcClampMax[i]); CHKERRQ(ierr);
+                             &app_ctx->bc_clamp_faces[i],
+                             (void *)&app_ctx->bc_clamp_max[i]); CHKERRQ(ierr);
       }
     }
   }

@@ -24,22 +24,22 @@
 int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
                                 CeedInt B, CeedInt C, CeedInt J,
                                 const CeedScalar *restrict t,
-                                CeedTransposeMode tmode, const CeedInt Add,
+                                CeedTransposeMode t_mode, const CeedInt add,
                                 const CeedScalar *restrict u,
                                 CeedScalar *restrict v) {
-  CeedInt tstride0 = B, tstride1 = 1;
-  if (tmode == CEED_TRANSPOSE) {
-    tstride0 = 1; tstride1 = J;
+  CeedInt t_stride_0 = B, t_stride_1 = 1;
+  if (t_mode == CEED_TRANSPOSE) {
+    t_stride_0 = 1; t_stride_1 = J;
   }
 
-  if (!Add)
+  if (!add)
     for (CeedInt q=0; q<A*J*C; q++)
       v[q] = (CeedScalar) 0.0;
 
   for (CeedInt a=0; a<A; a++)
     for (CeedInt b=0; b<B; b++)
       for (CeedInt j=0; j<J; j++) {
-        CeedScalar tq = t[j*tstride0 + b*tstride1];
+        CeedScalar tq = t[j*t_stride_0 + b*t_stride_1];
         for (CeedInt c=0; c<C; c++)
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }

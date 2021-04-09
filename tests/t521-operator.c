@@ -18,232 +18,240 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedElemRestriction ErestrictxTet, ErestrictuTet,
-                      ErestrictuiTet,
-                      ErestrictxHex, ErestrictuHex,
-                      ErestrictuiHex;
-  CeedBasis bxTet, buTet,
-            bxHex, buHex;
-  CeedQFunction qf_setupTet, qf_massTet,
-                qf_setupHex, qf_massHex;
-  CeedOperator op_setupTet, op_massTet,
-               op_setupHex, op_massHex,
+  CeedElemRestriction elem_restr_x_tet, elem_restr_u_tet,
+                      elem_restr_qd_i_tet,
+                      elem_restr_x_hex, elem_restr_u_hex,
+                      elem_restr_qd_i_hex;
+  CeedBasis basis_x_tet, basis_u_tet,
+            basis_x_hex, basis_u_hex;
+  CeedQFunction qf_setup_tet, qf_mass_tet,
+                qf_setup_hex, qf_mass_hex;
+  CeedOperator op_setup_tet, op_mass_tet,
+               op_setup_hex, op_mass_hex,
                op_setup, op_mass;
-  CeedVector qdataTet, qdataHex, X, U, V;
+  CeedVector q_data_tet, q_data_hex, X, U, V;
   const CeedScalar *hv;
-  CeedInt nelemTet = 6, PTet = 6, QTet = 4,
-          nelemHex = 6, PHex = 3, QHex = 4, dim = 2;
-  CeedInt nx = 3, ny = 3,
-          nxTet = 3, nyTet = 1, nxHex = 3;
+  CeedInt num_elem_tet = 6, P_tet = 6, Q_tet = 4,
+          num_elem_hex = 6, P_hex = 3, Q_hex = 4, dim = 2;
+  CeedInt n_x = 3, n_y = 3,
+          n_x_tet = 3, n_y_tet = 1, n_x_hex = 3;
   CeedInt row, col, offset;
-  CeedInt ndofs = (nx*2+1)*(ny*2+1),
-          nqptsTet = nelemTet*QTet,
-          nqptsHex = nelemHex*QHex*QHex;
-  CeedInt indxTet[nelemTet*PTet],
-          indxHex[nelemHex*PHex*PHex];
-  CeedScalar x[dim*ndofs];
-  CeedScalar qref[dim*QTet], qweight[QTet];
-  CeedScalar interp[PTet*QTet], grad[dim*PTet*QTet];
+  CeedInt num_dofs = (n_x*2+1)*(n_y*2+1),
+          num_qpts_tet = num_elem_tet*Q_tet,
+          num_qpts_hex = num_elem_hex*Q_hex*Q_hex;
+  CeedInt ind_x_tet[num_elem_tet*P_tet],
+          ind_x_hex[num_elem_hex*P_hex*P_hex];
+  CeedScalar x[dim*num_dofs];
+  CeedScalar q_ref[dim*Q_tet], q_weight[Q_tet];
+  CeedScalar interp[P_tet*Q_tet], grad[dim*P_tet*Q_tet];
   CeedScalar sum;
 
   CeedInit(argv[1], &ceed);
 
   // DoF Coordinates
-  for (CeedInt i=0; i<ny*2+1; i++)
-    for (CeedInt j=0; j<nx*2+1; j++) {
-      x[i+j*(ny*2+1)+0*ndofs] = (CeedScalar) i / (2*ny);
-      x[i+j*(ny*2+1)+1*ndofs] = (CeedScalar) j / (2*nx);
+  for (CeedInt i=0; i<n_y*2+1; i++)
+    for (CeedInt j=0; j<n_x*2+1; j++) {
+      x[i+j*(n_y*2+1)+0*num_dofs] = (CeedScalar) i / (2*n_y);
+      x[i+j*(n_y*2+1)+1*num_dofs] = (CeedScalar) j / (2*n_x);
     }
-  CeedVectorCreate(ceed, dim*ndofs, &X);
+  CeedVectorCreate(ceed, dim*num_dofs, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Qdata Vectors
-  CeedVectorCreate(ceed, nqptsTet, &qdataTet);
-  CeedVectorCreate(ceed, nqptsHex, &qdataHex);
+  CeedVectorCreate(ceed, num_qpts_tet, &q_data_tet);
+  CeedVectorCreate(ceed, num_qpts_hex, &q_data_hex);
 
   // Tet Elements
-  for (CeedInt i=0; i<nelemTet/2; i++) {
-    col = i % nxTet;
-    row = i / nxTet;
-    offset = col*2 + row*(nxTet*2+1)*2;
+  for (CeedInt i=0; i<num_elem_tet/2; i++) {
+    col = i % n_x_tet;
+    row = i / n_x_tet;
+    offset = col*2 + row*(n_x_tet*2+1)*2;
 
-    indxTet[i*2*PTet +  0] =  2 + offset;
-    indxTet[i*2*PTet +  1] =  9 + offset;
-    indxTet[i*2*PTet +  2] = 16 + offset;
-    indxTet[i*2*PTet +  3] =  1 + offset;
-    indxTet[i*2*PTet +  4] =  8 + offset;
-    indxTet[i*2*PTet +  5] =  0 + offset;
+    ind_x_tet[i*2*P_tet +  0] =  2 + offset;
+    ind_x_tet[i*2*P_tet +  1] =  9 + offset;
+    ind_x_tet[i*2*P_tet +  2] = 16 + offset;
+    ind_x_tet[i*2*P_tet +  3] =  1 + offset;
+    ind_x_tet[i*2*P_tet +  4] =  8 + offset;
+    ind_x_tet[i*2*P_tet +  5] =  0 + offset;
 
-    indxTet[i*2*PTet +  6] = 14 + offset;
-    indxTet[i*2*PTet +  7] =  7 + offset;
-    indxTet[i*2*PTet +  8] =  0 + offset;
-    indxTet[i*2*PTet +  9] = 15 + offset;
-    indxTet[i*2*PTet + 10] =  8 + offset;
-    indxTet[i*2*PTet + 11] = 16 + offset;
+    ind_x_tet[i*2*P_tet +  6] = 14 + offset;
+    ind_x_tet[i*2*P_tet +  7] =  7 + offset;
+    ind_x_tet[i*2*P_tet +  8] =  0 + offset;
+    ind_x_tet[i*2*P_tet +  9] = 15 + offset;
+    ind_x_tet[i*2*P_tet + 10] =  8 + offset;
+    ind_x_tet[i*2*P_tet + 11] = 16 + offset;
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, nelemTet, PTet, dim, ndofs, dim*ndofs,
-                            CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
-                            &ErestrictxTet);
+  CeedElemRestrictionCreate(ceed, num_elem_tet, P_tet, dim, num_dofs,
+                            dim*num_dofs,
+                            CEED_MEM_HOST, CEED_USE_POINTER, ind_x_tet,
+                            &elem_restr_x_tet);
 
-  CeedElemRestrictionCreate(ceed, nelemTet, PTet, 1, 1, ndofs,
-                            CEED_MEM_HOST, CEED_USE_POINTER, indxTet,
-                            &ErestrictuTet);
-  CeedInt stridesuTet[3] = {1, QTet, QTet};
-  CeedElemRestrictionCreateStrided(ceed,  nelemTet, QTet, 1, nqptsTet,
-                                   stridesuTet, &ErestrictuiTet);
+  CeedElemRestrictionCreate(ceed, num_elem_tet, P_tet, 1, 1, num_dofs,
+                            CEED_MEM_HOST, CEED_USE_POINTER, ind_x_tet,
+                            &elem_restr_u_tet);
+  CeedInt strides_qd_tet[3] = {1, Q_tet, Q_tet};
+  CeedElemRestrictionCreateStrided(ceed,  num_elem_tet, Q_tet, 1, num_qpts_tet,
+                                   strides_qd_tet, &elem_restr_qd_i_tet);
 
   // -- Bases
-  buildmats(qref, qweight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, PTet, QTet, interp, grad, qref,
-                    qweight, &bxTet);
+  buildmats(q_ref, q_weight, interp, grad);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P_tet, Q_tet, interp, grad, q_ref,
+                    q_weight, &basis_x_tet);
 
-  buildmats(qref, qweight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, PTet, QTet, interp, grad, qref,
-                    qweight, &buTet);
+  buildmats(q_ref, q_weight, interp, grad);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P_tet, Q_tet, interp, grad, q_ref,
+                    q_weight, &basis_u_tet);
 
   // -- QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setupTet);
-  CeedQFunctionAddInput(qf_setupTet, "_weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setupTet, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddOutput(qf_setupTet, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup_tet);
+  CeedQFunctionAddInput(qf_setup_tet, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup_tet, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddOutput(qf_setup_tet, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_massTet);
-  CeedQFunctionAddInput(qf_massTet, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_massTet, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_massTet, "v", 1, CEED_EVAL_INTERP);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass_tet);
+  CeedQFunctionAddInput(qf_mass_tet, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass_tet, "u", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_mass_tet, "v", 1, CEED_EVAL_INTERP);
 
   // -- Operators
   // ---- Setup Tet
-  CeedOperatorCreate(ceed, qf_setupTet, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setupTet);
-  CeedOperatorSetField(op_setupTet, "_weight", CEED_ELEMRESTRICTION_NONE, bxTet,
+  CeedOperatorCreate(ceed, qf_setup_tet, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setup_tet);
+  CeedOperatorSetField(op_setup_tet, "_weight", CEED_ELEMRESTRICTION_NONE,
+                       basis_x_tet,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupTet, "dx", ErestrictxTet, bxTet,
+  CeedOperatorSetField(op_setup_tet, "dx", elem_restr_x_tet, basis_x_tet,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupTet, "rho", ErestrictuiTet,
-                       CEED_BASIS_COLLOCATED, qdataTet);
+  CeedOperatorSetField(op_setup_tet, "rho", elem_restr_qd_i_tet,
+                       CEED_BASIS_COLLOCATED, q_data_tet);
   // ---- Mass Tet
-  CeedOperatorCreate(ceed, qf_massTet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_massTet);
-  CeedOperatorSetField(op_massTet, "rho", ErestrictuiTet, CEED_BASIS_COLLOCATED,
-                       qdataTet);
-  CeedOperatorSetField(op_massTet, "u", ErestrictuTet, buTet,
+  CeedOperatorCreate(ceed, qf_mass_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass_tet);
+  CeedOperatorSetField(op_mass_tet, "rho", elem_restr_qd_i_tet,
+                       CEED_BASIS_COLLOCATED,
+                       q_data_tet);
+  CeedOperatorSetField(op_mass_tet, "u", elem_restr_u_tet, basis_u_tet,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_massTet, "v", ErestrictuTet, buTet,
+  CeedOperatorSetField(op_mass_tet, "v", elem_restr_u_tet, basis_u_tet,
                        CEED_VECTOR_ACTIVE);
 
   // Hex Elements
-  for (CeedInt i=0; i<nelemHex; i++) {
-    col = i % nxHex;
-    row = i / nxHex;
-    offset = (nxTet*2+1)*(nyTet*2)*(1+row) + col*2;
-    for (CeedInt j=0; j<PHex; j++)
-      for (CeedInt k=0; k<PHex; k++)
-        indxHex[PHex*(PHex*i+k)+j] = offset + k*(nxHex*2+1) + j;
+  for (CeedInt i=0; i<num_elem_hex; i++) {
+    col = i % n_x_hex;
+    row = i / n_x_hex;
+    offset = (n_x_tet*2+1)*(n_y_tet*2)*(1+row) + col*2;
+    for (CeedInt j=0; j<P_hex; j++)
+      for (CeedInt k=0; k<P_hex; k++)
+        ind_x_hex[P_hex*(P_hex*i+k)+j] = offset + k*(n_x_hex*2+1) + j;
   }
 
   // -- Restrictions
-  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, dim, ndofs, dim*ndofs,
-                            CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
-                            &ErestrictxHex);
+  CeedElemRestrictionCreate(ceed, num_elem_hex, P_hex*P_hex, dim, num_dofs,
+                            dim*num_dofs,
+                            CEED_MEM_HOST, CEED_USE_POINTER, ind_x_hex,
+                            &elem_restr_x_hex);
 
-  CeedElemRestrictionCreate(ceed, nelemHex, PHex*PHex, 1, 1, ndofs,
-                            CEED_MEM_HOST, CEED_USE_POINTER, indxHex,
-                            &ErestrictuHex);
-  CeedInt stridesuHex[3] = {1, QHex*QHex, QHex*QHex};
-  CeedElemRestrictionCreateStrided(ceed, nelemHex, QHex*QHex, 1, nqptsHex,
-                                   stridesuHex, &ErestrictuiHex);
+  CeedElemRestrictionCreate(ceed, num_elem_hex, P_hex*P_hex, 1, 1, num_dofs,
+                            CEED_MEM_HOST, CEED_USE_POINTER, ind_x_hex,
+                            &elem_restr_u_hex);
+  CeedInt strides_qd_hex[3] = {1, Q_hex*Q_hex, Q_hex*Q_hex};
+  CeedElemRestrictionCreateStrided(ceed, num_elem_hex, Q_hex*Q_hex, 1,
+                                   num_qpts_hex,
+                                   strides_qd_hex, &elem_restr_qd_i_hex);
 
   // -- Bases
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, PHex, QHex, CEED_GAUSS,
-                                  &bxHex);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, PHex, QHex, CEED_GAUSS, &buHex);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, P_hex, Q_hex, CEED_GAUSS,
+                                  &basis_x_hex);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P_hex, Q_hex, CEED_GAUSS,
+                                  &basis_u_hex);
 
   // -- QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setupHex);
-  CeedQFunctionAddInput(qf_setupHex, "_weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_setupHex, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddOutput(qf_setupHex, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup_hex);
+  CeedQFunctionAddInput(qf_setup_hex, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup_hex, "dx", dim*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddOutput(qf_setup_hex, "rho", 1, CEED_EVAL_NONE);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_massHex);
-  CeedQFunctionAddInput(qf_massHex, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_massHex, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_massHex, "v", 1, CEED_EVAL_INTERP);
+  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass_hex);
+  CeedQFunctionAddInput(qf_mass_hex, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass_hex, "u", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_mass_hex, "v", 1, CEED_EVAL_INTERP);
 
   // -- Operators
-  CeedOperatorCreate(ceed, qf_setupHex, CEED_QFUNCTION_NONE,
-                     CEED_QFUNCTION_NONE, &op_setupHex);
-  CeedOperatorSetField(op_setupHex, "_weight", CEED_ELEMRESTRICTION_NONE, bxHex,
+  CeedOperatorCreate(ceed, qf_setup_hex, CEED_QFUNCTION_NONE,
+                     CEED_QFUNCTION_NONE, &op_setup_hex);
+  CeedOperatorSetField(op_setup_hex, "_weight", CEED_ELEMRESTRICTION_NONE,
+                       basis_x_hex,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupHex, "dx", ErestrictxHex, bxHex,
+  CeedOperatorSetField(op_setup_hex, "dx", elem_restr_x_hex, basis_x_hex,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupHex, "rho", ErestrictuiHex,
-                       CEED_BASIS_COLLOCATED, qdataHex);
+  CeedOperatorSetField(op_setup_hex, "rho", elem_restr_qd_i_hex,
+                       CEED_BASIS_COLLOCATED, q_data_hex);
 
-  CeedOperatorCreate(ceed, qf_massHex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &op_massHex);
-  CeedOperatorSetField(op_massHex, "rho", ErestrictuiHex, CEED_BASIS_COLLOCATED,
-                       qdataHex);
-  CeedOperatorSetField(op_massHex, "u", ErestrictuHex, buHex,
+  CeedOperatorCreate(ceed, qf_mass_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_mass_hex);
+  CeedOperatorSetField(op_mass_hex, "rho", elem_restr_qd_i_hex,
+                       CEED_BASIS_COLLOCATED,
+                       q_data_hex);
+  CeedOperatorSetField(op_mass_hex, "u", elem_restr_u_hex, basis_u_hex,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_massHex, "v", ErestrictuHex, buHex,
+  CeedOperatorSetField(op_mass_hex, "v", elem_restr_u_hex, basis_u_hex,
                        CEED_VECTOR_ACTIVE);
 
   // Composite Operators
   CeedCompositeOperatorCreate(ceed, &op_setup);
-  CeedCompositeOperatorAddSub(op_setup, op_setupTet);
-  CeedCompositeOperatorAddSub(op_setup, op_setupHex);
+  CeedCompositeOperatorAddSub(op_setup, op_setup_tet);
+  CeedCompositeOperatorAddSub(op_setup, op_setup_hex);
 
   CeedCompositeOperatorCreate(ceed, &op_mass);
-  CeedCompositeOperatorAddSub(op_mass, op_massTet);
-  CeedCompositeOperatorAddSub(op_mass, op_massHex);
+  CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
+  CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);
 
   // Apply Mass Operator
-  CeedVectorCreate(ceed, ndofs, &U);
+  CeedVectorCreate(ceed, num_dofs, &U);
   CeedVectorSetValue(U, 1.0);
-  CeedVectorCreate(ceed, ndofs, &V);
+  CeedVectorCreate(ceed, num_dofs, &V);
 
   CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   sum = 0.;
-  for (CeedInt i=0; i<ndofs; i++)
+  for (CeedInt i=0; i<num_dofs; i++)
     sum += hv[i];
   if (fabs(sum-1.)>1e-10) printf("Computed Area: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Cleanup
-  CeedQFunctionDestroy(&qf_setupTet);
-  CeedQFunctionDestroy(&qf_massTet);
-  CeedOperatorDestroy(&op_setupTet);
-  CeedOperatorDestroy(&op_massTet);
-  CeedQFunctionDestroy(&qf_setupHex);
-  CeedQFunctionDestroy(&qf_massHex);
-  CeedOperatorDestroy(&op_setupHex);
-  CeedOperatorDestroy(&op_massHex);
+  CeedQFunctionDestroy(&qf_setup_tet);
+  CeedQFunctionDestroy(&qf_mass_tet);
+  CeedOperatorDestroy(&op_setup_tet);
+  CeedOperatorDestroy(&op_mass_tet);
+  CeedQFunctionDestroy(&qf_setup_hex);
+  CeedQFunctionDestroy(&qf_mass_hex);
+  CeedOperatorDestroy(&op_setup_hex);
+  CeedOperatorDestroy(&op_mass_hex);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
-  CeedElemRestrictionDestroy(&ErestrictuTet);
-  CeedElemRestrictionDestroy(&ErestrictxTet);
-  CeedElemRestrictionDestroy(&ErestrictuiTet);
-  CeedElemRestrictionDestroy(&ErestrictuHex);
-  CeedElemRestrictionDestroy(&ErestrictxHex);
-  CeedElemRestrictionDestroy(&ErestrictuiHex);
-  CeedBasisDestroy(&buTet);
-  CeedBasisDestroy(&bxTet);
-  CeedBasisDestroy(&buHex);
-  CeedBasisDestroy(&bxHex);
+  CeedElemRestrictionDestroy(&elem_restr_u_tet);
+  CeedElemRestrictionDestroy(&elem_restr_x_tet);
+  CeedElemRestrictionDestroy(&elem_restr_qd_i_tet);
+  CeedElemRestrictionDestroy(&elem_restr_u_hex);
+  CeedElemRestrictionDestroy(&elem_restr_x_hex);
+  CeedElemRestrictionDestroy(&elem_restr_qd_i_hex);
+  CeedBasisDestroy(&basis_u_tet);
+  CeedBasisDestroy(&basis_x_tet);
+  CeedBasisDestroy(&basis_u_hex);
+  CeedBasisDestroy(&basis_x_hex);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);
-  CeedVectorDestroy(&qdataTet);
-  CeedVectorDestroy(&qdataHex);
+  CeedVectorDestroy(&q_data_tet);
+  CeedVectorDestroy(&q_data_hex);
   CeedDestroy(&ceed);
   return 0;
 }

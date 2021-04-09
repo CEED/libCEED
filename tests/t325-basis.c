@@ -8,14 +8,14 @@
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector In, Out;
-  const CeedInt P = 6, Q = 4, dim = 2, ncomp = 3;
+  const CeedInt P = 6, Q = 4, dim = 2, num_comp = 3;
   CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
+  CeedScalar q_ref[dim*Q], q_weight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
   const CeedScalar *out;
   CeedScalar colsum[P], *in;
 
-  buildmats(qref, qweight, interp, grad);
+  buildmats(q_ref, q_weight, interp, grad);
 
   CeedInit(argv[1], &ceed);
 
@@ -26,17 +26,17 @@ int main(int argc, char **argv) {
     }
   }
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, ncomp, P, Q, interp, grad, qref,
-                    qweight, &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, num_comp, P, Q, interp, grad, q_ref,
+                    q_weight, &b);
 
-  CeedVectorCreate(ceed, Q*dim*ncomp, &In);
+  CeedVectorCreate(ceed, Q*dim*num_comp, &In);
   CeedVectorGetArray(In, CEED_MEM_HOST, &in);
   for (int d=0; d<dim; d++)
-    for (int n=0; n<ncomp; n++)
+    for (int n=0; n<num_comp; n++)
       for (int q=0; q<Q; q++)
-        in[q+(n+d*ncomp)*Q] = n*1.0;
+        in[q+(n+d*num_comp)*Q] = n*1.0;
   CeedVectorRestoreArray(In, &in);
-  CeedVectorCreate(ceed, P*ncomp, &Out);
+  CeedVectorCreate(ceed, P*num_comp, &Out);
   CeedVectorSetValue(Out, 0);
 
   CeedBasisApply(b, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, In, Out);
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   // Check values at quadrature points
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int p=0; p<P; p++)
-    for (int n=0; n<ncomp; n++)
+    for (int n=0; n<num_comp; n++)
       if (fabs(n*colsum[p] - out[p+n*P]) > 1E-14)
         // LCOV_EXCL_START
         printf("[%d] %f != %f\n", p, out[p+n*P], n*colsum[p]);

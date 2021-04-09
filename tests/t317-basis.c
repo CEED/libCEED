@@ -14,8 +14,8 @@ static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedVector X, Xq, U, Uq;
-  CeedBasis bxl, bul, bxg, bug;
+  CeedVector X, X_q, U, U_q;
+  CeedBasis basis_x_lobatto, basis_u_lobatto, basis_x_gauss, basis_u_gauss;
   CeedInt Q = 6;
   const CeedScalar p[6] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
   const CeedScalar dp[5] = {2, 6, 12, 20, 30}; // 2 + 6x + 12x^2 + ...
@@ -25,38 +25,40 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, 2, &X);
-  CeedVectorCreate(ceed, Q, &Xq);
-  CeedVectorSetValue(Xq, 0);
+  CeedVectorCreate(ceed, Q, &X_q);
+  CeedVectorSetValue(X_q, 0);
   CeedVectorCreate(ceed, Q, &U);
   CeedVectorSetValue(U, 0);
-  CeedVectorCreate(ceed, Q, &Uq);
+  CeedVectorCreate(ceed, Q, &U_q);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO, &bul);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1,  1, 2, Q, CEED_GAUSS_LOBATTO,
+                                  &basis_x_lobatto);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS_LOBATTO,
+                                  &basis_u_lobatto);
 
   for (int i = 0; i < 2; i++)
     x[i] = CeedIntPow(-1, i+1);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&x);
 
-  CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+  CeedBasisApply(basis_x_lobatto, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
 
-  CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+  CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &xq);
   for (CeedInt i=0; i<Q; i++)
     uq[i] = PolyEval(xq[i], ALEN(p), p);
-  CeedVectorRestoreArrayRead(Xq, &xq);
-  CeedVectorSetArray(Uq, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&uq);
+  CeedVectorRestoreArrayRead(X_q, &xq);
+  CeedVectorSetArray(U_q, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)&uq);
 
   // This operation is the identity because the quadrature is collocated
-  CeedBasisApply(bul, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, Uq, U);
+  CeedBasisApply(basis_u_lobatto, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, U_q, U);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &basis_x_gauss);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &basis_u_gauss);
 
-  CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
-  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U, Uq);
+  CeedBasisApply(basis_x_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
+  CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U, U_q);
 
-  CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
-  CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uuq);
+  CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &xq);
+  CeedVectorGetArrayRead(U_q, CEED_MEM_HOST, &uuq);
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar px = PolyEval(xq[i], ALEN(dp), dp);
     if (fabs(uuq[i] - px) > 1E-13)
@@ -64,17 +66,17 @@ int main(int argc, char **argv) {
       printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
     // LCOV_EXCL_STOP
   }
-  CeedVectorRestoreArrayRead(Xq, &xq);
-  CeedVectorRestoreArrayRead(Uq, &uuq);
+  CeedVectorRestoreArrayRead(X_q, &xq);
+  CeedVectorRestoreArrayRead(U_q, &uuq);
 
   CeedVectorDestroy(&X);
-  CeedVectorDestroy(&Xq);
+  CeedVectorDestroy(&X_q);
   CeedVectorDestroy(&U);
-  CeedVectorDestroy(&Uq);
-  CeedBasisDestroy(&bxl);
-  CeedBasisDestroy(&bul);
-  CeedBasisDestroy(&bxg);
-  CeedBasisDestroy(&bug);
+  CeedVectorDestroy(&U_q);
+  CeedBasisDestroy(&basis_x_lobatto);
+  CeedBasisDestroy(&basis_u_lobatto);
+  CeedBasisDestroy(&basis_x_gauss);
+  CeedBasisDestroy(&basis_u_gauss);
   CeedDestroy(&ceed);
   return 0;
 }

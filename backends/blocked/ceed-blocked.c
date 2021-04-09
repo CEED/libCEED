@@ -35,9 +35,9 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/ref/serial", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   // Set fallback CEED resource for advanced operator functionality
   const char fallbackresource[] = "/cpu/self/ref/serial";

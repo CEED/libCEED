@@ -40,7 +40,7 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q,
                               const CeedScalar *const *in,
                               CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *coords = in[0], *qdata = in[1];
+  const CeedScalar *coords = in[0], *q_data = in[1];
 
   // Outputs
   CeedScalar *force = out[0];
@@ -55,7 +55,7 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     CeedScalar x = coords[i+0*Q], y = coords[i+1*Q], z = coords[i+2*Q];
-    CeedScalar wdetJ = qdata[i];
+    CeedScalar wdetJ = q_data[i];
 
     // Forcing function
     // -- Component 1

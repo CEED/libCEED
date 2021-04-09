@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, evaluation, and destruction for qfunction
-/// \test Test creation, evaluation, and destruction for qfunction
+/// Test creation, evaluation, and destruction for QFunction
+/// \test Test creation, evaluation, and destruction for QFunction
 #include <ceed.h>
 #include <math.h>
 
@@ -9,7 +9,7 @@
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector in[16], out[16];
-  CeedVector Qdata, W, U, V;
+  CeedVector Q_data, W, U, V;
   CeedQFunction qf_setup, qf_mass;
   CeedQFunctionContext ctx;
   CeedInt Q = 8;
@@ -45,12 +45,12 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
   CeedVectorCreate(ceed, Q, &V);
   CeedVectorSetValue(V, 0);
-  CeedVectorCreate(ceed, Q, &Qdata);
-  CeedVectorSetValue(Qdata, 0);
+  CeedVectorCreate(ceed, Q, &Q_data);
+  CeedVectorSetValue(Q_data, 0);
 
   {
     in[0] = W;
-    out[0] = Qdata;
+    out[0] = Q_data;
     CeedQFunctionApply(qf_setup, Q, in, out);
   }
   {
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&W);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);
-  CeedVectorDestroy(&Qdata);
+  CeedVectorDestroy(&Q_data);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedQFunctionContextDestroy(&ctx);

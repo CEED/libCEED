@@ -34,9 +34,9 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/ref/serial", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Memcheck); CeedChkBackend(ierr);

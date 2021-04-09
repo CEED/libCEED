@@ -17,73 +17,74 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   for (CeedInt dim=1; dim<=3; dim++) {
-    CeedVector X, Xq, U, Uq, Ones, Gtposeones;
-    CeedBasis bxl, bug;
-    CeedInt P = 8, Q = 10, Pdim = CeedIntPow(P, dim), Qdim = CeedIntPow(Q, dim),
-            Xdim = CeedIntPow(2, dim);
-    CeedScalar x[Xdim*dim], u[Pdim];
-    const CeedScalar *xq, *uq, *gtposeones;
-    CeedScalar sum1 = 0, sum2 = 0;
+    CeedVector X, X_q, U, U_q, ones, grad_T_ones;
+    CeedBasis basis_x_lobatto, basis_u_gauss;
+    CeedInt P = 8, Q = 10, P_dim = CeedIntPow(P, dim), Q_dim = CeedIntPow(Q, dim),
+            X_dim = CeedIntPow(2, dim);
+    CeedScalar x[X_dim*dim], u[P_dim];
+    const CeedScalar *x_q, *u_q, *grad_t_ones_array;
+    CeedScalar sum_1 = 0, sum_2 = 0;
 
     for (CeedInt d=0; d<dim; d++)
-      for (CeedInt i=0; i<Xdim; i++)
-        x[d*Xdim + i] = (i % CeedIntPow(2, dim-d)) /
-                        CeedIntPow(2, dim-d-1) ? 1 : -1;
+      for (CeedInt i=0; i<X_dim; i++)
+        x[d*X_dim + i] = (i % CeedIntPow(2, dim-d)) /
+                         CeedIntPow(2, dim-d-1) ? 1 : -1;
 
-    CeedVectorCreate(ceed, Xdim*dim, &X);
+    CeedVectorCreate(ceed, X_dim*dim, &X);
     CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-    CeedVectorCreate(ceed, Pdim*dim, &Xq);
-    CeedVectorSetValue(Xq, 0);
-    CeedVectorCreate(ceed, Pdim, &U);
-    CeedVectorCreate(ceed, Qdim*dim, &Uq);
-    CeedVectorSetValue(Uq, 0);
-    CeedVectorCreate(ceed, Qdim*dim, &Ones);
-    CeedVectorSetValue(Ones, 1);
-    CeedVectorCreate(ceed, Pdim, &Gtposeones);
-    CeedVectorSetValue(Gtposeones, 0);
+    CeedVectorCreate(ceed, P_dim*dim, &X_q);
+    CeedVectorSetValue(X_q, 0);
+    CeedVectorCreate(ceed, P_dim, &U);
+    CeedVectorCreate(ceed, Q_dim*dim, &U_q);
+    CeedVectorSetValue(U_q, 0);
+    CeedVectorCreate(ceed, Q_dim*dim, &ones);
+    CeedVectorSetValue(ones, 1);
+    CeedVectorCreate(ceed, P_dim, &grad_T_ones);
+    CeedVectorSetValue(grad_T_ones, 0);
 
     // Get function values at quadrature points
     CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, P,
-                                    CEED_GAUSS_LOBATTO, &bxl);
-    CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+                                    CEED_GAUSS_LOBATTO, &basis_x_lobatto);
+    CeedBasisApply(basis_x_lobatto, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
 
-    CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
-    for (CeedInt i=0; i<Pdim; i++) {
+    CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &x_q);
+    for (CeedInt i=0; i<P_dim; i++) {
       CeedScalar xx[dim];
       for (CeedInt d=0; d<dim; d++)
-        xx[d] = xq[d*Pdim + i];
+        xx[d] = x_q[d*P_dim + i];
       u[i] = Eval(dim, xx);
     }
-    CeedVectorRestoreArrayRead(Xq, &xq);
+    CeedVectorRestoreArrayRead(X_q, &x_q);
     CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
 
     // Calculate G u at quadrature points, G' * 1 at dofs
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &bug);
-    CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U, Uq);
-    CeedBasisApply(bug, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, Ones, Gtposeones);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &basis_u_gauss);
+    CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U, U_q);
+    CeedBasisApply(basis_u_gauss, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, ones,
+                   grad_T_ones);
 
     // Check if 1' * G * u = u' * (G' * 1)
-    CeedVectorGetArrayRead(Gtposeones, CEED_MEM_HOST, &gtposeones);
-    CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uq);
-    for (CeedInt i=0; i<Pdim; i++)
-      sum1 += gtposeones[i]*u[i];
-    for (CeedInt i=0; i<dim*Qdim; i++)
-      sum2 += uq[i];
-    CeedVectorRestoreArrayRead(Gtposeones, &gtposeones);
-    CeedVectorRestoreArrayRead(Uq, &uq);
-    if (fabs(sum1 - sum2) > 1E-10)
+    CeedVectorGetArrayRead(grad_T_ones, CEED_MEM_HOST, &grad_t_ones_array);
+    CeedVectorGetArrayRead(U_q, CEED_MEM_HOST, &u_q);
+    for (CeedInt i=0; i<P_dim; i++)
+      sum_1 += grad_t_ones_array[i]*u[i];
+    for (CeedInt i=0; i<dim*Q_dim; i++)
+      sum_2 += u_q[i];
+    CeedVectorRestoreArrayRead(grad_T_ones, &grad_t_ones_array);
+    CeedVectorRestoreArrayRead(U_q, &u_q);
+    if (fabs(sum_1 - sum_2) > 1E-10)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", dim, sum1, sum2);
+      printf("[%d] %f != %f\n", dim, sum_1, sum_2);
     // LCOV_EXCL_STOP
 
     CeedVectorDestroy(&X);
-    CeedVectorDestroy(&Xq);
+    CeedVectorDestroy(&X_q);
     CeedVectorDestroy(&U);
-    CeedVectorDestroy(&Uq);
-    CeedVectorDestroy(&Ones);
-    CeedVectorDestroy(&Gtposeones);
-    CeedBasisDestroy(&bxl);
-    CeedBasisDestroy(&bug);
+    CeedVectorDestroy(&U_q);
+    CeedVectorDestroy(&ones);
+    CeedVectorDestroy(&grad_T_ones);
+    CeedBasisDestroy(&basis_x_lobatto);
+    CeedBasisDestroy(&basis_u_gauss);
   }
   CeedDestroy(&ceed);
   return 0;

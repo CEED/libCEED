@@ -41,12 +41,12 @@ CEED_QFUNCTION(ElasLinearF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
   CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
-             // gradu not used for linear elasticity
-             // (*gradu)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+             // grad_u not used for linear elasticity
+             // (*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -70,43 +70,43 @@ CEED_QFUNCTION(ElasLinearF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wdetJ      =   qdata[0][i];
-    const CeedScalar dXdx[3][3] = {{qdata[1][i],
-                                    qdata[2][i],
-                                    qdata[3][i]},
-                                   {qdata[4][i],
-                                    qdata[5][i],
-                                    qdata[6][i]},
-                                   {qdata[7][i],
-                                    qdata[8][i],
-                                    qdata[9][i]}
+    const CeedScalar wdetJ      =   q_data[0][i];
+    const CeedScalar dXdx[3][3] = {{q_data[1][i],
+                                    q_data[2][i],
+                                    q_data[3][i]},
+                                   {q_data[4][i],
+                                    q_data[5][i],
+                                    q_data[6][i]},
+                                   {q_data[7][i],
+                                    q_data[8][i],
+                                    q_data[9][i]}
                                   };
     // *INDENT-ON*
 
-    // Compute gradu
+    // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
-    // Apply dXdx to du = gradu
-    CeedScalar gradu[3][3];
+    // Apply dXdx to du = grad_u
+    CeedScalar grad_u[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        gradu[j][k] = 0;
+        grad_u[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          gradu[j][k] += dXdx[m][k] * du[j][m];
+          grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // Compute Strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
 
     // *INDENT-OFF*
-    const CeedScalar e[3][3] = {{(gradu[0][0] + gradu[0][0])/2.,
-                                 (gradu[0][1] + gradu[1][0])/2.,
-                                 (gradu[0][2] + gradu[2][0])/2.},
-                                {(gradu[1][0] + gradu[0][1])/2.,
-                                 (gradu[1][1] + gradu[1][1])/2.,
-                                 (gradu[1][2] + gradu[2][1])/2.},
-                                {(gradu[2][0] + gradu[0][2])/2.,
-                                 (gradu[2][1] + gradu[1][2])/2.,
-                                 (gradu[2][2] + gradu[2][2])/2.}
+    const CeedScalar e[3][3] = {{(grad_u[0][0] + grad_u[0][0])/2.,
+                                 (grad_u[0][1] + grad_u[1][0])/2.,
+                                 (grad_u[0][2] + grad_u[2][0])/2.},
+                                {(grad_u[1][0] + grad_u[0][1])/2.,
+                                 (grad_u[1][1] + grad_u[1][1])/2.,
+                                 (grad_u[1][2] + grad_u[2][1])/2.},
+                                {(grad_u[2][0] + grad_u[0][2])/2.,
+                                 (grad_u[2][1] + grad_u[1][2])/2.,
+                                 (grad_u[2][2] + grad_u[2][2])/2.}
                                };
     // *INDENT-ON*
 
@@ -165,9 +165,9 @@ CEED_QFUNCTION(ElasLineardF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-                   // gradu not used for linear elasticity
-                   // (*gradu)[3][Q] = (CeedScalar(*)[3][Q])in[2];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   // grad_u not used for linear elasticity
+                   // (*grad_u)[3][Q] = (CeedScalar(*)[3][Q])in[2];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -194,16 +194,16 @@ CEED_QFUNCTION(ElasLineardF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                        deltaug[2][2][i]}
                                      };
     // -- Qdata
-    const CeedScalar wdetJ      =      qdata[0][i];
-    const CeedScalar dXdx[3][3] =    {{qdata[1][i],
-                                       qdata[2][i],
-                                       qdata[3][i]},
-                                      {qdata[4][i],
-                                       qdata[5][i],
-                                       qdata[6][i]},
-                                      {qdata[7][i],
-                                       qdata[8][i],
-                                       qdata[9][i]}
+    const CeedScalar wdetJ      =      q_data[0][i];
+    const CeedScalar dXdx[3][3] =    {{q_data[1][i],
+                                       q_data[2][i],
+                                       q_data[3][i]},
+                                      {q_data[4][i],
+                                       q_data[5][i],
+                                       q_data[6][i]},
+                                      {q_data[7][i],
+                                       q_data[8][i],
+                                       q_data[9][i]}
                                      };
     // *INDENT-ON*
 
@@ -288,7 +288,7 @@ CEED_QFUNCTION(ElasLinearEnergy)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
   CeedScalar (*energy) = (CeedScalar(*))out[0];
@@ -321,43 +321,43 @@ CEED_QFUNCTION(ElasLinearEnergy)(void *ctx, CeedInt Q,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar wdetJ      =   qdata[0][i];
-    const CeedScalar dXdx[3][3] = {{qdata[1][i],
-                                    qdata[2][i],
-                                    qdata[3][i]},
-                                   {qdata[4][i],
-                                    qdata[5][i],
-                                    qdata[6][i]},
-                                   {qdata[7][i],
-                                    qdata[8][i],
-                                    qdata[9][i]}
+    const CeedScalar wdetJ      =   q_data[0][i];
+    const CeedScalar dXdx[3][3] = {{q_data[1][i],
+                                    q_data[2][i],
+                                    q_data[3][i]},
+                                   {q_data[4][i],
+                                    q_data[5][i],
+                                    q_data[6][i]},
+                                   {q_data[7][i],
+                                    q_data[8][i],
+                                    q_data[9][i]}
                                   };
     // *INDENT-ON*
 
-    // Compute gradu
+    // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
-    // Apply dXdx to du = gradu
-    CeedScalar gradu[3][3];
+    // Apply dXdx to du = grad_u
+    CeedScalar grad_u[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        gradu[j][k] = 0;
+        grad_u[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          gradu[j][k] += dXdx[m][k] * du[j][m];
+          grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // Compute Strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
 
     // *INDENT-OFF*
-    const CeedScalar e[3][3] = {{(gradu[0][0] + gradu[0][0])/2.,
-                                 (gradu[0][1] + gradu[1][0])/2.,
-                                 (gradu[0][2] + gradu[2][0])/2.},
-                                {(gradu[1][0] + gradu[0][1])/2.,
-                                 (gradu[1][1] + gradu[1][1])/2.,
-                                 (gradu[1][2] + gradu[2][1])/2.},
-                                {(gradu[2][0] + gradu[0][2])/2.,
-                                 (gradu[2][1] + gradu[1][2])/2.,
-                                 (gradu[2][2] + gradu[2][2])/2.}
+    const CeedScalar e[3][3] = {{(grad_u[0][0] + grad_u[0][0])/2.,
+                                 (grad_u[0][1] + grad_u[1][0])/2.,
+                                 (grad_u[0][2] + grad_u[2][0])/2.},
+                                {(grad_u[1][0] + grad_u[0][1])/2.,
+                                 (grad_u[1][1] + grad_u[1][1])/2.,
+                                 (grad_u[1][2] + grad_u[2][1])/2.},
+                                {(grad_u[2][0] + grad_u[0][2])/2.,
+                                 (grad_u[2][1] + grad_u[1][2])/2.,
+                                 (grad_u[2][2] + grad_u[2][2])/2.}
                                };
     // *INDENT-ON*
 
@@ -381,7 +381,7 @@ CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*diagnostic)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -414,42 +414,42 @@ CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q,
                                     ug[2][2][i]}
                                   };
     // -- Qdata
-    const CeedScalar dXdx[3][3] = {{qdata[1][i],
-                                    qdata[2][i],
-                                    qdata[3][i]},
-                                   {qdata[4][i],
-                                    qdata[5][i],
-                                    qdata[6][i]},
-                                   {qdata[7][i],
-                                    qdata[8][i],
-                                    qdata[9][i]}
+    const CeedScalar dXdx[3][3] = {{q_data[1][i],
+                                    q_data[2][i],
+                                    q_data[3][i]},
+                                   {q_data[4][i],
+                                    q_data[5][i],
+                                    q_data[6][i]},
+                                   {q_data[7][i],
+                                    q_data[8][i],
+                                    q_data[9][i]}
                                   };
     // *INDENT-ON*
 
-    // Compute gradu
+    // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
-    // Apply dXdx to du = gradu
-    CeedScalar gradu[3][3];
+    // Apply dXdx to du = grad_u
+    CeedScalar grad_u[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        gradu[j][k] = 0;
+        grad_u[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          gradu[j][k] += dXdx[m][k] * du[j][m];
+          grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // Compute Strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
 
     // *INDENT-OFF*
-    const CeedScalar e[3][3] = {{(gradu[0][0] + gradu[0][0])/2.,
-                                 (gradu[0][1] + gradu[1][0])/2.,
-                                 (gradu[0][2] + gradu[2][0])/2.},
-                                {(gradu[1][0] + gradu[0][1])/2.,
-                                 (gradu[1][1] + gradu[1][1])/2.,
-                                 (gradu[1][2] + gradu[2][1])/2.},
-                                {(gradu[2][0] + gradu[0][2])/2.,
-                                 (gradu[2][1] + gradu[1][2])/2.,
-                                 (gradu[2][2] + gradu[2][2])/2.}
+    const CeedScalar e[3][3] = {{(grad_u[0][0] + grad_u[0][0])/2.,
+                                 (grad_u[0][1] + grad_u[1][0])/2.,
+                                 (grad_u[0][2] + grad_u[2][0])/2.},
+                                {(grad_u[1][0] + grad_u[0][1])/2.,
+                                 (grad_u[1][1] + grad_u[1][1])/2.,
+                                 (grad_u[1][2] + grad_u[2][1])/2.},
+                                {(grad_u[2][0] + grad_u[0][2])/2.,
+                                 (grad_u[2][1] + grad_u[1][2])/2.,
+                                 (grad_u[2][2] + grad_u[2][2])/2.}
                                };
     // *INDENT-ON*
 

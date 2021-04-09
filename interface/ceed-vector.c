@@ -50,8 +50,8 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /**
   @brief Get the Ceed associated with a CeedVector
 
-  @param vec           CeedVector to retrieve state
-  @param[out] ceed     Variable to store ceed
+  @param vec        CeedVector to retrieve state
+  @param[out] ceed  Variable to store ceed
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -65,8 +65,8 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 /**
   @brief Get the state of a CeedVector
 
-  @param vec           CeedVector to retrieve state
-  @param[out] state    Variable to store state
+  @param vec         CeedVector to retrieve state
+  @param[out] state  Variable to store state
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -80,22 +80,22 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 /**
   @brief Add a reference to a CeedVector
 
-  @param[out] vec     CeedVector to increment reference counter
+  @param[out] vec  CeedVector to increment reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
 int CeedVectorAddReference(CeedVector vec) {
-  vec->refcount++;
+  vec->ref_count++;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Get the backend data of a CeedVector
 
-  @param vec           CeedVector to retrieve state
-  @param[out] data     Variable to store data
+  @param vec        CeedVector to retrieve state
+  @param[out] data  Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -109,8 +109,8 @@ int CeedVectorGetData(CeedVector vec, void *data) {
 /**
   @brief Set the backend data of a CeedVector
 
-  @param[out] vec     CeedVector to retrieve state
-  @param data         Data to set
+  @param[out] vec  CeedVector to retrieve state
+  @param data      Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -160,8 +160,8 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
   ierr = CeedCalloc(1, vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
-  ceed->refcount++;
-  (*vec)->refcount = 1;
+  ceed->ref_count++;
+  (*vec)->ref_count = 1;
   (*vec)->length = length;
   (*vec)->state = 0;
   ierr = ceed->VectorCreate(length, *vec); CeedChk(ierr);
@@ -174,17 +174,18 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
            memtype, such as during @ref CeedOperatorApply().
            See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
 
-  @param vec   CeedVector
-  @param mtype Memory type of the array being passed
-  @param cmode Copy mode for the array
-  @param array Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
-                 library allocate
+  @param vec        CeedVector
+  @param mem_type   Memory type of the array being passed
+  @param copy_mode  Copy mode for the array
+  @param array      Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
+                      library allocate
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
+int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
+                       CeedCopyMode copy_mode,
                        CeedScalar *array) {
   int ierr;
 
@@ -199,12 +200,12 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mtype, CeedCopyMode cmode,
                      "Cannot grant CeedVector array access, the "
                      "access lock is already in use");
 
-  if (vec->numreaders > 0)
+  if (vec->num_readers > 0)
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
 
-  ierr = vec->SetArray(vec, mtype, cmode, array); CeedChk(ierr);
+  ierr = vec->SetArray(vec, mem_type, copy_mode, array); CeedChk(ierr);
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -245,14 +246,14 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
            If the requested memtype is already synchronized, this function
            results in a no-op.
 
-  @param vec        CeedVector
-  @param mtype      Memtype to be synced
+  @param vec       CeedVector
+  @param mem_type  Memtype to be synced
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
+int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
   int ierr;
 
   if (vec->state % 2 == 1)
@@ -261,10 +262,10 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
                      "already in use");
 
   if (vec->SyncArray) {
-    ierr = vec->SyncArray(vec, mtype); CeedChk(ierr);
+    ierr = vec->SyncArray(vec, mem_type); CeedChk(ierr);
   } else {
     const CeedScalar *array;
-    ierr = CeedVectorGetArrayRead(vec, mtype, &array); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(vec, mem_type, &array); CeedChk(ierr);
     ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
@@ -275,17 +276,18 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mtype) {
            CeedVector. The caller is responsible for managing and freeing
            the array.
 
-  @param vec        CeedVector
-  @param mtype      Memory type on which to take the array. If the backend
-                    uses a different memory type, this will perform a copy.
-  @param[out] array Array on memory type mtype, or NULL if array pointer is
-                      not required
+  @param vec         CeedVector
+  @param mem_type    Memory type on which to take the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type, or NULL if array pointer is
+                       not required
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
+int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
+                        CeedScalar **array) {
   int ierr;
 
   if (vec->state % 2 == 1)
@@ -294,16 +296,16 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
                      "Cannot take CeedVector array, the access "
                      "lock is already in use");
   // LCOV_EXCL_STOP
-  if (vec->numreaders > 0)
+  if (vec->num_readers > 0)
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot take CeedVector array, a process "
                      "has read access");
   // LCOV_EXCL_STOP
 
-  CeedScalar *tempArray = NULL;
-  ierr = vec->TakeArray(vec, mtype, &tempArray); CeedChk(ierr);
-  if (array) (*array) = tempArray;
+  CeedScalar *temp_array = NULL;
+  ierr = vec->TakeArray(vec, mem_type, &temp_array); CeedChk(ierr);
+  if (array) (*array) = temp_array;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -311,10 +313,10 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   @brief Get read/write access to a CeedVector via the specified memory type.
            Restore access with @ref CeedVectorRestoreArray().
 
-  @param vec        CeedVector to access
-  @param mtype      Memory type on which to access the array. If the backend
-                    uses a different memory type, this will perform a copy.
-  @param[out] array Array on memory type mtype
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type
 
   @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
     access to array pointers in the desired memory space. Pairing get/restore
@@ -325,7 +327,8 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
 
   @ref User
 **/
-int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
+int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
+                       CeedScalar **array) {
   int ierr;
 
   if (!vec->GetArray)
@@ -339,12 +342,12 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
                      "Cannot grant CeedVector array access, the "
                      "access lock is already in use");
 
-  if (vec->numreaders > 0)
+  if (vec->num_readers > 0)
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
 
-  ierr = vec->GetArray(vec, mtype, array); CeedChk(ierr);
+  ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
   vec->state += 1;
   return CEED_ERROR_SUCCESS;
 }
@@ -353,17 +356,17 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mtype, CeedScalar **array) {
   @brief Get read-only access to a CeedVector via the specified memory type.
            Restore access with @ref CeedVectorRestoreArrayRead().
 
-  @param vec        CeedVector to access
-  @param mtype      Memory type on which to access the array.  If the backend
-                    uses a different memory type, this will perform a copy
-                    (possibly cached).
-  @param[out] array Array on memory type mtype
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.  If the backend
+                       uses a different memory type, this will perform a copy
+                       (possibly cached).
+  @param[out] array  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
+int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
                            const CeedScalar **array) {
   int ierr;
 
@@ -378,16 +381,16 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mtype,
                      "Cannot grant CeedVector read-only array "
                      "access, the access lock is already in use");
 
-  ierr = vec->GetArrayRead(vec, mtype, array); CeedChk(ierr);
-  vec->numreaders++;
+  ierr = vec->GetArrayRead(vec, mem_type, array); CeedChk(ierr);
+  vec->num_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Restore an array obtained using @ref CeedVectorGetArray()
 
-  @param vec     CeedVector to restore
-  @param array   Array of vector data
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -416,8 +419,8 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 /**
   @brief Restore an array obtained using @ref CeedVectorGetArrayRead()
 
-  @param vec     CeedVector to restore
-  @param array   Array of vector data
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -434,7 +437,7 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 
   ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
   *array = NULL;
-  vec->numreaders--;
+  vec->num_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -445,20 +448,20 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
           not provide the desired results for the norm of the libCEED portion
           of a parallel vector or a CeedVector with duplicated or hanging nodes.
 
-  @param vec           CeedVector to retrieve maximum value
-  @param type          Norm type @ref CEED_NORM_1, @ref CEED_NORM_2, or @ref CEED_NORM_MAX
-  @param[out] norm     Variable to store norm value
+  @param vec        CeedVector to retrieve maximum value
+  @param norm_type  Norm type @ref CEED_NORM_1, @ref CEED_NORM_2, or @ref CEED_NORM_MAX
+  @param[out] norm  Variable to store norm value
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
+int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   int ierr;
 
   // Backend impl for GPU, if added
   if (vec->Norm) {
-    ierr = vec->Norm(vec, type, norm); CeedChk(ierr);
+    ierr = vec->Norm(vec, norm_type, norm); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
 
@@ -466,7 +469,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
   ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
 
   *norm = 0.;
-  switch (type) {
+  switch (norm_type) {
   case CEED_NORM_1:
     for (int i=0; i<vec->length; i++) {
       *norm += fabs(array[i]);
@@ -479,11 +482,11 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
     break;
   case CEED_NORM_MAX:
     for (int i=0; i<vec->length; i++) {
-      const CeedScalar absi = fabs(array[i]);
-      *norm = *norm > absi ? *norm : absi;
+      const CeedScalar abs_v_i = fabs(array[i]);
+      *norm = *norm > abs_v_i ? *norm : abs_v_i;
     }
   }
-  if (type == CEED_NORM_2)
+  if (norm_type == CEED_NORM_2)
     *norm = sqrt(*norm);
 
   ierr = CeedVectorRestoreArrayRead(vec, &array); CeedChk(ierr);
@@ -493,7 +496,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm) {
 /**
   @brief Take the reciprocal of a CeedVector.
 
-  @param vec           CeedVector to take reciprocal
+  @param vec  CeedVector to take reciprocal
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -530,22 +533,22 @@ int CeedVectorReciprocal(CeedVector vec) {
 /**
   @brief View a CeedVector
 
-  @param[in] vec           CeedVector to view
-  @param[in] fpfmt         Printing format
-  @param[in] stream        Filestream to write to
+  @param[in] vec     CeedVector to view
+  @param[in] fp_fmt  Printing format
+  @param[in] stream  Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
+int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
   const CeedScalar *x;
 
   int ierr = CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x); CeedChk(ierr);
 
   char fmt[1024];
   fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
-  snprintf(fmt, sizeof fmt, "  %s\n", fpfmt ? fpfmt : "%g");
+  snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
   for (CeedInt i=0; i<vec->length; i++)
     fprintf(stream, fmt, x[i]);
 
@@ -556,8 +559,8 @@ int CeedVectorView(CeedVector vec, const char *fpfmt, FILE *stream) {
 /**
   @brief Get the length of a CeedVector
 
-  @param vec           CeedVector to retrieve length
-  @param[out] length   Variable to store length
+  @param vec          CeedVector to retrieve length
+  @param[out] length  Variable to store length
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -571,7 +574,7 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 /**
   @brief Destroy a CeedVector
 
-  @param vec   CeedVector to destroy
+  @param vec  CeedVector to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -580,14 +583,14 @@ int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
 int CeedVectorDestroy(CeedVector *vec) {
   int ierr;
 
-  if (!*vec || --(*vec)->refcount > 0) return CEED_ERROR_SUCCESS;
+  if (!*vec || --(*vec)->ref_count > 0) return CEED_ERROR_SUCCESS;
 
   if (((*vec)->state % 2) == 1)
     return CeedError((*vec)->ceed, CEED_ERROR_ACCESS,
                      "Cannot destroy CeedVector, the writable access "
                      "lock is in use");
 
-  if ((*vec)->numreaders > 0)
+  if ((*vec)->num_readers > 0)
     return CeedError((*vec)->ceed, CEED_ERROR_ACCESS,
                      "Cannot destroy CeedVector, a process has "
                      "read access");

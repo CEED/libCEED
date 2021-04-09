@@ -20,8 +20,8 @@
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points
 
-  @param qf CeedQFunction to set device pointer
-  @param f  Device function pointer to evaluate action at quadrature points
+  @param qf  CeedQFunction to set device pointer
+  @param f   Device function pointer to evaluate action at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 

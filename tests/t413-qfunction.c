@@ -1,6 +1,6 @@
 /// @file
-/// Test viewing of qfunction by name
-/// \test Test viewing of qfunction by name
+/// Test viewing of QFunction by name
+/// \test Test viewing of QFunction by name
 #include <ceed.h>
 
 int main(int argc, char **argv) {

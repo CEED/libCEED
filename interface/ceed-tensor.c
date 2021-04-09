@@ -30,10 +30,10 @@
 /**
   @brief Create a CeedTensorContract object for a CeedBasis
 
-  @param ceed          A Ceed object where the CeedTensorContract will be created
-  @param basis         CeedBasis for which the tensor contraction will be used
-  @param[out] contract Address of the variable where the newly created
-                         CeedTensorContract will be stored.
+  @param ceed           A Ceed object where the CeedTensorContract will be created
+  @param basis          CeedBasis for which the tensor contraction will be used
+  @param[out] contract  Address of the variable where the newly created
+                          CeedTensorContract will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -62,7 +62,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
   ierr = CeedCalloc(1, contract); CeedChk(ierr);
 
   (*contract)->ceed = ceed;
-  ceed->refcount++;
+  ceed->ref_count++;
   ierr = ceed->TensorContractCreate(basis, *contract);
   CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -76,17 +76,17 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
     TRANSPOSE:   v_ajc = t_bj u_abc
     If add != 0, "=" is replaced by "+="
 
-  @param contract   CeedTensorContract to use
-  @param A          First index of u, v
-  @param B          Middle index of u, one index of t
-  @param C          Last index of u, v
-  @param J          Middle index of v, one index of t
-  @param[in] t      Tensor array to contract against
-  @param tmode      Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb
-                    \ref CEED_TRANSPOSE for t_bj
-  @param add        Add mode
-  @param[in] u      Input array
-  @param[out] v     Output array
+  @param contract  CeedTensorContract to use
+  @param A         First index of u, v
+  @param B         Middle index of u, one index of t
+  @param C         Last index of u, v
+  @param J         Middle index of v, one index of t
+  @param[in] t     Tensor array to contract against
+  @param t_mode    Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb
+                     \ref CEED_TRANSPOSE for t_bj
+  @param add       Add mode
+  @param[in] u     Input array
+  @param[out] v    Output array
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -94,12 +94,12 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
 **/
 int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
                             CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                            CeedTransposeMode tmode, const CeedInt add,
+                            CeedTransposeMode t_mode, const CeedInt add,
                             const CeedScalar *restrict u,
                             CeedScalar *restrict v) {
   int ierr;
 
-  ierr = contract->Apply(contract, A, B, C, J, t, tmode, add,  u, v);
+  ierr = contract->Apply(contract, A, B, C, J, t, t_mode, add,  u, v);
   CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -107,7 +107,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
 /**
   @brief Get Ceed associated with a CeedTensorContract
 
-  @param contract      CeedTensorContract
+  @param contract   CeedTensorContract
   @param[out] ceed  Variable to store Ceed
 
   @return An error code: 0 - success, otherwise - failure
@@ -137,8 +137,8 @@ int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
 /**
   @brief Set backend data of a CeedTensorContract
 
-  @param[out] contract CeedTensorContract
-  @param data          Data to set
+  @param[out] contract  CeedTensorContract
+  @param data           Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -152,7 +152,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 /**
   @brief Destroy a CeedTensorContract
 
-  @param contract   CeedTensorContract to destroy
+  @param contract  CeedTensorContract to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -161,7 +161,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
   int ierr;
 
-  if (!*contract || --(*contract)->refcount > 0) return CEED_ERROR_SUCCESS;
+  if (!*contract || --(*contract)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*contract)->Destroy) {
     ierr = (*contract)->Destroy(*contract); CeedChk(ierr);
   }

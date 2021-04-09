@@ -5,10 +5,10 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  bool isDeterministic;
+  bool is_deterministic;
 
   CeedInit(argv[1], &ceed);
-  CeedIsDeterministic(ceed, &isDeterministic);
+  CeedIsDeterministic(ceed, &is_deterministic);
   CeedDestroy(&ceed);
   return 0;
 }

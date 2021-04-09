@@ -367,8 +367,8 @@ field needs to reflect both the number of components and the geometric dimension
 A 3-dimensional gradient on four components would therefore mean the field has a size of
 12.
 
-The :math:`\bm{B}` operators for the mesh nodes, ``bx``, and the unknown field,
-``bu``, are defined in the calls to the function :c:func:`CeedBasisCreateTensorH1Lagrange()`.
+The :math:`\bm{B}` operators for the mesh nodes, ``basis_x``, and the unknown field,
+``basis_u``, are defined in the calls to the function :c:func:`CeedBasisCreateTensorH1Lagrange()`.
 In this example, both the mesh and the unknown field use :math:`H^1` Lagrange finite
 elements of order 1 and 4 respectively (the ``P`` argument represents the number of 1D
 degrees of freedom on each element). Both basis operators use the same integration rule,
@@ -385,9 +385,9 @@ dimension using :c:func:`CeedBasisCreateTensorH1()`. Elements that do not have t
 product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
-The :math:`\bm{G}` operators for the mesh nodes, ``Erestrictx``, and the unknown field,
-``Erestrictu``, are specified in the :c:func:`CeedElemRestrictionCreate()`. Both of these
-specify directly the dof indices for each element in the ``indx`` and ``indu``
+The :math:`\bm{G}` operators for the mesh nodes, ``elem_restr_x``, and the unknown field,
+``elem_restr_u``, are specified in the :c:func:`CeedElemRestrictionCreate()`. Both of these
+specify directly the dof indices for each element in the ``ind_x`` and ``ind_u``
 arrays:
 
 .. literalinclude::  ../../../tests/t500-operator.c

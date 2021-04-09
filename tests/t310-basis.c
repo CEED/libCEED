@@ -1,6 +1,6 @@
 /// @file
-/// Test square Gauss Lobatto interp1d is identity
-/// \test Test square Gauss Lobatto interp1d is identity
+/// Test square Gauss Lobatto interp_1d is identity
+/// \test Test square Gauss Lobatto interp_1d is identity
 #include <ceed.h>
 #include <stdio.h>
 #include <math.h>
@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis b;
   CeedVector U, V;
-  int i, dim = 2, P1d = 4, Q1d = 4, len = (int)(pow((double)(Q1d), dim) + 0.4);
+  int i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((double)(Q_1d), dim) + 0.4);
   CeedScalar u[len];
   const CeedScalar *v;
 
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     u[i] = 1.0;
   CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P1d, Q1d,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P_1d, Q_1d,
                                   CEED_GAUSS_LOBATTO, &b);
 
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
