@@ -74,14 +74,13 @@ int main(int argc, char **argv) {
   PetscInt       num_comp_u = 3;                 // 3 DoFs in 3D
   PetscInt       num_comp_e = 1, num_comp_d = 5; // 1 energy output, 5 diagnostic
   PetscInt       num_levels = 1, fine_level = 0;
-  PetscInt       *U_g_size, *U_l_size, *U_loc_size;  // sz: size
-  PetscInt       snesIts = 0, kspIts = 0;
+  PetscInt       *U_g_size, *U_l_size, *U_loc_size;
+  PetscInt       snes_its = 0, ksp_its = 0;
   // Timing
   double         start_time, elapsed_time, min_time, max_time;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
-  if (ierr)
-    return ierr;
+  if (ierr) return ierr;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -690,9 +689,9 @@ int main(int argc, char **argv) {
     // -- Update SNES iteration count
     PetscInt its;
     ierr = SNESGetIterationNumber(snes, &its); CHKERRQ(ierr);
-    snesIts += its;
+    snes_its += its;
     ierr = SNESGetLinearSolveIterations(snes, &its); CHKERRQ(ierr);
-    kspIts += its;
+    ksp_its += its;
 
     // -- Check for divergence
     SNESConvergedReason reason;
@@ -728,7 +727,7 @@ int main(int argc, char **argv) {
                        "    Final rnorm                        : %e\n",
                        snes_type, SNESConvergedReasons[reason],
                        app_ctx->num_increments, increment - 1,
-                       snesIts, (double)rnorm); CHKERRQ(ierr);
+                       snes_its, (double)rnorm); CHKERRQ(ierr);
 
     // -- KSP
     KSP ksp;
@@ -739,7 +738,7 @@ int main(int argc, char **argv) {
                        "  Linear Solver:\n"
                        "    KSP Type                           : %s\n"
                        "    Total KSP Iterations               : %D\n",
-                       ksp_type, kspIts); CHKERRQ(ierr);
+                       ksp_type, ksp_its); CHKERRQ(ierr);
 
     // -- PC
     PC pc;
@@ -789,8 +788,8 @@ int main(int argc, char **argv) {
                        "  Performance:\n"
                        "    SNES Solve Time                    : %g (%g) sec\n"
                        "    DoFs/Sec in SNES                   : %g (%g) million\n",
-                       max_time, min_time, 1e-6*U_g_size[fine_level]*kspIts/max_time,
-                       1e-6*U_g_size[fine_level]*kspIts/min_time); CHKERRQ(ierr);
+                       max_time, min_time, 1e-6*U_g_size[fine_level]*ksp_its/max_time,
+                       1e-6*U_g_size[fine_level]*ksp_its/min_time); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------
