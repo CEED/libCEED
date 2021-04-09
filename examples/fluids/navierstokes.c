@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   CeedScalar Rd;
   CeedMemType memtyperequested;
   problemData *problem = NULL;
-  PetscInt    viz_refine = 0;
+  PetscInt    viz_refine = 0, Xloc_size;
   SimpleBC bc;
   double start, cpu_time_used;
   // Test variables
@@ -332,7 +332,8 @@ int main(int argc, char **argv) {
                                  &restrictqdi); CHKERRQ(ierr);
 
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
-  ierr = CreateVectorFromPetscVec(ceed, Xloc, &xcorners); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, Xloc_size, &xcorners); CHKERRQ(ierr);
 
   // Create the CEED vectors that will be needed in setup
   CeedInt NqptsVol;

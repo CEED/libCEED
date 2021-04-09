@@ -247,8 +247,6 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
 
-int CreateVectorFromPetscVec(Ceed ceed, Vec p, CeedVector *v);
-
 int VectorPlacePetscVec(CeedVector c, Vec p);
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
