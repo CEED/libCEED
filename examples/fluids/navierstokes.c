@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 
   // todo: define a function
   // Check PETSc CUDA support
-  CeedMemType memtyperequested;  
+  CeedMemType memtyperequested;
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
   // *INDENT-OFF*
   #ifdef PETSC_HAVE_CUDA
@@ -105,9 +105,11 @@ int main(int argc, char **argv) {
 
   // Register problems to be available on the command line
   app_ctx->problems = NULL;
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current", NS_DENSITY_CURRENT);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
+                              NS_DENSITY_CURRENT);
   CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex", NS_EULER_VORTEX);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
+                              NS_EULER_VORTEX);
   CHKERRQ(ierr);
   ierr = PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION);
   CHKERRQ(ierr);
@@ -121,8 +123,10 @@ int main(int argc, char **argv) {
   {
     // Choose the problem from the list of registered problems
     PetscErrorCode (*p)(problemData *, void *, void *, void *);
-    ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p); CHKERRQ(ierr);
-    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
+    ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
+    CHKERRQ(ierr);
+    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found",
+                       app_ctx->problem_name);
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 

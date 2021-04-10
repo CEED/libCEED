@@ -164,8 +164,9 @@ struct AppCtx_ {
   PetscFunctionList   problems;
   PetscInt            output_freq;
   PetscInt            viz_refine;
-  PetscInt            cont_steps;  
+  PetscInt            cont_steps;
   PetscInt            degree;
+  // todo: degree_sur
   PetscInt            q_extra;
   PetscInt            q_extra_sur;
   // Test mode arguments
