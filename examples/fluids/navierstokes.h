@@ -181,9 +181,9 @@ struct AppCtx_private {
 };
 
 // -----------------------------------------------------------------------------
-// Setup function for each problem
+// Set up problems
 // -----------------------------------------------------------------------------
-
+// Set up function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
     void *ctxSetupData, void *ctx, void *ctxPhys);
 
@@ -196,10 +196,7 @@ extern PetscErrorCode NS_ADVECTION(problemData *problem,
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
                                      void *ctxSetupData, void *ctx, void *ctxPhys);
 
-// -----------------------------------------------------------------------------
 // Boundary condition function for each problem
-// -----------------------------------------------------------------------------
-
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     void *ctxSetupData);
 
@@ -215,7 +212,6 @@ extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
 // -----------------------------------------------------------------------------
 // libCEED functions
 // -----------------------------------------------------------------------------
-
 // Utility function - essential BC dofs are encoded in closure indices as -(i+1).
 PetscInt Involute(PetscInt i);
 
@@ -242,7 +238,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------
-
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
                                        CeedElemRestriction restrictq, CeedBasis basisq,
                                        CeedElemRestriction restrictqdi, CeedVector qdata, Vec M);
@@ -268,13 +263,21 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
-
 // Read mesh and distribute DM in parallel
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupContext setup_ctx, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                        SimpleBC bc, Physics phys, void *ctxSetupData);
+
+// -----------------------------------------------------------------------------
+// Process command line options
+// -----------------------------------------------------------------------------
+// Register problems to be available on the command line
+PetscErrorCode RegisterProblem(AppCtx app_ctx);
+
+// Process general command line options
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
@@ -285,8 +288,6 @@ int VectorPlacePetscVec(CeedVector c, Vec p);
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
     Vec cellGeomFVM, Vec gradFVM);
-
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 #endif

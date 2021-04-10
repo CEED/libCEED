@@ -109,23 +109,12 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
-  // Register problems to be available on the command line
-  // ---------------------------------------------------------------------------
-  app_ctx->problems = NULL;
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
-                              NS_DENSITY_CURRENT);
-  CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
-                              NS_EULER_VORTEX);
-  CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION);
-  CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D);
-  CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
+  // Register problems to be available on the command line
+  ierr = RegisterProblem(app_ctx); CHKERRQ(ierr);
+
+  // Process general command line options
   comm = PETSC_COMM_WORLD;
   ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
 
