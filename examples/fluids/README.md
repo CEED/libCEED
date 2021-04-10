@@ -56,16 +56,13 @@ Available runtime options are:
 | `-ly`                                 | Length scale in y direction                                                                     |
 | `-lz`                                 | Length scale in z direction                                                                     |
 | `-rc`                                 | Characteristic radius of thermal bubble                                                         |
-| `-resx`                               | Resolution in x                                                                                 |
-| `-resy`                               | Resolution in y                                                                                 |
-| `-resz`                               | Resolution in z                                                                                 |
 | `-center`                             | Location of bubble center                                                                       |
 | `-dc_axis`                            | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
 | `-output_freq`                        | Frequency of output, in number of steps                                                         |
 | `-continue`                           | Continue from previous solution                                                                 |
 | `-degree`                             | Polynomial degree of tensor product basis                                                       |
-| `-qextra`                             | Number of extra quadrature points                                                               |
-| `-qextra_boundary`                    | Number of extra quadrature points on in/outflow faces                                           |
+| `-q_extra`                            | Number of extra quadrature points                                                               |
+| `-q_extra_boundary`                   | Number of extra quadrature points on in/outflow faces                                           |
 | `-output_dir`                         | Output directory                                                                                |
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,

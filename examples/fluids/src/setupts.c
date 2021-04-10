@@ -158,14 +158,14 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
                             Vec Q, void *ctx) {
   User user = ctx;
   Vec Qloc;
-  char filepath[PETSC_MAX_PATH_LEN];
+  char file_path[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
   PetscErrorCode ierr;
 
   // Set up output
   PetscFunctionBeginUser;
-  // Print every 'outputfreq' steps
-  if (stepno % user->app_ctx->outputfreq != 0)
+  // Print every 'output_freq' steps
+  if (stepno % user->app_ctx->output_freq != 0)
     PetscFunctionReturn(0);
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)Qloc, "StateVec"); CHKERRQ(ierr);
@@ -173,16 +173,16 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vtu",
-                       user->app_ctx->outputdir, stepno + user->app_ctx->contsteps);
+  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-%03D.vtu",
+                       user->app_ctx->output_dir, stepno + user->app_ctx->cont_steps);
   CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
   ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   if (user->dmviz) {
     Vec Qrefined, Qrefined_loc;
-    char filepath_refined[PETSC_MAX_PATH_LEN];
+    char file_path_refined[PETSC_MAX_PATH_LEN];
     PetscViewer viewer_refined;
 
     ierr = DMGetGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
@@ -193,12 +193,12 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     ierr = VecZeroEntries(Qrefined_loc); CHKERRQ(ierr);
     ierr = DMGlobalToLocal(user->dmviz, Qrefined, INSERT_VALUES, Qrefined_loc);
     CHKERRQ(ierr);
-    ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined,
+    ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
                          "%s/nsrefined-%03D.vtu",
-                         user->app_ctx->outputdir, stepno + user->app_ctx->contsteps);
+                         user->app_ctx->output_dir, stepno + user->app_ctx->cont_steps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined),
-                              filepath_refined,
+                              file_path_refined,
                               FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
     ierr = VecView(Qrefined_loc, viewer_refined); CHKERRQ(ierr);
     ierr = DMRestoreLocalVector(user->dmviz, &Qrefined_loc); CHKERRQ(ierr);
@@ -208,9 +208,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
-                       user->app_ctx->outputdir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
+  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
+                       user->app_ctx->output_dir); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(Q, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -218,9 +218,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Save time stamp
   // Dimensionalize time back
   time /= user->units->second;
-  ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
-                       user->app_ctx->outputdir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
+  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+                       user->app_ctx->output_dir); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   #if PETSC_VERSION_GE(3,13,0)
   ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL);

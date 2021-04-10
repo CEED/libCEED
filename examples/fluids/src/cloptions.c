@@ -17,8 +17,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                            NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, app_ctx->ceedresource, app_ctx->ceedresource,
-                            sizeof(app_ctx->ceedresource), &ceed_flag); CHKERRQ(ierr);
+                            NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
+                            sizeof(app_ctx->ceed_resource), &ceed_flag); CHKERRQ(ierr);
   
   app_ctx->test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test", "Run in test mode",
@@ -30,11 +30,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                             NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL); CHKERRQ(ierr);
   
   ierr = PetscOptionsString("-compare_final_state_filename", "Test filename",
-                            NULL, app_ctx->filepath, app_ctx->filepath,
-                            sizeof(app_ctx->filepath), NULL); CHKERRQ(ierr);
+                            NULL, app_ctx->file_path, app_ctx->file_path,
+                            sizeof(app_ctx->file_path), NULL); CHKERRQ(ierr);
   
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, app_ctx->problems,
-                           app_ctx->problemName, app_ctx->problemName, sizeof(app_ctx->problemName),
+                           app_ctx->problem_name, app_ctx->problem_name, sizeof(app_ctx->problem_name),
                            &problem_flag); CHKERRQ(ierr);
   
   app_ctx->viz_refine = 0;
@@ -42,44 +42,44 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                          "Regular refinement levels for visualization",
                          NULL, app_ctx->viz_refine, &app_ctx->viz_refine, NULL); CHKERRQ(ierr);
   
-  app_ctx->outputfreq = 10;
+  app_ctx->output_freq = 10;
   ierr = PetscOptionsInt("-output_freq",
                          "Frequency of output, in number of steps",
-                         NULL, app_ctx->outputfreq, &app_ctx->outputfreq, NULL); CHKERRQ(ierr);
+                         NULL, app_ctx->output_freq, &app_ctx->output_freq, NULL); CHKERRQ(ierr);
 
-  app_ctx->contsteps = 0;
+  app_ctx->cont_steps = 0;
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
-                         NULL, app_ctx->contsteps, &app_ctx->contsteps, NULL); CHKERRQ(ierr);
+                         NULL, app_ctx->cont_steps, &app_ctx->cont_steps, NULL); CHKERRQ(ierr);
   
   app_ctx->degree = 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
                          NULL, app_ctx->degree, &app_ctx->degree, NULL); CHKERRQ(ierr);
   
-  app_ctx->qextra = 2;
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, app_ctx->qextra, &app_ctx->qextra, NULL); CHKERRQ(ierr);
+  app_ctx->q_extra = 2;
+  ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
+                         NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL); CHKERRQ(ierr);
   
-  app_ctx->qextraSur = 2;
-  ierr = PetscOptionsInt("-qextra_boundary",
+  app_ctx->q_extra_sur = 2;
+  ierr = PetscOptionsInt("-q_extra_boundary",
                          "Number of extra quadrature points on in/outflow faces",
-                         NULL, app_ctx->qextraSur, &app_ctx->qextraSur, NULL);
+                         NULL, app_ctx->q_extra_sur, &app_ctx->q_extra_sur, NULL);
   CHKERRQ(ierr);
 
-  ierr = PetscStrncpy(app_ctx->outputdir, ".", 2); CHKERRQ(ierr);
+  ierr = PetscStrncpy(app_ctx->output_dir, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-output_dir", "Output directory",
-                            NULL, app_ctx->outputdir, app_ctx->outputdir,
-                            sizeof(app_ctx->outputdir), NULL); CHKERRQ(ierr);
+                            NULL, app_ctx->output_dir, app_ctx->output_dir,
+                            sizeof(app_ctx->output_dir), NULL); CHKERRQ(ierr);
 
   // Provide default ceed resource if not specified
   if (!ceed_flag) {
-    const char *ceedresource = "/cpu/self";
-    strncpy(app_ctx->ceedresource, ceedresource, 10);
+    const char *ceed_resource = "/cpu/self";
+    strncpy(app_ctx->ceed_resource, ceed_resource, 10);
   }
 
   // Provide default problem if not specified
   if (!problem_flag) {
-    const char *problemName = "density_current";
-    strncpy(app_ctx->problemName, problemName, 16);
+    const char *problem_name = "density_current";
+    strncpy(app_ctx->problem_name, problem_name, 16);
   }
 
   // todo

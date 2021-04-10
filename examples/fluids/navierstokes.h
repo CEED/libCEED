@@ -121,7 +121,6 @@ struct User_ {
   CeedVector qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
   Vec M;
-  PetscInt contsteps;
   Physics phys;
   AppCtx app_ctx;
 };
@@ -159,20 +158,20 @@ struct Physics_ {
 
 // Application context from user command line options
 struct AppCtx_ {
-  char                ceedresource[PETSC_MAX_PATH_LEN];     // libCEED backend
-  char                outputdir[PETSC_MAX_PATH_LEN];
-  char                problemName[PETSC_MAX_PATH_LEN];
+  char                ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
+  char                output_dir[PETSC_MAX_PATH_LEN];
+  char                problem_name[PETSC_MAX_PATH_LEN];
   PetscFunctionList   problems;
-  PetscInt            outputfreq;
+  PetscInt            output_freq;
   PetscInt            viz_refine;
-  PetscInt            contsteps;  
+  PetscInt            cont_steps;  
   PetscInt            degree;
-  PetscInt            qextra;
-  PetscInt            qextraSur;
+  PetscInt            q_extra;
+  PetscInt            q_extra_sur;
   // Test mode arguments
   PetscBool           test_mode;
   PetscScalar         test_tol;
-  char                filepath[PETSC_MAX_PATH_LEN];
+  char                file_path[PETSC_MAX_PATH_LEN];
 };
 
 // -----------------------------------------------------------------------------
