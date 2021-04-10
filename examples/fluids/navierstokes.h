@@ -41,7 +41,7 @@ static const char *const memTypes[] = {
 
 // Advection - Wind Options
 typedef enum {
-  ADVECTION_WIND_ROTATION = 0,
+  ADVECTION_WIND_ROTATION    = 0,
   ADVECTION_WIND_TRANSLATION = 1,
 } WindType;
 static const char *const WindTypes[] = {
@@ -70,7 +70,7 @@ static const char *const EulerTestTypes[] = {
 // Stabilization methods
 typedef enum {
   STAB_NONE = 0,
-  STAB_SU = 1,   // Streamline Upwind
+  STAB_SU   = 1,   // Streamline Upwind
   STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 static const char *const StabilizationTypes[] = {
@@ -83,7 +83,6 @@ static const char *const StabilizationTypes[] = {
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
-
 // Structs declarations
 typedef struct User_private     *User;
 typedef struct Units_private    *Units;
@@ -283,7 +282,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
-
 int VectorPlacePetscVec(CeedVector c, Vec p);
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,

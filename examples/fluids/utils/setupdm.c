@@ -3,7 +3,6 @@
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
-
 // Read mesh and distribute DM in parallel
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem,
                                    SetupContext setup_ctx, DM *dm) {

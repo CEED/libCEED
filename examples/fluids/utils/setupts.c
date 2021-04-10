@@ -3,7 +3,6 @@
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------
-
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
                                        CeedElemRestriction restrictq, CeedBasis basisq,
                                        CeedElemRestriction restrictqdi, CeedVector qdata, Vec M) {

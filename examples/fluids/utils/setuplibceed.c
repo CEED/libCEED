@@ -4,7 +4,6 @@
 // -----------------------------------------------------------------------------
 // libCEED Functions
 // -----------------------------------------------------------------------------
-
 // Utility function - essential BC dofs are encoded in closure indices as -(i+1).
 PetscInt Involute(PetscInt i) {
   return i >= 0 ? i : -(i+1);
@@ -249,4 +248,3 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   }
   PetscFunctionReturn(0);
 }
-
