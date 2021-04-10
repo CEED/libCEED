@@ -70,21 +70,6 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 #endif
 
 // -----------------------------------------------------------------------------
-// Compute det F
-// -----------------------------------------------------------------------------
-static inline CeedScalar computeDetFdav(CeedScalar F[3][3]) {
-  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2];
-  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0];
-  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1];
-  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0];
-  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1];
-  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
-
-  return (a1+a2+a3) - (a4+a5+a6);
-};
-
-
-// -----------------------------------------------------------------------------
 // Compute det C - 1
 // -----------------------------------------------------------------------------
 #ifndef DETCM1
@@ -148,7 +133,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   CeedScalar logJ = log1p_series_shifted(detC_m1)/2.;
 
 
-  CeedScalar J = computeDetFdav(F);
+  const CeedScalar J = sqrt(detC_m1+1);
 
   // *INDENT-OFF*
   //Computer F^(-1)

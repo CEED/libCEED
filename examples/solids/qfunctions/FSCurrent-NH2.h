@@ -70,23 +70,6 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 #endif
 
 // -----------------------------------------------------------------------------
-// Compute det F
-// -----------------------------------------------------------------------------
-#ifndef DETF
-#define DETF
-static inline CeedScalar computeDetF(CeedScalar F[3][3]) {
-  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2];
-  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0];
-  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1];
-  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0];
-  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1];
-  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
-
-  return (a1+a2+a3) - (a4+a5+a6);
-};
-#endif
-
-// -----------------------------------------------------------------------------
 // Compute det C - 1
 // -----------------------------------------------------------------------------
 #ifndef DETCM1
@@ -248,7 +231,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                              F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
                             };
     // *INDENT-ON*
-    const CeedScalar J = computeDetF(F);
+    const CeedScalar J = sqrt(detC_m1+1);
     CeedScalar Finvwork[9];
     for (CeedInt m = 0; m < 9; m++)
       Finvwork[m] = B[m] / J;
