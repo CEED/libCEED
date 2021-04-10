@@ -152,10 +152,25 @@ CeedScalar MR_energyModel(void *ctx, CeedScalar detC_m1, CeedScalar E2[][3], Cee
                               {E2[0][2], E2[1][2], 1 + E2[2][2]}
                              };
   
+  // compute CC = C*C = C^2
+  CeedScalar CC[3][3];
+  for (CeedInt j = 0; j < 3; j++)     // Component
+    for (CeedInt k = 0; k < 3; k++) { // Derivative
+      CC[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+          CC[j][k] += C[j][m] * C[m][k];
+      }
+  // compute invariants
+  // I_1 = trace(C)
   CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
-  CeedScalar I_2 = pow(I_1, 2);
-  CeedScalar bar_I_1 = pow(detC_m1, -2/3)* I_1; //using detC_m1 as J
-  CeedScalar bar_I_2 = pow(detC_m1, -4/3)* I_2; //using detC_m1 as J
+  // I_2 = 0.5(I_1^2 - trace(C^2))
+  CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
+  CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
+  // J = sqrt(det(C)), and J^2 = det(C): just to avoid sqrt
+  CeedScalar J2 = detC_m1 + 1;
+  // J^(-2/3) = J^(2)*(-1/3)...
+  CeedScalar bar_I_1 = pow(J2, -1/3)* I_1; //using detC_m1 as J
+  CeedScalar bar_I_2 = pow(J2, -2/3)* I_2; //using detC_m1 as J
 
   // phi = (mu_1/2)(bar_I_1 - 3) + (mu_2/2)(bar_I_2 - 3) + (K/2)(J-1)^2
   return (mu_1/2)*(bar_I_1 - 3) + (mu_2/2)*(bar_I_2 - 3) + (k_1/2) * pow((detC_m1-1), 2);
@@ -223,7 +238,7 @@ CeedScalar NH_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], con
                                 };
 
   // calculate 2nd PK 
-  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.; // lambda*logJ/2
+  (*llnj) = lambda*log1p_series_shifted(*detC_m1)/2.; // lambda*logJ
   for (CeedInt m = 0; m < 6; m++) {
     Swork[m] = (*llnj)*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
@@ -266,16 +281,30 @@ CeedScalar MR_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], con
                                  {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
                                 };
 
+  // compute CC = C*C = C^2
+  CeedScalar CC[3][3];
+  for (CeedInt j = 0; j < 3; j++)     // Component
+    for (CeedInt k = 0; k < 3; k++) { // Derivative
+      CC[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+          CC[j][k] += C[j][m] * C[m][k];
+      }
   // compute invariants
+  // I_1 = trace(C)
   CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
-  CeedScalar I_2 = pow(I_1, 2);
-  // CeedScalar bar_I_1 = pow(*detC_m1, -2/3)* I_1; //using detC_m1 as J
-  // CeedScalar bar_I_2 = pow(*detC_m1, -4/3)* I_2;  //using detC_m1 as J
+  // I_2 = 0.5(I_1^2 - trace(C^2))
+  CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
+  CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
+  // J = sqrt(det(C)), and J^2 = det(C): just to avoid sqrt
+  CeedScalar J2 = *detC_m1 + 1;
+  // J^(-2/3) = J^(2)*(-1/3)...
+  // CeedScalar bar_I_1 = pow(J2, -1/3)* I_1; 
+  // CeedScalar bar_I_2 = pow(J2, -2/3)* I_2;  
   
   const CeedScalar I3[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}; //I3 is identity matrix
-  CeedScalar mu_1_J_2 = mu_1*pow(*detC_m1, (-2/3)); //mu_1*J^(-2/3)
-  CeedScalar mu_2_J_4 = mu_2*pow(*detC_m1, (-4/3)); //mu_2*J^(-4/3)
-  CeedScalar k1_J2_J = k_1*(pow(*detC_m1, 2) - *detC_m1); //k_1*(J^2 -J)
+  CeedScalar mu_1_J_2 = mu_1*pow(J2, (-1/3)); //mu_1*J^(-2/3)
+  CeedScalar mu_2_J_4 = mu_2*pow(J2, (-2/3)); //mu_2*J^(-4/3)
+  CeedScalar k1_J2_J = k_1*(J2 - sqrt(J2)); //k_1*(J^2 -J)
 
   //compute Swork: mu_1*J^(-2/3)*(I3-(1/3)*I_1*Cinv) + mu_2*J^(-4/3)*(I_1*I3 - C - (2/3)*I_2*Cinv) + k_1*(J^2 -J)* Cinv
   for (CeedInt m = 0; m < 6; m++){

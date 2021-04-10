@@ -530,7 +530,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dmEnergy, DM dmDiagnostic,
                        data[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
   if (problemChoice != ELAS_LIN)
     CeedOperatorSetField(opApply, "gradu", data[fineLevel]->ErestrictGradui,
-                         data[fineLevel]->basisu, data[fineLevel]->gradu);
+                         CEED_BASIS_COLLOCATED, data[fineLevel]->gradu);
   // -- Save libCEED data
   data[fineLevel]->qfApply = qfApply;
   data[fineLevel]->opApply = opApply;

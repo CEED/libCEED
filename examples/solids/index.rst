@@ -365,7 +365,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
    along with the determinant :math:`J = \sqrt{\lvert \bm C \rvert}`.
 
-   :math:`\mathbb{\bar I_1}` and :math:`\mathbb{\bar I_1}` are derived as follows:
+   :math:`\mathbb{\bar I_1}` and :math:`\mathbb{\bar I_2}` are derived as follows:
 
    .. math::
 
