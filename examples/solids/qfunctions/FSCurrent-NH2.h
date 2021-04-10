@@ -70,35 +70,18 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 #endif
 
 // -----------------------------------------------------------------------------
-// Compute det F
+// Compute det F - 1
 // -----------------------------------------------------------------------------
-#ifndef DETF
-#define DETF
-static inline CeedScalar computeDetF(CeedScalar F[3][3]) {
-  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2];
-  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0];
-  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1];
-  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0];
-  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1];
-  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
-
-  return (a1+a2+a3) - (a4+a5+a6);
-};
-#endif
-
-// -----------------------------------------------------------------------------
-// Compute det C - 1
-// -----------------------------------------------------------------------------
-#ifndef DETCM1
-#define DETCM1
-static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
-  return E2work[0]*(E2work[1]*E2work[2]-E2work[3]*E2work[3]) +
-         E2work[5]*(E2work[4]*E2work[3]-E2work[5]*E2work[2]) +
-         E2work[4]*(E2work[5]*E2work[3]-E2work[4]*E2work[1]) +
-         E2work[0] + E2work[1] + E2work[2] +
-         E2work[0]*E2work[1] + E2work[0]*E2work[2] +
-         E2work[1]*E2work[2] - E2work[5]*E2work[5] -
-         E2work[4]*E2work[4] - E2work[3]*E2work[3];
+#ifndef DETJM1
+#define DETJM1
+static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
+  return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
+         grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
+         grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
+         grad_u[0][0] + grad_u[1][1] + grad_u[2][2] +
+         grad_u[0][0]*grad_u[1][1] + grad_u[0][0]*grad_u[2][2] +
+         grad_u[1][1]*grad_u[2][2] - grad_u[0][1]*grad_u[1][0] -
+         grad_u[0][2]*grad_u[2][0] - grad_u[1][2]*grad_u[2][1];
 };
 #endif
 
@@ -209,20 +192,10 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
           b[j][k] += F[j][m] * F[k][m]; // F * F^T
       }
 
-    // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
-    const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
-    CeedScalar E2work[6];
-    for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = Gradu[indj[m]][indk[m]] + Gradu[indk[m]][indj[m]];
-      for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += Gradu[n][indj[m]]*Gradu[n][indk[m]];
-    }
-
-    CeedScalar detC_m1;
-    detC_m1 = computeDetCM1(E2work);
+    CeedScalar Jm1;
+    Jm1 = computeJM1(Gradu);
     // compute log(J)
-    CeedScalar logJ = log1p_series_shifted(detC_m1)/2.;
+    CeedScalar logJ = log1p_series_shifted(Jm1);
 
     // Cc1 = mu-lambda*log(J)
     Cc1[0][i] = mu - lambda*logJ;
@@ -248,10 +221,9 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                              F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
                             };
     // *INDENT-ON*
-    const CeedScalar J = computeDetF(F);
     CeedScalar Finvwork[9];
     for (CeedInt m = 0; m < 9; m++)
-      Finvwork[m] = B[m] / J;
+      Finvwork[m] = B[m] / (Jm1 + 1.);
 
     CeedScalar Finv[3][3];
     Finv[0][0] = Finvwork[0];
@@ -490,10 +462,10 @@ CEED_QFUNCTION(ElasFSCurrentNH2Energy)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
+    const CeedScalar Jm1 = computeJM1(grad_u);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
-    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
+    CeedScalar logj = log1p_series_shifted(Jm1);
     energy[i] = (lambda*logj*logj/2. - mu*logj +
                  mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
 
@@ -587,8 +559,8 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
     diagnostic[2][i] = u[2][i];
 
     // Pressure
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
-    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
+    const CeedScalar Jm1 = computeJM1(grad_u);
+    CeedScalar logj = log1p_series_shifted(Jm1);
     diagnostic[3][i] = -lambda*logj;
 
     // Stress tensor invariants
@@ -597,7 +569,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt m = 0; m < 3; m++)
         diagnostic[5][i] += E2[j][m] * E2[m][j] / 4.;
-    diagnostic[6][i] = sqrt(detC_m1 + 1);
+    diagnostic[6][i] = Jm1 + 1.;
 
     // Strain energy
     diagnostic[7][i] = (lambda*logj*logj/2. - mu*logj +
