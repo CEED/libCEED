@@ -91,10 +91,15 @@ int main(int argc, char **argv) {
   // *INDENT-ON*
   memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
 
+  // ---------------------------------------------------------------------------
+  // Initialize PETSc
+  // ---------------------------------------------------------------------------
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
+  // ---------------------------------------------------------------------------
   // Allocate PETSc context
+  // ---------------------------------------------------------------------------
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
@@ -103,7 +108,9 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
   // Register problems to be available on the command line
+  // ---------------------------------------------------------------------------
   app_ctx->problems = NULL;
   ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
                               NS_DENSITY_CURRENT);
@@ -116,12 +123,16 @@ int main(int argc, char **argv) {
   ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D);
   CHKERRQ(ierr);
 
-  // Parse command line options
+  // ---------------------------------------------------------------------------
+  // Process command line options
+  // ---------------------------------------------------------------------------
   comm = PETSC_COMM_WORLD;
   ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
+  // Choose the problem from the list of registered problems
+  // ---------------------------------------------------------------------------
   {
-    // Choose the problem from the list of registered problems
     PetscErrorCode (*p)(problemData *, void *, void *, void *);
     ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
     CHKERRQ(ierr);
@@ -130,33 +141,17 @@ int main(int argc, char **argv) {
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
-  const CeedInt dim = problem->dim, ncompx = problem->dim,
+  // todo: either complete the list here or remove it altogether.
+  const CeedInt dim = problem->dim, 
+                ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
 
-  // Create the mesh
-  {
-    const PetscReal scale[3] = {ctxSetupData->lx, ctxSetupData->ly, ctxSetupData->lz};
-    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               NULL, PETSC_TRUE, &dm);
-    CHKERRQ(ierr);
-  }
-
-  // Distribute the mesh over processes
-  {
-    DM               dmDist = NULL;
-    PetscPartitioner part;
-
-    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm, 0, NULL, &dmDist); CHKERRQ(ierr);
-    if (dmDist) {
-      ierr = DMDestroy(&dm); CHKERRQ(ierr);
-      dm  = dmDist;
-    }
-  }
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-
+  // ---------------------------------------------------------------------------
   // Setup DM
+  // ---------------------------------------------------------------------------
+  // Create distribute DM
+  ierr = CreateDistributedDM(comm, problem, ctxSetupData, &dm); CHKERRQ(ierr);
+
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = SetUpDM(dm, problem, app_ctx->degree, bc, ctxPhysData, ctxSetupData);

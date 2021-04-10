@@ -4,6 +4,33 @@
 // Setup DM
 // -----------------------------------------------------------------------------
 
+// Read mesh and distribute DM in parallel
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupContext setup_ctx, DM *dm) {
+  PetscErrorCode   ierr;
+  DM               distributed_mesh = NULL;
+  PetscPartitioner part;
+  PetscInt         dim = problem->dim;
+  const PetscReal  scale[3] = {setup_ctx->lx, setup_ctx->ly, setup_ctx->lz};
+
+  PetscFunctionBeginUser;
+
+  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
+                               NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
+
+  // Distribute DM in parallel
+  ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
+  ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
+  ierr = DMPlexDistribute(*dm, 0, NULL, &distributed_mesh); CHKERRQ(ierr);
+  if (distributed_mesh) {
+    ierr = DMDestroy(dm); CHKERRQ(ierr);
+    *dm  = distributed_mesh;
+  }
+  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+// Setup DM
 PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                        SimpleBC bc, Physics phys, void *ctxSetupData) {
   PetscErrorCode ierr;

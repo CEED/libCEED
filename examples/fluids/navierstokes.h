@@ -85,49 +85,51 @@ static const char *const StabilizationTypes[] = {
 // -----------------------------------------------------------------------------
 
 // Structs declarations
-typedef struct User_ *User;
-typedef struct Units_ *Units;
-typedef struct AppCtx_ *AppCtx;
-typedef struct Physics_ *Physics;
-typedef struct SimpleBC_ *SimpleBC;
+typedef struct User_private     *User;
+typedef struct Units_private    *Units;
+typedef struct AppCtx_private   *AppCtx;
+typedef struct Physics_private  *Physics;
+typedef struct SimpleBC_private *SimpleBC;
 
 // Boundary conditions
-struct SimpleBC_ {
-  PetscInt nwall, nslip[3];
-  PetscInt walls[6], slips[3][6];
-  PetscBool userbc;
+struct SimpleBC_private {
+  PetscInt      nwall, nslip[3];
+  PetscInt      walls[6], slips[3][6];
+  PetscBool     userbc;
 };
 
 // Problem specific data
+// *INDENT-OFF*
 typedef struct {
-  CeedInt dim, qdatasizeVol, qdatasizeSur;
+  CeedInt           dim, qdatasizeVol, qdatasizeSur;
   CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
                     applySur;
-  const char *setupVol_loc, *setupSur_loc, *ics_loc, *applyVol_rhs_loc,
-        *applyVol_ifunction_loc, *applySur_loc;
-  bool non_zero_time;
-  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
-                       PetscScalar[], void *);
-  PetscErrorCode (*bc_fnc)(DM, SimpleBC, Physics, void *);
+  const char        *setupVol_loc, *setupSur_loc, *ics_loc,
+                    *applyVol_rhs_loc, *applyVol_ifunction_loc, *applySur_loc;
+  bool              non_zero_time;
+  PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
+                          PetscScalar[], void *);
+  PetscErrorCode    (*bc_fnc)(DM, SimpleBC, Physics, void *);
 } problemData;
+// *INDENT-ON*
 
 // PETSc user data
-struct User_ {
-  MPI_Comm comm;
-  DM dm;
-  DM dmviz;
-  Mat interpviz;
-  Ceed ceed;
-  Units units;
-  CeedVector qceed, qdotceed, gceed;
+struct User_private {
+  MPI_Comm     comm;
+  DM           dm;
+  DM           dmviz;
+  Mat          interpviz;
+  Ceed         ceed;
+  Units        units;
+  Vec          M;
+  Physics      phys;
+  AppCtx       app_ctx;
+  CeedVector   qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
-  Vec M;
-  Physics phys;
-  AppCtx app_ctx;
 };
 
 // Units
-struct Units_ {
+struct Units_private {
   // fundamental units
   PetscScalar meter;
   PetscScalar kilogram;
@@ -145,37 +147,37 @@ struct Units_ {
 };
 
 // Setup Context for QFunctions
-struct Physics_ {
-  NSContext ctxNSData;
-  EulerContext ctxEulerData;
-  AdvectionContext ctxAdvectionData;
-  WindType wind_type;
-  EulerTestType eulertest;
+struct Physics_private {
+  NSContext         ctxNSData;
+  EulerContext      ctxEulerData;
+  AdvectionContext  ctxAdvectionData;
+  WindType          wind_type;
+  EulerTestType     eulertest;
   StabilizationType stab;
-  PetscBool implicit;
-  PetscBool hasCurrentTime;
-  PetscBool hasNeumann;
+  PetscBool         implicit;
+  PetscBool         hasCurrentTime;
+  PetscBool         hasNeumann;
 };
 
 // Application context from user command line options
-struct AppCtx_ {
+struct AppCtx_private {
   // libCEED arguments
-  char                ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
-  PetscInt            degree;                                // todo: degree_sur
-  PetscInt            q_extra;
-  PetscInt            q_extra_sur;
+  char              ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
+  PetscInt          degree;                                // todo: degree_sur
+  PetscInt          q_extra;
+  PetscInt          q_extra_sur;
   // Post-processing arguments
-  PetscInt            output_freq;
-  PetscInt            viz_refine;
-  PetscInt            cont_steps;
-  char                output_dir[PETSC_MAX_PATH_LEN];
+  PetscInt          output_freq;
+  PetscInt          viz_refine;
+  PetscInt          cont_steps;
+  char              output_dir[PETSC_MAX_PATH_LEN];
   // Problem type arguments
-  PetscFunctionList   problems;
-  char                problem_name[PETSC_MAX_PATH_LEN];
+  PetscFunctionList problems;
+  char              problem_name[PETSC_MAX_PATH_LEN];
   // Test mode arguments
-  PetscBool           test_mode;
-  PetscScalar         test_tol;
-  char                file_path[PETSC_MAX_PATH_LEN];
+  PetscBool         test_mode;
+  PetscScalar       test_tol;
+  char              file_path[PETSC_MAX_PATH_LEN];
 };
 
 // -----------------------------------------------------------------------------
@@ -267,6 +269,10 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
 // Setup DM
 // -----------------------------------------------------------------------------
 
+// Read mesh and distribute DM in parallel
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupContext setup_ctx, DM *dm);
+
+// Set up DM
 PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                        SimpleBC bc, Physics phys, void *ctxSetupData);
 
