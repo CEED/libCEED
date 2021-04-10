@@ -86,6 +86,7 @@ static const char *const StabilizationTypes[] = {
 
 typedef struct User_ *User;
 typedef struct Units_ *Units;
+typedef struct AppCtx_ *AppCtx;
 typedef struct Physics_ *Physics;
 typedef struct SimpleBC_ *SimpleBC;
 
@@ -112,7 +113,6 @@ typedef struct {
 // PETSc user data
 struct User_ {
   MPI_Comm comm;
-  PetscInt outputfreq;
   DM dm;
   DM dmviz;
   Mat interpviz;
@@ -121,9 +121,9 @@ struct User_ {
   CeedVector qceed, qdotceed, gceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
   Vec M;
-  char outputdir[PETSC_MAX_PATH_LEN];
   PetscInt contsteps;
   Physics phys;
+  AppCtx app_ctx;
 };
 
 // Units
@@ -155,6 +155,24 @@ struct Physics_ {
   PetscBool implicit;
   PetscBool hasCurrentTime;
   PetscBool hasNeumann;
+};
+
+// Application context from user command line options
+struct AppCtx_ {
+  char                ceedresource[PETSC_MAX_PATH_LEN];     // libCEED backend
+  char                outputdir[PETSC_MAX_PATH_LEN];
+  char                problemName[PETSC_MAX_PATH_LEN];
+  PetscFunctionList   problems;
+  PetscInt            outputfreq;
+  PetscInt            viz_refine;
+  PetscInt            contsteps;  
+  PetscInt            degree;
+  PetscInt            qextra;
+  PetscInt            qextraSur;
+  // Test mode arguments
+  PetscBool           test_mode;
+  PetscScalar         test_tol;
+  char                filepath[PETSC_MAX_PATH_LEN];
 };
 
 // -----------------------------------------------------------------------------
@@ -252,5 +270,7 @@ int VectorPlacePetscVec(CeedVector c, Vec p);
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
     Vec cellGeomFVM, Vec gradFVM);
+
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
 #endif

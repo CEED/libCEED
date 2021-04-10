@@ -113,7 +113,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G,
 
   // Global-to-local
   PetscFunctionBeginUser;
-  // user->phys->ctxEulerData->currentTime = t; // todo: fix for euler
+  if (user->phys->hasCurrentTime) user->phys->ctxEulerData->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Qdotloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
@@ -165,7 +165,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Set up output
   PetscFunctionBeginUser;
   // Print every 'outputfreq' steps
-  if (stepno % user->outputfreq != 0)
+  if (stepno % user->app_ctx->outputfreq != 0)
     PetscFunctionReturn(0);
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)Qloc, "StateVec"); CHKERRQ(ierr);
@@ -174,7 +174,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
   // Output
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-%03D.vtu",
-                       user->outputdir, stepno + user->contsteps);
+                       user->app_ctx->outputdir, stepno + user->app_ctx->contsteps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), filepath,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
@@ -195,7 +195,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
     CHKERRQ(ierr);
     ierr = PetscSNPrintf(filepath_refined, sizeof filepath_refined,
                          "%s/nsrefined-%03D.vtu",
-                         user->outputdir, stepno + user->contsteps);
+                         user->app_ctx->outputdir, stepno + user->app_ctx->contsteps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined),
                               filepath_refined,
@@ -209,7 +209,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
 
   // Save data in a binary file for continuation of simulations
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
-                       user->outputdir); CHKERRQ(ierr);
+                       user->app_ctx->outputdir); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   ierr = VecView(Q, viewer); CHKERRQ(ierr);
@@ -219,7 +219,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Dimensionalize time back
   time /= user->units->second;
   ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
-                       user->outputdir); CHKERRQ(ierr);
+                       user->app_ctx->outputdir); CHKERRQ(ierr);
   ierr = PetscViewerBinaryOpen(user->comm, filepath, FILE_MODE_WRITE, &viewer);
   CHKERRQ(ierr);
   #if PETSC_VERSION_GE(3,13,0)

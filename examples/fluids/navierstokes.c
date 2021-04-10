@@ -59,8 +59,8 @@ int main(int argc, char **argv) {
   Units units;
   SetupContext ctxSetupData;
   Physics ctxPhysData;
-  char ceedresource[4096] = "/cpu/self", problemName[] = "density_current";
-  PetscFunctionList problems = NULL;
+  AppCtx app_ctx;
+  problemData   *problem = NULL;
   PetscInt localNelemVol, lnodes, gnodes, steps;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
@@ -74,17 +74,13 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
   CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
   CeedOperator op_setupVol, op_ics;
-  CeedScalar Rd;
-  CeedMemType memtyperequested;
-  problemData *problem = NULL;
-  PetscInt    viz_refine = 0, Xloc_size;
+  PetscInt Xloc_size;
   SimpleBC bc;
   double start, cpu_time_used;
-  // Test variables
-  PetscBool test;
-  PetscScalar testtol = 0.;
-  char filepath[PETSC_MAX_PATH_LEN];
+
+  // todo: define a function
   // Check PETSc CUDA support
+  CeedMemType memtyperequested;  
   PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
   // *INDENT-OFF*
   #ifdef PETSC_HAVE_CUDA
@@ -93,12 +89,7 @@ int main(int argc, char **argv) {
   petschavecuda = PETSC_FALSE;
   #endif
   // *INDENT-ON*
-
-  PetscInt outputfreq    = 10;       // -
-  PetscInt contsteps     = 0;        // -
-  PetscInt degree        = 1;        // -
-  PetscInt qextra        = 2;        // -
-  PetscInt qextraSur     = 2;        // -
+  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -110,71 +101,28 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
 
   // Register problems to be available on the command line
-  ierr = PetscFunctionListAdd(&problems, "density_current", NS_DENSITY_CURRENT);
+  app_ctx->problems = NULL;
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current", NS_DENSITY_CURRENT);
   CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&problems, "euler_vortex", NS_EULER_VORTEX);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex", NS_EULER_VORTEX);
   CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&problems, "advection", NS_ADVECTION);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION);
   CHKERRQ(ierr);
-  ierr = PetscFunctionListAdd(&problems, "advection2d", NS_ADVECTION2D);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D);
   CHKERRQ(ierr);
 
   // Parse command line options
   comm = PETSC_COMM_WORLD;
-  ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, ceedresource, ceedresource,
-                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-test", "Run in test mode",
-                          NULL, test=PETSC_FALSE, &test, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-compare_final_state_atol",
-                            "Test absolute tolerance",
-                            NULL, testtol, &testtol, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-compare_final_state_filename", "Test filename",
-                            NULL, filepath, filepath,
-                            sizeof(filepath), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, problems,
-                           problemName, problemName, sizeof(problemName),
-                           NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-viz_refine",
-                         "Regular refinement levels for visualization",
-                         NULL, viz_refine, &viz_refine, NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-output_freq",
-                         "Frequency of output, in number of steps",
-                         NULL, outputfreq, &outputfreq, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-continue", "Continue from previous solution",
-                         NULL, contsteps, &contsteps, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
-                         NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
-  PetscBool userQextraSur;
-  ierr = PetscOptionsInt("-qextra_boundary",
-                         "Number of extra quadrature points on in/outflow faces",
-                         NULL, qextraSur, &qextraSur, &userQextraSur);
-  CHKERRQ(ierr);
-
-  ierr = PetscStrncpy(user->outputdir, ".", 2); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-output_dir", "Output directory",
-                            NULL, user->outputdir, user->outputdir,
-                            sizeof(user->outputdir), NULL); CHKERRQ(ierr);
-  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
-  ierr = PetscOptionsEnum("-memtype",
-                          "CEED MemType requested", NULL,
-                          memTypes, (PetscEnum)memtyperequested,
-                          (PetscEnum *)&memtyperequested, &setmemtyperequest);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
 
   {
     // Choose the problem from the list of registered problems
     PetscErrorCode (*p)(problemData *, void *, void *, void *);
-    ierr = PetscFunctionListFind(problems, problemName, &p); CHKERRQ(ierr);
-    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", problemName);
+    ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problemName, &p); CHKERRQ(ierr);
+    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problemName);
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
@@ -207,18 +155,18 @@ int main(int argc, char **argv) {
   // Setup DM
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, degree, bc, ctxPhysData, ctxSetupData);
+  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, ctxPhysData, ctxSetupData);
   CHKERRQ(ierr);
 
   // Refine DM for high-order viz
   dmviz = NULL;
   interpviz = NULL;
-  if (viz_refine) {
-    DM dmhierarchy[viz_refine+1];
+  if (app_ctx->viz_refine) {
+    DM dmhierarchy[app_ctx->viz_refine + 1];
 
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     dmhierarchy[0] = dm;
-    for (PetscInt i = 0, d = degree; i < viz_refine; i++) {
+    for (PetscInt i = 0, d = app_ctx->degree; i < app_ctx->viz_refine; i++) {
       Mat interp_next;
 
       ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
@@ -227,7 +175,7 @@ int main(int argc, char **argv) {
       ierr = DMClearFields(dmhierarchy[i+1]); CHKERRQ(ierr);
       ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
       d = (d + 1) / 2;
-      if (i + 1 == viz_refine) d = 1;
+      if (i + 1 == app_ctx->viz_refine) d = 1;
       ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, ctxPhysData,
                      ctxSetupData); CHKERRQ(ierr);
       ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
@@ -242,10 +190,10 @@ int main(int argc, char **argv) {
         interpviz = C;
       }
     }
-    for (PetscInt i=1; i<viz_refine; i++) {
+    for (PetscInt i=1; i<app_ctx->viz_refine; i++) {
       ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
     }
-    dmviz = dmhierarchy[viz_refine];
+    dmviz = dmhierarchy[app_ctx->viz_refine];
   }
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
@@ -253,7 +201,7 @@ int main(int argc, char **argv) {
   lnodes /= ncompq;
 
   // Initialize CEED
-  CeedInit(ceedresource, &ceed);
+  CeedInit(app_ctx->ceedresource, &ceed);
   // Set memtype
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
@@ -266,11 +214,11 @@ int main(int argc, char **argv) {
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // Set number of 1D nodes and quadrature points
-  numP = degree + 1;
-  numQ = numP + qextra;
+  numP = app_ctx->degree + 1;
+  numQ = numP + app_ctx->qextra;
 
   // Print summary
-  if (!test) {
+  if (!app_ctx->test_mode) {
     CeedInt gdofs, odofs;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
@@ -303,7 +251,7 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, problemName, StabilizationTypes[ctxPhysData->stab],
+                       comm_size, app_ctx->problemName, StabilizationTypes[ctxPhysData->stab],
                        box_faces_str, usedresource, CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
                        numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
@@ -315,7 +263,7 @@ int main(int argc, char **argv) {
 
   // Set up libCEED
   // CEED Bases
-  CeedInit(ceedresource, &ceed);
+  CeedInit(app_ctx->ceedresource, &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
                                   &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
@@ -427,8 +375,8 @@ int main(int argc, char **argv) {
   // Set up CEED for the boundaries
   CeedInt height = 1;
   CeedInt dimSur = dim - height;
-  CeedInt numP_Sur = degree + 1;
-  CeedInt numQ_Sur = numP_Sur + qextraSur;
+  CeedInt numP_Sur = app_ctx->degree + 1;  // todo: change it to qextraSur
+  CeedInt numQ_Sur = numP_Sur + app_ctx->qextraSur;
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
   CeedBasis basisxSur, basisxcSur, basisqSur;
   CeedInt NqptsSur;
@@ -481,7 +429,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextCreate(ceed, &ctxSetup);
   CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof *ctxSetupData, ctxSetupData);
-  if (qf_ics && strcmp(problemName, "euler_vortex") != 0)
+  if (qf_ics && strcmp(app_ctx->problemName, "euler_vortex") != 0)
     CeedQFunctionSetContext(qf_ics, ctxSetup);
 
   CeedQFunctionContextCreate(ceed, &ctxNS);
@@ -496,10 +444,10 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxPhysData->ctxAdvectionData, ctxPhysData->ctxAdvectionData);
 
-  if (strcmp(problemName, "density_current") == 0) {
+  if (strcmp(app_ctx->problemName, "density_current") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
-  } else if (strcmp(problemName, "euler_vortex") == 0) {
+  } else if (strcmp(app_ctx->problemName, "euler_vortex") == 0) {
     if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
     if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxEuler);
@@ -512,14 +460,13 @@ int main(int argc, char **argv) {
 
   // Set up user structure
   user->comm = comm;
-  user->outputfreq = outputfreq;
-  user->contsteps = contsteps;
   user->units = units;
   user->dm = dm;
   user->dmviz = dmviz;
   user->interpviz = interpviz;
   user->ceed = ceed;
   user->phys = ctxPhysData;
+  user->app_ctx = app_ctx;
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -552,15 +499,15 @@ int main(int argc, char **argv) {
   }
 
   MPI_Comm_rank(comm, &rank);
-  if (!rank) {ierr = PetscMkdir(user->outputdir); CHKERRQ(ierr);}
+  if (!rank) {ierr = PetscMkdir(app_ctx->outputdir); CHKERRQ(ierr);}
   // Gather initial Q values
   // In case of continuation of simulation, set up initial values from binary file
-  if (contsteps) { // continue from existent solution
+  if (app_ctx->contsteps) { // continue from existent solution
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     // Read input
     ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-solution.bin",
-                         user->outputdir);
+                         app_ctx->test_mode);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
@@ -589,14 +536,14 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts, 500. * units->second); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetTimeStep(ts, 1.e-2 * units->second); CHKERRQ(ierr);
-  if (test) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
+  if (app_ctx->test_mode) {ierr = TSSetMaxSteps(ts, 10); CHKERRQ(ierr);}
   ierr = TSGetAdapt(ts, &adapt); CHKERRQ(ierr);
   ierr = TSAdaptSetStepLimits(adapt,
                               1.e-12 * units->second,
                               1.e2 * units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
-  if (!contsteps) { // print initial condition
-    if (!test) {
+  if (!app_ctx->contsteps) { // print initial condition
+    if (!app_ctx->test_mode) {
       ierr = TSMonitor_NS(ts, 0, 0., Q, user); CHKERRQ(ierr);
     }
   } else { // continue from time of last output
@@ -605,7 +552,7 @@ int main(int argc, char **argv) {
     PetscViewer viewer;
     char filepath[PETSC_MAX_PATH_LEN];
     ierr = PetscSNPrintf(filepath, sizeof filepath, "%s/ns-time.bin",
-                         user->outputdir); CHKERRQ(ierr);
+                         app_ctx->test_mode); CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
@@ -613,7 +560,7 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = TSSetTime(ts, time * user->units->second); CHKERRQ(ierr);
   }
-  if (!test) {
+  if (!app_ctx->test_mode) {
     ierr = TSMonitorSet(ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
   }
 
@@ -625,14 +572,14 @@ int main(int argc, char **argv) {
   ierr = TSGetSolveTime(ts, &ftime); CHKERRQ(ierr);
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
-  if (!test) {
+  if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time taken for solution (sec): %g\n",
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
   // Get error
-  if (problem->non_zero_time && !test) {
+  if (problem->non_zero_time && !app_ctx->test_mode) {
     Vec Qexact, Qexactloc;
     PetscReal rel_error, norm_error, norm_exact;
     ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
@@ -656,7 +603,7 @@ int main(int argc, char **argv) {
 
   // Output Statistics
   ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
-  if (!test) {
+  if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
                        steps, (double)ftime); CHKERRQ(ierr);
@@ -665,13 +612,13 @@ int main(int argc, char **argv) {
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
   // Compare reference solution values with current test run for CI
-  if (test) {
+  if (app_ctx->test_mode) {
     PetscViewer viewer;
     // Read reference file
     Vec Qref;
     PetscReal error, Qrefnorm;
     ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, filepath, FILE_MODE_READ, &viewer);
+    ierr = PetscViewerBinaryOpen(comm, app_ctx->filepath, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -683,7 +630,7 @@ int main(int argc, char **argv) {
     ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
     ierr = VecDestroy(&Qref); CHKERRQ(ierr);
     // Check error
-    if (error > testtol) {
+    if (error > app_ctx->test_tol) {
       ierr = PetscPrintf(PETSC_COMM_WORLD,
                          "Test failed with error norm %g\n",
                          (double)error); CHKERRQ(ierr);
@@ -737,6 +684,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
   ierr = PetscFree(ctxPhysData); CHKERRQ(ierr);
-  ierr = PetscFunctionListDestroy(&problems); CHKERRQ(ierr);
+  ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   return PetscFinalize();
 }
