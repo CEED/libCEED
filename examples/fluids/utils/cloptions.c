@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Command line option processing for fluid mechanics example using PETSc
+/// Command line option processing for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
 

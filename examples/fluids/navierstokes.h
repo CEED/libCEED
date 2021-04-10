@@ -84,6 +84,7 @@ static const char *const StabilizationTypes[] = {
 // Structs
 // -----------------------------------------------------------------------------
 
+// Structs declarations
 typedef struct User_ *User;
 typedef struct Units_ *Units;
 typedef struct AppCtx_ *AppCtx;
@@ -158,17 +159,19 @@ struct Physics_ {
 
 // Application context from user command line options
 struct AppCtx_ {
+  // libCEED arguments
   char                ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
-  char                output_dir[PETSC_MAX_PATH_LEN];
-  char                problem_name[PETSC_MAX_PATH_LEN];
-  PetscFunctionList   problems;
+  PetscInt            degree;                                // todo: degree_sur
+  PetscInt            q_extra;
+  PetscInt            q_extra_sur;
+  // Post-processing arguments
   PetscInt            output_freq;
   PetscInt            viz_refine;
   PetscInt            cont_steps;
-  PetscInt            degree;
-  // todo: degree_sur
-  PetscInt            q_extra;
-  PetscInt            q_extra_sur;
+  char                output_dir[PETSC_MAX_PATH_LEN];
+  // Problem type arguments
+  PetscFunctionList   problems;
+  char                problem_name[PETSC_MAX_PATH_LEN];
   // Test mode arguments
   PetscBool           test_mode;
   PetscScalar         test_tol;
@@ -181,10 +184,13 @@ struct AppCtx_ {
 
 extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
     void *ctxSetupData, void *ctx, void *ctxPhys);
+
 extern PetscErrorCode NS_EULER_VORTEX(problemData *problem,
                                       void *ctxSetupData, void *ctx, void *ctxPhys);
+
 extern PetscErrorCode NS_ADVECTION(problemData *problem,
                                    void *ctxSetupData, void *ctx, void *ctxPhys);
+
 extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
                                      void *ctxSetupData, void *ctx, void *ctxPhys);
 
@@ -194,10 +200,13 @@ extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
 
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     void *ctxSetupData);
+
 extern PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                                       void *ctxSetupData);
+
 extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                                    void *ctxSetupData);
+
 extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                                      void *ctxSetupData);
 
@@ -273,4 +282,5 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
 
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
+// -----------------------------------------------------------------------------
 #endif
