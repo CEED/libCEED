@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
   }
 
   // todo: either complete the list here or remove it altogether.
-  const CeedInt dim = problem->dim, 
+  const CeedInt dim = problem->dim,
                 ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol;
 

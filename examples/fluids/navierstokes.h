@@ -264,7 +264,8 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
 // Setup DM
 // -----------------------------------------------------------------------------
 // Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupContext setup_ctx, DM *dm);
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem,
+                                   SetupContext setup_ctx, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,

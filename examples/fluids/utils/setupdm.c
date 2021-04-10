@@ -5,7 +5,9 @@
 // -----------------------------------------------------------------------------
 
 // Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupContext setup_ctx, DM *dm) {
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem,
+                                   SetupContext setup_ctx, DM *dm) {
+
   PetscErrorCode   ierr;
   DM               distributed_mesh = NULL;
   PetscPartitioner part;
@@ -15,7 +17,7 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem, SetupCon
   PetscFunctionBeginUser;
 
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
-                               NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
+                             NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
 
   // Distribute DM in parallel
   ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
