@@ -4,14 +4,14 @@ PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
                                void *ctx, void *ctxPhys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
-  EulerTestType eulertest;
+  EulerTestType euler_test;
   PetscBool implicit;
-  PetscBool hasCurrentTime = PETSC_TRUE;
-  PetscBool hasNeumann = PETSC_TRUE;
+  PetscBool has_current_time = PETSC_TRUE;
+  PetscBool has_neumann = PETSC_TRUE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->ctxEulerData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxPhysData->euler_ctx_data); CHKERRQ(ierr);
 
 
   PetscFunctionBeginUser;
@@ -84,8 +84,8 @@ PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-euler_test", "Euler test option", NULL,
-                          EulerTestTypes, (PetscEnum)(eulertest = EULER_TEST_NONE),
-                          (PetscEnum *)&eulertest, NULL); CHKERRQ(ierr);
+                          EulerTestTypes, (PetscEnum)(euler_test = EULER_TEST_NONE),
+                          (PetscEnum *)&euler_test, NULL); CHKERRQ(ierr);
 
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
@@ -123,21 +123,21 @@ PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
   ctxSetup->time = 0;
 
   // -- QFunction Context
-  ctxPhysData->eulertest = eulertest;
+  ctxPhysData->euler_test = euler_test;
   ctxPhysData->implicit = implicit;
-  ctxPhysData->hasCurrentTime = hasCurrentTime;
-  ctxPhysData->hasNeumann = hasNeumann;
-  ctxPhysData->ctxEulerData->time = 0.; // todo: check if really needed
-  ctxPhysData->ctxEulerData->currentTime = 0.;
-  ctxPhysData->ctxEulerData->center[0]  = center[0];
-  ctxPhysData->ctxEulerData->center[1]  = center[1];
-  ctxPhysData->ctxEulerData->center[2]  = center[2];
-  ctxPhysData->ctxEulerData->etv_mean_velocity[0] = etv_mean_velocity[0];
-  ctxPhysData->ctxEulerData->etv_mean_velocity[1] = etv_mean_velocity[1];
-  ctxPhysData->ctxEulerData->etv_mean_velocity[2] = etv_mean_velocity[2];
-  ctxPhysData->ctxEulerData->vortex_strength = vortex_strength;
-  ctxPhysData->ctxEulerData->implicit = implicit;
-  ctxPhysData->ctxEulerData->euler_test = eulertest;
+  ctxPhysData->has_current_time = has_current_time;
+  ctxPhysData->has_neumann = has_neumann;
+  ctxPhysData->euler_ctx_data->time = 0.; // todo: check if really needed
+  ctxPhysData->euler_ctx_data->currentTime = 0.;
+  ctxPhysData->euler_ctx_data->center[0]  = center[0];
+  ctxPhysData->euler_ctx_data->center[1]  = center[1];
+  ctxPhysData->euler_ctx_data->center[2]  = center[2];
+  ctxPhysData->euler_ctx_data->etv_mean_velocity[0] = etv_mean_velocity[0];
+  ctxPhysData->euler_ctx_data->etv_mean_velocity[1] = etv_mean_velocity[1];
+  ctxPhysData->euler_ctx_data->etv_mean_velocity[2] = etv_mean_velocity[2];
+  ctxPhysData->euler_ctx_data->vortex_strength = vortex_strength;
+  ctxPhysData->euler_ctx_data->implicit = implicit;
+  ctxPhysData->euler_ctx_data->euler_test = euler_test;
 
   PetscFunctionReturn(0);
 }

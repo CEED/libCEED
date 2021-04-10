@@ -6,11 +6,11 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   MPI_Comm comm = PETSC_COMM_WORLD;
   StabilizationType stab;
   PetscBool implicit;
-  PetscBool hasCurrentTime = PETSC_FALSE;
+  PetscBool has_current_time = PETSC_FALSE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->ctxNSData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxPhysData->dc_ctx_data); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
@@ -61,7 +61,7 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
   PetscScalar second   = 1e-2;  // 1 second in scaled time units
   PetscScalar Kelvin   = 1;     // 1 Kelvin in scaled temperature units
-  PetscScalar WpermK, Pascal, JperkgK, mpersquareds;
+  PetscScalar W_per_m_K, Pascal, J_per_kg_K, m_per_squared_s;
 
   // ------------------------------------------------------
   //              Command line Options
@@ -152,18 +152,18 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   // ------------------------------------------------------
   // -- Define derived units
   Pascal = kilogram / (meter * PetscSqr(second));
-  JperkgK =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
-  mpersquareds = meter / PetscSqr(second);
-  WpermK = kilogram * meter / (pow(second,3) * Kelvin);
+  J_per_kg_K =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
+  m_per_squared_s = meter / PetscSqr(second);
+  W_per_m_K = kilogram * meter / (pow(second,3) * Kelvin);
 
   units->meter = meter;
   units->kilogram = kilogram;
   units->second = second;
   units->Kelvin = Kelvin;
   units->Pascal = Pascal;
-  units->JperkgK = JperkgK;
-  units->mpersquareds = mpersquareds;
-  units->WpermK = WpermK;
+  units->J_per_kg_K = J_per_kg_K;
+  units->m_per_squared_s = m_per_squared_s;
+  units->W_per_m_K = W_per_m_K;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -173,12 +173,12 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   thetaC *= Kelvin;
   P0 *= Pascal;
   N *= (1./second);
-  cv *= JperkgK;
-  cp *= JperkgK;
+  cv *= J_per_kg_K;
+  cp *= J_per_kg_K;
   Rd = cp - cv;
-  g *= mpersquareds;
+  g *= m_per_squared_s;
   mu *= Pascal * second;
-  k *= WpermK;
+  k *= W_per_m_K;
   lx = fabs(lx) * meter;
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
@@ -209,15 +209,15 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   // -- QFunction Context
   ctxPhysData->stab = stab;
   ctxPhysData->implicit = implicit;
-  ctxPhysData->hasCurrentTime = hasCurrentTime;
-  ctxPhysData->ctxNSData->lambda = lambda;
-  ctxPhysData->ctxNSData->mu = mu;
-  ctxPhysData->ctxNSData->k = k;
-  ctxPhysData->ctxNSData->cv = cv;
-  ctxPhysData->ctxNSData->cp = cp;
-  ctxPhysData->ctxNSData->g = g;
-  ctxPhysData->ctxNSData->Rd = Rd;
-  ctxPhysData->ctxNSData->stabilization = stab;
+  ctxPhysData->has_current_time = has_current_time;
+  ctxPhysData->dc_ctx_data->lambda = lambda;
+  ctxPhysData->dc_ctx_data->mu = mu;
+  ctxPhysData->dc_ctx_data->k = k;
+  ctxPhysData->dc_ctx_data->cv = cv;
+  ctxPhysData->dc_ctx_data->cp = cp;
+  ctxPhysData->dc_ctx_data->g = g;
+  ctxPhysData->dc_ctx_data->Rd = Rd;
+  ctxPhysData->dc_ctx_data->stabilization = stab;
 
   PetscFunctionReturn(0);
 }

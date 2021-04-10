@@ -197,7 +197,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   ierr = DMGetLabel(dm, "Face Sets", &domainLabel); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  if (phys->hasNeumann == PETSC_TRUE) {
+  if (phys->has_neumann == PETSC_TRUE) {
     if (phys->wind_type == ADVECTION_WIND_TRANSLATION)
       bc->nwall = bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
 

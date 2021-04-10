@@ -58,8 +58,8 @@ struct SetupContext_ {
 
 #ifndef ns_context_struct
 #define ns_context_struct
-typedef struct NSContext_ *NSContext;
-struct NSContext_ {
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
   CeedScalar lambda;
   CeedScalar mu;
   CeedScalar k;
@@ -261,7 +261,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   // Context
-  NSContext context = (NSContext)ctx;
+  DCContext context = (DCContext)ctx;
   const CeedScalar lambda = context->lambda;
   const CeedScalar mu     = context->mu;
   const CeedScalar k      = context->k;
@@ -519,7 +519,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
-  NSContext context = (NSContext)ctx;
+  DCContext context = (DCContext)ctx;
   const CeedScalar lambda = context->lambda;
   const CeedScalar mu     = context->mu;
   const CeedScalar k      = context->k;

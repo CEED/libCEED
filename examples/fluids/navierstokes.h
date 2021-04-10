@@ -136,26 +136,23 @@ struct Units_private {
   PetscScalar Kelvin;
   // derived units
   PetscScalar Pascal;
-  PetscScalar JperkgK;
-  PetscScalar mpersquareds;
-  PetscScalar WpermK;
-  PetscScalar kgpercubicm;
-  PetscScalar kgpersquaredms;
-  PetscScalar Joulepercubicm;
+  PetscScalar J_per_kg_K;
+  PetscScalar m_per_squared_s;
+  PetscScalar W_per_m_K;
   PetscScalar Joule;
 };
 
 // Setup Context for QFunctions
 struct Physics_private {
-  NSContext         ctxNSData;
-  EulerContext      ctxEulerData;
-  AdvectionContext  ctxAdvectionData;
+  DCContext         dc_ctx_data;
+  EulerContext      euler_ctx_data;
+  AdvectionContext  advection_ctx_data;
   WindType          wind_type;
-  EulerTestType     eulertest;
+  EulerTestType     euler_test;
   StabilizationType stab;
   PetscBool         implicit;
-  PetscBool         hasCurrentTime;
-  PetscBool         hasNeumann;
+  PetscBool         has_current_time;
+  PetscBool         has_neumann;
 };
 
 // Application context from user command line options

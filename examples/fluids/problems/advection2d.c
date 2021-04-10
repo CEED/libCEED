@@ -7,11 +7,11 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   WindType wind_type;
   StabilizationType stab;
   PetscBool implicit;
-  PetscBool hasCurrentTime = PETSC_FALSE;
+  PetscBool has_current_time = PETSC_FALSE;
   SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
   Units units = *(Units *)ctx;
   Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->ctxAdvectionData); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &ctxPhysData->advection_ctx_data); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
@@ -88,7 +88,7 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) ctxPhysData->hasNeumann = translation;
+  if (translation) ctxPhysData->has_neumann = translation;
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -161,12 +161,12 @@ PetscErrorCode NS_ADVECTION2D(problemData *problem, void *ctxSetupData,
   ctxPhysData->stab = stab;
   ctxPhysData->wind_type = wind_type;
   ctxPhysData->implicit = implicit;  // todo: check
-  ctxPhysData->hasCurrentTime = hasCurrentTime;
-  ctxPhysData->ctxAdvectionData->CtauS = CtauS;
-  ctxPhysData->ctxAdvectionData->strong_form = strong_form;
-  ctxPhysData->ctxAdvectionData->E_wind = E_wind;
-  ctxPhysData->ctxAdvectionData->implicit = implicit;
-  ctxPhysData->ctxAdvectionData->stabilization = stab;
+  ctxPhysData->has_current_time = has_current_time;
+  ctxPhysData->advection_ctx_data->CtauS = CtauS;
+  ctxPhysData->advection_ctx_data->strong_form = strong_form;
+  ctxPhysData->advection_ctx_data->E_wind = E_wind;
+  ctxPhysData->advection_ctx_data->implicit = implicit;
+  ctxPhysData->advection_ctx_data->stabilization = stab;
 
   PetscFunctionReturn(0);
 }

@@ -422,15 +422,15 @@ int main(int argc, char **argv) {
 
   CeedQFunctionContextCreate(ceed, &ctxNS);
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->ctxNSData, ctxPhysData->ctxNSData);
+                              sizeof ctxPhysData->dc_ctx_data, ctxPhysData->dc_ctx_data);
 
   CeedQFunctionContextCreate(ceed, &ctxEuler);
   CeedQFunctionContextSetData(ctxEuler, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->ctxEulerData, ctxPhysData->ctxEulerData);
+                              sizeof ctxPhysData->euler_ctx_data, ctxPhysData->euler_ctx_data);
 
   CeedQFunctionContextCreate(ceed, &ctxAdvection);
   CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->ctxAdvectionData, ctxPhysData->ctxAdvectionData);
+                              sizeof ctxPhysData->advection_ctx_data, ctxPhysData->advection_ctx_data);
 
   if (strcmp(app_ctx->problem_name, "density_current") == 0) {
     if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);

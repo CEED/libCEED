@@ -66,7 +66,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
 
   // Global-to-local
   PetscFunctionBeginUser;
-  if (user->phys->hasCurrentTime) user->phys->ctxEulerData->currentTime = t;
+  if (user->phys->has_current_time) user->phys->euler_ctx_data->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
@@ -112,7 +112,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G,
 
   // Global-to-local
   PetscFunctionBeginUser;
-  if (user->phys->hasCurrentTime) user->phys->ctxEulerData->currentTime = t;
+  if (user->phys->has_current_time) user->phys->euler_ctx_data->currentTime = t;
   ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Qdotloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
