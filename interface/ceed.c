@@ -82,7 +82,7 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
     CeedOperatorApply(op1, ..., CEED_REQUEST_ORDERED);
     CeedOperatorApply(op2, ..., &request);
     // other optional work
-    CeedWait(&request);
+    CeedRequestWait(&request);
   @endcode
 
   which allows the sequence to complete asynchronously but does not start
