@@ -763,7 +763,7 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
 
   @ref Backend
 **/
-int CeedOperatorIncrementRefCounter(CeedOperator op) {
+int CeedOperatorReference(CeedOperator op) {
   op->ref_count++;
   return CEED_ERROR_SUCCESS;
 }
@@ -908,17 +908,17 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
-  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*op)->ref_count = 1;
   (*op)->qf = qf;
-  ierr = CeedQFunctionIncrementRefCounter(qf); CeedChk(ierr);
+  ierr = CeedQFunctionReference(qf); CeedChk(ierr);
   if (dqf && dqf != CEED_QFUNCTION_NONE) {
     (*op)->dqf = dqf;
-    ierr = CeedQFunctionIncrementRefCounter(dqf); CeedChk(ierr);
+    ierr = CeedQFunctionReference(dqf); CeedChk(ierr);
   }
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) {
     (*op)->dqfT = dqfT;
-    ierr = CeedQFunctionIncrementRefCounter(dqfT); CeedChk(ierr);
+    ierr = CeedQFunctionReference(dqfT); CeedChk(ierr);
   }
   ierr = CeedCalloc(16, &(*op)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->output_fields); CeedChk(ierr);
@@ -952,13 +952,37 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
-  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*op)->composite = true;
   ierr = CeedCalloc(16, &(*op)->sub_operators); CeedChk(ierr);
 
   if (ceed->CompositeOperatorCreate) {
     ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedOperator. Both pointers should
+           be destroyed with `CeedOperatorDestroy()`;
+           Note: If `*op_copy` is non-NULL, then it is assumed that
+           `*op_copy` is a pointer to a CeedOperator. This
+           CeedOperator will be destroyed if `*op_copy` is the only
+           reference to this CeedOperator.
+
+  @param op            CeedOperator to copy reference to
+  @param[out] op_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
+  int ierr;
+
+  ierr = CeedOperatorReference(op); CeedChk(ierr);
+  ierr = CeedOperatorDestroy(op_copy); CeedChk(ierr);
+  *op_copy = op;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1062,11 +1086,11 @@ found:
 
   (*op_field)->vec = v;
   if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE) {
-    ierr = CeedVectorIncrementRefCounter(v); CeedChk(ierr);
+    ierr = CeedVectorReference(v); CeedChk(ierr);
   }
 
   (*op_field)->elem_restr = r;
-  ierr = CeedElemRestrictionIncrementRefCounter(r); CeedChk(ierr);
+  ierr = CeedElemRestrictionReference(r); CeedChk(ierr);
   if (r != CEED_ELEMRESTRICTION_NONE) {
     op->num_elem = num_elem;
     op->has_restriction = true; // Restriction set, but num_elem may be 0
@@ -1075,7 +1099,7 @@ found:
   (*op_field)->basis = b;
   if (b != CEED_BASIS_COLLOCATED) {
     op->num_qpts = num_qpts;
-    ierr = CeedBasisIncrementRefCounter(b); CeedChk(ierr);
+    ierr = CeedBasisReference(b); CeedChk(ierr);
   }
 
   op->num_fields += 1;
@@ -1114,7 +1138,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
   // LCOV_EXCL_STOP
 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
-  ierr = CeedOperatorIncrementRefCounter(sub_op); CeedChk(ierr);
+  ierr = CeedOperatorReference(sub_op); CeedChk(ierr);
   composite_op->num_suboperators++;
   return CEED_ERROR_SUCCESS;
 }

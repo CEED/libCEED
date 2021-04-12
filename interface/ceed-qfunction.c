@@ -348,7 +348,7 @@ int CeedQFunctionSetData(CeedQFunction qf, void *data) {
 
   @ref Backend
 **/
-int CeedQFunctionIncrementRefCounter(CeedQFunction qf) {
+int CeedQFunctionReference(CeedQFunction qf) {
   qf->ref_count++;
   return CEED_ERROR_SUCCESS;
 }
@@ -470,7 +470,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
 
   ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
-  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*qf)->ref_count = 1;
   (*qf)->vec_length = vec_length;
   (*qf)->identity = 0;
@@ -589,6 +589,30 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
 }
 
 /**
+  @brief Copy the pointer to a CeedQFunction. Both pointers should
+           be destroyed with `CeedQFunctionDestroy()`;
+           Note: If `*qf_copy` is non-NULL, then it is assumed that
+           `*qf_copy` is a pointer to a CeedQFunction. This
+           CeedQFunction will be destroyed if `*qf_copy` is the only
+           reference to this CeedQFunction.
+
+  @param qf            CeedQFunction to copy reference to
+  @param[out] qf_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
+  int ierr;
+
+  ierr = CeedQFunctionReference(qf); CeedChk(ierr);
+  ierr = CeedQFunctionDestroy(qf_copy); CeedChk(ierr);
+  *qf_copy = qf;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Add a CeedQFunction input
 
   @param qf          CeedQFunction
@@ -671,7 +695,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
 int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   int ierr;
   qf->ctx = ctx;
-  ierr = CeedQFunctionContextIncrementRefCounter(ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

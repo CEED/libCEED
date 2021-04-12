@@ -62,7 +62,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
   ierr = CeedCalloc(1, contract); CeedChk(ierr);
 
   (*contract)->ceed = ceed;
-  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
+  ierr = CeedReference(ceed); CeedChk(ierr);
   ierr = ceed->TensorContractCreate(basis, *contract);
   CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -158,7 +158,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 
   @ref Backend
 **/
-int CeedTensorContractIncrementRefCounter(CeedTensorContract contract) {
+int CeedTensorContractReference(CeedTensorContract contract) {
   contract->ref_count++;
   return CEED_ERROR_SUCCESS;
 }
