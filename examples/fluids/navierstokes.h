@@ -275,7 +275,7 @@ PetscErrorCode VizRefineDM(DM dm, User user, problemData *problem,
 // Process command line options
 // -----------------------------------------------------------------------------
 // Register problems to be available on the command line
-PetscErrorCode RegisterProblem(AppCtx app_ctx);
+PetscErrorCode RegisterProblems_NS(AppCtx app_ctx);
 
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);

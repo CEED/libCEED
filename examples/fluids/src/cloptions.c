@@ -23,7 +23,7 @@
 // Process command line options
 // -----------------------------------------------------------------------------
 // Register problems to be available on the command line
-PetscErrorCode RegisterProblem(AppCtx app_ctx) {
+PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 
   PetscErrorCode   ierr;
   app_ctx->problems = NULL;

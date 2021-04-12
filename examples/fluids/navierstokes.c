@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
   // Process command line options
   // ---------------------------------------------------------------------------
   // Register problems to be available on the command line
-  ierr = RegisterProblem(app_ctx); CHKERRQ(ierr);
+  ierr = RegisterProblems_NS(app_ctx); CHKERRQ(ierr);
 
   // Process general command line options
   comm = PETSC_COMM_WORLD;
@@ -161,12 +161,15 @@ int main(int argc, char **argv) {
   lnodes /= ncompq;
 
   // ---------------------------------------------------------------------------
-  // Initialize CEED
+  // Initialize libCEED
   // ---------------------------------------------------------------------------
+  // Initialize backend
   CeedInit(app_ctx->ceed_resource, &ceed);
-  // Set memtype
+
+// Check preferred MemType
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
+
   // Check memtype compatibility
   if (!setmemtyperequest)
     memtyperequested = memtypebackend;
@@ -179,7 +182,9 @@ int main(int argc, char **argv) {
   numP = app_ctx->degree + 1;
   numQ = numP + app_ctx->q_extra;
 
-  // Print summary
+  // ---------------------------------------------------------------------------
+  // Print problem summary
+  // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
     CeedInt gdofs, odofs;
     int comm_size;
@@ -216,8 +221,7 @@ int main(int argc, char **argv) {
                        comm_size, app_ctx->problem_name, StabilizationTypes[ctxPhysData->stab],
                        box_faces_str, usedresource, CeedMemTypes[memtypebackend],
                        (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
-                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes);
-    CHKERRQ(ierr);
+                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes); CHKERRQ(ierr);
   }
 
   // Set up global mass vector
