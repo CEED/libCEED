@@ -395,11 +395,12 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
 
    The derivative of :math:numref:`mooney-rivlin-stress`, :math:`dS`, is
+
    .. math::
       :label: mooney-rivlin-dS
-      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = -\frac{2}{3}\mu_1 J^{-2/3} \bm C^{-1} (2 \bm I_3 - \diff \bm E \bm C^{-1} \mathbb I_1 - \frac 1 3 C^{-1} \mathbb I_1)\\
-        + \mu_2 J^{-4/3}\left( 2(\bm I_3 - \frac 4 3 - \mathbb I_2\bm C^{-1}\diff \bm E \bm C^{-1}) - \frac 4 3 \bm C^{-1}(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1})\right)\\
-        + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
+
+      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = -\frac{2}{3}\mu_1 J^{-2/3} \bm C^{-1} (2 \bm I_3 - \diff \bm E \bm C^{-1} \mathbb I_1 - \frac 1 3 C^{-1} \mathbb I_1) + \mu_2 J^{-4/3}\left( 2(\bm I_3 - \frac 4 3 - \mathbb I_2\bm C^{-1}\diff \bm E \bm C^{-1}) - \frac 4 3 \bm C^{-1}(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1})\right) + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
+      
    which can be used in the Newton linearization. 
 
 
