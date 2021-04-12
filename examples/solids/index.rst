@@ -342,7 +342,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    Then we compute
 
    .. math::
-      \log J = \mathtt{log1p}(u_{0,0} + u_{1,1} + u_{0,0} u_{1,1} - u_{0,1} - u_{1,0}).
+      \log J = \mathtt{log1p}(u_{0,0} + u_{1,1} + u_{0,0} u_{1,1} - u_{0,1} u_{1,0}),
 
    which gives accurate results even in the limit when the entries :math:`u_{i,j}` are very small.
    For example, if :math:`u_{i,j} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
