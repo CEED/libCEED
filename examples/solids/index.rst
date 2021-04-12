@@ -352,16 +352,17 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    For example, if :math:`u_{i,j} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
 
-.. dropdown:: Mooney-Rivlin model
+.. admonition:: Mooney-Rivlin model
+   :class: dropdown
 
    Constitutive models of rubber and other nearly-incompressible materials are often expressed in terms of invariants of an isochoric Cauchy-Green tensor :math:`\bar{\bm C} = J^{-2/3} \bm C`, typically defined as
 
    .. math::
       \begin{aligned}
-      \mathbb{\bar I_1} &= \operatorname{trace}(\bm{\bar C}) \\
-                        &= J^{-2/3} \operatorname{trace}(\bm C) \\
+      \mathbb{\bar I_1} &= \operatorname{trace} \bm{\bar C} \\
+                        &= J^{-2/3} \operatorname{trace} \bm C \\
                         &= J^{-2/3} \mathbb I_1 \\
-      \mathbb{\bar I_2} &= \frac 1 2 \Big( (\operatorname{trace} (\bm{\bar C}) )^2 - \bm{\bar C} \!:\! \bm{\bar C} \Big) \\
+      \mathbb{\bar I_2} &= \frac 1 2 \Big( (\operatorname{trace} \bm{\bar C})^2 - \bm{\bar C} \!:\! \bm{\bar C} \Big) \\
                         &= \frac 1 2 \Big( \mathbb{\bar I_1^2} - J^{-4/3} \bm C \!:\! \bm C \Big) \\
                         &= J^{-4/3} \mathbb I_2
       \end{aligned}
@@ -384,110 +385,26 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-energy
 
-      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (\log J)^2,
+      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (J - 1)^2,
 
    which we differentiate as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
    .. math::
       :label: mooney-rivlin-stress
 
-      \begin{aligned}
-      \bm S &= \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1\log J \bm C^{-1}\\
-      &= \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1\log J \bm C^{-1}.
-      \end{aligned}
+      \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
 
-   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, which is
-
+   The derivative of :math:numref:`mooney-rivlin-stress`, :math:`dS`, is
    .. math::
       :label: mooney-rivlin-dS
+      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = -\frac{2}{3}\mu_1 J^{-2/3} \bm C^{-1} (2 \bm I_3 - \diff \bm E \bm C^{-1} \mathbb I_1 - \frac 1 3 C^{-1} \mathbb I_1)\\
+        + \mu_2 J^{-4/3}\left( 2(\bm I_3 - \frac 4 3 - \mathbb I_2\bm C^{-1}\diff \bm E \bm C^{-1}) - \frac 4 3 \bm C^{-1}(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1})\right)\\
+        + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
+   which can be used in the Newton linearization. 
 
-      \begin{aligned}
-      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
-                 & + k_1(\bm{C}^{-1} \!:\! \diff \bm E)\bm{C}^{-1} - 2k_1(\log J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
-      \end{aligned}
 
-   where we have used :math:`\frac{\partial \bm{C}^{-1}}{\partial \bm{E}} \!:\! \diff \bm{E} = -2\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}`, and
-
-   .. math::
-      \begin{aligned}
-      \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{2}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} - \frac{4}{3} J^{-2/3} \Big(\operatorname{trace}(\diff \bm E)\bm{C}^{-1} - \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big) \\
-      \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{4}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_2}}{\partial \bm E}  + 4 J^{-4/3} \Big( \operatorname{trace}(\diff \bm E)\bm{I}_{3} - \diff \bm E \Big)\\
-      & - \frac{8}{3} J^{-4/3}\Big[\Big(\operatorname{trace}(\diff \bm E) \mathbb{I_1} - (\bm{C} \!:\! \diff \bm E) \Big) \bm{C}^{-1} - \mathbb{I_2}\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big]
-      \end{aligned}
-
-   We also have the coupled version of the Mooney-Rivlin model :cite:`Holzapfel2002` given by 
-   
-   .. math::
-      :label: mooney-rivlin-energy_coupled
-
-      \Phi(I_1, I_2, J) = \frac{k_1}{2}(\log J)^2 - d \log J + \frac{\mu_1}{2}(I_1 - 3) + \frac{\mu_2}{2}(I_2 - 3),
-
-   with :math:`d = \mu_1 + 2\mu_2`. We differentiate :math:`\Phi` as in the Neo-Hookean case :math:numref:`neo-hookean-stress_coupled` to yield the second Piola-Kirchoff tensor,
-
-   .. math::
-      :label: mooney-rivlin-stress_coupled
-
-      \begin{aligned}
-      \bm S &= \mu_1\bm I_3 + \mu_2(I_1 \bm I_3 - \bm C) - d \bm{C}^{-1} + k_1 \log J \bm{C}^{-1}.
-      \end{aligned}
-
-   The Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress_coupled` is
-
-   .. math::
-      :label: mooney-rivlin-dS_coupled
-
-      dS = \frac{\mu_1}{2}\frac{\partial^2 \mathbb{I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{\mu_2}{2} \frac{\partial^2 \mathbb{I_2}}{\partial \bm E^2}\!:\! \diff \bm E + 2d \bm C^{-1} \diff \bm E \bm C^{-1} + k_1(\bm C^{-1}\!:\! \diff \bm E)\bm C^{-1} - 2k_1 \log J \bm C^{-1} \diff \bm E \bm C^{-1}
-
-   where 
-
-   .. math::
-
-      \begin{aligned}
-         \frac{\partial^2 \mathbb{I_2}}{\partial \bm E^2} &= 2\frac{\partial \mathbb{I_2}}{\partial \bm E} \bm I_3 - 2\diff \bm E \\
-         \frac{\partial^2 \mathbb{I_1}}{\partial \bm E^2}\!:\! \diff \bm E & = 0.
-      \end{aligned}
-   
-.. dropdown:: Mooney-Rivlin strain energy comparison
-
-   We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
-
-   .. altair-plot::
-      :hide-code:
-
-      import altair as alt
-      import pandas as pd
-      nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
-      nh["model"] = "Neo-Hookean"
-      nh["parameters"] = "E=1.4754098, nu=0.47540983607"
-      print(nh)
-
-      # TODO: read MR-strain.csv and use correct parameters
-      mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
-      mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
-      mr["parameters"] = "mu_1=0.5, mu_2=0.0, K=10"
-
-      mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
-      mr1["model"] = "Mooney-Rivlin"
-      mr1["parameters"] = "mu_1=0.25, mu_2=0.25, K=10"
-
-      df = pd.concat([nh, mr, mr1])
-      highlight = alt.selection_single(
-         on = "mouseover",
-         nearest = True,
-         fields=["model", "parameters"],
-      )
-      base = alt.Chart(df).encode(
-         alt.X("increment"),
-         alt.Y("energy", scale=alt.Scale(type="sqrt")),
-         alt.Color("model"),
-         alt.Tooltip(("model", "parameters")),
-         opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
-         size=alt.condition(highlight, alt.value(2), alt.value(1)),
-      )
-      base.mark_point().add_selection(highlight) + base.mark_line()
-   
-.. dropdown:: Generalized Polynomial model
-
+.. admonition:: Generalized Polynomial model
+   :class: dropdown
 
    The Generalized Polynomial strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
 
@@ -503,7 +420,10 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \bm S = \sum_{i + j = 1}^N 2C_{ij}\left( j(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^{j-1}J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + i(\mathbb{\bar I}_2 -3)^j(\mathbb{\bar I}_1 -3)^{i-1} J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \right) + \sum_{i = 1}^N k_i i(J -1)^{2i-1}J\bm C^{-1},
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
  
