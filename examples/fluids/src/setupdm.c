@@ -70,3 +70,45 @@ PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
   }
   PetscFunctionReturn(0);
 }
+
+// Refine DM for high-order viz
+PetscErrorCode VizRefineDM(DM dm, User user, problemData *problem,
+                           SimpleBC bc, Physics phys, void *ctxSetupData) {
+  PetscErrorCode ierr;
+  DM dmhierarchy[user->app_ctx->viz_refine + 1];
+
+  PetscFunctionBeginUser;
+  ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
+
+  dmhierarchy[0] = dm;
+  for (PetscInt i = 0, d = user->app_ctx->degree;
+       i < user->app_ctx->viz_refine; i++) {
+    Mat interp_next;
+    ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
+    CHKERRQ(ierr);
+    ierr = DMClearDS(dmhierarchy[i+1]); CHKERRQ(ierr);
+    ierr = DMClearFields(dmhierarchy[i+1]); CHKERRQ(ierr);
+    ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
+    d = (d + 1) / 2;
+    if (i + 1 == user->app_ctx->viz_refine) d = 1;
+    ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, phys, ctxSetupData);
+    CHKERRQ(ierr);
+    ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1], &interp_next,
+                                 NULL); CHKERRQ(ierr);
+    if (!i) user->interpviz = interp_next;
+    else {
+      Mat C;
+      ierr = MatMatMult(interp_next, user->interpviz, MAT_INITIAL_MATRIX,
+                        PETSC_DECIDE, &C); CHKERRQ(ierr);
+      ierr = MatDestroy(&interp_next); CHKERRQ(ierr);
+      ierr = MatDestroy(&user->interpviz); CHKERRQ(ierr);
+      user->interpviz = C;
+    }
+  }
+  for (PetscInt i=1; i<user->app_ctx->viz_refine; i++) {
+    ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
+  }
+  user->dmviz = dmhierarchy[user->app_ctx->viz_refine];
+
+  PetscFunctionReturn(0);
+}

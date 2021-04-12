@@ -51,8 +51,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord, dmviz;
-  Mat interpviz;
+  DM dm, dmcoord;
   TS ts;
   TSAdapt adapt;
   User user;
@@ -147,48 +146,23 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Refine DM for high-order viz
-  dmviz = NULL;
-  interpviz = NULL;
+  user->app_ctx = app_ctx;
   if (app_ctx->viz_refine) {
-    DM dmhierarchy[app_ctx->viz_refine + 1];
-
-    ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
-    dmhierarchy[0] = dm;
-    for (PetscInt i = 0, d = app_ctx->degree; i < app_ctx->viz_refine; i++) {
-      Mat interp_next;
-
-      ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
-      CHKERRQ(ierr);
-      ierr = DMClearDS(dmhierarchy[i+1]); CHKERRQ(ierr);
-      ierr = DMClearFields(dmhierarchy[i+1]); CHKERRQ(ierr);
-      ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
-      d = (d + 1) / 2;
-      if (i + 1 == app_ctx->viz_refine) d = 1;
-      ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, ctxPhysData,
-                     ctxSetupData); CHKERRQ(ierr);
-      ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1],
-                                   &interp_next, NULL); CHKERRQ(ierr);
-      if (!i) interpviz = interp_next;
-      else {
-        Mat C;
-        ierr = MatMatMult(interp_next, interpviz, MAT_INITIAL_MATRIX,
-                          PETSC_DECIDE, &C); CHKERRQ(ierr);
-        ierr = MatDestroy(&interp_next); CHKERRQ(ierr);
-        ierr = MatDestroy(&interpviz); CHKERRQ(ierr);
-        interpviz = C;
-      }
-    }
-    for (PetscInt i=1; i<app_ctx->viz_refine; i++) {
-      ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
-    }
-    dmviz = dmhierarchy[app_ctx->viz_refine];
+    ierr = VizRefineDM(dm, user, problem, bc, ctxPhysData, ctxSetupData);
+    CHKERRQ(ierr);
   }
+
+  // ---------------------------------------------------------------------------
+  // todo
+  // ---------------------------------------------------------------------------
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
   ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
   lnodes /= ncompq;
 
+  // ---------------------------------------------------------------------------
   // Initialize CEED
+  // ---------------------------------------------------------------------------
   CeedInit(app_ctx->ceed_resource, &ceed);
   // Set memtype
   CeedMemType memtypebackend;
@@ -450,11 +424,9 @@ int main(int argc, char **argv) {
   user->comm = comm;
   user->units = units;
   user->dm = dm;
-  user->dmviz = dmviz;
-  user->interpviz = interpviz;
   user->ceed = ceed;
   user->phys = ctxPhysData;
-  user->app_ctx = app_ctx;
+
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
@@ -662,8 +634,8 @@ int main(int argc, char **argv) {
   // Clean up PETSc
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
-  ierr = MatDestroy(&interpviz); CHKERRQ(ierr);
-  ierr = DMDestroy(&dmviz); CHKERRQ(ierr);
+  ierr = MatDestroy(&user->interpviz); CHKERRQ(ierr);
+  ierr = DMDestroy(&user->dmviz); CHKERRQ(ierr);
   ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);

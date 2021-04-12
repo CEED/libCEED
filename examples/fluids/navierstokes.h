@@ -267,6 +267,10 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem,
 PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
                        SimpleBC bc, Physics phys, void *ctxSetupData);
 
+// Refine DM for high-order viz
+PetscErrorCode VizRefineDM(DM dm, User user, problemData *problem,
+                           SimpleBC bc, Physics phys, void *ctxSetupData);
+
 // -----------------------------------------------------------------------------
 // Process command line options
 // -----------------------------------------------------------------------------
