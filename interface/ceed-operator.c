@@ -755,6 +755,20 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
 }
 
 /**
+  @brief Increment the reference counter for a CeedOperator
+
+  @param op  CeedOperator to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorIncrementRefCounter(CeedOperator op) {
+  op->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the setup flag of a CeedOperator to True
 
   @param op  CeedOperator
@@ -894,17 +908,17 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   // LCOV_EXCL_STOP
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*op)->ref_count = 1;
   (*op)->qf = qf;
-  qf->ref_count++;
+  ierr = CeedQFunctionIncrementRefCounter(qf); CeedChk(ierr);
   if (dqf && dqf != CEED_QFUNCTION_NONE) {
     (*op)->dqf = dqf;
-    dqf->ref_count++;
+    ierr = CeedQFunctionIncrementRefCounter(dqf); CeedChk(ierr);
   }
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) {
     (*op)->dqfT = dqfT;
-    dqfT->ref_count++;
+    ierr = CeedQFunctionIncrementRefCounter(dqfT); CeedChk(ierr);
   }
   ierr = CeedCalloc(16, &(*op)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*op)->output_fields); CeedChk(ierr);
@@ -938,7 +952,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*op)->composite = true;
   ierr = CeedCalloc(16, &(*op)->sub_operators); CeedChk(ierr);
 
@@ -1048,11 +1062,11 @@ found:
 
   (*op_field)->vec = v;
   if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE) {
-    v->ref_count += 1;
+    ierr = CeedVectorIncrementRefCounter(v); CeedChk(ierr);
   }
 
   (*op_field)->elem_restr = r;
-  r->ref_count += 1;
+  ierr = CeedElemRestrictionIncrementRefCounter(r); CeedChk(ierr);
   if (r != CEED_ELEMRESTRICTION_NONE) {
     op->num_elem = num_elem;
     op->has_restriction = true; // Restriction set, but num_elem may be 0
@@ -1061,7 +1075,7 @@ found:
   (*op_field)->basis = b;
   if (b != CEED_BASIS_COLLOCATED) {
     op->num_qpts = num_qpts;
-    b->ref_count += 1;
+    ierr = CeedBasisIncrementRefCounter(b); CeedChk(ierr);
   }
 
   op->num_fields += 1;
@@ -1085,6 +1099,8 @@ found:
  */
 int CeedCompositeOperatorAddSub(CeedOperator composite_op,
                                 CeedOperator sub_op) {
+  int ierr;
+
   if (!composite_op->composite)
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_MINOR,
@@ -1098,7 +1114,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
   // LCOV_EXCL_STOP
 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
-  sub_op->ref_count++;
+  ierr = CeedOperatorIncrementRefCounter(sub_op); CeedChk(ierr);
   composite_op->num_suboperators++;
   return CEED_ERROR_SUCCESS;
 }

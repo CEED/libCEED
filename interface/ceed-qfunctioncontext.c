@@ -105,6 +105,20 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedQFunctionContext
+
+  @param ctx  CeedQFunctionContext to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextIncrementRefCounter(CeedQFunctionContext ctx) {
+  ctx->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -143,7 +157,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 
   ierr = CeedCalloc(1, ctx); CeedChk(ierr);
   (*ctx)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*ctx)->ref_count = 1;
   ierr = ceed->QFunctionContextCreate(*ctx); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;

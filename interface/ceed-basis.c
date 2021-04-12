@@ -296,6 +296,20 @@ int CeedBasisSetData(CeedBasis basis, void *data) {
 }
 
 /**
+  @brief Increment the reference counter for a CeedBasis
+
+  @param basis  Basis to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIncrementRefCounter(CeedBasis basis) {
+  basis->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get dimension for given CeedElemTopology
 
   @param topo      CeedElemTopology
@@ -335,8 +349,10 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
 
   @ref Backend
 **/
-int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
-  basis->contract = *contract;
+int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
+  int ierr;
+  basis->contract = contract;
+  ierr = CeedTensorContractIncrementRefCounter(contract); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -435,7 +451,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
 
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*basis)->ref_count = 1;
   (*basis)->tensor_basis = 1;
   (*basis)->dim = dim;
@@ -596,7 +612,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
 
   (*basis)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*basis)->ref_count = 1;
   (*basis)->tensor_basis = 0;
   (*basis)->dim = dim;
@@ -1029,6 +1045,9 @@ int CeedBasisDestroy(CeedBasis *basis) {
   if (!*basis || --(*basis)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
+  }
+  if ((*basis)->contract) {
+    ierr = CeedTensorContractDestroy(&(*basis)->contract); CeedChk(ierr);
   }
   ierr = CeedFree(&(*basis)->interp); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->interp_1d); CeedChk(ierr);

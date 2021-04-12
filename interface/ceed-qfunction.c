@@ -340,6 +340,20 @@ int CeedQFunctionSetData(CeedQFunction qf, void *data) {
 }
 
 /**
+  @brief Increment the reference counter for a CeedQFunction
+
+  @param qf  CeedQFunction to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionIncrementRefCounter(CeedQFunction qf) {
+  qf->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the CeedQFunctionFields of a CeedQFunction
 
   @param qf                  CeedQFunction
@@ -456,7 +470,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
 
   ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*qf)->ref_count = 1;
   (*qf)->vec_length = vec_length;
   (*qf)->identity = 0;
@@ -655,8 +669,9 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
   @ref User
 **/
 int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
+  int ierr;
   qf->ctx = ctx;
-  ctx->ref_count++;
+  ierr = CeedQFunctionContextIncrementRefCounter(ctx); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

@@ -121,6 +121,20 @@ int CeedVectorSetData(CeedVector vec, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedVector
+
+  @param vec  CeedVector to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorIncrementRefCounter(CeedVector vec) {
+  vec->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -160,7 +174,7 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
   ierr = CeedCalloc(1, vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*vec)->ref_count = 1;
   (*vec)->length = length;
   (*vec)->state = 0;

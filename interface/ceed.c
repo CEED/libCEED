@@ -586,6 +586,20 @@ int CeedSetData(Ceed ceed, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a Ceed context
+
+  @param ceed  Ceed context to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedIncrementRefCounter(Ceed ceed) {
+  ceed->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------

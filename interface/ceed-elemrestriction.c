@@ -271,6 +271,20 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedElemRestriction
+
+  @param rstr  ElemRestriction to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionIncrementRefCounter(CeedElemRestriction rstr) {
+  rstr->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// @cond DOXYGEN_SKIP
@@ -344,7 +358,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -407,7 +421,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -492,7 +506,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
                                elem_size); CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -558,7 +572,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedIncrementRefCounter(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;

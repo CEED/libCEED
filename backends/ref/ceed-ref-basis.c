@@ -306,17 +306,6 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem,
 }
 
 //------------------------------------------------------------------------------
-// Basis Destroy Non-Tensor
-//------------------------------------------------------------------------------
-static int CeedBasisDestroyNonTensor_Ref(CeedBasis basis) {
-  int ierr;
-  CeedTensorContract contract;
-  ierr = CeedBasisGetTensorContract(basis, &contract); CeedChkBackend(ierr);
-  ierr = CeedTensorContractDestroy(&contract); CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Basis Create Non-Tensor
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
@@ -334,12 +323,10 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
   ierr = CeedGetParent(ceed, &parent); CeedChkBackend(ierr);
   CeedTensorContract contract;
   ierr = CeedTensorContractCreate(parent, basis, &contract); CeedChkBackend(ierr);
-  ierr = CeedBasisSetTensorContract(basis, &contract); CeedChkBackend(ierr);
+  ierr = CeedBasisSetTensorContract(basis, contract); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroyNonTensor_Ref); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -349,9 +336,6 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim,
 //------------------------------------------------------------------------------
 static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
   int ierr;
-  CeedTensorContract contract;
-  ierr = CeedBasisGetTensorContract(basis, &contract); CeedChkBackend(ierr);
-  ierr = CeedTensorContractDestroy(&contract); CeedChkBackend(ierr);
 
   CeedBasis_Ref *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
@@ -398,7 +382,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d,
   ierr = CeedGetParent(ceed, &parent); CeedChkBackend(ierr);
   CeedTensorContract contract;
   ierr = CeedTensorContractCreate(parent, basis, &contract); CeedChkBackend(ierr);
-  ierr = CeedBasisSetTensorContract(basis, &contract); CeedChkBackend(ierr);
+  ierr = CeedBasisSetTensorContract(basis, contract); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Ref); CeedChkBackend(ierr);
