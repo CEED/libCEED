@@ -230,7 +230,6 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // CEED Bases
-  CeedInit(app_ctx->ceed_resource, &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
                                   &basisq);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
