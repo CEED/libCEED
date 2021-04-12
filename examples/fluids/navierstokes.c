@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
-  CeedInt numP, numQ;
   CeedVector xcorners, qdata, q0ceed;
   CeedBasis basisx, basisxc, basisq;
   CeedElemRestriction restrictx, restrictq, restrictqdi;
@@ -132,7 +131,9 @@ int main(int argc, char **argv) {
   // todo: either complete the list here or remove it altogether.
   const CeedInt dim = problem->dim,
                 ncompx = problem->dim,
-                qdatasizeVol = problem->qdatasizeVol;
+                qdatasizeVol = problem->qdatasizeVol,
+                numP = app_ctx->degree + 1, // Set number of 1D nodes and quadrature points
+                numQ = numP + app_ctx->q_extra;
 
   // ---------------------------------------------------------------------------
   // Setup DM
@@ -178,10 +179,6 @@ int main(int argc, char **argv) {
              "PETSc was not built with CUDA. "
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
-  // Set number of 1D nodes and quadrature points
-  numP = app_ctx->degree + 1;
-  numQ = numP + app_ctx->q_extra;
-
   // ---------------------------------------------------------------------------
   // Print problem summary
   // ---------------------------------------------------------------------------
@@ -224,10 +221,14 @@ int main(int argc, char **argv) {
                        numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes); CHKERRQ(ierr);
   }
 
+  // ---------------------------------------------------------------------------
   // Set up global mass vector
+  // ---------------------------------------------------------------------------
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
   // Set up libCEED
+  // ---------------------------------------------------------------------------
   // CEED Bases
   CeedInit(app_ctx->ceed_resource, &ceed);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
