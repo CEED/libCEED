@@ -41,6 +41,35 @@ struct Physics_private {
   CeedScalar   E;       // Young's Modulus
 };
 #endif
+// Mooney-Rivlin context
+#ifndef PHYSICS_STRUCT_MR
+#define PHYSICS_STRUCT_MR
+typedef struct Physics_private_MR *Physics_MR;
+
+struct Physics_private_MR { 
+  //material properties for MR
+  CeedScalar mu_1; // 
+  CeedScalar mu_2; // 
+  CeedScalar k_1; // 
+};
+#endif
+
+// -----------------------------------------------------------------------------
+// Generalized Polynomial context
+#ifndef PHYSICS_STRUCT_GP
+#define PHYSICS_STRUCT_GP
+typedef struct Physics_private_GP *Physics_GP;
+
+struct Physics_private_GP { 
+  CeedScalar   nu;      // Poisson's ratio rm
+  CeedScalar   E;       // Young's Modulus rm
+  //material properties for GP
+  CeedScalar C_mat[6][6]; // 2D matrix
+  CeedScalar K[6]; // 1D array
+  CeedScalar N; // max value of the sum; usually 1 or 2
+};
+
+#endif
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -48,7 +77,7 @@ struct Physics_private {
 // Problem options
 typedef enum {
   ELAS_LINEAR = 0, ELAS_SS_NH = 1, ELAS_FSInitial_NH1 = 2, ELAS_FSInitial_NH2 = 3,
-  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5
+  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5, ELAS_HYPER_FS_NH = 6, ELAS_HYPER_FS_MR = 7, ELAS_HYPER_FS_GP = 8
 } problemType;
 static const char *const problemTypes[] = {"Linear",
                                            "SS-NH",
@@ -56,6 +85,9 @@ static const char *const problemTypes[] = {"Linear",
                                            "FSInitial-NH2",
                                            "FSCurrent-NH1",
                                            "FSCurrent-NH2",
+                                           "hyperFS-NH",
+                                           "hyperFS-MR",
+                                           "hyperFS-GP",
                                            "problemType","ELAS_",0
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
@@ -64,6 +96,9 @@ static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
+                                                  "Hyperelasticity finite strain Initial config Neo-Hookean - old version",
+                                                  "Hyperelasticity finite strain Initial config Mooney-Rivlin - old version",
+                                                  "Hyperelasticity finite strain Initial config Generalized Polynomial - old version"
                                                  };
 
 // Forcing function options
@@ -155,7 +190,7 @@ typedef struct {
 // *INDENT-ON*
 
 // Data specific to each problem option
-extern problemData problem_options[6];
+extern problemData problem_options[9];
 
 // Forcing function data
 typedef struct {
@@ -231,6 +266,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
 // Process physics options
 PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
+PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units);
 
 // -----------------------------------------------------------------------------
 // Setup DM

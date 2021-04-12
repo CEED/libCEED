@@ -88,8 +88,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   if ((app_ctx->problem_choice == ELAS_FSInitial_NH1 ||
        app_ctx->problem_choice == ELAS_FSInitial_NH2 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
-       app_ctx->problem_choice == ELAS_FSCurrent_NH2) &&
-      app_ctx->forcing_choice == FORCE_CONST)
+       app_ctx->problem_choice == ELAS_FSCurrent_NH2||
+       app_ctx->problem_choice == ELAS_HYPER_FS_NH) &&
+       app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "
             "Constant forcing in reference frame currently unavaliable.");
@@ -295,6 +296,71 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
 
   // Scale E to Pa
   phys->E *= units->Pascal;
+
+  PetscFunctionReturn(0);
+};
+
+// Process physics options - Mooney-Rivlin
+PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units) { 
+  PetscErrorCode ierr;
+  PetscBool mu_1_Flag = PETSC_FALSE;
+  PetscBool mu_2_Flag = PETSC_FALSE;
+  PetscBool k_1_Flag = PETSC_FALSE;
+  phys_MR->mu_1 = 0;
+  phys_MR->mu_2 = 0;
+  phys_MR->k_1 = 0;
+  units->meter     = 1;        // 1 meter in scaled length units
+  units->second    = 1;        // 1 second in scaled time units
+  units->kilogram  = 1;        // 1 kilogram in scaled mass units
+
+  PetscFunctionBeginUser;
+
+  ierr = PetscOptionsBegin(comm, NULL,
+                           "Elasticity / Hyperelasticity in PETSc with libCEED",
+                           NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL, phys_MR->mu_1, &phys_MR->mu_1,
+                            &mu_1_Flag); CHKERRQ(ierr);
+
+  ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL, phys_MR->mu_2, &phys_MR->mu_2,
+                            &mu_2_Flag); CHKERRQ(ierr);
+
+  ierr = PetscOptionsScalar("-K", "Material Property K_1", NULL, phys_MR->k_1, &phys_MR->k_1,
+                            &k_1_Flag); CHKERRQ(ierr);
+
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+                            NULL, units->meter, &units->meter, NULL);
+  CHKERRQ(ierr);
+  units->meter = fabs(units->meter);
+
+  ierr = PetscOptionsScalar("-units_second", "1 second in scaled time units",
+                            NULL, units->second, &units->second, NULL);
+  CHKERRQ(ierr);
+  units->second = fabs(units->second);
+
+  ierr = PetscOptionsScalar("-units_kilogram", "1 kilogram in scaled mass units",
+                            NULL, units->kilogram, &units->kilogram, NULL);
+  CHKERRQ(ierr);
+  units->kilogram = fabs(units->kilogram);
+
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+
+  // Check for all required options to be set
+  if (!mu_1_Flag) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mu_1 option needed");
+  }
+  if (!mu_2_Flag) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mu_2 option needed");
+  }
+  if (!k_1_Flag) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-K option needed");
+  }
+
+  // Define derived units
+  units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
+
+  // Scale E to Pa
+  // phys->E *= units->Pascal;
 
   PetscFunctionReturn(0);
 };
