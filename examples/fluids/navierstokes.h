@@ -246,6 +246,10 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, problemData *problem, SimpleBC bc);
 
+// Set up contex for QFunctions
+PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
+                                       AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------

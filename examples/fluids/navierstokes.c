@@ -67,7 +67,6 @@ int main(int argc, char **argv) {
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
-  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
   PetscInt Xloc_size;
   SimpleBC bc;
   double start, cpu_time_used;
@@ -235,54 +234,8 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Set up contex for QFunctions
-  CeedQFunctionContextCreate(ceed, &ctxSetup);
-  CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof *ctxSetupData, ctxSetupData);
-
-  CeedQFunctionContextCreate(ceed, &ctxNS);
-  CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->dc_ctx_data, ctxPhysData->dc_ctx_data);
-
-  CeedQFunctionContextCreate(ceed, &ctxEuler);
-  CeedQFunctionContextSetData(ctxEuler, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->euler_ctx_data, ctxPhysData->euler_ctx_data);
-
-  CeedQFunctionContextCreate(ceed, &ctxAdvection);
-  CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof ctxPhysData->advection_ctx_data, ctxPhysData->advection_ctx_data);
-
-  if (ceed_data->qf_ics && strcmp(app_ctx->problem_name, "euler_vortex") != 0)
-    CeedQFunctionSetContext(ceed_data->qf_ics, ctxSetup);
-
-  if (strcmp(app_ctx->problem_name, "density_current") == 0) {
-    if (ceed_data->qf_rhsVol)
-      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxNS);
-
-    if (ceed_data->qf_ifunctionVol)
-      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxNS);
-
-  } else if (strcmp(app_ctx->problem_name, "euler_vortex") == 0) {
-    if (ceed_data->qf_ics)
-      CeedQFunctionSetContext(ceed_data->qf_ics, ctxEuler);
-
-    if (ceed_data->qf_rhsVol)
-      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxEuler);
-
-    if (ceed_data->qf_ifunctionVol)
-      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxEuler);
-
-    if (ceed_data->qf_applySur)
-      CeedQFunctionSetContext(ceed_data->qf_applySur, ctxEuler);
-  } else {
-    if (ceed_data->qf_rhsVol)
-      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxAdvection);
-
-    if (ceed_data->qf_ifunctionVol)
-      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxAdvection);
-
-    if (ceed_data->qf_applySur)
-      CeedQFunctionSetContext(ceed_data->qf_applySur, ctxAdvection);
-  }
+  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
+                                 ctxPhysData); CHKERRQ(ierr);
 
   // Set up user structure
   user->comm = comm;
@@ -307,7 +260,7 @@ int main(int argc, char **argv) {
 
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
                              ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
-                             ctxSetup, 0.0); CHKERRQ(ierr);
+                             ceed_data->ctxSetup, 0.0); CHKERRQ(ierr);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
     // disable this, we should still get the same results due to the problem->bc function, but with potentially much
@@ -414,7 +367,7 @@ int main(int argc, char **argv) {
 
     ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
                                ceed_data->q0ceed, dm, Qexactloc, Qexact,
-                               ceed_data->restrictq, ctxSetup, ftime); CHKERRQ(ierr);
+                               ceed_data->restrictq, ceed_data->ctxSetup, ftime); CHKERRQ(ierr);
     ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_1, &norm_error); CHKERRQ(ierr);
@@ -481,10 +434,10 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&ceed_data->qf_ics);
   CeedQFunctionDestroy(&ceed_data->qf_rhsVol);
   CeedQFunctionDestroy(&ceed_data->qf_ifunctionVol);
-  CeedQFunctionContextDestroy(&ctxSetup);
-  CeedQFunctionContextDestroy(&ctxNS);
-  CeedQFunctionContextDestroy(&ctxAdvection);
-  CeedQFunctionContextDestroy(&ctxEuler);
+  CeedQFunctionContextDestroy(&ceed_data->ctxSetup);
+  CeedQFunctionContextDestroy(&ceed_data->ctxNS);
+  CeedQFunctionContextDestroy(&ceed_data->ctxAdvection);
+  CeedQFunctionContextDestroy(&ceed_data->ctxEuler);
   CeedOperatorDestroy(&ceed_data->op_setupVol);
   CeedOperatorDestroy(&ceed_data->op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);

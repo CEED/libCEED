@@ -450,3 +450,64 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                    &user->op_ifunction); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
+// Set up contex for QFunctions
+PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
+                                       AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->ctxSetup);
+  CeedQFunctionContextSetData(ceed_data->ctxSetup, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof *setup_ctx, setup_ctx);
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->ctxNS);
+  CeedQFunctionContextSetData(ceed_data->ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
+                              sizeof phys->dc_ctx_data, phys->dc_ctx_data);
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->ctxEuler);
+  CeedQFunctionContextSetData(ceed_data->ctxEuler, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof phys->euler_ctx_data, phys->euler_ctx_data);
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->ctxAdvection);
+  CeedQFunctionContextSetData(ceed_data->ctxAdvection, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof phys->advection_ctx_data, phys->advection_ctx_data);
+
+  if (ceed_data->qf_ics && strcmp(app_ctx->problem_name, "euler_vortex") != 0)
+    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->ctxSetup);
+
+  if (strcmp(app_ctx->problem_name, "density_current") == 0) {
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ceed_data->ctxNS);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ceed_data->ctxNS);
+
+  } else if (strcmp(app_ctx->problem_name, "euler_vortex") == 0) {
+    if (ceed_data->qf_ics)
+      CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->ctxEuler);
+
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ceed_data->ctxEuler);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ceed_data->ctxEuler);
+
+    if (ceed_data->qf_applySur)
+      CeedQFunctionSetContext(ceed_data->qf_applySur, ceed_data->ctxEuler);
+  } else {
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ceed_data->ctxAdvection);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ceed_data->ctxAdvection);
+
+    if (ceed_data->qf_applySur)
+      CeedQFunctionSetContext(ceed_data->qf_applySur, ceed_data->ctxAdvection);
+  }
+  PetscFunctionReturn(0);
+}
