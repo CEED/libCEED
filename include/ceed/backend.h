@@ -20,12 +20,14 @@
 #define _ceed_backend_h
 
 #include <ceed/ceed.h>
+#include <limits.h>
 #include <stdbool.h>
 
 #define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
 #define CEED_UNUSED __attribute__((unused))
 
 #define CEED_MAX_RESOURCE_LEN 1024
+#define CEED_MAX_BACKEND_PRIORITY UINT_MAX
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
 #define CEED_EPSILON 1E-16

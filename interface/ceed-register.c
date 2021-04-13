@@ -6,7 +6,7 @@
 
 static bool register_all_called;
 
-#define MACRO(name) CEED_INTERN int name(void);
+#define MACRO(name,...) CEED_INTERN int name(void);
 #include "../backends/ceed-backend-list.h"
 #undef MACRO
 
@@ -26,7 +26,7 @@ int CeedRegisterAll() {
   if (register_all_called) return 0;
   register_all_called = true;
 
-#define MACRO(name) CeedChk(name());
+#define MACRO(name,...) CeedChk(name());
 #include "../backends/ceed-backend-list.h"
 #undef MACRO
   return CEED_ERROR_SUCCESS;

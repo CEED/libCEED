@@ -595,12 +595,12 @@ int CeedSetData(Ceed ceed, void *data) {
 /// @{
 
 /**
-  @brief Get the list of avaliable resource names for Ceed contexts
+  @brief Get the list of available resource names for Ceed contexts
   Note: The caller is responsible for `free()`ing the resources and priorities arrays,
           but should not `free()` the contents of the resources array.
 
-  @param[out] n           Number of avaliable resources
-  @param[out] resources   List of avaliable resource names
+  @param[out] n           Number of available resources
+  @param[out] resources   List of available resource names
   @param[out] priorities  Resource name prioritization values, lower is better
 
   @return An error code: 0 - success, otherwise - failure
@@ -610,7 +610,7 @@ int CeedSetData(Ceed ceed, void *data) {
 // LCOV_EXCL_START
 int CeedRegistryGetList(size_t *n, char ***const resources,
                         CeedInt **priorities) {
-  *n = num_backends;
+  *n = 0;
   *resources = malloc(num_backends * sizeof(**resources));
   if (!resources)
     return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
@@ -620,8 +620,20 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
       return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
   }
   for (size_t i=0; i<num_backends; i++) {
-    *resources[i] = backends[i].prefix;
-    if (priorities) *priorities[i] = backends[i].priority;
+    // Only report compiled backends
+    if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) {
+      *resources[i] = backends[i].prefix;
+      if (priorities) *priorities[i] = backends[i].priority;
+      *n += 1;
+    }
+  }
+  *resources = realloc(*resources, *n * sizeof(**resources));
+  if (!resources)
+    return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+  if (priorities) {
+    *priorities = realloc(*priorities, *n * sizeof(**priorities));
+    if (!priorities)
+      return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
 };
@@ -631,7 +643,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
   @brief Initialize a \ref Ceed context to use the specified resource.
   Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self")
     will result in CeedInt printing the current libCEED version number
-    and a list of current avaliable backend resources to stderr.
+    and a list of current available backend resources to stderr.
 
   @param resource  Resource to use, e.g., "/cpu/self"
   @param ceed      The library context
@@ -643,7 +655,8 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t match_len = 0, match_idx = UINT_MAX, match_priority = UINT_MAX, priority;
+  size_t match_len = 0, match_idx = UINT_MAX,
+         match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
   if (!resource)
@@ -661,9 +674,11 @@ int CeedInit(const char *resource, Ceed *ceed) {
     fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR,
             CEED_VERSION_MINOR, CEED_VERSION_PATCH,
             CEED_VERSION_RELEASE ? "" : "+development");
-    fprintf(stderr, "Avaliable backend resources:\n");
+    fprintf(stderr, "Available backend resources:\n");
     for (size_t i=0; i<num_backends; i++) {
-      fprintf(stderr, "  %s\n", backends[i].prefix);
+      // Only report compiled backends
+      if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY)
+        fprintf(stderr, "  %s\n", backends[i].prefix);
     }
     fflush(stderr);
     match_help = 5; // Delineating character expected
@@ -694,7 +709,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     // LCOV_EXCL_STOP
   } else if (match_len != stem_length) {
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s "
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
                      "Closest match: %s", resource, backends[match_idx].prefix);
     // LCOV_EXCL_STOP
   }
