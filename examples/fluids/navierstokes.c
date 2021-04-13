@@ -417,46 +417,72 @@ int main(int argc, char **argv) {
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
 
-  // Clean up libCEED
+  // ---------------------------------------------------------------------------
+  // Destroy libCEED objects
+  // ---------------------------------------------------------------------------
+  // -- Vectors
+  CeedVectorDestroy(&ceed_data->xcorners);
   CeedVectorDestroy(&ceed_data->qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->qdotceed);
   CeedVectorDestroy(&user->gceed);
-  CeedVectorDestroy(&ceed_data->xcorners);
-  CeedBasisDestroy(&ceed_data->basisq);
-  CeedBasisDestroy(&ceed_data->basisx);
-  CeedBasisDestroy(&ceed_data->basisxc);
-  CeedElemRestrictionDestroy(&ceed_data->restrictq);
-  CeedElemRestrictionDestroy(&ceed_data->restrictx);
-  CeedElemRestrictionDestroy(&ceed_data->restrictqdi);
-  CeedQFunctionDestroy(&ceed_data->qf_setupVol);
-  CeedQFunctionDestroy(&ceed_data->qf_ics);
-  CeedQFunctionDestroy(&ceed_data->qf_rhsVol);
-  CeedQFunctionDestroy(&ceed_data->qf_ifunctionVol);
+
+  // -- Contexts
   CeedQFunctionContextDestroy(&ceed_data->ctxSetup);
   CeedQFunctionContextDestroy(&ceed_data->ctxNS);
   CeedQFunctionContextDestroy(&ceed_data->ctxAdvection);
   CeedQFunctionContextDestroy(&ceed_data->ctxEuler);
+
+  // -- QFunctions
+  CeedQFunctionDestroy(&ceed_data->qf_setupVol);
+  CeedQFunctionDestroy(&ceed_data->qf_ics);
+  CeedQFunctionDestroy(&ceed_data->qf_rhsVol);
+  CeedQFunctionDestroy(&ceed_data->qf_ifunctionVol);
+  CeedQFunctionDestroy(&ceed_data->qf_setupSur);
+  CeedQFunctionDestroy(&ceed_data->qf_applySur);
+
+  // -- Bases
+  CeedBasisDestroy(&ceed_data->basisq);
+  CeedBasisDestroy(&ceed_data->basisx);
+  CeedBasisDestroy(&ceed_data->basisxc);
+  CeedBasisDestroy(&ceed_data->basisqSur);
+  CeedBasisDestroy(&ceed_data->basisxSur);
+  CeedBasisDestroy(&ceed_data->basisxcSur);
+
+  // -- Restrictions
+  CeedElemRestrictionDestroy(&ceed_data->restrictq);
+  CeedElemRestrictionDestroy(&ceed_data->restrictx);
+  CeedElemRestrictionDestroy(&ceed_data->restrictqdi);
+
+  // -- Operators
   CeedOperatorDestroy(&ceed_data->op_setupVol);
   CeedOperatorDestroy(&ceed_data->op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);
   CeedOperatorDestroy(&user->op_ifunction_vol);
-  CeedDestroy(&ceed);
-  CeedBasisDestroy(&ceed_data->basisqSur);
-  CeedBasisDestroy(&ceed_data->basisxSur);
-  CeedBasisDestroy(&ceed_data->basisxcSur);
-  CeedQFunctionDestroy(&ceed_data->qf_setupSur);
-  CeedQFunctionDestroy(&ceed_data->qf_applySur);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
 
+  // -- Ceed
+  CeedDestroy(&ceed);
+
+  // ---------------------------------------------------------------------------
   // Clean up PETSc
+  // ---------------------------------------------------------------------------
+  // -- Vectors
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
+
+  // -- Matrices
   ierr = MatDestroy(&user->interpviz); CHKERRQ(ierr);
+
+  // -- DM
   ierr = DMDestroy(&user->dmviz); CHKERRQ(ierr);
-  ierr = TSDestroy(&ts); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
+
+  // -- TS
+  ierr = TSDestroy(&ts); CHKERRQ(ierr);
+
+  // -- Structs
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
@@ -465,5 +491,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(ctxPhysData); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);
+
   return PetscFinalize();
 }

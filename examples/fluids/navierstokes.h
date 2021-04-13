@@ -179,13 +179,13 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedBasis            basisx, basisxc, basisq, basisxSur, basisxcSur, basisqSur;
-  CeedElemRestriction  restrictx, restrictq, restrictqdi;
-  CeedQFunction        qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol,
-                       qf_setupSur, qf_applySur;
-  CeedOperator         op_setupVol, op_ics;
   CeedVector           xcorners, qdata, q0ceed;
   CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
+  CeedQFunction        qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol,
+                       qf_setupSur, qf_applySur;
+  CeedBasis            basisx, basisxc, basisq, basisxSur, basisxcSur, basisqSur;
+  CeedElemRestriction  restrictx, restrictq, restrictqdi;
+  CeedOperator         op_setupVol, op_ics;
 };
 
 // -----------------------------------------------------------------------------
