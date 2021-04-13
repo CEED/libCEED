@@ -91,8 +91,9 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
 
   // ---------------------------------------------------------------------------
-  // Allocate contexts
+  // Create contexts
   // ---------------------------------------------------------------------------
+  // -- Allocate memory for contexts
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
@@ -102,6 +103,11 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &ceed_data); CHKERRQ(ierr);
 
+  // -- Assign contexts
+  user->app_ctx = app_ctx;
+  user->units = units;
+  user->phys = ctxPhysData;
+
   // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
@@ -110,6 +116,7 @@ int main(int argc, char **argv) {
 
   // Process general command line options
   comm = PETSC_COMM_WORLD;
+  user->comm = comm;
   ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
@@ -124,19 +131,18 @@ int main(int argc, char **argv) {
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
-  // todo: either complete the list here or remove it altogether.
   const CeedInt dim = problem->dim,
                 ncompx = problem->dim,
                 qdatasizeVol = problem->qdatasizeVol,
-                numP = app_ctx->degree + 1, // Set number of 1D nodes and quadrature points
+                numP = app_ctx->degree + 1,
                 numQ = numP + app_ctx->q_extra;
-  user->phys = ctxPhysData;
 
   // ---------------------------------------------------------------------------
   // Setup DM
   // ---------------------------------------------------------------------------
   // Create distribute DM
   ierr = CreateDistributedDM(comm, problem, ctxSetupData, &dm); CHKERRQ(ierr);
+  user->dm = dm;
 
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
@@ -144,7 +150,6 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
 
   // Refine DM for high-order viz
-  user->app_ctx = app_ctx;
   if (app_ctx->viz_refine) {
     ierr = VizRefineDM(dm, user, problem, bc, ctxPhysData, ctxSetupData);
     CHKERRQ(ierr);
@@ -163,8 +168,9 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize backend
   CeedInit(app_ctx->ceed_resource, &ceed);
+  user->ceed = ceed;
 
-// Check preferred MemType
+  // Check preferred MemType
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
 
@@ -236,13 +242,6 @@ int main(int argc, char **argv) {
   // Set up contex for QFunctions
   ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
                                  ctxPhysData); CHKERRQ(ierr);
-
-  // Set up user structure
-  user->comm = comm;
-  user->units = units;
-  user->dm = dm;
-  user->ceed = ceed;
-
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
