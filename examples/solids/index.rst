@@ -359,10 +359,10 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
    .. math::
       \begin{aligned}
-      \mathbb{\bar I_1} &= \operatorname{trace} \bm{\bar C} \\
-                        &= J^{-2/3} \operatorname{trace} \bm C \\
+      \mathbb{\bar I_1} &= \operatorname{trace}(\bm{\bar C}) \\
+                        &= J^{-2/3} \operatorname{trace}(\bm C) \\
                         &= J^{-2/3} \mathbb I_1 \\
-      \mathbb{\bar I_2} &= \frac 1 2 \Big( (\operatorname{trace} \bm{\bar C})^2 - \bm{\bar C} \!:\! \bm{\bar C} \Big) \\
+      \mathbb{\bar I_2} &= \frac 1 2 \Big( (\operatorname{trace} (\bm{\bar C}) )^2 - \bm{\bar C} \!:\! \bm{\bar C} \Big) \\
                         &= \frac 1 2 \Big( \mathbb{\bar I_1^2} - J^{-4/3} \bm C \!:\! \bm C \Big) \\
                         &= J^{-4/3} \mathbb I_2
       \end{aligned}
@@ -394,16 +394,42 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
 
-   The derivative of :math:numref:`mooney-rivlin-stress`, :math:`dS`, is
+   The derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, is
 
    .. math::
       :label: mooney-rivlin-dS
 
       \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = -\frac{2}{3}\mu_1 J^{-2/3} \bm C^{-1} (2 \bm I_3 - \diff \bm E \bm C^{-1} \mathbb I_1 - \frac 1 3 C^{-1} \mathbb I_1) + \mu_2 J^{-4/3}\left( 2(\bm I_3 - \frac 4 3 - \mathbb I_2\bm C^{-1}\diff \bm E \bm C^{-1}) - \frac 4 3 \bm C^{-1}(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1})\right) + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
       
-   which can be used in the Newton linearization. 
+   which can be used in the Newton linearization.
 
+   (I'd prefer to split equation in pieces since it is easier to code and catch the errors)
 
+   .. math::
+      :label: mooney-rivlin-stress2
+
+      \bm S = \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1(J^2 -J)\bm C^{-1}.
+
+   .. math::
+      :label: mooney-rivlin-dS2
+
+      \begin{aligned}
+      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
+                 & + k_1(2J^2-J)(\bm{C}^{-2} \!:\! \diff \bm E)\bm{I}_{3} - 2k_1(2J^2-J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
+      \end{aligned}
+
+   where we have used :math:`\frac{\partial \bm{C}^{-1}}{\partial \bm{E}} \!:\! \diff \bm{E} = -2\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}`, and
+
+   .. math::
+   
+      \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E = \frac{4}{3} J^{-2/3} \mathbb{I_1} \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} - \frac{2}{3} \Big(\frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + 2J^{-2/3}\bm{I}_3 \Big) \bm{C}^{-1} \!:\! \diff \bm E
+   
+   .. math::
+      \begin{aligned}
+      \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E = & \frac{8}{3} J^{-4/3} \mathbb{I_2} \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} - \frac{4}{3} \Big(\frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + 2J^{-4/3} \mathbb{I_1} \bm{I}_3 \Big) \bm{C}^{-1} \!:\! \diff \bm E \\
+      & + 4J^{-4/3}\Big(\frac{5}{3}\operatorname{trace}(\diff \bm E) \bm{I}_3 - \diff \bm E \Big)
+      \end{aligned}
+   
 .. admonition:: Generalized Polynomial model
    :class: dropdown
 
