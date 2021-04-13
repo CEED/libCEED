@@ -358,26 +358,7 @@ int main(int argc, char **argv) {
 
   // Get error
   if (problem->non_zero_time && !app_ctx->test_mode) {
-    Vec Qexact, Qexactloc;
-    PetscReal rel_error, norm_error, norm_exact;
-    ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
-    ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
-    ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
-
-    ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
-                               ceed_data->q0ceed, dm, Qexactloc, Qexact,
-                               ceed_data->restrictq, ceed_data->ctxSetup, ftime); CHKERRQ(ierr);
-    ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
-    ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
-    ierr = VecNorm(Q, NORM_1, &norm_error); CHKERRQ(ierr);
-    rel_error = norm_error / norm_exact;
-    CeedVectorDestroy(&ceed_data->q0ceed);
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Relative Error: %g\n",
-                       (double)rel_error); CHKERRQ(ierr);
-    // Clean up vectors
-    ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
-    ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
+    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, ftime); CHKERRQ(ierr);
   }
 
   // Output Statistics
