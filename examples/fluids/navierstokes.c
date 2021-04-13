@@ -392,29 +392,7 @@ int main(int argc, char **argv) {
 
   // Compare reference solution values with current test run for CI
   if (app_ctx->test_mode) {
-    PetscViewer viewer;
-    // Read reference file
-    Vec Qref;
-    PetscReal error, Qrefnorm;
-    ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, app_ctx->file_path, FILE_MODE_READ, &viewer);
-    CHKERRQ(ierr);
-    ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-    // Compute error with respect to reference solution
-    ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
-    ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
-    ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
-    ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
-    ierr = VecDestroy(&Qref); CHKERRQ(ierr);
-    // Check error
-    if (error > app_ctx->test_tol) {
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-                         "Test failed with error norm %g\n",
-                         (double)error); CHKERRQ(ierr);
-    }
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = RegressionTests_NS(app_ctx, Q); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

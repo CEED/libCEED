@@ -308,5 +308,8 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
     Vec cellGeomFVM, Vec gradFVM);
 
+// Compare reference solution values with current test run for CI
+PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
+
 // -----------------------------------------------------------------------------
 #endif

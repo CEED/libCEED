@@ -434,20 +434,22 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // Create CEED Operator for the whole domain
-  if (!user->phys->implicit)
+  if (!user->phys->implicit) {
     ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
                                    user->op_rhs_vol,
                                    ceed_data->qf_applySur, ceed_data->qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, ceed_data->basisxSur, ceed_data->basisqSur,
                                    &user->op_rhs); CHKERRQ(ierr);
-  if (user->phys->implicit)
+  }
+  if (user->phys->implicit) {
     ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
                                    user->op_ifunction_vol,
                                    ceed_data->qf_applySur, ceed_data->qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, ceed_data->basisxSur, ceed_data->basisqSur,
                                    &user->op_ifunction); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }
 

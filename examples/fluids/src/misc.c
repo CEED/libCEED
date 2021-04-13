@@ -32,3 +32,39 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
   ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
+// Compare reference solution values with current test run for CI
+PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
+
+  PetscErrorCode ierr;
+
+  Vec Qref;
+  PetscViewer viewer;
+  PetscReal error, Qrefnorm;
+
+  // Read reference file
+  ierr = VecDuplicate(Q, &Qref); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(PetscObjectComm((PetscObject)Q),
+                               app_ctx->file_path, FILE_MODE_READ,
+                               &viewer); CHKERRQ(ierr);
+  ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
+
+  // Compute error with respect to reference solution
+  ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
+  ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
+  ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
+  ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
+
+  // Check error
+  if (error > app_ctx->test_tol) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Test failed with error norm %g\n",
+                       (double)error); CHKERRQ(ierr);
+  }
+
+  // Destroy PETSc objects
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = VecDestroy(&Qref); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
