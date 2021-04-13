@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
   TSAdapt adapt;
   User user;
   Units units;
+  CeedData ceed_data;
   SetupContext ctxSetupData;
   Physics ctxPhysData;
   AppCtx app_ctx;
@@ -66,12 +67,7 @@ int main(int argc, char **argv) {
   PetscScalar ftime;
   Vec Q, Qloc, Xloc;
   Ceed ceed;
-  CeedVector xcorners, qdata, q0ceed;
-  CeedBasis basisx, basisxc, basisq;
-  CeedElemRestriction restrictx, restrictq, restrictqdi;
-  CeedQFunction qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol;
   CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
-  CeedOperator op_setupVol, op_ics;
   PetscInt Xloc_size;
   SimpleBC bc;
   double start, cpu_time_used;
@@ -96,7 +92,7 @@ int main(int argc, char **argv) {
   if (ierr) return ierr;
 
   // ---------------------------------------------------------------------------
-  // Allocate PETSc context
+  // Allocate contexts
   // ---------------------------------------------------------------------------
   ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
@@ -105,6 +101,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
   ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &ceed_data); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -134,6 +131,7 @@ int main(int argc, char **argv) {
                 qdatasizeVol = problem->qdatasizeVol,
                 numP = app_ctx->degree + 1, // Set number of 1D nodes and quadrature points
                 numQ = numP + app_ctx->q_extra;
+  user->phys = ctxPhysData;
 
   // ---------------------------------------------------------------------------
   // Setup DM
@@ -229,174 +227,17 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Set up libCEED
   // ---------------------------------------------------------------------------
-  // CEED Bases
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompq, numP, numQ, CEED_GAUSS,
-                                  &basisq);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
-                                  &basisx);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
-                                  CEED_GAUSS_LOBATTO, &basisxc);
-  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
-  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
-
-  // CEED Restrictions
-  ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, numP, numQ,
-                                 qdatasizeVol, &restrictq, &restrictx,
-                                 &restrictqdi); CHKERRQ(ierr);
-
   ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, Xloc_size, &xcorners); CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, Xloc_size, &ceed_data->xcorners); CHKERRQ(ierr);
 
-  // Create the CEED vectors that will be needed in setup
-  CeedInt NqptsVol;
-  CeedBasisGetNumQuadraturePoints(basisq, &NqptsVol);
-  CeedElemRestrictionGetNumElements(restrictq, &localNelemVol);
-  CeedVectorCreate(ceed, qdatasizeVol*localNelemVol*NqptsVol, &qdata);
-  CeedElemRestrictionCreateVector(restrictq, &q0ceed, NULL);
+  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
+  CHKERRQ(ierr);
 
-  // Create the Q-function that builds the quadrature data for the NS operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->setupVol, problem->setupVol_loc,
-                              &qf_setupVol);
-  CeedQFunctionAddInput(qf_setupVol, "dx", ncompx*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setupVol, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setupVol, "qdata", qdatasizeVol, CEED_EVAL_NONE);
-
-  // Create the Q-function that sets the ICs of the operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc, &qf_ics);
-  CeedQFunctionAddInput(qf_ics, "x", ncompx, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_ics, "q0", ncompq, CEED_EVAL_NONE);
-
-  qf_rhsVol = NULL;
-  if (problem->applyVol_rhs) { // Create the Q-function that defines the action of the RHS operator
-    CeedQFunctionCreateInterior(ceed, 1, problem->applyVol_rhs,
-                                problem->applyVol_rhs_loc, &qf_rhsVol);
-    CeedQFunctionAddInput(qf_rhsVol, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_rhsVol, "dq", ncompq*dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_rhsVol, "qdata", qdatasizeVol, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_rhsVol, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_rhsVol, "v", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_rhsVol, "dv", ncompq*dim, CEED_EVAL_GRAD);
-  }
-
-  qf_ifunctionVol = NULL;
-  if (problem->applyVol_ifunction) { // Create the Q-function that defines the action of the IFunction
-    CeedQFunctionCreateInterior(ceed, 1, problem->applyVol_ifunction,
-                                problem->applyVol_ifunction_loc, &qf_ifunctionVol);
-    CeedQFunctionAddInput(qf_ifunctionVol, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_ifunctionVol, "dq", ncompq*dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_ifunctionVol, "qdot", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_ifunctionVol, "qdata", qdatasizeVol, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_ifunctionVol, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_ifunctionVol, "v", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_ifunctionVol, "dv", ncompq*dim, CEED_EVAL_GRAD);
-  }
-
-  // Create the operator that builds the quadrature data for the NS operator
-  CeedOperatorCreate(ceed, qf_setupVol, NULL, NULL, &op_setupVol);
-  CeedOperatorSetField(op_setupVol, "dx", restrictx, basisx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setupVol, "weight", CEED_ELEMRESTRICTION_NONE,
-                       basisx, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setupVol, "qdata", restrictqdi,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  // Create the operator that sets the ICs
-  CeedOperatorCreate(ceed, qf_ics, NULL, NULL, &op_ics);
-  CeedOperatorSetField(op_ics, "x", restrictx, basisxc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "q0", restrictq,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  CeedElemRestrictionCreateVector(restrictq, &user->qceed, NULL);
-  CeedElemRestrictionCreateVector(restrictq, &user->qdotceed, NULL);
-  CeedElemRestrictionCreateVector(restrictq, &user->gceed, NULL);
-
-  if (qf_rhsVol) { // Create the RHS physics operator
-    CeedOperator op;
-    CeedOperatorCreate(ceed, qf_rhsVol, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdata", restrictqdi,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    user->op_rhs_vol = op;
-  }
-
-  if (qf_ifunctionVol) { // Create the IFunction operator
-    CeedOperator op;
-    CeedOperatorCreate(ceed, qf_ifunctionVol, NULL, NULL, &op);
-    CeedOperatorSetField(op, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdot", restrictq, basisq, user->qdotceed);
-    CeedOperatorSetField(op, "qdata", restrictqdi,
-                         CEED_BASIS_COLLOCATED, qdata);
-    CeedOperatorSetField(op, "x", restrictx, basisx, xcorners);
-    CeedOperatorSetField(op, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", restrictq, basisq, CEED_VECTOR_ACTIVE);
-    user->op_ifunction_vol = op;
-  }
-
-  // Set up CEED for the boundaries
-  CeedInt height = 1;
-  CeedInt dimSur = dim - height;
-  CeedInt numP_Sur = app_ctx->degree + 1;  // todo: change it to q_extra_sur
-  CeedInt numQ_Sur = numP_Sur + app_ctx->q_extra_sur;
-  const CeedInt qdatasizeSur = problem->qdatasizeSur;
-  CeedBasis basisxSur, basisxcSur, basisqSur;
-  CeedInt NqptsSur;
-  CeedQFunction qf_setupSur, qf_applySur;
-
-  // CEED bases for the boundaries
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompq, numP_Sur, numQ_Sur,
-                                  CEED_GAUSS,
-                                  &basisqSur);
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompx, 2, numQ_Sur, CEED_GAUSS,
-                                  &basisxSur);
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompx, 2, numP_Sur,
-                                  CEED_GAUSS_LOBATTO, &basisxcSur);
-  CeedBasisGetNumQuadraturePoints(basisqSur, &NqptsSur);
-
-  // Create the Q-function that builds the quadrature data for the Surface operator
-  CeedQFunctionCreateInterior(ceed, 1, problem->setupSur, problem->setupSur_loc,
-                              &qf_setupSur);
-  CeedQFunctionAddInput(qf_setupSur, "dx", ncompx*dimSur, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setupSur, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setupSur, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
-
-  // Creat Q-Function for Boundaries
-  qf_applySur = NULL;
-  if (problem->applySur) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->applySur,
-                                problem->applySur_loc, &qf_applySur);
-    CeedQFunctionAddInput(qf_applySur, "q", ncompq, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_applySur, "qdataSur", qdatasizeSur, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_applySur, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_applySur, "v", ncompq, CEED_EVAL_INTERP);
-  }
-
-  // Create CEED Operator for the whole domain
-  if (!ctxPhysData->implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData,
-                                   user->op_rhs_vol,
-                                   qf_applySur, qf_setupSur,
-                                   height, numP_Sur, numQ_Sur, qdatasizeSur,
-                                   NqptsSur, basisxSur, basisqSur,
-                                   &user->op_rhs); CHKERRQ(ierr);
-  if (ctxPhysData->implicit)
-    ierr = CreateOperatorForDomain(ceed, dm, bc, ctxPhysData,
-                                   user->op_ifunction_vol,
-                                   qf_applySur, qf_setupSur,
-                                   height, numP_Sur, numQ_Sur, qdatasizeSur,
-                                   NqptsSur, basisxSur, basisqSur,
-                                   &user->op_ifunction); CHKERRQ(ierr);
   // Set up contex for QFunctions
   CeedQFunctionContextCreate(ceed, &ctxSetup);
   CeedQFunctionContextSetData(ctxSetup, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof *ctxSetupData, ctxSetupData);
-  if (qf_ics && strcmp(app_ctx->problem_name, "euler_vortex") != 0)
-    CeedQFunctionSetContext(qf_ics, ctxSetup);
 
   CeedQFunctionContextCreate(ceed, &ctxNS);
   CeedQFunctionContextSetData(ctxNS, CEED_MEM_HOST, CEED_USE_POINTER,
@@ -410,18 +251,37 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctxAdvection, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof ctxPhysData->advection_ctx_data, ctxPhysData->advection_ctx_data);
 
+  if (ceed_data->qf_ics && strcmp(app_ctx->problem_name, "euler_vortex") != 0)
+    CeedQFunctionSetContext(ceed_data->qf_ics, ctxSetup);
+
   if (strcmp(app_ctx->problem_name, "density_current") == 0) {
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxNS);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxNS);
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxNS);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxNS);
+
   } else if (strcmp(app_ctx->problem_name, "euler_vortex") == 0) {
-    if (qf_ics) CeedQFunctionSetContext(qf_ics, ctxEuler);
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxEuler);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxEuler);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxEuler);
+    if (ceed_data->qf_ics)
+      CeedQFunctionSetContext(ceed_data->qf_ics, ctxEuler);
+
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxEuler);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxEuler);
+
+    if (ceed_data->qf_applySur)
+      CeedQFunctionSetContext(ceed_data->qf_applySur, ctxEuler);
   } else {
-    if (qf_rhsVol) CeedQFunctionSetContext(qf_rhsVol, ctxAdvection);
-    if (qf_ifunctionVol) CeedQFunctionSetContext(qf_ifunctionVol, ctxAdvection);
-    if (qf_applySur) CeedQFunctionSetContext(qf_applySur, ctxAdvection);
+    if (ceed_data->qf_rhsVol)
+      CeedQFunctionSetContext(ceed_data->qf_rhsVol, ctxAdvection);
+
+    if (ceed_data->qf_ifunctionVol)
+      CeedQFunctionSetContext(ceed_data->qf_ifunctionVol, ctxAdvection);
+
+    if (ceed_data->qf_applySur)
+      CeedQFunctionSetContext(ceed_data->qf_applySur, ctxAdvection);
   }
 
   // Set up user structure
@@ -429,22 +289,24 @@ int main(int argc, char **argv) {
   user->units = units;
   user->dm = dm;
   user->ceed = ceed;
-  user->phys = ctxPhysData;
 
 
   // Calculate qdata and ICs
   // Set up state global and local vectors
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
-  ierr = VectorPlacePetscVec(q0ceed, Qloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceed_data->q0ceed, Qloc); CHKERRQ(ierr);
 
   // Apply Setup Ceed Operators
-  ierr = VectorPlacePetscVec(xcorners, Xloc); CHKERRQ(ierr);
-  CeedOperatorApply(op_setupVol, xcorners, qdata, CEED_REQUEST_IMMEDIATE);
-  ierr = ComputeLumpedMassMatrix(ceed, dm, restrictq, basisq, restrictqdi, qdata,
+  ierr = VectorPlacePetscVec(ceed_data->xcorners, Xloc); CHKERRQ(ierr);
+  CeedOperatorApply(ceed_data->op_setupVol, ceed_data->xcorners, ceed_data->qdata,
+                    CEED_REQUEST_IMMEDIATE);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->restrictq,
+                                 ceed_data->basisq, ceed_data->restrictqdi, ceed_data->qdata,
                                  user->M); CHKERRQ(ierr);
 
-  ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qloc, Q, restrictq,
+  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
+                             ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
                              ctxSetup, 0.0); CHKERRQ(ierr);
   if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
     // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
@@ -550,13 +412,14 @@ int main(int argc, char **argv) {
     ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
     ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
 
-    ierr = ICs_FixMultiplicity(op_ics, xcorners, q0ceed, dm, Qexactloc, Qexact,
-                               restrictq, ctxSetup, ftime); CHKERRQ(ierr);
+    ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
+                               ceed_data->q0ceed, dm, Qexactloc, Qexact,
+                               ceed_data->restrictq, ctxSetup, ftime); CHKERRQ(ierr);
     ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
     ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
     ierr = VecNorm(Q, NORM_1, &norm_error); CHKERRQ(ierr);
     rel_error = norm_error / norm_exact;
-    CeedVectorDestroy(&q0ceed);
+    CeedVectorDestroy(&ceed_data->q0ceed);
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Relative Error: %g\n",
                        (double)rel_error); CHKERRQ(ierr);
@@ -603,35 +466,35 @@ int main(int argc, char **argv) {
   }
 
   // Clean up libCEED
-  CeedVectorDestroy(&qdata);
+  CeedVectorDestroy(&ceed_data->qdata);
   CeedVectorDestroy(&user->qceed);
   CeedVectorDestroy(&user->qdotceed);
   CeedVectorDestroy(&user->gceed);
-  CeedVectorDestroy(&xcorners);
-  CeedBasisDestroy(&basisq);
-  CeedBasisDestroy(&basisx);
-  CeedBasisDestroy(&basisxc);
-  CeedElemRestrictionDestroy(&restrictq);
-  CeedElemRestrictionDestroy(&restrictx);
-  CeedElemRestrictionDestroy(&restrictqdi);
-  CeedQFunctionDestroy(&qf_setupVol);
-  CeedQFunctionDestroy(&qf_ics);
-  CeedQFunctionDestroy(&qf_rhsVol);
-  CeedQFunctionDestroy(&qf_ifunctionVol);
+  CeedVectorDestroy(&ceed_data->xcorners);
+  CeedBasisDestroy(&ceed_data->basisq);
+  CeedBasisDestroy(&ceed_data->basisx);
+  CeedBasisDestroy(&ceed_data->basisxc);
+  CeedElemRestrictionDestroy(&ceed_data->restrictq);
+  CeedElemRestrictionDestroy(&ceed_data->restrictx);
+  CeedElemRestrictionDestroy(&ceed_data->restrictqdi);
+  CeedQFunctionDestroy(&ceed_data->qf_setupVol);
+  CeedQFunctionDestroy(&ceed_data->qf_ics);
+  CeedQFunctionDestroy(&ceed_data->qf_rhsVol);
+  CeedQFunctionDestroy(&ceed_data->qf_ifunctionVol);
   CeedQFunctionContextDestroy(&ctxSetup);
   CeedQFunctionContextDestroy(&ctxNS);
   CeedQFunctionContextDestroy(&ctxAdvection);
   CeedQFunctionContextDestroy(&ctxEuler);
-  CeedOperatorDestroy(&op_setupVol);
-  CeedOperatorDestroy(&op_ics);
+  CeedOperatorDestroy(&ceed_data->op_setupVol);
+  CeedOperatorDestroy(&ceed_data->op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);
   CeedOperatorDestroy(&user->op_ifunction_vol);
   CeedDestroy(&ceed);
-  CeedBasisDestroy(&basisqSur);
-  CeedBasisDestroy(&basisxSur);
-  CeedBasisDestroy(&basisxcSur);
-  CeedQFunctionDestroy(&qf_setupSur);
-  CeedQFunctionDestroy(&qf_applySur);
+  CeedBasisDestroy(&ceed_data->basisqSur);
+  CeedBasisDestroy(&ceed_data->basisxSur);
+  CeedBasisDestroy(&ceed_data->basisxcSur);
+  CeedQFunctionDestroy(&ceed_data->qf_setupSur);
+  CeedQFunctionDestroy(&ceed_data->qf_applySur);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
 
@@ -649,5 +512,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
   ierr = PetscFree(ctxPhysData); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(ceed_data); CHKERRQ(ierr);
   return PetscFinalize();
 }

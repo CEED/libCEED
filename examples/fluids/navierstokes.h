@@ -89,6 +89,7 @@ typedef struct Units_private    *Units;
 typedef struct AppCtx_private   *AppCtx;
 typedef struct Physics_private  *Physics;
 typedef struct SimpleBC_private *SimpleBC;
+typedef struct CeedData_private *CeedData;
 
 // Boundary conditions
 struct SimpleBC_private {
@@ -176,6 +177,17 @@ struct AppCtx_private {
   char              file_path[PETSC_MAX_PATH_LEN];
 };
 
+// libCEED data struct
+struct CeedData_private {
+  CeedBasis            basisx, basisxc, basisq, basisxSur, basisxcSur, basisqSur;
+  CeedElemRestriction  restrictx, restrictq, restrictqdi;
+  CeedQFunction        qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol,
+                       qf_setupSur, qf_applySur;
+  CeedOperator         op_setupVol, op_ics;
+  CeedVector           xcorners, qdata, q0ceed;
+  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
+};
+
 // -----------------------------------------------------------------------------
 // Set up problems
 // -----------------------------------------------------------------------------
@@ -230,6 +242,9 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedQFunction qf_setupSur, CeedInt height, CeedInt numP_Sur, CeedInt numQ_Sur,
                                        CeedInt qdatasizeSur, CeedInt NqptsSur, CeedBasis basisxSur,
                                        CeedBasis basisqSur, CeedOperator *op_apply);
+
+PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
+                            AppCtx app_ctx, problemData *problem, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions
