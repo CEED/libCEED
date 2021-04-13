@@ -312,7 +312,13 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q, PetscScalar ftime);
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
+                           PetscScalar ftime);
+
+// Print output
+PetscErrorCode PrintOutput_NS(TS ts, CeedData ceed_data, DM dm,
+                              problemData *problem, AppCtx app_ctx,
+                              Vec Q, PetscScalar ftime);
 
 // -----------------------------------------------------------------------------
 #endif

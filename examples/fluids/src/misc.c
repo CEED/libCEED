@@ -5,7 +5,7 @@
 // -----------------------------------------------------------------------------
 
 int VectorPlacePetscVec(CeedVector c, Vec p) {
-  
+
   PetscInt mceed, mpetsc;
   PetscScalar *a;
   PetscErrorCode ierr;
@@ -25,10 +25,10 @@ int VectorPlacePetscVec(CeedVector c, Vec p) {
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
     Vec cellGeomFVM, Vec gradFVM) {
-  
+
   Vec Qbc;
   PetscErrorCode ierr;
-  
+
   PetscFunctionBegin;
 
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
@@ -75,8 +75,9 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscFunctionReturn(0);
 }
 
-  // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q, PetscScalar ftime) {
+// Get error for problems with exact solutions
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
+                           PetscScalar ftime) {
 
   PetscInt lnodes;
   Vec Qexact, Qexactloc;
@@ -92,7 +93,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q, Pet
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
                              ceed_data->q0ceed, dm, Qexactloc, Qexact,
                              ceed_data->restrictq, ceed_data->ctxSetup, ftime); CHKERRQ(ierr);
-  
+
   // Get |exact solution - obtained solution|
   ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
   ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
@@ -109,6 +110,39 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q, Pet
   CeedVectorDestroy(&ceed_data->q0ceed);
   ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
   ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+// Print output
+PetscErrorCode PrintOutput_NS(TS ts, CeedData ceed_data, DM dm,
+                              problemData *problem, AppCtx app_ctx,
+                              Vec Q, PetscScalar ftime) {
+  PetscInt steps;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  // Print relative error
+  if (problem->non_zero_time && !app_ctx->test_mode) {
+    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, ftime); CHKERRQ(ierr);
+  }
+
+  // Print final time and number of steps
+  ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
+  if (!app_ctx->test_mode) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Time integrator took %D time steps to reach final time %g\n",
+                       steps, (double)ftime); CHKERRQ(ierr);
+  }
+
+  // Output numerical values from command line
+  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
+
+  // Compare reference solution values with current test run for CI
+  if (app_ctx->test_mode) {
+    ierr = RegressionTests_NS(app_ctx, Q); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }

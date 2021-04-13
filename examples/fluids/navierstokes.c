@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   Physics ctxPhysData;
   AppCtx app_ctx;
   problemData   *problem = NULL;
-  PetscInt localNelemVol, lnodes, gnodes, steps;
+  PetscInt localNelemVol, lnodes, gnodes;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
@@ -356,25 +356,9 @@ int main(int argc, char **argv) {
                        (double)cpu_time_used); CHKERRQ(ierr);
   }
 
-  // Get error
-  if (problem->non_zero_time && !app_ctx->test_mode) {
-    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, ftime); CHKERRQ(ierr);
-  }
-
-  // Output Statistics
-  ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
-  if (!app_ctx->test_mode) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time integrator took %D time steps to reach final time %g\n",
-                       steps, (double)ftime); CHKERRQ(ierr);
-  }
-  // Output numerical values from command line
-  ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
-
-  // Compare reference solution values with current test run for CI
-  if (app_ctx->test_mode) {
-    ierr = RegressionTests_NS(app_ctx, Q); CHKERRQ(ierr);
-  }
+  // Print output
+  ierr = PrintOutput_NS(ts, ceed_data, dm, problem, app_ctx, Q, ftime);
+  CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Destroy libCEED objects
