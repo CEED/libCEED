@@ -51,7 +51,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
-  DM dm, dmcoord;
+  DM dm;
   TS ts;
   TSAdapt adapt;
   User user;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   Physics ctxPhysData;
   AppCtx app_ctx;
   problemData   *problem = NULL;
-  PetscInt localNelemVol, lnodes, gnodes;
+  PetscInt lnodes, gnodes;
   const PetscInt ncompq = 5;
   PetscMPIInt rank;
   PetscScalar ftime;
@@ -131,12 +131,6 @@ int main(int argc, char **argv) {
     ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
   }
 
-  const CeedInt dim = problem->dim,
-                ncompx = problem->dim,
-                qdatasizeVol = problem->qdatasizeVol,
-                numP = app_ctx->degree + 1,
-                numQ = numP + app_ctx->q_extra;
-
   // ---------------------------------------------------------------------------
   // Setup DM
   // ---------------------------------------------------------------------------
@@ -187,6 +181,8 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
     CeedInt gdofs, odofs;
+    const CeedInt numP = app_ctx->degree + 1,
+                  numQ = numP + app_ctx->q_extra;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
