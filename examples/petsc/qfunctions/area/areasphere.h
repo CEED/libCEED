@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factor required for integration when
 //   reference coordinates have a different dimension than the one of
 //   physical coordinates
@@ -48,17 +48,15 @@
 //   (by chain rule)
 //   dx_i/dX_j = dx_i/dxx_k * dxx_k/dX_j [3 * 2]
 //
-// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
+// mod_J is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
-// The quadrature data is stored in the array qdata.
+// The quadrature data is stored in the array q_data.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
 //
-// Qdata: modJ * w
+// Qdata: mod_J * w
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
@@ -66,7 +64,7 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
   // Inputs
   const CeedScalar *X = in[0], *J = in[1], *w = in[2];
   // Outputs
-  CeedScalar *qdata = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -90,24 +88,24 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                                    };
 
     // Setup
-    const CeedScalar modxxsq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
-    CeedScalar xxsq[3][3];
+    const CeedScalar mod_xx_sq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
+    CeedScalar xx_sq[3][3];
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++) {
-        xxsq[j][k] = 0;
+        xx_sq[j][k] = 0;
         for (int l=0; l<1; l++)
-          xxsq[j][k] += xx[j][l]*xx[k][l] / (sqrt(modxxsq) * modxxsq);
+          xx_sq[j][k] += xx[j][l]*xx[k][l] / (sqrt(mod_xx_sq) * mod_xx_sq);
       }
 
-    const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
-                                     -xxsq[0][1],
-                                     -xxsq[0][2]},
-                                    {-xxsq[1][0],
-                                     1./sqrt(modxxsq) - xxsq[1][1],
-                                     -xxsq[1][2]},
-                                    {-xxsq[2][0],
-                                     -xxsq[2][1],
-                                     1./sqrt(modxxsq) - xxsq[2][2]}
+    const CeedScalar dxdxx[3][3] = {{1./sqrt(mod_xx_sq) - xx_sq[0][0],
+                                     -xx_sq[0][1],
+                                     -xx_sq[0][2]},
+                                    {-xx_sq[1][0],
+                                     1./sqrt(mod_xx_sq) - xx_sq[1][1],
+                                     -xx_sq[1][2]},
+                                    {-xx_sq[2][0],
+                                     -xx_sq[2][1],
+                                     1./sqrt(mod_xx_sq) - xx_sq[2][2]}
                                    };
 
     CeedScalar dxdX[3][2];
@@ -124,9 +122,8 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                                 {dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]}
                                };
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
-    qdata[i+Q*0] = modJ * w[i];
-
+    const CeedScalar mod_J = sqrt(J[0][0]*J[0][0]+J[1][0]*J[1][0]+J[2][0]*J[2][0]);
+    q_data[i+Q*0] = mod_J * w[i];
   } // End of Quadrature Point Loop
   return 0;
 }

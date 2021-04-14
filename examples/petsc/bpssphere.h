@@ -14,33 +14,28 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-/// @file
-/// libCEED QFunctions for BP examples using PETSc
+#ifndef sphere_h
+#define sphere_h
 
-#ifndef common_h
-#define common_h
+#include "include/sphereproblemdata.h"
+#include "include/petscmacros.h"
+#include "include/petscutils.h"
+#include "include/matops.h"
+#include "include/libceedsetup.h"
+
+#include <ceed.h>
+#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscfe.h>
+#include <stdbool.h>
+#include <string.h>
 
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(Error)(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *error = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    error[i] = u[i] - target[i];
-  }
-  return 0;
-}
-
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION(Error3)(void *ctx, CeedInt Q,
-                       const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *target = in[1];
-  CeedScalar *error = out[0];
-  for (CeedInt i=0; i<3*Q; i++) {
-    error[i] = u[i] - target[i];
-  }
-  return 0;
-}
+// Command Line Options
 // -----------------------------------------------------------------------------
 
-#endif // common_h
+static const char *const bp_types[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
+                                       "BPType", "CEED_BP", 0
+                                      };
+
+#endif // sphere_h

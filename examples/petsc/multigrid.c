@@ -38,102 +38,36 @@
 /// CEED BPs 1-6 multigrid example using PETSc
 const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 
-#define multigrid
-#include "setup.h"
-
-// Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
-// smooth -- see the commented versions at the end.
-static double step(const double a, const double b, double x) {
-  if (x <= 0) return a;
-  if (x >= 1) return b;
-  return a + (b-a) * (x);
-}
-
-// 1D transformation at the right boundary
-static double right(const double eps, const double x) {
-  return (x <= 0.5) ? (2-eps) * x : 1 + eps*(x-1);
-}
-
-// 1D transformation at the left boundary
-static double left(const double eps, const double x) {
-  return 1-right(eps,1-x);
-}
-
-// Apply 3D Kershaw mesh transformation
-// The eps parameters are in (0, 1]
-// Uniform mesh is recovered for eps=1
-static PetscErrorCode kershaw(DM dmorig, PetscScalar eps) {
-  PetscErrorCode ierr;
-  Vec coord;
-  PetscInt ncoord;
-  PetscScalar *c;
-
-  PetscFunctionBeginUser;
-  ierr = DMGetCoordinatesLocal(dmorig, &coord); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(coord, &ncoord); CHKERRQ(ierr);
-  ierr = VecGetArray(coord, &c); CHKERRQ(ierr);
-
-  for (PetscInt i = 0; i < ncoord; i += 3) {
-    PetscScalar x = c[i], y = c[i+1], z = c[i+2];
-    PetscInt layer = x*6;
-    PetscScalar lambda = (x-layer/6.0)*6;
-    c[i] = x;
-
-    switch (layer) {
-    case 0:
-      c[i+1] = left(eps, y);
-      c[i+2] = left(eps, z);
-      break;
-    case 1:
-    case 4:
-      c[i+1] = step(left(eps, y), right(eps, y), lambda);
-      c[i+2] = step(left(eps, z), right(eps, z), lambda);
-      break;
-    case 2:
-      c[i+1] = step(right(eps, y), left(eps, y), lambda/2);
-      c[i+2] = step(right(eps, z), left(eps, z), lambda/2);
-      break;
-    case 3:
-      c[i+1] = step(right(eps, y), left(eps, y), (1+lambda)/2);
-      c[i+2] = step(right(eps, z), left(eps, z), (1+lambda)/2);
-      break;
-    default:
-      c[i+1] = right(eps, y);
-      c[i+2] = right(eps, z);
-    }
-  }
-  ierr = VecRestoreArray(coord, &c); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+#include "bps.h"
 
 int main(int argc, char **argv) {
   PetscInt ierr;
   MPI_Comm comm;
   char filename[PETSC_MAX_PATH_LEN],
-       ceedresource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+       ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   double my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree = 3, qextra, *lsize, *xlsize, *gsize, dim = 3, fineLevel,
-           melem[3] = {3, 3, 3}, ncompu = 1, numlevels = degree, *leveldegrees;
+  PetscInt degree = 3, q_extra, *l_size, *xl_size, *g_size, dim = 3, fine_level,
+           mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree, *level_degrees;
   PetscScalar *r;
   PetscScalar eps = 1.0;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
-  PetscLogStage solvestage;
-  DM  *dm, dmorig;
-  SNES snesdummy;
+  PetscLogStage solve_stage;
+  DM  *dm, dm_orig;
+  SNES snes_dummy;
   KSP ksp;
   PC pc;
-  Mat *matO, *matPR, matcoarse;
-  Vec *X, *Xloc, *mult, rhs, rhsloc;
-  PetscMemType memtype;
-  UserO *userO;
-  UserProlongRestr *userPR;
+  Mat *mat_O, *mat_pr, mat_coarse;
+  Vec *X, *X_loc, *mult, rhs, rhs_loc;
+  PetscMemType mem_type;
+  UserO *user_O;
+  UserProlongRestr *user_pr;
   Ceed ceed;
-  CeedData *ceeddata;
-  CeedVector rhsceed, target;
-  CeedQFunction qferror, qfrestrict, qfprolong;
-  CeedOperator operror;
-  bpType bpchoice;
-  coarsenType coarsen;
+  CeedData *ceed_data;
+  CeedVector rhs_ceed, target;
+  CeedQFunction qf_error, qf_restrict, qf_prolong;
+  CeedOperator op_error;
+  BPType bp_choice;
+  CoarsenType coarsen;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
@@ -141,12 +75,12 @@ int main(int argc, char **argv) {
 
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
-  bpchoice = CEED_BP3;
+  bp_choice = CEED_BP3;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
-                          bpTypes, (PetscEnum)bpchoice, (PetscEnum *)&bpchoice,
+                          bp_types, (PetscEnum)bp_choice, (PetscEnum *)&bp_choice,
                           NULL); CHKERRQ(ierr);
-  ncompu = bpOptions[bpchoice].ncompu;
+  num_comp_u = bp_options[bp_choice].num_comp_u;
   test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -171,16 +105,16 @@ int main(int argc, char **argv) {
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
                              "-degree %D must be at least 1", degree);
-  qextra = bpOptions[bpchoice].qextra;
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
-                         NULL, qextra, &qextra, NULL); CHKERRQ(ierr);
+  q_extra = bp_options[bp_choice].q_extra;
+  ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
+                         NULL, q_extra, &q_extra, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
-                            NULL, ceedresource, ceedresource,
-                            sizeof(ceedresource), NULL); CHKERRQ(ierr);
+                            NULL, ceed_resource, ceed_resource,
+                            sizeof(ceed_resource), NULL); CHKERRQ(ierr);
   coarsen = COARSEN_UNIFORM;
   ierr = PetscOptionsEnum("-coarsen",
                           "Coarsening strategy to use", NULL,
-                          coarsenTypes, (PetscEnum)coarsen,
+                          coarsen_types, (PetscEnum)coarsen,
                           (PetscEnum *)&coarsen, NULL); CHKERRQ(ierr);
   read_mesh = PETSC_FALSE;
   ierr = PetscOptionsString("-mesh", "Read mesh from file", NULL,
@@ -189,140 +123,143 @@ int main(int argc, char **argv) {
   if (!read_mesh) {
     PetscInt tmp = dim;
     ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
-                                melem, &tmp, NULL); CHKERRQ(ierr);
+                                mesh_elem, &tmp, NULL); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Set up libCEED
-  CeedInit(ceedresource, &ceed);
-  CeedMemType memtypebackend;
-  CeedGetPreferredMemType(ceed, &memtypebackend);
+  CeedInit(ceed_resource, &ceed);
+  CeedMemType mem_type_backend;
+  CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   // Setup DM
   if (read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dmorig);
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm_orig);
     CHKERRQ(ierr);
   } else {
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, melem, NULL,
-                               NULL, NULL, PETSC_TRUE,&dmorig); CHKERRQ(ierr);
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, mesh_elem, NULL,
+                               NULL, NULL, PETSC_TRUE, &dm_orig); CHKERRQ(ierr);
   }
 
   {
-    DM dmDist = NULL;
+    DM dm_dist = NULL;
     PetscPartitioner part;
 
-    ierr = DMPlexGetPartitioner(dmorig, &part); CHKERRQ(ierr);
+    ierr = DMPlexGetPartitioner(dm_orig, &part); CHKERRQ(ierr);
     ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dmorig, 0, NULL, &dmDist); CHKERRQ(ierr);
-    if (dmDist) {
-      ierr = DMDestroy(&dmorig); CHKERRQ(ierr);
-      dmorig = dmDist;
+    ierr = DMPlexDistribute(dm_orig, 0, NULL, &dm_dist); CHKERRQ(ierr);
+    if (dm_dist) {
+      ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
+      dm_orig = dm_dist;
     }
   }
 
-  // apply Kershaw mesh transformation
-  ierr = kershaw(dmorig, eps); CHKERRQ(ierr);
+  // Apply Kershaw mesh transformation
+  ierr = Kershaw(dm_orig, eps); CHKERRQ(ierr);
 
-  VecType vectype;
-  switch (memtypebackend) {
-  case CEED_MEM_HOST: vectype = VECSTANDARD; break;
+  VecType vec_type;
+  switch (mem_type_backend) {
+  case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
   case CEED_MEM_DEVICE: {
     const char *resolved;
     CeedGetResource(ceed, &resolved);
-    if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
+    if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
     else if (strstr(resolved, "/gpu/hip/occa"))
-      vectype = VECSTANDARD; // https://github.com/CEED/libCEED/issues/678
-    else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
-    else vectype = VECSTANDARD;
+      vec_type = VECSTANDARD; // https://github.com/CEED/libCEED/issues/678
+    else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+    else vec_type = VECSTANDARD;
   }
   }
-  ierr = DMSetVecType(dmorig, vectype); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dmorig); CHKERRQ(ierr);
+  ierr = DMSetVecType(dm_orig, vec_type); CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm_orig); CHKERRQ(ierr);
 
   // Allocate arrays for PETSc objects for each level
   switch (coarsen) {
   case COARSEN_UNIFORM:
-    numlevels = degree;
+    num_levels = degree;
     break;
   case COARSEN_LOGARITHMIC:
-    numlevels = ceil(log(degree)/log(2)) + 1;
+    num_levels = ceil(log(degree)/log(2)) + 1;
     break;
   }
-  ierr = PetscMalloc1(numlevels, &leveldegrees); CHKERRQ(ierr);
-  fineLevel = numlevels - 1;
+  ierr = PetscMalloc1(num_levels, &level_degrees); CHKERRQ(ierr);
+  fine_level = num_levels - 1;
 
   switch (coarsen) {
   case COARSEN_UNIFORM:
-    for (int i=0; i<numlevels; i++) leveldegrees[i] = i + 1;
+    for (int i=0; i<num_levels; i++) level_degrees[i] = i + 1;
     break;
   case COARSEN_LOGARITHMIC:
-    for (int i=0; i<numlevels - 1; i++) leveldegrees[i] = pow(2,i);
-    leveldegrees[fineLevel] = degree;
+    for (int i=0; i<num_levels - 1; i++) level_degrees[i] = pow(2,i);
+    level_degrees[fine_level] = degree;
     break;
   }
-  ierr = PetscMalloc1(numlevels, &dm); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &X); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &Xloc); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &mult); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &userO); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &userPR); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &matO); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &matPR); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &lsize); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &xlsize); CHKERRQ(ierr);
-  ierr = PetscMalloc1(numlevels, &gsize); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &dm); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &X); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &X_loc); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &mult); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &user_O); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &user_pr); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &mat_O); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &mat_pr); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &l_size); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &xl_size); CHKERRQ(ierr);
+  ierr = PetscMalloc1(num_levels, &g_size); CHKERRQ(ierr);
 
   // Setup DM and Operator Mat Shells for each level
-  for (CeedInt i=0; i<numlevels; i++) {
+  for (CeedInt i=0; i<num_levels; i++) {
     // Create DM
-    ierr = DMClone(dmorig, &dm[i]); CHKERRQ(ierr);
-    ierr = DMGetVecType(dmorig, &vectype); CHKERRQ(ierr);
-    ierr = DMSetVecType(dm[i], vectype); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], leveldegrees[i], ncompu, bpchoice);
+    ierr = DMClone(dm_orig, &dm[i]); CHKERRQ(ierr);
+    ierr = DMGetVecType(dm_orig, &vec_type); CHKERRQ(ierr);
+    ierr = DMSetVecType(dm[i], vec_type); CHKERRQ(ierr);
+    PetscInt dim;
+    ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm[i], level_degrees[i], num_comp_u, dim,
+                           bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func);
     CHKERRQ(ierr);
 
     // Create vectors
     ierr = DMCreateGlobalVector(dm[i], &X[i]); CHKERRQ(ierr);
-    ierr = VecGetLocalSize(X[i], &lsize[i]); CHKERRQ(ierr);
-    ierr = VecGetSize(X[i], &gsize[i]); CHKERRQ(ierr);
-    ierr = DMCreateLocalVector(dm[i], &Xloc[i]); CHKERRQ(ierr);
-    ierr = VecGetSize(Xloc[i], &xlsize[i]); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(X[i], &l_size[i]); CHKERRQ(ierr);
+    ierr = VecGetSize(X[i], &g_size[i]); CHKERRQ(ierr);
+    ierr = DMCreateLocalVector(dm[i], &X_loc[i]); CHKERRQ(ierr);
+    ierr = VecGetSize(X_loc[i], &xl_size[i]); CHKERRQ(ierr);
 
     // Operator
-    ierr = PetscMalloc1(1, &userO[i]); CHKERRQ(ierr);
-    ierr = MatCreateShell(comm, lsize[i], lsize[i], gsize[i], gsize[i],
-                          userO[i], &matO[i]); CHKERRQ(ierr);
-    ierr = MatShellSetOperation(matO[i], MATOP_MULT,
+    ierr = PetscMalloc1(1, &user_O[i]); CHKERRQ(ierr);
+    ierr = MatCreateShell(comm, l_size[i], l_size[i], g_size[i], g_size[i],
+                          user_O[i], &mat_O[i]); CHKERRQ(ierr);
+    ierr = MatShellSetOperation(mat_O[i], MATOP_MULT,
                                 (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
-    ierr = MatShellSetOperation(matO[i], MATOP_GET_DIAGONAL,
+    ierr = MatShellSetOperation(mat_O[i], MATOP_GET_DIAGONAL,
                                 (void(*)(void))MatGetDiag); CHKERRQ(ierr);
-    ierr = MatShellSetVecType(matO[i], vectype); CHKERRQ(ierr);
+    ierr = MatShellSetVecType(mat_O[i], vec_type); CHKERRQ(ierr);
 
     // Level transfers
     if (i > 0) {
       // Interp
-      ierr = PetscMalloc1(1, &userPR[i]); CHKERRQ(ierr);
-      ierr = MatCreateShell(comm, lsize[i], lsize[i-1], gsize[i], gsize[i-1],
-                            userPR[i], &matPR[i]); CHKERRQ(ierr);
-      ierr = MatShellSetOperation(matPR[i], MATOP_MULT,
+      ierr = PetscMalloc1(1, &user_pr[i]); CHKERRQ(ierr);
+      ierr = MatCreateShell(comm, l_size[i], l_size[i-1], g_size[i], g_size[i-1],
+                            user_pr[i], &mat_pr[i]); CHKERRQ(ierr);
+      ierr = MatShellSetOperation(mat_pr[i], MATOP_MULT,
                                   (void(*)(void))MatMult_Prolong);
       CHKERRQ(ierr);
-      ierr = MatShellSetOperation(matPR[i], MATOP_MULT_TRANSPOSE,
+      ierr = MatShellSetOperation(mat_pr[i], MATOP_MULT_TRANSPOSE,
                                   (void(*)(void))MatMult_Restrict);
       CHKERRQ(ierr);
-      ierr = MatShellSetVecType(matPR[i], vectype); CHKERRQ(ierr);
+      ierr = MatShellSetVecType(mat_pr[i], vec_type); CHKERRQ(ierr);
     }
   }
-  ierr = VecDuplicate(X[fineLevel], &rhs); CHKERRQ(ierr);
+  ierr = VecDuplicate(X[fine_level], &rhs); CHKERRQ(ierr);
 
   // Print global grid information
   if (!test_mode) {
-    PetscInt P = degree + 1, Q = P + qextra;
+    PetscInt P = degree + 1, Q = P + q_extra;
 
-    const char *usedresource;
-    CeedGetResource(ceed, &usedresource);
+    const char *used_resource;
+    CeedGetResource(ceed, &used_resource);
 
-    ierr = VecGetType(X[0], &vectype); CHKERRQ(ierr);
+    ierr = VecGetType(X[0], &vec_type); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %d -- libCEED + PETSc + PCMG --\n"
@@ -339,98 +276,99 @@ int main(int argc, char **argv) {
                        "    DoF per node                       : %D\n"
                        "  Multigrid:\n"
                        "    Number of Levels                   : %d\n",
-                       bpchoice+1, vectype, usedresource,
-                       CeedMemTypes[memtypebackend],
-                       P, Q, gsize[fineLevel]/ncompu, lsize[fineLevel]/ncompu,
-                       ncompu, numlevels); CHKERRQ(ierr);
+                       bp_choice+1, vec_type, used_resource,
+                       CeedMemTypes[mem_type_backend],
+                       P, Q, g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
+                       num_comp_u, num_levels); CHKERRQ(ierr);
   }
 
   // Create RHS vector
-  ierr = VecDuplicate(Xloc[fineLevel], &rhsloc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(rhsloc); CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(rhsloc, &r, &memtype); CHKERRQ(ierr);
-  CeedVectorCreate(ceed, xlsize[fineLevel], &rhsceed);
-  CeedVectorSetArray(rhsceed, MemTypeP2C(memtype), CEED_USE_POINTER, r);
+  ierr = VecDuplicate(X_loc[fine_level], &rhs_loc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(rhs_loc); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(rhs_loc, &r, &mem_type); CHKERRQ(ierr);
+  CeedVectorCreate(ceed, xl_size[fine_level], &rhs_ceed);
+  CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
 
   // Set up libCEED operators on each level
-  ierr = PetscMalloc1(numlevels, &ceeddata); CHKERRQ(ierr);
-  for (int i=0; i<numlevels; i++) {
+  ierr = PetscMalloc1(num_levels, &ceed_data); CHKERRQ(ierr);
+  for (int i=0; i<num_levels; i++) {
     // Print level information
-    if (!test_mode && (i == 0 || i == fineLevel)) {
+    if (!test_mode && (i == 0 || i == fine_level)) {
       ierr = PetscPrintf(comm,"    Level %D (%s):\n"
                          "      Number of 1D Basis Nodes (p)     : %d\n"
                          "      Global Nodes                     : %D\n"
                          "      Owned Nodes                      : %D\n",
-                         i, (i? "fine" : "coarse"), leveldegrees[i] + 1,
-                         gsize[i]/ncompu, lsize[i]/ncompu); CHKERRQ(ierr);
+                         i, (i? "fine" : "coarse"), level_degrees[i] + 1,
+                         g_size[i]/num_comp_u, l_size[i]/num_comp_u); CHKERRQ(ierr);
     }
-    ierr = PetscMalloc1(1, &ceeddata[i]); CHKERRQ(ierr);
-    ierr = SetupLibceedByDegree(dm[i], ceed, leveldegrees[i], dim, qextra,
-                                ncompu, gsize[i], xlsize[i], bpchoice,
-                                ceeddata[i], i==(fineLevel), rhsceed, &target);
+    ierr = PetscMalloc1(1, &ceed_data[i]); CHKERRQ(ierr);
+    ierr = SetupLibceedByDegree(dm[i], ceed, level_degrees[i], dim, q_extra,
+                                dim, num_comp_u, g_size[i], xl_size[i], bp_options[bp_choice],
+                                ceed_data[i], i==(fine_level), rhs_ceed, &target);
     CHKERRQ(ierr);
   }
 
   // Gather RHS
-  CeedVectorTakeArray(rhsceed, MemTypeP2C(memtype), NULL);
-  ierr = VecRestoreArrayAndMemType(rhsloc, &r); CHKERRQ(ierr);
+  CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
+  ierr = VecRestoreArrayAndMemType(rhs_loc, &r); CHKERRQ(ierr);
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm[fineLevel], rhsloc, ADD_VALUES, rhs); CHKERRQ(ierr);
-  CeedVectorDestroy(&rhsceed);
+  ierr = DMLocalToGlobal(dm[fine_level], rhs_loc, ADD_VALUES, rhs); CHKERRQ(ierr);
+  CeedVectorDestroy(&rhs_ceed);
 
   // Create the restriction/interpolation QFunction
-  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                              &qfrestrict);
-  CeedQFunctionCreateIdentity(ceed, ncompu, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                              &qfprolong);
+  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_NONE, CEED_EVAL_INTERP,
+                              &qf_restrict);
+  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_INTERP, CEED_EVAL_NONE,
+                              &qf_prolong);
 
   // Set up libCEED level transfer operators
-  ierr = CeedLevelTransferSetup(ceed, numlevels, ncompu, bpchoice, ceeddata,
-                                leveldegrees, qfrestrict, qfprolong);
-  CHKERRQ(ierr);
+  ierr = CeedLevelTransferSetup(ceed, num_levels, num_comp_u, ceed_data,
+                                level_degrees,
+                                qf_restrict, qf_prolong); CHKERRQ(ierr);
 
   // Create the error QFunction
-  CeedQFunctionCreateInterior(ceed, 1, bpOptions[bpchoice].error,
-                              bpOptions[bpchoice].errorfname, &qferror);
-  CeedQFunctionAddInput(qferror, "u", ncompu, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qferror, "true_soln", ncompu, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qferror, "error", ncompu, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, bp_options[bp_choice].error,
+                              bp_options[bp_choice].error_loc, &qf_error);
+  CeedQFunctionAddInput(qf_error, "u", num_comp_u, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
 
   // Create the error operator
-  CeedOperatorCreate(ceed, qferror, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
-                     &operror);
-  CeedOperatorSetField(operror, "u", ceeddata[fineLevel]->Erestrictu,
-                       ceeddata[fineLevel]->basisu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(operror, "true_soln", ceeddata[fineLevel]->Erestrictui,
+  CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                     &op_error);
+  CeedOperatorSetField(op_error, "u", ceed_data[fine_level]->elem_restr_u,
+                       ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln",
+                       ceed_data[fine_level]->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(operror, "error", ceeddata[fineLevel]->Erestrictui,
+  CeedOperatorSetField(op_error, "error", ceed_data[fine_level]->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
-  for (int i=0; i<numlevels; i++) {
+  for (int i=0; i<num_levels; i++) {
     PetscScalar *x;
 
     // CEED vector
-    ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
-    ierr = VecGetArray(Xloc[i], &x); CHKERRQ(ierr);
-    CeedVectorSetArray(ceeddata[i]->xceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+    ierr = VecZeroEntries(X_loc[i]); CHKERRQ(ierr);
+    ierr = VecGetArray(X_loc[i], &x); CHKERRQ(ierr);
+    CeedVectorSetArray(ceed_data[i]->x_ceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
     // Multiplicity
-    CeedElemRestrictionGetMultiplicity(ceeddata[i]->Erestrictu,
-                                       ceeddata[i]->xceed);
-    CeedVectorSyncArray(ceeddata[i]->xceed, CEED_MEM_HOST);
+    CeedElemRestrictionGetMultiplicity(ceed_data[i]->elem_restr_u,
+                                       ceed_data[i]->x_ceed);
+    CeedVectorSyncArray(ceed_data[i]->x_ceed, CEED_MEM_HOST);
 
     // Restore vector
-    ierr = VecRestoreArray(Xloc[i], &x); CHKERRQ(ierr);
+    ierr = VecRestoreArray(X_loc[i], &x); CHKERRQ(ierr);
 
     // Creat mult vector
-    ierr = VecDuplicate(Xloc[i], &mult[i]); CHKERRQ(ierr);
+    ierr = VecDuplicate(X_loc[i], &mult[i]); CHKERRQ(ierr);
 
     // Local-to-global
     ierr = VecZeroEntries(X[i]); CHKERRQ(ierr);
-    ierr = DMLocalToGlobal(dm[i], Xloc[i], ADD_VALUES, X[i]);
+    ierr = DMLocalToGlobal(dm[i], X_loc[i], ADD_VALUES, X[i]);
     CHKERRQ(ierr);
-    ierr = VecZeroEntries(Xloc[i]); CHKERRQ(ierr);
+    ierr = VecZeroEntries(X_loc[i]); CHKERRQ(ierr);
 
     // Global-to-local
     ierr = DMGlobalToLocal(dm[i], X[i], INSERT_VALUES, mult[i]);
@@ -442,51 +380,51 @@ int main(int argc, char **argv) {
   }
 
   // Set up Mat
-  for (int i=0; i<numlevels; i++) {
+  for (int i=0; i<num_levels; i++) {
     // User Operator
-    userO[i]->comm = comm;
-    userO[i]->dm = dm[i];
-    userO[i]->Xloc = Xloc[i];
-    ierr = VecDuplicate(Xloc[i], &userO[i]->Yloc); CHKERRQ(ierr);
-    userO[i]->xceed = ceeddata[i]->xceed;
-    userO[i]->yceed = ceeddata[i]->yceed;
-    userO[i]->op = ceeddata[i]->opapply;
-    userO[i]->ceed = ceed;
+    user_O[i]->comm = comm;
+    user_O[i]->dm = dm[i];
+    user_O[i]->X_loc = X_loc[i];
+    ierr = VecDuplicate(X_loc[i], &user_O[i]->Y_loc); CHKERRQ(ierr);
+    user_O[i]->x_ceed = ceed_data[i]->x_ceed;
+    user_O[i]->y_ceed = ceed_data[i]->y_ceed;
+    user_O[i]->op = ceed_data[i]->op_apply;
+    user_O[i]->ceed = ceed;
 
     if (i > 0) {
       // Prolongation/Restriction Operator
-      userPR[i]->comm = comm;
-      userPR[i]->dmf = dm[i];
-      userPR[i]->dmc = dm[i-1];
-      userPR[i]->locvecc = Xloc[i-1];
-      userPR[i]->locvecf = userO[i]->Yloc;
-      userPR[i]->multvec = mult[i];
-      userPR[i]->ceedvecc = userO[i-1]->xceed;
-      userPR[i]->ceedvecf = userO[i]->yceed;
-      userPR[i]->opprolong = ceeddata[i]->opprolong;
-      userPR[i]->oprestrict = ceeddata[i]->oprestrict;
-      userPR[i]->ceed = ceed;
+      user_pr[i]->comm = comm;
+      user_pr[i]->dmf = dm[i];
+      user_pr[i]->dmc = dm[i-1];
+      user_pr[i]->loc_vec_c = X_loc[i-1];
+      user_pr[i]->loc_vec_f = user_O[i]->Y_loc;
+      user_pr[i]->mult_vec = mult[i];
+      user_pr[i]->ceed_vec_c = user_O[i-1]->x_ceed;
+      user_pr[i]->ceed_vec_f = user_O[i]->y_ceed;
+      user_pr[i]->op_prolong = ceed_data[i]->op_prolong;
+      user_pr[i]->op_restrict = ceed_data[i]->op_restrict;
+      user_pr[i]->ceed = ceed;
     }
   }
 
   // Setup dummy SNES for AMG coarse solve
-  ierr = SNESCreate(comm, &snesdummy); CHKERRQ(ierr);
-  ierr = SNESSetDM(snesdummy, dm[0]); CHKERRQ(ierr);
-  ierr = SNESSetSolution(snesdummy, X[0]); CHKERRQ(ierr);
+  ierr = SNESCreate(comm, &snes_dummy); CHKERRQ(ierr);
+  ierr = SNESSetDM(snes_dummy, dm[0]); CHKERRQ(ierr);
+  ierr = SNESSetSolution(snes_dummy, X[0]); CHKERRQ(ierr);
 
   // -- Jacobian matrix
   ierr = DMSetMatType(dm[0], MATAIJ); CHKERRQ(ierr);
-  ierr = DMCreateMatrix(dm[0], &matcoarse); CHKERRQ(ierr);
-  ierr = SNESSetJacobian(snesdummy, matcoarse, matcoarse, NULL,
+  ierr = DMCreateMatrix(dm[0], &mat_coarse); CHKERRQ(ierr);
+  ierr = SNESSetJacobian(snes_dummy, mat_coarse, mat_coarse, NULL,
                          NULL); CHKERRQ(ierr);
 
   // -- Residual evaluation function
-  ierr = SNESSetFunction(snesdummy, X[0], FormResidual_Ceed,
-                         userO[0]); CHKERRQ(ierr);
+  ierr = SNESSetFunction(snes_dummy, X[0], FormResidual_Ceed,
+                         user_O[0]); CHKERRQ(ierr);
 
   // -- Form Jacobian
-  ierr = SNESComputeJacobianDefaultColor(snesdummy, X[0], matO[0],
-                                         matcoarse, NULL); CHKERRQ(ierr);
+  ierr = SNESComputeJacobianDefaultColor(snes_dummy, X[0], mat_O[0],
+                                         mat_coarse, NULL); CHKERRQ(ierr);
 
   // Set up KSP
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -497,18 +435,18 @@ int main(int argc, char **argv) {
                             PETSC_DEFAULT); CHKERRQ(ierr);
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
-  ierr = KSPSetOperators(ksp, matO[fineLevel], matO[fineLevel]);
+  ierr = KSPSetOperators(ksp, mat_O[fine_level], mat_O[fine_level]);
   CHKERRQ(ierr);
 
   // Set up PCMG
   ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
-  PCMGCycleType pcgmcycletype = PC_MG_CYCLE_V;
+  PCMGCycleType pcmg_cycle_type = PC_MG_CYCLE_V;
   {
     ierr = PCSetType(pc, PCMG); CHKERRQ(ierr);
 
     // PCMG levels
-    ierr = PCMGSetLevels(pc, numlevels, NULL); CHKERRQ(ierr);
-    for (int i=0; i<numlevels; i++) {
+    ierr = PCMGSetLevels(pc, num_levels, NULL); CHKERRQ(ierr);
+    for (int i=0; i<num_levels; i++) {
       // Smoother
       KSP smoother;
       PC smoother_pc;
@@ -516,20 +454,20 @@ int main(int argc, char **argv) {
       ierr = KSPSetType(smoother, KSPCHEBYSHEV); CHKERRQ(ierr);
       ierr = KSPChebyshevEstEigSet(smoother, 0, 0.1, 0, 1.1); CHKERRQ(ierr);
       ierr = KSPChebyshevEstEigSetUseNoisy(smoother, PETSC_TRUE); CHKERRQ(ierr);
-      ierr = KSPSetOperators(smoother, matO[i], matO[i]); CHKERRQ(ierr);
+      ierr = KSPSetOperators(smoother, mat_O[i], mat_O[i]); CHKERRQ(ierr);
       ierr = KSPGetPC(smoother, &smoother_pc); CHKERRQ(ierr);
       ierr = PCSetType(smoother_pc, PCJACOBI); CHKERRQ(ierr);
       ierr = PCJacobiSetType(smoother_pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
 
       // Work vector
-      if (i < numlevels - 1) {
+      if (i < num_levels - 1) {
         ierr = PCMGSetX(pc, i, X[i]); CHKERRQ(ierr);
       }
 
       // Level transfers
       if (i > 0) {
         // Interpolation
-        ierr = PCMGSetInterpolation(pc, i, matPR[i]); CHKERRQ(ierr);
+        ierr = PCMGSetInterpolation(pc, i, mat_pr[i]); CHKERRQ(ierr);
       }
 
       // Coarse solve
@@ -537,7 +475,7 @@ int main(int argc, char **argv) {
       PC coarse_pc;
       ierr = PCMGGetCoarseSolve(pc, &coarse); CHKERRQ(ierr);
       ierr = KSPSetType(coarse, KSPPREONLY); CHKERRQ(ierr);
-      ierr = KSPSetOperators(coarse, matcoarse, matcoarse); CHKERRQ(ierr);
+      ierr = KSPSetOperators(coarse, mat_coarse, mat_coarse); CHKERRQ(ierr);
 
       ierr = KSPGetPC(coarse, &coarse_pc); CHKERRQ(ierr);
       ierr = PCSetType(coarse_pc, PCGAMG); CHKERRQ(ierr);
@@ -551,16 +489,16 @@ int main(int argc, char **argv) {
     // PCMG options
     ierr = PCMGSetType(pc, PC_MG_MULTIPLICATIVE); CHKERRQ(ierr);
     ierr = PCMGSetNumberSmooth(pc, 3); CHKERRQ(ierr);
-    ierr = PCMGSetCycleType(pc, pcgmcycletype); CHKERRQ(ierr);
+    ierr = PCMGSetCycleType(pc, pcmg_cycle_type); CHKERRQ(ierr);
   }
 
   // First run, if benchmarking
   if (benchmark_mode) {
     ierr = KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1);
     CHKERRQ(ierr);
-    ierr = VecZeroEntries(X[fineLevel]); CHKERRQ(ierr);
+    ierr = VecZeroEntries(X[fine_level]); CHKERRQ(ierr);
     my_rt_start = MPI_Wtime();
-    ierr = KSPSolve(ksp, rhs, X[fineLevel]); CHKERRQ(ierr);
+    ierr = KSPSolve(ksp, rhs, X[fine_level]); CHKERRQ(ierr);
     my_rt = MPI_Wtime() - my_rt_start;
     ierr = MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm);
     CHKERRQ(ierr);
@@ -575,16 +513,16 @@ int main(int argc, char **argv) {
   }
 
   // Timed solve
-  ierr = VecZeroEntries(X[fineLevel]); CHKERRQ(ierr);
+  ierr = VecZeroEntries(X[fine_level]); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
 
   // -- Performance logging
-  ierr = PetscLogStageRegister("Solve Stage", &solvestage); CHKERRQ(ierr);
-  ierr = PetscLogStagePush(solvestage); CHKERRQ(ierr);
+  ierr = PetscLogStageRegister("Solve Stage", &solve_stage); CHKERRQ(ierr);
+  ierr = PetscLogStagePush(solve_stage); CHKERRQ(ierr);
 
   // -- Solve
   my_rt_start = MPI_Wtime();
-  ierr = KSPSolve(ksp, rhs, X[fineLevel]); CHKERRQ(ierr);
+  ierr = KSPSolve(ksp, rhs, X[fine_level]); CHKERRQ(ierr);
   my_rt = MPI_Wtime() - my_rt_start;
 
 
@@ -593,16 +531,16 @@ int main(int argc, char **argv) {
 
   // Output results
   {
-    KSPType ksptype;
-    PCMGType pcmgtype;
+    KSPType ksp_type;
+    PCMGType pcmg_type;
     KSPConvergedReason reason;
     PetscReal rnorm;
     PetscInt its;
-    ierr = KSPGetType(ksp, &ksptype); CHKERRQ(ierr);
+    ierr = KSPGetType(ksp, &ksp_type); CHKERRQ(ierr);
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    ierr = PCMGGetType(pc, &pcmgtype); CHKERRQ(ierr);
+    ierr = PCMGGetType(pc, &pcmg_type); CHKERRQ(ierr);
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
@@ -610,24 +548,24 @@ int main(int argc, char **argv) {
                          "    KSP Convergence                    : %s\n"
                          "    Total KSP Iterations               : %D\n"
                          "    Final rnorm                        : %e\n",
-                         ksptype, KSPConvergedReasons[reason], its,
+                         ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
                          "  PCMG:\n"
                          "    PCMG Type                          : %s\n"
                          "    PCMG Cycle Type                    : %s\n",
-                         PCMGTypes[pcmgtype],
-                         PCMGCycleTypes[pcgmcycletype]); CHKERRQ(ierr);
+                         PCMGTypes[pcmg_type],
+                         PCMGCycleTypes[pcmg_cycle_type]); CHKERRQ(ierr);
     }
     if (!test_mode) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
-      PetscReal maxerror;
-      ierr = ComputeErrorMax(userO[fineLevel], operror, X[fineLevel], target,
-                             &maxerror); CHKERRQ(ierr);
+      PetscReal max_error;
+      ierr = ComputeErrorMax(user_O[fine_level], op_error, X[fine_level], target,
+                             &max_error); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
-      if (!test_mode || maxerror > tol) {
+      if (!test_mode || max_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
@@ -635,67 +573,67 @@ int main(int argc, char **argv) {
         ierr = PetscPrintf(comm,
                            "    Pointwise Error (max)              : %e\n"
                            "    CG Solve Time                      : %g (%g) sec\n",
-                           (double)maxerror, rt_max, rt_min); CHKERRQ(ierr);
+                           (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
                          "    DoFs/Sec in CG                     : %g (%g) million\n",
-                         1e-6*gsize[fineLevel]*its/rt_max,
-                         1e-6*gsize[fineLevel]*its/rt_min);
+                         1e-6*g_size[fine_level]*its/rt_max,
+                         1e-6*g_size[fine_level]*its/rt_min);
       CHKERRQ(ierr);
     }
   }
 
   if (write_solution) {
-    PetscViewer vtkviewersoln;
+    PetscViewer vtk_viewer_soln;
 
-    ierr = PetscViewerCreate(comm, &vtkviewersoln); CHKERRQ(ierr);
-    ierr = PetscViewerSetType(vtkviewersoln, PETSCVIEWERVTK); CHKERRQ(ierr);
-    ierr = PetscViewerFileSetName(vtkviewersoln, "solution.vtu"); CHKERRQ(ierr);
-    ierr = VecView(X[fineLevel], vtkviewersoln); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&vtkviewersoln); CHKERRQ(ierr);
+    ierr = PetscViewerCreate(comm, &vtk_viewer_soln); CHKERRQ(ierr);
+    ierr = PetscViewerSetType(vtk_viewer_soln, PETSCVIEWERVTK); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(vtk_viewer_soln, "solution.vtu"); CHKERRQ(ierr);
+    ierr = VecView(X[fine_level], vtk_viewer_soln); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&vtk_viewer_soln); CHKERRQ(ierr);
   }
 
   // Cleanup
-  for (int i=0; i<numlevels; i++) {
+  for (int i=0; i<num_levels; i++) {
     ierr = VecDestroy(&X[i]); CHKERRQ(ierr);
-    ierr = VecDestroy(&Xloc[i]); CHKERRQ(ierr);
+    ierr = VecDestroy(&X_loc[i]); CHKERRQ(ierr);
     ierr = VecDestroy(&mult[i]); CHKERRQ(ierr);
-    ierr = VecDestroy(&userO[i]->Yloc); CHKERRQ(ierr);
-    ierr = MatDestroy(&matO[i]); CHKERRQ(ierr);
-    ierr = PetscFree(userO[i]); CHKERRQ(ierr);
+    ierr = VecDestroy(&user_O[i]->Y_loc); CHKERRQ(ierr);
+    ierr = MatDestroy(&mat_O[i]); CHKERRQ(ierr);
+    ierr = PetscFree(user_O[i]); CHKERRQ(ierr);
     if (i > 0) {
-      ierr = MatDestroy(&matPR[i]); CHKERRQ(ierr);
-      ierr = PetscFree(userPR[i]); CHKERRQ(ierr);
+      ierr = MatDestroy(&mat_pr[i]); CHKERRQ(ierr);
+      ierr = PetscFree(user_pr[i]); CHKERRQ(ierr);
     }
-    ierr = CeedDataDestroy(i, ceeddata[i]); CHKERRQ(ierr);
+    ierr = CeedDataDestroy(i, ceed_data[i]); CHKERRQ(ierr);
     ierr = DMDestroy(&dm[i]); CHKERRQ(ierr);
   }
-  ierr = PetscFree(leveldegrees); CHKERRQ(ierr);
+  ierr = PetscFree(level_degrees); CHKERRQ(ierr);
   ierr = PetscFree(dm); CHKERRQ(ierr);
   ierr = PetscFree(X); CHKERRQ(ierr);
-  ierr = PetscFree(Xloc); CHKERRQ(ierr);
+  ierr = PetscFree(X_loc); CHKERRQ(ierr);
   ierr = PetscFree(mult); CHKERRQ(ierr);
-  ierr = PetscFree(matO); CHKERRQ(ierr);
-  ierr = PetscFree(matPR); CHKERRQ(ierr);
-  ierr = PetscFree(ceeddata); CHKERRQ(ierr);
-  ierr = PetscFree(userO); CHKERRQ(ierr);
-  ierr = PetscFree(userPR); CHKERRQ(ierr);
-  ierr = PetscFree(lsize); CHKERRQ(ierr);
-  ierr = PetscFree(xlsize); CHKERRQ(ierr);
-  ierr = PetscFree(gsize); CHKERRQ(ierr);
+  ierr = PetscFree(mat_O); CHKERRQ(ierr);
+  ierr = PetscFree(mat_pr); CHKERRQ(ierr);
+  ierr = PetscFree(ceed_data); CHKERRQ(ierr);
+  ierr = PetscFree(user_O); CHKERRQ(ierr);
+  ierr = PetscFree(user_pr); CHKERRQ(ierr);
+  ierr = PetscFree(l_size); CHKERRQ(ierr);
+  ierr = PetscFree(xl_size); CHKERRQ(ierr);
+  ierr = PetscFree(g_size); CHKERRQ(ierr);
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
-  ierr = VecDestroy(&rhsloc); CHKERRQ(ierr);
-  ierr = MatDestroy(&matcoarse); CHKERRQ(ierr);
+  ierr = VecDestroy(&rhs_loc); CHKERRQ(ierr);
+  ierr = MatDestroy(&mat_coarse); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
-  ierr = SNESDestroy(&snesdummy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dmorig); CHKERRQ(ierr);
+  ierr = SNESDestroy(&snes_dummy); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
-  CeedQFunctionDestroy(&qferror);
-  CeedQFunctionDestroy(&qfrestrict);
-  CeedQFunctionDestroy(&qfprolong);
-  CeedOperatorDestroy(&operror);
+  CeedQFunctionDestroy(&qf_error);
+  CeedQFunctionDestroy(&qf_restrict);
+  CeedQFunctionDestroy(&qf_prolong);
+  CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
   return PetscFinalize();
 }

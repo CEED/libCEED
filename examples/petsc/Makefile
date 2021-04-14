@@ -24,41 +24,61 @@ CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
-CFLAGS = -std=c99 $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) $(call pkgconf, --cflags-only-other $(PETSc.pc)) $(OPT)
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc))
+CFLAGS = -std=c99 \
+  $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
+  $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
+  $(OPT)
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+  $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-area.c := area.c
-area := $(area.c:%.c=%)
+OBJDIR := build
+SRCDIR := src
 
-bps.c := bps.c
-bps := $(bps.c:%.c=%)
+utils.c := $(sort $(wildcard $(SRCDIR)/*.c))
 
-bpsraw.c := bpsraw.c
-bpsraw := $(bpsraw.c:%.c=%)
+all: area bps bpsraw bpssphere multigrid
 
-bpssphere.c := bpssphere.c
-bpssphere := $(bpssphere.c:%.c=%)
+area.c := area.c $(utils.c)
+area.o = $(area.c:%.c=$(OBJDIR)/%.o)
+area: $(area.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-multigrid.c := multigrid.c
-multigrid := $(multigrid.c:%.c=%)
+bps.c := bps.c $(utils.c)
+bps.o = $(bps.c:%.c=$(OBJDIR)/%.o)
+bps: $(bps.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-all: $(area) $(bps) $(bpsraw) $(bpssphere) $(multigrid) 
-$(area): | $(PETSc.pc) $(ceed.pc)
-$(bps): | $(PETSc.pc) $(ceed.pc)
-$(bpsraw): | $(PETSc.pc) $(ceed.pc)
-$(bpssphere): | $(PETSc.pc) $(ceed.pc)
-$(multigrid): | $(PETSc.pc) $(ceed.pc)
+bpsraw.c := bpsraw.c $(utils.c)
+bpsraw.o = $(bpsraw.c:%.c=$(OBJDIR)/%.o)
+bpsraw: $(bpsraw.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+bpssphere.c := bpssphere.c $(utils.c)
+bpssphere.o = $(bpssphere.c:%.c=$(OBJDIR)/%.o)
+bpssphere: $(bpssphere.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+multigrid.c := multigrid.c $(utils.c)
+multigrid.o = $(multigrid.c:%.c=$(OBJDIR)/%.o)
+multigrid: $(multigrid.o) | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+.SECONDEXPANSION: # to expand $$(@D)/.DIR
+%/.DIR :
+	@mkdir -p $(@D)
+	@touch $@
 
 # Quiet, color output
 quiet ?= $($(1))
 
+$(OBJDIR)/%.o : %.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
 # Rules for building the examples
-%: %.c
-	$(call quiet,CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $(CEED_LDFLAGS) $(abspath $<) -o $@ \
-	  $(LDLIBS)
+#%: %.c
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
@@ -69,7 +89,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) $(area) $(bps) $(bpsraw) $(bpssphere) $(multigrid)
+	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere multigrid
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
@@ -78,3 +98,5 @@ $(PETSc.pc):
 .PHONY: all print clean
 
 pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
+
+-include $(src.o:%.o=%.d)
