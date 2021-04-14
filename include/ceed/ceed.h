@@ -236,7 +236,7 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
 /// data is likely modified or corrupted.
 /// @ingroup Ceed
 typedef enum {
-  /// Sucess error code
+  /// Success error code
   CEED_ERROR_SUCCESS     = 0,
   /// Minor error, generic
   CEED_ERROR_MINOR       = 1,
@@ -321,6 +321,8 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
+CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
+CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);

@@ -532,6 +532,112 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 }
 
 /**
+  @brief Compute y = alpha x + y
+
+  @param y[in,out]  target vector for sum
+  @param alpha[in]  scaling factor
+  @param x[in]      second vector, must be different than y
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
+  int ierr;
+  CeedScalar *y_array;
+  CeedScalar const *x_array;
+  CeedInt n_x, n_y;
+
+  ierr = CeedVectorGetLength(y, &n_y); CeedChk(ierr);
+  ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
+  if (n_x != n_y)
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot add vector of different lengths");
+  // LCOV_EXCL_STOP
+  if (x == y)
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot use same vector for x and y in CeedVectorAXPY");
+  // LCOV_EXCL_STOP
+
+  // Backend implementation
+  if (y->AXPY)
+    return y->AXPY(y, alpha, x);
+
+  // Default implementation
+  ierr = CeedVectorGetArray(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
+
+  for (CeedInt i=0; i<n_y; i++)
+    y_array[i] += alpha * x_array[i];
+
+  ierr = CeedVectorRestoreArray(y, &y_array); CeedChk(ierr);
+  ierr = CeedVectorRestoreArrayRead(x, &x_array); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute the pointwise multiplication w = x * y. Any
+           subset of x, y, and w may be the same vector.
+
+  @param w[out]  target vector for the product
+  @param x[in]   first vector for product
+  @param y[in]   second vector for the product
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ ref User
+**/
+int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
+  int ierr;
+  CeedScalar *w_array;
+  CeedScalar const *x_array, *y_array;
+  CeedInt n_x, n_y, n_w;
+
+  ierr = CeedVectorGetLength(w, &n_w); CeedChk(ierr);
+  ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
+  ierr = CeedVectorGetLength(y, &n_y); CeedChk(ierr);
+  if (n_w != n_x || n_w != n_y)
+    // LCOV_EXCL_START
+    return CeedError(w->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot multiply vectors of different lengths");
+  // LCOV_EXCL_STOP
+
+  // Backend implementation
+  if (w->PointwiseMult)
+    return w->PointwiseMult(w, x, y);
+
+  // Default implementation
+  ierr = CeedVectorGetArray(w, CEED_MEM_HOST, &w_array); CeedChk(ierr);
+  if (x != w) {
+    ierr = CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
+  } else {
+    x_array = w_array;
+  }
+  if (y != w && y != x) {
+    ierr = CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
+  } else if (y != x) {
+    y_array = w_array;
+  } else {
+    y_array = x_array;
+  }
+
+  for (CeedInt i=0; i<n_w; i++)
+    w_array[i] = x_array[i] * y_array[i];
+
+  if (y != w && y != x) {
+    ierr = CeedVectorRestoreArrayRead(y, &y_array); CeedChk(ierr);
+  }
+  if (x != w) {
+    ierr = CeedVectorRestoreArrayRead(x, &x_array); CeedChk(ierr);
+  }
+  ierr = CeedVectorRestoreArray(w, &w_array); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Take the reciprocal of a CeedVector.
 
   @param vec  CeedVector to take reciprocal
