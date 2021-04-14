@@ -270,26 +270,21 @@ int main(int argc, char **argv) {
                                       "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
     CHKERRQ(ierr);
   }
+  ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
+  // Create output directory
+  // ---------------------------------------------------------------------------
   MPI_Comm_rank(comm, &rank);
   if (!rank) {ierr = PetscMkdir(app_ctx->output_dir); CHKERRQ(ierr);}
 
-  // -- Gather initial Q values
-  //    In case of continuation of simulation, set up initial values from binary file
-  //      continue from existent solution
+  // ---------------------------------------------------------------------------
+  // Gather initial Q values in case of continuation of simulation
+  // ---------------------------------------------------------------------------
+  // -- Set up initial values from binary file
   if (app_ctx->cont_steps) {
-    PetscViewer viewer;
-    char file_path[PETSC_MAX_PATH_LEN];
-    // Read input
-    ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                         app_ctx->output_dir);
-    CHKERRQ(ierr);
-    ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
-    CHKERRQ(ierr);
-    ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = SetupICsFromBinary(comm, app_ctx, Q); CHKERRQ(ierr);
   }
-  ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve

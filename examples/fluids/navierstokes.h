@@ -324,5 +324,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
                               problemData *problem, AppCtx app_ctx,
                               Vec Q, PetscScalar ftime);
 
+// -- Gather initial Q values in case of continuation of simulation
+PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 // -----------------------------------------------------------------------------
 #endif
