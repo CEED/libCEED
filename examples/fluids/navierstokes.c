@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
     char file_path[PETSC_MAX_PATH_LEN];
     // Read input
     ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                         app_ctx->test_mode);
+                         app_ctx->output_dir);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);

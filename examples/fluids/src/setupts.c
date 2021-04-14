@@ -315,7 +315,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
     PetscViewer viewer;
     char file_path[PETSC_MAX_PATH_LEN];
     ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
-                         app_ctx->test_mode); CHKERRQ(ierr);  // todo: this should be output_dir
+                         app_ctx->output_dir); CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
