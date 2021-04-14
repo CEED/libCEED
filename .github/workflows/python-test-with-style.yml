@@ -30,7 +30,7 @@ jobs:
         make -j2
         export CEED_DIR=$PWD
         pip install .
-        cd tests/python
+        cd python/tests
         PYTHON=python3 make test TEST_OPTS="--ceed /cpu/self/ref/serial -vv"
         cd ../..
     - name: Python style
