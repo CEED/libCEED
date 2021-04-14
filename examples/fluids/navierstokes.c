@@ -156,15 +156,15 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
-  // Initialize backend
+  // -- Initialize backend
   CeedInit(app_ctx->ceed_resource, &ceed);
   user->ceed = ceed;
 
-  // Check preferred MemType
+  // -- Check preferred MemType
   CeedMemType memtypebackend;
   CeedGetPreferredMemType(ceed, &memtypebackend);
 
-  // Check memtype compatibility
+  // -- Check memtype compatibility
   if (!setmemtyperequest)
     memtyperequested = memtypebackend;
   else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
@@ -228,20 +228,23 @@ int main(int argc, char **argv) {
   ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
   ierr = CeedVectorCreate(ceed, Xloc_size, &ceed_data->xcorners); CHKERRQ(ierr);
 
+  // -- Set up libCEED objects
   ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
   CHKERRQ(ierr);
 
-  // Set up contex for QFunctions
+  // -- Set up contex for QFunctions
   ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
                                  ctxPhysData); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
   // Calculate qdata and ICs
-  // Set up state global and local vectors
+  // ---------------------------------------------------------------------------
+  // -- Set up state global and local vectors
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
   ierr = VectorPlacePetscVec(ceed_data->q0ceed, Qloc); CHKERRQ(ierr);
 
-  // Apply Setup Ceed Operators
+  // -- Apply Setup Ceed Operators
   ierr = VectorPlacePetscVec(ceed_data->xcorners, Xloc); CHKERRQ(ierr);
   CeedOperatorApply(ceed_data->op_setupVol, ceed_data->xcorners, ceed_data->qdata,
                     CEED_REQUEST_IMMEDIATE);
@@ -270,9 +273,11 @@ int main(int argc, char **argv) {
 
   MPI_Comm_rank(comm, &rank);
   if (!rank) {ierr = PetscMkdir(app_ctx->output_dir); CHKERRQ(ierr);}
-  // Gather initial Q values
-  // In case of continuation of simulation, set up initial values from binary file
-  if (app_ctx->cont_steps) { // continue from existent solution
+
+  // -- Gather initial Q values
+  //    In case of continuation of simulation, set up initial values from binary file
+  //      continue from existent solution
+  if (app_ctx->cont_steps) {
     PetscViewer viewer;
     char file_path[PETSC_MAX_PATH_LEN];
     // Read input
@@ -286,15 +291,18 @@ int main(int argc, char **argv) {
   }
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
+  // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
+  // ---------------------------------------------------------------------------
   TS ts;
-  PetscScalar ftime;
-  // todo: refactor this function furthur
+  PetscScalar ftime;   // todo: refactor this function furthur
   ierr = TSSolve_NS(dm, user, app_ctx, ctxPhysData, &Q, &ftime, &ts);
   CHKERRQ(ierr);
 
-  // Print output
-  ierr = PrintOutput_NS(ts, ceed_data, dm, problem, app_ctx, Q, ftime);
+  // ---------------------------------------------------------------------------
+  // Post-processing
+  // ---------------------------------------------------------------------------
+  ierr = PostProcess_NS(ts, ceed_data, dm, problem, app_ctx, Q, ftime);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------

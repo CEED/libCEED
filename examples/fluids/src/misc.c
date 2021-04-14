@@ -114,8 +114,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
   PetscFunctionReturn(0);
 }
 
-// Print output
-PetscErrorCode PrintOutput_NS(TS ts, CeedData ceed_data, DM dm,
+// Post-processing
+PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
                               problemData *problem, AppCtx app_ctx,
                               Vec Q, PetscScalar ftime) {
   PetscInt steps;

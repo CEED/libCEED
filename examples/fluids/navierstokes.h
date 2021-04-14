@@ -319,8 +319,8 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
                            PetscScalar ftime);
 
-// Print output
-PetscErrorCode PrintOutput_NS(TS ts, CeedData ceed_data, DM dm,
+// Post-processing
+PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
                               problemData *problem, AppCtx app_ctx,
                               Vec Q, PetscScalar ftime);
 
