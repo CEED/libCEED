@@ -20,7 +20,8 @@ clean:
 setup:
 	$(PYTHON) setup-qfunctions.py build
 
-test:
-	$(PYTHON) -m pytest test-*.py --ceed /cpu/self/ref/serial
+TEST_OPTS ?= --ceed /cpu/self/ref/serial
+test: setup
+	$(PYTHON) -m pytest test-*.py $(TEST_OPTS)
 
 .PHONY: clean setup test

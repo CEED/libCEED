@@ -31,8 +31,7 @@ jobs:
         export CEED_DIR=$PWD
         pip install .
         cd tests/python
-        python setup-qfunctions.py build
-        pytest test-*.py --ceed /cpu/self/ref/serial -vv
+        PYTHON=python3 make test TEST_OPTS="--ceed /cpu/self/ref/serial -vv"
         cd ../..
     - name: Python style
       env:
