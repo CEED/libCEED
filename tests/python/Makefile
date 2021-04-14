@@ -17,4 +17,10 @@
 clean:
 	rm -rf build __pycache__ .pytest_cache *.so
 
-.PHONY: cln clean
+setup:
+	$(PYTHON) setup-qfunctions.py build
+
+test:
+	$(PYTHON) -m pytest test-*.py --ceed /cpu/self/ref/serial
+
+.PHONY: clean setup test
