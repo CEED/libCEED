@@ -40,6 +40,8 @@ noether-rocm:
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && git -C $NEK5K_VERSION describe --tags && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=nek
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search=nek
+# Clang-tidy
+    - clang-tidy --version && TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
 # Report status
     - echo "SUCCESS" > .job_status
   after_script:
