@@ -352,8 +352,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    For example, if :math:`u_{i,j} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
 
-.. admonition:: Mooney-Rivlin model
-   :class: dropdown
+.. dropdown:: Mooney-Rivlin model
 
    Constitutive models of rubber and other nearly-incompressible materials are often expressed in terms of invariants of an isochoric Cauchy-Green tensor :math:`\bar{\bm C} = J^{-2/3} \bm C`, typically defined as
 
@@ -394,24 +393,17 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
 
-   The derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, is
-
-   .. math::
-      :label: mooney-rivlin-dS
-
-      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = -\frac{2}{3}\mu_1 J^{-2/3} \bm C^{-1} (2 \bm I_3 - \diff \bm E \bm C^{-1} \mathbb I_1 - \frac 1 3 C^{-1} \mathbb I_1) + \mu_2 J^{-4/3}\left( 2(\bm I_3 - \frac 4 3 - \mathbb I_2\bm C^{-1}\diff \bm E \bm C^{-1}) - \frac 4 3 \bm C^{-1}(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1})\right) + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
-      
-   which can be used in the Newton linearization.
-
-   (I'd prefer to split equation in pieces since it is easier to code and catch the errors)
+   which can be rewritten as 
 
    .. math::
       :label: mooney-rivlin-stress2
 
       \bm S = \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1(J^2 -J)\bm C^{-1}.
 
+   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress2`, :math:`\diff \bm{S}`, which is
+
    .. math::
-      :label: mooney-rivlin-dS2
+      :label: mooney-rivlin-dS
 
       \begin{aligned}
       \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
@@ -430,8 +422,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       & + 4J^{-4/3}\Big(\frac{5}{3}\operatorname{trace}(\diff \bm E) \bm{I}_3 - \diff \bm E \Big)
       \end{aligned}
    
-.. admonition:: Generalized Polynomial model
-   :class: dropdown
+.. dropdown:: Generalized Polynomial model
 
    The Generalized Polynomial strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
 
