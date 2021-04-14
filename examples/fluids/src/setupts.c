@@ -236,10 +236,11 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
                                    CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
                                    CeedElemRestriction restrictq,
                                    CeedQFunctionContext ctxSetup, CeedScalar time) {
-  PetscErrorCode ierr;
   CeedVector multlvec;
   Vec Multiplicity, MultiplicityLoc;
+  PetscErrorCode ierr;
 
+  PetscFunctionBeginUser;
   SetupContext ctxSetupData;
   CeedQFunctionContextGetData(ctxSetup, CEED_MEM_HOST, (void **)&ctxSetupData);
   ctxSetupData->time = time;
@@ -266,5 +267,80 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
   ierr = DMRestoreLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+}
+
+// TS: Create, setup, and solve
+PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
+                          Vec *Q, PetscScalar *f_time, TS *ts) {
+
+  MPI_Comm       comm = user->comm;
+  TSAdapt        adapt;
+  PetscScalar    ftime;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  ierr = TSCreate(comm, ts); CHKERRQ(ierr);
+  ierr = TSSetDM(*ts, dm); CHKERRQ(ierr);
+  if (phys->implicit) {
+    ierr = TSSetType(*ts, TSBDF); CHKERRQ(ierr);
+    if (user->op_ifunction) {
+      ierr = TSSetIFunction(*ts, NULL, IFunction_NS, &user); CHKERRQ(ierr);
+    } else {                    // Implicit integrators can fall back to using an RHSFunction
+      ierr = TSSetRHSFunction(*ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+    }
+  } else {
+    if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL,
+                                 "Problem does not provide RHSFunction");
+    ierr = TSSetType(*ts, TSRK); CHKERRQ(ierr);
+    ierr = TSRKSetType(*ts, TSRK5F); CHKERRQ(ierr);
+    ierr = TSSetRHSFunction(*ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+  }
+  ierr = TSSetMaxTime(*ts, 500. * user->units->second); CHKERRQ(ierr);
+  ierr = TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
+  ierr = TSSetTimeStep(*ts, 1.e-2 * user->units->second); CHKERRQ(ierr);
+  if (app_ctx->test_mode) {ierr = TSSetMaxSteps(*ts, 10); CHKERRQ(ierr);}
+  ierr = TSGetAdapt(*ts, &adapt); CHKERRQ(ierr);
+  ierr = TSAdaptSetStepLimits(adapt,
+                              1.e-12 * user->units->second,
+                              1.e2 * user->units->second); CHKERRQ(ierr);
+  ierr = TSSetFromOptions(*ts); CHKERRQ(ierr);
+  if (!app_ctx->cont_steps) { // print initial condition
+    if (!app_ctx->test_mode) {
+      ierr = TSMonitor_NS(*ts, 0, 0., *Q, user); CHKERRQ(ierr);
+    }
+  } else { // continue from time of last output
+    PetscReal time;
+    PetscInt count;
+    PetscViewer viewer;
+    char file_path[PETSC_MAX_PATH_LEN];
+    ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+                         app_ctx->test_mode); CHKERRQ(ierr);  // todo: this should be output_dir
+    ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
+    CHKERRQ(ierr);
+    ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);
+    CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    ierr = TSSetTime(*ts, time * user->units->second); CHKERRQ(ierr);
+  }
+  if (!app_ctx->test_mode) {
+    ierr = TSMonitorSet(*ts, TSMonitor_NS, user, NULL); CHKERRQ(ierr);
+  }
+
+  // Solve
+  double start, cpu_time_used;
+  start = MPI_Wtime();
+  ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
+  ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
+  cpu_time_used = MPI_Wtime() - start;
+  ierr = TSGetSolveTime(*ts, &ftime); CHKERRQ(ierr);
+  *f_time = ftime;
+  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
+                       comm); CHKERRQ(ierr);
+  if (!app_ctx->test_mode) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Time taken for solution (sec): %g\n",
+                       (double)cpu_time_used); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }

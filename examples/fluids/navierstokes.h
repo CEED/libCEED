@@ -275,6 +275,10 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
                                    CeedElemRestriction restrictq,
                                    CeedQFunctionContext ctxSetup, CeedScalar time);
 
+// TS: Create, setup, and solve
+PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
+                          Vec *Q, PetscScalar *f_time, TS *ts);
+
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
