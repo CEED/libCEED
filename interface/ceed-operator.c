@@ -116,6 +116,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
       // LCOV_EXCL_STOP
     }
     ierr = CeedElemRestrictionGetNumComponents(r, &restr_num_comp);
+    CeedChk(ierr);
   }
   if ((r == CEED_ELEMRESTRICTION_NONE) != (eval_mode == CEED_EVAL_WEIGHT)) {
     // LCOV_EXCL_START
@@ -298,10 +299,11 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   int ierr;
   const char *pre = sub ? "  " : "";
 
-  CeedInt totalfields;
-  ierr = CeedOperatorGetNumArgs(op, &totalfields); CeedChk(ierr);
+  CeedInt total_fields = 0;
+  ierr = CeedOperatorGetNumArgs(op, &total_fields); CeedChk(ierr);
 
-  fprintf(stream, "%s  %d Field%s\n", pre, totalfields, totalfields>1 ? "s" : "");
+  fprintf(stream, "%s  %d Field%s\n", pre, total_fields,
+          total_fields>1 ? "s" : "");
 
   fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->num_input_fields,
           op->qf->num_input_fields>1 ? "s" : "");
@@ -1010,7 +1012,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
                      "%d elements", num_elem, op->num_elem);
   // LCOV_EXCL_STOP
 
-  CeedInt num_qpts;
+  CeedInt num_qpts = 0;
   if (b != CEED_BASIS_COLLOCATED) {
     ierr = CeedBasisGetNumQuadraturePoints(b, &num_qpts); CeedChk(ierr);
     if (op->num_qpts && op->num_qpts != num_qpts)
@@ -1510,6 +1512,12 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
     }
   }
 
+  if (num_eval_mode_in == 0 || num_eval_mode_out == 0)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "Cannot assemble operator with out inputs/outputs");
+  // LCOV_EXCL_STOP
+
   CeedInt num_elem, elem_size, num_qpts, num_comp;
   ierr = CeedElemRestrictionGetNumElements(rstr_in, &num_elem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr_in, &elem_size); CeedChk(ierr);
@@ -1705,6 +1713,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
     const char *resource, *fallback_resource;
     ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
     ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
+    CeedChk(ierr);
     if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
       // Fallback to reference Ceed
       if (!op->op_fallback) {
@@ -1779,7 +1788,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
 **/
 int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   int ierr;
-  CeedInt num_suboperators, single_entries;
+  CeedInt num_suboperators, single_entries = 0;
   CeedOperator *sub_operators;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
@@ -1791,6 +1800,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
     const char *resource, *fallback_resource;
     ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
     ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
+    CeedChk(ierr);
     if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
       // Fallback to reference Ceed
       if (!op->op_fallback) {

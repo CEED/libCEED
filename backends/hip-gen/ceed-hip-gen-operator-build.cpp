@@ -746,7 +746,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Hip_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
-  CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
+  CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
           numoutputfields, ncomp, dim = 0, lsize;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);

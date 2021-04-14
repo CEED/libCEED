@@ -627,6 +627,10 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
       *n += 1;
     }
   }
+  if (*n == 0)
+    // LCOV_EXCL_START
+    return CeedError(NULL, CEED_ERROR_MAJOR, "No backends installed");
+  // LCOV_EXCL_STOP
   *resources = realloc(*resources, *n * sizeof(**resources));
   if (!resources)
     return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
@@ -934,7 +938,8 @@ const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
     return CeedErrorFormat(ceed->parent, format, args);
   if (ceed->op_fallback_parent)
     return CeedErrorFormat(ceed->op_fallback_parent, format, args);
-  vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args);
+  // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
+  vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args); // NOLINT
   return ceed->err_msg;
 }
 // LCOV_EXCL_STOP
@@ -1005,7 +1010,10 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no,
   CeedInt len;
   len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
                  filename, line_no, func);
-  vsnprintf(ceed->err_msg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);
+  // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
+  // *INDENT-OFF*
+  vsnprintf(ceed->err_msg + len, CEED_MAX_RESOURCE_LEN - len, format, *args); // NOLINT
+  // *INDENT-ON*
   return err_code;
 }
 // LCOV_EXCL_STOP
@@ -1042,7 +1050,8 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int line_no,
 int CeedErrorExit(Ceed ceed, const char *filename, int line_no,
                   const char *func, int err_code, const char *format, va_list *args) {
   fprintf(stderr, "%s:%d in %s(): ", filename, line_no, func);
-  vfprintf(stderr, format, *args);
+  // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
+  vfprintf(stderr, format, *args); // NOLINT
   fprintf(stderr, "\n");
   exit(err_code);
   return err_code;

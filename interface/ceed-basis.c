@@ -99,7 +99,8 @@ int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
                           CeedInt m, CeedInt n, CeedInt k,
                           CeedInt row, CeedInt col) {
   int ierr;
-  CeedScalar v[m];
+  CeedScalar *v;
+  ierr = CeedMalloc(m, &v); CeedChk(ierr);
   for (CeedInt ii=0; ii<k; ii++) {
     CeedInt i = t_mode == CEED_TRANSPOSE ? ii : k-1-ii;
     for (CeedInt j=i+1; j<m; j++)
@@ -108,6 +109,7 @@ int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
     ierr = CeedHouseholderReflect(&A[i*row], &v[i], tau[i], m-i, n, row, col);
     CeedChk(ierr);
   }
+  ierr = CeedFree(&v); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -200,10 +202,11 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   int i, j, k;
   Ceed ceed;
   CeedInt ierr, P_1d=(basis)->P_1d, Q_1d=(basis)->Q_1d;
-  CeedScalar *interp_1d, *grad_1d, tau[Q_1d];
+  CeedScalar *interp_1d, *grad_1d, *tau;
 
   ierr = CeedMalloc(Q_1d*P_1d, &interp_1d); CeedChk(ierr);
   ierr = CeedMalloc(Q_1d*P_1d, &grad_1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q_1d, &tau); CeedChk(ierr);
   memcpy(interp_1d, (basis)->interp_1d, Q_1d*P_1d*sizeof(basis)->interp_1d[0]);
   memcpy(grad_1d, (basis)->grad_1d, Q_1d*P_1d*sizeof(basis)->interp_1d[0]);
 
@@ -232,6 +235,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 
   ierr = CeedFree(&interp_1d); CeedChk(ierr);
   ierr = CeedFree(&grad_1d); CeedChk(ierr);
+  ierr = CeedFree(&tau); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1392,11 +1396,14 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
                                     CeedScalar *mat_B, CeedScalar *x,
                                     CeedScalar *lambda, CeedInt n) {
   int ierr;
-  CeedScalar mat_C[n*n], matG[n*n], vecD[n];
+  CeedScalar *mat_C, *mat_G, *vecD;
+  ierr = CeedCalloc(n*n, &mat_C); CeedChk(ierr);
+  ierr = CeedCalloc(n*n, &mat_G); CeedChk(ierr);
+  ierr = CeedCalloc(n, &vecD); CeedChk(ierr);
 
   // Compute B = G D G^T
-  memcpy(matG, mat_B, n*n*sizeof(mat_B[0]));
-  ierr = CeedSymmetricSchurDecomposition(ceed, matG, vecD, n); CeedChk(ierr);
+  memcpy(mat_G, mat_B, n*n*sizeof(mat_B[0]));
+  ierr = CeedSymmetricSchurDecomposition(ceed, mat_G, vecD, n); CeedChk(ierr);
   for (CeedInt i=0; i<n; i++)
     vecD[i] = sqrt(vecD[i]);
 
@@ -1404,15 +1411,15 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
   //           = D^-1/2 G^T A G D^-1/2
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
-      mat_C[j+i*n] = matG[i+j*n] / vecD[i];
+      mat_C[j+i*n] = mat_G[i+j*n] / vecD[i];
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_C,
                             (const CeedScalar *)mat_A, x, n, n, n);
   CeedChk(ierr);
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
-      matG[j+i*n] = matG[j+i*n] / vecD[j];
+      mat_G[j+i*n] = mat_G[j+i*n] / vecD[j];
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)x,
-                            (const CeedScalar *)matG, mat_C, n, n, n);
+                            (const CeedScalar *)mat_G, mat_C, n, n, n);
   CeedChk(ierr);
 
   // Compute Q^T C Q = lambda
@@ -1420,9 +1427,14 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
 
   // Set x = (G D^1/2)^-T Q
   //       = G D^-1/2 Q
-  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)matG,
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_G,
                             (const CeedScalar *)mat_C, x, n, n, n);
   CeedChk(ierr);
+
+  // Cleanup
+  ierr = CeedFree(&mat_C); CeedChk(ierr);
+  ierr = CeedFree(&mat_G); CeedChk(ierr);
+  ierr = CeedFree(&vecD); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
