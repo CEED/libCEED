@@ -561,6 +561,15 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
                      "Cannot use same vector for x and y in CeedVectorAXPY");
   // LCOV_EXCL_STOP
 
+  Ceed ceed_parent_x, ceed_parent_y;
+  ierr = CeedGetParent(x->ceed, &ceed_parent_x); CeedChk(ierr);
+  ierr = CeedGetParent(y->ceed, &ceed_parent_y); CeedChk(ierr);
+  if (ceed_parent_x != ceed_parent_y)
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_INCOMPATIBLE,
+                     "Vectors x and y must be created by the same Ceed context");
+  // LCOV_EXCL_STOP
+
   // Backend implementation
   if (y->AXPY)
     return y->AXPY(y, alpha, x);
@@ -594,7 +603,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   int ierr;
   CeedScalar *w_array;
   CeedScalar const *x_array, *y_array;
-  CeedInt n_x, n_y, n_w;
+  CeedInt n_w, n_x, n_y;
 
   ierr = CeedVectorGetLength(w, &n_w); CeedChk(ierr);
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
@@ -603,6 +612,17 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
     // LCOV_EXCL_START
     return CeedError(w->ceed, CEED_ERROR_UNSUPPORTED,
                      "Cannot multiply vectors of different lengths");
+  // LCOV_EXCL_STOP
+
+  Ceed ceed_parent_w, ceed_parent_x, ceed_parent_y;
+  ierr = CeedGetParent(w->ceed, &ceed_parent_w); CeedChk(ierr);
+  ierr = CeedGetParent(x->ceed, &ceed_parent_x); CeedChk(ierr);
+  ierr = CeedGetParent(y->ceed, &ceed_parent_y); CeedChk(ierr);
+  if ((ceed_parent_w != ceed_parent_y) ||
+      (ceed_parent_w != ceed_parent_y))
+    // LCOV_EXCL_START
+    return CeedError(w->ceed, CEED_ERROR_INCOMPATIBLE,
+                     "Vectors w, x, and y must be created by the same Ceed context");
   // LCOV_EXCL_STOP
 
   // Backend implementation
