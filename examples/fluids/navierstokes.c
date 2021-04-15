@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   AppCtx app_ctx;
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
 
-  problemData *problem = NULL; 
+  problemData *problem = NULL;
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
 
   User user;
@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 
   // -- Compute lumped mass matrix
   ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->restrictq,
-                                 ceed_data->basisq, ceed_data->restrictqdi, 
+                                 ceed_data->basisq, ceed_data->restrictqdi,
                                  ceed_data->qdata, user->M); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
