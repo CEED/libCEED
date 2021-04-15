@@ -644,7 +644,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
-	$(MAKE) -C tests/python clean
+	$(MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
@@ -668,7 +668,7 @@ style-c :
 AUTOPEP8 = autopep8
 style-py : AUTOPEP8_ARGS = --in-place --aggressive
 style-py :
-	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py tests/python**/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
+	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py python/tests/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
 
 style : style-c style-py
 
