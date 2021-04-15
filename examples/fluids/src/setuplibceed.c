@@ -254,9 +254,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   PetscErrorCode ierr;
 
-  DM dmcoord;
   const PetscInt ncompq = 5;
-  PetscInt localNelemVol;
+  PetscInt       localNelemVol;
 
   const CeedInt dim = problem->dim,
                 ncompx = problem->dim,
@@ -273,10 +272,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numP,
                                   CEED_GAUSS_LOBATTO, &ceed_data->basisxc);
-
-  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
-  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
 
   // CEED Restrictions
   ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, numP, numQ,
