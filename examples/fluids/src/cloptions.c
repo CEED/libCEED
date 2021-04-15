@@ -126,7 +126,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   // todo
   //ierr = PetscOptionsEnum("-memtype",
   //                        "CEED MemType requested", NULL,
-  //                        memTypes, (PetscEnum)app_ctx->memtyperequested,
+  //                        MemTypes, (PetscEnum)app_ctx->memtyperequested,
   //                        (PetscEnum *)&app_ctx->memtyperequested, &app_ctx->setmemtyperequest);
   //CHKERRQ(ierr);
 

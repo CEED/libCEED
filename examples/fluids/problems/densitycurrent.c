@@ -1,34 +1,34 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
-                                  void *ctx, void *ctxPhys) {
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
+                                  void *ctx, void *phys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   StabilizationType stab;
   PetscBool implicit;
   PetscBool has_current_time = PETSC_FALSE;
-  SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
+  SetupContext setup_context = *(SetupContext *)setup_ctx;
   Units units = *(Units *)ctx;
-  Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->dc_ctx_data); CHKERRQ(ierr);
+  Physics phys_ctx = *(Physics *)phys;
+  ierr = PetscMalloc1(1, &phys_ctx->dc_ctx); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
   problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->q_data_size_vol             = 10;
+  problem->q_data_size_sur             = 4;
+  problem->setup_vol                  = Setup;
+  problem->setup_vol_loc              = Setup_loc;
+  problem->setup_sur                  = SetupBoundary;
+  problem->setup_sur_loc              = SetupBoundary_loc;
   problem->ics                       = ICsDC;
   problem->ics_loc                   = ICsDC_loc;
-  problem->applyVol_rhs              = DC;
-  problem->applyVol_rhs_loc          = DC_loc;
-  problem->applyVol_ifunction        = IFunction_DC;
-  problem->applyVol_ifunction_loc    = IFunction_DC_loc;
+  problem->apply_vol_rhs              = DC;
+  problem->apply_vol_rhs_loc          = DC_loc;
+  problem->apply_vol_ifunction        = IFunction_DC;
+  problem->apply_vol_ifunction_loc    = IFunction_DC_loc;
   problem->bc                        = Exact_DC;
   problem->bc_fnc                    = BC_DENSITY_CURRENT;
   problem->non_zero_time             = PETSC_FALSE;
@@ -186,44 +186,44 @@ PetscErrorCode NS_DENSITY_CURRENT(problemData *problem, void *ctxSetupData,
   for (int i=0; i<3; i++) center[i] *= meter;
 
   // -- Setup Context
-  ctxSetup->theta0     = theta0;
-  ctxSetup->thetaC     = thetaC;
-  ctxSetup->P0         = P0;
-  ctxSetup->N          = N;
-  ctxSetup->cv         = cv;
-  ctxSetup->cp         = cp;
-  ctxSetup->Rd         = Rd;
-  ctxSetup->g          = g;
-  ctxSetup->rc         = rc;
-  ctxSetup->lx         = lx;
-  ctxSetup->ly         = ly;
-  ctxSetup->lz         = lz;
-  ctxSetup->center[0]  = center[0];
-  ctxSetup->center[1]  = center[1];
-  ctxSetup->center[2]  = center[2];
-  ctxSetup->dc_axis[0] = dc_axis[0];
-  ctxSetup->dc_axis[1] = dc_axis[1];
-  ctxSetup->dc_axis[2] = dc_axis[2];
-  ctxSetup->time = 0;
+  setup_context->theta0     = theta0;
+  setup_context->thetaC     = thetaC;
+  setup_context->P0         = P0;
+  setup_context->N          = N;
+  setup_context->cv         = cv;
+  setup_context->cp         = cp;
+  setup_context->Rd         = Rd;
+  setup_context->g          = g;
+  setup_context->rc         = rc;
+  setup_context->lx         = lx;
+  setup_context->ly         = ly;
+  setup_context->lz         = lz;
+  setup_context->center[0]  = center[0];
+  setup_context->center[1]  = center[1];
+  setup_context->center[2]  = center[2];
+  setup_context->dc_axis[0] = dc_axis[0];
+  setup_context->dc_axis[1] = dc_axis[1];
+  setup_context->dc_axis[2] = dc_axis[2];
+  setup_context->time = 0;
 
   // -- QFunction Context
-  ctxPhysData->stab = stab;
-  ctxPhysData->implicit = implicit;
-  ctxPhysData->has_current_time = has_current_time;
-  ctxPhysData->dc_ctx_data->lambda = lambda;
-  ctxPhysData->dc_ctx_data->mu = mu;
-  ctxPhysData->dc_ctx_data->k = k;
-  ctxPhysData->dc_ctx_data->cv = cv;
-  ctxPhysData->dc_ctx_data->cp = cp;
-  ctxPhysData->dc_ctx_data->g = g;
-  ctxPhysData->dc_ctx_data->Rd = Rd;
-  ctxPhysData->dc_ctx_data->stabilization = stab;
+  phys_ctx->stab = stab;
+  phys_ctx->implicit = implicit;
+  phys_ctx->has_current_time = has_current_time;
+  phys_ctx->dc_ctx->lambda = lambda;
+  phys_ctx->dc_ctx->mu = mu;
+  phys_ctx->dc_ctx->k = k;
+  phys_ctx->dc_ctx->cv = cv;
+  phys_ctx->dc_ctx->cp = cp;
+  phys_ctx->dc_ctx->g = g;
+  phys_ctx->dc_ctx->Rd = Rd;
+  phys_ctx->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-                                  void *ctxSetupData) {
+                                  void *setup_ctx) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -232,7 +232,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
 
   // Default boundary conditions
   //   slip bc on all faces and no wall bc
-  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
+  bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
   bc->slips[0][0] = 5;
   bc->slips[0][1] = 6;
   bc->slips[1][0] = 3;
@@ -250,9 +250,9 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
                               (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
                                &len), &flg); CHKERRQ(ierr);
   if (flg) {
-    bc->nwall = len;
+    bc->num_wall = len;
     // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
   }
   for (PetscInt j=0; j<3; j++) {
     const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
@@ -262,8 +262,8 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
                                 (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
                                  &len), &flg); CHKERRQ(ierr);
     if (flg) {
-      bc->nslip[j] = len;
-      bc->userbc = PETSC_TRUE;
+      bc->num_slip[j] = len;
+      bc->user_bc = PETSC_TRUE;
     }
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -272,21 +272,21 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     // Slip boundary conditions
     PetscInt comps[1] = {1};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
-                         bc->slips[0], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[0],
+                         bc->slips[0], setup_ctx); CHKERRQ(ierr);
     comps[0] = 2;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
-                         bc->slips[1], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[1],
+                         bc->slips[1], setup_ctx); CHKERRQ(ierr);
     comps[0] = 3;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
-                         bc->slips[2], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[2],
+                         bc->slips[2], setup_ctx); CHKERRQ(ierr);
   }
-  if (bc->userbc == PETSC_TRUE) {
+  if (bc->user_bc == PETSC_TRUE) {
     for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->nslip[c]; s++) {
-        for (PetscInt w = 0; w < bc->nwall; w++) {
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
+        for (PetscInt w = 0; w < bc->num_wall; w++) {
           if (bc->slips[c][s] == bc->walls[w])
             SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
                      "Boundary condition already set on face %D!\n",
@@ -301,7 +301,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     PetscInt comps[3] = {1, 2, 3};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                          3, comps, (void(*)(void))Exact_DC, NULL,
-                         bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                         bc->num_wall, bc->walls, setup_ctx); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }

@@ -6,25 +6,25 @@
 
 int VectorPlacePetscVec(CeedVector c, Vec p) {
 
-  PetscInt mceed, mpetsc;
+  PetscInt m_ceed, mpetsc;
   PetscScalar *a;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
 
-  ierr = CeedVectorGetLength(c, &mceed); CHKERRQ(ierr);
+  ierr = CeedVectorGetLength(c, &m_ceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
-  if (mceed != mpetsc) SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+  if (m_ceed != mpetsc) SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                                   "Cannot place PETSc Vec of length %D in CeedVector of length %D",
-                                  mpetsc, mceed);
+                                  mpetsc, m_ceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
-    PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
-    Vec cellGeomFVM, Vec gradFVM) {
+    PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
+    Vec cell_geom_FVM, Vec grad_FVM) {
 
   Vec Qbc;
   PetscErrorCode ierr;
@@ -32,7 +32,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
   PetscFunctionBegin;
 
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-  ierr = VecAXPY(Qloc, 1., Qbc); CHKERRQ(ierr);
+  ierr = VecAXPY(Q_loc, 1., Qbc); CHKERRQ(ierr);
   ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -77,7 +77,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 
 // Get error for problems with exact solutions
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
-                           PetscScalar ftime) {
+                           PetscScalar final_time) {
 
   PetscInt lnodes;
   Vec Qexact, Qexactloc;
@@ -90,9 +90,9 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
   ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
   ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
-  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
-                             ceed_data->q0ceed, dm, Qexactloc, Qexact,
-                             ceed_data->restrictq, ceed_data->ctxSetup, ftime); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
+                             ceed_data->q0_ceed, dm, Qexactloc, Qexact,
+                             ceed_data->elem_restr_q, ceed_data->setup_context, final_time); CHKERRQ(ierr);
 
   // Get |exact solution - obtained solution|
   ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
@@ -107,7 +107,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
                      "Relative Error: %g\n",
                      (double)rel_error); CHKERRQ(ierr);
   // Clean up vectors
-  CeedVectorDestroy(&ceed_data->q0ceed);
+  CeedVectorDestroy(&ceed_data->q0_ceed);
   ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
   ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
 
@@ -116,8 +116,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
-                              problemData *problem, AppCtx app_ctx,
-                              Vec Q, PetscScalar ftime) {
+                              ProblemData *problem, AppCtx app_ctx,
+                              Vec Q, PetscScalar final_time) {
   PetscInt steps;
   PetscErrorCode ierr;
 
@@ -125,7 +125,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
 
   // Print relative error
   if (problem->non_zero_time && !app_ctx->test_mode) {
-    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, ftime); CHKERRQ(ierr);
+    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, final_time); CHKERRQ(ierr);
   }
 
   // Print final time and number of steps
@@ -133,7 +133,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
   if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %D time steps to reach final time %g\n",
-                       steps, (double)ftime); CHKERRQ(ierr);
+                       steps, (double)final_time); CHKERRQ(ierr);
   }
 
   // Output numerical values from command line
@@ -172,17 +172,17 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 }
 
 // Record boundary values from initial condition
-PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Qloc) {
+PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
 
   Vec Qbc;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-  ierr = VecCopy(Qloc, Qbc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
-  ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
+  ierr = VecCopy(Q_loc, Qbc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
+  ierr = VecAXPY(Qbc, -1., Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
   ierr = PetscObjectComposeFunction((PetscObject)dm,
                                     "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);

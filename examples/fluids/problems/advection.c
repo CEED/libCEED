@@ -1,37 +1,37 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
-                            void *ctx, void *ctxPhys) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
+                            void *ctx, void *phys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   WindType wind_type;
   StabilizationType stab;
   PetscBool implicit;
   PetscBool has_current_time = PETSC_FALSE;
-  SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
+  SetupContext setup_context = *(SetupContext *)setup_ctx;
   Units units = *(Units *)ctx;
-  Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->advection_ctx_data); CHKERRQ(ierr);
+  Physics phys_ctx = *(Physics *)phys;
+  ierr = PetscMalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
 
   PetscFunctionBeginUser;
   // ------------------------------------------------------
   //               SET UP ADVECTION
   // ------------------------------------------------------
   problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->q_data_size_vol              = 10;
+  problem->q_data_size_sur              = 4;
+  problem->setup_vol                  = Setup;
+  problem->setup_vol_loc              = Setup_loc;
+  problem->setup_sur                  = SetupBoundary;
+  problem->setup_sur_loc              = SetupBoundary_loc;
   problem->ics                       = ICsAdvection;
   problem->ics_loc                   = ICsAdvection_loc;
-  problem->applyVol_rhs              = Advection;
-  problem->applyVol_rhs_loc          = Advection_loc;
-  problem->applyVol_ifunction        = IFunction_Advection;
-  problem->applyVol_ifunction_loc    = IFunction_Advection_loc;
-  problem->applySur                  = Advection_Sur;
-  problem->applySur_loc              = Advection_Sur_loc;
+  problem->apply_vol_rhs              = Advection;
+  problem->apply_vol_rhs_loc          = Advection_loc;
+  problem->apply_vol_ifunction        = IFunction_Advection;
+  problem->apply_vol_ifunction_loc    = IFunction_Advection_loc;
+  problem->apply_sur                  = Advection_Sur;
+  problem->apply_sur_loc              = Advection_Sur_loc;
   problem->bc                        = Exact_Advection;
   problem->bc_fnc                    = BC_ADVECTION;
   problem->non_zero_time             = PETSC_FALSE;
@@ -88,7 +88,7 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) ctxPhysData->has_neumann = translation;
+  if (translation) phys_ctx->has_neumann = translation;
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -148,32 +148,32 @@ PetscErrorCode NS_ADVECTION(problemData *problem, void *ctxSetupData,
   rc = fabs(rc) * meter;
 
   // -- Setup Context
-  ctxSetup->rc         = rc;
-  ctxSetup->lx         = lx;
-  ctxSetup->ly         = ly;
-  ctxSetup->lz         = lz;
-  ctxSetup->wind[0]  = wind[0];
-  ctxSetup->wind[1]  = wind[1];
-  ctxSetup->wind[2]  = wind[2];
-  ctxSetup->wind_type = wind_type;
-  ctxSetup->time = 0;
+  setup_context->rc         = rc;
+  setup_context->lx         = lx;
+  setup_context->ly         = ly;
+  setup_context->lz         = lz;
+  setup_context->wind[0]  = wind[0];
+  setup_context->wind[1]  = wind[1];
+  setup_context->wind[2]  = wind[2];
+  setup_context->wind_type = wind_type;
+  setup_context->time = 0;
 
   // -- QFunction Context
-  ctxPhysData->stab = stab;
-  ctxPhysData->wind_type = wind_type; // to-do: check if passed correctly
-  ctxPhysData->implicit = implicit;
-  ctxPhysData->has_current_time = has_current_time;
-  ctxPhysData->advection_ctx_data->CtauS = CtauS;
-  ctxPhysData->advection_ctx_data->strong_form = strong_form;
-  ctxPhysData->advection_ctx_data->E_wind = E_wind;
-  ctxPhysData->advection_ctx_data->implicit = implicit;
-  ctxPhysData->advection_ctx_data->stabilization = stab;
+  phys_ctx->stab = stab;
+  phys_ctx->wind_type = wind_type; // to-do: check if passed correctly
+  phys_ctx->implicit = implicit;
+  phys_ctx->has_current_time = has_current_time;
+  phys_ctx->advection_ctx->CtauS = CtauS;
+  phys_ctx->advection_ctx->strong_form = strong_form;
+  phys_ctx->advection_ctx->E_wind = E_wind;
+  phys_ctx->advection_ctx->implicit = implicit;
+  phys_ctx->advection_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
-                            void *ctxSetupData) {
+                            void *setup_ctx) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -181,7 +181,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   // Default boundary conditions
-  bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 2;
+  bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
   bc->slips[0][0] = 5;
   bc->slips[0][1] = 6;
   bc->slips[1][0] = 3;
@@ -199,9 +199,9 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                               (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
                                &len), &flg); CHKERRQ(ierr);
   if (flg) {
-    bc->nwall = len;
+    bc->num_wall = len;
     // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
   }
   for (PetscInt j=0; j<3; j++) {
     const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
@@ -211,8 +211,8 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                                 (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
                                  &len), &flg); CHKERRQ(ierr);
     if (flg) {
-      bc->nslip[j] = len;
-      bc->userbc = PETSC_TRUE;
+      bc->num_slip[j] = len;
+      bc->user_bc = PETSC_TRUE;
     }
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -221,21 +221,21 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     // Slip boundary conditions
     PetscInt comps[1] = {1};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
-                         bc->slips[0], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[0],
+                         bc->slips[0], setup_ctx); CHKERRQ(ierr);
     comps[0] = 2;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
-                         bc->slips[1], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[1],
+                         bc->slips[1], setup_ctx); CHKERRQ(ierr);
     comps[0] = 3;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
-                         bc->slips[2], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[2],
+                         bc->slips[2], setup_ctx); CHKERRQ(ierr);
   }
-  if (bc->userbc == PETSC_TRUE) {
+  if (bc->user_bc == PETSC_TRUE) {
     for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->nslip[c]; s++) {
-        for (PetscInt w = 0; w < bc->nwall; w++) {
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
+        for (PetscInt w = 0; w < bc->num_wall; w++) {
           if (bc->slips[c][s] == bc->walls[w])
             SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
                      "Boundary condition already set on face %D!\n",
@@ -251,7 +251,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     PetscInt comps[1] = {4};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                          1, comps, (void(*)(void))Exact_Advection, NULL,
-                         bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                         bc->num_wall, bc->walls, setup_ctx); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }

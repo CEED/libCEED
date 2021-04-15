@@ -52,16 +52,16 @@ int main(int argc, char **argv) {
 
   // todo: define a function
   // Check PETSc CUDA support
-  CeedMemType memtyperequested;
-  PetscBool petschavecuda, setmemtyperequest = PETSC_FALSE;
+  CeedMemType mem_type_requested;
+  PetscBool petsc_have_cuda, set_mem_type_request = PETSC_FALSE;
   // *INDENT-OFF*
   #ifdef PETSC_HAVE_CUDA
-  petschavecuda = PETSC_TRUE;
+  petsc_have_cuda = PETSC_TRUE;
   #else
-  petschavecuda = PETSC_FALSE;
+  petsc_have_cuda = PETSC_FALSE;
   #endif
   // *INDENT-ON*
-  memtyperequested = petschavecuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+  mem_type_requested = petsc_have_cuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
 
   // ---------------------------------------------------------------------------
   // Initialize PETSc
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
   AppCtx app_ctx;
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
 
-  problemData *problem = NULL;
+  ProblemData *problem = NULL;
   ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
 
   User user;
@@ -88,18 +88,18 @@ int main(int argc, char **argv) {
   SimpleBC bc;
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
 
-  SetupContext ctxSetupData;
-  ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
+  SetupContext setup_ctx;
+  ierr = PetscMalloc1(1, &setup_ctx); CHKERRQ(ierr);
 
-  Physics ctxPhysData;
-  ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
+  Physics phys_ctx;
+  ierr = PetscMalloc1(1, &phys_ctx); CHKERRQ(ierr);
 
   Units units;
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
   user->app_ctx = app_ctx;
   user->units = units;
-  user->phys = ctxPhysData;
+  user->phys = phys_ctx;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -116,12 +116,12 @@ int main(int argc, char **argv) {
   // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   {
-    PetscErrorCode (*p)(problemData *, void *, void *, void *);
+    PetscErrorCode (*p)(ProblemData *, void *, void *, void *);
     ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
     CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found",
                        app_ctx->problem_name);
-    ierr = (*p)(problem, &ctxSetupData, &units, &ctxPhysData); CHKERRQ(ierr);
+    ierr = (*p)(problem, &setup_ctx, &units, &phys_ctx); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------
@@ -133,13 +133,13 @@ int main(int argc, char **argv) {
   user->ceed = ceed;
 
   // -- Check preferred MemType
-  CeedMemType memtypebackend;
-  CeedGetPreferredMemType(ceed, &memtypebackend);
+  CeedMemType mem_type_backend;
+  CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   // -- Check memtype compatibility
-  if (!setmemtyperequest)
-    memtyperequested = memtypebackend;
-  else if (!petschavecuda && memtyperequested == CEED_MEM_DEVICE)
+  if (!set_mem_type_request)
+    mem_type_requested = mem_type_backend;
+  else if (!petsc_have_cuda && mem_type_requested == CEED_MEM_DEVICE)
     SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
              "PETSc was not built with CUDA. "
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
@@ -149,18 +149,18 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Create distribute DM
   DM dm;
-  ierr = CreateDistributedDM(comm, problem, ctxSetupData, &dm); CHKERRQ(ierr);
+  ierr = CreateDistributedDM(comm, problem, setup_ctx, &dm); CHKERRQ(ierr);
   user->dm = dm;
   ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
 
   // -- Set up DM
-  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, ctxPhysData, ctxSetupData);
+  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx, setup_ctx);
   CHKERRQ(ierr);
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
-    ierr = VizRefineDM(dm, user, problem, bc, ctxPhysData, ctxSetupData);
+    ierr = VizRefineDM(dm, user, problem, bc, phys_ctx, setup_ctx);
     CHKERRQ(ierr);
   }
 
@@ -168,22 +168,22 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Create Ceed coordinate vector
-  Vec Xloc;
-  PetscInt Xloc_size;
-  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, Xloc_size, &ceed_data->xcorners); CHKERRQ(ierr);
+  Vec X_loc;
+  PetscInt X_loc_size;
+  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(X_loc, &X_loc_size); CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, X_loc_size, &ceed_data->x_corners); CHKERRQ(ierr);
 
   // -- Set up libCEED objects
   ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
   CHKERRQ(ierr);
 
   // -- Set up contex for QFunctions
-  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
-                                 ctxPhysData); CHKERRQ(ierr);
+  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, setup_ctx,
+                                 phys_ctx); CHKERRQ(ierr);
   // -- Apply Setup Operator
-  ierr = VectorPlacePetscVec(ceed_data->xcorners, Xloc); CHKERRQ(ierr);
-  CeedOperatorApply(ceed_data->op_setupVol, ceed_data->xcorners, ceed_data->qdata,
+  ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
+  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners, ceed_data->q_data,
                     CEED_REQUEST_IMMEDIATE);
 
   // ---------------------------------------------------------------------------
@@ -194,15 +194,15 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
-  // -- Set up local state vector Qloc
-  Vec Qloc;
-  ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
-  ierr = VectorPlacePetscVec(ceed_data->q0ceed, Qloc); CHKERRQ(ierr);
+  // -- Set up local state vector Q_loc
+  Vec Q_loc;
+  ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceed_data->q0_ceed, Q_loc); CHKERRQ(ierr);
 
   // -- Fix multiplicity for ICs
-  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
-                             ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
-                             ceed_data->ctxSetup, 0.0); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
+                             ceed_data->q0_ceed, dm, Q_loc, Q, ceed_data->elem_restr_q,
+                             ceed_data->setup_context, 0.0); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Set up lumped mass matrix
@@ -211,9 +211,9 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
   // -- Compute lumped mass matrix
-  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->restrictq,
-                                 ceed_data->basisq, ceed_data->restrictqdi,
-                                 ceed_data->qdata, user->M); CHKERRQ(ierr);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->elem_restr_q,
+                                 ceed_data->basis_q, ceed_data->elem_restr_qd_i,
+                                 ceed_data->q_data, user->M); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
   //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
-  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Qloc); CHKERRQ(ierr);}
+  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);}
 
   // ---------------------------------------------------------------------------
   // Create output directory
@@ -244,25 +244,32 @@ int main(int argc, char **argv) {
   // Print problem summary
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
-    CeedInt gdofs, odofs;
-    const PetscInt ncompq = 5;
-    PetscInt lnodes, gnodes;
-    const CeedInt numP = app_ctx->degree + 1,
-                  numQ = numP + app_ctx->q_extra;
-    int comm_size;
-    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+    const PetscInt num_comp_q = 5;
+    CeedInt        glob_dofs, owned_dofs;
+    PetscInt       glob_nodes, owned_nodes;
+    const CeedInt  P = app_ctx->degree + 1,
+                   numQ = P + app_ctx->q_extra;  // todo: style
+    int            comm_size;
+    char           box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+
     // -- Get global size
-    ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
-    ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
-    gnodes = gdofs/ncompq;
+    ierr = VecGetSize(Q, &glob_dofs); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
+    glob_nodes = glob_dofs/num_comp_q;
+
     // -- Get local size
-    ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
-    lnodes /= ncompq;
+    ierr = VecGetSize(Q_loc, &owned_nodes); CHKERRQ(ierr);
+    owned_nodes /= num_comp_q;
+
+    // Get rank size
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
+
+    // Get DM size
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    const char *usedresource;
-    CeedGetResource(ceed, &usedresource);
+    // Get used ceed resource                            
+    const char *used_resource;
+    CeedGetResource(ceed, &used_resource);
 
     ierr = PetscPrintf(comm,
                        "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
@@ -284,67 +291,67 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, app_ctx->problem_name, StabilizationTypes[ctxPhysData->stab],
-                       box_faces_str, usedresource, CeedMemTypes[memtypebackend],
-                       (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
-                       numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes); CHKERRQ(ierr);
+                       comm_size, app_ctx->problem_name, StabilizationTypes[phys_ctx->stab],
+                       box_faces_str, used_resource, CeedMemTypes[mem_type_backend],
+                       (set_mem_type_request) ? CeedMemTypes[mem_type_requested] : "none",
+                       P, numQ, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes); CHKERRQ(ierr);
   }
-  // -- Restore Qloc
-  ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
+  // -- Restore Q_loc
+  ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
   // ---------------------------------------------------------------------------
   TS ts;
-  PetscScalar ftime;   // todo: refactor this function furthur
-  ierr = TSSolve_NS(dm, user, app_ctx, ctxPhysData, &Q, &ftime, &ts);
+  PetscScalar final_time;   // todo: refactor this function furthur
+  ierr = TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
-  ierr = PostProcess_NS(ts, ceed_data, dm, problem, app_ctx, Q, ftime);
+  ierr = PostProcess_NS(ts, ceed_data, dm, problem, app_ctx, Q, final_time);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
   // -- Vectors
-  CeedVectorDestroy(&ceed_data->xcorners);
-  CeedVectorDestroy(&ceed_data->qdata);
-  CeedVectorDestroy(&user->qceed);
-  CeedVectorDestroy(&user->qdotceed);
-  CeedVectorDestroy(&user->gceed);
+  CeedVectorDestroy(&ceed_data->x_corners);
+  CeedVectorDestroy(&ceed_data->q_data);
+  CeedVectorDestroy(&user->q_ceed);
+  CeedVectorDestroy(&user->q_dot_ceed);
+  CeedVectorDestroy(&user->g_ceed);
 
   // -- Contexts
-  CeedQFunctionContextDestroy(&ceed_data->ctxSetup);
-  CeedQFunctionContextDestroy(&ceed_data->ctxNS);
-  CeedQFunctionContextDestroy(&ceed_data->ctxAdvection);
-  CeedQFunctionContextDestroy(&ceed_data->ctxEuler);
+  CeedQFunctionContextDestroy(&ceed_data->setup_context);
+  CeedQFunctionContextDestroy(&ceed_data->dc_context);
+  CeedQFunctionContextDestroy(&ceed_data->advection_context);
+  CeedQFunctionContextDestroy(&ceed_data->euler_context);
 
   // -- QFunctions
-  CeedQFunctionDestroy(&ceed_data->qf_setupVol);
+  CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
   CeedQFunctionDestroy(&ceed_data->qf_ics);
-  CeedQFunctionDestroy(&ceed_data->qf_rhsVol);
-  CeedQFunctionDestroy(&ceed_data->qf_ifunctionVol);
-  CeedQFunctionDestroy(&ceed_data->qf_setupSur);
-  CeedQFunctionDestroy(&ceed_data->qf_applySur);
+  CeedQFunctionDestroy(&ceed_data->qf_rhs_vol);
+  CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
+  CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_sur);
 
   // -- Bases
-  CeedBasisDestroy(&ceed_data->basisq);
-  CeedBasisDestroy(&ceed_data->basisx);
-  CeedBasisDestroy(&ceed_data->basisxc);
-  CeedBasisDestroy(&ceed_data->basisqSur);
-  CeedBasisDestroy(&ceed_data->basisxSur);
-  CeedBasisDestroy(&ceed_data->basisxcSur);
+  CeedBasisDestroy(&ceed_data->basis_q);
+  CeedBasisDestroy(&ceed_data->basis_x);
+  CeedBasisDestroy(&ceed_data->basis_xc);
+  CeedBasisDestroy(&ceed_data->basis_q_sur);
+  CeedBasisDestroy(&ceed_data->basis_x_sur);
+  CeedBasisDestroy(&ceed_data->basis_xc_sur);
 
   // -- Restrictions
-  CeedElemRestrictionDestroy(&ceed_data->restrictq);
-  CeedElemRestrictionDestroy(&ceed_data->restrictx);
-  CeedElemRestrictionDestroy(&ceed_data->restrictqdi);
+  CeedElemRestrictionDestroy(&ceed_data->elem_restr_q);
+  CeedElemRestrictionDestroy(&ceed_data->elem_restr_x);
+  CeedElemRestrictionDestroy(&ceed_data->elem_restr_qd_i);
 
   // -- Operators
-  CeedOperatorDestroy(&ceed_data->op_setupVol);
+  CeedOperatorDestroy(&ceed_data->op_setup_vol);
   CeedOperatorDestroy(&ceed_data->op_ics);
   CeedOperatorDestroy(&user->op_rhs_vol);
   CeedOperatorDestroy(&user->op_ifunction_vol);
@@ -362,10 +369,10 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
 
   // -- Matrices
-  ierr = MatDestroy(&user->interpviz); CHKERRQ(ierr);
+  ierr = MatDestroy(&user->interp_viz); CHKERRQ(ierr);
 
   // -- DM
-  ierr = DMDestroy(&user->dmviz); CHKERRQ(ierr);
+  ierr = DMDestroy(&user->dm_viz); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
   // -- TS
@@ -376,8 +383,8 @@ int main(int argc, char **argv) {
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
-  ierr = PetscFree(ctxSetupData); CHKERRQ(ierr);
-  ierr = PetscFree(ctxPhysData); CHKERRQ(ierr);
+  ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);
 

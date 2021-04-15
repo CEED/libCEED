@@ -33,10 +33,10 @@
 // -----------------------------------------------------------------------------
 
 // MemType Options
-static const char *const memTypes[] = {
+static const char *const MemTypes[] = {
   "host",
   "device",
-  "memType", "CEED_MEM_", NULL
+  "MemType", "CEED_MEM_", NULL
 };
 
 // Advection - Wind Options
@@ -93,38 +93,38 @@ typedef struct CeedData_private *CeedData;
 
 // Boundary conditions
 struct SimpleBC_private {
-  PetscInt      nwall, nslip[3];
+  PetscInt      num_wall, num_slip[3];
   PetscInt      walls[6], slips[3][6];
-  PetscBool     userbc;
+  PetscBool     user_bc;
 };
 
 // Problem specific data
 // *INDENT-OFF*
 typedef struct {
-  CeedInt           dim, qdatasizeVol, qdatasizeSur;
-  CeedQFunctionUser setupVol, setupSur, ics, applyVol_rhs, applyVol_ifunction,
-                    applySur;
-  const char        *setupVol_loc, *setupSur_loc, *ics_loc,
-                    *applyVol_rhs_loc, *applyVol_ifunction_loc, *applySur_loc;
+  CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
+                    apply_sur;
+  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
+                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   PetscErrorCode    (*bc_fnc)(DM, SimpleBC, Physics, void *);
-} problemData;
+} ProblemData;
 // *INDENT-ON*
 
 // PETSc user data
 struct User_private {
   MPI_Comm     comm;
   DM           dm;
-  DM           dmviz;
-  Mat          interpviz;
+  DM           dm_viz;
+  Mat          interp_viz;
   Ceed         ceed;
   Units        units;
   Vec          M;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   qceed, qdotceed, gceed;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
 };
 
@@ -145,9 +145,9 @@ struct Units_private {
 
 // Setup Context for QFunctions
 struct Physics_private {
-  DCContext         dc_ctx_data;
-  EulerContext      euler_ctx_data;
-  AdvectionContext  advection_ctx_data;
+  DCContext         dc_ctx;
+  EulerContext      euler_ctx;
+  AdvectionContext  advection_ctx;
   WindType          wind_type;
   EulerTestType     euler_test;
   StabilizationType stab;
@@ -179,43 +179,43 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector           xcorners, qdata, q0ceed;
-  CeedQFunctionContext ctxSetup, ctxNS, ctxAdvection, ctxEuler;
-  CeedQFunction        qf_setupVol, qf_ics, qf_rhsVol, qf_ifunctionVol,
-                       qf_setupSur, qf_applySur;
-  CeedBasis            basisx, basisxc, basisq, basisxSur, basisxcSur, basisqSur;
-  CeedElemRestriction  restrictx, restrictq, restrictqdi;
-  CeedOperator         op_setupVol, op_ics;
+  CeedVector           x_corners, q_data, q0_ceed;
+  CeedQFunctionContext setup_context, dc_context, advection_context, euler_context;
+  CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
+                       qf_setup_sur, qf_apply_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur, basis_q_sur;
+  CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
+  CeedOperator         op_setup_vol, op_ics;
 };
 
 // -----------------------------------------------------------------------------
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(problemData *problem,
-    void *ctxSetupData, void *ctx, void *ctxPhys);
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem,
+    void *setup_ctx, void *ctx, void *phys);
 
-extern PetscErrorCode NS_EULER_VORTEX(problemData *problem,
-                                      void *ctxSetupData, void *ctx, void *ctxPhys);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem,
+                                      void *setup_ctx, void *ctx, void *phys);
 
-extern PetscErrorCode NS_ADVECTION(problemData *problem,
-                                   void *ctxSetupData, void *ctx, void *ctxPhys);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem,
+                                   void *setup_ctx, void *ctx, void *phys);
 
-extern PetscErrorCode NS_ADVECTION2D(problemData *problem,
-                                     void *ctxSetupData, void *ctx, void *ctxPhys);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem,
+                                     void *setup_ctx, void *ctx, void *phys);
 
 // Boundary condition function for each problem
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-    void *ctxSetupData);
+    void *setup_ctx);
 
 extern PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
-                                      void *ctxSetupData);
+                                      void *setup_ctx);
 
 extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
-                                   void *ctxSetupData);
+                                   void *setup_ctx);
 
 extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
-                                     void *ctxSetupData);
+                                     void *setup_ctx);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
@@ -225,26 +225,26 @@ PetscInt Involute(PetscInt i);
 
 // Utility function to create local CEED restriction
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt height, DMLabel domainLabel,
-    CeedInt value, CeedElemRestriction *Erestrict);
+    CeedInt height, DMLabel domain_label,
+    CeedInt value, CeedElemRestriction *elem_restr);
 
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
-                                       DMLabel domainLabel, PetscInt value,
-                                       CeedInt P, CeedInt Q, CeedInt qdatasize,
-                                       CeedElemRestriction *restrictq,
-                                       CeedElemRestriction *restrictx,
-                                       CeedElemRestriction *restrictqdi);
+                                       DMLabel domain_label, PetscInt value,
+                                       CeedInt P, CeedInt Q, CeedInt q_data_size,
+                                       CeedElemRestriction *elem_restr_q,
+                                       CeedElemRestriction *elem_restr_x,
+                                       CeedElemRestriction *elem_restr_qd_i);
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
-                                       Physics phys, CeedOperator op_applyVol, CeedQFunction qf_applySur,
-                                       CeedQFunction qf_setupSur, CeedInt height, CeedInt numP_Sur, CeedInt numQ_Sur,
-                                       CeedInt qdatasizeSur, CeedInt NqptsSur, CeedBasis basisxSur,
-                                       CeedBasis basisqSur, CeedOperator *op_apply);
+                                       Physics phys, CeedOperator op_apply_vol, CeedQFunction qf_apply_sur,
+                                       CeedQFunction qf_setup_sur, CeedInt height, CeedInt P_Sur, CeedInt Q_sur,
+                                       CeedInt q_data_size_sur, CeedInt num_qpts_sur, CeedBasis basis_x_sur,
+                                       CeedBasis basis_q_sur, CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, problemData *problem, SimpleBC bc);
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
 
 // Set up contex for QFunctions
 PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
@@ -254,26 +254,26 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
 // Time-stepping functions
 // -----------------------------------------------------------------------------
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-                                       CeedElemRestriction restrictq, CeedBasis basisq,
-                                       CeedElemRestriction restrictqdi, CeedVector qdata, Vec M);
+                                       CeedElemRestriction elem_restr_q, CeedBasis basis_q,
+                                       CeedElemRestriction elem_restr_qd_i, CeedVector q_data, Vec M);
 
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
-PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData);
+PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data);
 
 // Implicit time-stepper function setup
-PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G,
-                            void *userData);
+PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
+                            void *user_data);
 
 // User provided TS Monitor
-PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time, Vec Q,
+PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q,
                             void *ctx);
 
-PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
-                                   CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
-                                   CeedElemRestriction restrictq,
-                                   CeedQFunctionContext ctxSetup, CeedScalar time);
+PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
+                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
+                                   CeedElemRestriction elem_restr_q,
+                                   CeedQFunctionContext setup_context, CeedScalar time);
 
 // TS: Create, setup, and solve
 PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
@@ -283,16 +283,16 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // Setup DM
 // -----------------------------------------------------------------------------
 // Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, problemData *problem,
+PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
                                    SetupContext setup_ctx, DM *dm);
 
 // Set up DM
-PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
-                       SimpleBC bc, Physics phys, void *ctxSetupData);
+PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
+                       SimpleBC bc, Physics phys, void *setup_ctx);
 
 // Refine DM for high-order viz
-PetscErrorCode VizRefineDM(DM dm, User user, problemData *problem,
-                           SimpleBC bc, Physics phys, void *ctxSetupData);
+PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
+                           SimpleBC bc, Physics phys, void *setup_ctx);
 
 // -----------------------------------------------------------------------------
 // Process command line options
@@ -309,26 +309,26 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 int VectorPlacePetscVec(CeedVector c, Vec p);
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
-    PetscBool insertEssential, Vec Qloc, PetscReal time, Vec faceGeomFVM,
-    Vec cellGeomFVM, Vec gradFVM);
+    PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
+    Vec cell_geom_FVM, Vec grad_FVM);
 
 // Compare reference solution values with current test run for CI
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
-                           PetscScalar ftime);
+                           PetscScalar final_time);
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
-                              problemData *problem, AppCtx app_ctx,
-                              Vec Q, PetscScalar ftime);
+                              ProblemData *problem, AppCtx app_ctx,
+                              Vec Q, PetscScalar final_time);
 
 // -- Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 
 // Record boundary values from initial condition
-PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Qloc);
+PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // -----------------------------------------------------------------------------
 #endif

@@ -1,17 +1,17 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
-                               void *ctx, void *ctxPhys) {
+PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
+                               void *ctx, void *phys) {
   PetscInt ierr;
   MPI_Comm comm = PETSC_COMM_WORLD;
   EulerTestType euler_test;
   PetscBool implicit;
   PetscBool has_current_time = PETSC_TRUE;
   PetscBool has_neumann = PETSC_TRUE;
-  SetupContext ctxSetup = *(SetupContext *)ctxSetupData;
+  SetupContext setup_context = *(SetupContext *)setup_ctx;
   Units units = *(Units *)ctx;
-  Physics ctxPhysData = *(Physics *)ctxPhys;
-  ierr = PetscMalloc1(1, &ctxPhysData->euler_ctx_data); CHKERRQ(ierr);
+  Physics phys_ctx = *(Physics *)phys;
+  ierr = PetscMalloc1(1, &phys_ctx->euler_ctx); CHKERRQ(ierr);
 
 
   PetscFunctionBeginUser;
@@ -19,20 +19,20 @@ PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
   problem->dim                       = 3;
-  problem->qdatasizeVol              = 10;
-  problem->qdatasizeSur              = 4;
-  problem->setupVol                  = Setup;
-  problem->setupVol_loc              = Setup_loc;
-  problem->setupSur                  = SetupBoundary;
-  problem->setupSur_loc              = SetupBoundary_loc;
+  problem->q_data_size_vol              = 10;
+  problem->q_data_size_sur              = 4;
+  problem->setup_vol                  = Setup;
+  problem->setup_vol_loc              = Setup_loc;
+  problem->setup_sur                  = SetupBoundary;
+  problem->setup_sur_loc              = SetupBoundary_loc;
   problem->ics                       = ICsEuler;
   problem->ics_loc                   = ICsEuler_loc;
-  problem->applyVol_rhs              = Euler;
-  problem->applyVol_rhs_loc          = Euler_loc;
-  problem->applyVol_ifunction        = IFunction_Euler;
-  problem->applyVol_ifunction_loc    = IFunction_Euler_loc;
-  problem->applySur                  = Euler_Sur;
-  problem->applySur_loc              = Euler_Sur_loc;
+  problem->apply_vol_rhs              = Euler;
+  problem->apply_vol_rhs_loc          = Euler_loc;
+  problem->apply_vol_ifunction        = IFunction_Euler;
+  problem->apply_vol_ifunction_loc    = IFunction_Euler_loc;
+  problem->apply_sur                  = Euler_Sur;
+  problem->apply_sur_loc              = Euler_Sur_loc;
   problem->bc                        = Exact_Euler;
   problem->bc_fnc                    = BC_EULER_VORTEX;
   problem->non_zero_time             = PETSC_TRUE;
@@ -114,36 +114,36 @@ PetscErrorCode NS_EULER_VORTEX(problemData *problem, void *ctxSetupData,
   // todo: scale etv_mean_velocity
 
   // -- Setup Context
-  ctxSetup->lx         = lx;
-  ctxSetup->ly         = ly;
-  ctxSetup->lz         = lz;
-  ctxSetup->center[0]  = center[0];
-  ctxSetup->center[1]  = center[1];
-  ctxSetup->center[2]  = center[2];
-  ctxSetup->time = 0;
+  setup_context->lx         = lx;
+  setup_context->ly         = ly;
+  setup_context->lz         = lz;
+  setup_context->center[0]  = center[0];
+  setup_context->center[1]  = center[1];
+  setup_context->center[2]  = center[2];
+  setup_context->time = 0;
 
   // -- QFunction Context
-  ctxPhysData->euler_test = euler_test;
-  ctxPhysData->implicit = implicit;
-  ctxPhysData->has_current_time = has_current_time;
-  ctxPhysData->has_neumann = has_neumann;
-  ctxPhysData->euler_ctx_data->time = 0.; // todo: check if really needed
-  ctxPhysData->euler_ctx_data->currentTime = 0.;
-  ctxPhysData->euler_ctx_data->center[0]  = center[0];
-  ctxPhysData->euler_ctx_data->center[1]  = center[1];
-  ctxPhysData->euler_ctx_data->center[2]  = center[2];
-  ctxPhysData->euler_ctx_data->etv_mean_velocity[0] = etv_mean_velocity[0];
-  ctxPhysData->euler_ctx_data->etv_mean_velocity[1] = etv_mean_velocity[1];
-  ctxPhysData->euler_ctx_data->etv_mean_velocity[2] = etv_mean_velocity[2];
-  ctxPhysData->euler_ctx_data->vortex_strength = vortex_strength;
-  ctxPhysData->euler_ctx_data->implicit = implicit;
-  ctxPhysData->euler_ctx_data->euler_test = euler_test;
+  phys_ctx->euler_test = euler_test;
+  phys_ctx->implicit = implicit;
+  phys_ctx->has_current_time = has_current_time;
+  phys_ctx->has_neumann = has_neumann;
+  phys_ctx->euler_ctx->time = 0.; // todo: check if really needed
+  phys_ctx->euler_ctx->currentTime = 0.;
+  phys_ctx->euler_ctx->center[0]  = center[0];
+  phys_ctx->euler_ctx->center[1]  = center[1];
+  phys_ctx->euler_ctx->center[2]  = center[2];
+  phys_ctx->euler_ctx->etv_mean_velocity[0] = etv_mean_velocity[0];
+  phys_ctx->euler_ctx->etv_mean_velocity[1] = etv_mean_velocity[1];
+  phys_ctx->euler_ctx->etv_mean_velocity[2] = etv_mean_velocity[2];
+  phys_ctx->euler_ctx->vortex_strength = vortex_strength;
+  phys_ctx->euler_ctx->implicit = implicit;
+  phys_ctx->euler_ctx->euler_test = euler_test;
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
-                               void *ctxSetupData) {
+                               void *setup_ctx) {
 
   PetscErrorCode ierr;
   PetscInt len;
@@ -151,8 +151,8 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   // Default boundary conditions
-  bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
-  bc->nslip[2] = 2;
+  bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = 0;
+  bc->num_slip[2] = 2;
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
@@ -166,9 +166,9 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                               (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
                                &len), &flg); CHKERRQ(ierr);
   if (flg) {
-    bc->nwall = len;
+    bc->num_wall = len;
     // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-    bc->nslip[0] = bc->nslip[1] = bc->nslip[2] = 0;
+    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
   }
   for (PetscInt j=0; j<3; j++) {
     const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
@@ -178,8 +178,8 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                                 (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
                                  &len), &flg); CHKERRQ(ierr);
     if (flg) {
-      bc->nslip[j] = len;
-      bc->userbc = PETSC_TRUE;
+      bc->num_slip[j] = len;
+      bc->user_bc = PETSC_TRUE;
     }
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -188,21 +188,21 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
     // Slip boundary conditions
     PetscInt comps[1] = {1};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
-                         bc->slips[0], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[0],
+                         bc->slips[0], setup_ctx); CHKERRQ(ierr);
     comps[0] = 2;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
-                         bc->slips[1], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[1],
+                         bc->slips[1], setup_ctx); CHKERRQ(ierr);
     comps[0] = 3;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
-                         bc->slips[2], ctxSetupData); CHKERRQ(ierr);
+                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[2],
+                         bc->slips[2], setup_ctx); CHKERRQ(ierr);
   }
-  if (bc->userbc == PETSC_TRUE) {
+  if (bc->user_bc == PETSC_TRUE) {
     for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->nslip[c]; s++) {
-        for (PetscInt w = 0; w < bc->nwall; w++) {
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
+        for (PetscInt w = 0; w < bc->num_wall; w++) {
           if (bc->slips[c][s] == bc->walls[w])
             SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
                      "Boundary condition already set on face %D!\n",
@@ -217,7 +217,7 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
     PetscInt comps[3] = {1, 2, 3};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
                          3, comps, (void(*)(void))Exact_Euler, NULL,
-                         bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                         bc->num_wall, bc->walls, setup_ctx); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }

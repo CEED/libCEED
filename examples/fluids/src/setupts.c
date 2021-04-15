@@ -4,51 +4,52 @@
 // Time-stepping functions
 // -----------------------------------------------------------------------------
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-                                       CeedElemRestriction restrictq, CeedBasis basisq,
-                                       CeedElemRestriction restrictqdi, CeedVector qdata, Vec M) {
+                                       CeedElemRestriction elem_restr_q, CeedBasis basis_q,
+                                       CeedElemRestriction elem_restr_qd_i, CeedVector q_data, Vec M) {
+  Vec            M_loc;
+  CeedQFunction  qf_mass;
+  CeedOperator   op_mass;
+  CeedVector     m_ceed;
+  CeedInt        num_comp_q, q_data_size;
   PetscErrorCode ierr;
-  CeedQFunction qf_mass;
-  CeedOperator op_mass;
-  CeedVector mceed;
-  Vec Mloc;
-  CeedInt ncompq, qdatasize;
-
   PetscFunctionBeginUser;
-  CeedElemRestrictionGetNumComponents(restrictq, &ncompq);
-  CeedElemRestrictionGetNumComponents(restrictqdi, &qdatasize);
+
+  CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q);
+  CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size);
+
   // Create the Q-function that defines the action of the mass operator
   CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "q", ncompq, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", qdatasize, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_mass, "v", ncompq, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "q", num_comp_q, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "q_data", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_mass, "v", num_comp_q, CEED_EVAL_INTERP);
 
   // Create the mass operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", restrictq, basisq, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "qdata", restrictqdi,
-                       CEED_BASIS_COLLOCATED, qdata);
-  CeedOperatorSetField(op_mass, "v", restrictq, basisq, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q_data", elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, q_data);
+  CeedOperatorSetField(op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE);
 
-  ierr = DMGetLocalVector(dm, &Mloc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Mloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreateVector(restrictq, &mceed, NULL);
-  ierr = VectorPlacePetscVec(mceed, Mloc); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(M_loc); CHKERRQ(ierr);
+  CeedElemRestrictionCreateVector(elem_restr_q, &m_ceed, NULL);
+  ierr = VectorPlacePetscVec(m_ceed, M_loc); CHKERRQ(ierr);
 
   {
     // Compute a lumped mass matrix
-    CeedVector onesvec;
-    CeedElemRestrictionCreateVector(restrictq, &onesvec, NULL);
-    CeedVectorSetValue(onesvec, 1.0);
-    CeedOperatorApply(op_mass, onesvec, mceed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorDestroy(&onesvec);
+    CeedVector ones_vec;
+    CeedElemRestrictionCreateVector(elem_restr_q, &ones_vec, NULL);
+    CeedVectorSetValue(ones_vec, 1.0);
+    CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
+    CeedVectorDestroy(&ones_vec);
     CeedOperatorDestroy(&op_mass);
-    CeedVectorDestroy(&mceed);
+    CeedVectorDestroy(&m_ceed);
   }
   CeedQFunctionDestroy(&qf_mass);
 
   ierr = VecZeroEntries(M); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm, Mloc, ADD_VALUES, M); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &Mloc); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, M_loc, ADD_VALUES, M); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &M_loc); CHKERRQ(ierr);
 
   // Invert diagonally lumped mass vector for RHS function
   ierr = VecReciprocal(M); CHKERRQ(ierr);
@@ -58,35 +59,36 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
-PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
+PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
+  
+  User           user = *(User *)user_data;
+  PetscScalar    *q, *g;
+  Vec            Q_loc, Gloc;
   PetscErrorCode ierr;
-  User user = *(User *)userData;
-  PetscScalar *q, *g;
-  Vec Qloc, Gloc;
+  PetscFunctionBeginUser;
 
   // Global-to-local
-  PetscFunctionBeginUser;
-  if (user->phys->has_current_time) user->phys->euler_ctx_data->currentTime = t;
-  ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
+  if (user->phys->has_current_time) user->phys->euler_ctx->currentTime = t;
+  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Qloc, 0.0,
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
   ierr = VecZeroEntries(Gloc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayRead(Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
   ierr = VecGetArray(Gloc, &g); CHKERRQ(ierr);
-  CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
-  CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
+  CeedVectorSetArray(user->q_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
+  CeedVectorSetArray(user->g_ceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op_rhs, user->qceed, user->gceed,
+  CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  ierr = VecRestoreArrayRead(Qloc, (const PetscScalar **)&q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
   ierr = VecRestoreArray(Gloc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
@@ -96,67 +98,67 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *userData) {
   ierr = VecPointwiseMult(G, G, user->M); // M is Minv
   CHKERRQ(ierr);
 
-  ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 // Implicit time-stepper function setup
-PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Qdot, Vec G,
-                            void *userData) {
+PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
+                            void *user_data) {
   PetscErrorCode ierr;
-  User user = *(User *)userData;
+  User user = *(User *)user_data;
   const PetscScalar *q, *qdot;
   PetscScalar *g;
-  Vec Qloc, Qdotloc, Gloc;
+  Vec Q_loc, Q_dotloc, Gloc;
 
   // Global-to-local
   PetscFunctionBeginUser;
-  if (user->phys->has_current_time) user->phys->euler_ctx_data->currentTime = t;
-  ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(user->dm, &Qdotloc); CHKERRQ(ierr);
+  if (user->phys->has_current_time) user->phys->euler_ctx->currentTime = t;
+  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Q_dotloc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Qloc, 0.0,
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Qdotloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Qdot, INSERT_VALUES, Qdotloc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Q_dotloc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q_dot, INSERT_VALUES, Q_dotloc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Gloc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayRead(Qloc, &q); CHKERRQ(ierr);
-  ierr = VecGetArrayRead(Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Q_loc, &q); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(Q_dotloc, &qdot); CHKERRQ(ierr);
   ierr = VecGetArray(Gloc, &g); CHKERRQ(ierr);
-  CeedVectorSetArray(user->qceed, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedVectorSetArray(user->q_ceed, CEED_MEM_HOST, CEED_USE_POINTER,
                      (PetscScalar *)q);
-  CeedVectorSetArray(user->qdotceed, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedVectorSetArray(user->q_dot_ceed, CEED_MEM_HOST, CEED_USE_POINTER,
                      (PetscScalar *)qdot);
-  CeedVectorSetArray(user->gceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
+  CeedVectorSetArray(user->g_ceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
 
   // Apply CEED operator
-  CeedOperatorApply(user->op_ifunction, user->qceed, user->gceed,
+  CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  ierr = VecRestoreArrayRead(Qloc, &q); CHKERRQ(ierr);
-  ierr = VecRestoreArrayRead(Qdotloc, &qdot); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Q_loc, &q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayRead(Q_dotloc, &qdot); CHKERRQ(ierr);
   ierr = VecRestoreArray(Gloc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, Gloc, ADD_VALUES, G); CHKERRQ(ierr);
 
-  ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(user->dm, &Qdotloc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Q_dotloc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Gloc); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 // User provided TS Monitor
-PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
+PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
                             Vec Q, void *ctx) {
   User user = ctx;
-  Vec Qloc;
+  Vec Q_loc;
   char file_path[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
   PetscErrorCode ierr;
@@ -164,47 +166,47 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   // Set up output
   PetscFunctionBeginUser;
   // Print every 'output_freq' steps
-  if (stepno % user->app_ctx->output_freq != 0)
+  if (step_no % user->app_ctx->output_freq != 0)
     PetscFunctionReturn(0);
-  ierr = DMGetLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject)Qloc, "StateVec"); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)Q_loc, "StateVec"); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
 
   // Output
   ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-%03D.vtu",
-                       user->app_ctx->output_dir, stepno + user->app_ctx->cont_steps);
+                       user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
                             FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-  ierr = VecView(Qloc, viewer); CHKERRQ(ierr);
+  ierr = VecView(Q_loc, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  if (user->dmviz) {
+  if (user->dm_viz) {
     Vec Qrefined, Qrefined_loc;
     char file_path_refined[PETSC_MAX_PATH_LEN];
     PetscViewer viewer_refined;
 
-    ierr = DMGetGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
-    ierr = DMGetLocalVector(user->dmviz, &Qrefined_loc); CHKERRQ(ierr);
+    ierr = DMGetGlobalVector(user->dm_viz, &Qrefined); CHKERRQ(ierr);
+    ierr = DMGetLocalVector(user->dm_viz, &Qrefined_loc); CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)Qrefined_loc, "Refined");
     CHKERRQ(ierr);
-    ierr = MatInterpolate(user->interpviz, Q, Qrefined); CHKERRQ(ierr);
+    ierr = MatInterpolate(user->interp_viz, Q, Qrefined); CHKERRQ(ierr);
     ierr = VecZeroEntries(Qrefined_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(user->dmviz, Qrefined, INSERT_VALUES, Qrefined_loc);
+    ierr = DMGlobalToLocal(user->dm_viz, Qrefined, INSERT_VALUES, Qrefined_loc);
     CHKERRQ(ierr);
     ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
                          "%s/nsrefined-%03D.vtu",
-                         user->app_ctx->output_dir, stepno + user->app_ctx->cont_steps);
+                         user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Qrefined),
                               file_path_refined,
                               FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
     ierr = VecView(Qrefined_loc, viewer_refined); CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(user->dmviz, &Qrefined_loc); CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(user->dmviz, &Qrefined); CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(user->dm_viz, &Qrefined_loc); CHKERRQ(ierr);
+    ierr = DMRestoreGlobalVector(user->dm_viz, &Qrefined); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
   }
-  ierr = DMRestoreLocalVector(user->dm, &Qloc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
 
   // Save data in a binary file for continuation of simulations
   ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
@@ -232,38 +234,38 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt stepno, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector xcorners,
-                                   CeedVector q0ceed, DM dm, Vec Qloc, Vec Q,
-                                   CeedElemRestriction restrictq,
-                                   CeedQFunctionContext ctxSetup, CeedScalar time) {
+PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
+                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
+                                   CeedElemRestriction elem_restr_q,
+                                   CeedQFunctionContext setup_context, CeedScalar time) {
   CeedVector multlvec;
   Vec Multiplicity, MultiplicityLoc;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-  SetupContext ctxSetupData;
-  CeedQFunctionContextGetData(ctxSetup, CEED_MEM_HOST, (void **)&ctxSetupData);
-  ctxSetupData->time = time;
-  CeedQFunctionContextRestoreData(ctxSetup, (void **)&ctxSetupData);
+  SetupContext setup_ctx;
+  CeedQFunctionContextGetData(setup_context, CEED_MEM_HOST, (void **)&setup_ctx);
+  setup_ctx->time = time;
+  CeedQFunctionContextRestoreData(setup_context, (void **)&setup_ctx);
 
-  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-  ierr = VectorPlacePetscVec(q0ceed, Qloc); CHKERRQ(ierr);
-  CeedOperatorApply(op_ics, xcorners, q0ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(q0_ceed, Q_loc); CHKERRQ(ierr);
+  CeedOperatorApply(op_ics, x_corners, q0_ceed, CEED_REQUEST_IMMEDIATE);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm, Qloc, ADD_VALUES, Q); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q); CHKERRQ(ierr);
 
   // Fix multiplicity for output of ICs
   ierr = DMGetLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
-  CeedElemRestrictionCreateVector(restrictq, &multlvec, NULL);
+  CeedElemRestrictionCreateVector(elem_restr_q, &multlvec, NULL);
   ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc); CHKERRQ(ierr);
-  CeedElemRestrictionGetMultiplicity(restrictq, multlvec);
+  CeedElemRestrictionGetMultiplicity(elem_restr_q, multlvec);
   CeedVectorDestroy(&multlvec);
   ierr = DMGetGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
   ierr = VecZeroEntries(Multiplicity); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);
   CHKERRQ(ierr);
   ierr = VecPointwiseDivide(Q, Q, Multiplicity); CHKERRQ(ierr);
-  ierr = VecPointwiseDivide(Qloc, Qloc, MultiplicityLoc); CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q_loc, Q_loc, MultiplicityLoc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
 
@@ -276,7 +278,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 
   MPI_Comm       comm = user->comm;
   TSAdapt        adapt;
-  PetscScalar    ftime;
+  PetscScalar    final_time;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
@@ -333,8 +335,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
   ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
   cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(*ts, &ftime); CHKERRQ(ierr);
-  *f_time = ftime;
+  ierr = TSGetSolveTime(*ts, &final_time); CHKERRQ(ierr);
+  *f_time = final_time;
   ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
                        comm); CHKERRQ(ierr);
   if (!app_ctx->test_mode) {
