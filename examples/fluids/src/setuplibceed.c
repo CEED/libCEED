@@ -181,7 +181,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   PetscScalar *x;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
-  
+
   // Composite Operaters
   CeedCompositeOperatorCreate(ceed, op_apply);
   // --Apply a Sub-Operator for the volume
@@ -255,7 +255,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   // *****************************************************************************
   // Set up CEED objects for the interior domain (volume)
-  // *****************************************************************************                             
+  // *****************************************************************************
   const PetscInt ncompq = 5;
   const CeedInt  dim = problem->dim,
                  ncompx = problem->dim,
@@ -305,7 +305,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedQFunctionAddInput(ceed_data->qf_ics, "x", ncompx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", ncompq, CEED_EVAL_NONE);
 
-  // -- Create QFunction for RHS 
+  // -- Create QFunction for RHS
   if (problem->applyVol_rhs) {
     CeedQFunctionCreateInterior(ceed, 1, problem->applyVol_rhs,
                                 problem->applyVol_rhs_loc, &ceed_data->qf_rhsVol);
@@ -384,7 +384,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_VECTOR_ACTIVE);
     user->op_rhs_vol = op;
   }
-  
+
   // -- CEED operator for IFunction
   if (ceed_data->qf_ifunctionVol) {
     CeedOperator op;
@@ -416,7 +416,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
           NqptsSur;
   const CeedInt qdatasizeSur = problem->qdatasizeSur;
 
-
   // -----------------------------------------------------------------------------
   // CEED Bases
   // -----------------------------------------------------------------------------
@@ -431,7 +430,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions
-  // -----------------------------------------------------------------------------    
+  // -----------------------------------------------------------------------------
   // -- Create QFunction for quadrature data
   CeedQFunctionCreateInterior(ceed, 1, problem->setupSur, problem->setupSur_loc,
                               &ceed_data->qf_setupSur);
@@ -440,18 +439,18 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedQFunctionAddInput(ceed_data->qf_setupSur, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(ceed_data->qf_setupSur, "qdataSur", qdatasizeSur,
                          CEED_EVAL_NONE);
-  
+
   // -- Creat QFunction for the physics on the boundaries
   if (problem->applySur) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->applySur,
-                                problem->applySur_loc, &ceed_data->qf_applySur);
+    CeedQFunctionCreateInterior(ceed, 1, problem->applySur, problem->applySur_loc,
+                                &ceed_data->qf_applySur);
     CeedQFunctionAddInput(ceed_data->qf_applySur, "q", ncompq, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_applySur, "qdataSur", qdatasizeSur,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_applySur, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_applySur, "v", ncompq, CEED_EVAL_INTERP);
   }
-  
+
   // *****************************************************************************
   // CEED Operator Apply
   // *****************************************************************************
@@ -460,15 +459,14 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedBasisGetNumQuadraturePoints(ceed_data->basisqSur, &NqptsSur);
 
   // -- Create and apply CEED Composite Operator for the entire domain
-  if (!user->phys->implicit) {
+  if (!user->phys->implicit) { // RHS
     ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
                                    user->op_rhs_vol,
                                    ceed_data->qf_applySur, ceed_data->qf_setupSur,
                                    height, numP_Sur, numQ_Sur, qdatasizeSur,
                                    NqptsSur, ceed_data->basisxSur, ceed_data->basisqSur,
                                    &user->op_rhs); CHKERRQ(ierr);
-  }
-  if (user->phys->implicit) {
+  } else { // IFunction
     ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
                                    user->op_ifunction_vol,
                                    ceed_data->qf_applySur, ceed_data->qf_setupSur,
