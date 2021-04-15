@@ -93,7 +93,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, app_ctx->cont_steps, &app_ctx->cont_steps, NULL); CHKERRQ(ierr);
 
-  app_ctx->degree = 2;
+  app_ctx->degree = 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
                          NULL, app_ctx->degree, &app_ctx->degree, NULL); CHKERRQ(ierr);
 
