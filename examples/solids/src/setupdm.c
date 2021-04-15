@@ -166,29 +166,37 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
       if (!has_label) {
         ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
       }
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "marker", 0, 0, NULL,
-                           (void(*)(void))BCMMS, NULL, 1, marker_ids, NULL);
+      DMLabel label;
+      ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "marker", 1, marker_ids,
+                           0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
       CHKERRQ(ierr);
     } else if (app_ctx->forcing_choice == FORCE_MMS) {
       // -- ExodusII mesh with MMS
       ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
       ierr = ISGetSize(face_set_is,&num_face_sets); CHKERRQ(ierr);
       ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", "Face Sets", 0, 0, NULL,
-                           (void(*)(void))BCMMS, NULL, num_face_sets, face_set_ids, NULL);
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
+                           num_face_sets, face_set_ids, 0, 0, NULL,
+                           (void(*)(void))BCMMS, NULL, NULL, NULL);
       CHKERRQ(ierr);
       ierr = ISRestoreIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
       ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
     } else {
       // -- ExodusII mesh with user specified BCs
       // -- Clamp BCs
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
         snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, "Face Sets", 0, 0,
-                             NULL, (void(*)(void))BCClamp, NULL, 1,
-                             &app_ctx->bc_clamp_faces[i],
-                             (void *)&app_ctx->bc_clamp_max[i]); CHKERRQ(ierr);
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, "Face Sets", 1,
+                             &app_ctx->bc_clamp_faces[i], 0, 0,
+                             NULL, (void(*)(void))BCClamp, NULL,
+                             (void *)&app_ctx->bc_clamp_max[i], NULL);
+        CHKERRQ(ierr);
       }
     }
   }

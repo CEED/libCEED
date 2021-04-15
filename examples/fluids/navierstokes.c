@@ -63,7 +63,11 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #endif
 
 #if PETSC_VERSION_LT(3,14,0)
-#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l) DMAddBoundary(a,b,c,d,e,f,g,h,j,k,l)
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,e,h,i,j,k,f,g,m)
+#elif PETSC_VERSION_LT(3,15,0)
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,e,h,i,j,k,l,f,g,m)
+#else
+#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,d,f,g,h,i,j,k,l,m,n)
 #endif
 
 // MemType Options
@@ -826,18 +830,23 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     if (problem->bc == Exact_Euler)
       bc->nwall = bc->nslip[0] = bc->nslip[1] = 0;
     {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       PetscInt comps[1] = {1};
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[0],
-                           bc->slips[0], ctxSetupData); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
+                           bc->nslip[0], bc->slips[0], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
+      CHKERRQ(ierr);
       comps[0] = 2;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[1],
-                           bc->slips[1], ctxSetupData); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
+                           bc->nslip[1], bc->slips[1], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
+      CHKERRQ(ierr);
       comps[0] = 3;
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                           1, comps, (void(*)(void))NULL, NULL, bc->nslip[2],
-                           bc->slips[2], ctxSetupData); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
+                           bc->nslip[2], bc->slips[2], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, ctxSetupData, NULL);
+      CHKERRQ(ierr);
     }
     if (bc->userbc == PETSC_TRUE) {
       for (PetscInt c = 0; c < 3; c++) {
@@ -855,23 +864,28 @@ static PetscErrorCode SetUpDM(DM dm, problemData *problem, PetscInt degree,
     //   velocity in advection/advection2d, and zero velocity and zero flux
     //   for mass density and energy density in density_current
     {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       if (problem->bc == Exact_Advection || problem->bc == Exact_Advection2d) {
         PetscInt comps[1] = {4};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+                             bc->nwall, bc->walls, 0,
                              1, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                             ctxSetupData, NULL); CHKERRQ(ierr);
       } else if (problem->bc == Exact_DC) {
         PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+                             bc->nwall, bc->walls, 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                             ctxSetupData, NULL); CHKERRQ(ierr);
       } else if (problem->bc == Exact_Euler) {
         // So far nwall=0 but we keep this support for
         //   the time when we add periodic BCs
         PetscInt comps[3] = {1, 2, 3};
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+                             bc->nwall, bc->walls, 0,
                              3, comps, (void(*)(void))problem->bc, NULL,
-                             bc->nwall, bc->walls, ctxSetupData); CHKERRQ(ierr);
+                             ctxSetupData, NULL); CHKERRQ(ierr);
       } else
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_NULL,
                 "Undefined boundary conditions for this problem");
