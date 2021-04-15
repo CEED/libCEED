@@ -20,6 +20,7 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   int ierr;
   for (int i=0; i<num_prefixes; i++) {
     ierr = CeedRegister(va_arg(prefixes, const char*), CeedInit_Weak, CEED_MAX_BACKEND_PRIORITY);
+    if (ierr) va_end(prefixes); // Prevent leak on error
     CeedChk(ierr);
   }
   va_end(prefixes);
