@@ -49,23 +49,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "navierstokes.h"
 
 int main(int argc, char **argv) {
-  PetscInt ierr;
-  MPI_Comm comm;
-  DM dm;
-  User user;
-  Units units;
-  CeedData ceed_data;
-  SetupContext ctxSetupData;
-  Physics ctxPhysData;
-  AppCtx app_ctx;
-  problemData   *problem = NULL;
-  PetscInt lnodes, gnodes;
-  const PetscInt ncompq = 5;
-  PetscMPIInt rank;
-  Vec Q, Qloc, Xloc;
-  Ceed ceed;
-  PetscInt Xloc_size;
-  SimpleBC bc;
 
   // todo: define a function
   // Check PETSc CUDA support
@@ -83,23 +66,37 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize PETSc
   // ---------------------------------------------------------------------------
+  PetscInt ierr;
   ierr = PetscInitialize(&argc, &argv, NULL, help);
   if (ierr) return ierr;
 
   // ---------------------------------------------------------------------------
-  // Create contexts
+  // Create structs
   // ---------------------------------------------------------------------------
-  // -- Allocate memory for contexts
-  ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-  ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
-  ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
+  AppCtx app_ctx;
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
+
+  problemData *problem = NULL; 
+  ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
+
+  User user;
+  ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
+
+  CeedData ceed_data;
   ierr = PetscCalloc1(1, &ceed_data); CHKERRQ(ierr);
 
-  // -- Assign contexts
+  SimpleBC bc;
+  ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
+
+  SetupContext ctxSetupData;
+  ierr = PetscMalloc1(1, &ctxSetupData); CHKERRQ(ierr);
+
+  Physics ctxPhysData;
+  ierr = PetscMalloc1(1, &ctxPhysData); CHKERRQ(ierr);
+
+  Units units;
+  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+
   user->app_ctx = app_ctx;
   user->units = units;
   user->phys = ctxPhysData;
@@ -107,11 +104,11 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
-  // Register problems to be available on the command line
+  // -- Register problems to be available on the command line
   ierr = RegisterProblems_NS(app_ctx); CHKERRQ(ierr);
 
-  // Process general command line options
-  comm = PETSC_COMM_WORLD;
+  // -- Process general command line options
+  MPI_Comm comm = PETSC_COMM_WORLD;
   user->comm = comm;
   ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
 
@@ -128,35 +125,10 @@ int main(int argc, char **argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // Setup DM
-  // ---------------------------------------------------------------------------
-  // Create distribute DM
-  ierr = CreateDistributedDM(comm, problem, ctxSetupData, &dm); CHKERRQ(ierr);
-  user->dm = dm;
-
-  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, ctxPhysData, ctxSetupData);
-  CHKERRQ(ierr);
-
-  // Refine DM for high-order viz
-  if (app_ctx->viz_refine) {
-    ierr = VizRefineDM(dm, user, problem, bc, ctxPhysData, ctxSetupData);
-    CHKERRQ(ierr);
-  }
-
-  // ---------------------------------------------------------------------------
-  // todo
-  // ---------------------------------------------------------------------------
-  ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
-  ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
-  lnodes /= ncompq;
-
-  // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
   // -- Initialize backend
+  Ceed ceed;
   CeedInit(app_ctx->ceed_resource, &ceed);
   user->ceed = ceed;
 
@@ -173,17 +145,119 @@ int main(int argc, char **argv) {
              "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
 
   // ---------------------------------------------------------------------------
+  // Set up global mesh
+  // ---------------------------------------------------------------------------
+  // -- Create distribute DM
+  DM dm;
+  ierr = CreateDistributedDM(comm, problem, ctxSetupData, &dm); CHKERRQ(ierr);
+  user->dm = dm;
+  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+
+  // -- Set up DM
+  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, ctxPhysData, ctxSetupData);
+  CHKERRQ(ierr);
+
+  // -- Refine DM for high-order viz
+  if (app_ctx->viz_refine) {
+    ierr = VizRefineDM(dm, user, problem, bc, ctxPhysData, ctxSetupData);
+    CHKERRQ(ierr);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Set up libCEED
+  // ---------------------------------------------------------------------------
+  // -- Create Ceed coordinate vector
+  Vec Xloc;
+  PetscInt Xloc_size;
+  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, Xloc_size, &ceed_data->xcorners); CHKERRQ(ierr);
+
+  // -- Set up libCEED objects
+  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
+  CHKERRQ(ierr);
+
+  // -- Set up contex for QFunctions
+  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
+                                 ctxPhysData); CHKERRQ(ierr);
+  // -- Apply Setup Operator
+  ierr = VectorPlacePetscVec(ceed_data->xcorners, Xloc); CHKERRQ(ierr);
+  CeedOperatorApply(ceed_data->op_setupVol, ceed_data->xcorners, ceed_data->qdata,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // ---------------------------------------------------------------------------
+  // Set up ICs
+  // ---------------------------------------------------------------------------
+  // -- Set up global state vector Q
+  Vec Q;
+  ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Q); CHKERRQ(ierr);
+
+  // -- Set up local state vector Qloc
+  Vec Qloc;
+  ierr = DMGetLocalVector(dm, &Qloc); CHKERRQ(ierr);
+  ierr = VectorPlacePetscVec(ceed_data->q0ceed, Qloc); CHKERRQ(ierr);
+
+  // -- Fix multiplicity for ICs
+  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
+                             ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
+                             ceed_data->ctxSetup, 0.0); CHKERRQ(ierr);
+
+  // ---------------------------------------------------------------------------
+  // Set up lumped mass matrix
+  // ---------------------------------------------------------------------------
+  // -- Set up global mass vector
+  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
+
+  // -- Compute lumped mass matrix
+  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->restrictq,
+                                 ceed_data->basisq, ceed_data->restrictqdi, 
+                                 ceed_data->qdata, user->M); CHKERRQ(ierr);
+
+  // ---------------------------------------------------------------------------
+  // Record boundary values from initial condition
+  // ---------------------------------------------------------------------------
+  // -- This overrides DMPlexInsertBoundaryValues().
+  //    We use this for the main simulation DM because the reference
+  //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
+  //    still get the same results due to the problem->bc function, but with
+  //    potentially much slower execution.
+  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Qloc); CHKERRQ(ierr);}
+
+  // ---------------------------------------------------------------------------
+  // Create output directory
+  // ---------------------------------------------------------------------------
+  PetscMPIInt rank;
+  MPI_Comm_rank(comm, &rank);
+  if (!rank) {ierr = PetscMkdir(app_ctx->output_dir); CHKERRQ(ierr);}
+
+  // ---------------------------------------------------------------------------
+  // Gather initial Q values in case of continuation of simulation
+  // ---------------------------------------------------------------------------
+  // -- Set up initial values from binary file
+  if (app_ctx->cont_steps) {
+    ierr = SetupICsFromBinary(comm, app_ctx, Q); CHKERRQ(ierr);
+  }
+
+  // ---------------------------------------------------------------------------
   // Print problem summary
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
     CeedInt gdofs, odofs;
+    const PetscInt ncompq = 5;
+    PetscInt lnodes, gnodes;
     const CeedInt numP = app_ctx->degree + 1,
                   numQ = numP + app_ctx->q_extra;
     int comm_size;
     char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+    // -- Get global size
     ierr = VecGetSize(Q, &gdofs); CHKERRQ(ierr);
     ierr = VecGetLocalSize(Q, &odofs); CHKERRQ(ierr);
     gnodes = gdofs/ncompq;
+    // -- Get local size
+    ierr = VecGetSize(Qloc, &lnodes); CHKERRQ(ierr);
+    lnodes /= ncompq;
     ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
@@ -215,73 +289,8 @@ int main(int argc, char **argv) {
                        (setmemtyperequest) ? CeedMemTypes[memtyperequested] : "none",
                        numP, numQ, gdofs, odofs, ncompq, gnodes, lnodes); CHKERRQ(ierr);
   }
-
-  // ---------------------------------------------------------------------------
-  // Set up global mass vector
-  // ---------------------------------------------------------------------------
-  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
-  // Set up libCEED
-  // ---------------------------------------------------------------------------
-  ierr = DMGetCoordinatesLocal(dm, &Xloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Xloc, &Xloc_size); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, Xloc_size, &ceed_data->xcorners); CHKERRQ(ierr);
-
-  // -- Set up libCEED objects
-  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
-  CHKERRQ(ierr);
-
-  // -- Set up contex for QFunctions
-  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, ctxSetupData,
-                                 ctxPhysData); CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
-  // Calculate qdata and ICs
-  // ---------------------------------------------------------------------------
-  // -- Set up state global and local vectors
-  ierr = VecZeroEntries(Q); CHKERRQ(ierr);
-
-  ierr = VectorPlacePetscVec(ceed_data->q0ceed, Qloc); CHKERRQ(ierr);
-
-  // -- Apply Setup Ceed Operators
-  ierr = VectorPlacePetscVec(ceed_data->xcorners, Xloc); CHKERRQ(ierr);
-  CeedOperatorApply(ceed_data->op_setupVol, ceed_data->xcorners, ceed_data->qdata,
-                    CEED_REQUEST_IMMEDIATE);
-  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->restrictq,
-                                 ceed_data->basisq, ceed_data->restrictqdi, ceed_data->qdata,
-                                 user->M); CHKERRQ(ierr);
-
-  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
-                             ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
-                             ceed_data->ctxSetup, 0.0); CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
-  // Record boundary values from initial condition
-  // ---------------------------------------------------------------------------
-  // This overrides DMPlexInsertBoundaryValues().
-  //   We use this for the main simulation DM because the reference
-  //   DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
-  //   still get the same results due to the problem->bc function, but with
-  //   potentially much slower execution.
-  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Qloc); CHKERRQ(ierr);}
-
   // -- Restore Qloc
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
-  // Create output directory
-  // ---------------------------------------------------------------------------
-  MPI_Comm_rank(comm, &rank);
-  if (!rank) {ierr = PetscMkdir(app_ctx->output_dir); CHKERRQ(ierr);}
-
-  // ---------------------------------------------------------------------------
-  // Gather initial Q values in case of continuation of simulation
-  // ---------------------------------------------------------------------------
-  // -- Set up initial values from binary file
-  if (app_ctx->cont_steps) {
-    ierr = SetupICsFromBinary(comm, app_ctx, Q); CHKERRQ(ierr);
-  }
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
