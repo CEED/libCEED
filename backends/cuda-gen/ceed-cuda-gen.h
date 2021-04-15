@@ -44,10 +44,6 @@ typedef struct {
   void *d_c;
 } CeedQFunction_Cuda_gen;
 
-typedef struct {
-  Ceed_Cuda base;
-} Ceed_Cuda_gen;
-
 CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);

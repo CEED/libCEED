@@ -859,7 +859,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
   int ierr;
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
-  Ceed_Hip_shared *ceed_Hip;
+  Ceed_Hip *ceed_Hip;
   CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedBasis_Hip_shared *data;
   CeedBasisGetData(basis, &data); CeedChkBackend(ierr);

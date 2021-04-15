@@ -32,14 +32,14 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
                      "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
-  Ceed ceedshared;
-  CeedInit("/gpu/hip/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
-
-  Ceed_Hip_gen *data;
+  Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
   ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
+
+  Ceed ceedshared;
+  CeedInit("/gpu/hip/shared", &ceedshared);
+  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
 
   const char fallbackresource[] = "/gpu/hip/ref";
   ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);

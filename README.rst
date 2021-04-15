@@ -265,6 +265,11 @@ Currently, each MAGMA library installation is only built for either CUDA or HIP.
 set of libCEED backends (``/gpu/cuda/magma/*`` or ``/gpu/hip/magma/*``) will automatically be built
 for the version of the MAGMA library found in ``MAGMA_DIR``.
 
+Users can specify a device for all CUDA, HIP, and MAGMA backends through adding `:device_id=#` 
+after the resource name.  For example:
+
+ - `/gpu/cuda/gen:device_id=1`
+ 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
 cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
 to the top-level OCCA directory, with the OCCA library located in the ``${OCCA_DIR}/lib`` (By default,

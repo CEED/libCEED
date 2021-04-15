@@ -34,10 +34,6 @@ typedef struct {
   CeedScalar *d_qweight1d;
 } CeedBasis_Hip_shared;
 
-typedef struct {
-  Ceed_Hip base;
-} Ceed_Hip_shared;
-
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);

@@ -34,14 +34,14 @@ static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
-  Ceed ceedref;
-  CeedInit("/gpu/hip/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
-
-  Ceed_Hip_shared *data;
+  Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
   ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
+
+  Ceed ceedref;
+  CeedInit("/gpu/hip/ref", &ceedref);
+  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Hip_shared);
