@@ -170,3 +170,23 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 
   PetscFunctionReturn(0);
 }
+
+// Record boundary values from initial condition
+PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Qloc) {
+
+  Vec Qbc;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
+  ierr = VecCopy(Qloc, Qbc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
+  ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
+  ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
+  ierr = PetscObjectComposeFunction((PetscObject)dm,
+                                    "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}

@@ -326,5 +326,9 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
 
 // -- Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
+
+// Record boundary values from initial condition
+PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Qloc);
+
 // -----------------------------------------------------------------------------
 #endif

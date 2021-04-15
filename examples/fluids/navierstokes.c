@@ -255,21 +255,18 @@ int main(int argc, char **argv) {
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->xcorners,
                              ceed_data->q0ceed, dm, Qloc, Q, ceed_data->restrictq,
                              ceed_data->ctxSetup, 0.0); CHKERRQ(ierr);
-  if (1) { // Record boundary values from initial condition and override DMPlexInsertBoundaryValues()
-    // We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow.  If we
-    // disable this, we should still get the same results due to the problem->bc function, but with potentially much
-    // slower execution.
-    Vec Qbc;
-    ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-    ierr = VecCopy(Qloc, Qbc); CHKERRQ(ierr);
-    ierr = VecZeroEntries(Qloc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Qloc); CHKERRQ(ierr);
-    ierr = VecAXPY(Qbc, -1., Qloc); CHKERRQ(ierr);
-    ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-    ierr = PetscObjectComposeFunction((PetscObject)dm,
-                                      "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
-    CHKERRQ(ierr);
-  }
+
+  // ---------------------------------------------------------------------------
+  // Record boundary values from initial condition
+  // ---------------------------------------------------------------------------
+  // This overrides DMPlexInsertBoundaryValues().
+  //   We use this for the main simulation DM because the reference
+  //   DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
+  //   still get the same results due to the problem->bc function, but with
+  //   potentially much slower execution.
+  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Qloc); CHKERRQ(ierr);}
+
+  // -- Restore Qloc
   ierr = DMRestoreLocalVector(dm, &Qloc); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
