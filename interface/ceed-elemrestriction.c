@@ -271,6 +271,20 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedElemRestriction
+
+  @param rstr  ElemRestriction to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionReference(CeedElemRestriction rstr) {
+  rstr->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// @cond DOXYGEN_SKIP
@@ -344,7 +358,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -407,7 +421,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -492,7 +506,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
                                elem_size); CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -558,7 +572,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*rstr)->ref_count = 1;
   (*rstr)->num_elem = num_elem;
   (*rstr)->elem_size = elem_size;
@@ -571,6 +585,31 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          NULL, *rstr); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedElemRestriction. Both pointers should
+           be destroyed with `CeedElemRestrictionDestroy()`;
+           Note: If `*rstr_copy` is non-NULL, then it is assumed that
+           `*rstr_copy` is a pointer to a CeedElemRestriction. This
+           CeedElemRestriction will be destroyed if `*rstr_copy` is the
+           only reference to this CeedElemRestriction.
+
+  @param rstr            CeedElemRestriction to copy reference to
+  @param[out] rstr_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr,
+                                     CeedElemRestriction *rstr_copy) {
+  int ierr;
+
+  ierr = CeedElemRestrictionReference(rstr); CeedChk(ierr);
+  ierr = CeedElemRestrictionDestroy(rstr_copy); CeedChk(ierr);
+  *rstr_copy = rstr;
   return CEED_ERROR_SUCCESS;
 }
 

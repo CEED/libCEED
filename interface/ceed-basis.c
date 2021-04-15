@@ -296,6 +296,20 @@ int CeedBasisSetData(CeedBasis basis, void *data) {
 }
 
 /**
+  @brief Increment the reference counter for a CeedBasis
+
+  @param basis  Basis to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisReference(CeedBasis basis) {
+  basis->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get dimension for given CeedElemTopology
 
   @param topo      CeedElemTopology
@@ -335,8 +349,10 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
 
   @ref Backend
 **/
-int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
-  basis->contract = *contract;
+int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
+  int ierr;
+  basis->contract = contract;
+  ierr = CeedTensorContractReference(contract); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -435,7 +451,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
 
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*basis)->ref_count = 1;
   (*basis)->tensor_basis = 1;
   (*basis)->dim = dim;
@@ -596,7 +612,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
 
   (*basis)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*basis)->ref_count = 1;
   (*basis)->tensor_basis = 0;
   (*basis)->dim = dim;
@@ -614,6 +630,30 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   memcpy((*basis)->grad, grad, dim*Q*P*sizeof(grad[0]));
   ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref,
                              q_weight, *basis); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedBasis. Both pointers should
+           be destroyed with `CeedBasisDestroy()`;
+           Note: If `*basis_copy` is non-NULL, then it is assumed that
+           `*basis_copy` is a pointer to a CeedBasis. This CeedBasis
+           will be destroyed if `*basis_copy` is the only
+           reference to this CeedBasis.
+
+  @param basis            CeedBasis to copy reference to
+  @param[out] basis_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
+  int ierr;
+
+  ierr = CeedBasisReference(basis); CeedChk(ierr);
+  ierr = CeedBasisDestroy(basis_copy); CeedChk(ierr);
+  *basis_copy = basis;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1029,6 +1069,9 @@ int CeedBasisDestroy(CeedBasis *basis) {
   if (!*basis || --(*basis)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*basis)->Destroy) {
     ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
+  }
+  if ((*basis)->contract) {
+    ierr = CeedTensorContractDestroy(&(*basis)->contract); CeedChk(ierr);
   }
   ierr = CeedFree(&(*basis)->interp); CeedChk(ierr);
   ierr = CeedFree(&(*basis)->interp_1d); CeedChk(ierr);

@@ -121,6 +121,20 @@ int CeedVectorSetData(CeedVector vec, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedVector
+
+  @param vec  CeedVector to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorReference(CeedVector vec) {
+  vec->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -160,11 +174,35 @@ int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
 
   ierr = CeedCalloc(1, vec); CeedChk(ierr);
   (*vec)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*vec)->ref_count = 1;
   (*vec)->length = length;
   (*vec)->state = 0;
   ierr = ceed->VectorCreate(length, *vec); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedVector. Both pointers should
+           be destroyed with `CeedVectorDestroy()`;
+           Note: If `*vec_copy` is non-NULL, then it is assumed that
+           `*vec_copy` is a pointer to a CeedVector. This
+           CeedVector will be destroyed if `*vec_copy` is the only
+           reference to this CeedVector.
+
+  @param vec            CeedVector to copy reference to
+  @param[out] vec_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
+  int ierr;
+
+  ierr = CeedVectorReference(vec); CeedChk(ierr);
+  ierr = CeedVectorDestroy(vec_copy); CeedChk(ierr);
+  *vec_copy = vec;
   return CEED_ERROR_SUCCESS;
 }
 

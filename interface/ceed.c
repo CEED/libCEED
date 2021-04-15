@@ -586,6 +586,20 @@ int CeedSetData(Ceed ceed, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a Ceed context
+
+  @param ceed  Ceed context to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedReference(Ceed ceed) {
+  ceed->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -811,6 +825,30 @@ int CeedInit(const char *resource, Ceed *ceed) {
 }
 
 /**
+  @brief Copy the pointer to a Ceed context. Both pointers should
+           be destroyed with `CeedDestroy()`;
+           Note: If `*ceed_copy` is non-NULL, then it is assumed that
+           `*ceed_copy` is a pointer to a Ceed context. This Ceed
+           context will be destroyed if `*ceed_copy` is the only
+           reference to this Ceed context.
+
+  @param ceed            Ceed context to copy reference to
+  @param[out] ceed_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy) {
+  int ierr;
+
+  ierr = CeedReference(ceed); CeedChk(ierr);
+  ierr = CeedDestroy(ceed_copy); CeedChk(ierr);
+  *ceed_copy = ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the full resource name for a Ceed context
 
   @param ceed           Ceed context to get resource name of
@@ -820,7 +858,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   @ref User
 **/
-
 int CeedGetResource(Ceed ceed, const char **resource) {
   *resource = (const char *)ceed->resource;
   return CEED_ERROR_SUCCESS;

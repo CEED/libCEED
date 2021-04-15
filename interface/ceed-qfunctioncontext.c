@@ -105,6 +105,20 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Increment the reference counter for a CeedQFunctionContext
+
+  @param ctx  CeedQFunctionContext to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextReference(CeedQFunctionContext ctx) {
+  ctx->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -143,9 +157,34 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 
   ierr = CeedCalloc(1, ctx); CeedChk(ierr);
   (*ctx)->ceed = ceed;
-  ceed->ref_count++;
+  ierr = CeedReference(ceed); CeedChk(ierr);
   (*ctx)->ref_count = 1;
   ierr = ceed->QFunctionContextCreate(*ctx); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedQFunctionContext. Both pointers should
+           be destroyed with `CeedQFunctionContextDestroy()`;
+           Note: If `*ctx_copy` is non-NULL, then it is assumed that
+           `*ctx_copy` is a pointer to a CeedQFunctionContext. This
+           CeedQFunctionContext will be destroyed if `*ctx_copy` is the
+           only reference to this CeedQFunctionContext.
+
+  @param ctx            CeedQFunctionContext to copy reference to
+  @param[out] ctx_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
+                                      CeedQFunctionContext *ctx_copy) {
+  int ierr;
+
+  ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(ctx_copy); CeedChk(ierr);
+  *ctx_copy = ctx;
   return CEED_ERROR_SUCCESS;
 }
 
