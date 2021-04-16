@@ -169,10 +169,10 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
-                                       Physics phys, CeedOperator op_apply_vol, CeedQFunction qf_apply_sur,
-                                       CeedQFunction qf_setup_sur, CeedInt height, CeedInt P_Sur, CeedInt Q_sur,
-                                       CeedInt q_data_size_sur, CeedInt num_qpts_sur, CeedBasis basis_x_sur,
-                                       CeedBasis basis_q_sur, CeedOperator *op_apply) {
+                                       CeedData ceed_data, Physics phys,
+                                       CeedOperator op_apply_vol, CeedInt height,
+                                       CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
+                                       CeedOperator *op_apply) {
   CeedInt dim, nFace;
   PetscInt lsize;
   Vec X_loc;
@@ -204,10 +204,14 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     if (dim == 2) nFace = 4;
     if (dim == 3) nFace = 6;
 
+    // -- Get the number of quadrature points for the boundaries
+    CeedInt num_qpts_sur;
+    CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
+
     // Create CEED Operator for each boundary face
-    PetscInt localNelemSur[6];
-    CeedVector q_dataSur[6];
-    CeedOperator op_setup_sur[6], op_apply_sur[6];
+    PetscInt            localNelemSur[6];
+    CeedVector          q_dataSur[6];
+    CeedOperator        op_setup_sur[6], op_apply_sur[6];
     CeedElemRestriction elem_restr_xSur[6], elem_restr_qSur[6],
                         elem_restr_qd_iSur[6];
 
@@ -221,22 +225,26 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedVectorCreate(ceed, q_data_size_sur*localNelemSur[i]*num_qpts_sur,
                        &q_dataSur[i]);
       // Create the operator that builds the quadrature data for the Boundary operator
-      CeedOperatorCreate(ceed, qf_setup_sur, NULL, NULL, &op_setup_sur[i]);
-      CeedOperatorSetField(op_setup_sur[i], "dx", elem_restr_xSur[i], basis_x_sur,
+      CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur[i]);
+      CeedOperatorSetField(op_setup_sur[i], "dx", elem_restr_xSur[i],
+                           ceed_data->basis_x_sur,
                            CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_setup_sur[i], "weight", CEED_ELEMRESTRICTION_NONE,
-                           basis_x_sur, CEED_VECTOR_NONE);
+                           ceed_data->basis_x_sur, CEED_VECTOR_NONE);
       CeedOperatorSetField(op_setup_sur[i], "q_dataSur", elem_restr_qd_iSur[i],
                            CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
       // Create Boundary operator
-      CeedOperatorCreate(ceed, qf_apply_sur, NULL, NULL, &op_apply_sur[i]);
-      CeedOperatorSetField(op_apply_sur[i], "q", elem_restr_qSur[i], basis_q_sur,
+      CeedOperatorCreate(ceed, ceed_data->qf_apply_sur, NULL, NULL, &op_apply_sur[i]);
+      CeedOperatorSetField(op_apply_sur[i], "q", elem_restr_qSur[i],
+                           ceed_data->basis_q_sur,
                            CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_apply_sur[i], "q_dataSur", elem_restr_qd_iSur[i],
                            CEED_BASIS_COLLOCATED, q_dataSur[i]);
-      CeedOperatorSetField(op_apply_sur[i], "x", elem_restr_xSur[i], basis_x_sur,
+      CeedOperatorSetField(op_apply_sur[i], "x", elem_restr_xSur[i],
+                           ceed_data->basis_x_sur,
                            x_corners);
-      CeedOperatorSetField(op_apply_sur[i], "v", elem_restr_qSur[i], basis_q_sur,
+      CeedOperatorSetField(op_apply_sur[i], "v", elem_restr_qSur[i],
+                           ceed_data->basis_q_sur,
                            CEED_VECTOR_ACTIVE);
       // Apply CEED operator for Boundary setup
       CeedOperatorApply(op_setup_sur[i], x_corners, q_dataSur[i],
@@ -433,8 +441,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedInt height = 1,
           dimSur = dim - height,
           P_Sur = app_ctx->degree + 1,  // todo: change it to q_extra_sur
-          Q_sur = P_Sur + app_ctx->q_extra_sur,
-          num_qpts_sur;
+          Q_sur = P_Sur + app_ctx->q_extra_sur;
   const CeedInt q_data_size_sur = problem->q_data_size_sur;
 
   // -----------------------------------------------------------------------------
@@ -477,30 +484,20 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   // CEED Operator Apply
   // *****************************************************************************
-  // -- Apply Setup Operator
+  // -- Apply Setup Operator for the geometric factors
   ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
   CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
                     ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
 
-  // -- Get the number of quadrature points for the boundaries
-  //   todo: this can go inside CreateOperatorForDomain()
-  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
-
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS
-    ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
-                                   user->op_rhs_vol,
-                                   ceed_data->qf_apply_sur, ceed_data->qf_setup_sur,
-                                   height, P_Sur, Q_sur, q_data_size_sur,
-                                   num_qpts_sur, ceed_data->basis_x_sur, ceed_data->basis_q_sur,
-                                   &user->op_rhs); CHKERRQ(ierr);
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
+                                   user->op_rhs_vol, height, P_Sur, Q_sur,
+                                   q_data_size_sur, &user->op_rhs); CHKERRQ(ierr);
   } else { // IFunction
-    ierr = CreateOperatorForDomain(ceed, dm, bc, user->phys,
-                                   user->op_ifunction_vol,
-                                   ceed_data->qf_apply_sur, ceed_data->qf_setup_sur,
-                                   height, P_Sur, Q_sur, q_data_size_sur,
-                                   num_qpts_sur, ceed_data->basis_x_sur, ceed_data->basis_q_sur,
-                                   &user->op_ifunction); CHKERRQ(ierr);
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
+                                   user->op_ifunction_vol, height, P_Sur, Q_sur,
+                                   q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

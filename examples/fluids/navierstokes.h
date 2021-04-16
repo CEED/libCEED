@@ -240,10 +240,10 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
-                                       Physics phys, CeedOperator op_apply_vol, CeedQFunction qf_apply_sur,
-                                       CeedQFunction qf_setup_sur, CeedInt height, CeedInt P_Sur, CeedInt Q_sur,
-                                       CeedInt q_data_size_sur, CeedInt num_qpts_sur, CeedBasis basis_x_sur,
-                                       CeedBasis basis_q_sur, CeedOperator *op_apply);
+                                       CeedData ceed_data, Physics phys,
+                                       CeedOperator op_apply_vol, CeedInt height,
+                                       CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
+                                       CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
