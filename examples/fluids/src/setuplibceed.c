@@ -212,7 +212,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur,
                           elem_restr_qd_i_sur;
 
-      // ----- CEED Restriction             
+      // ----- CEED Restriction
       ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_Sur,
                                      Q_sur, q_data_size_sur, &elem_restr_q_sur,
                                      &elem_restr_x_sur, &elem_restr_qd_i_sur);
@@ -223,8 +223,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
       CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
                        &q_data_sur);
-      
-      // ----- CEED Operator 
+
+      // ----- CEED Operator
       // ------ CEED Operator for Setup (geometric factors)
       CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
       CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
@@ -256,8 +256,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       // ------ Apply Sub-Operator for the Boundary
       CeedCompositeOperatorAddSub(*op_apply, op_apply_sur);
     }
-    //CeedVectorDestroy(&x_corners);
   }
+
   PetscFunctionReturn(0);
 }
 
