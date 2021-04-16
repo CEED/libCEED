@@ -173,86 +173,90 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator op_apply_vol, CeedInt height,
                                        CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply) {
-  CeedInt dim, nFace;
-  PetscInt lsize;
-  Vec X_loc;
-  CeedVector x_corners;
-  DMLabel domain_label;
-  PetscScalar *x;
+  CeedInt        dim, nFace;
+  PetscInt       lsize;
+  Vec            X_loc;
+  CeedVector     x_corners;
+  DMLabel        domain_label;
+  PetscScalar    *x;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Composite Operaters
+  // Create Composite Operaters
   CeedCompositeOperatorCreate(ceed, op_apply);
-  // --Apply a Sub-Operator for the volume
+
+  // --Apply Sub-Operator for the volume
   CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
 
-  // Required data for in/outflow BCs
-  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(X_loc, &lsize); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, lsize, &x_corners); CHKERRQ(ierr);
-  ierr = VecGetArray(X_loc, &x); CHKERRQ(ierr);
-  CeedVectorSetArray(x_corners, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
+  // -- Create Sub-Operator for in/outflow BCs
   if (phys->has_neumann == PETSC_TRUE) {
+
+    // --- No BCs for advection problem in the translation mode
     if (phys->wind_type == ADVECTION_WIND_TRANSLATION)
       bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
 
-    // Set number of faces
+    // --- Setup
+    ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
+    ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
     if (dim == 2) nFace = 4;
     if (dim == 3) nFace = 6;
 
-    // -- Get the number of quadrature points for the boundaries
+    // --- Get the number of quadrature points for the boundaries
     CeedInt num_qpts_sur;
     CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
-    // Create CEED Operator for each boundary face
-    PetscInt            localNelemSur[6];
-    CeedVector          q_dataSur[6];
-    CeedOperator        op_setup_sur[6], op_apply_sur[6];
-    CeedElemRestriction elem_restr_xSur[6], elem_restr_qSur[6],
-                        elem_restr_qd_iSur[6];
-
+    // ---- Create Sub-Operator for each face
     for (CeedInt i=0; i<nFace; i++) {
+      CeedVector          q_data_sur;
+      CeedOperator        op_setup_sur, op_apply_sur;
+      CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur,
+                          elem_restr_qd_i_sur;
+
+      // ----- CEED Restriction             
       ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_Sur,
-                                     Q_sur, q_data_size_sur, &elem_restr_qSur[i],
-                                     &elem_restr_xSur[i], &elem_restr_qd_iSur[i]);
+                                     Q_sur, q_data_size_sur, &elem_restr_q_sur,
+                                     &elem_restr_x_sur, &elem_restr_qd_i_sur);
       CHKERRQ(ierr);
-      // Create the CEED vectors that will be needed in Boundary setup
-      CeedElemRestrictionGetNumElements(elem_restr_qSur[i], &localNelemSur[i]);
-      CeedVectorCreate(ceed, q_data_size_sur*localNelemSur[i]*num_qpts_sur,
-                       &q_dataSur[i]);
-      // Create the operator that builds the quadrature data for the Boundary operator
-      CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur[i]);
-      CeedOperatorSetField(op_setup_sur[i], "dx", elem_restr_xSur[i],
+
+      // ----- CEED Vector
+      PetscInt loc_num_elem_sur;
+      CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
+      CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
+                       &q_data_sur);
+      
+      // ----- CEED Operator 
+      // ------ CEED Operator for Setup (geometric factors)
+      CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
+      CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
                            ceed_data->basis_x_sur,
                            CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_setup_sur[i], "weight", CEED_ELEMRESTRICTION_NONE,
+      CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
                            ceed_data->basis_x_sur, CEED_VECTOR_NONE);
-      CeedOperatorSetField(op_setup_sur[i], "q_dataSur", elem_restr_qd_iSur[i],
+      CeedOperatorSetField(op_setup_sur, "q_data_sur", elem_restr_qd_i_sur,
                            CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-      // Create Boundary operator
-      CeedOperatorCreate(ceed, ceed_data->qf_apply_sur, NULL, NULL, &op_apply_sur[i]);
-      CeedOperatorSetField(op_apply_sur[i], "q", elem_restr_qSur[i],
+
+      // ------ CEED Operator for Physics
+      CeedOperatorCreate(ceed, ceed_data->qf_apply_sur, NULL, NULL, &op_apply_sur);
+      CeedOperatorSetField(op_apply_sur, "q", elem_restr_q_sur,
                            ceed_data->basis_q_sur,
                            CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_apply_sur[i], "q_dataSur", elem_restr_qd_iSur[i],
-                           CEED_BASIS_COLLOCATED, q_dataSur[i]);
-      CeedOperatorSetField(op_apply_sur[i], "x", elem_restr_xSur[i],
+      CeedOperatorSetField(op_apply_sur, "q_data_sur", elem_restr_qd_i_sur,
+                           CEED_BASIS_COLLOCATED, q_data_sur);
+      CeedOperatorSetField(op_apply_sur, "x", elem_restr_x_sur,
                            ceed_data->basis_x_sur,
-                           x_corners);
-      CeedOperatorSetField(op_apply_sur[i], "v", elem_restr_qSur[i],
+                           ceed_data->x_corners);
+      CeedOperatorSetField(op_apply_sur, "v", elem_restr_q_sur,
                            ceed_data->basis_q_sur,
                            CEED_VECTOR_ACTIVE);
-      // Apply CEED operator for Boundary setup
-      CeedOperatorApply(op_setup_sur[i], x_corners, q_dataSur[i],
+
+      // ------ Apply CEED operator for Setup
+      CeedOperatorApply(op_setup_sur, ceed_data->x_corners, q_data_sur,
                         CEED_REQUEST_IMMEDIATE);
-      // --Apply Sub-Operator for the Boundary
-      CeedCompositeOperatorAddSub(*op_apply, op_apply_sur[i]);
+
+      // ------ Apply Sub-Operator for the Boundary
+      CeedCompositeOperatorAddSub(*op_apply, op_apply_sur);
     }
-    CeedVectorDestroy(&x_corners);
+    //CeedVectorDestroy(&x_corners);
   }
   PetscFunctionReturn(0);
 }
@@ -436,7 +440,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // *****************************************************************************
-  // Set up CEED objects for the in/outflow boundaries (surface)
+  // Set up CEED objects for the exterior domain (surface)
   // *****************************************************************************
   CeedInt height = 1,
           dimSur = dim - height,
@@ -465,7 +469,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "dx", ncompx*dimSur,
                         CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(ceed_data->qf_setup_sur, "q_dataSur", q_data_size_sur,
+  CeedQFunctionAddOutput(ceed_data->qf_setup_sur, "q_data_sur", q_data_size_sur,
                          CEED_EVAL_NONE);
 
   // -- Creat QFunction for the physics on the boundaries
@@ -474,7 +478,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                 &ceed_data->qf_apply_sur);
     CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q", num_comp_q,
                           CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q_dataSur", q_data_size_sur,
+    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q_data_sur", q_data_size_sur,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_apply_sur, "x", ncompx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_apply_sur, "v", num_comp_q,
