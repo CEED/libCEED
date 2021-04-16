@@ -167,13 +167,6 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Set up libCEED
   // ---------------------------------------------------------------------------
-  // -- Create Ceed coordinate vector
-  Vec X_loc;
-  PetscInt X_loc_size;
-  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(X_loc, &X_loc_size); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, X_loc_size, &ceed_data->x_corners); CHKERRQ(ierr);
-
   // -- Set up libCEED objects
   ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
   CHKERRQ(ierr);
@@ -181,10 +174,6 @@ int main(int argc, char **argv) {
   // -- Set up contex for QFunctions
   ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, setup_ctx,
                                  phys_ctx); CHKERRQ(ierr);
-  // -- Apply Setup Operator
-  ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
-  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
-                    ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
 
   // ---------------------------------------------------------------------------
   // Set up ICs

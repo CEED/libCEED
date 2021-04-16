@@ -346,6 +346,24 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // -----------------------------------------------------------------------------
+  // CEED vectors
+  // -----------------------------------------------------------------------------
+  // -- Create Ceed coordinate vector
+  Vec X_loc;
+  PetscInt X_loc_size;
+  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(X_loc, &X_loc_size); CHKERRQ(ierr);
+  ierr = CeedVectorCreate(ceed, X_loc_size, &ceed_data->x_corners); CHKERRQ(ierr);
+
+  // -- Create CEED vector for quadrature data used in RHS or IFunction
+  CeedInt  NqptsVol;
+  PetscInt localNelemVol;
+  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &NqptsVol);
+  CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &localNelemVol);
+  CeedVectorCreate(ceed, q_data_size_vol*localNelemVol*NqptsVol,
+                   &ceed_data->q_data);
+
+  // -----------------------------------------------------------------------------
   // CEED Operators
   // -----------------------------------------------------------------------------
   // -- Create CEED operator for quadrature data
@@ -366,14 +384,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                        ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(ceed_data->op_ics, "q0", ceed_data->elem_restr_q,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  // -- Create CEED vector for quadrature data which is used in RHS or IFunction
-  CeedInt  NqptsVol;
-  PetscInt localNelemVol;
-  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &NqptsVol);
-  CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &localNelemVol);
-  CeedVectorCreate(ceed, q_data_size_vol*localNelemVol*NqptsVol,
-                   &ceed_data->q_data);
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -467,6 +477,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   // CEED Operator Apply
   // *****************************************************************************
+  // -- Apply Setup Operator
+  ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
+  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
+                    ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
+
   // -- Get the number of quadrature points for the boundaries
   //   todo: this can go inside CreateOperatorForDomain()
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
