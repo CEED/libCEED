@@ -3,6 +3,51 @@
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
+PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
+                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
+                                   CeedElemRestriction elem_restr_q,
+                                   CeedQFunctionContext setup_context, CeedScalar time) {
+  CeedVector multlvec;
+  Vec Multiplicity, MultiplicityLoc;
+  PetscErrorCode ierr;
+
+  PetscFunctionBeginUser;
+  SetupContext setup_ctx;
+  CeedQFunctionContextGetData(setup_context, CEED_MEM_HOST, (void **)&setup_ctx);
+  setup_ctx->time = time;
+  CeedQFunctionContextRestoreData(setup_context, (void **)&setup_ctx);
+
+  CeedVector *q0;
+  ierr = VecGetArray(Q_loc, &q0); CHKERRQ(ierr);
+  CeedVectorSetArray(q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q0); CHKERRQ(ierr);
+
+  CeedOperatorApply(op_ics, x_corners, q0_ceed, CEED_REQUEST_IMMEDIATE);
+  ierr = VecZeroEntries(Q); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q); CHKERRQ(ierr);
+
+  // CEED Restriction
+  CeedElemRestrictionCreateVector(elem_restr_q, &multlvec, NULL);
+
+  // Fix multiplicity for output of ICs
+  CeedVector *m;
+  ierr = DMGetLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
+  ierr = VecGetArray(MultiplicityLoc, &m); CHKERRQ(ierr);
+  CeedVectorSetArray(multlvec, CEED_MEM_HOST, CEED_USE_POINTER, m); CHKERRQ(ierr);
+
+  CeedElemRestrictionGetMultiplicity(elem_restr_q, multlvec);
+  CeedVectorDestroy(&multlvec);
+  ierr = DMGetGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Multiplicity); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);
+  CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q, Q, Multiplicity); CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q_loc, Q_loc, MultiplicityLoc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {

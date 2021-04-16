@@ -272,11 +272,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q,
                             void *ctx);
 
-PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
-                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
-                                   CeedElemRestriction elem_restr_q,
-                                   CeedQFunctionContext setup_context, CeedScalar time);
-
 // TS: Create, setup, and solve
 PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
                           Vec *Q, PetscScalar *f_time, TS *ts);
@@ -308,6 +303,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
+PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
+                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
+                                   CeedElemRestriction elem_restr_q,
+                                   CeedQFunctionContext setup_context, CeedScalar time);
+                                   
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM);
