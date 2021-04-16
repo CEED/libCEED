@@ -15,8 +15,8 @@ int VectorPlacePetscVec(CeedVector c, Vec p) {
   ierr = CeedVectorGetLength(c, &m_ceed); CHKERRQ(ierr);
   ierr = VecGetLocalSize(p, &mpetsc); CHKERRQ(ierr);
   if (m_ceed != mpetsc) SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                                  "Cannot place PETSc Vec of length %D in CeedVector of length %D",
-                                  mpetsc, m_ceed);
+                                   "Cannot place PETSc Vec of length %D in CeedVector of length %D",
+                                   mpetsc, m_ceed);
   ierr = VecGetArray(p, &a); CHKERRQ(ierr);
   CeedVectorSetArray(c, CEED_MEM_HOST, CEED_USE_POINTER, a);
   PetscFunctionReturn(0);

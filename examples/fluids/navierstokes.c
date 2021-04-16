@@ -183,8 +183,8 @@ int main(int argc, char **argv) {
                                  phys_ctx); CHKERRQ(ierr);
   // -- Apply Setup Operator
   ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
-  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners, ceed_data->q_data,
-                    CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
+                    ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
 
   // ---------------------------------------------------------------------------
   // Set up ICs
@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
     // Get DM size
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    // Get used ceed resource                            
+    // Get used ceed resource
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
 
@@ -294,7 +294,8 @@ int main(int argc, char **argv) {
                        comm_size, app_ctx->problem_name, StabilizationTypes[phys_ctx->stab],
                        box_faces_str, used_resource, CeedMemTypes[mem_type_backend],
                        (set_mem_type_request) ? CeedMemTypes[mem_type_requested] : "none",
-                       P, numQ, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes); CHKERRQ(ierr);
+                       P, numQ, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes);
+    CHKERRQ(ierr);
   }
   // -- Restore Q_loc
   ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);

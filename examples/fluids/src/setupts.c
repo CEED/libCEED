@@ -60,7 +60,7 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
-  
+
   User           user = *(User *)user_data;
   PetscScalar    *q, *g;
   Vec            Q_loc, Gloc;

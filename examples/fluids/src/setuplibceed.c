@@ -208,7 +208,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     PetscInt localNelemSur[6];
     CeedVector q_dataSur[6];
     CeedOperator op_setup_sur[6], op_apply_sur[6];
-    CeedElemRestriction elem_restr_xSur[6], elem_restr_qSur[6], elem_restr_qd_iSur[6];
+    CeedElemRestriction elem_restr_xSur[6], elem_restr_qSur[6],
+                        elem_restr_qd_iSur[6];
 
     for (CeedInt i=0; i<nFace; i++) {
       ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_Sur,
@@ -283,9 +284,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                  q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                  &ceed_data->elem_restr_qd_i); CHKERRQ(ierr);
   // -- Create E vectors
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ceed_data->q0_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ceed_data->q0_ceed,
+                                  NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed,
+                                  NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->g_ceed, NULL);
 
   // -----------------------------------------------------------------------------
@@ -294,7 +297,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create QFunction for quadrature data
   CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol, problem->setup_vol_loc,
                               &ceed_data->qf_setup_vol);
-  CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", ncompx*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", ncompx*dim,
+                        CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_vol, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(ceed_data->qf_setup_vol, "q_data", q_data_size_vol,
                          CEED_EVAL_NONE);
@@ -310,12 +314,15 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_rhs,
                                 problem->apply_vol_rhs_loc, &ceed_data->qf_rhs_vol);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q", num_comp_q, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "dq", num_comp_q*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "dq", num_comp_q*dim,
+                          CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q_data", q_data_size_vol,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "v", num_comp_q, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "dv", num_comp_q*dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "v", num_comp_q,
+                           CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "dv", num_comp_q*dim,
+                           CEED_EVAL_GRAD);
   }
 
   // -- Create QFunction for IFunction
@@ -349,7 +356,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedOperatorSetField(ceed_data->op_setup_vol, "weight",
                        CEED_ELEMRESTRICTION_NONE,
                        ceed_data->basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(ceed_data->op_setup_vol, "q_data", ceed_data->elem_restr_qd_i,
+  CeedOperatorSetField(ceed_data->op_setup_vol, "q_data",
+                       ceed_data->elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // -- Create CEED operator for quadrature data ICs
@@ -364,7 +372,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   PetscInt localNelemVol;
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &NqptsVol);
   CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &localNelemVol);
-  CeedVectorCreate(ceed, q_data_size_vol*localNelemVol*NqptsVol, &ceed_data->q_data);
+  CeedVectorCreate(ceed, q_data_size_vol*localNelemVol*NqptsVol,
+                   &ceed_data->q_data);
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -374,7 +383,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED,
+    CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
+                         CEED_BASIS_COLLOCATED,
                          ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_corners);
@@ -395,7 +405,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "qdot", ceed_data->elem_restr_q, ceed_data->basis_q,
                          user->q_dot_ceed);
-    CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED,
+    CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
+                         CEED_BASIS_COLLOCATED,
                          ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_corners);
@@ -444,11 +455,13 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   if (problem->apply_sur) {
     CeedQFunctionCreateInterior(ceed, 1, problem->apply_sur, problem->apply_sur_loc,
                                 &ceed_data->qf_apply_sur);
-    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q", num_comp_q, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q", num_comp_q,
+                          CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q_dataSur", q_data_size_sur,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_apply_sur, "x", ncompx, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(ceed_data->qf_apply_sur, "v", num_comp_q, CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(ceed_data->qf_apply_sur, "v", num_comp_q,
+                           CEED_EVAL_INTERP);
   }
 
   // *****************************************************************************
@@ -490,7 +503,8 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
                               sizeof *setup_ctx, setup_ctx);
 
   CeedQFunctionContextCreate(ceed, &ceed_data->dc_context);
-  CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
                               sizeof phys->dc_ctx, phys->dc_ctx);
 
   CeedQFunctionContextCreate(ceed, &ceed_data->euler_context);
@@ -530,7 +544,8 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
       CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->advection_context);
 
     if (ceed_data->qf_ifunction_vol)
-      CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->advection_context);
+      CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
+                              ceed_data->advection_context);
 
     if (ceed_data->qf_apply_sur)
       CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->advection_context);

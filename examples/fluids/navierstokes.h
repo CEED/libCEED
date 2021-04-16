@@ -180,10 +180,12 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_corners, q_data, q0_ceed;
-  CeedQFunctionContext setup_context, dc_context, advection_context, euler_context;
+  CeedQFunctionContext setup_context, dc_context, advection_context,
+                       euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_sur;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur, basis_q_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur,
+                       basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
