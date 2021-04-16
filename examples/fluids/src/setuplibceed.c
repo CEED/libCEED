@@ -174,11 +174,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply) {
   CeedInt        dim, nFace;
-  PetscInt       lsize;
-  Vec            X_loc;
-  CeedVector     x_corners;
   DMLabel        domain_label;
-  PetscScalar    *x;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
@@ -488,8 +484,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   // CEED Operator Apply
   // *****************************************************************************
+  CeedVector *x;
+  ierr = VecGetArray(X_loc, &x); CHKERRQ(ierr);
+  CeedVectorSetArray(ceed_data->x_corners, CEED_MEM_HOST, CEED_USE_POINTER, x);
+  CHKERRQ(ierr);
+
   // -- Apply Setup Operator for the geometric factors
-  ierr = VectorPlacePetscVec(ceed_data->x_corners, X_loc); CHKERRQ(ierr);
   CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
                     ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
 

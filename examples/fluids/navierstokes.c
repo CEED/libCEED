@@ -185,8 +185,10 @@ int main(int argc, char **argv) {
 
   // -- Set up local state vector Q_loc
   Vec Q_loc;
+  CeedVector *q;
   ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
-  ierr = VectorPlacePetscVec(ceed_data->q0_ceed, Q_loc); CHKERRQ(ierr);
+  ierr = VecGetArray(Q_loc, &q); CHKERRQ(ierr);
+  CeedVectorSetArray(ceed_data->q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
 
   // -- Fix multiplicity for ICs
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,

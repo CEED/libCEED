@@ -30,10 +30,14 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
                        CEED_BASIS_COLLOCATED, q_data);
   CeedOperatorSetField(op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE);
 
-  ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(M_loc); CHKERRQ(ierr);
+  // CEED Restriction
   CeedElemRestrictionCreateVector(elem_restr_q, &m_ceed, NULL);
-  ierr = VectorPlacePetscVec(m_ceed, M_loc); CHKERRQ(ierr);
+
+  // Set PETSc array in CEED vector
+  CeedVector *m;
+  ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
+  ierr = VecGetArray(M_loc, &m); CHKERRQ(ierr);
+  CeedVectorSetArray(m_ceed, CEED_MEM_HOST, CEED_USE_POINTER, m);
 
   {
     // Compute a lumped mass matrix
@@ -248,16 +252,23 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
   setup_ctx->time = time;
   CeedQFunctionContextRestoreData(setup_context, (void **)&setup_ctx);
 
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
-  ierr = VectorPlacePetscVec(q0_ceed, Q_loc); CHKERRQ(ierr);
+  CeedVector *q0;
+  ierr = VecGetArray(Q_loc, &q0); CHKERRQ(ierr);
+  CeedVectorSetArray(q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q0); CHKERRQ(ierr);
+
   CeedOperatorApply(op_ics, x_corners, q0_ceed, CEED_REQUEST_IMMEDIATE);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q); CHKERRQ(ierr);
 
-  // Fix multiplicity for output of ICs
-  ierr = DMGetLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
+  // CEED Restriction
   CeedElemRestrictionCreateVector(elem_restr_q, &multlvec, NULL);
-  ierr = VectorPlacePetscVec(multlvec, MultiplicityLoc); CHKERRQ(ierr);
+
+  // Fix multiplicity for output of ICs
+  CeedVector *m;
+  ierr = DMGetLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
+  ierr = VecGetArray(MultiplicityLoc, &m); CHKERRQ(ierr);
+  CeedVectorSetArray(multlvec, CEED_MEM_HOST, CEED_USE_POINTER, m); CHKERRQ(ierr);
+
   CeedElemRestrictionGetMultiplicity(elem_restr_q, multlvec);
   CeedVectorDestroy(&multlvec);
   ierr = DMGetGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);

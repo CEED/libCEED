@@ -308,8 +308,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
-int VectorPlacePetscVec(CeedVector c, Vec p);
-
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM);
