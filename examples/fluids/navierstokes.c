@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
   DM dm;
   ierr = CreateDistributedDM(comm, problem, setup_ctx, &dm); CHKERRQ(ierr);
   user->dm = dm;
-  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr);
+
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
 
   // -- Set up DM
