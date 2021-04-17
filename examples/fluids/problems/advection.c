@@ -219,19 +219,25 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
 
   {
     // Slip boundary conditions
+    DMLabel label;
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[0],
-                         bc->slips[0], setup_ctx); CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
+                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
+                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
+    CHKERRQ(ierr);
     comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[1],
-                         bc->slips[1], setup_ctx); CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
+                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
+                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
+    CHKERRQ(ierr);
     comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", "Face Sets", 0,
-                         1, comps, (void(*)(void))NULL, NULL, bc->num_slip[2],
-                         bc->slips[2], setup_ctx); CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
+                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
+                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
+    CHKERRQ(ierr);
   }
+
   if (bc->user_bc == PETSC_TRUE) {
     for (PetscInt c = 0; c < 3; c++) {
       for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
@@ -244,14 +250,19 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
       }
     }
   }
+
+  // Wall boundary conditions
+  //   zero energy density and zero flux
+  //   ToDo: need to set "wall" as the default BC after checking with the regression tests
   {
-    // Wall boundary conditions
-    //   zero energy density and zero flux
-    //   ToDo: need to set "wall" as the default BC after checking with the regression tests
+    DMLabel label;
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {4};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", "Face Sets", 0,
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+                         bc->num_wall, bc->walls, 0,
                          1, comps, (void(*)(void))Exact_Advection, NULL,
-                         bc->num_wall, bc->walls, setup_ctx); CHKERRQ(ierr);
+                         setup_ctx, NULL); CHKERRQ(ierr);
   }
+
   PetscFunctionReturn(0);
 }
