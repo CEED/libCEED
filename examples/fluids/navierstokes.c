@@ -49,20 +49,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include "navierstokes.h"
 
 int main(int argc, char **argv) {
-
-  // todo: define a function
-  // Check PETSc CUDA support
-  CeedMemType mem_type_requested;
-  PetscBool petsc_have_cuda, set_mem_type_request = PETSC_FALSE;
-  // *INDENT-OFF*
-  #ifdef PETSC_HAVE_CUDA
-  petsc_have_cuda = PETSC_TRUE;
-  #else
-  petsc_have_cuda = PETSC_FALSE;
-  #endif
-  // *INDENT-ON*
-  mem_type_requested = petsc_have_cuda ? CEED_MEM_DEVICE : CEED_MEM_HOST;
-
   // ---------------------------------------------------------------------------
   // Initialize PETSc
   // ---------------------------------------------------------------------------
@@ -136,23 +122,14 @@ int main(int argc, char **argv) {
   CeedMemType mem_type_backend;
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
-  // -- Check memtype compatibility
-  if (!set_mem_type_request)
-    mem_type_requested = mem_type_backend;
-  else if (!petsc_have_cuda && mem_type_requested == CEED_MEM_DEVICE)
-    SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP_SYS,
-             "PETSc was not built with CUDA. "
-             "Requested MemType CEED_MEM_DEVICE is not supported.", NULL);
-
   // ---------------------------------------------------------------------------
   // Set up global mesh
   // ---------------------------------------------------------------------------
   // -- Create distribute DM
   DM dm;
   ierr = CreateDistributedDM(comm, problem, setup_ctx, &dm); CHKERRQ(ierr);
-  user->dm = dm;
-
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  user->dm = dm;
 
   // -- Set up DM
   ierr = SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx, setup_ctx);
@@ -273,7 +250,6 @@ int main(int argc, char **argv) {
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
-                       "    libCEED User Requested MemType     : %s\n"
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
@@ -284,7 +260,6 @@ int main(int argc, char **argv) {
                        "    Owned nodes                        : %D\n",
                        comm_size, app_ctx->problem_name, StabilizationTypes[phys_ctx->stab],
                        box_faces_str, used_resource, CeedMemTypes[mem_type_backend],
-                       (set_mem_type_request) ? CeedMemTypes[mem_type_requested] : "none",
                        P, numQ, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes);
     CHKERRQ(ierr);
   }

@@ -35,13 +35,10 @@
 // -----------------------------------------------------------------------------
 // Enums
 // -----------------------------------------------------------------------------
-
-// MemType Options
-static const char *const MemTypes[] = {
-  "host",
-  "device",
-  "MemType", "CEED_MEM_", NULL
-};
+// Translate PetscMemType to CeedMemType
+static inline CeedMemType MemTypeP2C(PetscMemType mem_type) {
+  return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST;
+}
 
 // Advection - Wind Options
 typedef enum {
