@@ -326,7 +326,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
@@ -381,7 +381,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     }
     //-----mass matrix
     for (int j=0; j<5; j++)
-      v[j][i] += wdetJ*qdot[j][i];
+      v[j][i] += wdetJ*q_dot[j][i];
 
     // -- Density
     // ---- u rho
@@ -461,8 +461,8 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
     const CeedScalar E        =  q[4][i];
 
     // -- Interp-to-Interp qdata
-    // For explicit mode, the surface integral is on the RHS of ODE qdot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(qdot, q).
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * qdataSur[0][i];
     // ---- Normal vectors

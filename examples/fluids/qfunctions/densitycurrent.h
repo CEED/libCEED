@@ -500,7 +500,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 //   implicit time stepping method
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
-//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (qdot + Aj q,j - body force) )
+//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (q_dot + Aj q,j - body force) )
 //                                       (diffussive terms will be added later)
 //
 // *****************************************************************************
@@ -511,7 +511,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
                    (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
@@ -677,12 +677,12 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     // Strong residual
     CeedScalar StrongResid[5];
     for (int j=0; j<5; j++)
-      StrongResid[j] = qdot[j][i] + StrongConv[j] - BodyForce[j];
+      StrongResid[j] = q_dot[j][i] + StrongConv[j] - BodyForce[j];
 
     // The Physics
     //-----mass matrix
     for (int j=0; j<5; j++)
-      v[j][i] = wdetJ*qdot[j][i];
+      v[j][i] = wdetJ*q_dot[j][i];
 
     // Zero dv so all future terms can safely sum into it
     for (int j=0; j<5; j++)

@@ -13,124 +13,128 @@ PetscInt Involute(PetscInt i) {
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
     CeedInt height, DMLabel domain_label,
     CeedInt value, CeedElemRestriction *elem_restr) {
-  PetscSection section;
-  PetscInt p, Nelem, Ndof, *erestrict, eoffset, nfields, dim, depth;
-  DMLabel depthLabel;
-  IS depthIS, iterIS;
-  Vec Uloc;
-  const PetscInt *iterIndices;
+  PetscSection   section;
+  PetscInt       p, num_elem, num_dofs, *elem_restrict, elem_offset, num_fields,
+                 dim, depth;
+  DMLabel        depth_label;
+  IS             depth_IS, iter_IS;
+  Vec            U_loc;
+  const PetscInt *iter_indices;
   PetscErrorCode ierr;
-
   PetscFunctionBeginUser;
+
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   dim -= height;
   ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-  ierr = PetscSectionGetNumFields(section, &nfields); CHKERRQ(ierr);
-  PetscInt ncomp[nfields], fieldoff[nfields+1];
-  fieldoff[0] = 0;
-  for (PetscInt f=0; f<nfields; f++) {
-    ierr = PetscSectionGetFieldComponents(section, f, &ncomp[f]); CHKERRQ(ierr);
-    fieldoff[f+1] = fieldoff[f] + ncomp[f];
+  ierr = PetscSectionGetNumFields(section, &num_fields); CHKERRQ(ierr);
+  PetscInt num_comp[num_fields], field_off[num_fields+1];
+  field_off[0] = 0;
+  for (PetscInt f=0; f<num_fields; f++) {
+    ierr = PetscSectionGetFieldComponents(section, f, &num_comp[f]); CHKERRQ(ierr);
+    field_off[f+1] = field_off[f] + num_comp[f];
   }
 
   ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthLabel(dm, &depthLabel); CHKERRQ(ierr);
-  ierr = DMLabelGetStratumIS(depthLabel, depth - height, &depthIS); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthLabel(dm, &depth_label); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumIS(depth_label, depth - height, &depth_IS);
+  CHKERRQ(ierr);
   if (domain_label) {
-    IS domainIS;
-    ierr = DMLabelGetStratumIS(domain_label, value, &domainIS); CHKERRQ(ierr);
-    if (domainIS) { // domainIS is non-empty
-      ierr = ISIntersect(depthIS, domainIS, &iterIS); CHKERRQ(ierr);
-      ierr = ISDestroy(&domainIS); CHKERRQ(ierr);
-    } else { // domainIS is NULL (empty)
-      iterIS = NULL;
+    IS domain_IS;
+    ierr = DMLabelGetStratumIS(domain_label, value, &domain_IS); CHKERRQ(ierr);
+    if (domain_IS) { // domain_IS is non-empty
+      ierr = ISIntersect(depth_IS, domain_IS, &iter_IS); CHKERRQ(ierr);
+      ierr = ISDestroy(&domain_IS); CHKERRQ(ierr);
+    } else { // domain_IS is NULL (empty)
+      iter_IS = NULL;
     }
-    ierr = ISDestroy(&depthIS); CHKERRQ(ierr);
+    ierr = ISDestroy(&depth_IS); CHKERRQ(ierr);
   } else {
-    iterIS = depthIS;
+    iter_IS = depth_IS;
   }
-  if (iterIS) {
-    ierr = ISGetLocalSize(iterIS, &Nelem); CHKERRQ(ierr);
-    ierr = ISGetIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+  if (iter_IS) {
+    ierr = ISGetLocalSize(iter_IS, &num_elem); CHKERRQ(ierr);
+    ierr = ISGetIndices(iter_IS, &iter_indices); CHKERRQ(ierr);
   } else {
-    Nelem = 0;
-    iterIndices = NULL;
+    num_elem = 0;
+    iter_indices = NULL;
   }
-  ierr = PetscMalloc1(Nelem*PetscPowInt(P, dim), &erestrict); CHKERRQ(ierr);
-  for (p=0,eoffset=0; p<Nelem; p++) {
-    PetscInt c = iterIndices[p];
-    PetscInt numindices, *indices, nnodes;
+  ierr = PetscMalloc1(num_elem*PetscPowInt(P, dim), &elem_restrict);
+  CHKERRQ(ierr);
+  for (p=0, elem_offset=0; p<num_elem; p++) {
+    PetscInt c = iter_indices[p];
+    PetscInt num_indices, *indices, num_nodes;
     ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                   &numindices, &indices, NULL, NULL);
+                                   &num_indices, &indices, NULL, NULL);
     CHKERRQ(ierr);
     bool flip = false;
     if (height > 0) {
-      PetscInt numCells, numFaces, start = -1;
+      PetscInt num_cells, num_faces, start = -1;
       const PetscInt *orients, *faces, *cells;
       ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
-      ierr = DMPlexGetSupportSize(dm, c, &numCells); CHKERRQ(ierr);
-      if (numCells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                                    "Expected one cell in support of exterior face, but got %D cells",
-                                    numCells);
+      ierr = DMPlexGetSupportSize(dm, c, &num_cells); CHKERRQ(ierr);
+      if (num_cells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+                                     "Expected one cell in support of exterior face, but got %D cells",
+                                     num_cells);
       ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
-      ierr = DMPlexGetConeSize(dm, cells[0], &numFaces); CHKERRQ(ierr);
-      for (PetscInt i=0; i<numFaces; i++) {if (faces[i] == c) start = i;}
+      ierr = DMPlexGetConeSize(dm, cells[0], &num_faces); CHKERRQ(ierr);
+      for (PetscInt i=0; i<num_faces; i++) {if (faces[i] == c) start = i;}
       if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT,
                                 "Could not find face %D in cone of its support",
                                 c);
       ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
       if (orients[start] < 0) flip = true;
     }
-    if (numindices % fieldoff[nfields]) SETERRQ1(PETSC_COMM_SELF,
+    if (num_indices % field_off[num_fields]) SETERRQ1(PETSC_COMM_SELF,
           PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
           c);
-    nnodes = numindices / fieldoff[nfields];
-    for (PetscInt i=0; i<nnodes; i++) {
+    num_nodes = num_indices / field_off[num_fields];
+    for (PetscInt i=0; i<num_nodes; i++) {
       PetscInt ii = i;
       if (flip) {
-        if (P == nnodes) ii = nnodes - 1 - i;
-        else if (P*P == nnodes) {
+        if (P == num_nodes) ii = num_nodes - 1 - i;
+        else if (P*P == num_nodes) {
           PetscInt row = i / P, col = i % P;
           ii = row + col * P;
         } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP,
                           "No support for flipping point with %D nodes != P (%D) or P^2",
-                          nnodes, P);
+                          num_nodes, P);
       }
       // Check that indices are blocked by node and thus can be coalesced as a single field with
-      // fieldoff[nfields] = sum(ncomp) components.
-      for (PetscInt f=0; f<nfields; f++) {
-        for (PetscInt j=0; j<ncomp[f]; j++) {
-          if (Involute(indices[fieldoff[f]*nnodes + ii*ncomp[f] + j])
-              != Involute(indices[ii*ncomp[0]]) + fieldoff[f] + j)
+      // field_off[num_fields] = sum(num_comp) components.
+      for (PetscInt f=0; f<num_fields; f++) {
+        for (PetscInt j=0; j<num_comp[f]; j++) {
+          if (Involute(indices[field_off[f]*num_nodes + ii*num_comp[f] + j])
+              != Involute(indices[ii*num_comp[0]]) + field_off[f] + j)
             SETERRQ4(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
                      "Cell %D closure indices not interlaced for node %D field %D component %D",
                      c, ii, f, j);
         }
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
-      PetscInt loc = Involute(indices[ii*ncomp[0]]);
-      erestrict[eoffset++] = loc;
+      PetscInt loc = Involute(indices[ii*num_comp[0]]);
+      elem_restrict[elem_offset++] = loc;
     }
     ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                       &numindices, &indices, NULL, NULL);
+                                       &num_indices, &indices, NULL, NULL);
     CHKERRQ(ierr);
   }
-  if (eoffset != Nelem*PetscPowInt(P, dim))
+  if (elem_offset != num_elem*PetscPowInt(P, dim))
     SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
-             "ElemRestriction of size (%D,%D) initialized %D nodes", Nelem,
-             PetscPowInt(P, dim),eoffset);
-  if (iterIS) {
-    ierr = ISRestoreIndices(iterIS, &iterIndices); CHKERRQ(ierr);
+             "ElemRestriction of size (%D,%D) initialized %D nodes", num_elem,
+             PetscPowInt(P, dim),elem_offset);
+  if (iter_IS) {
+    ierr = ISRestoreIndices(iter_IS, &iter_indices); CHKERRQ(ierr);
   }
-  ierr = ISDestroy(&iterIS); CHKERRQ(ierr);
+  ierr = ISDestroy(&iter_IS); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(Uloc, &Ndof); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &Uloc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, Nelem, PetscPowInt(P, dim), fieldoff[nfields],
-                            1, Ndof, CEED_MEM_HOST, CEED_COPY_VALUES, erestrict,
+  ierr = DMGetLocalVector(dm, &U_loc); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(U_loc, &num_dofs); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &U_loc); CHKERRQ(ierr);
+  CeedElemRestrictionCreate(ceed, num_elem, PetscPowInt(P, dim),
+                            field_off[num_fields],
+                            1, num_dofs, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restrict,
                             elem_restr);
-  ierr = PetscFree(erestrict); CHKERRQ(ierr);
+  ierr = PetscFree(elem_restrict); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -142,27 +146,27 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
                                        CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
 
-  DM dmcoord;
-  CeedInt dim, localNelem;
-  CeedInt Qdim;
+  DM             dm_coord;
+  CeedInt        dim, loc_num_elem;
+  CeedInt        Q_dim;
   PetscErrorCode ierr;
-
   PetscFunctionBeginUser;
+
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   dim -= height;
-  Qdim = CeedIntPow(Q, dim);
-  ierr = DMGetCoordinateDM(dm, &dmcoord); CHKERRQ(ierr);
-  ierr = DMPlexSetClosurePermutationTensor(dmcoord, PETSC_DETERMINE, NULL);
+  Q_dim = CeedIntPow(Q, dim);
+  ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+  ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domain_label, value,
                                    elem_restr_q);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dmcoord, 2, height, domain_label, value,
+  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, height, domain_label, value,
                                    elem_restr_x);
   CHKERRQ(ierr);
-  CeedElemRestrictionGetNumElements(*elem_restr_q, &localNelem);
-  CeedElemRestrictionCreateStrided(ceed, localNelem, Qdim,
-                                   q_data_size, q_data_size*localNelem*Qdim,
+  CeedElemRestrictionGetNumElements(*elem_restr_q, &loc_num_elem);
+  CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim,
+                                   q_data_size, q_data_size*loc_num_elem*Q_dim,
                                    CEED_STRIDES_BACKEND, elem_restr_qd_i);
   PetscFunctionReturn(0);
 }
@@ -171,9 +175,9 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
                                        CeedOperator op_apply_vol, CeedInt height,
-                                       CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
+                                       CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply) {
-  CeedInt        dim, nFace;
+  CeedInt        dim, num_face;
   DMLabel        domain_label;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
@@ -194,22 +198,22 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
     ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-    if (dim == 2) nFace = 4;
-    if (dim == 3) nFace = 6;
+    if (dim == 2) num_face = 4;
+    if (dim == 3) num_face = 6;
 
     // --- Get the number of quadrature points for the boundaries
     CeedInt num_qpts_sur;
     CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
     // ---- Create Sub-Operator for each face
-    for (CeedInt i=0; i<nFace; i++) {
+    for (CeedInt i=0; i<num_face; i++) {
       CeedVector          q_data_sur;
       CeedOperator        op_setup_sur, op_apply_sur;
       CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur,
                           elem_restr_qd_i_sur;
 
       // ----- CEED Restriction
-      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_Sur,
+      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_sur,
                                      Q_sur, q_data_size_sur, &elem_restr_q_sur,
                                      &elem_restr_x_sur, &elem_restr_qd_i_sur);
       CHKERRQ(ierr);
@@ -267,7 +271,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   const PetscInt num_comp_q = 5;
   const CeedInt  dim = problem->dim,
-                 ncompx = problem->dim,
+                 num_compx = problem->dim,
                  q_data_size_vol = problem->q_data_size_vol,
                  P = app_ctx->degree + 1,
                  numQ = P + app_ctx->q_extra;
@@ -278,10 +282,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_q, P, numQ, CEED_GAUSS,
                                   &ceed_data->basis_q);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, numQ, CEED_GAUSS,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_compx, 2, numQ, CEED_GAUSS,
                                   &ceed_data->basis_x);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncompx, 2, P,
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_compx, 2, P,
                                   CEED_GAUSS_LOBATTO, &ceed_data->basis_xc);
 
   // -----------------------------------------------------------------------------
@@ -305,7 +309,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create QFunction for quadrature data
   CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol, problem->setup_vol_loc,
                               &ceed_data->qf_setup_vol);
-  CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", ncompx*dim,
+  CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", num_compx*dim,
                         CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_vol, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(ceed_data->qf_setup_vol, "q_data", q_data_size_vol,
@@ -314,7 +318,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create QFunction for ICs
   CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc,
                               &ceed_data->qf_ics);
-  CeedQFunctionAddInput(ceed_data->qf_ics, "x", ncompx, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(ceed_data->qf_ics, "x", num_compx, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for RHS
@@ -326,7 +330,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q_data", q_data_size_vol,
                           CEED_EVAL_NONE);
-    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "x", num_compx, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "v", num_comp_q,
                            CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "dv", num_comp_q*dim,
@@ -341,11 +345,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "dq", num_comp_q*dim,
                           CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "qdot", num_comp_q,
+    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q_dot", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q_data", q_data_size_vol,
                           CEED_EVAL_NONE);
-    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "x", ncompx,
+    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "x", num_compx,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "v", num_comp_q,
                            CEED_EVAL_INTERP);
@@ -365,10 +369,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   // -- Create CEED vector for quadrature data used in RHS or IFunction
   CeedInt  NqptsVol;
-  PetscInt localNelemVol;
+  PetscInt loc_num_elemVol;
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &NqptsVol);
-  CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &localNelemVol);
-  CeedVectorCreate(ceed, q_data_size_vol*localNelemVol*NqptsVol,
+  CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &loc_num_elemVol);
+  CeedVectorCreate(ceed, q_data_size_vol*loc_num_elemVol*NqptsVol,
                    &ceed_data->q_data);
 
   // -----------------------------------------------------------------------------
@@ -421,7 +425,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "qdot", ceed_data->elem_restr_q, ceed_data->basis_q,
+    CeedOperatorSetField(op, "q_dot", ceed_data->elem_restr_q, ceed_data->basis_q,
                          user->q_dot_ceed);
     CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
                          CEED_BASIS_COLLOCATED,
@@ -440,20 +444,20 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   CeedInt height = 1,
           dimSur = dim - height,
-          P_Sur = app_ctx->degree + 1,  // todo: change it to q_extra_sur
-          Q_sur = P_Sur + app_ctx->q_extra_sur;
+          P_sur = app_ctx->degree + 1,  // todo: change it to q_extra_sur
+          Q_sur = P_sur + app_ctx->q_extra_sur;
   const CeedInt q_data_size_sur = problem->q_data_size_sur;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
   // -----------------------------------------------------------------------------
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, num_comp_q, P_Sur, Q_sur,
+  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, num_comp_q, P_sur, Q_sur,
                                   CEED_GAUSS, &ceed_data->basis_q_sur);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompx, 2, Q_sur, CEED_GAUSS,
+  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, num_compx, 2, Q_sur, CEED_GAUSS,
                                   &ceed_data->basis_x_sur);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, ncompx, 2, P_Sur,
+  CeedBasisCreateTensorH1Lagrange(ceed, dimSur, num_compx, 2, P_sur,
                                   CEED_GAUSS_LOBATTO, &ceed_data->basis_xc_sur);
 
   // -----------------------------------------------------------------------------
@@ -462,7 +466,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create QFunction for quadrature data
   CeedQFunctionCreateInterior(ceed, 1, problem->setup_sur, problem->setup_sur_loc,
                               &ceed_data->qf_setup_sur);
-  CeedQFunctionAddInput(ceed_data->qf_setup_sur, "dx", ncompx*dimSur,
+  CeedQFunctionAddInput(ceed_data->qf_setup_sur, "dx", num_compx*dimSur,
                         CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(ceed_data->qf_setup_sur, "q_data_sur", q_data_size_sur,
@@ -476,7 +480,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_sur, "q_data_sur", q_data_size_sur,
                           CEED_EVAL_NONE);
-    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "x", ncompx, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_sur, "x", num_compx,
+                          CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_apply_sur, "v", num_comp_q,
                            CEED_EVAL_INTERP);
   }
@@ -496,11 +501,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS
     ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
-                                   user->op_rhs_vol, height, P_Sur, Q_sur,
+                                   user->op_rhs_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_rhs); CHKERRQ(ierr);
   } else { // IFunction
     ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
-                                   user->op_ifunction_vol, height, P_Sur, Q_sur,
+                                   user->op_ifunction_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
   }
 

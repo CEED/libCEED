@@ -353,7 +353,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*qdot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
@@ -424,7 +424,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
     for (CeedInt f=0; f<4; f++) {
       for (CeedInt j=0; j<3; j++)
         dv[j][f][i] = 0;
-      v[f][i] = wdetJ * qdot[f][i]; //K Mass/transient term
+      v[f][i] = wdetJ * q_dot[f][i]; //K Mass/transient term
     }
 
     // -- Total Energy
@@ -440,9 +440,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
       u_dot_grad_E += u[j] * dEdx_j;
     }
     CeedScalar strongConv = E*div_u + u_dot_grad_E;
-    CeedScalar strongResid = qdot[4][i] + strongConv;
+    CeedScalar strongResid = q_dot[4][i] + strongConv;
 
-    v[4][i] = wdetJ * qdot[4][i]; // transient part (ALWAYS)
+    v[4][i] = wdetJ * q_dot[4][i]; // transient part (ALWAYS)
 
     // Weak Galerkin convection term: -dv \cdot (E u)
     for (CeedInt j=0; j<3; j++)
@@ -517,8 +517,8 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
                                     };
     const CeedScalar E          =    q[4][i];
     // -- Interp-to-Interp qdata
-    // For explicit mode, the surface integral is on the RHS of ODE qdot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(qdot, q).
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * qdataSur[0][i];
     // ---- Normal vectors

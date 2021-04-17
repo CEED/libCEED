@@ -242,7 +242,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
                                        CeedOperator op_apply_vol, CeedInt height,
-                                       CeedInt P_Sur, CeedInt Q_sur, CeedInt q_data_size_sur,
+                                       CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
@@ -307,7 +307,7 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
                                    CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
                                    CeedElemRestriction elem_restr_q,
                                    CeedQFunctionContext setup_context, CeedScalar time);
-                                   
+
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM);
