@@ -138,6 +138,8 @@ struct CeedVector_private {
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
+  int (*AXPY)(CeedVector, CeedScalar, CeedVector);
+  int (*PointwiseMult)(CeedVector, CeedVector, CeedVector);
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
   int ref_count;
