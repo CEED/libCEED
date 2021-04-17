@@ -317,7 +317,7 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
-MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
+MEMCHK := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
 MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
