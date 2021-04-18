@@ -25,9 +25,9 @@
 // Register problems to be available on the command line
 PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 
-  PetscErrorCode   ierr;
-  app_ctx->problems = NULL;
 
+  app_ctx->problems = NULL;
+  PetscErrorCode   ierr;
   PetscFunctionBeginUser;
 
   ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
@@ -48,10 +48,9 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
 
-  PetscErrorCode ierr;
   PetscBool ceed_flag = PETSC_FALSE;
   PetscBool problem_flag = PETSC_FALSE;
-
+  PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
   ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",

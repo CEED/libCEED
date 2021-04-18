@@ -2,57 +2,57 @@
 
 PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                                void *ctx, void *phys) {
-  PetscInt ierr;
-  MPI_Comm comm = PETSC_COMM_WORLD;
   EulerTestType euler_test;
-  PetscBool implicit;
-  PetscBool has_current_time = PETSC_TRUE;
-  PetscBool has_neumann = PETSC_TRUE;
-  SetupContext setup_context = *(SetupContext *)setup_ctx;
-  Units units = *(Units *)ctx;
-  Physics phys_ctx = *(Physics *)phys;
+  SetupContext  setup_context = *(SetupContext *)setup_ctx;
+  Units         units = *(Units *)ctx;
+  Physics       phys_ctx = *(Physics *)phys;
+  MPI_Comm      comm = PETSC_COMM_WORLD;
+  PetscBool     implicit;
+  PetscBool     has_current_time = PETSC_TRUE;
+  PetscBool     has_neumann = PETSC_TRUE;
+  PetscInt      ierr;
+  PetscFunctionBeginUser;
+
   ierr = PetscMalloc1(1, &phys_ctx->euler_ctx); CHKERRQ(ierr);
 
-
-  PetscFunctionBeginUser;
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->dim                       = 3;
-  problem->q_data_size_vol              = 10;
-  problem->q_data_size_sur              = 4;
-  problem->setup_vol                  = Setup;
-  problem->setup_vol_loc              = Setup_loc;
-  problem->setup_sur                  = SetupBoundary;
-  problem->setup_sur_loc              = SetupBoundary_loc;
-  problem->ics                       = ICsEuler;
-  problem->ics_loc                   = ICsEuler_loc;
-  problem->apply_vol_rhs              = Euler;
-  problem->apply_vol_rhs_loc          = Euler_loc;
-  problem->apply_vol_ifunction        = IFunction_Euler;
-  problem->apply_vol_ifunction_loc    = IFunction_Euler_loc;
-  problem->apply_sur                  = Euler_Sur;
-  problem->apply_sur_loc              = Euler_Sur_loc;
-  problem->bc                        = Exact_Euler;
-  problem->bc_fnc                    = BC_EULER_VORTEX;
-  problem->non_zero_time             = PETSC_TRUE;
+  problem->dim                     = 3;
+  problem->q_data_size_vol         = 10;
+  problem->q_data_size_sur         = 4;
+  problem->setup_vol               = Setup;
+  problem->setup_vol_loc           = Setup_loc;
+  problem->setup_sur               = SetupBoundary;
+  problem->setup_sur_loc           = SetupBoundary_loc;
+  problem->ics                     = ICsEuler;
+  problem->ics_loc                 = ICsEuler_loc;
+  problem->apply_vol_rhs           = Euler;
+  problem->apply_vol_rhs_loc       = Euler_loc;
+  problem->apply_vol_ifunction     = IFunction_Euler;
+  problem->apply_vol_ifunction_loc = IFunction_Euler_loc;
+  problem->apply_sur               = Euler_Sur;
+  problem->apply_sur_loc           = Euler_Sur_loc;
+  problem->bc                      = Exact_Euler;
+  problem->bc_func                 = BC_EULER_VORTEX;
+  problem->non_zero_time           = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
   CeedScalar time; // todo: check if needed
-  CeedScalar currentTime     = 0.;
-  CeedScalar vortex_strength = 5.;      // -
-  PetscScalar lx             = 8000.;       // m
-  PetscScalar ly             = 8000.;       // m
-  PetscScalar lz             = 4000.;       // m
+  CeedScalar curr_time       = 0.;    // s
+  CeedScalar vortex_strength = 5.;    // -
+  PetscScalar lx             = 8000.; // m
+  PetscScalar ly             = 8000.; // m
+  PetscScalar lz             = 4000.; // m
   PetscReal center[3], etv_mean_velocity[3] = {1., 1., 0}; // to-do: etv -> euler
 
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
-  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
-  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar meter    = 1e-2; // 1 meter in scaled length units
+  PetscScalar second   = 1e-2; // 1 second in scaled time units
 
   // ------------------------------------------------------
   //              Command line Options
@@ -100,7 +100,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //           Set up the PETSc context
   // ------------------------------------------------------
-  units->meter = meter;
+  units->meter  = meter;
   units->second = second;
 
   // ------------------------------------------------------
@@ -120,24 +120,24 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   setup_context->center[0]  = center[0];
   setup_context->center[1]  = center[1];
   setup_context->center[2]  = center[2];
-  setup_context->time = 0;
+  setup_context->time       = 0;
 
   // -- QFunction Context
-  phys_ctx->euler_test = euler_test;
-  phys_ctx->implicit = implicit;
-  phys_ctx->has_current_time = has_current_time;
-  phys_ctx->has_neumann = has_neumann;
-  phys_ctx->euler_ctx->time = 0.; // todo: check if really needed
-  phys_ctx->euler_ctx->currentTime = 0.;
-  phys_ctx->euler_ctx->center[0]  = center[0];
-  phys_ctx->euler_ctx->center[1]  = center[1];
-  phys_ctx->euler_ctx->center[2]  = center[2];
+  phys_ctx->euler_test                      = euler_test;
+  phys_ctx->implicit                        = implicit;
+  phys_ctx->has_current_time                = has_current_time;
+  phys_ctx->has_neumann                     = has_neumann;
+  phys_ctx->euler_ctx->time                 = 0.; // todo: check if really needed
+  phys_ctx->euler_ctx->curr_time            = 0.;
+  phys_ctx->euler_ctx->implicit             = implicit;
+  phys_ctx->euler_ctx->euler_test           = euler_test;
+  phys_ctx->euler_ctx->center[0]            = center[0];
+  phys_ctx->euler_ctx->center[1]            = center[1];
+  phys_ctx->euler_ctx->center[2]            = center[2];
+  phys_ctx->euler_ctx->vortex_strength      = vortex_strength;
   phys_ctx->euler_ctx->etv_mean_velocity[0] = etv_mean_velocity[0];
   phys_ctx->euler_ctx->etv_mean_velocity[1] = etv_mean_velocity[1];
   phys_ctx->euler_ctx->etv_mean_velocity[2] = etv_mean_velocity[2];
-  phys_ctx->euler_ctx->vortex_strength = vortex_strength;
-  phys_ctx->euler_ctx->implicit = implicit;
-  phys_ctx->euler_ctx->euler_test = euler_test;
 
   PetscFunctionReturn(0);
 }
@@ -145,10 +145,12 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
 PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                                void *setup_ctx) {
 
+
+  PetscInt       len;
+  PetscBool      flg;
+  MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
-  PetscInt len;
-  PetscBool flg;
-  MPI_Comm comm = PETSC_COMM_WORLD;
+  PetscFunctionBeginUser;
 
   // Default boundary conditions
   bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = 0;
@@ -156,7 +158,6 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
-  PetscFunctionBeginUser;
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
                            NULL); CHKERRQ(ierr);
@@ -221,9 +222,9 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   // Wall boundary conditions
   //   zero velocity and zero flux for mass density and energy density
   {
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+    DMLabel  label;
     PetscInt comps[3] = {1, 2, 3};
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
                          bc->num_wall, bc->walls, 0,
                          3, comps, (void(*)(void))Exact_Euler, NULL,

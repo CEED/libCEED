@@ -43,12 +43,12 @@
 //   the form: int( u v )
 //
 // Stored: w detJb
-//   in qdataSur[0]
+//   in q_data_sur[0]
 //
 // Normal vector = (J1,J2,J3) / detJb
 //
 // Stored: (J1,J2,J3) / detJb
-//   in qdataSur[1:3] as
+//   in q_data_sur[1:3] as
 //   (detJb^-1) * [ J1 ]
 //                [ J2 ]
 //                [ J3 ]
@@ -61,7 +61,7 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
   const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                    (*w) = in[1];
   // Outputs
-  CeedScalar (*qdataSur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar (*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -82,12 +82,12 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
 
     const CeedScalar detJb = sqrt(J1*J1 + J2*J2 + J3*J3);
 
-    // qdataSur
-    // -- Interp-to-Interp qdataSur
-    qdataSur[0][i] = w[i] * detJb;
-    qdataSur[1][i] = J1 / detJb;
-    qdataSur[2][i] = J2 / detJb;
-    qdataSur[3][i] = J3 / detJb;
+    // q_data_sur
+    // -- Interp-to-Interp q_data_sur
+    q_data_sur[0][i] = w[i] * detJb;
+    q_data_sur[1][i] = J1 / detJb;
+    q_data_sur[2][i] = J2 / detJb;
+    q_data_sur[3][i] = J3 / detJb;
 
   } // End of Quadrature Point Loop
 
@@ -113,12 +113,12 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
 //   the form: int( u v )
 //
 // Stored: w detJb
-//   in qdataSur[0]
+//   in q_data_sur[0]
 //
 // Normal vector is given by the cross product of (J1,J2)/detJ and ẑ
 //
 // Stored: (J1,J2,0) x (0,0,1) / detJb
-//   in qdataSur[1:2] as
+//   in q_data_sur[1:2] as
 //   (detJb^-1) * [ J2 ]
 //                [-J1 ]
 //
@@ -130,7 +130,7 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
   const CeedScalar (*J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*w) = in[1];
   // Outputs
-  CeedScalar (*qdataSur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar (*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -142,9 +142,9 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
 
     const CeedScalar detJb = sqrt(J1*J1 + J2*J2);
 
-    qdataSur[0][i] = w[i] * detJb;
-    qdataSur[1][i] = J2 / detJb;
-    qdataSur[2][i] = -J1 / detJb;
+    q_data_sur[0][i] = w[i] * detJb;
+    q_data_sur[1][i] = J2 / detJb;
+    q_data_sur[2][i] = -J1 / detJb;
   } // End of Quadrature Point Loop
 
   // Return

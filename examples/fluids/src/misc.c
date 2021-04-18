@@ -7,11 +7,11 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
                                    CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
                                    CeedElemRestriction elem_restr_q,
                                    CeedQFunctionContext setup_context, CeedScalar time) {
-  CeedVector multlvec;
-  Vec Multiplicity, MultiplicityLoc;
+  CeedVector     mult_vec;
+  Vec            multiplicity, multiplicity_loc;
   PetscErrorCode ierr;
-
   PetscFunctionBeginUser;
+
   SetupContext setup_ctx;
   CeedQFunctionContextGetData(setup_context, CEED_MEM_HOST, (void **)&setup_ctx);
   setup_ctx->time = time;
@@ -26,24 +26,24 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
   ierr = DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q); CHKERRQ(ierr);
 
   // CEED Restriction
-  CeedElemRestrictionCreateVector(elem_restr_q, &multlvec, NULL);
+  CeedElemRestrictionCreateVector(elem_restr_q, &mult_vec, NULL);
 
   // Fix multiplicity for output of ICs
   CeedVector *m;
-  ierr = DMGetLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
-  ierr = VecGetArray(MultiplicityLoc, &m); CHKERRQ(ierr);
-  CeedVectorSetArray(multlvec, CEED_MEM_HOST, CEED_USE_POINTER, m); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
+  ierr = VecGetArray(multiplicity_loc, &m); CHKERRQ(ierr);
+  CeedVectorSetArray(mult_vec, CEED_MEM_HOST, CEED_USE_POINTER, m); CHKERRQ(ierr);
 
-  CeedElemRestrictionGetMultiplicity(elem_restr_q, multlvec);
-  CeedVectorDestroy(&multlvec);
-  ierr = DMGetGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Multiplicity); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm, MultiplicityLoc, ADD_VALUES, Multiplicity);
+  CeedElemRestrictionGetMultiplicity(elem_restr_q, mult_vec);
+  CeedVectorDestroy(&mult_vec);
+  ierr = DMGetGlobalVector(dm, &multiplicity); CHKERRQ(ierr);
+  ierr = VecZeroEntries(multiplicity); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity);
   CHKERRQ(ierr);
-  ierr = VecPointwiseDivide(Q, Q, Multiplicity); CHKERRQ(ierr);
-  ierr = VecPointwiseDivide(Q_loc, Q_loc, MultiplicityLoc); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &MultiplicityLoc); CHKERRQ(ierr);
-  ierr = DMRestoreGlobalVector(dm, &Multiplicity); CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q, Q, multiplicity); CHKERRQ(ierr);
+  ierr = VecPointwiseDivide(Q_loc, Q_loc, multiplicity_loc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &multiplicity); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -52,9 +52,8 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {
 
-  Vec Qbc;
+  Vec            Qbc;
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
@@ -104,25 +103,23 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 // Get error for problems with exact solutions
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
                            PetscScalar final_time) {
-
-  PetscInt lnodes;
-  Vec Qexact, Qexactloc;
-  PetscReal rel_error, norm_error, norm_exact;
+  PetscInt       loc_nodes;
+  Vec            Q_exact, Q_exact_loc;
+  PetscReal      rel_error, norm_error, norm_exact;
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
   // Get exact solution at final time
-  ierr = DMCreateGlobalVector(dm, &Qexact); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
-  ierr = VecGetSize(Qexactloc, &lnodes); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm, &Q_exact); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
+  ierr = VecGetSize(Q_exact_loc, &loc_nodes); CHKERRQ(ierr);
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
-                             ceed_data->q0_ceed, dm, Qexactloc, Qexact,
+                             ceed_data->q0_ceed, dm, Q_exact_loc, Q_exact,
                              ceed_data->elem_restr_q, ceed_data->setup_context, final_time); CHKERRQ(ierr);
 
   // Get |exact solution - obtained solution|
-  ierr = VecNorm(Qexact, NORM_1, &norm_exact); CHKERRQ(ierr);
-  ierr = VecAXPY(Q, -1.0, Qexact);  CHKERRQ(ierr);
+  ierr = VecNorm(Q_exact, NORM_1, &norm_exact); CHKERRQ(ierr);
+  ierr = VecAXPY(Q, -1.0, Q_exact);  CHKERRQ(ierr);
   ierr = VecNorm(Q, NORM_1, &norm_error); CHKERRQ(ierr);
 
   // Compute relative error
@@ -134,8 +131,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
                      (double)rel_error); CHKERRQ(ierr);
   // Clean up vectors
   CeedVectorDestroy(&ceed_data->q0_ceed);
-  ierr = DMRestoreLocalVector(dm, &Qexactloc); CHKERRQ(ierr);
-  ierr = VecDestroy(&Qexact); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&Q_exact); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -144,9 +141,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
                               ProblemData *problem, AppCtx app_ctx,
                               Vec Q, PetscScalar final_time) {
-  PetscInt steps;
+  PetscInt       steps;
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
   // Print relative error
@@ -176,10 +172,9 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
 // -- Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 
-  PetscViewer viewer;
-  char file_path[PETSC_MAX_PATH_LEN];
+  PetscViewer    viewer;
+  char           file_path[PETSC_MAX_PATH_LEN];
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
   // Read input
@@ -200,10 +195,10 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
 
-  Vec Qbc;
+  Vec            Qbc;
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
+
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
   ierr = VecCopy(Q_loc, Qbc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);

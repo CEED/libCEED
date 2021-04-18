@@ -115,10 +115,10 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
                                   const CeedScalar X[], CeedInt Nf,
                                   CeedScalar q[], void *ctx) {
   const SetupContext context = (SetupContext)ctx;
-  const CeedScalar rc = context->rc;
-  const CeedScalar lx = context->lx;
-  const CeedScalar ly = context->ly;
-  const CeedScalar lz = context->lz;
+  const CeedScalar rc    = context->rc;
+  const CeedScalar lx    = context->lx;
+  const CeedScalar ly    = context->ly;
+  const CeedScalar lz    = context->lz;
   const CeedScalar *wind = context->wind;
 
   // Setup
@@ -132,8 +132,8 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 
   // -- Energy
   CeedScalar r ;
-  CeedInt dimBubble = 3; // 3 is a sphere, 2 is a cylinder
-  switch (dimBubble) {
+  CeedInt dim_bubble = 3; // 3 is a sphere, 2 is a cylinder
+  switch (dim_bubble) {
   //  original sphere
   case 3: {
     r = sqrt(pow((x - x0[0]), 2) +
@@ -228,7 +228,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
@@ -237,7 +237,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
 
   // Context
   AdvectionContext context = (AdvectionContext)ctx;
-  const CeedScalar CtauS = context->CtauS;
+  const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
   CeedPragmaSIMD
@@ -272,30 +272,28 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
                                      dq[1][4][i],
                                      dq[2][4][i]
                                     };
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJ      =    qdata[0][i];
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ      =    q_data[0][i];
+    // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
-    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
-                                     qdata[2][i],
-                                     qdata[3][i]},
-                                    {qdata[4][i],
-                                     qdata[5][i],
-                                     qdata[6][i]},
-                                    {qdata[7][i],
-                                     qdata[8][i],
-                                     qdata[9][i]}
+    const CeedScalar dXdx[3][3] =  {{q_data[1][i],
+                                     q_data[2][i],
+                                     q_data[3][i]},
+                                    {q_data[4][i],
+                                     q_data[5][i],
+                                     q_data[6][i]},
+                                    {q_data[7][i],
+                                     q_data[8][i],
+                                     q_data[9][i]}
                                    };
     // *INDENT-ON*
-
+    // The Physics
     // Note with the order that du was filled and the order that dXdx was filled
     //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k})
     //   dXdx[k][j] = dX_K / dx_j
     //   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
     //   x_j and u_j are jth  physical position and velocity components
-
-    // The Physics
 
     // No Change in density or momentum
     for (CeedInt f=0; f<4; f++) {
@@ -316,7 +314,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
       }
       u_dot_grad_E += u[j] * dEdx_j;
     }
-    CeedScalar strongConv = E*div_u + u_dot_grad_E;
+    CeedScalar strong_conv = E*div_u + u_dot_grad_E;
 
     // Weak Galerkin convection term: dv \cdot (E u)
     for (CeedInt j=0; j<3; j++)
@@ -326,16 +324,16 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q,
     v[4][i] = 0;
 
     // Strong Galerkin convection term: - v div(E u)
-    v[4][i] = -strong_form * wdetJ * strongConv;
+    v[4][i] = -strong_form * wdetJ * strong_conv;
 
     // Stabilization requires a measure of element transit time in the velocity
-    // field u.
+    //   field u.
     CeedScalar uX[3];
     for (CeedInt j=0; j<3;
          j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar TauS = CtauS / sqrt(uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2]);
     for (CeedInt j=0; j<3; j++)
-      dv[j][4][i] -= wdetJ * TauS * strongConv * uX[j];
+      dv[j][4][i] -= wdetJ * TauS * strong_conv * uX[j];
   } // End Quadrature Point Loop
 
   return 0;
@@ -354,13 +352,13 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*qdata)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
   AdvectionContext context = (AdvectionContext)ctx;
-  const CeedScalar CtauS = context->CtauS;
+  const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
   CeedPragmaSIMD
@@ -395,30 +393,28 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                                      dq[1][4][i],
                                      dq[2][4][i]
                                     };
-    // -- Interp-to-Interp qdata
-    const CeedScalar wdetJ      =    qdata[0][i];
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ      =    q_data[0][i];
+    // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
-    const CeedScalar dXdx[3][3] =  {{qdata[1][i],
-                                     qdata[2][i],
-                                     qdata[3][i]},
-                                    {qdata[4][i],
-                                     qdata[5][i],
-                                     qdata[6][i]},
-                                    {qdata[7][i],
-                                     qdata[8][i],
-                                     qdata[9][i]}
+    const CeedScalar dXdx[3][3] =  {{q_data[1][i],
+                                     q_data[2][i],
+                                     q_data[3][i]},
+                                    {q_data[4][i],
+                                     q_data[5][i],
+                                     q_data[6][i]},
+                                    {q_data[7][i],
+                                     q_data[8][i],
+                                     q_data[9][i]}
                                    };
     // *INDENT-ON*
-
+    // The Physics
     // Note with the order that du was filled and the order that dXdx was filled
     //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k} )
     //   dXdx[k][j] = dX_K / dx_j
     //   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
     //   x_j and u_j are jth  physical position and velocity components
-
-    // The Physics
 
     // No Change in density or momentum
     for (CeedInt f=0; f<4; f++) {
@@ -439,8 +435,8 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
       }
       u_dot_grad_E += u[j] * dEdx_j;
     }
-    CeedScalar strongConv = E*div_u + u_dot_grad_E;
-    CeedScalar strongResid = q_dot[4][i] + strongConv;
+    CeedScalar strong_conv = E*div_u + u_dot_grad_E;
+    CeedScalar strong_res = q_dot[4][i] + strong_conv;
 
     v[4][i] = wdetJ * q_dot[4][i]; // transient part (ALWAYS)
 
@@ -451,7 +447,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
                     u[2]*dXdx[j][2]);
 
     // Strong Galerkin convection term: v div(E u)
-    v[4][i] += wdetJ * strong_form * strongConv;
+    v[4][i] += wdetJ * strong_form * strong_conv;
 
     // Stabilization requires a measure of element transit time in the velocity
     //   field u.
@@ -464,9 +460,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
       switch (context->stabilization) {
       case 0:
         break;
-      case 1: dv[j][4][i] += wdetJ * TauS * strongConv * uX[j];  //SU
+      case 1: dv[j][4][i] += wdetJ * TauS * strong_conv * uX[j];  //SU
         break;
-      case 2: dv[j][4][i] += wdetJ * TauS * strongResid * uX[j];  //SUPG
+      case 2: dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];  //SUPG
         break;
       }
   } // End Quadrature Point Loop
@@ -496,14 +492,14 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdataSur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   AdvectionContext context = (AdvectionContext)ctx;
-  const CeedScalar E_wind = context->E_wind;
+  const CeedScalar E_wind      = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
-  const bool implicit = context->implicit;
+  const bool implicit          = context->implicit;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -516,28 +512,30 @@ CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
                                      q[3][i] / rho
                                     };
     const CeedScalar E          =    q[4][i];
-    // -- Interp-to-Interp qdata
+
+    // -- Interp-to-Interp q_data
     // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
     // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * qdataSur[0][i];
+    const CeedScalar wdetJb     =   (implicit ? -1. : 1.) * q_data_sur[0][i];
+
     // ---- Normal vectors
-    const CeedScalar norm[3]    =   {qdataSur[1][i],
-                                     qdataSur[2][i],
-                                     qdataSur[3][i]
+    const CeedScalar norm[3]    =   {q_data_sur[1][i],
+                                     q_data_sur[2][i],
+                                     q_data_sur[3][i]
                                     };
     // Normal velocity
-    const CeedScalar u_n = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
+    const CeedScalar u_normal = norm[0]*u[0] + norm[1]*u[1] + norm[2]*u[2];
 
     // No Change in density or momentum
     for (CeedInt j=0; j<4; j++) {
       v[j][i] = 0;
     }
     // Implementing in/outflow BCs
-    if (u_n > 0) { // outflow
-      v[4][i] = -(1 - strong_form) * wdetJb * E * u_n;
+    if (u_normal > 0) { // outflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E * u_normal;
     } else { // inflow
-      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_n;
+      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_normal;
     }
   } // End Quadrature Point Loop
   return 0;

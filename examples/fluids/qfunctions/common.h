@@ -44,7 +44,7 @@
 //     Aij = Adjoint ij
 //
 // Stored: w detJ
-//   in qdata[0]
+//   in q_data[0]
 //
 // We require the transpose of the inverse of the Jacobian to properly compute
 //   integrals of the form: int( gradv u )
@@ -53,7 +53,7 @@
 //   dXdx_i,j = Aij / detJ
 //
 // Stored: Aij / detJ
-//   in qdata[1:9] as
+//   in q_data[1:9] as
 //   (detJ^-1) * [A11 A12 A13]
 //               [A21 A22 A23]
 //               [A31 A32 A33]
@@ -67,7 +67,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                    (*w) = in[1];
 
   // Outputs
-  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -95,19 +95,19 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
 
     // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Interp q_data
+    q_data[0][i] = w[i] * detJ;
+    // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] = A11 / detJ;
-    qdata[2][i] = A12 / detJ;
-    qdata[3][i] = A13 / detJ;
-    qdata[4][i] = A21 / detJ;
-    qdata[5][i] = A22 / detJ;
-    qdata[6][i] = A23 / detJ;
-    qdata[7][i] = A31 / detJ;
-    qdata[8][i] = A32 / detJ;
-    qdata[9][i] = A33 / detJ;
+    q_data[1][i] = A11 / detJ;
+    q_data[2][i] = A12 / detJ;
+    q_data[3][i] = A13 / detJ;
+    q_data[4][i] = A21 / detJ;
+    q_data[5][i] = A22 / detJ;
+    q_data[6][i] = A23 / detJ;
+    q_data[7][i] = A31 / detJ;
+    q_data[8][i] = A32 / detJ;
+    q_data[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 
@@ -125,7 +125,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
   const CeedScalar (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0],
                    (*w) = in[1];
   // Outputs
-  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -139,14 +139,14 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
     const CeedScalar detJ = J11*J22 - J21*J12;
 
     // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Interp q_data
+    q_data[0][i] = w[i] * detJ;
+    // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] =  J22 / detJ;
-    qdata[2][i] = -J21 / detJ;
-    qdata[3][i] = -J12 / detJ;
-    qdata[4][i] =  J11 / detJ;
+    q_data[1][i] =  J22 / detJ;
+    q_data[2][i] = -J21 / detJ;
+    q_data[3][i] = -J12 / detJ;
+    q_data[4][i] =  J11 / detJ;
   } // End of Quadrature Point Loop
 
   // Return
@@ -158,7 +158,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
 //
 // Inputs:
 //   u     - Input vector at quadrature points
-//   qdata - Quadrature weights
+//   q_data - Quadrature weights
 //
 // Output:
 //   v - Output vector at quadrature points
@@ -169,7 +169,7 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdata) = in[1];
+                   (*q_data) = in[1];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -177,11 +177,11 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
 
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    v[0][i] = qdata[i] * u[0][i];
-    v[1][i] = qdata[i] * u[1][i];
-    v[2][i] = qdata[i] * u[2][i];
-    v[3][i] = qdata[i] * u[3][i];
-    v[4][i] = qdata[i] * u[4][i];
+    v[0][i] = q_data[i] * u[0][i];
+    v[1][i] = q_data[i] * u[1][i];
+    v[2][i] = q_data[i] * u[2][i];
+    v[3][i] = q_data[i] * u[3][i];
+    v[4][i] = q_data[i] * u[4][i];
   }
   return 0;
 }

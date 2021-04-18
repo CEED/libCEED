@@ -6,13 +6,11 @@
 // Read mesh and distribute DM in parallel
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
                                    SetupContext setup_ctx, DM *dm) {
-
-  PetscErrorCode   ierr;
-  DM               distributed_mesh = NULL;
+  DM               dist_mesh = NULL;
   PetscPartitioner part;
   PetscInt         dim = problem->dim;
   const PetscReal  scale[3] = {setup_ctx->lx, setup_ctx->ly, setup_ctx->lz};
-
+  PetscErrorCode   ierr;
   PetscFunctionBeginUser;
 
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
@@ -21,10 +19,10 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
   // Distribute DM in parallel
   ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
   ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(*dm, 0, NULL, &distributed_mesh); CHKERRQ(ierr);
-  if (distributed_mesh) {
+  ierr = DMPlexDistribute(*dm, 0, NULL, &dist_mesh); CHKERRQ(ierr);
+  if (dist_mesh) {
     ierr = DMDestroy(dm); CHKERRQ(ierr);
-    *dm  = distributed_mesh;
+    *dm  = dist_mesh;
   }
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
@@ -35,11 +33,10 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
                        SimpleBC bc, Physics phys, void *setup_ctx) {
   PetscErrorCode ierr;
-
   PetscFunctionBeginUser;
   {
     // Configure the finite element space and boundary conditions
-    PetscFE fe;
+    PetscFE  fe;
     PetscInt num_comp_q = 5;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
@@ -47,7 +44,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    ierr = problem->bc_fnc(dm, bc, phys, setup_ctx);
+    ierr = problem->bc_func(dm, bc, phys, setup_ctx);
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -75,25 +72,25 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
 PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
                            SimpleBC bc, Physics phys, void *setup_ctx) {
   PetscErrorCode ierr;
-  DM dmhierarchy[user->app_ctx->viz_refine + 1];
-
+  DM             dm_hierarchy[user->app_ctx->viz_refine + 1];
   PetscFunctionBeginUser;
+
   ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
 
-  dmhierarchy[0] = dm;
+  dm_hierarchy[0] = dm;
   for (PetscInt i = 0, d = user->app_ctx->degree;
        i < user->app_ctx->viz_refine; i++) {
     Mat interp_next;
-    ierr = DMRefine(dmhierarchy[i], MPI_COMM_NULL, &dmhierarchy[i+1]);
+    ierr = DMRefine(dm_hierarchy[i], MPI_COMM_NULL, &dm_hierarchy[i+1]);
     CHKERRQ(ierr);
-    ierr = DMClearDS(dmhierarchy[i+1]); CHKERRQ(ierr);
-    ierr = DMClearFields(dmhierarchy[i+1]); CHKERRQ(ierr);
-    ierr = DMSetCoarseDM(dmhierarchy[i+1], dmhierarchy[i]); CHKERRQ(ierr);
+    ierr = DMClearDS(dm_hierarchy[i+1]); CHKERRQ(ierr);
+    ierr = DMClearFields(dm_hierarchy[i+1]); CHKERRQ(ierr);
+    ierr = DMSetCoarseDM(dm_hierarchy[i+1], dm_hierarchy[i]); CHKERRQ(ierr);
     d = (d + 1) / 2;
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
-    ierr = SetUpDM(dmhierarchy[i+1], problem, d, bc, phys, setup_ctx);
+    ierr = SetUpDM(dm_hierarchy[i+1], problem, d, bc, phys, setup_ctx);
     CHKERRQ(ierr);
-    ierr = DMCreateInterpolation(dmhierarchy[i], dmhierarchy[i+1], &interp_next,
+    ierr = DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i+1], &interp_next,
                                  NULL); CHKERRQ(ierr);
     if (!i) user->interp_viz = interp_next;
     else {
@@ -106,9 +103,9 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
     }
   }
   for (PetscInt i=1; i<user->app_ctx->viz_refine; i++) {
-    ierr = DMDestroy(&dmhierarchy[i]); CHKERRQ(ierr);
+    ierr = DMDestroy(&dm_hierarchy[i]); CHKERRQ(ierr);
   }
-  user->dm_viz = dmhierarchy[user->app_ctx->viz_refine];
+  user->dm_viz = dm_hierarchy[user->app_ctx->viz_refine];
 
   PetscFunctionReturn(0);
 }

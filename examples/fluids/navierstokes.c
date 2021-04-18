@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
     CeedInt        glob_dofs, owned_dofs;
     PetscInt       glob_nodes, owned_nodes;
     const CeedInt  P = app_ctx->degree + 1,
-                   numQ = P + app_ctx->q_extra;  // todo: style
+                   Q = P + app_ctx->q_extra;  // todo: style
     int            comm_size;
     char           box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
 
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
                        "    Owned nodes                        : %D\n",
                        comm_size, app_ctx->problem_name, StabilizationTypes[phys_ctx->stab],
                        box_faces_str, used_resource, CeedMemTypes[mem_type_backend],
-                       P, numQ, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes);
+                       P, Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes);
     CHKERRQ(ierr);
   }
   // -- Restore Q_loc

@@ -57,6 +57,7 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 
   // Invert diagonally lumped mass vector for RHS function
   ierr = VecReciprocal(M); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -72,7 +73,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscFunctionBeginUser;
 
   // Global-to-local
-  if (user->phys->has_current_time) user->phys->euler_ctx->currentTime = t;
+  if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
@@ -104,6 +105,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 
   ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -118,7 +120,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscFunctionBeginUser;
 
   // Global-to-local
-  if (user->phys->has_current_time) user->phys->euler_ctx->currentTime = t;
+  if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
@@ -156,6 +158,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -188,8 +191,8 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
   ierr = VecView(Q_loc, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   if (user->dm_viz) {
-    Vec Q_refined, Q_refined_loc;
-    char file_path_refined[PETSC_MAX_PATH_LEN];
+    Vec         Q_refined, Q_refined_loc;
+    char        file_path_refined[PETSC_MAX_PATH_LEN];
     PetscViewer viewer_refined;
 
     ierr = DMGetGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
@@ -280,10 +283,10 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
       ierr = TSMonitor_NS(*ts, 0, 0., *Q, user); CHKERRQ(ierr);
     }
   } else { // continue from time of last output
-    PetscReal time;
-    PetscInt count;
+    PetscReal   time;
+    PetscInt    count;
     PetscViewer viewer;
-    char file_path[PETSC_MAX_PATH_LEN];
+    char        file_path[PETSC_MAX_PATH_LEN];
     ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
                          app_ctx->output_dir); CHKERRQ(ierr);
     ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);

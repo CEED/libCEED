@@ -2,58 +2,59 @@
 
 PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                               void *ctx, void *phys) {
-  PetscInt ierr;
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  WindType wind_type;
+  WindType          wind_type;
   StabilizationType stab;
-  PetscBool implicit;
-  PetscBool has_current_time = PETSC_FALSE;
-  SetupContext setup_context = *(SetupContext *)setup_ctx;
-  Units units = *(Units *)ctx;
-  Physics phys_ctx = *(Physics *)phys;
+  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+  Units             units = *(Units *)ctx;
+  Physics           phys_ctx = *(Physics *)phys;
+  MPI_Comm          comm = PETSC_COMM_WORLD;
+  PetscBool         implicit;
+  PetscBool         has_current_time = PETSC_FALSE;
+  PetscInt          ierr;
+  PetscFunctionBeginUser;
+
   ierr = PetscMalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
 
-  PetscFunctionBeginUser;
   // ------------------------------------------------------
   //               SET UP ADVECTION2D
   // ------------------------------------------------------
-  problem->dim                       = 2;
-  problem->q_data_size_vol              = 5;
-  problem->q_data_size_sur              = 3;
-  problem->setup_vol                  = Setup2d;
-  problem->setup_vol_loc              = Setup2d_loc;
-  problem->setup_sur                  = SetupBoundary2d;
-  problem->setup_sur_loc              = SetupBoundary2d_loc;
-  problem->ics                       = ICsAdvection2d;
-  problem->ics_loc                   = ICsAdvection2d_loc;
-  problem->apply_vol_rhs              = Advection2d;
-  problem->apply_vol_rhs_loc          = Advection2d_loc;
-  problem->apply_vol_ifunction        = IFunction_Advection2d;
-  problem->apply_vol_ifunction_loc    = IFunction_Advection2d_loc;
-  problem->apply_sur                  = Advection2d_Sur;
-  problem->apply_sur_loc              = Advection2d_Sur_loc;
-  problem->bc                        = Exact_Advection2d;
-  problem->bc_fnc                    = BC_ADVECTION2D;
-  problem->non_zero_time             = PETSC_TRUE;
+  problem->dim                     = 2;
+  problem->q_data_size_vol         = 5;
+  problem->q_data_size_sur         = 3;
+  problem->setup_vol               = Setup2d;
+  problem->setup_vol_loc           = Setup2d_loc;
+  problem->setup_sur               = SetupBoundary2d;
+  problem->setup_sur_loc           = SetupBoundary2d_loc;
+  problem->ics                     = ICsAdvection2d;
+  problem->ics_loc                 = ICsAdvection2d_loc;
+  problem->apply_vol_rhs           = Advection2d;
+  problem->apply_vol_rhs_loc       = Advection2d_loc;
+  problem->apply_vol_ifunction     = IFunction_Advection2d;
+  problem->apply_vol_ifunction_loc = IFunction_Advection2d_loc;
+  problem->apply_sur               = Advection2d_Sur;
+  problem->apply_sur_loc           = Advection2d_Sur_loc;
+  problem->bc                      = Exact_Advection2d;
+  problem->bc_func                 = BC_ADVECTION2D;
+  problem->non_zero_time           = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  PetscScalar lx         = 8000.;       // m
-  PetscScalar ly         = 8000.;       // m
-  PetscScalar lz         = 4000.;       // m
-  CeedScalar rc          = 1000.;       // m (Radius of bubble)
-  CeedScalar CtauS       = 0.;          // dimensionless
-  CeedScalar strong_form = 0.;          // [0,1]
-  CeedScalar E_wind      = 1.e6;        // J
-  PetscReal wind[3]      = {1., 0, 0};  // m/s
+  PetscScalar lx         = 8000.;      // m
+  PetscScalar ly         = 8000.;      // m
+  PetscScalar lz         = 4000.;      // m
+  CeedScalar rc          = 1000.;      // m (Radius of bubble)
+  CeedScalar CtauS       = 0.;         // dimensionless
+  CeedScalar strong_form = 0.;         // [0,1]
+  CeedScalar E_wind      = 1.e6;       // J
+  PetscReal wind[3]      = {1., 0, 0}; // m/s
 
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
-  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
-  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
-  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar meter    = 1e-2; // 1 meter in scaled length units
+  PetscScalar kilogram = 1e-6; // 1 kilogram in scaled mass units
+  PetscScalar second   = 1e-2; // 1 second in scaled time units
   PetscScalar Joule;
 
   // ------------------------------------------------------
@@ -71,10 +72,10 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  PetscBool userWind;
+  PetscBool user_wind;
   ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
                                "Constant wind vector",
-                               NULL, wind, &n, &userWind); CHKERRQ(ierr);
+                               NULL, wind, &n, &user_wind); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
                             NULL, CtauS, &CtauS, NULL); CHKERRQ(ierr);
@@ -108,7 +109,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   second = fabs(second);
 
   // -- Warnings
-  if (wind_type == ADVECTION_WIND_ROTATION && userWind) {
+  if (wind_type == ADVECTION_WIND_ROTATION && user_wind) {
     ierr = PetscPrintf(comm,
                        "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
     CHKERRQ(ierr);
@@ -132,10 +133,10 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   // -- Define derived units
   Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
 
-  units->meter = meter;
+  units->meter    = meter;
   units->kilogram = kilogram;
-  units->second = second;
-  units->Joule = Joule;
+  units->second   = second;
+  units->Joule    = Joule;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -158,14 +159,14 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   setup_context->time = 0;
 
   // -- QFunction Context
-  phys_ctx->stab = stab;
-  phys_ctx->wind_type = wind_type;
-  phys_ctx->implicit = implicit;  // todo: check
-  phys_ctx->has_current_time = has_current_time;
-  phys_ctx->advection_ctx->CtauS = CtauS;
-  phys_ctx->advection_ctx->strong_form = strong_form;
-  phys_ctx->advection_ctx->E_wind = E_wind;
+  phys_ctx->stab                    = stab;
+  phys_ctx->wind_type               = wind_type;
+  phys_ctx->implicit                = implicit;  // todo: check
+  phys_ctx->has_current_time        = has_current_time;
+  phys_ctx->advection_ctx->CtauS    = CtauS;
+  phys_ctx->advection_ctx->E_wind   = E_wind;
   phys_ctx->advection_ctx->implicit = implicit;
+  phys_ctx->advection_ctx->strong_form   = strong_form;
   phys_ctx->advection_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
@@ -173,11 +174,11 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
 
 PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                               void *setup_ctx) {
-
+  PetscInt       len;
+  PetscBool      flg;
+  MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
-  PetscInt len;
-  PetscBool flg;
-  MPI_Comm comm = PETSC_COMM_WORLD;
+  PetscFunctionBeginUser;
 
   // Default boundary conditions
   // ToDo: fix the dimension
@@ -191,7 +192,6 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
-  PetscFunctionBeginUser;
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION2D BCs",
                            NULL); CHKERRQ(ierr);
@@ -257,9 +257,9 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   //   zero energy density and zero flux
   //   ToDo: need to set "wall" as the default BC after checking with the regression tests
   {
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+    DMLabel  label;
     PetscInt comps[1] = {4};
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
                          bc->num_wall, bc->walls, 0,
                          1, comps, (void(*)(void))Exact_Advection2d, NULL,

@@ -110,7 +110,7 @@ typedef struct {
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
-  PetscErrorCode    (*bc_fnc)(DM, SimpleBC, Physics, void *);
+  PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
 } ProblemData;
 // *INDENT-ON*
 

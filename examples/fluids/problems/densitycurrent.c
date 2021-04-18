@@ -2,55 +2,56 @@
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
                                   void *ctx, void *phys) {
-  PetscInt ierr;
-  MPI_Comm comm = PETSC_COMM_WORLD;
+  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+  Units             units = *(Units *)ctx;
+  Physics           phys_ctx = *(Physics *)phys;
   StabilizationType stab;
-  PetscBool implicit;
-  PetscBool has_current_time = PETSC_FALSE;
-  SetupContext setup_context = *(SetupContext *)setup_ctx;
-  Units units = *(Units *)ctx;
-  Physics phys_ctx = *(Physics *)phys;
+  MPI_Comm          comm = PETSC_COMM_WORLD;
+  PetscBool         implicit;
+  PetscBool         has_current_time = PETSC_FALSE;
+  PetscInt          ierr;
+  PetscFunctionBeginUser;
+
   ierr = PetscMalloc1(1, &phys_ctx->dc_ctx); CHKERRQ(ierr);
 
-  PetscFunctionBeginUser;
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->dim                       = 3;
-  problem->q_data_size_vol             = 10;
-  problem->q_data_size_sur             = 4;
-  problem->setup_vol                  = Setup;
-  problem->setup_vol_loc              = Setup_loc;
-  problem->setup_sur                  = SetupBoundary;
-  problem->setup_sur_loc              = SetupBoundary_loc;
-  problem->ics                       = ICsDC;
-  problem->ics_loc                   = ICsDC_loc;
-  problem->apply_vol_rhs              = DC;
-  problem->apply_vol_rhs_loc          = DC_loc;
-  problem->apply_vol_ifunction        = IFunction_DC;
-  problem->apply_vol_ifunction_loc    = IFunction_DC_loc;
-  problem->bc                        = Exact_DC;
-  problem->bc_fnc                    = BC_DENSITY_CURRENT;
-  problem->non_zero_time             = PETSC_FALSE;
+  problem->dim                     = 3;
+  problem->q_data_size_vol         = 10;
+  problem->q_data_size_sur         = 4;
+  problem->setup_vol               = Setup;
+  problem->setup_vol_loc           = Setup_loc;
+  problem->setup_sur               = SetupBoundary;
+  problem->setup_sur_loc           = SetupBoundary_loc;
+  problem->ics                     = ICsDC;
+  problem->ics_loc                 = ICsDC_loc;
+  problem->apply_vol_rhs           = DC;
+  problem->apply_vol_rhs_loc       = DC_loc;
+  problem->apply_vol_ifunction     = IFunction_DC;
+  problem->apply_vol_ifunction_loc = IFunction_DC_loc;
+  problem->bc                      = Exact_DC;
+  problem->bc_func                 = BC_DENSITY_CURRENT;
+  problem->non_zero_time           = PETSC_FALSE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar theta0      = 300.;   // K
-  CeedScalar thetaC      = -15.;   // K
-  CeedScalar P0          = 1.e5;   // Pa
-  CeedScalar N           = 0.01;   // 1/s
-  CeedScalar cv          = 717.;   // J/(kg K)
-  CeedScalar cp          = 1004.;  // J/(kg K)
-  CeedScalar g           = 9.81;   // m/s^2
-  CeedScalar lambda      = -2./3.;   // -
-  CeedScalar mu          = 75.;      // Pa s, dynamic viscosity
+  CeedScalar theta0 = 300.;    // K
+  CeedScalar thetaC = -15.;    // K
+  CeedScalar P0     = 1.e5;    // Pa
+  CeedScalar N      = 0.01;    // 1/s
+  CeedScalar cv     = 717.;    // J/(kg K)
+  CeedScalar cp     = 1004.;   // J/(kg K)
+  CeedScalar g      = 9.81;    // m/s^2
+  CeedScalar lambda = -2./3.;  // -
+  CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k           = 0.02638;  // W/(m K)
-  PetscScalar lx         = 8000.;  // m
-  PetscScalar ly         = 8000.;  // m
-  PetscScalar lz         = 4000.;  // m
-  CeedScalar rc          = 1000.;  // m (Radius of bubble)
+  CeedScalar k      = 0.02638; // W/(m K)
+  PetscScalar lx    = 8000.;   // m
+  PetscScalar ly    = 8000.;   // m
+  PetscScalar lz    = 4000.;   // m
+  CeedScalar rc     = 1000.;   // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
   CeedScalar Rd;
 
@@ -151,19 +152,19 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   //           Set up the PETSc context
   // ------------------------------------------------------
   // -- Define derived units
-  Pascal = kilogram / (meter * PetscSqr(second));
-  J_per_kg_K =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
+  Pascal          = kilogram / (meter * PetscSqr(second));
+  J_per_kg_K      =  PetscSqr(meter) / (PetscSqr(second) * Kelvin);
   m_per_squared_s = meter / PetscSqr(second);
-  W_per_m_K = kilogram * meter / (pow(second,3) * Kelvin);
+  W_per_m_K       = kilogram * meter / (pow(second,3) * Kelvin);
 
-  units->meter = meter;
-  units->kilogram = kilogram;
-  units->second = second;
-  units->Kelvin = Kelvin;
-  units->Pascal = Pascal;
-  units->J_per_kg_K = J_per_kg_K;
+  units->meter           = meter;
+  units->kilogram        = kilogram;
+  units->second          = second;
+  units->Kelvin          = Kelvin;
+  units->Pascal          = Pascal;
+  units->J_per_kg_K      = J_per_kg_K;
   units->m_per_squared_s = m_per_squared_s;
-  units->W_per_m_K = W_per_m_K;
+  units->W_per_m_K       = W_per_m_K;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -171,18 +172,18 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   // -- Scale variables to desired units
   theta0 *= Kelvin;
   thetaC *= Kelvin;
-  P0 *= Pascal;
-  N *= (1./second);
-  cv *= J_per_kg_K;
-  cp *= J_per_kg_K;
-  Rd = cp - cv;
-  g *= m_per_squared_s;
-  mu *= Pascal * second;
-  k *= W_per_m_K;
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
-  rc = fabs(rc) * meter;
+  P0     *= Pascal;
+  N      *= (1./second);
+  cv     *= J_per_kg_K;
+  cp     *= J_per_kg_K;
+  Rd     = cp - cv;
+  g      *= m_per_squared_s;
+  mu     *= Pascal * second;
+  k      *= W_per_m_K;
+  lx     = fabs(lx) * meter;
+  ly     = fabs(ly) * meter;
+  lz     = fabs(lz) * meter;
+  rc     = fabs(rc) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
 
   // -- Setup Context
@@ -204,19 +205,19 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
-  setup_context->time = 0;
+  setup_context->time       = 0;
 
   // -- QFunction Context
-  phys_ctx->stab = stab;
-  phys_ctx->implicit = implicit;
+  phys_ctx->stab             = stab;
+  phys_ctx->implicit         = implicit;
   phys_ctx->has_current_time = has_current_time;
-  phys_ctx->dc_ctx->lambda = lambda;
-  phys_ctx->dc_ctx->mu = mu;
-  phys_ctx->dc_ctx->k = k;
-  phys_ctx->dc_ctx->cv = cv;
-  phys_ctx->dc_ctx->cp = cp;
-  phys_ctx->dc_ctx->g = g;
-  phys_ctx->dc_ctx->Rd = Rd;
+  phys_ctx->dc_ctx->lambda   = lambda;
+  phys_ctx->dc_ctx->mu       = mu;
+  phys_ctx->dc_ctx->k        = k;
+  phys_ctx->dc_ctx->cv       = cv;
+  phys_ctx->dc_ctx->cp       = cp;
+  phys_ctx->dc_ctx->g        = g;
+  phys_ctx->dc_ctx->Rd       = Rd;
   phys_ctx->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
@@ -225,10 +226,11 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
 PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
                                   void *setup_ctx) {
 
+  PetscInt       len;
+  PetscBool      flg;
+  MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
-  PetscInt len;
-  PetscBool flg;
-  MPI_Comm comm = PETSC_COMM_WORLD;
+  PetscFunctionBeginUser;
 
   // Default boundary conditions
   //   slip bc on all faces and no wall bc
@@ -240,7 +242,6 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
-  PetscFunctionBeginUser;
   // Parse command line options
   ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
                            NULL); CHKERRQ(ierr);
@@ -305,9 +306,9 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
   // Wall boundary conditions
   //   zero velocity and zero flux for mass density and energy density
   {
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+    DMLabel  label;
     PetscInt comps[3] = {1, 2, 3};
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
                          bc->num_wall, bc->walls, 0,
                          3, comps, (void(*)(void))Exact_DC, NULL,
