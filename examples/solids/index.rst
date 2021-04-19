@@ -391,16 +391,12 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-stress
 
-      \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
+      \begin{aligned}
+      \bm S &= \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1(J^2 -J)\bm C^{-1}\\
+      &= \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1}.
+      \end{aligned}
 
-   which can be rewritten as 
-
-   .. math::
-      :label: mooney-rivlin-stress2
-
-      \bm S = \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1(J^2 -J)\bm C^{-1}.
-
-   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress2`, :math:`\diff \bm{S}`, which is
+   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, which is
 
    .. math::
       :label: mooney-rivlin-dS
