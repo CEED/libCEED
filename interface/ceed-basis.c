@@ -1093,8 +1093,8 @@ int CeedBasisDestroy(CeedBasis *basis) {
 /**
   @brief Construct a Gauss-Legendre quadrature
 
-  @param Q               Number of quadrature points (integrates polynomials of
-                           degree 2*Q-1 exactly)
+  @param Q                 Number of quadrature points (integrates polynomials of
+                             degree 2*Q-1 exactly)
   @param[out] q_ref_1d     Array of length Q to hold the abscissa on [-1, 1]
   @param[out] q_weight_1d  Array of length Q to hold the weights
 
@@ -1147,8 +1147,8 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
 /**
   @brief Construct a Gauss-Legendre-Lobatto quadrature
 
-  @param Q               Number of quadrature points (integrates polynomials of
-                           degree 2*Q-3 exactly)
+  @param Q                 Number of quadrature points (integrates polynomials of
+                             degree 2*Q-3 exactly)
   @param[out] q_ref_1d     Array of length Q to hold the abscissa on [-1, 1]
   @param[out] q_weight_1d  Array of length Q to hold the weights
 
@@ -1427,9 +1427,9 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
            is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
 
   @param ceed         A Ceed context for error handling
-  @param[in] mat_A     Row-major matrix to be factorized with eigenvalues
-  @param[in] mat_B     Row-major matrix to be factorized to identity
-  @param[out] x       Row-major orthogonal matrix
+  @param[in] mat_A    Row-major matrix to be factorized with eigenvalues
+  @param[in] mat_B    Row-major matrix to be factorized to identity
+  @param[out] mat_X   Row-major orthogonal matrix
   @param[out] lambda  Vector of length n of generalized eigenvalues
   @param n            Number of rows/columns
 
@@ -1438,48 +1438,52 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   @ref Utility
 **/
 int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
-                                    CeedScalar *mat_B, CeedScalar *x,
+                                    CeedScalar *mat_B, CeedScalar *mat_X,
                                     CeedScalar *lambda, CeedInt n) {
   int ierr;
-  CeedScalar *mat_C, *mat_G, *vecD;
+  CeedScalar *mat_C, *mat_G, *vec_D;
   ierr = CeedCalloc(n*n, &mat_C); CeedChk(ierr);
   ierr = CeedCalloc(n*n, &mat_G); CeedChk(ierr);
-  ierr = CeedCalloc(n, &vecD); CeedChk(ierr);
+  ierr = CeedCalloc(n, &vec_D); CeedChk(ierr);
 
   // Compute B = G D G^T
   memcpy(mat_G, mat_B, n*n*sizeof(mat_B[0]));
-  ierr = CeedSymmetricSchurDecomposition(ceed, mat_G, vecD, n); CeedChk(ierr);
-  for (CeedInt i=0; i<n; i++)
-    vecD[i] = sqrt(vecD[i]);
+  ierr = CeedSymmetricSchurDecomposition(ceed, mat_G, vec_D, n); CeedChk(ierr);
 
   // Compute C = (G D^1/2)^-1 A (G D^1/2)^-T
   //           = D^-1/2 G^T A G D^-1/2
+  // -- D = D^-1/2
   for (CeedInt i=0; i<n; i++)
-    for (CeedInt j=0; j<n; j++)
-      mat_C[j+i*n] = mat_G[i+j*n] / vecD[i];
+    vec_D[i] = 1./sqrt(vec_D[i]);
+  // -- G = G D^-1/2
+  // -- C = D^-1/2 G^T
+  for (CeedInt i=0; i<n; i++)
+    for (CeedInt j=0; j<n; j++) {
+      mat_G[i+j*n] *= vec_D[i];
+      mat_C[j+i*n]  = mat_G[i+j*n];
+    }
+  // -- X = D^-1/2 G^T A
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_C,
-                            (const CeedScalar *)mat_A, x, n, n, n);
+                            (const CeedScalar *)mat_A, mat_X, n, n, n);
   CeedChk(ierr);
-  for (CeedInt i=0; i<n; i++)
-    for (CeedInt j=0; j<n; j++)
-      mat_G[j+i*n] = mat_G[j+i*n] / vecD[j];
-  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)x,
+  // -- C = D^-1/2 G^T A G D^-1/2
+  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_X,
                             (const CeedScalar *)mat_G, mat_C, n, n, n);
   CeedChk(ierr);
 
   // Compute Q^T C Q = lambda
   ierr = CeedSymmetricSchurDecomposition(ceed, mat_C, lambda, n); CeedChk(ierr);
 
-  // Set x = (G D^1/2)^-T Q
+  // Set X = (G D^1/2)^-T Q
   //       = G D^-1/2 Q
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_G,
-                            (const CeedScalar *)mat_C, x, n, n, n);
+                            (const CeedScalar *)mat_C, mat_X, n, n, n);
   CeedChk(ierr);
 
   // Cleanup
   ierr = CeedFree(&mat_C); CeedChk(ierr);
   ierr = CeedFree(&mat_G); CeedChk(ierr);
-  ierr = CeedFree(&vecD); CeedChk(ierr);
+  ierr = CeedFree(&vec_D); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
