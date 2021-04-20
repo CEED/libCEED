@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(1, &setup_ctx); CHKERRQ(ierr);
 
   Physics phys_ctx;
-  ierr = PetscMalloc1(1, &phys_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &phys_ctx); CHKERRQ(ierr);
 
   Units units;
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
@@ -364,6 +364,9 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);

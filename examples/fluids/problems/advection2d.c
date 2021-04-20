@@ -13,7 +13,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscMalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP ADVECTION2D

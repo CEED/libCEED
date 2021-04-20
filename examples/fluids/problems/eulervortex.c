@@ -13,7 +13,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   PetscInt      ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscMalloc1(1, &phys_ctx->euler_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &phys_ctx->euler_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT

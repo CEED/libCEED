@@ -12,7 +12,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscMalloc1(1, &phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &phys_ctx->dc_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
