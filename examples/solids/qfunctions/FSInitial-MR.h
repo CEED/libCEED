@@ -363,7 +363,7 @@ CeedScalar GP_2nd_PK(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], con
 // calculate dS
 // -----------------------------------------------------------------------------
 // Neo-Hookean model
-CeedScalar NH_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj){
+CeedScalar NH_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj, CeedScalar E2[][3], const CeedScalar *detC_m1){
   // unpack ctx here
   const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
@@ -406,21 +406,137 @@ CeedScalar NH_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], 
 }
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin model
-CeedScalar MR_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj){
+CeedScalar MR_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj, CeedScalar E2[][3], const CeedScalar *detC_m1){
   // unpack context
-  // const Physics_MR context = (Physics_MR)ctx;
-  // const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
-  // const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
-  // const CeedScalar k_1 = context -> k_1; // material constant k_1
-  // compute dS: TO-DO - actually compute this
+  const Physics_MR context = (Physics_MR)ctx;
+  const CeedScalar mu_1 = context -> mu_1; // material constant mu_1
+  const CeedScalar mu_2 = context -> mu_2; // material constant mu_2
+  const CeedScalar k_1 = context -> k_1; // material constant k_1
+  // C : right Cauchy-Green tensor
+  // C = I + 2E
+  // *INDENT-OFF*
+  const CeedScalar C[3][3] = {{1 + E2[0][0], E2[0][1], E2[0][2]},
+                              {E2[0][1], 1 + E2[1][1], E2[1][2]},
+                              {E2[0][2], E2[1][2], 1 + E2[2][2]}
+                             };
+
+  // compute CC = C*C = C^2
+  CeedScalar CC[3][3];
+  for (CeedInt j = 0; j < 3; j++)     // Component
+    for (CeedInt k = 0; k < 3; k++) { // Derivative
+      CC[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+          CC[j][k] += C[j][m] * C[m][k];
+      }
+  // compute invariants
+  // I_1 = trace(C)
+  CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
+  // I_2 = 0.5(I_1^2 - trace(C^2))
+  CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
+  CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
+  // J = sqrt(det(C)), and J^2 = det(C): just to avoid sqrt
+  CeedScalar J2 = *detC_m1 + 1; //J^2
+  // J^(-2/3) = J^(2)*(-1/3)...
+  // CeedScalar bar_I_1 = pow(J2, -1/3)* I_1; 
+  // CeedScalar bar_I_2 = pow(J2, -2/3)* I_2;
+
+  const CeedScalar I3[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}; //I3 is identity matrix
+
+  CeedScalar trace_dE = deltaE[0][0] + deltaE[1][1] + deltaE[2][2];
+  CeedScalar k1_2J2_J = k_1*(2*J2 - sqrt(J2)); //k_1*(2*J2 - sqrt(J))
+
+  // -- Cinv^2
+  CeedScalar Cinv2[3][3];
   for (CeedInt j = 0; j < 3; j++)
-    for (CeedInt k = 0; k < 3; k++)
-      deltaS[j][k] = 0;
+    for (CeedInt k = 0; k < 3; k++) {
+      Cinv2[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+         Cinv2[j][k] += Cinv[j][m]*Cinv[m][k];
+    }
+
+  // -- Cinv:deltaE
+  // -- Cinv^2:deltaE
+  CeedScalar Cinv_contract_E = 0;
+  CeedScalar Cinv2_contract_E = 0;
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++){
+      Cinv_contract_E += Cinv[j][k]*deltaE[j][k];
+      Cinv2_contract_E += Cinv2[j][k]*deltaE[j][k];
+    }
+  
+  // -- deltaE*Cinv
+  CeedScalar deltaECinv[3][3];
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      deltaECinv[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+         deltaECinv[j][k] += deltaE[j][m]*Cinv[m][k];
+    }
+  // -- Cinv*deltaE*Cinv
+  CeedScalar d_Cinv_dE[3][3]; // 
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      d_Cinv_dE[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++)
+        d_Cinv_dE[j][k] += Cinv[j][m]*deltaECinv[m][k];
+    }
+
+  //below needs to go into for loops; 
+  CeedScalar d_Ibar1_dE[3][3]; //2*pow(J2, -1/3)*(I_3 - (1/3)*I_1*Cinv)
+  CeedScalar d_Ibar2_dE[3][3]; //2*pow(J2, -2/3)*(I_1*I_3 - C -(2/3)*I_2*Cinv)
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      d_Ibar1_dE[j][k] = 2*pow(J2, -1/3)*(I3[j][k] - (1/3)*I_1*Cinv[j][k]);
+      d_Ibar2_dE[j][k] = 2*pow(J2, -2/3)*(I_1*I3[j][k] - C[j][k] -(2/3)*I_2*Cinv[j][k]);
+    }
+  // -- term coeffecients for calculating d2_Ibar1_contract_dE & d2_Ibar2_contract_dE
+  CeedScalar d2_Ibar1_coeff1 = (-2/3)*pow(J2, -1/3)*I_1; //scalar = (-2/3)*pow(J2, -1/3)*I_1
+  CeedScalar d2_Ibar2_coeff1 = (8/3)*pow(J2, -(2/3))*I_2; //scalar = (8/3)*pow(J2, -(2/3))*I_2
+
+  CeedScalar d2_Ibar1_coeff2[3][3]; //matrix = (2/3)*(d_Ibar1_dE + 2*pow(J2, -1/3)*I3)
+  CeedScalar d2_Ibar2_coeff2[3][3]; //matrix = -(4/3)*I_1(d_Ibar2_dE + 2*pow(J2, -(2/3))*I3)
+
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      d2_Ibar1_coeff2[j][k] = (2/3)*(d_Ibar1_dE[j][k] + 2*pow(J2, -1/3)*I3[j][k]);
+      d2_Ibar2_coeff2[j][k] = (-4/3)*I_1*(d_Ibar2_dE[j][k]+ 2*pow(J2, -(2/3))*I3[j][k]);
+    }
+  // -- 
+
+  // d2_Ibar1/dE:deltaE
+  // d2_Ibar2/dE:deltaE
+  //below needs to fix
+  CeedScalar d2_Ibar1_contract_dE[3][3]; // (-2/3)*pow(J2, -1/3)*I_1*Cinv*d_Cinv_dE - (2/3)*(d_Ibar1_dE + 2*pow(J2, -1/3)*I_3)*Cinv_contract_E
+  CeedScalar d2_Ibar2_contract_dE[3][3]; //  (8/3)*pow(J2, -(2/3))*I_2*d_Cinv_dE - (4/3)(d_Ibar2_dE + 2*pow(J2, -(2/3))*I_1*I_3)*Cinv_contract_E + 4*pow(J2, -(2/3))*((5/3)*trace_dE*I_3 - deltaE)
+  // compute intermediate d2_Ibar1/dE:deltaE
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      d2_Ibar1_contract_dE[j][k] = 0;
+      for (CeedInt m = 0; m < 3; m++){
+        d2_Ibar1_contract_dE[j][k] += Cinv[j][m]*d_Cinv_dE[m][k];
+      }
+    }
+
+  // compute final d2_Ibar1/dE:deltaE & d2_Ibar2/dE:deltaE
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++) {
+      d2_Ibar1_contract_dE[j][k] *= d2_Ibar1_coeff1;
+      d2_Ibar1_contract_dE[j][k] += (-2/3)*(d_Ibar1_dE[j][k] + 2*pow(J2, -1/3)*I3[j][k])*Cinv_contract_E;
+      d2_Ibar2_contract_dE[j][k] = d2_Ibar2_coeff1*d_Cinv_dE[j][k] + 4*pow(J2, -(2/3))*((5/3)*trace_dE*I3[j][k] - deltaE[j][k]) + d2_Ibar2_coeff2[j][k]*Cinv_contract_E;
+    }
+
+  // compute dS:
+  for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt k = 0; k < 3; k++){
+      deltaS[j][k] = (1/2)*mu_1*d2_Ibar1_contract_dE[j][k]; 
+      deltaS[j][k] += (1/2)*mu_2*d2_Ibar2_contract_dE[j][k]; 
+      deltaS[j][k] += k1_2J2_J*(Cinv2_contract_E*I3[j][k] - 2*d_Cinv_dE[j][k]);
+    }
   return 0;
 }
 // -----------------------------------------------------------------------------
 // Generalized Polynomial model
-CeedScalar GP_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj){
+CeedScalar GP_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj, CeedScalar E2[][3], const CeedScalar *detC_m1){
   // compute dS: 
   return 0;
 }
@@ -431,7 +547,7 @@ CeedScalar GP_dS(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], 
 // -----------------------------------------------------------------------------
 static inline int commonFS_generic(void *ctx, const CeedScalar gradu[][3], CeedScalar Swork[6],
                            CeedScalar Cinvwork[6], CeedScalar *detC_m1,
-                           CeedScalar *llnj, 
+                           CeedScalar *llnj, CeedScalar E2[][3], 
                            CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
                            CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3])) {
   // E - Green-Lagrange strain tensor
@@ -444,10 +560,13 @@ static inline int commonFS_generic(void *ctx, const CeedScalar gradu[][3], CeedS
       E2work[m] += gradu[n][indj[m]]*gradu[n][indk[m]];
   }
   // *INDENT-OFF*
-  CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
-                         {E2work[5], E2work[1], E2work[3]},
-                         {E2work[4], E2work[3], E2work[2]}
-                        };
+  E2[0][0] = E2work[0]; E2[0][1] = E2work[5]; E2[0][2] = E2work[4];
+  E2[1][0] = E2work[5]; E2[1][1] = E2work[1]; E2[1][2] = E2work[3];
+  E2[2][0] = E2work[4]; E2[2][1] = E2work[3]; E2[2][2] = E2work[2];
+  // CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
+                        //  {E2work[5], E2work[1], E2work[3]},
+                        //  {E2work[4], E2work[3], E2work[2]}
+                        // };
   // *INDENT-ON*
   (*detC_m1) = computeDetCM1(E2work);
   Swork_func(ctx, Swork, Cinvwork, detC_m1, llnj, indj, indk, E2);
@@ -589,7 +708,7 @@ static inline int HyperFSF_Generic(void *ctx, CeedInt Q, const CeedScalar *const
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1;
+    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1, E2[3][3];
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
@@ -602,7 +721,7 @@ static inline int HyperFSF_Generic(void *ctx, CeedInt Q, const CeedScalar *const
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, Swork_func);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, E2, Swork_func);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -641,7 +760,7 @@ static inline int HyperFSdF_Generic(void *ctx, CeedInt Q, const CeedScalar *cons
                           CeedScalar *const *out, 
                           CeedScalar (*Swork_func)(void *ctx, CeedScalar Swork[6], CeedScalar Cinvwork[6], const CeedScalar *detC_m1,
                           CeedScalar *llnj, const CeedInt indj[6], const CeedInt indk[6], CeedScalar E2[][3]),
-                          CeedScalar (*dS_func)(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj)) {
+                          CeedScalar (*dS_func)(void *ctx, const CeedScalar Cinv[][3], CeedScalar deltaS[][3], CeedScalar deltaE[][3], CeedScalar *llnj, CeedScalar E2[][3], const CeedScalar *detC_m1)) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -720,7 +839,7 @@ static inline int HyperFSdF_Generic(void *ctx, CeedInt Q, const CeedScalar *cons
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1;
+    CeedScalar Swork[6], Cinvwork[6], llnj, detC_m1, E2[3][3];
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{gradu[0][0][i],
                                           gradu[0][1][i],
@@ -733,7 +852,7 @@ static inline int HyperFSdF_Generic(void *ctx, CeedInt Q, const CeedScalar *cons
                                           gradu[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, Swork_func);
+    commonFS_generic(ctx, tempgradu, Swork, Cinvwork, &detC_m1, &llnj, E2, Swork_func);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -785,7 +904,7 @@ static inline int HyperFSdF_Generic(void *ctx, CeedInt Q, const CeedScalar *cons
     //   }
     // // -- intermediate deltaS = Cinv*deltaE*Cinv
     CeedScalar deltaS[3][3];
-    dS_func(ctx, Cinv, deltaS, deltaE, &llnj);
+    dS_func(ctx, Cinv, deltaS, deltaE, &llnj, E2, &detC_m1);
     // for (CeedInt j = 0; j < 3; j++)
     //   for (CeedInt k = 0; k < 3; k++) {
     //     deltaS[j][k] = 0;
