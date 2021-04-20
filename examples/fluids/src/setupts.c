@@ -141,10 +141,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
+  ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayReadAndMemType(Q_dot_loc, &q_dot, &q_dot_mem_type);
   CHKERRQ(ierr);
-  ierr = VecGetArrayReadAndMemType(Q_dot_loc, (const PetscScalar **)&q_dot,
-                                   &q_dot_mem_type); CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER,
                      (PetscScalar *)q);
