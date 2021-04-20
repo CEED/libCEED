@@ -132,11 +132,11 @@ int main(int argc, char **argv) {
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
   case CEED_MEM_DEVICE: {
-  const char *resolved;
-  CeedGetResource(ceed, &resolved);
-  if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-  else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-  else vec_type = VECSTANDARD;
+    const char *resolved;
+    CeedGetResource(ceed, &resolved);
+    if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
+    else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+    else vec_type = VECSTANDARD;
   }
   }
   ierr = DMSetVecType(dm, vec_type); CHKERRQ(ierr);

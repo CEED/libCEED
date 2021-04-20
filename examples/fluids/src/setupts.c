@@ -85,7 +85,8 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
+  CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
   CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
@@ -97,7 +98,8 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   // Restore vectors
   CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
   CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  ierr = VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q);
+  CHKERRQ(ierr);
   ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
@@ -139,12 +141,15 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type); CHKERRQ(ierr);
-  ierr = VecGetArrayReadAndMemType(Q_dot_loc, (const PetscScalar **)&q_dot, &q_dot_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
+  CHKERRQ(ierr);
+  ierr = VecGetArrayReadAndMemType(Q_dot_loc, (const PetscScalar **)&q_dot,
+                                   &q_dot_mem_type); CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER,
                      (PetscScalar *)q);
-  CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), CEED_USE_POINTER,
+  CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type),
+                     CEED_USE_POINTER,
                      (PetscScalar *)q_dot);
   CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
 

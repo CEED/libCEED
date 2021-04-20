@@ -492,7 +492,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedVector *x;
   PetscMemType x_mem_type;
   ierr = VecGetArrayAndMemType(X_loc, &x, &x_mem_type); CHKERRQ(ierr);
-  CeedVectorSetArray(ceed_data->x_corners, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+  CeedVectorSetArray(ceed_data->x_corners, MemTypeP2C(x_mem_type),
+                     CEED_USE_POINTER, x);
   CHKERRQ(ierr);
 
   // -- Apply Setup Operator for the geometric factors
