@@ -205,7 +205,7 @@ CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
-    CeedInt *numqpts);
+    CeedInt *num_qpts);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
