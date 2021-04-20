@@ -18,8 +18,9 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
   CeedQFunctionContextRestoreData(setup_context, (void **)&setup_ctx);
 
   CeedVector *q0;
-  ierr = VecGetArray(Q_loc, &q0); CHKERRQ(ierr);
-  CeedVectorSetArray(q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q0); CHKERRQ(ierr);
+  PetscMemType q0_mem_type;
+  ierr = VecGetArrayAndMemType(Q_loc, &q0, &q0_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0); CHKERRQ(ierr);
 
   CeedOperatorApply(op_ics, x_corners, q0_ceed, CEED_REQUEST_IMMEDIATE);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
@@ -30,12 +31,13 @@ PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
 
   // Fix multiplicity for output of ICs
   CeedVector *m;
+  PetscMemType m_mem_type;
   ierr = DMGetLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
-  ierr = VecGetArray(multiplicity_loc, &m); CHKERRQ(ierr);
-  CeedVectorSetArray(mult_vec, CEED_MEM_HOST, CEED_USE_POINTER, m); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(multiplicity_loc, &m, &m_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m); CHKERRQ(ierr);
 
   CeedElemRestrictionGetMultiplicity(elem_restr_q, mult_vec);
-  CeedVectorDestroy(&mult_vec);
+  CeedVectorDestroy(&mult_vec);  // todo: takearray?
   ierr = DMGetGlobalVector(dm, &multiplicity); CHKERRQ(ierr);
   ierr = VecZeroEntries(multiplicity); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity);

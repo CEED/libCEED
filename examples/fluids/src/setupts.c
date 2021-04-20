@@ -35,9 +35,10 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
 
   // Set PETSc array in CEED vector
   CeedVector *m;
+  PetscMemType m_mem_type;
   ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
-  ierr = VecGetArray(M_loc, &m); CHKERRQ(ierr);
-  CeedVectorSetArray(m_ceed, CEED_MEM_HOST, CEED_USE_POINTER, m);
+  ierr = VecGetArrayAndMemType(M_loc, &m, &m_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
 
   {
     // Compute a lumped mass matrix
@@ -47,7 +48,7 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
     CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
     CeedVectorDestroy(&ones_vec);
     CeedOperatorDestroy(&op_mass);
-    CeedVectorDestroy(&m_ceed);
+    CeedVectorDestroy(&m_ceed);  // todo: takearray?
   }
   CeedQFunctionDestroy(&qf_mass);
 
@@ -69,6 +70,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User           user = *(User *)user_data;
   PetscScalar    *q, *g;
   Vec            Q_loc, G_loc;
+  PetscMemType   q_mem_type, g_mem_type;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
@@ -83,18 +85,20 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayRead(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
-  ierr = VecGetArray(G_loc, &g); CHKERRQ(ierr);
-  CeedVectorSetArray(user->q_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
-  CeedVectorSetArray(user->g_ceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
+  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
+  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
 
   // Apply CEED operator
   CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  ierr = VecRestoreArrayRead(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
-  ierr = VecRestoreArray(G_loc, &g); CHKERRQ(ierr);
+  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
+  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
@@ -116,6 +120,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   const PetscScalar *q, *q_dot;
   PetscScalar       *g;
   Vec               Q_loc, Q_dot_loc, G_loc;
+  PetscMemType      q_mem_type, q_dot_mem_type, g_mem_type;
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
@@ -134,23 +139,26 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Ceed Vectors
-  ierr = VecGetArrayRead(Q_loc, &q); CHKERRQ(ierr);
-  ierr = VecGetArrayRead(Q_dot_loc, &q_dot); CHKERRQ(ierr);
-  ierr = VecGetArray(G_loc, &g); CHKERRQ(ierr);
-  CeedVectorSetArray(user->q_ceed, CEED_MEM_HOST, CEED_USE_POINTER,
+  ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayReadAndMemType(Q_dot_loc, (const PetscScalar **)&q_dot, &q_dot_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER,
                      (PetscScalar *)q);
-  CeedVectorSetArray(user->q_dot_ceed, CEED_MEM_HOST, CEED_USE_POINTER,
+  CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), CEED_USE_POINTER,
                      (PetscScalar *)q_dot);
-  CeedVectorSetArray(user->g_ceed, CEED_MEM_HOST, CEED_USE_POINTER, g);
+  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
 
   // Apply CEED operator
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  ierr = VecRestoreArrayRead(Q_loc, &q); CHKERRQ(ierr);
-  ierr = VecRestoreArrayRead(Q_dot_loc, &q_dot); CHKERRQ(ierr);
-  ierr = VecRestoreArray(G_loc, &g); CHKERRQ(ierr);
+  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
+  CeedVectorTakeArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), NULL);
+  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(Q_loc, &q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot); CHKERRQ(ierr);
+  ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);

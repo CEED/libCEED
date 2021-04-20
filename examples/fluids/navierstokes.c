@@ -128,6 +128,18 @@ int main(int argc, char **argv) {
   // -- Create distribute DM
   DM dm;
   ierr = CreateDistributedDM(comm, problem, setup_ctx, &dm); CHKERRQ(ierr);
+  VecType vec_type;
+  switch (mem_type_backend) {
+  case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
+  case CEED_MEM_DEVICE: {
+  const char *resolved;
+  CeedGetResource(ceed, &resolved);
+  if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
+  else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+  else vec_type = VECSTANDARD;
+  }
+  }
+  ierr = DMSetVecType(dm, vec_type); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   user->dm = dm;
 
@@ -166,6 +178,7 @@ int main(int argc, char **argv) {
   ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
   ierr = VecGetArray(Q_loc, &q); CHKERRQ(ierr);
   CeedVectorSetArray(ceed_data->q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
+
 
   // -- Fix multiplicity for ICs
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
