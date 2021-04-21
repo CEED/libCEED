@@ -437,7 +437,6 @@ static int CeedVectorReciprocal_Hip(CeedVector vec) {
   case CEED_HIP_BOTH_SYNC:
     ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChkBackend(ierr);
     data->memState = CEED_HIP_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   // LCOV_EXCL_START
   case CEED_HIP_NONE_SYNC:
@@ -493,7 +492,6 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
     ierr = CeedDeviceAXPY_Hip(y_data->d_array, alpha, x_data->d_array, length);
     CeedChkBackend(ierr);
     y_data->memState = CEED_HIP_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(y, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   // LCOV_EXCL_START
   case CEED_HIP_NONE_SYNC:
@@ -557,7 +555,6 @@ static int CeedVectorPointwiseMult_Hip(CeedVector w, CeedVector x,
                                        y_data->d_array, length);
     CeedChkBackend(ierr);
     w_data->memState = CEED_HIP_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(w, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   case CEED_HIP_NONE_SYNC:
     ierr = CeedVectorSetValue(w, 0.0); CeedChkBackend(ierr);

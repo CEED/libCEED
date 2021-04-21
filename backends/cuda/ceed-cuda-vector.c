@@ -441,7 +441,6 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
   case CEED_CUDA_BOTH_SYNC:
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChkBackend(ierr);
     data->memState = CEED_CUDA_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   // LCOV_EXCL_START
   case CEED_CUDA_NONE_SYNC:
@@ -497,7 +496,6 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
     ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
     CeedChkBackend(ierr);
     y_data->memState = CEED_CUDA_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(y, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   // LCOV_EXCL_START
   case CEED_CUDA_NONE_SYNC:
@@ -561,7 +559,6 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x,
                                         y_data->d_array, length);
     CeedChkBackend(ierr);
     w_data->memState = CEED_CUDA_DEVICE_SYNC;
-    ierr = CeedVectorSyncArray(w, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   case CEED_CUDA_NONE_SYNC:
     ierr = CeedVectorSetValue(w, 0.0); CeedChkBackend(ierr);
