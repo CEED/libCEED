@@ -298,6 +298,7 @@ int main(int argc, char **argv) {
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_corners);
   CeedVectorDestroy(&ceed_data->q_data);
+  CeedVectorDestroy(&ceed_data->q0_ceed);
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
   CeedVectorDestroy(&user->g_ceed);

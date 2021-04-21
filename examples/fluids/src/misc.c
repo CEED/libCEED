@@ -134,7 +134,6 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
                      "Relative Error: %g\n",
                      (double)rel_error); CHKERRQ(ierr);
   // Clean up vectors
-  CeedVectorDestroy(&ceed_data->q0_ceed);
   ierr = DMRestoreLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&Q_exact); CHKERRQ(ierr);
 
