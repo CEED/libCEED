@@ -73,6 +73,7 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
                            SimpleBC bc, Physics phys, void *setup_ctx) {
   PetscErrorCode ierr;
   DM             dm_hierarchy[user->app_ctx->viz_refine + 1];
+  VecType        vec_type;
   PetscFunctionBeginUser;
 
   ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
@@ -88,6 +89,8 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
     ierr = DMSetCoarseDM(dm_hierarchy[i+1], dm_hierarchy[i]); CHKERRQ(ierr);
     d = (d + 1) / 2;
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
+    ierr = DMGetVecType(dm, &vec_type); CHKERRQ(ierr);
+    ierr = DMSetVecType(dm_hierarchy[i+1], vec_type); CHKERRQ(ierr);
     ierr = SetUpDM(dm_hierarchy[i+1], problem, d, bc, phys, setup_ctx);
     CHKERRQ(ierr);
     ierr = DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i+1], &interp_next,
