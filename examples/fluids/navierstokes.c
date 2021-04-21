@@ -178,6 +178,7 @@ int main(int argc, char **argv) {
   ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
   ierr = VecGetArray(Q_loc, &q); CHKERRQ(ierr);
   CeedVectorSetArray(ceed_data->q0_ceed, CEED_MEM_HOST, CEED_USE_POINTER, q);
+  ierr = VecRestoreArray(Q_loc, &q); CHKERRQ(ierr);
 
   // -- Fix multiplicity for ICs
   ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
