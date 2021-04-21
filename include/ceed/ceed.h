@@ -624,6 +624,7 @@ CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
     CeedOperator *op_prolong, CeedOperator *op_restrict);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdm_inv, CeedRequest *request);
+CEED_EXTERN int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);

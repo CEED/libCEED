@@ -228,7 +228,8 @@ static int CeedOperatorCheckReady(CeedOperator op) {
     if (op->num_qpts == 0)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                       "At least one non-collocated basis required");
+                       "At least one non-collocated basis is required "
+                       "or the number of quadrature points must be set");
     // LCOV_EXCL_STOP
   }
 
@@ -1100,7 +1101,9 @@ found:
 
   (*op_field)->basis = b;
   if (b != CEED_BASIS_COLLOCATED) {
-    op->num_qpts = num_qpts;
+    if (!op->num_qpts) {
+      ierr = CeedOperatorSetNumQuadraturePoints(op, num_qpts); CeedChk(ierr);
+    }
     ierr = CeedBasisReference(b); CeedChk(ierr);
   }
 
@@ -2161,6 +2164,36 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
     ierr = op->op_fallback->CreateFDMElementInverse(op->op_fallback, fdm_inv,
            request); CeedChk(ierr);
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the number of quadrature points associated with a CeedOperator.
+           This should be used when creating a CeedOperator where every
+           field has a collocated basis. This function cannot be used for
+           composite CeedOperators.
+
+  @param op        CeedOperator
+  @param num_qpts  Number of quadrature points to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+  if (op->num_qpts)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Number of quadrature points already defined");
+  // LCOV_EXCL_STOP
+
+  op->num_qpts = num_qpts;
   return CEED_ERROR_SUCCESS;
 }
 
