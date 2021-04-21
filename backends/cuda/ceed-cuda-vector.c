@@ -440,12 +440,137 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
     break;
   case CEED_CUDA_BOTH_SYNC:
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChkBackend(ierr);
+    data->memState = CEED_CUDA_DEVICE_SYNC;
     ierr = CeedVectorSyncArray(vec, CEED_MEM_HOST); CeedChkBackend(ierr);
     break;
   // LCOV_EXCL_START
   case CEED_CUDA_NONE_SYNC:
     break; // Not possible, but included for completness
     // LCOV_EXCL_STOP
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + y on the host
+//------------------------------------------------------------------------------
+static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha,
+                             CeedScalar *x_array, CeedInt length) {
+  for (int i = 0; i < length; i++)
+    y_array[i] += alpha * x_array[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + y on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha,
+                        CeedScalar *x_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(y, &ceed); CeedChkBackend(ierr);
+  CeedVector_Cuda *y_data, *x_data;
+  ierr = CeedVectorGetData(y, &y_data); CeedChkBackend(ierr);
+  ierr = CeedVectorGetData(x, &x_data); CeedChkBackend(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(y, &length); CeedChkBackend(ierr);
+
+  // Set value for synced device/host array
+  switch(y_data->memState) {
+  case CEED_CUDA_HOST_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_HOST); CeedChkBackend(ierr);
+    ierr = CeedHostAXPY_Cuda(y_data->h_array, alpha, x_data->h_array, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_DEVICE_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_BOTH_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
+    CeedChkBackend(ierr);
+    y_data->memState = CEED_CUDA_DEVICE_SYNC;
+    ierr = CeedVectorSyncArray(y, CEED_MEM_HOST); CeedChkBackend(ierr);
+    break;
+  // LCOV_EXCL_START
+  case CEED_CUDA_NONE_SYNC:
+    break; // Not possible, but included for completness
+    // LCOV_EXCL_STOP
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute the pointwise multiplication w = x .* y on the host
+//------------------------------------------------------------------------------
+static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array,
+                                      CeedScalar *y_array, CeedInt length) {
+  for (int i = 0; i < length; i++)
+    w_array[i] = x_array[i] * y_array[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array,
+                                 CeedScalar *y_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute the pointwise multiplication w = x .* y
+//------------------------------------------------------------------------------
+static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x,
+                                        CeedVector y) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(w, &ceed); CeedChkBackend(ierr);
+  CeedVector_Cuda *w_data, *x_data, *y_data;
+  ierr = CeedVectorGetData(w, &w_data); CeedChkBackend(ierr);
+  ierr = CeedVectorGetData(x, &x_data); CeedChkBackend(ierr);
+  ierr = CeedVectorGetData(y, &y_data); CeedChkBackend(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(w, &length); CeedChkBackend(ierr);
+
+  // Set value for synced device/host array
+  switch(w_data->memState) {
+  case CEED_CUDA_HOST_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_HOST); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(y, CEED_MEM_HOST); CeedChkBackend(ierr);
+    ierr = CeedHostPointwiseMult_Cuda(w_data->h_array, x_data->h_array,
+                                      y_data->h_array, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_DEVICE_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
+                                        y_data->d_array, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_BOTH_SYNC:
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
+                                        y_data->d_array, length);
+    CeedChkBackend(ierr);
+    w_data->memState = CEED_CUDA_DEVICE_SYNC;
+    ierr = CeedVectorSyncArray(w, CEED_MEM_HOST); CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_NONE_SYNC:
+    ierr = CeedVectorSetValue(w, 0.0); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
+                                        y_data->d_array, length);
+    CeedChkBackend(ierr);
+    break;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -493,6 +618,10 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorNorm_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",
                                 CeedVectorReciprocal_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "AXPY",
+                                CeedVectorAXPY_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult",
+                                CeedVectorPointwiseMult_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Cuda); CeedChkBackend(ierr);
 
