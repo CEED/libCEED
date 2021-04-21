@@ -256,9 +256,8 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------
-PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-                                       CeedElemRestriction elem_restr_q, CeedBasis basis_q,
-                                       CeedElemRestriction elem_restr_qd_i, CeedVector q_data, Vec M);
+PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
+                                       Vec M);
 
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)

@@ -3,9 +3,8 @@
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------
-PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
-                                       CeedElemRestriction elem_restr_q, CeedBasis basis_q,
-                                       CeedElemRestriction elem_restr_qd_i, CeedVector q_data, Vec M) {
+PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
+                                       Vec M) {
   Vec            M_loc;
   CeedQFunction  qf_mass;
   CeedOperator   op_mass;
@@ -14,50 +13,60 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm,
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q);
-  CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size);
+  // CEED Restriction
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &m_ceed, NULL);
 
-  // Create the Q-function that defines the action of the mass operator
+  // CEED QFunction
   CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "q", num_comp_q, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_mass, "q_data", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_mass, "v", num_comp_q, CEED_EVAL_INTERP);
 
-  // Create the mass operator
+  // CEED Operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "q_data", elem_restr_qd_i,
-                       CEED_BASIS_COLLOCATED, q_data);
-  CeedOperatorSetField(op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q", ceed_data->elem_restr_q, ceed_data->basis_q,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "q_data", ceed_data->elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
+                       CEED_VECTOR_ACTIVE);
 
-  // CEED Restriction
-  CeedElemRestrictionCreateVector(elem_restr_q, &m_ceed, NULL);
-
-  // Set PETSc array in CEED vector
+  // Set PETSc array in CEED Vector
   CeedVector *m;
   PetscMemType m_mem_type;
   ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(M_loc, &m, &m_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
 
-  {
-    // Compute a lumped mass matrix
-    CeedVector ones_vec;
-    CeedElemRestrictionCreateVector(elem_restr_q, &ones_vec, NULL);
-    CeedVectorSetValue(ones_vec, 1.0);
-    CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
-    CeedVectorDestroy(&ones_vec);
-    CeedOperatorDestroy(&op_mass);
-    CeedVectorDestroy(&m_ceed);  // todo: takearray?
-  }
-  CeedQFunctionDestroy(&qf_mass);
+  // Compute lumped mass matrix
+  // -- CEED Restriction
+  CeedVector ones_vec;
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ones_vec, NULL);
+  CeedVectorSetValue(ones_vec, 1.0);
 
+  // -- Apply CEED Operator
+  CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
+
+  // -- Restore vectors
+  CeedVectorTakeArray(m_ceed, MemTypeP2C(m_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(M_loc, (const PetscScalar **)&m);
+  CHKERRQ(ierr);
+
+  // -- Get global mass matrix
   ierr = VecZeroEntries(M); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, M_loc, ADD_VALUES, M); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &M_loc); CHKERRQ(ierr);
 
-  // Invert diagonally lumped mass vector for RHS function
+  // -- Invert diagonally lumped mass vector for RHS function
   ierr = VecReciprocal(M); CHKERRQ(ierr);
+
+  // Destroy CEED objects
+  CeedVectorDestroy(&ones_vec);
+  CeedVectorDestroy(&m_ceed);
+  CeedQFunctionDestroy(&qf_mass);
+  CeedOperatorDestroy(&op_mass);
 
   PetscFunctionReturn(0);
 }

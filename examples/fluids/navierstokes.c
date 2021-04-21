@@ -192,9 +192,7 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
 
   // -- Compute lumped mass matrix
-  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data->elem_restr_q,
-                                 ceed_data->basis_q, ceed_data->elem_restr_qd_i,
-                                 ceed_data->q_data, user->M); CHKERRQ(ierr);
+  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
