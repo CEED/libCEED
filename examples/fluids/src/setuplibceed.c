@@ -255,6 +255,14 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
       // ----- Apply Sub-Operator for the Boundary
       CeedCompositeOperatorAddSub(*op_apply, op_apply_sur);
+
+      // ----- Destroy CEED objects
+      CeedVectorDestroy(&q_data_sur);
+      CeedElemRestrictionDestroy(&elem_restr_q_sur);
+      CeedElemRestrictionDestroy(&elem_restr_x_sur);
+      CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
+      CeedOperatorDestroy(&op_setup_sur);
+      CeedOperatorDestroy(&op_apply_sur);
     }
   }
 
