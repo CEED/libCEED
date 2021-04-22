@@ -9,7 +9,7 @@ noether-rocm:
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -29,6 +29,8 @@ noether-rocm:
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
