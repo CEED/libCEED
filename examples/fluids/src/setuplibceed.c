@@ -304,8 +304,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                  q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                  &ceed_data->elem_restr_qd_i); CHKERRQ(ierr);
   // -- Create E vectors
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ceed_data->q0_ceed,
-                                  NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed,
                                   NULL);

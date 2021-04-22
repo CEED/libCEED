@@ -3,51 +3,86 @@
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
-PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
-                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
-                                   CeedElemRestriction elem_restr_q,
-                                   CeedQFunctionContext setup_context, CeedScalar time) {
-  CeedVector     mult_vec;
-  Vec            multiplicity, multiplicity_loc;
+PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
+                                   CeedScalar time) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
+  // Set time for SetupContext
   SetupContext setup_ctx;
-  CeedQFunctionContextGetData(setup_context, CEED_MEM_HOST, (void **)&setup_ctx);
+  CeedQFunctionContextGetData(ceed_data->setup_context, CEED_MEM_HOST,
+                              (void **)&setup_ctx);
   setup_ctx->time = time;
-  CeedQFunctionContextRestoreData(setup_context, (void **)&setup_ctx);
+  CeedQFunctionContextRestoreData(ceed_data->setup_context, (void **)&setup_ctx);
 
+  // ---------------------------------------------------------------------------
+  // ICs
+  // ---------------------------------------------------------------------------
+  // -- CEED Restriction
+  CeedVector q0_ceed;
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
+
+  // -- Place PETSc vector in CEED vector
   CeedVector *q0;
   PetscMemType q0_mem_type;
   ierr = VecGetArrayAndMemType(Q_loc, &q0, &q0_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0);
+
+  // -- Apply CEED Operator
+  CeedOperatorApply(ceed_data->op_ics, ceed_data->x_corners, q0_ceed,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // -- Restore vectors
+  CeedVectorTakeArray(q0_ceed, MemTypeP2C(q0_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q0);
   CHKERRQ(ierr);
 
-  CeedOperatorApply(op_ics, x_corners, q0_ceed, CEED_REQUEST_IMMEDIATE);
+  // -- Local-to-Global
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q); CHKERRQ(ierr);
 
-  // CEED Restriction
-  CeedElemRestrictionCreateVector(elem_restr_q, &mult_vec, NULL);
-
+  // ---------------------------------------------------------------------------
   // Fix multiplicity for output of ICs
-  CeedVector *m;
+  // ---------------------------------------------------------------------------
+  // -- CEED Restriction
+  CeedVector mult_vec;
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
+
+  // -- Place PETSc vector in CEED vector
+  CeedVector *mult;
   PetscMemType m_mem_type;
+  Vec multiplicity_loc;
   ierr = DMGetLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(multiplicity_loc, &m, &m_mem_type); CHKERRQ(ierr);
-  CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
+  ierr = VecGetArrayAndMemType(multiplicity_loc, &mult, &m_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, mult);
   CHKERRQ(ierr);
 
-  CeedElemRestrictionGetMultiplicity(elem_restr_q, mult_vec);
-  CeedVectorDestroy(&mult_vec);  // todo: takearray?
+  // -- Get multiplicity
+  CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec);
+
+  // -- Restore vectors
+  CeedVectorTakeArray(mult_vec, MemTypeP2C(m_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(multiplicity_loc,
+                                       (const PetscScalar **)&mult); CHKERRQ(ierr);
+
+  // -- Local-to-Global
+  Vec multiplicity;
   ierr = DMGetGlobalVector(dm, &multiplicity); CHKERRQ(ierr);
   ierr = VecZeroEntries(multiplicity); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity);
   CHKERRQ(ierr);
+
+  // -- Fix multiplicity
   ierr = VecPointwiseDivide(Q, Q, multiplicity); CHKERRQ(ierr);
   ierr = VecPointwiseDivide(Q_loc, Q_loc, multiplicity_loc); CHKERRQ(ierr);
+
+  // -- Restore vectors
   ierr = DMRestoreLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
   ierr = DMRestoreGlobalVector(dm, &multiplicity); CHKERRQ(ierr);
+
+  // Cleanup
+  CeedVectorDestroy(&mult_vec);
+  CeedVectorDestroy(&q0_ceed);
 
   PetscFunctionReturn(0);
 }
@@ -117,9 +152,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
   ierr = DMCreateGlobalVector(dm, &Q_exact); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
   ierr = VecGetSize(Q_exact_loc, &loc_nodes); CHKERRQ(ierr);
-  ierr = ICs_FixMultiplicity(ceed_data->op_ics, ceed_data->x_corners,
-                             ceed_data->q0_ceed, dm, Q_exact_loc, Q_exact,
-                             ceed_data->elem_restr_q, ceed_data->setup_context, final_time); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, Q_exact_loc, Q_exact, final_time);
+  CHKERRQ(ierr);
 
   // Get |exact solution - obtained solution|
   ierr = VecNorm(Q_exact, NORM_1, &norm_exact); CHKERRQ(ierr);

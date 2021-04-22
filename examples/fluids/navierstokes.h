@@ -180,7 +180,7 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector           x_corners, q_data, q0_ceed;
+  CeedVector           x_corners, q_data;
   CeedQFunctionContext setup_context, dc_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
@@ -303,10 +303,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
-PetscErrorCode ICs_FixMultiplicity(CeedOperator op_ics, CeedVector x_corners,
-                                   CeedVector q0_ceed, DM dm, Vec Q_loc, Vec Q,
-                                   CeedElemRestriction elem_restr_q,
-                                   CeedQFunctionContext setup_context, CeedScalar time);
+PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
+                                   CeedScalar time);
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
