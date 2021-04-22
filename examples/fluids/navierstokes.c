@@ -75,13 +75,13 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
 
   SetupContext setup_ctx;
-  ierr = PetscMalloc1(1, &setup_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &setup_ctx); CHKERRQ(ierr);
 
   Physics phys_ctx;
   ierr = PetscCalloc1(1, &phys_ctx); CHKERRQ(ierr);
 
   Units units;
-  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &units); CHKERRQ(ierr);
 
   user->app_ctx = app_ctx;
   user->units = units;
