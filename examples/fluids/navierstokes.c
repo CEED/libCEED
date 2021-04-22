@@ -289,7 +289,6 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
   // -- Vectors
-  CeedVectorDestroy(&ceed_data->x_corners);
   CeedVectorDestroy(&ceed_data->q_data);
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
@@ -344,8 +343,8 @@ int main(int argc, char **argv) {
   ierr = MatDestroy(&user->interp_viz); CHKERRQ(ierr);
 
   // -- DM
-  ierr = DMDestroy(&user->dm_viz); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
+  ierr = DMDestroy(&user->dm_viz); CHKERRQ(ierr);
 
   // -- TS
   ierr = TSDestroy(&ts); CHKERRQ(ierr);

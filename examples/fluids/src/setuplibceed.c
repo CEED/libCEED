@@ -173,7 +173,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
-                                       CeedData ceed_data, Physics phys,
+                                       CeedData ceed_data, CeedVector x_coord, Physics phys,
                                        CeedOperator op_apply_vol, CeedInt height,
                                        CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply) {
@@ -201,7 +201,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     if (dim == 2) num_face = 4;
     if (dim == 3) num_face = 6;
 
-    // --- Get the number of quadrature points for the boundaries
+    // --- Get number of quadrature points for the boundaries
     CeedInt num_qpts_sur;
     CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
@@ -238,20 +238,16 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       // ----- CEED Operator for Physics
       CeedOperatorCreate(ceed, ceed_data->qf_apply_sur, NULL, NULL, &op_apply_sur);
       CeedOperatorSetField(op_apply_sur, "q", elem_restr_q_sur,
-                           ceed_data->basis_q_sur,
-                           CEED_VECTOR_ACTIVE);
+                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_apply_sur, "q_data_sur", elem_restr_qd_i_sur,
                            CEED_BASIS_COLLOCATED, q_data_sur);
       CeedOperatorSetField(op_apply_sur, "x", elem_restr_x_sur,
-                           ceed_data->basis_x_sur,
-                           ceed_data->x_corners);
+                           ceed_data->basis_x_sur, x_coord);
       CeedOperatorSetField(op_apply_sur, "v", elem_restr_q_sur,
-                           ceed_data->basis_q_sur,
-                           CEED_VECTOR_ACTIVE);
+                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
 
       // ----- Apply CEED operator for Setup
-      CeedOperatorApply(op_setup_sur, ceed_data->x_corners, q_data_sur,
-                        CEED_REQUEST_IMMEDIATE);
+      CeedOperatorApply(op_setup_sur, x_coord, q_data_sur, CEED_REQUEST_IMMEDIATE);
 
       // ----- Apply Sub-Operator for the Boundary
       CeedCompositeOperatorAddSub(*op_apply, op_apply_sur);
@@ -363,17 +359,27 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                            CEED_EVAL_GRAD);
   }
 
+  // ---------------------------------------------------------------------------
+  // Element coordinates
+  // ---------------------------------------------------------------------------
+  // -- Create CEED vector
+  CeedVector x_coord;
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_x, &x_coord, NULL);
+
+  // -- Copy PETSc vector in CEED vector
+  Vec               X_loc;
+  PetscInt          X_loc_size;
+  const PetscScalar *X_loc_array;
+  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
+  ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
+  CeedVectorSetArray(x_coord, CEED_MEM_HOST, CEED_COPY_VALUES,
+                     (PetscScalar *)X_loc_array);
+  ierr = VecRestoreArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
+
   // -----------------------------------------------------------------------------
   // CEED vectors
   // -----------------------------------------------------------------------------
-  // -- Create Ceed coordinate vector
-  Vec      X_loc;
-  PetscInt X_loc_size;
-  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(X_loc, &X_loc_size); CHKERRQ(ierr);
-  ierr = CeedVectorCreate(ceed, X_loc_size, &ceed_data->x_corners); CHKERRQ(ierr);
-
-  // -- Create CEED vector for quadrature data used in RHS or IFunction
+  // -- Create CEED vector for geometric data
   CeedInt  num_qpts_vol;
   PetscInt loc_num_elem_vol;
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts_vol);
@@ -396,7 +402,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                        ceed_data->elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // -- Create CEED operator for quadrature data ICs
+  // -- Create CEED operator for ICs
   CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &ceed_data->op_ics);
   CeedOperatorSetField(ceed_data->op_ics, "x", ceed_data->elem_restr_x,
                        ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
@@ -415,7 +421,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_BASIS_COLLOCATED,
                          ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
-                         ceed_data->x_corners);
+                         x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -437,7 +443,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_BASIS_COLLOCATED,
                          ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
-                         ceed_data->x_corners);
+                         x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "dv", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -495,26 +501,22 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   // CEED Operator Apply
   // *****************************************************************************
-  CeedVector *x;
-  ierr = VecGetArray(X_loc, &x); CHKERRQ(ierr);
-  CeedVectorSetArray(ceed_data->x_corners, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CHKERRQ(ierr);
-  ierr = VecRestoreArray(X_loc, &x); CHKERRQ(ierr);
-
-  // -- Apply Setup Operator for the geometric factors
-  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_corners,
-                    ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
+  // -- Apply CEED Operator for the geometric data
+  CeedOperatorApply(ceed_data->op_setup_vol, x_coord, ceed_data->q_data,
+                    CEED_REQUEST_IMMEDIATE);
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS
-    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, x_coord, user->phys,
                                    user->op_rhs_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_rhs); CHKERRQ(ierr);
   } else { // IFunction
-    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
+    ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, x_coord, user->phys,
                                    user->op_ifunction_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
   }
+
+  CeedVectorDestroy(&x_coord);
 
   PetscFunctionReturn(0);
 }

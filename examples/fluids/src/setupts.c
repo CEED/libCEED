@@ -79,7 +79,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Set current time for EulerContext
+  // Update EulerContext
   if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
 
   // Get local vectors
@@ -136,7 +136,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
-  // Set current time for EulerContext
+  // Update EulerContext
   if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
 
   // Get local vectors
