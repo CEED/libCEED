@@ -8,7 +8,7 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
   Vec            M_loc;
   CeedQFunction  qf_mass;
   CeedOperator   op_mass;
-  CeedVector     m_ceed;
+  CeedVector     m_ceed, ones_vec;
   CeedInt        num_comp_q, q_data_size;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
@@ -17,6 +17,8 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &m_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ones_vec, NULL);
+  CeedVectorSetValue(ones_vec, 1.0);
 
   // CEED QFunction
   CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
@@ -33,36 +35,30 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                        CEED_VECTOR_ACTIVE);
 
-  // Set PETSc array in CEED Vector
+  // Place PETSc vector in CEED vector
   CeedVector *m;
   PetscMemType m_mem_type;
   ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(M_loc, &m, &m_mem_type); CHKERRQ(ierr);
   CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
 
-  // Compute lumped mass matrix
-  // -- CEED Restriction
-  CeedVector ones_vec;
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ones_vec, NULL);
-  CeedVectorSetValue(ones_vec, 1.0);
-
-  // -- Apply CEED Operator
+  // Apply CEED Operator
   CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
 
-  // -- Restore vectors
+  // Restore vectors
   CeedVectorTakeArray(m_ceed, MemTypeP2C(m_mem_type), NULL);
   ierr = VecRestoreArrayReadAndMemType(M_loc, (const PetscScalar **)&m);
   CHKERRQ(ierr);
 
-  // -- Get global mass matrix
+  // Local-to-Global
   ierr = VecZeroEntries(M); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm, M_loc, ADD_VALUES, M); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &M_loc); CHKERRQ(ierr);
 
-  // -- Invert diagonally lumped mass vector for RHS function
+  // Invert diagonally lumped mass vector for RHS function
   ierr = VecReciprocal(M); CHKERRQ(ierr);
 
-  // Destroy CEED objects
+  // Cleanup
   CeedVectorDestroy(&ones_vec);
   CeedVectorDestroy(&m_ceed);
   CeedQFunctionDestroy(&qf_mass);
@@ -83,17 +79,21 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Global-to-local
+  // Set current time for EulerContext
   if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
+
+  // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+
+  // Global-to-local
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
   ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
-  // Ceed Vectors
+  // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
   CHKERRQ(ierr);
   ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
@@ -111,13 +111,14 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   CHKERRQ(ierr);
   ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
 
+  // Local-to-Global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
 
-  // Inverse of the lumped mass matrix
-  ierr = VecPointwiseMult(G, G, user->M); // M is Minv
-  CHKERRQ(ierr);
+  // Inverse of the lumped mass matrix (M is Minv)
+  ierr = VecPointwiseMult(G, G, user->M); CHKERRQ(ierr);
 
+  // Restore vectors
   ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
@@ -135,11 +136,15 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
-  // Global-to-local
+  // Set current time for EulerContext
   if (user->phys->has_current_time) user->phys->euler_ctx->curr_time = t;
+
+  // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+
+  // Global-to-local
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
   ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
@@ -149,7 +154,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   CHKERRQ(ierr);
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
-  // Ceed Vectors
+  // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
   ierr = VecGetArrayReadAndMemType(Q_dot_loc, &q_dot, &q_dot_mem_type);
   CHKERRQ(ierr);
@@ -173,9 +178,11 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot); CHKERRQ(ierr);
   ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
 
+  // Local-to-Global
   ierr = VecZeroEntries(G); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
 
+  // Restore vectors
   ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);

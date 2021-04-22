@@ -260,8 +260,6 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
                                        Vec M);
 
 // RHS (Explicit time-stepper) function setup
-//   This is the RHS of the ODE, given as u_t = G(t,u)
-//   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data);
 
 // Implicit time-stepper function setup
