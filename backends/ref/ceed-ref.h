@@ -52,7 +52,7 @@ typedef struct {
 } CeedQFunctionContext_Ref;
 
 typedef struct {
-  bool identity_qf;
+  bool is_identity_qf, is_identity_restr_op;
   CeedVector
   *e_vecs;   /* E-vectors needed to apply operator (input followed by outputs) */
   CeedScalar **e_data;
