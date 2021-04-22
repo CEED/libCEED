@@ -1,6 +1,6 @@
 /// @file
-/// Test poinwise muliplication of a pair of vectors
-/// \test Test poinwise muliplication of a pair of vectors
+/// Test pointwise muliplication of a pair of vectors
+/// \test Test pointwise muliplication of a pair of vectors
 #include <ceed.h>
 #include <math.h>
 
