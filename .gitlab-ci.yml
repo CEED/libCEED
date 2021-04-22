@@ -33,12 +33,12 @@ noether-rocm:
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-#    Note: These tests don't run in ' make junit realsearch=%' until PETSC_DIR set
-#          PETSC_DIR is not set by default in GitLab runner env
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search="petsc fluids solids"
