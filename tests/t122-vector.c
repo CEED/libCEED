@@ -1,6 +1,6 @@
 /// @file
-/// Test poinwise muliplication of a pair of vectors
-/// \test Test poinwise muliplication of a pair of vectors
+/// Test pointwise muliplication of a pair of vectors
+/// \test Test pointwise muliplication of a pair of vectors
 #include <ceed.h>
 #include <math.h>
 
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in alpha x + y, computed: %f actual: %f\n", b[i], 1.0*i*i);
+      printf("Error in w = x .* y, computed: %f actual: %f\n", b[i], 1.0*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in alpha x + y, computed: %f actual: %f\n", b[i], 1.0*i*i*i);
+      printf("Error in w = w .* y, computed: %f actual: %f\n", b[i], 1.0*i*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i*i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in alpha x + y, computed: %f actual: %f\n", b[i], 1.0*i*i*i*i);
+      printf("Error in w = x .* w, computed: %f actual: %f\n", b[i], 1.0*i*i*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in alpha x + y, computed: %f actual: %f\n", b[i], 1.0*i*i);
+      printf("Error in y = y .* y, computed: %f actual: %f\n", b[i], 1.0*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &b);
 

@@ -231,6 +231,65 @@ def test_119(ceed_resource):
             assert abs(b[i] - 1. / (10 + i)) < 1e-15
 
 # -------------------------------------------------------------------------------
+# Test AXPY
+# -------------------------------------------------------------------------------
+
+
+def test_121(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+    y = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype="float64")
+    x.set_array(a, cmode=libceed.COPY_VALUES)
+    y.set_array(a, cmode=libceed.COPY_VALUES)
+
+    y.axpy(-0.5, x)
+    with y.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] - (10 + i) / 2) < 1e-14
+
+# -------------------------------------------------------------------------------
+# Test pointwise multiplication
+# -------------------------------------------------------------------------------
+
+
+def test_122(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    w = ceed.Vector(n)
+    x = ceed.Vector(n)
+    y = ceed.Vector(n)
+
+    a = np.arange(0, n, dtype="float64")
+    w.set_array(a, cmode=libceed.COPY_VALUES)
+    x.set_array(a, cmode=libceed.COPY_VALUES)
+    y.set_array(a, cmode=libceed.COPY_VALUES)
+
+    w.pointwise_mult(x, y)
+    with w.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] - i * i) < 1e-14
+
+    w.pointwise_mult(w, y)
+    with w.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] - i * i * i) < 1e-14
+
+    w.pointwise_mult(x, w)
+    with w.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] - i * i * i * i) < 1e-14
+
+    y.pointwise_mult(y, y)
+    with y.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] - i * i) < 1e-14
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 

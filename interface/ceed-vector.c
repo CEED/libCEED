@@ -588,7 +588,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
 }
 
 /**
-  @brief Compute the pointwise multiplication w = x * y. Any
+  @brief Compute the pointwise multiplication w = x .* y. Any
            subset of x, y, and w may be the same vector.
 
   @param w[out]  target vector for the product
