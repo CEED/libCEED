@@ -53,7 +53,8 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   PetscMemType m_mem_type;
   Vec multiplicity_loc;
   ierr = DMGetLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(multiplicity_loc, &mult, &m_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(multiplicity_loc, &mult, &m_mem_type);
+  CHKERRQ(ierr);
   CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, mult);
   CHKERRQ(ierr);
 
