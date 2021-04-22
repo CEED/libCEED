@@ -40,7 +40,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar time; // todo: check if needed
   CeedScalar curr_time       = 0.;    // s
   CeedScalar vortex_strength = 5.;    // -
   PetscScalar lx             = 8000.; // m
@@ -127,7 +126,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   phys_ctx->implicit                        = implicit;
   phys_ctx->has_current_time                = has_current_time;
   phys_ctx->has_neumann                     = has_neumann;
-  phys_ctx->euler_ctx->time                 = 0.; // todo: check if really needed
   phys_ctx->euler_ctx->curr_time            = 0.;
   phys_ctx->euler_ctx->implicit             = implicit;
   phys_ctx->euler_ctx->euler_test           = euler_test;

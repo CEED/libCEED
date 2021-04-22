@@ -37,7 +37,6 @@
 #define euler_context_struct
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
-  CeedScalar time;
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;

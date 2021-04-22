@@ -161,7 +161,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   // -- QFunction Context
   phys_ctx->stab                    = stab;
   phys_ctx->wind_type               = wind_type;
-  phys_ctx->implicit                = implicit;  // todo: check
+  phys_ctx->implicit                = implicit;
   phys_ctx->has_current_time        = has_current_time;
   phys_ctx->advection_ctx->CtauS    = CtauS;
   phys_ctx->advection_ctx->E_wind   = E_wind;
