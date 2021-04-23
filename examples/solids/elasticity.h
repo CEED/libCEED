@@ -77,7 +77,8 @@ struct Physics_private_GP {
 // Problem options
 typedef enum {
   ELAS_LINEAR = 0, ELAS_SS_NH = 1, ELAS_FSInitial_NH1 = 2, ELAS_FSInitial_NH2 = 3,
-  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5, ELAS_HYPER_FS_NH = 6, ELAS_HYPER_FS_MR = 7, ELAS_HYPER_FS_GP = 8
+  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5, ELAS_HYPER_FS_NH = 6, 
+  ELAS_FSInitial_MR1 = 7, ELAS_HYPER_FS_MR = 8, ELAS_HYPER_FS_GP = 9
 } problemType;
 static const char *const problemTypes[] = {"Linear",
                                            "SS-NH",
@@ -85,6 +86,7 @@ static const char *const problemTypes[] = {"Linear",
                                            "FSInitial-NH2",
                                            "FSCurrent-NH1",
                                            "FSCurrent-NH2",
+                                           "FSInitial-MR1",
                                            "hyperFS-NH",
                                            "hyperFS-MR",
                                            "hyperFS-GP",
@@ -96,6 +98,7 @@ static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
+                                                  "Hyperelasticity finite strain Initial config Moony-Rivlin w/ dXref_dxinit, Grad(u) storage",
                                                   "Hyperelasticity finite strain Initial config Neo-Hookean - old version",
                                                   "Hyperelasticity finite strain Initial config Mooney-Rivlin - old version",
                                                   "Hyperelasticity finite strain Initial config Generalized Polynomial - old version"
@@ -190,7 +193,7 @@ typedef struct {
 // *INDENT-ON*
 
 // Data specific to each problem option
-extern problemData problem_options[9];
+extern problemData problem_options[10];
 
 // Forcing function data
 typedef struct {

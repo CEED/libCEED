@@ -88,7 +88,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   if ((app_ctx->problem_choice == ELAS_FSInitial_NH1 ||
        app_ctx->problem_choice == ELAS_FSInitial_NH2 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
-       app_ctx->problem_choice == ELAS_FSCurrent_NH2||
+       app_ctx->problem_choice == ELAS_FSCurrent_NH2 ||
+       app_ctx->problem_choice == ELAS_FSInitial_MR1 ||
        app_ctx->problem_choice == ELAS_HYPER_FS_NH) &&
        app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,

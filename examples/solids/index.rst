@@ -403,7 +403,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \begin{aligned}
       \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
-                 & + k_1(2J^2-J)(\bm{C}^{-2} \!:\! \diff \bm E)\bm{I}_{3} - 2k_1(2J^2-J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
+                 & + k_1(2J^2-J)(\bm{C}^{-2} \!:\! \diff \bm E)\bm{I}_{3} - 2k_1(J^2-J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
       \end{aligned}
 
    where we have used :math:`\frac{\partial \bm{C}^{-1}}{\partial \bm{E}} \!:\! \diff \bm{E} = -2\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}`, and
