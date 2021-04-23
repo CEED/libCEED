@@ -23,20 +23,12 @@
 #include "../qfunctions/Linear.h"            // Linear elasticity
 #include "../qfunctions/SS-NH.h"             // Hyperelasticity small strain
 // Hyperelasticity finite strain
-<<<<<<< HEAD
 #include "../qfunctions/FSInitial-NH1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage  / Neo-Hookean 
 #include "../qfunctions/FSInitial-NH2.h"     // -- Initial config 2 w/ dXref_dxinit, Grad(u), Cinv, constant storage  / Neo-Hookean 
 #include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage  / Neo-Hookean 
 #include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage / Neo-Hookean 
 #include "../qfunctions/FSInitial-MR1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage / Mooney-Rivlin
 #include "../qfunctions/FSInitial-MRc.h"     // -- Initial config (old version) for Neo-Hookean and Mooney-Rivlin (and start of GP)
-=======
-#include "../qfunctions/FSInitial-NH1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage
-#include "../qfunctions/FSInitial-NH2.h"     // -- Initial config 2 w/ dXref_dxinit, Grad(u), Cinv, constant storage
-#include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage
-#include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage
-#include "../qfunctions/FSInitial-MR.h"     // -- Initial config (old version) for Neo-Hookean and Mooney-Rivlin (and start of GP)
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
 #include "../qfunctions/constantForce.h"     // Constant forcing function
 #include "../qfunctions/manufacturedForce.h" // Manufactured solution forcing
 #include "../qfunctions/manufacturedTrue.h"  // Manufactured true solution
@@ -50,11 +42,7 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-<<<<<<< HEAD
 problemData problem_options[8] = {
-=======
-problemData problem_options[9] = {
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   [ELAS_LINEAR] = {
     .q_data_size = 10, // For linear elasticity, 6 would be sufficient
     .setup_geo = SetupGeo,
@@ -139,7 +127,6 @@ problemData problem_options[9] = {
     .diagnostic_loc = ElasFSCurrentNH2Diagnostic_loc,
     .quad_mode = CEED_GAUSS
   },
-<<<<<<< HEAD
   [ELAS_FSInitial_MR1] = {
     .q_data_size = 10,
     .setup_geo = SetupGeo,
@@ -166,51 +153,6 @@ problemData problem_options[9] = {
     .jacob_loc = ElasFSInitialMRcdF_loc,
     .energy_loc = ElasFSInitialMRcEnergy_loc,
     .diagnostic_loc = ElasFSInitialMRcDiagnostic_loc,
-=======
-  //Neo-Hookean - old version
-  [ELAS_HYPER_FS_NH] = { 
-    .q_data_size = 10,
-    .setup_geo = SetupGeo,
-    .apply = HyperFSF_NH,
-    .jacob = HyperFSdF_NH,
-    .energy = HyperFSEnergy_NH,
-    .diagnostic = HyperFSDiagnostic,
-    .setup_geo_loc = SetupGeo_loc,
-    .apply_loc = HyperFSF_NH_loc,
-    .jacob_loc = HyperFSdF_NH_loc,
-    .energy_loc = HyperFSEnergy_NH_loc,
-    .diagnostic_loc = HyperFSDiagnostic_loc,
-    .quad_mode = CEED_GAUSS
-  },
-  //Mooney-Rivlin
-  [ELAS_HYPER_FS_MR] = { 
-    .q_data_size = 10,
-    .setup_geo = SetupGeo,
-    .apply = HyperFSF_MR,
-    .jacob = HyperFSdF_MR,
-    .energy = HyperFSEnergy_MR,
-    .diagnostic = HyperFSDiagnostic,
-    .setup_geo_loc = SetupGeo_loc,
-    .apply_loc = HyperFSF_MR_loc,
-    .jacob_loc = HyperFSdF_MR_loc,
-    .energy_loc = HyperFSEnergy_MR_loc,
-    .diagnostic_loc = HyperFSDiagnostic_loc,
-    .quad_mode = CEED_GAUSS
-  },
-  //Generalized Polynomial
-  [ELAS_HYPER_FS_GP] = { 
-    .q_data_size = 10,
-    .setup_geo = SetupGeo,
-    .apply = HyperFSF_GP,
-    .jacob = HyperFSdF_GP,
-    .energy = HyperFSEnergy_GP,
-    .diagnostic = HyperFSDiagnostic,
-    .setup_geo_loc = SetupGeo_loc,
-    .apply_loc = HyperFSF_GP_loc,
-    .jacob_loc = HyperFSdF_GP_loc,
-    .energy_loc = HyperFSEnergy_GP_loc,
-    .diagnostic_loc = HyperFSDiagnostic_loc,
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
     .quad_mode = CEED_GAUSS
   }
 };
@@ -586,41 +528,28 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_lam_log_J);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
-=======
-  case ELAS_HYPER_FS_NH:
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
-<<<<<<< HEAD
     case ELAS_FSInitial_MRc: //coupled version
-=======
-  case ELAS_HYPER_FS_MR:
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
-<<<<<<< HEAD
     /*
     case ELAS_HYPER_FS_NH:
-=======
-  case ELAS_HYPER_FS_GP:
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
-<<<<<<< HEAD
     case ELAS_HYPER_FS_MR:
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
@@ -636,8 +565,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
     */
-=======
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   // -- Geometric data restriction
   CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,
@@ -715,7 +642,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->tau);
     CeedVectorCreate(ceed, 1*num_elem*num_qpts, &data[fine_level]->lam_log_J);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
                      &data[fine_level]->grad_u);
@@ -738,20 +664,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->grad_u);
     break;
     */
-=======
-  case ELAS_HYPER_FS_NH:
-    CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
-                     &data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_MR:
-    CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
-                     &data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_GP:
-    CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
-                     &data[fine_level]->grad_u);
-    break;
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   // -- Operator action variables
   CeedVectorCreate(ceed, U_loc_size, &data[fine_level]->x_ceed);
@@ -824,7 +736,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddOutput(qf_apply, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_apply, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
@@ -842,17 +753,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     */
-=======
-  case ELAS_HYPER_FS_NH:
-    CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-  case ELAS_HYPER_FS_MR:
-    CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-  case ELAS_HYPER_FS_GP:
-    CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   CeedQFunctionSetContext(qf_apply, phys_ctx);
 
@@ -898,7 +798,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
@@ -921,20 +820,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
     */
-=======
-  case ELAS_HYPER_FS_NH:
-    CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_MR:
-    CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_GP:
-    CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   // -- Save libCEED data
   data[fine_level]->qf_apply = qf_apply;
@@ -974,7 +859,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacob, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_jacob, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
@@ -992,17 +876,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     */
-=======
-  case ELAS_HYPER_FS_NH:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-  case ELAS_HYPER_FS_MR:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-  case ELAS_HYPER_FS_GP:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   CeedQFunctionAddOutput(qf_jacob, "deltadv", num_comp_u*dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qf_jacob, phys_ctx);
@@ -1049,7 +922,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
-<<<<<<< HEAD
   case ELAS_FSInitial_MR1:
     CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
@@ -1072,20 +944,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
     */
-=======
-  case ELAS_HYPER_FS_NH:
-    CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_MR:
-    CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
-  case ELAS_HYPER_FS_GP:
-    CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
-    break;
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
   // -- Save libCEED data
   data[fine_level]->qf_jacob = qf_jacob;

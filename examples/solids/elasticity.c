@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 =======
   ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
 
-  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR){
+  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR || ELAS_FSInitial_MR1){
     // -- Set Mooney-Rivlin parameters
     ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
     ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 
 =======
   CeedQFunctionContextCreate(ceed, &ctx_phys); //TO-DO -> update for other models. 
-  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR){
+  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR || ELAS_FSInitial_MR1){
     CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(*phys_MR), phys_MR);
   }
