@@ -69,6 +69,32 @@ extern "C" int CeedDeviceReciprocal_Cuda(CeedScalar* d_array, CeedInt length) {
 }
 
 //------------------------------------------------------------------------------
+// Kernel for scale
+//------------------------------------------------------------------------------
+__global__ static void scaleValueK(CeedScalar * __restrict__ x, CeedScalar alpha,
+    CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  x[idx] *= alpha;
+}
+
+//------------------------------------------------------------------------------
+// Compute x = alpha x on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha,
+    CeedInt length) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  scaleValueK<<<gridsize,bsize>>>(x_array, alpha, length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Kernel for axpy
 //------------------------------------------------------------------------------
 __global__ static void axpyValueK(CeedScalar * __restrict__ y, CeedScalar alpha,

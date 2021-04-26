@@ -290,6 +290,25 @@ def test_122(ceed_resource, capsys):
             assert abs(b[i] - i * i) < 1e-14
 
 # -------------------------------------------------------------------------------
+# Test Scale
+# -------------------------------------------------------------------------------
+
+
+def test_123(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype="float64")
+    x.set_array(a, cmode=libceed.COPY_VALUES)
+
+    x.scale(-0.5)
+    with x.array() as b:
+        for i in range(len(b)):
+            assert abs(b[i] + (10 + i) / 2) < 1e-14
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 

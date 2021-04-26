@@ -532,6 +532,36 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 }
 
 /**
+  @brief Compute x = alpha x
+
+  @param x[in,out]  vector for scaling
+  @param alpha[in]  scaling factor
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorScale(CeedVector x, CeedScalar alpha) {
+  int ierr;
+  CeedScalar *x_array;
+  CeedInt n_x;
+
+  ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
+
+  // Backend implementation
+  if (x->Scale)
+    return x->Scale(x, alpha);
+
+  // Default implementation
+  ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
+  for (CeedInt i=0; i<n_x; i++)
+    x_array[i] *= alpha;
+  ierr = CeedVectorRestoreArray(x, &x_array); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Compute y = alpha x + y
 
   @param y[in,out]  target vector for sum
