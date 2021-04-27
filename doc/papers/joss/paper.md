@@ -114,6 +114,10 @@ These pointwise functions do not depend on element resolution, topology, or basi
 This isolation is valuable for $hp$-refinement studies (where $h$ commonly denotes the average element size and $p$ the polynomial degree of the basis functions) and $p$-multigrid solvers.
 Additionally, a single source implementation (in vanilla C or C++) for the `CeedQFunction`s can be used on CPUs or GPUs (transparently using the NVRTC [@NVRTCwebsite], HIPRTC, or OCCA [@OCCAwebsite] run-time compilation features).
 
+`libCEED` provides computation of the true operator diagonal for preconditioning with Jacobi and Chebyshev as well as automatic construction of p-multigrid prolongation and restriction operators from a `CeedOperator`.
+Preconditioning matrix-free operators is an active area of research; support for domain decomposition methods and inexact subdomain solvers based on the Fast Diagonalization Method are in active development.
+Additionally, `libCEED` supports meshes with mixed order and geometry elements, which means `libCEED` can support solvers and preconditioners utilizing adaptive mesh refinement.
+
 ![A schematic of element restriction and basis applicator operators for
 elements with different topology. This sketch shows the independence of Q-functions
 (in this case representing a Laplacian) element resolution, topology, or basis degree.\label{fig:schematic}](img/QFunctionSketch.pdf)
@@ -140,7 +144,7 @@ GPU implementations are available via pure CUDA [@CUDAwebsite] and pure HIP [@HI
 
 The Exascale Computing Project (ECP) co-design Center for Efficient Exascale Discretization [@CEEDwebsite] has defined a suite of Benchmark Problems (BPs) to test and compare the performance of high-order finite element implementations [@Fischer2020scalability; @CEED-ECP-paper]. \autoref{fig:bp3} compares the performance of `libCEED` solving BP3 (CG iteration on a 3D Poisson problem) or CPU and GPU systems of similar (purchase/operating and energy) cost. These tests use PETSc [@PETScUserManual] for unstructured mesh management and parallel solvers; a similar implementation with comparable performance is available through MFEM. 
 
-![Performance for BP3 using the \texttt{xsmm/blocked} backend on a 2-socket AMD EPYC 7452 (32-core, 2.35GHz) and the \texttt{cuda/gen} backend on LLNL's Lassen system with NVIDIA V100 GPUs. Each curve represents fixing the basis degree $p$ and varying the number of elements. The CPU enables faster solution of smaller problem sizes (as in strong scaling) while the GPU is more efficient for applications that can afford to wait for larger sizes. Note that the CPU exhibits a performance drop when the working set becomes too large for L3 cache (128 MB/socket) while no such drop exists for the GPU.  \label{fig:bp3}](img/bp3-2020.pdf)
+![Performance for BP3 using the \texttt{xsmm/blocked} backend on a 2-socket AMD EPYC 7452 (32-core, 2.35GHz) and the \texttt{cuda/gen} backend on LLNL's Lassen system with NVIDIA V100 GPUs. Each curve represents fixing the basis degree $p$ and varying the number of elements. The CPU enables faster solution of smaller problem sizes (as in strong scaling) while the GPU is more efficient for applications that can afford to wait for larger sizes. Note that the CPU exhibits a performance drop when the working set becomes too large for L3 cache (128 MB/socket) while no such drop exists for the GPU. \label{fig:bp3}](img/bp3-2020.pdf)
 
 # Demo applications and integration
 
