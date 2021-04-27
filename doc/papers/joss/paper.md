@@ -72,7 +72,7 @@ Unfortunately, high-quality implementations have been relegated to applications 
 `libCEED`, the Code for Efficient Extensible Discretization [@libceed-user-manual], is a lightweight library that provides a purely algebraic interface for operators and and preconditioners with element-based discretizations.
 `libCEED` provides portable performance via run-time selection of implementations optimized for CPUs and GPUs.
 It is designed for convenient use in new and legacy software, and offers interfaces in C99 [@C99-lang], Fortran77 [@Fortran77-lang], Python [@Python-lang], Julia [@Julia-lang], and Rust [@Rust-lang].
-Users can integrate `libCEED` at a low level into existing applications in place of existing mat-vec operations without significant refactoring of their own discretization infrastructure.
+Users and library developers can integrate `libCEED` at a low level into existing applications in place of existing matrix-vector products without significant refactoring of their own discretization infrastructure.
 Alternatively, users can utilize integrated `libCEED` support in MFEM [@MFEMlibrary; @mfem-paper].
 
 In addition to supporting applications and discretization libraries, `libCEED` provides a platform for performance engineering and co-design, as well as an algebraic interface for solvers research like adaptive $p$-multigrid, much like how sparse matrix libraries enable development and deployment of algebraic multigrid solvers.
