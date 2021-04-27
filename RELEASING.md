@@ -70,3 +70,15 @@ registered using the GitHub registrator bot by commenting on the commit:
 At this point, the bot should create against the [general Julia
 registry](https://github.com/JuliaRegistries/General), which should be merged automatically after a
 short delay.
+
+### Moving development tests to release tests
+
+LibCEED.jl has both _development_ and _release_ unit tests. The _release_ tests are run both with
+the current build of libCEED, and with the most recent release of libCEED_jll. The _development_
+tests may use features which were not available in the most recent release, and so they are only run
+with the current build of libCEED.
+
+Upon release, the development tests may be moved to the release tests, so that these features will
+be tested against the most recent release of libCEED_jll. The release tests are found in the file
+`julia/LibCEED.jl/test/runtests.jl` and the development tests are found in
+`julia/LibCEED.jl/test/rundevtests.jl`.
