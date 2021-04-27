@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
 #include <string.h>
 #include "ceed-opt.h"
 
@@ -23,10 +26,10 @@
 static int CeedDestroy_Opt(Ceed ceed) {
   int ierr;
   Ceed_Opt *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
-  ierr = CeedFree(&data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -34,31 +37,37 @@ static int CeedDestroy_Opt(Ceed ceed) {
 //------------------------------------------------------------------------------
 static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/opt")
-      && strcmp(resource, "/cpu/self/opt/blocked"))
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/opt") &&
+      strcmp(resource, "/cpu/self/opt/blocked"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Opt backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Opt backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/ref/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/ref/serial", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+
+  // Set fallback CEED resource for advanced operator functionality
+  const char fallbackresource[] = "/cpu/self/ref/serial";
+  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
+  CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Opt); CeedChk(ierr);
+                                CeedDestroy_Opt); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Opt); CeedChk(ierr);
+                                CeedOperatorCreate_Opt); CeedChkBackend(ierr);
 
   // Set blocksize
   Ceed_Opt *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  data->blksize = 8;
-  ierr = CeedSetData(ceed, data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
+  data->blk_size = 8;
+  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

@@ -14,9 +14,13 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <cuda_runtime.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-cuda-gen.h"
+#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
@@ -25,8 +29,9 @@ static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
                                        CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-  return CeedError(ceed, 1, "Backend does not implement QFunctionApply");
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
+  return CeedError(ceed, CEED_ERROR_BACKEND,
+                   "Backend does not implement QFunctionApply");
 }
 
 //------------------------------------------------------------------------------
@@ -35,13 +40,13 @@ static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -52,15 +57,15 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
 
   // Find source file
   char *cuda_file;
-  ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChk(ierr);
+  ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChkBackend(ierr);
   memcpy(cuda_file, c_src_file, strlen(c_src_file));
   const char *last_dot = strrchr(cuda_file, '.');
   if (!last_dot)
-    return CeedError(ceed, 1, "Cannot find file's extension!");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
   const size_t cuda_path_len = last_dot - cuda_file;
   strncpy(&cuda_file[cuda_path_len], ".h", 3);
 
@@ -71,7 +76,8 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   fp = fopen (cuda_file, "rb");
   if (!fp)
     // LCOV_EXCL_START
-    CeedError(ceed, 1, "Couldn't open the Cuda file for the QFunction.");
+    CeedError(ceed, CEED_ERROR_BACKEND,
+              "Couldn't open the Cuda file for the QFunction.");
   // LCOV_EXCL_STOP
 
   // Compute size of source file
@@ -80,14 +86,15 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   rewind(fp);
 
   // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChk(ierr);
+  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
 
   // Copy the file into the buffer
   if (1 != fread(buffer, lSize, 1, fp)) {
     // LCOV_EXCL_START
     fclose(fp);
-    ierr = CeedFree(&buffer); CeedChk(ierr);
-    CeedError(ceed, 1, "Couldn't read the Cuda file for the QFunction.");
+    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
+    CeedError(ceed, CEED_ERROR_BACKEND,
+              "Couldn't read the Cuda file for the QFunction.");
     // LCOV_EXCL_STOP
   }
 
@@ -96,16 +103,16 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   char *fields_string =
     "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda_gen;";
   ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
-                    &data->qFunctionSource); CeedChk(ierr);
+                    &data->qFunctionSource); CeedChkBackend(ierr);
   memcpy(data->qFunctionSource, fields_string, strlen(fields_string));
   memcpy(data->qFunctionSource + strlen(fields_string), buffer,
          strlen(buffer) + 1);
 
   // Cleanup
-  ierr = CeedFree(&buffer); CeedChk(ierr);
+  ierr = CeedFree(&buffer); CeedChkBackend(ierr);
   fclose(fp);
-  ierr = CeedFree(&cuda_file); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&cuda_file); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -116,23 +123,23 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
   char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
   const char *funname = strrchr(source, ':') + 1;
   data->qFunctionName = (char *)funname;
   const int filenamelen = funname - source;
   char filename[filenamelen];
   memcpy(filename, source, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  ierr = loadCudaFunction(qf, filename); CeedChk(ierr);
+  ierr = loadCudaFunction(qf, filename); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Cuda_gen); CeedChk(ierr);
+                                CeedQFunctionApply_Cuda_gen); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Cuda_gen); CeedChk(ierr);
-  return 0;
+                                CeedQFunctionDestroy_Cuda_gen); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

@@ -9,28 +9,54 @@ noether-rocm:
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - $CC --version && $CXX --version && $FC --version && $HIPCC --version
-# MAGMA from dev branch
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- HIPCC ---------------" && $HIPCC --version
+    - echo "-------------- GCOV ----------------" && gcov --version
+# Libraries for backends
+# -- MAGMA from dev branch
+    - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
-# PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/jed/petsc PETSC_ARCH=mpich-hip-g && git -C $PETSC_DIR describe && make -C $PETSC_DIR info
-# LIBXSMM v1.16.1
-    - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && git -C $XSMM_VERSION describe --tags && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
-# OCCA v1.1.0
-    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && make -C $OCCA_VERSION info && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
+# -- LIBXSMM v1.16.1
+    - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+    - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
+# -- OCCA v1.1.0
+    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
+    - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
 # libCEED
-    - make info
-    - make -j$(nproc)
+    - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
+    - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - echo "-------------- libCEED -------------" && make info
+    - make -j$NPROC_CPU
+# -- libCEED only tests
+    - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
-    - make -k -j$(nproc) junit realsearch=%
-# MFEM v4.2
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
+# Libraries for examples
+# -- PETSc with HIP (minimal)
+#    Note: These tests don't run in ' make junit realsearch=%' until PETSC_DIR set
+#          PETSC_DIR is not set by default in GitLab runner env
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
+    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search="petsc fluids solids"
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc fluids solids"
+# -- MFEM v4.2
     - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
-    - make -C $MFEM_DIR info
-    - make -k -j$(nproc) junit search=mfem
-# Nek5000 v19.0
+    - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=mfem
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search=mfem
+# -- Nek5000 v19.0
     - export COVERAGE=0
-    - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && git -C $NEK5K_VERSION describe --tags && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
-    - make -k -j$(nproc) junit search=nek
+    - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
+    - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=nek
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search=nek
+# Clang-tidy
+    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
 # Report status
     - echo "SUCCESS" > .job_status
   after_script:

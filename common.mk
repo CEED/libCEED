@@ -30,3 +30,14 @@ output = $(if $(TERM:dumb=),$(call color_out,$1,$2),$(call emacs_out,$1,$2))
 
 # if V is set to non-nil, turn the verbose mode
 quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
+
+# make-4.3 allows string literals like "#include" in variables, but older versions need "\#include". Specifically, the following code:
+#
+# X := $(shell echo "#foo")
+#
+# works with make-4.3, but fails with previous versions:
+#
+# Makefile:1: *** unterminated call to function 'shell': missing ')'.  Stop.
+#
+# Older versions work if you spell it "\#foo", but 4.3 will include the backslash. We define $(HASH), which works consistently across versions.
+HASH := \#

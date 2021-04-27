@@ -14,6 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#ifndef _ceed_hip_gen_h
+#define _ceed_hip_gen_h
+
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <hip/hip_runtime.h>
 #include "../hip/ceed-hip.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } HipFields;
@@ -38,12 +44,10 @@ typedef struct {
   void *d_c;
 } CeedQFunction_Hip_gen;
 
-typedef struct {
-  Ceed_Hip base;
-} Ceed_Hip_gen;
-
 CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Hip_gen(CeedOperator op);
 
 CEED_INTERN int CeedCompositeOperatorCreate_Hip_gen(CeedOperator op);
+
+#endif // _ceed_hip_gen_h

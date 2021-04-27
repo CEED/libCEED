@@ -32,12 +32,12 @@ fn main() {
     };
     pkg_config::Config::new()
         .statik(statik)
-        .atleast_version("0.7")
+        .atleast_version("0.8")
         .probe(&ceed_pc)
         .unwrap();
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=../include/ceed.h");
+    println!("cargo:rerun-if-changed=../include/ceed/ceed.h");
     println!("cargo:rerun-if-changed=../Makefile");
     println!("cargo:rerun-if-changed=../config.mk");
 
@@ -47,7 +47,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("../include/ceed.h")
+        .header("../include/ceed/ceed.h")
         // Tell cargo to not mangle the function names
         .trust_clang_mangling(false)
         // Tell cargo to invalidate the built crate whenever any of the

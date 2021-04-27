@@ -8,14 +8,14 @@ int main(int argc, char **argv) {
   Ceed ceed;
   const CeedInt P = 6, Q = 4, dim = 2;
   CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
+  CeedScalar q_ref[dim*Q], q_weight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
 
-  buildmats(qref, qweight, interp, grad);
+  buildmats(q_ref, q_weight, interp, grad);
 
   CeedInit(argv[1], &ceed);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
-                    qweight, &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+                    q_weight, &b);
   CeedBasisView(b, stdout);
 
   CeedBasisDestroy(&b);

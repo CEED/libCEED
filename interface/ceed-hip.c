@@ -15,13 +15,13 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
-#include <ceed-hip.h>
+#include <ceed/hip.h>
 
 /**
   @brief Set HIP function pointer to evaluate action at quadrature points
 
-  @param qf CeedQFunction to set device pointer
-  @param f  Device function pointer to evaluate action at quadrature points
+  @param qf  CeedQFunction to set device pointer
+  @param f   Device function pointer to evaluate action at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -36,5 +36,5 @@ int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f) {
   } else {
     ierr = qf->SetHIPUserFunction(qf, f); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

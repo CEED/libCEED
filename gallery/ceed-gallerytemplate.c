@@ -14,8 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <string.h>
-#include "ceed-backend.h"
 #include "ceed-gallerytemplate.h"
 
 /**
@@ -27,6 +28,7 @@
 /**
   @brief Set fields for new Ceed QFunction
 **/
+// LCOV_EXCL_START
 static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
@@ -34,7 +36,7 @@ static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
   // Check QFunction name
   const char *name = "GalleryTemplate";
   if (strcmp(name, requested))
-    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s",
                      name, requested);
 
   // Add QFunction fields
@@ -42,7 +44,7 @@ static int CeedQFunctionInit_GalleryTemplate(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -52,3 +54,4 @@ CEED_INTERN int CeedQFunctionRegister_Template(void) {
   return CeedQFunctionRegister("GalleryTemplate", GalleryTemplate_loc, 1,
                         GalleryTemplate, CeedQFunctionInit_GalleryTemplate);
 }
+// LCOV_EXCL_STOP

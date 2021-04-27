@@ -6,31 +6,32 @@
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedVector x, y;
-  CeedInt ne = 8;
-  CeedInt blksize = 5;
-  CeedInt elemsize = 2;
-  CeedInt ind[elemsize*ne];
-  CeedScalar a[ne+1];
+  CeedInt num_elem = 8;
+  CeedInt blk_size = 5;
+  CeedInt elem_size = 2;
+  CeedInt ind[elem_size*num_elem];
+  CeedScalar a[num_elem+1];
   CeedElemRestriction r;
   CeedScalar *y_array;
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, ne+1, &x);
-  for (CeedInt i=0; i<ne+1; i++)
+  CeedVectorCreate(ceed, num_elem+1, &x);
+  for (CeedInt i=0; i<num_elem+1; i++)
     a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
-  for (CeedInt i=0; i<ne; i++) {
-    for (CeedInt k=0; k<elemsize; k++) {
-      ind[elemsize*i+k] = i+k;
+  for (CeedInt i=0; i<num_elem; i++) {
+    for (CeedInt k=0; k<elem_size; k++) {
+      ind[elem_size*i+k] = i+k;
     }
   }
 
-  CeedElemRestrictionCreateBlocked(ceed, ne, elemsize, blksize, 1, 1, ne+1,
+  CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, blk_size, 1, 1,
+                                   num_elem+1,
                                    CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
 
-  CeedVectorCreate(ceed, blksize*elemsize, &y);
+  CeedVectorCreate(ceed, blk_size*elem_size, &y);
   CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
@@ -39,7 +40,9 @@ int main(int argc, char **argv) {
 
   // Zero padded entries
   CeedVectorGetArray(y, CEED_MEM_HOST, &y_array);
-  for (CeedInt i = (elemsize*ne - blksize*elemsize); i < blksize*elemsize; ++i) {
+  for (CeedInt i = (elem_size*num_elem - blk_size*elem_size);
+       i < blk_size*elem_size;
+       ++i) {
     y_array[i] = 0;
   }
   CeedVectorRestoreArray(y, &y_array);
@@ -47,7 +50,7 @@ int main(int argc, char **argv) {
 
   // Transpose
   CeedVectorGetArray(x, CEED_MEM_HOST, (CeedScalar **)&a);
-  for (CeedInt i=0; i<ne+1; i++)
+  for (CeedInt i=0; i<num_elem+1; i++)
     a[i] = 0;
   CeedVectorRestoreArray(x, (CeedScalar **)&a);
   CeedElemRestrictionApplyBlock(r, 1, CEED_TRANSPOSE, y, x,

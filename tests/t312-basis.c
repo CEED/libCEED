@@ -14,8 +14,8 @@ static CeedScalar PolyEval(CeedScalar x, CeedInt n, const CeedScalar *p) {
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedVector X, Xq, U, Uq, W;
-  CeedBasis bxl, bxg, bug;
+  CeedVector X, X_q, U, U_q, W;
+  CeedBasis basis_x_lobatto, basis_x_gauss, basis_u_gauss;
   CeedInt Q = 6;
   const CeedScalar p[6] = {1, 2, 3, 4, 5, 6}; // 1 + 2x + 3x^2 + ...
   const CeedScalar *xq, *uq, *w;
@@ -24,43 +24,44 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, 2, &X);
-  CeedVectorCreate(ceed, Q, &Xq);
-  CeedVectorSetValue(Xq, 0);
+  CeedVectorCreate(ceed, Q, &X_q);
+  CeedVectorSetValue(X_q, 0);
   CeedVectorCreate(ceed, Q, &U);
-  CeedVectorCreate(ceed, Q, &Uq);
-  CeedVectorSetValue(Uq, 0);
+  CeedVectorCreate(ceed, Q, &U_q);
+  CeedVectorSetValue(U_q, 0);
   CeedVectorCreate(ceed, Q, &W);
   CeedVectorSetValue(W, 0);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS_LOBATTO, &bxl);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS_LOBATTO,
+                                  &basis_x_lobatto);
 
   for (int i = 0; i < 2; i++)
     x[i] = CeedIntPow(-1, i+1);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
-  CeedBasisApply(bxl, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
+  CeedBasisApply(basis_x_lobatto, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
 
-  CeedVectorGetArrayRead(Xq, CEED_MEM_HOST, &xq);
+  CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &xq);
   for (CeedInt i=0; i<Q; i++)
     u[i] = PolyEval(xq[i], ALEN(p), p);
-  CeedVectorRestoreArrayRead(Xq, &xq);
+  CeedVectorRestoreArrayRead(X_q, &xq);
   CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &bxg);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &bug);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &basis_x_gauss);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, Q, Q, CEED_GAUSS, &basis_u_gauss);
 
-  CeedBasisApply(bxg, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Xq);
-  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, Uq);
-  CeedBasisApply(bug, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+  CeedBasisApply(basis_x_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
+  CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, U_q);
+  CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                  CEED_VECTOR_NONE, W);
 
   CeedVectorGetArrayRead(W, CEED_MEM_HOST, &w);
-  CeedVectorGetArrayRead(Uq, CEED_MEM_HOST, &uq);
+  CeedVectorGetArrayRead(U_q, CEED_MEM_HOST, &uq);
   sum = 0;
   for (CeedInt i=0; i<Q; i++)
     sum += w[i] * uq[i];
   CeedVectorRestoreArrayRead(W, &w);
-  CeedVectorRestoreArrayRead(Uq, &uq);
+  CeedVectorRestoreArrayRead(U_q, &uq);
 
   pint[0] = 0;
   for (CeedInt i=0; i<(int)ALEN(p); i++)
@@ -73,13 +74,13 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&X);
-  CeedVectorDestroy(&Xq);
+  CeedVectorDestroy(&X_q);
   CeedVectorDestroy(&U);
-  CeedVectorDestroy(&Uq);
+  CeedVectorDestroy(&U_q);
   CeedVectorDestroy(&W);
-  CeedBasisDestroy(&bxl);
-  CeedBasisDestroy(&bxg);
-  CeedBasisDestroy(&bug);
+  CeedBasisDestroy(&basis_x_lobatto);
+  CeedBasisDestroy(&basis_x_gauss);
+  CeedBasisDestroy(&basis_u_gauss);
   CeedDestroy(&ceed);
   return 0;
 }

@@ -522,7 +522,6 @@ namespace ceed {
       ss << std::endl;
     }
 
-
     void CpuOperator::addSingleQfunctionQuadArraySource(std::stringstream &ss,
                                                         const bool isInput,
                                                         const int index,

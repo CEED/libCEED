@@ -38,7 +38,7 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
     output[i] = input[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // identity_h

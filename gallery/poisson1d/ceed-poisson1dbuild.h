@@ -24,23 +24,23 @@
 CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
+  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
 
   // in[0] is Jacobians, size (Q)
   // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
+  const CeedScalar *J = in[0], *w = in[1];
 
   // out[0] is qdata, size (Q)
-  CeedScalar *qd = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    qd[i] = qw[i] / J[i];
+    q_data[i] = w[i] / J[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson1dbuild_h

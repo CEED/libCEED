@@ -14,9 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
+#ifndef _ceed_cuda_gen_h
+#define _ceed_cuda_gen_h
+
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
 #include "../cuda/ceed-cuda.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;
@@ -41,12 +44,10 @@ typedef struct {
   void *d_c;
 } CeedQFunction_Cuda_gen;
 
-typedef struct {
-  Ceed_Cuda base;
-} Ceed_Cuda_gen;
-
 CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
 
 CEED_INTERN int CeedCompositeOperatorCreate_Cuda_gen(CeedOperator op);
+
+#endif // _ceed_cuda_gen_h

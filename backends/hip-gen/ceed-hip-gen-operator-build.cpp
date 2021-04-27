@@ -13,11 +13,16 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #define CEED_DEBUG_COLOR 12
 
-#include "ceed-hip-gen.h"
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <iostream>
+#include <string>
 #include <sstream>
+#include "ceed-hip-gen.h"
+#include "../hip/ceed-hip.h"
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 
@@ -731,28 +736,28 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   using std::string;
   int ierr;
   bool setupdone;
-  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChk(ierr);
-  if (setupdone) return 0;
+  ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChkBackend(ierr);
+  if (setupdone) return CEED_ERROR_SUCCESS;
   Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedOperator_Hip_gen *data;
-  ierr = CeedOperatorGetData(op, &data); CeedChk(ierr);
+  ierr = CeedOperatorGetData(op, &data); CeedChkBackend(ierr);
   CeedQFunction qf;
   CeedQFunction_Hip_gen *qf_data;
-  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChk(ierr);
-  CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
+  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
+  CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
           numoutputfields, ncomp, dim = 0, lsize;
-  ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChk(ierr);
-  ierr = CeedOperatorGetNumElements(op, &numelements); CeedChk(ierr);
+  ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
+  ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
   ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   CeedEvalMode emode;
   CeedBasis basis;
   CeedBasis_Hip_shared *basis_data;
@@ -769,32 +774,33 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   oper = "CeedKernel_Hip_gen_" + qFunctionName;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "\n#define CeedPragmaSIMD\n";
+  code << "#define CeedPragmaSIMD\n";
+  code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
   // Find dim and Q1d
   bool useCollograd = true;
   data->maxP1d = 0;
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+    ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
 
       // Check for collocated gradient
       useCollograd = useCollograd && basis_data->d_collograd1d; 
 
       // Collect dim and Q1d
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChk(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
       if (isTensor) {
-        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
+        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
         if (P1d>data->maxP1d) data->maxP1d = P1d;
       } else {
         // LCOV_EXCL_START
-        return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
         // LCOV_EXCL_STOP
         }
     }
@@ -802,22 +808,22 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   // Check output bases for Q1d, dim as well
   //   The only imput basis might be CEED_BASIS_COLLOCATED
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
 
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
 
       // Collect dim and Q1d
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChk(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
       if (isTensor) {
-        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+        ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
       } else {
         // LCOV_EXCL_START
-        return CeedError(ceed, 1, "Backend does not implement operators with non-tensor basis");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
         // LCOV_EXCL_STOP
         }
 
@@ -842,7 +848,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   code << "\nextern \"C\" __global__ void "<<oper<<"(CeedInt nelem, void* ctx, HipFieldsInt indices, HipFields fields, HipFields B, HipFields G, CeedScalar* W) {\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     if (emode != CEED_EVAL_WEIGHT) { // Skip CEED_EVAL_WEIGHT
       code << "  const CeedScalar* d_u" <<i<<" = fields.in["<<i<<"];\n";
     }
@@ -869,19 +875,19 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     code << "  // ---- Input field "<<i<<" ----\n";
     // Get elemsize, emode, ncomp
     ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
 
     // Set field constants
     if (emode != CEED_EVAL_WEIGHT) {
-      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       if (basis != CEED_BASIS_COLLOCATED) {
-        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
         code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       } else {
         code << "  const CeedInt P_in_"<<i<<" = "<<Q1d<<";\n";
@@ -895,13 +901,13 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->B.in[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->B.in[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
@@ -929,18 +935,18 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     code << "  // ---- Output field "<<i<<" ----\n";
     // Get elemsize, emode, ncomp
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
 
     // Set field constants
-    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChk(ierr);
+    ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
+      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
       code << "  const CeedInt P_out_"<<i<<" = "<<P1d<<";\n";
     } else {
       code << "  const CeedInt P_out_"<<i<<" = "<<Q1d<<";\n";
@@ -953,13 +959,13 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     case CEED_EVAL_NONE:
       break; // No action
     case CEED_EVAL_INTERP:
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->B.out[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->B.out[i] = basis_data->d_interp1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
@@ -976,8 +982,8 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
-      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1,
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
       break; // Should not occur
     }
@@ -998,13 +1004,13 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     code << "    // ---- Input field "<<i<<" ----\n";
     // Get elemsize, emode, ncomp
     ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
 
     // Restriction
     if (emode != CEED_EVAL_WEIGHT &&
@@ -1012,28 +1018,28 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       code << "    CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
       
       bool isStrided;
-      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
       if (!isStrided) {
         ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
-        CeedChk(ierr);
+        CeedChkBackend(ierr);
         code << "    const CeedInt lsize_in_"<<i<<" = "<<lsize<<";\n";
         CeedInt compstride;
-        ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
+        ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChkBackend(ierr);
         code << "    // CompStride: "<<compstride<<"\n";
-        ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
+        ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
         data->indices.in[i] = restr_data->d_ind;
         code << "    readDofsOffset"<<dim<<"d<ncomp_in_"<<i<<", "<<compstride<<", P_in_"<<i<<">(data, lsize_in_"<<i<<", elem, indices.in["<<i<<"], d_u"<<i<<", r_u"<<i<<");\n";
       } else {
         bool backendstrides;
         ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
-        CeedChk(ierr);
+        CeedChkBackend(ierr);
         CeedInt nelem;
         ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
-        CeedChk(ierr);
+        CeedChkBackend(ierr);
         CeedInt strides[3] = {1, elemsize*nelem, elemsize};
         if (!backendstrides) {
           ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
-          CeedChk(ierr);
+          CeedChkBackend(ierr);
         }
         code << "    // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
         code << "    readDofsStrided"<<dim<<"d<ncomp_in_"<<i<<",P_in_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, d_u"<<i<<", r_u"<<i<<");\n";
@@ -1063,8 +1069,8 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_WEIGHT:
       code << "    CeedScalar r_t"<<i<<"[Q1d];\n";
-      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChk(ierr);
-      ierr = CeedBasisGetData(basis, &basis_data); CeedChk(ierr);
+      ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
+      ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->W = basis_data->d_qweight1d;
       code << "    weight"<<dim<<"d<Q1d>(data, W, r_t"<<i<<");\n";
       break; // No action
@@ -1080,7 +1086,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "\n    // ---- Output field "<<i<<" ----\n";
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
       if (useCollograd) {
@@ -1110,7 +1116,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       code << "      // ---- Input field "<<i<<" ----\n";
       // Get elemsize, emode, ncomp
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       // Basis action
       code << "      // EvalMode: "<<CeedEvalModes[emode]<<"\n";
       switch (emode) {
@@ -1118,30 +1124,30 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
         code << "      CeedScalar r_q"<<i<<"[ncomp_in_"<<i<<"];\n";
 
         bool isStrided;
-        ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict); CeedChk(ierr);
-        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChk(ierr);
-        ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
+        ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict); CeedChkBackend(ierr);
+        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChkBackend(ierr);
+        ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
         if (!isStrided) {
           ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
-          CeedChk(ierr);
+          CeedChkBackend(ierr);
           code << "      const CeedInt lsize_in_"<<i<<" = "<<lsize<<";\n";
           CeedInt compstride;
-          ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
+          ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChkBackend(ierr);
           code << "      // CompStride: "<<compstride<<"\n";
-          ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
+          ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
           data->indices.in[i] = restr_data->d_ind;
           code << "      readSliceQuadsOffset"<<"3d<ncomp_in_"<<i<<", "<<compstride<<", Q1d>(data, lsize_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
           bool backendstrides;
           ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
-          CeedChk(ierr);
+          CeedChkBackend(ierr);
           CeedInt nelem;
           ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
-          CeedChk(ierr);
+          CeedChkBackend(ierr);
           CeedInt strides[3] = {1, elemsize*nelem, elemsize};
           if (!backendstrides) {
             ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
-            CeedChk(ierr);
+            CeedChkBackend(ierr);
           }
           code << "      // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
           code << "      readSliceQuadsStrided"<<"3d<ncomp_in_"<<i<<",Q1d"","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, q, d_u"<<i<<", r_q"<<i<<");\n";
@@ -1171,7 +1177,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "      // ---- Output field "<<i<<" ----\n";
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       // Basis action
       switch (emode) {
       case CEED_EVAL_NONE:
@@ -1229,7 +1235,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     for (CeedInt i = 0; i < numoutputfields; i++) {
       code << "      // ---- Output field "<<i<<" ----\n";
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       // Basis action
       code << "      // EvalMode: "<<CeedEvalModes[emode]<<"\n";
       switch (emode) {
@@ -1264,13 +1270,13 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     code << "    // ---- Output field "<<i<<" ----\n";
     // Get elemsize, emode, ncomp
     ierr = CeedOperatorFieldGetElemRestriction(opoutputfields[i], &Erestrict);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
     // Basis action
     code << "    // EvalMode: "<<CeedEvalModes[emode]<<"\n";
     switch (emode) {
@@ -1292,8 +1298,8 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     // LCOV_EXCL_START
     case CEED_EVAL_WEIGHT: {
       Ceed ceed;
-      ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-      return CeedError(ceed, 1,
+      ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
       break; // Should not occur
     }
@@ -1305,28 +1311,28 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
     }
     // Restriction
       bool isStrided;
-      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChk(ierr);
+      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
     if (!isStrided) {
       ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       code << "    const CeedInt lsize_out_"<<i<<" = "<<lsize<<";\n";
       CeedInt compstride;
-      ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride); CeedChkBackend(ierr);
       code << "    // CompStride: "<<compstride<<"\n";
-      ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChk(ierr);
+      ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
       data->indices.out[i] = restr_data->d_ind;
       code << "    writeDofsOffset"<<dim<<"d<ncomp_out_"<<i<<", "<<compstride<<", P_out_"<<i<<">(data, lsize_out_"<<i<<", elem, indices.out["<<i<<"], r_v"<<i<<", d_v"<<i<<");\n";
     } else {
       bool backendstrides;
       ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       CeedInt nelem;
       ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       CeedInt strides[3] = {1, elemsize*nelem, elemsize};
       if (!backendstrides) {
         ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
-        CeedChk(ierr);
+        CeedChkBackend(ierr);
       }
       code << "    // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
       code << "    writeDofsStrided"<<dim<<"d<ncomp_out_"<<i<<",P_out_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, r_v"<<i<<", d_v"<<i<<");\n";
@@ -1342,11 +1348,11 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
 
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, oper.c_str(), &data->op);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
-  ierr = CeedOperatorSetSetupDone(op); CeedChk(ierr);
-  return 0;
+  ierr = CeedOperatorSetSetupDone(op); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

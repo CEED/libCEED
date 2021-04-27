@@ -13,6 +13,13 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
+#ifndef _ceed_hip_shared_h
+#define _ceed_hip_shared_h
+
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <hip/hip_runtime.h>
 #include "../hip/ceed-hip.h"
 
 typedef struct {
@@ -25,22 +32,10 @@ typedef struct {
   CeedScalar *d_grad1d;
   CeedScalar *d_collograd1d;
   CeedScalar *d_qweight1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
 } CeedBasis_Hip_shared;
-
-typedef struct {
-  Ceed_Hip base;
-} Ceed_Hip_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d,
     CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
     const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
-CEED_INTERN int CeedHipInitInterp(CeedScalar *d_B, CeedInt P1d, CeedInt Q1d,
-                                  CeedScalar **c_B);
-
-CEED_INTERN int CeedHipInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
-                                      CeedInt P1d,
-                                      CeedInt Q1d, CeedScalar **c_B_ptr,
-                                      CeedScalar **c_G_ptr);
+#endif // _ceed_hip_shared_h

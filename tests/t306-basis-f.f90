@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err
       integer b
@@ -17,7 +17,6 @@
 
       call ceedbasisgetnumnodes(b,p,err)
       call ceedbasisgetnumquadraturepoints(b,q,err)
-
 
       if (p .NE. 64) then
 ! LCOV_EXCL_START

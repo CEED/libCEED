@@ -10,11 +10,11 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   // Check for standard message with default handler
-  const char *errmsg = NULL;
-  CeedGetErrorMessage(ceed, &errmsg);
-  if (strcmp(errmsg, "No error message stored"))
+  const char *err_msg = NULL;
+  CeedGetErrorMessage(ceed, &err_msg);
+  if (strcmp(err_msg, "No error message stored"))
     // LCOV_EXCL_START
-    printf("Unexpected error message received: \"%s\"\n", errmsg);
+    printf("Unexpected error message received: \"%s\"\n", err_msg);
   // LCOV_EXCL_STOP
 
   // Set error handler to store error message
@@ -28,18 +28,18 @@ int main(int argc, char **argv) {
   CeedVectorGetArray(vec, CEED_MEM_HOST, &array);
 
   // Check error message
-  CeedGetErrorMessage(ceed, &errmsg);
-  if (!errmsg || !strcmp(errmsg, "No error message stored"))
+  CeedGetErrorMessage(ceed, &err_msg);
+  if (!err_msg || !strcmp(err_msg, "No error message stored"))
     // LCOV_EXCL_START
-    printf("Unexpected error message received: \"%s\"\n", errmsg);
+    printf("Unexpected error message received: \"%s\"\n", err_msg);
   // LCOV_EXCL_STOP
-  CeedResetErrorMessage(ceed, &errmsg);
+  CeedResetErrorMessage(ceed, &err_msg);
 
   // Check error message reset
-  CeedGetErrorMessage(ceed, &errmsg);
-  if (strcmp(errmsg, "No error message stored"))
+  CeedGetErrorMessage(ceed, &err_msg);
+  if (strcmp(err_msg, "No error message stored"))
     // LCOV_EXCL_START
-    printf("Unexpected error message received: \"%s\"\n", errmsg);
+    printf("Unexpected error message received: \"%s\"\n", err_msg);
   // LCOV_EXCL_STOP
 
   // Cleanup

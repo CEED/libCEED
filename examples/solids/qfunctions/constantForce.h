@@ -40,29 +40,29 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q,
                                    const CeedScalar *const *in,
                                    CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *qdata = in[1];
+  const CeedScalar *q_data = in[1];
 
   // Outputs
   CeedScalar *force = out[0];
 
   // Context
-  const CeedScalar *forcingVector = (CeedScalar(*))ctx;
+  const CeedScalar *forcing_vector = (CeedScalar(*))ctx;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    CeedScalar wdetJ = qdata[i];
+    CeedScalar wdetJ = q_data[i];
 
     // Forcing function
     // -- Component 1
-    force[i+0*Q] = forcingVector[0]*wdetJ;
+    force[i+0*Q] = forcing_vector[0]*wdetJ;
 
     // -- Component 2
-    force[i+1*Q] = forcingVector[1]*wdetJ;
+    force[i+1*Q] = forcing_vector[1]*wdetJ;
 
     // -- Component 3
-    force[i+2*Q] = forcingVector[2]*wdetJ;
+    force[i+2*Q] = forcing_vector[2]*wdetJ;
 
   } // End of Quadrature Point Loop
 

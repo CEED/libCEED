@@ -14,26 +14,33 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
-#include <string.h>
+#ifndef _ceed_blocked_h
+#define _ceed_blocked_h
+
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef struct {
-  CeedScalar *colograd1d;
+  CeedScalar *colo_grad_1d;
 } CeedBasis_Blocked;
 
 typedef struct {
-  bool identityqf;
-  CeedElemRestriction *blkrestr; /// Blocked versions of restrictions
+  bool identity_qf;
+  CeedElemRestriction *blk_restr; /// Blocked versions of restrictions
   CeedVector
-  *evecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
-  uint64_t *inputstate;  /// State counter of inputs
-  CeedVector *evecsin;   /// Input E-vectors needed to apply operator
-  CeedVector *evecsout;  /// Output E-vectors needed to apply operator
-  CeedVector *qvecsin;   /// Input Q-vectors needed to apply operator
-  CeedVector *qvecsout;  /// Output Q-vectors needed to apply operator
-  CeedInt    numein;
-  CeedInt    numeout;
+  *e_vecs;   /// E-vectors needed to apply operator (input followed by outputs)
+  CeedScalar **e_data;
+  uint64_t *input_state;  /// State counter of inputs
+  CeedVector *e_vecs_in;   /// Input E-vectors needed to apply operator
+  CeedVector *e_vecs_out;  /// Output E-vectors needed to apply operator
+  CeedVector *q_vecs_in;   /// Input Q-vectors needed to apply operator
+  CeedVector *q_vecs_out;  /// Output Q-vectors needed to apply operator
+  CeedInt    num_e_vecs_in;
+  CeedInt    num_e_vecs_out;
 } CeedOperator_Blocked;
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);
+
+#endif // _ceed_blocked_h

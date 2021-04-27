@@ -14,6 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
+#include <string.h>
 #include "ceed-avx.h"
 
 //------------------------------------------------------------------------------
@@ -24,20 +28,20 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/avx/serial"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "AVX backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "AVX backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/opt/serial", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
-
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/opt/serial", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Avx); CeedChk(ierr);
-  return 0;
+                                CeedTensorContractCreate_Avx); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

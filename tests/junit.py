@@ -7,10 +7,12 @@ from junit_xml import TestCase, TestSuite
 
 def parse_testargs(file):
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
-        return sum([[line.split()[1:]] for line in open(file).readlines()
+        return sum([[[line.split()[1:], [line.split()[0].strip('//TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
                     if line.startswith('//TESTARGS')], [])
     elif os.path.splitext(file)[1] == '.usr':
-        return sum([[line.split()[1:]] for line in open(file).readlines()
+        return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
                     if line.startswith('C_TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
@@ -31,7 +33,7 @@ def get_source(test):
 def get_testargs(test):
     source = get_source(test)
     if source is None:
-        return [['{ceed_resource}']]
+        return [[['{ceed_resource}'], ['']]]
     return parse_testargs(source)
 
 def check_required_failure(case, stderr, required):
@@ -60,7 +62,7 @@ def run(test, backends):
     allargs = get_testargs(test)
 
     testcases = []
-    for args in allargs:
+    for args, name in allargs:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
             rargs[rargs.index('{ceed_resource}')] = ceed_resource
@@ -80,7 +82,7 @@ def run(test, backends):
                 proc.stdout = proc.stdout.decode('utf-8')
                 proc.stderr = proc.stderr.decode('utf-8')
 
-                case = TestCase('{} {}'.format(test, ceed_resource),
+                case = TestCase('{} {} {}'.format(test, *name, ceed_resource),
                                 elapsed_sec=time.time()-start,
                                 timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                                 stdout=proc.stdout,
@@ -96,6 +98,10 @@ def run(test, backends):
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
+                if test[:4] in 't006 t007'.split():
+                    check_required_failure(case, proc.stderr, 'No suitable backend:')
+                if test[:4] in 't008'.split():
+                    check_required_failure(case, proc.stderr, 'Available backend resources:')
                 if test[:4] in 't110 t111 t112 t113 t114'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector array access')
                 if test[:4] in 't115'.split():
@@ -127,7 +133,7 @@ def run(test, backends):
                 elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
             testcases.append(case)
-        return TestSuite(test, testcases)
+    return TestSuite(test, testcases)
 
 if __name__ == '__main__':
     import argparse

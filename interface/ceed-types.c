@@ -14,7 +14,21 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
+#include <ceed/ceed.h>
+
+const char *const CeedErrorTypesShifted[] = {
+  [CEED_ERROR_SUCCESS - CEED_ERROR_UNSUPPORTED] = "success",
+  [CEED_ERROR_MINOR - CEED_ERROR_UNSUPPORTED] = "generic minor error",
+  [CEED_ERROR_DIMENSION - CEED_ERROR_UNSUPPORTED] = "dimension mismatch",
+  [CEED_ERROR_INCOMPLETE - CEED_ERROR_UNSUPPORTED] = "object setup incomplete",
+  [CEED_ERROR_INCOMPATIBLE - CEED_ERROR_UNSUPPORTED] = "incompatible arguments",
+  [CEED_ERROR_ACCESS - CEED_ERROR_UNSUPPORTED] = "access lock in use",
+  [CEED_ERROR_MAJOR - CEED_ERROR_UNSUPPORTED] = "generic major error",
+  [CEED_ERROR_BACKEND - CEED_ERROR_UNSUPPORTED] = "internal backend error",
+  [CEED_ERROR_UNSUPPORTED - CEED_ERROR_UNSUPPORTED] = "operation unsupported by backend",
+};
+const char *const *CeedErrorTypes =  &CeedErrorTypesShifted[-
+                                     CEED_ERROR_UNSUPPORTED];
 
 const char *const CeedMemTypes[] = {
   [CEED_MEM_HOST] = "host",

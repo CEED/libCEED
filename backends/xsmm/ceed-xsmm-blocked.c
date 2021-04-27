@@ -14,6 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
+#include <string.h>
 #include "ceed-xsmm.h"
 
 //------------------------------------------------------------------------------
@@ -21,24 +25,25 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   int ierr;
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/xsmm")
-      && strcmp(resource, "/cpu/self/xsmm/blocked"))
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/xsmm") &&
+      strcmp(resource, "/cpu/self/xsmm/blocked"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "blocked libXSMM backend cannot use resource: %s",
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "blocked libXSMM backend cannot use resource: %s",
                      resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/opt/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/opt/blocked", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Xsmm); CeedChk(ierr);
+                                CeedTensorContractCreate_Xsmm); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

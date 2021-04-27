@@ -42,7 +42,8 @@ The elasticity min-app is controlled via command-line options, the following of 
      - `Poisson's ratio <https://en.wikipedia.org/wiki/Poisson%27s_ratio>`_, :math:`\nu < 0.5`
 
    * - :code:`-bc_clamp [int list]`
-     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` and/or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,theta]`
+     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` and/or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,c_0,c_1]`
+                                                                                                                   
 
 Note: The default for a clamped face is zero displacement. All displacement is with respect to the initial configuration.
 
@@ -68,7 +69,17 @@ With the sidesets defined in the figure, we provide here an example of a minimal
 
 In this example, we set the left boundary, face set :math:`999`, to zero displacement and the right boundary, face set :math:`998`, to displace :math:`0` in the :math:`x` direction, :math:`-0.5` in the :math:`y`, and :math:`1` in the :math:`z`.
 
-As an alternative to specifying a mesh with :code:`-mesh`, the user may use a DMPlex box mesh by specifying :code:`-dm_plex_box_faces [int list]`, :code:`-dm_plex_box_upper [real list]`, and :code:`-dm_plex_box_lower [real list]`.
+As an alternative to specifying a mesh with :code:`-mesh`, the user may use a DMPlex box mesh by specifying :code:`-dm_plex_box_faces [int list]`, :code:`-dm_plex_box_upper [real list]`, and :code:`-dm_plex_box_lower [real list]`. 
+
+As an alternative example exploiting :code:`-dm_plex_box_faces`, we consider a :code:`4 x 4 x 4` mesh where essential (Drichlet) boundary condition is placed on all sides. Sides 1 through 6 are rotated around :math:`x`-axis::
+
+   ./elasticity -problem FSInitial-NH1 -E 1 -nu 0.3 -num_steps 40 -snes_linesearch_type cp -dm_plex_box_faces 4,4,4 -bc_clamp 1,2,3,4,5,6 -bc_clamp_1_rotate 0,0,1,0,.3 -bc_clamp_2_rotate 0,0,1,0,.3 -bc_clamp_3_rotate 0,0,1,0,.3 -bc_clamp_4_rotate 0,0,1,0,.3 -bc_clamp_5_rotate 0,0,1,0,.3 -bc_clamp_6_rotate 0,0,1,0,.3
+
+.. note::
+
+   If the coordinates for a particular side of a mesh are zero along the axis of rotation, it may appear that particular side is clamped zero.
+
+On each boundary node, the rotation magnitude is computed: :code:`theta = (c_0 + c_1 * cx) * loadIncrement` where :code:`cx = kx * x + ky * y + kz * z`, with :code:`kx`, :code:`ky`, :code:`kz` are normalized values.
 
 The command line options just shown are the minimum requirements to run the mini-app, but additional options may also be set as follows
 
@@ -92,8 +103,8 @@ The command line options just shown are the minimum requirements to run the mini
      -
 
    * - :code:`-problem`
-     - Problem to solve (:code:`linElas`, :code:`hyperSS` or :code:`hyperFS`)
-     - :code:`linElas`
+     - Problem to solve (:code:`Linear`, :code:`SS-NH`, :code:`FSInitial-NH1`, etc.)
+     - :code:`Linear`
 
    * - :code:`-forcing`
      -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
@@ -113,7 +124,7 @@ The command line options just shown are the minimum requirements to run the mini
 
    * - :code:`-num_steps`
      - Number of load increments for continuation method
-     - :code:`1` if :code:`linElas` else :code:`10`
+     - :code:`1` if :code:`Linear` else :code:`10`
 
    * - :code:`-view_soln`
      - Output solution at each load increment for viewing
@@ -130,6 +141,10 @@ The command line options just shown are the minimum requirements to run the mini
    * - :code:`-log_view`
      - View PETSc performance log
      -
+
+   * - :code:`-output_dir`
+     - Output directory
+     - :code:`.`
 
    * - :code:`-help`
      - View comprehensive information about run-time options

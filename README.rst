@@ -104,6 +104,15 @@ or::
 if your compiler does not support gcc-style options, if you are cross
 compiling, etc.
 
+To enable CUDA support, add ``CUDA_DIR=/opt/cuda`` or an appropriate directory
+to your ``make`` invocation. To enable HIP support, add ``HIP_DIR=/opt/rocm`` or
+an appropriate directory. To store these or other arguments as defaults for
+future invocations of ``make``, use::
+
+    make configure CUDA_DIR=/usr/local/cuda HIP_DIR=/opt/rocm OPT='-O3 -march=znver2'
+
+which stores these variables in ``config.mk``.
+
 Additional Language Interfaces
 ----------------------------------------
 
@@ -256,6 +265,11 @@ Currently, each MAGMA library installation is only built for either CUDA or HIP.
 set of libCEED backends (``/gpu/cuda/magma/*`` or ``/gpu/hip/magma/*``) will automatically be built
 for the version of the MAGMA library found in ``MAGMA_DIR``.
 
+Users can specify a device for all CUDA, HIP, and MAGMA backends through adding `:device_id=#` 
+after the resource name.  For example:
+
+ - `/gpu/cuda/gen:device_id=1`
+ 
 The ``/*/occa`` backends rely upon the `OCCA <http://github.com/libocca/occa>`_ package to provide
 cross platform performance. To enable the OCCA backend, the environment variable ``OCCA_DIR`` must point
 to the top-level OCCA directory, with the OCCA library located in the ``${OCCA_DIR}/lib`` (By default,
@@ -355,8 +369,8 @@ To build the examples, set the ``MFEM_DIR``, ``PETSC_DIR``, and
 
    cd solids/
    make
-   ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
-   ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem linElas -forcing mms
+   ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
+   ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
    cd ..
 
 For the last example shown, sample meshes to be used in place of

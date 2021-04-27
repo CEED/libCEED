@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include "ceed-magma.h"
 
 #ifdef __cplusplus
@@ -24,40 +26,40 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                          CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   CeedInt dim, ncomp, ndof;
-  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChkBackend(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
   const CeedScalar *u;
   CeedScalar *v;
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u); CeedChkBackend(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChk(ierr);
+  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChkBackend(ierr);
 
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
   CeedInt P1d, Q1d;
-  ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+  ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
 
   CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d, comp = %d",
             ncomp*CeedIntPow(P1d, dim), ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
-    ierr = CeedVectorGetLength(V, &length); CeedChk(ierr);
+    ierr = CeedVectorGetLength(V, &length); CeedChkBackend(ierr);
     magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length, data->queue);
     ceed_magma_queue_sync( data->queue );
   }
@@ -104,7 +106,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                         v, v_elstride, v_compstride,
                         nelem, data->basis_kernel_mode, data->maxthreads,
                         data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_interp");
   }
   break;
@@ -127,7 +129,6 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     //  component                        component
     //    elem                              elem
     //       node                            node
-
 
     // ---  Define strides for NOTRANSPOSE mode: ---
     // Input (u) is E-vector, output (v) is Q-vector
@@ -163,31 +164,31 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                        v, v_elstride, v_compstride, v_dimstride,
                        nelem, data->basis_kernel_mode, data->maxthreads,
                        data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_grad");
   }
   break;
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
     int eldofssize = CeedIntPow(Q, dim);
     ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
                         data->basis_kernel_mode, data->maxthreads, data->queue);
-    if (ierr != 0) CeedError(ceed, 1,
+    if (ierr != 0) CeedError(ceed, CEED_ERROR_BACKEND,
                                "MAGMA: launch failure detected for magma_weight");
   }
   break;
   // LCOV_EXCL_START
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
@@ -196,10 +197,10 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ceed_magma_queue_sync( data->queue );
 
   if (emode!=CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(U, &u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(V, &v); CeedChk(ierr);
-  return 0;
+  ierr = CeedVectorRestoreArray(V, &v); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 #ifdef __cplusplus
@@ -210,30 +211,30 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                                   CeedVector U, CeedVector V) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
   CeedInt dim, ncomp, ndof, nqpt;
-  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &ndof); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChkBackend(ierr);
   const CeedScalar *du;
   CeedScalar *dv;
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du); CeedChkBackend(ierr);
   } else if (emode != CEED_EVAL_WEIGHT) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &dv); CeedChk(ierr);
+  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
 
   CeedBasisNonTensor_Magma *impl;
-  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
   CeedDebug("\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
             ncomp*ndof, ncomp);
@@ -289,7 +290,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   case CEED_EVAL_WEIGHT: {
     if (tmode == CEED_TRANSPOSE)
       // LCOV_EXCL_START
-      return CeedError(ceed, 1,
+      return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // LCOV_EXCL_STOP
 
@@ -298,17 +299,17 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                                        1 : 0 );
     magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv,
                            data->queue);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
   break;
 
   // LCOV_EXCL_START
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
@@ -317,10 +318,10 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   ceed_magma_queue_sync( data->queue );
 
   if (emode!=CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(U, &du); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(U, &du); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(V, &dv); CeedChk(ierr);
-  return 0;
+  ierr = CeedVectorRestoreArray(V, &dv); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 #ifdef __cplusplus
@@ -329,16 +330,16 @@ CEED_INTERN "C"
 int CeedBasisDestroy_Magma(CeedBasis basis) {
   int ierr;
   CeedBasis_Magma *impl;
-  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  ierr = magma_free(impl->dqref1d); CeedChk(ierr);
-  ierr = magma_free(impl->dinterp1d); CeedChk(ierr);
-  ierr = magma_free(impl->dgrad1d); CeedChk(ierr);
-  ierr = magma_free(impl->dqweight1d); CeedChk(ierr);
+  ierr = magma_free(impl->dqref1d); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dinterp1d); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dgrad1d); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dqweight1d); CeedChkBackend(ierr);
 
-  ierr = CeedFree(&impl); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #ifdef __cplusplus
@@ -347,16 +348,16 @@ CEED_INTERN "C"
 int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
   int ierr;
   CeedBasisNonTensor_Magma *impl;
-  ierr = CeedBasisGetData(basis, &impl); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  ierr = magma_free(impl->dqref); CeedChk(ierr);
-  ierr = magma_free(impl->dinterp); CeedChk(ierr);
-  ierr = magma_free(impl->dgrad); CeedChk(ierr);
-  ierr = magma_free(impl->dqweight); CeedChk(ierr);
+  ierr = magma_free(impl->dqref); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dinterp); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dgrad); CeedChkBackend(ierr);
+  ierr = magma_free(impl->dqweight); CeedChkBackend(ierr);
 
-  ierr = CeedFree(&impl); CeedChk(ierr);
+  ierr = CeedFree(&impl); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #ifdef __cplusplus
@@ -370,63 +371,63 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   int ierr;
   CeedBasis_Magma *impl;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   // Check for supported parameters
   CeedInt ncomp = 0;
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
   if (ncomp > 3)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 3 components");
   // LCOV_EXCL_STOP
   if (P1d > 10)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 10 nodes in each dimension");
   // LCOV_EXCL_STOP
   if (Q1d > 10)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Magma backend does not support tensor bases with more than 10 quadrature points in each dimension");
   // LCOV_EXCL_STOP
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
-                                CeedBasisApply_Magma); CeedChk(ierr);
+                                CeedBasisApply_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroy_Magma); CeedChk(ierr);
+                                CeedBasisDestroy_Magma); CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
+  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
   // Copy qref1d to the GPU
   ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(Q1d, sizeof(qref1d[0]), qref1d, 1, impl->dqref1d, 1,
                   data->queue);
 
   // Copy interp1d to the GPU
   ierr = magma_malloc((void **)&impl->dinterp1d, Q1d*P1d*sizeof(interp1d[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(Q1d*P1d, sizeof(interp1d[0]), interp1d, 1, impl->dinterp1d, 1,
                   data->queue);
 
   // Copy grad1d to the GPU
   ierr = magma_malloc((void **)&impl->dgrad1d, Q1d*P1d*sizeof(grad1d[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(Q1d*P1d, sizeof(grad1d[0]), grad1d, 1, impl->dgrad1d, 1,
                   data->queue);
 
   // Copy qweight1d to the GPU
   ierr = magma_malloc((void **)&impl->dqweight1d, Q1d*sizeof(qweight1d[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1,
                   data->queue);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #ifdef __cplusplus
@@ -439,41 +440,41 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   int ierr;
   CeedBasisNonTensor_Magma *impl;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   Ceed_Magma *data;
-  ierr = CeedGetData(ceed, &data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
-                                CeedBasisApplyNonTensor_Magma); CeedChk(ierr);
+                                CeedBasisApplyNonTensor_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroyNonTensor_Magma); CeedChk(ierr);
+                                CeedBasisDestroyNonTensor_Magma); CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(1,&impl); CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, impl); CeedChk(ierr);
+  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
   // Copy qref to the GPU
   ierr = magma_malloc((void **)&impl->dqref, nqpts*sizeof(qref[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(nqpts, sizeof(qref[0]), qref, 1, impl->dqref, 1, data->queue);
 
   // Copy interp to the GPU
   ierr = magma_malloc((void **)&impl->dinterp, nqpts*ndof*sizeof(interp[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(nqpts*ndof, sizeof(interp[0]), interp, 1, impl->dinterp, 1,
                   data->queue);
 
   // Copy grad to the GPU
   ierr = magma_malloc((void **)&impl->dgrad, nqpts*ndof*dim*sizeof(grad[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(nqpts*ndof*dim, sizeof(grad[0]), grad, 1, impl->dgrad, 1,
                   data->queue);
 
   // Copy qweight to the GPU
   ierr = magma_malloc((void **)&impl->dqweight, nqpts*sizeof(qweight[0]));
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   magma_setvector(nqpts, sizeof(qweight[0]), qweight, 1, impl->dqweight, 1,
                   data->queue);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

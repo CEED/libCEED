@@ -20,7 +20,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     enum StrideType {

@@ -17,7 +17,7 @@
 #ifndef CEED_OCCA_TYPES_HEADER
 #define CEED_OCCA_TYPES_HEADER
 
-#include <ceed-backend.h>
+#include <ceed/backend.h>
 #include <occa.hpp>
 
 #define CeedOccaFromChk(ierr)                   \
@@ -38,7 +38,7 @@
 #define CeedHandleOccaException(exc)            \
   do {                                          \
     std::string error = exc.toString();         \
-    return CeedError(ceed, 1, error.c_str());   \
+    return CeedError(ceed, CEED_ERROR_BACKEND, error.c_str());   \
   } while (0)
 
 #define CeedOccaCastRegisterFunction(func)      \
@@ -55,7 +55,6 @@
     ceed, object, name,                              \
     CeedOccaCastRegisterFunction(func)               \
   ); CeedChk(ierr)
-
 
 namespace ceed {
   namespace occa {

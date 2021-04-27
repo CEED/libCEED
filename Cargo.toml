@@ -1,0 +1,6 @@
+[workspace]
+members = [
+        "rust",
+        "examples/rust/ex1-volume",
+        "examples/rust/ex2-surface",
+]

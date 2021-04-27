@@ -1,8 +1,7 @@
 /// @file
-/// Test viewing of qfunction
-/// \test Test viewing of qfunction
+/// Test viewing of QFunction
+/// \test Test viewing of QFunction
 #include <ceed.h>
-
 #include "t400-qfunction.h"
 
 int main(int argc, char **argv) {

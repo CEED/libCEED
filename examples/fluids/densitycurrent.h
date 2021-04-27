@@ -65,7 +65,7 @@ struct DCContext_ {
 #endif
 
 // *****************************************************************************
-// These function sets the the initial conditions and boundary conditions
+// This function sets the initial conditions and the boundary conditions
 //
 // These initial conditions are given in terms of potential temperature and
 //   Exner pressure and then converted to density and total energy.
@@ -475,9 +475,9 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
-          dv[k][j][i] -= stab[j][0] * dXdx[k][0] +
-                         stab[j][1] * dXdx[k][1] +
-                         stab[j][2] * dXdx[k][2];
+          dv[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
       break;
     case 2:        // SUPG is not implemented for explicit scheme
       break;

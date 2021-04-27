@@ -1,12 +1,11 @@
 /// @file
-/// Test viewing of qfunction by name
-/// \test Test viewing of qfunction by name
+/// Test viewing of QFunction by name
+/// \test Test viewing of QFunction by name
 #include <ceed.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunction qf_setup, qf_mass;
-
 
   CeedInit(argv[1], &ceed);
 

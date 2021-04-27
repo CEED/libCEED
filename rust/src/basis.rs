@@ -24,11 +24,11 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 #[derive(Clone, Copy)]
 pub enum BasisOpt<'a> {
-    Some(&'a Basis),
+    Some(&'a Basis<'a>),
     Collocated,
 }
 /// Construct a BasisOpt reference from a Basis reference
-impl<'a> From<&'a Basis> for BasisOpt<'a> {
+impl<'a> From<&'a Basis<'_>> for BasisOpt<'a> {
     fn from(basis: &'a Basis) -> Self {
         debug_assert!(basis.ptr != unsafe { bind_ceed::CEED_BASIS_COLLOCATED });
         Self::Some(basis)
@@ -47,14 +47,15 @@ impl<'a> BasisOpt<'a> {
 // -----------------------------------------------------------------------------
 // CeedBasis context wrapper
 // -----------------------------------------------------------------------------
-pub struct Basis {
+pub struct Basis<'a> {
+    ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedBasis,
 }
 
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl Drop for Basis {
+impl<'a> Drop for Basis<'a> {
     fn drop(&mut self) {
         unsafe {
             if self.ptr != bind_ceed::CEED_BASIS_COLLOCATED {
@@ -67,13 +68,15 @@ impl Drop for Basis {
 // -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
-impl fmt::Display for Basis {
+impl<'a> fmt::Display for Basis<'a> {
     /// View a Basis
     ///
     /// ```
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss);
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     /// println!("{}", b);
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -92,10 +95,10 @@ impl fmt::Display for Basis {
 // -----------------------------------------------------------------------------
 // Implementations
 // -----------------------------------------------------------------------------
-impl Basis {
+impl<'a> Basis<'a> {
     // Constructors
     pub fn create_tensor_H1(
-        ceed: &crate::Ceed,
+        ceed: &'a crate::Ceed,
         dim: usize,
         ncomp: usize,
         P1d: usize,
@@ -104,10 +107,15 @@ impl Basis {
         grad1d: &[f64],
         qref1d: &[f64],
         qweight1d: &[f64],
-    ) -> Self {
+    ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let (dim, ncomp, P1d, Q1d) = (dim as i32, ncomp as i32, P1d as i32, Q1d as i32);
-        unsafe {
+        let (dim, ncomp, P1d, Q1d) = (
+            i32::try_from(dim).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(P1d).unwrap(),
+            i32::try_from(Q1d).unwrap(),
+        );
+        let ierr = unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
                 ceed.ptr,
                 dim,
@@ -121,28 +129,35 @@ impl Basis {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        ceed.check_error(ierr)?;
+        Ok(Self { ceed, ptr })
     }
 
     pub fn create_tensor_H1_Lagrange(
-        ceed: &crate::Ceed,
+        ceed: &'a crate::Ceed,
         dim: usize,
         ncomp: usize,
         P: usize,
         Q: usize,
         qmode: crate::QuadMode,
-    ) -> Self {
+    ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let (dim, ncomp, P, Q) = (dim as i32, ncomp as i32, P as i32, Q as i32);
-        let qmode = qmode as bind_ceed::CeedQuadMode;
-        unsafe {
-            bind_ceed::CeedBasisCreateTensorH1Lagrange(ceed.ptr, dim, ncomp, P, Q, qmode, &mut ptr);
-        }
-        Self { ptr }
+        let (dim, ncomp, P, Q, qmode) = (
+            i32::try_from(dim).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(P).unwrap(),
+            i32::try_from(Q).unwrap(),
+            qmode as bind_ceed::CeedQuadMode,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedBasisCreateTensorH1Lagrange(ceed.ptr, dim, ncomp, P, Q, qmode, &mut ptr)
+        };
+        ceed.check_error(ierr)?;
+        Ok(Self { ceed, ptr })
     }
 
     pub fn create_H1(
-        ceed: &crate::Ceed,
+        ceed: &'a crate::Ceed,
         topo: crate::ElemTopology,
         ncomp: usize,
         nnodes: usize,
@@ -151,15 +166,15 @@ impl Basis {
         grad: &[f64],
         qref: &[f64],
         qweight: &[f64],
-    ) -> Self {
+    ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
         let (topo, ncomp, nnodes, nqpts) = (
             topo as bind_ceed::CeedElemTopology,
-            ncomp as i32,
-            nnodes as i32,
-            nqpts as i32,
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(nnodes).unwrap(),
+            i32::try_from(nqpts).unwrap(),
         );
-        unsafe {
+        let ierr = unsafe {
             bind_ceed::CeedBasisCreateH1(
                 ceed.ptr,
                 topo,
@@ -173,7 +188,8 @@ impl Basis {
                 &mut ptr,
             )
         };
-        Self { ptr }
+        ceed.check_error(ierr)?;
+        Ok(Self { ceed, ptr })
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa
@@ -192,26 +208,44 @@ impl Basis {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 6;
-    /// let bu = ceed.basis_tensor_H1_Lagrange(1, 1, Q, Q, QuadMode::GaussLobatto);
-    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, Q, QuadMode::Gauss);
+    /// let bu = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 1, Q, Q, QuadMode::GaussLobatto)
+    ///     .unwrap();
+    /// let bx = ceed
+    ///     .basis_tensor_H1_Lagrange(1, 1, 2, Q, QuadMode::Gauss)
+    ///     .unwrap();
     ///
-    /// let x_corners = ceed.vector_from_slice(&[-1., 1.]);
-    /// let mut x_qpts = ceed.vector(Q);
-    /// let mut x_nodes = ceed.vector(Q);
-    /// bx.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
-    ///          &x_corners, &mut x_nodes);
-    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp,
-    ///          &x_nodes, &mut x_qpts);
+    /// let x_corners = ceed.vector_from_slice(&[-1., 1.]).unwrap();
+    /// let mut x_qpts = ceed.vector(Q).unwrap();
+    /// let mut x_nodes = ceed.vector(Q).unwrap();
+    /// bx.apply(
+    ///     1,
+    ///     TransposeMode::NoTranspose,
+    ///     EvalMode::Interp,
+    ///     &x_corners,
+    ///     &mut x_nodes,
+    /// );
+    /// bu.apply(
+    ///     1,
+    ///     TransposeMode::NoTranspose,
+    ///     EvalMode::Interp,
+    ///     &x_nodes,
+    ///     &mut x_qpts,
+    /// );
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
     /// let mut u_arr = [0.; Q];
-    /// u_arr.iter_mut().zip(x_nodes.view().iter()).for_each(|(u, x)| *u = x * x * x + 1.);
-    /// let u = ceed.vector_from_slice(&u_arr);
+    /// u_arr
+    ///     .iter_mut()
+    ///     .zip(x_nodes.view().iter())
+    ///     .for_each(|(u, x)| *u = x * x * x + 1.);
+    /// let u = ceed.vector_from_slice(&u_arr).unwrap();
     ///
     /// // Map function to Gauss points
-    /// let mut v = ceed.vector(Q);
+    /// let mut v = ceed.vector(Q).unwrap();
     /// v.set_value(0.);
-    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v);
+    /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v)
+    ///     .unwrap();
     ///
     /// // Verify results
     /// v.view()
@@ -224,17 +258,20 @@ impl Basis {
     /// ```
     pub fn apply(
         &self,
-        nelem: i32,
+        nelem: usize,
         tmode: TransposeMode,
         emode: EvalMode,
         u: &Vector,
         v: &mut Vector,
-    ) {
-        let (tmode, emode) = (
+    ) -> crate::Result<i32> {
+        let (nelem, tmode, emode) = (
+            i32::try_from(nelem).unwrap(),
             tmode as bind_ceed::CeedTransposeMode,
             emode as bind_ceed::CeedEvalMode,
         );
-        unsafe { bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr) };
+        let ierr =
+            unsafe { bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr) };
+        self.ceed.check_error(ierr)
     }
 
     /// Returns the dimension for given CeedBasis
@@ -243,15 +280,17 @@ impl Basis {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let dim = 2;
-    /// let b = ceed.basis_tensor_H1_Lagrange(dim, 1, 3, 4, QuadMode::Gauss);
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(dim, 1, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let d = b.dimension();
-    /// assert_eq!(d, dim as i32, "Incorrect dimension");
+    /// assert_eq!(d, dim, "Incorrect dimension");
     /// ```
-    pub fn dimension(&self) -> i32 {
+    pub fn dimension(&self) -> usize {
         let mut dim = 0;
         unsafe { bind_ceed::CeedBasisGetDimension(self.ptr, &mut dim) };
-        dim
+        usize::try_from(dim).unwrap()
     }
 
     /// Returns number of components for given CeedBasis
@@ -260,15 +299,17 @@ impl Basis {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let ncomp = 2;
-    /// let b = ceed.basis_tensor_H1_Lagrange(1, ncomp, 3, 4, QuadMode::Gauss);
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(1, ncomp, 3, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let n = b.num_components();
-    /// assert_eq!(n, ncomp as i32, "Incorrect number of components");
+    /// assert_eq!(n, ncomp, "Incorrect number of components");
     /// ```
-    pub fn num_components(&self) -> i32 {
+    pub fn num_components(&self) -> usize {
         let mut ncomp = 0;
         unsafe { bind_ceed::CeedBasisGetNumComponents(self.ptr, &mut ncomp) };
-        ncomp
+        usize::try_from(ncomp).unwrap()
     }
 
     /// Returns total number of nodes (in dim dimensions) of a CeedBasis
@@ -277,15 +318,17 @@ impl Basis {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let p = 3;
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, p, 4, QuadMode::Gauss);
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(2, 1, p, 4, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let nnodes = b.num_nodes();
-    /// assert_eq!(nnodes, (p * p) as i32, "Incorrect number of nodes");
+    /// assert_eq!(nnodes, p * p, "Incorrect number of nodes");
     /// ```
-    pub fn num_nodes(&self) -> i32 {
+    pub fn num_nodes(&self) -> usize {
         let mut nnodes = 0;
         unsafe { bind_ceed::CeedBasisGetNumNodes(self.ptr, &mut nnodes) };
-        nnodes
+        usize::try_from(nnodes).unwrap()
     }
 
     /// Returns total number of quadrature points (in dim dimensions) of a
@@ -295,17 +338,19 @@ impl Basis {
     /// # use libceed::prelude::*;
     /// # let ceed = libceed::Ceed::default_init();
     /// let q = 4;
-    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, q, QuadMode::Gauss);
+    /// let b = ceed
+    ///     .basis_tensor_H1_Lagrange(2, 1, 3, q, QuadMode::Gauss)
+    ///     .unwrap();
     ///
     /// let nqpts = b.num_quadrature_points();
-    /// assert_eq!(nqpts, (q * q) as i32, "Incorrect number of quadrature points");
+    /// assert_eq!(nqpts, q * q, "Incorrect number of quadrature points");
     /// ```
-    pub fn num_quadrature_points(&self) -> i32 {
+    pub fn num_quadrature_points(&self) -> usize {
         let mut Q = 0;
         unsafe {
             bind_ceed::CeedBasisGetNumQuadraturePoints(self.ptr, &mut Q);
         }
-        Q
+        usize::try_from(Q).unwrap()
     }
 }
 

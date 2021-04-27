@@ -28,7 +28,6 @@
 #include "ceed-occa-types.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     typedef std::map<std::string, std::string> StringMap;
@@ -78,25 +77,25 @@ namespace ceed {
                              std::string &mode) {
       if (match == "cuda") {
         mode = "CUDA";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       if (match == "hip") {
         mode = "HIP";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       /* OpenCL not fully supported in OCCA
       if (match == "opencl") {
         mode = "OpenCL";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       */
       if (match == "openmp") {
         mode = "OpenMP";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       if (match == "serial") {
         mode = "Serial";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
 
       const bool autoMode = match == "*";
@@ -144,25 +143,25 @@ namespace ceed {
       // Note: added for matching style with other backends
       if (resource == "/gpu/cuda/occa"){
         match = "cuda";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       if (resource == "/gpu/hip/occa"){
         match = "hip";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       /*
       if (resource == "/gpu/opencl/occa"){
         match = "opencl";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       */
       if (resource == "/cpu/openmp/occa"){
         match = "openmp";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
       if (resource == "/cpu/self/occa"){
         match = "serial";
-        return 0;
+        return CEED_ERROR_SUCCESS;
       }
 
       // Skip initial slash
@@ -208,7 +207,7 @@ namespace ceed {
       }
 
       match = resourceVector[0];
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     void setDefaultProps(::occa::properties &deviceProps,
@@ -248,13 +247,13 @@ namespace ceed {
 
       ierr = splitCeedResource(c_resource, match, query);
       if (ierr) {
-        return CeedError(ceed, 1, "(OCCA) Backend cannot use resource: %s", c_resource);
+        return CeedError(ceed, CEED_ERROR_BACKEND, "(OCCA) Backend cannot use resource: %s", c_resource);
       }
 
       std::string mode;
       ierr = getDeviceMode(match, mode);
       if (ierr) {
-        return CeedError(ceed, 1, "(OCCA) Backend cannot use resource: %s", c_resource);
+        return CeedError(ceed, CEED_ERROR_BACKEND, "(OCCA) Backend cannot use resource: %s", c_resource);
       }
 
       std::string devicePropsStr = "{\n";
@@ -272,14 +271,14 @@ namespace ceed {
       setDefaultProps(deviceProps, mode);
 
       ceed::occa::Context *context = new Context(::occa::device(deviceProps));
-      ierr = CeedSetData(ceed, context); CeedChk(ierr);
+      ierr = CeedSetData(ceed, context); CeedChkBackend(ierr);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     static int destroyCeed(Ceed ceed) {
       delete Context::from(ceed);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     static int registerCeedFunction(Ceed ceed, const char *fname, ceed::occa::ceedFunction f) {
@@ -288,12 +287,12 @@ namespace ceed {
 
     static int preferHostMemType(CeedMemType *type) {
       *type = CEED_MEM_HOST;
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     static int preferDeviceMemType(CeedMemType *type) {
       *type = CEED_MEM_DEVICE;
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     static ceed::occa::ceedFunction getPreferredMemType(Ceed ceed) {
@@ -318,20 +317,20 @@ namespace ceed {
       CeedOccaRegisterBaseFunction("OperatorCreate", ceed::occa::Operator::ceedCreate);
       CeedOccaRegisterBaseFunction("CompositeOperatorCreate", ceed::occa::Operator::ceedCreateComposite);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     static int registerBackend(const char *resource, Ceed ceed) {
       int ierr;
 
       try {
-        ierr = ceed::occa::initCeed(resource, ceed); CeedChk(ierr);
-        ierr = ceed::occa::registerMethods(ceed); CeedChk(ierr);
+        ierr = ceed::occa::initCeed(resource, ceed); CeedChkBackend(ierr);
+        ierr = ceed::occa::registerMethods(ceed); CeedChkBackend(ierr);
       } catch (::occa::exception &exc) {
         CeedHandleOccaException(exc);
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }
@@ -339,16 +338,16 @@ namespace ceed {
 CEED_INTERN int CeedRegister_Occa(void) {
   int ierr;
   // General mode
-  ierr = CeedRegister("/*/occa", ceed::occa::registerBackend, 260); CeedChk(ierr);
+  ierr = CeedRegister("/*/occa", ceed::occa::registerBackend, 260); CeedChkBackend(ierr);
   // CPU Modes
-  ierr = CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250); CeedChk(ierr);
-  ierr = CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240); CeedChk(ierr);
+  ierr = CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250); CeedChkBackend(ierr);
+  ierr = CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240); CeedChkBackend(ierr);
   // OpenCL Mode
   /* OpenCL not fully supported in OCCA
-  ierr = CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230); CeedChk(ierr);
+  ierr = CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230); CeedChkBackend(ierr);
   */
   // GPU Modes
-  ierr = CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220); CeedChk(ierr);
-  ierr = CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210); CeedChk(ierr);
-  return 0;
+  ierr = CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220); CeedChkBackend(ierr);
+  ierr = CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }

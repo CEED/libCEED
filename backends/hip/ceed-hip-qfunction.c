@@ -14,8 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <hip/hip_runtime.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 #include "ceed-hip-qfunction-load.h"
@@ -27,59 +30,59 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
                                   CeedVector *U, CeedVector *V) {
   int ierr;
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
 
   // Build and compile kernel, if not done
-  ierr = CeedHipBuildQFunction(qf); CeedChk(ierr);
+  ierr = CeedHipBuildQFunction(qf); CeedChkBackend(ierr);
 
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   const int blocksize = ceed_Hip->optblocksize;
 
   // Read vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
 
   // Get context data
   CeedQFunctionContext ctx;
-  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChkBackend(ierr);
   if (ctx) {
     ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_DEVICE, &data->d_c);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
 
   // Run kernel
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
   ierr = CeedRunKernelHip(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
-                          blocksize, args); CeedChk(ierr);
+                          blocksize, args); CeedChkBackend(ierr);
 
   // Restore vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
 
   // Restore context
   if (ctx) {
     ierr = CeedQFunctionContextRestoreData(ctx, &data->d_c);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -88,13 +91,13 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
 static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
   int ierr;
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
   if  (data->module)
     CeedChk_Hip(ceed, hipModuleUnload(data->module));
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -107,12 +110,12 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
 
   // Find source file
   char *hip_file;
-  ierr = CeedCalloc(HIP_MAX_PATH, &hip_file); CeedChk(ierr);
+  ierr = CeedCalloc(HIP_MAX_PATH, &hip_file); CeedChkBackend(ierr);
   memcpy(hip_file, c_src_file, strlen(c_src_file));
   const char *last_dot = strrchr(hip_file, '.');
   if (!last_dot)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Cannot find file's extension!");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
   // LCOV_EXCL_STOP
   const size_t hip_path_len = last_dot - hip_file;
   strncpy(&hip_file[hip_path_len], ".h", 3);
@@ -124,7 +127,8 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   fp = fopen (hip_file, "rb");
   if (!fp)
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't open the Hip file for the QFunction.");
   // LCOV_EXCL_STOP
 
   // Compute size of source
@@ -133,26 +137,27 @@ static int CeedHipLoadQFunction(CeedQFunction qf, char *c_src_file) {
   rewind(fp);
 
   // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChk(ierr);
+  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
 
   // Copy the file into the buffer
   if(1!=fread(buffer, lSize, 1, fp)) {
     // LCOV_EXCL_START
     fclose(fp);
-    ierr = CeedFree(&buffer); CeedChk(ierr);
-    return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
+    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Couldn't read the Hip file for the QFunction.");
     // LCOV_EXCL_STOP
   }
 
   // Cleanup
   fclose(fp);
-  ierr = CeedFree(&hip_file); CeedChk(ierr);
+  ierr = CeedFree(&hip_file); CeedChkBackend(ierr);
 
   // Save QFunction source
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
   data->qFunctionSource = buffer;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -163,28 +168,28 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Hip *data;
-  ierr = CeedCalloc(1,&data); CeedChk(ierr);
-  ierr = CeedQFunctionSetData(qf, data); CeedChk(ierr);
+  ierr = CeedCalloc(1,&data); CeedChkBackend(ierr);
+  ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
   // Read source
   char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
   const char *funname = strrchr(source, ':') + 1;
   data->qFunctionName = (char *)funname;
   const int filenamelen = funname - source;
   char filename[filenamelen];
   memcpy(filename, source, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  ierr = CeedHipLoadQFunction(qf, filename); CeedChk(ierr);
+  ierr = CeedHipLoadQFunction(qf, filename); CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Hip); CeedChk(ierr);
+                                CeedQFunctionApply_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Hip); CeedChk(ierr);
-  return 0;
+                                CeedQFunctionDestroy_Hip); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

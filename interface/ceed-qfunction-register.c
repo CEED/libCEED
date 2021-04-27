@@ -1,5 +1,6 @@
-#include <ceed-impl.h>
-#include <stdio.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
 
 static bool register_all_called;
 
@@ -17,7 +18,7 @@ static bool register_all_called;
 
   @sa CeedQFunctionRegister()
 
-  @ref Backend
+  @ref User
 **/
 int CeedQFunctionRegisterAll() {
   if (register_all_called) return 0;
@@ -26,5 +27,5 @@ int CeedQFunctionRegisterAll() {
 #define MACRO(name) CeedChk(name());
 #include "../gallery/ceed-gallery-list.h"
 #undef MACRO
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

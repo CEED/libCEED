@@ -21,7 +21,6 @@
 
 #include "ceed-occa-operator.hpp"
 
-
 namespace ceed {
   namespace occa {
     class GpuOperator : public Operator {

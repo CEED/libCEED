@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err
       integer b

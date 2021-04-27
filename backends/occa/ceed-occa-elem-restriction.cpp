@@ -323,7 +323,7 @@ namespace ceed {
               v.getKernelArg());
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int ElemRestriction::getOffsets(CeedMemType memType,
@@ -331,11 +331,11 @@ namespace ceed {
       switch (memType) {
         case CEED_MEM_HOST: {
           *offsets = hostIndices;
-          return 0;
+          return CEED_ERROR_SUCCESS;
         }
         case CEED_MEM_DEVICE: {
           *offsets = memoryToArray<CeedInt>(indices);
-          return 0;
+          return CEED_ERROR_SUCCESS;
         }
       }
       return ceedError("Unsupported CeedMemType passed to ElemRestriction::getOffsets");
@@ -378,7 +378,7 @@ namespace ceed {
       CeedOccaRegisterFunction(r, "GetOffsets", ElemRestriction::ceedGetOffsets);
       CeedOccaRegisterFunction(r, "Destroy", ElemRestriction::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int ElemRestriction::ceedCreateBlocked(CeedMemType memType,
@@ -430,7 +430,7 @@ namespace ceed {
 
     int ElemRestriction::ceedDestroy(CeedElemRestriction r) {
       delete ElemRestriction::from(r);
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

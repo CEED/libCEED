@@ -19,16 +19,19 @@ import re
 from cffi import FFI
 ffibuilder = FFI()
 
+ceed_version_ge = re.compile(r'\s+\(!?CEED_VERSION.*')
+
 # ------------------------------------------------------------------------------
 # Provide C definitions to CFFI
 # ------------------------------------------------------------------------------
-with open(os.path.abspath("include/ceed.h")) as f:
+with open(os.path.abspath("include/ceed/ceed.h")) as f:
     lines = [line.strip() for line in f if
              not line.startswith("#") and
              not line.startswith("  static") and
              "CeedErrorImpl" not in line and
              "const char *, ...);" not in line and
-             not line.startswith("CEED_EXTERN const char *const")]
+             not line.startswith("CEED_EXTERN const char *const") and
+             not ceed_version_ge.match(line)]
     lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
     header = '\n'.join(lines)
     header = header.split("static inline CeedInt CeedIntPow", 1)[0]

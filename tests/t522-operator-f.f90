@@ -10,7 +10,7 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err,i,j,k
       integer stridesqdtet(3),stridesqdhex(3)

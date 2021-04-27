@@ -15,11 +15,11 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // magma functions specific to ceed
-#ifndef CEED_MAGMA_H
-#define CEED_MAGMA_H
+#ifndef _ceed_mamga_h
+#define _ceed_magma_h
 
-#include <string.h>
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <magma_v2.h>
 
 typedef enum {
@@ -188,7 +188,6 @@ CEED_INTERN {
                               magma_int_t Q,
                               double *dqweight, double *dv, magma_queue_t queue);
 
-
   void magma_readDofsOffset(const magma_int_t NCOMP,
                             const magma_int_t compstride,
                             const magma_int_t esize, const magma_int_t nelem,
@@ -218,7 +217,6 @@ CEED_INTERN {
     const double *dB, magma_int_t lddb,
     double beta,  double *dC, magma_int_t lddc,
     magma_queue_t queue );
-
 
   magma_int_t
   magma_isdevptr(const void *A);
@@ -267,4 +265,4 @@ CEED_INTERN {
 #define MAGMA_BATCH_STRIDE (1000)
 #endif
 
-#endif  // CEED_MAGMA_H
+#endif  // _ceed_magma_h

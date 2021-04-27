@@ -19,7 +19,6 @@
 #include "ceed-occa-elem-restriction.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     OperatorField::OperatorField(CeedOperatorField opField) :

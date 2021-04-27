@@ -26,7 +26,7 @@ CEED_QFUNCTION(Poisson1DApply)(void *ctx, const CeedInt Q,
                                CeedScalar *const *out) {
   // in[0] is gradient u, size (Q)
   // in[1] is quadrature data, size (Q)
-  const CeedScalar *du = in[0], *qd = in[1];
+  const CeedScalar *du = in[0], *q_data = in[1];
 
   // out[0] is output to multiply against gradient v, size (Q)
   CeedScalar *dv = out[0];
@@ -34,10 +34,10 @@ CEED_QFUNCTION(Poisson1DApply)(void *ctx, const CeedInt Q,
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    dv[i] = du[i] * qd[i];
+    dv[i] = du[i] * q_data[i];
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson1dapply_h

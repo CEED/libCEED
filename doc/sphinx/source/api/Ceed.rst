@@ -23,6 +23,8 @@ Macros
 .. doxygendefine:: CeedPragmaSIMD
    :project: libCEED
 
+.. doxygendefine:: CEED_VERSION_GE
+   :project: libCEED
 
 Typedefs and Enumerations
 --------------------------------------

@@ -69,7 +69,7 @@ struct SurfaceContext_ {
 #endif
 
 // *****************************************************************************
-// This QFunction sets the the initial conditions and boundary conditions
+// This QFunction sets the initial conditions and the boundary conditions
 //   for two test cases: ROTATION and TRANSLATION
 //
 // -- ROTATION (default)
@@ -425,7 +425,6 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 //   dXdx[k][j] = dX_K / dx_j
 //   X_K=Kth reference element coordinate (note cap X and K instead of xi_k}
 //   x_j and u_j are jth  physical position and velocity components
-
 
     // The Physics
 

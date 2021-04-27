@@ -3,6 +3,7 @@ codecov:
 
 fixes:
   - "build/backends/::backends/"
+  - "build/gallery/::gallery/"
 
 ignore:
   - "julia/LibCEED.jl/src/generated/*.jl"

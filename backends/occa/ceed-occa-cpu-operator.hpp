@@ -23,7 +23,6 @@
 #include "ceed-occa-operator.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     class Basis;
@@ -145,7 +144,6 @@ namespace ceed {
                          const int index);
 
       void addQFunctionApplicationSource(std::stringstream &ss);
-
 
       //  ---[ Variables ]---------------
       inline std::string xputName(const bool isInput) {

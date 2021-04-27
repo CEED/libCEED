@@ -1,9 +1,8 @@
 ## libCEED + PETSc Examples
 
-### CEED bakeoff problems - bpsraw
+### CEED bakeoff problems with raw mesh management - bpsraw
 
-This code solves the CEED bakeoff problems on a structured grid generated and
-referenced using only low-level communication primitives.
+This code solves the CEED bakeoff problems on a structured grid generated and referenced using only low-level communication primitives.
 
 To build, run `make bpsraw`
 
@@ -29,21 +28,20 @@ In addition to the common arguments, the following arguments may be set:
 
 #### Running a suite
 
-Some run-time arguments can be passed lists, which allows a single `mpiexec` invocation
-to run many experiments.  For example
+Some run-time arguments can be passed lists, which allows a single `mpiexec` invocation to run many experiments.
+For example
 
     mpiexec -n 64 ./bps -problem bp1,bp2,bp3,bp4 -degree 2,3,5,7                \
         -ceed /cpu/self/opt/serial,/cpu/self/xsmm/serial,/cpu/self/xsmm/blocked \
         -local_nodes 600,20000 | tee bps.log
 
-which will sample from the `4*4*3=48` specified combinations, each of which will run a
-problem-size sweep of 600, 1200, 2400, 4800, 9600, 192000 FEM nodes per MPI rank.  The
-resulting log file can be read by the Python plotting scripts in `benchmarks/`.
+which will sample from the `4*4*3=48` specified combinations, each of which will run a problem-size sweep of 600, 1200, 2400, 4800, 9600, 192000 FEM nodes per MPI rank. 
+The resulting log file can be read by the Python plotting scripts in `benchmarks/`.
 
 ### CEED bakeoff problems with DMPlex and PCMG - multigrid
 
-This code solves the CEED bakeoff problems on a unstructured grid using DMPlex
-with p-multigrid implemented in PCMG. This example requires a PETSc version later than 3.11.3.
+This code solves the CEED bakeoff problems on a unstructured grid using DMPlex with p-multigrid implemented in PCMG.
+This example requires a PETSc version later than 3.11.3.
 
 To build, run `make multigrid`
 

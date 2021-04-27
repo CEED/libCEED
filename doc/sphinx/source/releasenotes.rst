@@ -9,24 +9,50 @@ for each release of libCEED.
 Current Main
 ----------------------------------------
 
-The current ``main`` (formerly called ``master``) branch contains bug fixes and additional features.
+The current ``main`` branch contains bug fixes and additional features.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
 
 New features
 ^^^^^^^^^^^^
-* New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
-* Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
-* New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
-* Static libraries can be built with ``make STATIC=1`` and the pkg-config file is installed accordingly.
+
+* Add :c:func:`CeedVectorAXPY` and :c:func:`CeedVectorPointwiseMult` as a convenience for stand-alone testing and internal use.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Examples
 ^^^^^^^^
-* :ref:`example-petsc-elasticity` example updated with traction boundary conditions.
+
+
+.. _v0.8:
+
+v0.8 (Mar 31, 2021)
+-------------------
+
+Interface changes
+^^^^^^^^^^^^^^^^^
+* Error handling improved to include enumerated error codes for C interface return values.
+* Installed headers that will follow semantic versioning were moved to :code:`include/ceed` directory. These headers have been renamed from :code:`ceed-*.h` to :code:`ceed/*.h`. Placeholder headers with the old naming schema are currently provided, but these headers will be removed in the libCEED v0.9 release.
+
+New features
+^^^^^^^^^^^^
+* Julia and Rust interfaces added, providing a nearly 1-1 correspondence with the C interface, plus some convenience features.
+* Static libraries can be built with ``make STATIC=1`` and the pkg-config file is installed accordingly.
+* Add :c:func:`CeedOperatorLinearAssembleSymbolic` and :c:func:`CeedOperatorLinearAssemble` to support full assembly of libCEED operators.
+
+Performance improvements
+^^^^^^^^^^^^^^^^^^^^^^^^
+* New HIP MAGMA backends for hipMAGMA library users: ``/gpu/hip/magma`` and ``/gpu/hip/magma/det``.
+* New HIP backends for improved tensor basis performance: ``/gpu/hip/shared`` and ``/gpu/hip/gen``.
+
+Examples
+^^^^^^^^
+* :ref:`example-petsc-elasticity` example updated with traction boundary conditions and improved Dirichlet boundary conditions.
+* :ref:`example-petsc-elasticity` example updated with Neo-Hookean hyperelasticity in current configuration as well as improved Neo-Hookean hyperelasticity exploring storage vs computation tradeoffs.
+* :ref:`example-petsc-navier-stokes` example updated with isentropic traveling vortex test case, an analytical solution to the Euler equations that is useful for testing boundary conditions, discretization stability, and order of accuracy.
+* :ref:`example-petsc-navier-stokes` example updated with support for performing convergence study and plotting order of convergence by polynomial degree.
 
 .. _v0.7:
 
@@ -39,14 +65,14 @@ Interface changes
   As a result, the :code:`indices` parameter has been replaced with :code:`offsets` and the :code:`nnodes` parameter has been replaced with :code:`lsize`.
   These changes improve support for mixed finite element methods.
 * Replace various uses of :code:`Ceed*Get*Status` with :code:`Ceed*Is*` in the backend API to match common nomenclature.
-* Replace :code:`CeedOperatorAssembleLinearDiagonal` with :cpp:func:`CeedOperatorLinearAssembleDiagonal` for clarity.
-* Linear Operators can be assembled as point-block diagonal matrices with :cpp:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
+* Replace :code:`CeedOperatorAssembleLinearDiagonal` with :c:func:`CeedOperatorLinearAssembleDiagonal` for clarity.
+* Linear Operators can be assembled as point-block diagonal matrices with :c:func:`CeedOperatorLinearAssemblePointBlockDiagonal`, provided in row-major form in a :code:`ncomp` by :code:`ncomp` block per node.
 * Diagonal assemble interface changed to accept a :ref:`CeedVector` instead of a pointer to a :ref:`CeedVector` to reduce memory movement when interfacing with calling code.
-* Added :cpp:func:`CeedOperatorLinearAssembleAddDiagonal` and :cpp:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
-* Added :cpp:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
-  This function is recommended over :cpp:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :cpp:func:`CeedVectorSetArray`.
+* Added :c:func:`CeedOperatorLinearAssembleAddDiagonal` and :c:func:`CeedOperatorLinearAssembleAddPointBlockDiagonal` for improved future integration with codes such as MFEM that compose the action of :ref:`CeedOperator`\s external to libCEED.
+* Added :c:func:`CeedVectorTakeAray` to sync and remove libCEED read/write access to an allocated array and pass ownership of the array to the caller.
+  This function is recommended over :c:func:`CeedVectorSyncArray` when the :code:`CeedVector` has an array owned by the caller that was set by :c:func:`CeedVectorSetArray`.
 * Added :code:`CeedQFunctionContext` object to manage user QFunction context data and reduce copies between device and host memory.
-* Added :cpp:func:`CeedOperatorMultigridLevelCreate`, :cpp:func:`CeedOperatorMultigridLevelCreateTensorH1`, and :cpp:func:`CeedOperatorMultigridLevelCreateH1` to facilitate creation of multigrid prolongation, restriction, and coarse grid operators using a common quadrature space.
+* Added :c:func:`CeedOperatorMultigridLevelCreate`, :c:func:`CeedOperatorMultigridLevelCreateTensorH1`, and :c:func:`CeedOperatorMultigridLevelCreateH1` to facilitate creation of multigrid prolongation, restriction, and coarse grid operators using a common quadrature space.
 
 New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -82,15 +108,15 @@ New features
   :py:class:`numpy.ndarray`.  Short tutorials are provided in
   `Binder <https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/>`_.
 * Linear QFunctions can be assembled as block-diagonal matrices (per quadrature point,
-  :cpp:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
-  (:cpp:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for
+  :c:func:`CeedOperatorAssembleLinearQFunction`) or to evaluate the diagonal
+  (:c:func:`CeedOperatorAssembleLinearDiagonal`).  These operations are useful for
   preconditioning ingredients and are used in the libCEED's multigrid examples.
 * The inverse of separable operators can be obtained using
-  :cpp:func:`CeedOperatorCreateFDMElementInverse` and applied with
-  :cpp:func:`CeedOperatorApply`.  This is a useful preconditioning ingredient,
+  :c:func:`CeedOperatorCreateFDMElementInverse` and applied with
+  :c:func:`CeedOperatorApply`.  This is a useful preconditioning ingredient,
   especially for Laplacians and related operators.
-* New functions: :cpp:func:`CeedVectorNorm`, :cpp:func:`CeedOperatorApplyAdd`,
-  :cpp:func:`CeedQFunctionView`, :cpp:func:`CeedOperatorView`.
+* New functions: :c:func:`CeedVectorNorm`, :c:func:`CeedOperatorApplyAdd`,
+  :c:func:`CeedQFunctionView`, :c:func:`CeedOperatorView`.
 * Make public accessors for various attributes to facilitate writing composable code.
 * New backend: ``/cpu/self/memcheck/serial``.
 * QFunctions using variable-length array (VLA) pointer constructs can be used with CUDA
@@ -100,20 +126,20 @@ New features
 Performance Improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * MAGMA backend performance optimization and non-tensor bases.
-* No-copy optimization in :cpp:func:`CeedOperatorApply`.
+* No-copy optimization in :c:func:`CeedOperatorApply`.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 * Replace :code:`CeedElemRestrictionCreateIdentity` and
   :code:`CeedElemRestrictionCreateBlocked` with more flexible
-  :cpp:func:`CeedElemRestrictionCreateStrided` and
-  :cpp:func:`CeedElemRestrictionCreateBlockedStrided`.
-* Add arguments to :cpp:func:`CeedQFunctionCreateIdentity`.
+  :c:func:`CeedElemRestrictionCreateStrided` and
+  :c:func:`CeedElemRestrictionCreateBlockedStrided`.
+* Add arguments to :c:func:`CeedQFunctionCreateIdentity`.
 * Replace ambiguous uses of :cpp:enum:`CeedTransposeMode` for L-vector identification
   with :cpp:enum:`CeedInterlaceMode`.  This is now an attribute of the
-  :cpp:type:`CeedElemRestriction` (see :cpp:func:`CeedElemRestrictionCreate`) and no
-  longer passed as ``lmode`` arguments to :cpp:func:`CeedOperatorSetField` and
-  :cpp:func:`CeedElemRestrictionApply`.
+  :cpp:type:`CeedElemRestriction` (see :c:func:`CeedElemRestrictionCreate`) and no
+  longer passed as ``lmode`` arguments to :c:func:`CeedOperatorSetField` and
+  :c:func:`CeedElemRestrictionApply`.
 
 Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -542,4 +568,3 @@ Examples available in this release:
 +-------------------------+-----------------------------------+
 | ``petsc``               | BP1 (scalar mass operator)        |
 +-------------------------+-----------------------------------+
-

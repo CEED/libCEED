@@ -14,7 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <string.h>
 
 //------------------------------------------------------------------------------
@@ -25,30 +26,31 @@ static int CeedInit_Tmpl(const char *resource, Ceed ceed) {
   if (strcmp(resource, "/cpu/self")
       && strcmp(resource, "/cpu/self/tmpl/sub"))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Tmpl backend cannot use resource: %s", resource);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Tmpl backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
-  Ceed ceedref;
-  CeedInit("/cpu/self/ref/blocked", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  Ceed ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   // Create reference CEED for objects
-  Ceed basisceedref;
-  CeedInit("/cpu/self/ref/blocked", &basisceedref);
-  ierr = CeedSetObjectDelegate(ceed, basisceedref, "Basis");
-  CeedChk(ierr);
-  Ceed tensorceedref;
-  CeedInit("/cpu/self/ref/blocked", &tensorceedref);
-  ierr = CeedSetObjectDelegate(ceed, tensorceedref, "TensorContract");
-  CeedChk(ierr);
-  Ceed opceedref;
-  CeedInit("/cpu/self/ref/blocked", &opceedref);
-  ierr = CeedSetObjectDelegate(ceed, opceedref, "Operator");
-  CeedChk(ierr);
+  Ceed basis_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &basis_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, basis_ceed_ref, "Basis");
+  CeedChkBackend(ierr);
+  Ceed tensor_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &tensor_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, tensor_ceed_ref, "TensorContract");
+  CeedChkBackend(ierr);
+  Ceed op_ceed_ref;
+  CeedInit("/cpu/self/ref/blocked", &op_ceed_ref);
+  ierr = CeedSetObjectDelegate(ceed, op_ceed_ref, "Operator");
+  CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

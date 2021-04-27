@@ -14,10 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-backend.h>
-#include <string.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <sstream>
 #include <stdarg.h>
+#include <string.h>
 #include <hip/hiprtc.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
@@ -26,7 +27,7 @@
 do { \
   hiprtcResult result = static_cast<hiprtcResult>(x); \
   if (result != HIPRTC_SUCCESS) \
-    return CeedError((ceed), x, hiprtcGetErrorString(result)); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, hiprtcGetErrorString(result)); \
 } while (0)
 
 //------------------------------------------------------------------------------
@@ -61,13 +62,15 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   }
 
   // Standard backend options
-  code << "#define CeedScalar double\n#define CeedInt int\n\n";
+  code << "#define CeedScalar double\n";
+  code << "#define CeedInt int\n";
+  code << "#define CEED_ERROR_SUCCESS 0\n\n";
  
   // Non-macro options     
   opts[0] = "-default-device";
   struct hipDeviceProp_t prop;
   Ceed_Hip *ceed_data;
-  ierr = CeedGetData(ceed, (void **)&ceed_data); CeedChk(ierr);
+  ierr = CeedGetData(ceed, (void **)&ceed_data); CeedChkBackend(ierr);
   CeedChk_Hip(ceed, hipGetDeviceProperties(&prop, ceed_data->deviceId));
   char buff[optslen];
   std::string gfxName = "gfx" + std::to_string(prop.gcnArch);
@@ -87,22 +90,22 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
     size_t logsize;
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &logsize));
     char *log;
-    ierr = CeedMalloc(logsize, &log); CeedChk(ierr);
+    ierr = CeedMalloc(logsize, &log); CeedChkBackend(ierr);
     CeedChk_hiprtc(ceed, hiprtcGetProgramLog(prog, log));
-    return CeedError(ceed, (int)result, "%s\n%s", hiprtcGetErrorString(result), log);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
   }
 
   size_t ptxsize;
   CeedChk_hiprtc(ceed, hiprtcGetCodeSize(prog, &ptxsize));
   char *ptx;
-  ierr = CeedMalloc(ptxsize, &ptx); CeedChk(ierr);
+  ierr = CeedMalloc(ptxsize, &ptx); CeedChkBackend(ierr);
   CeedChk_hiprtc(ceed, hiprtcGetCode(prog, ptx));
   CeedChk_hiprtc(ceed, hiprtcDestroyProgram(&prog));
 
   CeedChk_Hip(ceed, hipModuleLoadData(module, ptx));
-  ierr = CeedFree(&ptx); CeedChk(ierr);
+  ierr = CeedFree(&ptx); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -112,7 +115,7 @@ int CeedGetKernelHip(Ceed ceed, hipModule_t module, const char *name,
                       hipFunction_t *kernel) {
 
   CeedChk_Hip(ceed, hipModuleGetFunction(kernel, module, name));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -122,7 +125,7 @@ int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel, const int gridSize,
                       const int blockSize, void **args) {
   CeedChk_Hip(ceed, hipModuleLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
                                   1, 0, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -134,11 +137,11 @@ int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, const int gridSize,
   CeedChk_Hip(ceed, hipModuleLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
                                   0, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
-// Run HIP kernel for spatial dimension with sharde memory
+// Run HIP kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
 int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int gridSize,
                                const int blockSizeX, const int blockSizeY,
@@ -147,5 +150,5 @@ int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int gridSiz
   CeedChk_Hip(ceed, hipModuleLaunchKernel(kernel, gridSize, 1, 1,
                                   blockSizeX, blockSizeY, blockSizeZ,
                                   sharedMemSize, NULL, args, NULL));
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

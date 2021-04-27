@@ -6,7 +6,7 @@ authors = [
 ]
 build = "build.rs"
 name = "libceed"
-version = "0.7.0"
+version = "0.8.0"
 links = "libceed"
 edition = "2018"
 
@@ -21,3 +21,6 @@ system = []
 [build-dependencies]
 bindgen = "*"
 pkg-config = "0.3.19"
+
+[dev-dependencies]
+version-sync = "*"
