@@ -248,8 +248,7 @@ def test_121(ceed_resource, capsys):
 
     y.axpy(-0.5, x)
     with y.array() as b:
-        for i in range(len(b)):
-            assert abs(b[i] - (10 + i) / 2) < 1e-14
+        assert np.allclose(.5 * a, b)
 
 # -------------------------------------------------------------------------------
 # Test pointwise multiplication
@@ -305,8 +304,7 @@ def test_123(ceed_resource, capsys):
 
     x.scale(-0.5)
     with x.array() as b:
-        for i in range(len(b)):
-            assert abs(b[i] + (10 + i) / 2) < 1e-14
+        assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array
