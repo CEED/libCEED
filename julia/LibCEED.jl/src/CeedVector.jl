@@ -55,18 +55,18 @@ Base.size(v::CeedVector) = (length(Int, v),)
 Base.length(v::CeedVector) = length(Int, v)
 
 """
-    setvalue!(v::CeedVector, val::CeedScalar)
+    setvalue!(v::CeedVector, val::Real)
 
 Set the [`CeedVector`](@ref) to a constant value.
 """
-setvalue!(v::CeedVector, val::CeedScalar) = C.CeedVectorSetValue(v[], val)
+setvalue!(v::CeedVector, val::Real) = C.CeedVectorSetValue(v[], val)
 """
-    setindex!(v::CeedVector, val::CeedScalar)
+    setindex!(v::CeedVector, val::Real)
     v[] = val
 
 Set the [`CeedVector`](@ref) to a constant value, synonymous to [`setvalue!`](@ref).
 """
-Base.setindex!(v::CeedVector, val::CeedScalar) = setvalue!(v, val)
+Base.setindex!(v::CeedVector, val::Real) = setvalue!(v, val)
 
 """
     norm(v::CeedVector, ntype::NormType)
