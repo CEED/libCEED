@@ -349,6 +349,123 @@ impl<'a> Vector<'a> {
         self.ceed.check_error(ierr)?;
         Ok(res)
     }
+
+    /// Compute x = alpha x for a CeedVector
+    ///
+    /// # arguments
+    ///
+    /// * `alpha` - scaling factor
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    ///
+    /// vec = vec.scale(-1.0).unwrap();
+    /// vec.view().iter().enumerate().for_each(|(i, &v)| {
+    ///     assert_eq!(v, -(i as f64), "Value not set correctly");
+    /// });
+    /// ```
+    #[allow(unused_mut)]
+    pub fn scale(mut self, alpha: f64) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) };
+        self.ceed.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Compute y = alpha x + y for a pair of CeedVectors
+    ///
+    /// # arguments
+    ///
+    /// * `alpha` - scaling factor
+    /// * `x`     - second vector, must be different than self
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    ///
+    /// y = y.axpy(-0.5, &x).unwrap();
+    /// y.view().iter().enumerate().for_each(|(i, &v)| {
+    ///     assert_eq!(v, (i as f64) / 2.0, "Value not set correctly");
+    /// });
+    /// ```
+    #[allow(unused_mut)]
+    pub fn axpy(mut self, alpha: f64, x: &crate::Vector) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
+        self.ceed.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Compute the pointwise multiplication w = x .* y for CeedVectors
+    ///
+    /// # arguments
+    ///
+    /// * `x` - first vector for product
+    /// * `y` - second vector for product
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    ///
+    /// w = w.pointwise_mult(&x, &y).unwrap();
+    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    /// });
+    /// ```
+    #[allow(unused_mut)]
+    pub fn pointwise_mult(mut self, x: &crate::Vector, y: &crate::Vector) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) };
+        self.ceed.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Compute the pointwise multiplication w = w .* x for CeedVectors
+    ///
+    /// # arguments
+    ///
+    /// * `x` - second vector for product
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    ///
+    /// w = w.pointwise_scale(&x).unwrap();
+    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    /// });
+    /// ```
+    #[allow(unused_mut)]
+    pub fn pointwise_scale(mut self, x: &crate::Vector) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) };
+        self.ceed.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Compute the pointwise multiplication w = w .* w for a CeedVector
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    ///
+    /// w = w.pointwise_square().unwrap();
+    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    /// });
+    /// ```
+    #[allow(unused_mut)]
+    pub fn pointwise_square(mut self) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, self.ptr) };
+        self.ceed.check_error(ierr)?;
+        Ok(self)
+    }
 }
 
 // -----------------------------------------------------------------------------
