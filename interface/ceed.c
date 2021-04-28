@@ -497,7 +497,8 @@ int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
 /**
   @brief Flag Ceed context as deterministic
 
-  @param ceed  Ceed to flag as deterministic
+  @param ceed                   Ceed to flag as deterministic
+  @param[out] is_deterministic  Deterministic status to set
 
   @return An error code: 0 - success, otherwise - failure
 
