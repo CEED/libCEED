@@ -152,7 +152,7 @@ namespace ceed {
 
     int QFunctionContext::takeData(CeedMemType mtype,
                                   void *data) {
-      if (hostBuffer == NULL && memory == ::occa::null)
+      if (currentHostBuffer == NULL && currentMemory == ::occa::null)
         return ceedError("No context data set");
       switch (mtype) {
         case CEED_MEM_HOST:
@@ -184,7 +184,7 @@ namespace ceed {
     int QFunctionContext::getData(CeedMemType mtype,
                                   void *data) {
       // The passed `data` might be modified before restoring
-      if (hostBuffer == NULL && memory == ::occa::null)
+      if (currentHostBuffer == NULL && currentMemory == ::occa::null)
         return ceedError("No context data set");
       switch (mtype) {
         case CEED_MEM_HOST:
