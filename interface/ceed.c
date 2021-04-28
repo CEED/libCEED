@@ -789,6 +789,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunction, SetHIPUserFunction),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, SetData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, TakeData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),

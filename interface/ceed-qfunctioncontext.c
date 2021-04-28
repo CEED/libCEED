@@ -197,6 +197,7 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
   @param ctx        CeedQFunctionContext
   @param mem_type   Memory type of the data being passed
   @param copy_mode  Copy mode for the data
+  @param size       Size of data, in bytes
   @param data       Data to be used
 
   @return An error code: 0 - success, otherwise - failure
@@ -224,6 +225,42 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type,
   ctx->ctx_size = size;
   ierr = ctx->SetData(ctx, mem_type, copy_mode, data); CeedChk(ierr);
   ctx->state += 2;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Take ownership of the data in a CeedQFunctionContext via the specified memory type.
+           The caller is responsible for managing and freeing the memory.
+
+  @param ctx        CeedQFunctionContext to access
+  @param mem_type   Memory type on which to access the data. If the backend
+                      uses a different memory type, this will perform a copy.
+  @param[out] data  Data on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
+                                 void *data) {
+  int ierr;
+
+  if (!ctx->TakeData)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support TakeData");
+  // LCOV_EXCL_STOP
+
+  if (ctx->state % 2 == 1)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Cannot grant CeedQFunctionContext data access, the "
+                     "access lock is already in use");
+  // LCOV_EXCL_STOP
+
+  void *temp_data = NULL;
+  ierr = ctx->TakeData(ctx, mem_type, &temp_data); CeedChk(ierr);
+  if (data) (*(void **)data) = temp_data;
   return CEED_ERROR_SUCCESS;
 }
 

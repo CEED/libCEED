@@ -150,9 +150,42 @@ namespace ceed {
       return ceedError("Invalid CeedMemType passed");
     }
 
+    int QFunctionContext::takeData(CeedMemType mtype,
+                                  void *data) {
+      if (hostBuffer == NULL && memory == ::occa::null)
+        return ceedError("No context data set");
+      switch (mtype) {
+        case CEED_MEM_HOST:
+          setCurrentHostCtxBufferIfNeeded();
+          if (syncState == SyncState::device) {
+            setCurrentCtxMemoryIfNeeded();
+            currentMemory.copyTo(currentHostBuffer);
+          }
+          syncState = SyncState::host;
+          *(void **)data = currentHostBuffer;
+          hostBuffer = NULL;
+          currentHostBuffer = NULL;
+          return CEED_ERROR_SUCCESS;
+        case CEED_MEM_DEVICE:
+          setCurrentCtxMemoryIfNeeded();
+          if (syncState == SyncState::host) {
+            setCurrentHostCtxBufferIfNeeded();
+            currentMemory.copyFrom(currentHostBuffer);
+          }
+          syncState = SyncState::device;
+          *(void **)data = memoryToData(currentMemory);
+          memory = ::occa::null;
+          currentMemory = ::occa::null;
+          return CEED_ERROR_SUCCESS;
+      }
+      return ceedError("Invalid CeedMemType passed");
+    }
+
     int QFunctionContext::getData(CeedMemType mtype,
                                   void *data) {
       // The passed `data` might be modified before restoring
+      if (hostBuffer == NULL && memory == ::occa::null)
+        return ceedError("No context data set");
       switch (mtype) {
         case CEED_MEM_HOST:
           setCurrentHostCtxBufferIfNeeded();
@@ -203,6 +236,7 @@ namespace ceed {
       ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
       CeedOccaRegisterFunction(ctx, "SetData", QFunctionContext::ceedSetData);
+      CeedOccaRegisterFunction(ctx, "TakeData", QFunctionContext::ceedTakeData);
       CeedOccaRegisterFunction(ctx, "GetData", QFunctionContext::ceedGetData);
       CeedOccaRegisterFunction(ctx, "RestoreData", QFunctionContext::ceedRestoreData);
       CeedOccaRegisterFunction(ctx, "Destroy", QFunctionContext::ceedDestroy);
@@ -220,6 +254,15 @@ namespace ceed {
         return staticCeedError("Invalid CeedQFunctionContext passed");
       }
       return ctx_->setData(mtype, cmode, data);
+    }
+
+    int QFunctionContext::ceedTakeData(CeedQFunctionContext ctx, CeedMemType mtype,
+                                      void *data) {
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->takeData(mtype, data);
     }
 
     int QFunctionContext::ceedGetData(CeedQFunctionContext ctx, CeedMemType mtype,
