@@ -1255,7 +1255,6 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
     tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-
     for (CeedInt j=i+1; j<m; j++)
       v[j] /= v[i];
 
@@ -1314,17 +1313,11 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    if (sigma > 10*CEED_EPSILON)
-      tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    else
-      tau[i] = 0;
-
+    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
     for (CeedInt j=i+1; j<n-1; j++)
       v[j] /= v[i];
 
     // Update sub and super diagonal
-    matT[i+n*(i+1)] = Rii;
-    matT[(i+1)+n*i] = Rii;
     for (CeedInt j=i+2; j<n; j++) {
       matT[i+n*j] = 0; matT[j+n*i] = 0;
     }
@@ -1334,6 +1327,8 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     CeedHouseholderReflect(&matT[(i+1)+n*(i+1)], &v[i], tau[i],
                            n-(i+1), n-(i+1), 1, n);
     // Save v
+    matT[i+n*(i+1)] = Rii;
+    matT[(i+1)+n*i] = Rii;
     for (CeedInt j=i+1; j<n-1; j++) {
       matT[i+n*(j+1)] = v[j];
     }
@@ -1350,7 +1345,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   }
 
   // Reduce sub and super diagonal
-  CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n;
+  CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n*n;
   CeedScalar tol = 10*CEED_EPSILON;
 
   while (q < n && itr < maxitr) {

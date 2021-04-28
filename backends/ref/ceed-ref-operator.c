@@ -909,7 +909,7 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
   ierr = CeedBasisGetGrad(basis_out, &grad_out); CeedChkBackend(ierr);
   // Compute the diagonal of B^T D B
   // Each element
-  const CeedScalar qf_value_bound = max_norm*1e-12;
+  const CeedScalar qf_value_bound = max_norm*(100*CEED_EPSILON);
   for (CeedInt e=0; e<num_elem; e++) {
     CeedInt d_out = -1;
     // Each basis eval mode pair
@@ -1153,7 +1153,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
     CeedInt elem_offset = e*num_qpts*num_comp*num_comp*num_modes*num_modes;
     for (CeedInt q=0; q<num_qpts; q++)
       for (CeedInt i=0; i<num_comp*num_comp*num_modes*num_modes; i++)
-        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > max_norm*1e-12) {
+        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > max_norm*
+            (100*CEED_EPSILON)) {
           elem_avg[e] += assembled_array[elem_offset + i*num_qpts + q] /
                          q_weight_array[q];
           count++;
@@ -1194,7 +1195,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   for (CeedInt e=0; e<num_elem; e++)
     for (CeedInt c=0; c<num_comp; c++)
       for (CeedInt n=0; n<elem_size; n++)
-        if (fabs(elem_avg[e] * fdm_diagonal[c*elem_size + n]) > 1e-14)
+        if (fabs(elem_avg[e] * fdm_diagonal[c*elem_size + n]) > 10*CEED_EPSILON)
           q_data_array[(e*num_comp+c)*elem_size+n] = 1 / (elem_avg[e] *
               fdm_diagonal[c*elem_size + n]);
   ierr = CeedFree(&elem_avg); CeedChkBackend(ierr);
