@@ -23,13 +23,8 @@ int main(int argc, char **argv) {
     printf("error modifying data: %f != 6.0\n", ctxData[4]);
   // LCOV_EXCL_STOP
 
-  // Verify that taking the data revokes access
   CeedQFunctionContextTakeData(ctx, CEED_MEM_HOST, &ctxDataCopy);
-  CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxDataCopy);
-
-  // LCOV_EXCL_START
   CeedQFunctionContextDestroy(&ctx);
   CeedDestroy(&ceed);
   return 0;
-  // LCOV_EXCL_STOP
 }

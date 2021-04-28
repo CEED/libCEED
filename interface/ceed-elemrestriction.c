@@ -919,9 +919,11 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
 
   if (!*rstr || --(*rstr)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*rstr)->num_readers)
+    // LCOV_EXCL_START
     return CeedError((*rstr)->ceed, CEED_ERROR_ACCESS,
                      "Cannot destroy CeedElemRestriction, "
                      "a process has read access to the offset data");
+  // LCOV_EXCL_STOP
   if ((*rstr)->Destroy) {
     ierr = (*rstr)->Destroy(*rstr); CeedChk(ierr);
   }

@@ -138,13 +138,19 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *field_name,
 static int CeedQFunctionFieldView(CeedQFunctionField field,
                                   CeedInt field_number,
                                   bool in, FILE *stream) {
+  int ierr;
   const char *inout = in ? "Input" : "Output";
+  char *field_name;
+  ierr = CeedQFunctionFieldGetName(field, &field_name); CeedChk(ierr);
+  CeedInt size;
+  ierr = CeedQFunctionFieldGetSize(field, &size); CeedChk(ierr);
+  CeedEvalMode eval_mode;
+  ierr = CeedQFunctionFieldGetEvalMode(field, &eval_mode); CeedChk(ierr);
   fprintf(stream, "    %s Field [%d]:\n"
           "      Name: \"%s\"\n"
           "      Size: %d\n"
           "      EvalMode: \"%s\"\n",
-          inout, field_number, field->field_name, field->size,
-          CeedEvalModes[field->eval_mode]);
+          inout, field_number, field_name, size, CeedEvalModes[eval_mode]);
   return CEED_ERROR_SUCCESS;
 }
 
