@@ -115,12 +115,12 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass test t215 on error
-    if grep -F -q -e 'access' ${output}.err \
-            && [[ "$1" = "t215"* ]] ; then
-        printf "ok $i0 PASS - expected failure $1 $backend\n"
-        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
-        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+    # grep to skip test if Device memory is not supported
+    if grep -F -q -e 'Can only provide to HOST memory' \
+            ${output}.err ; then
+        printf "ok $i0 # SKIP - not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
         continue
     fi
 
@@ -151,6 +151,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to pass test t215 on error
+    if grep -F -q -e 'access' ${output}.err \
+            && [[ "$1" = "t215"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
     # grep to pass test t303 on error
     if grep -F -q -e 'vectors incompatible' ${output}.err \
             && [[ "$1" = "t303"* ]] ; then
@@ -160,27 +169,27 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip test if Device memory is not supported
-    if grep -F -q -e 'Can only provide to HOST memory' \
-            ${output}.err ; then
-        printf "ok $i0 # SKIP - not supported $1 $backend\n"
-        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
-        continue
-    fi
-
-    # grep to skip t506 for MAGMA, range of basis kernels limited for now
-    if [[ "$backend" = *magma* ]] \
-            && [[ "$1" = t506* ]] ; then
+    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
+    if [[ "$backend" = *magma* || "$backend" = *cuda/ref ]] \
+            && [[ "$1" = t318* ]] ; then
         printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
         printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
         printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
         continue
     fi
 
-    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
-    if [[ "$backend" = *magma* || "$backend" = *cuda/ref ]] \
-            && [[ "$1" = t318* ]] ; then
+    # grep to pass test t404 on error
+    if grep -F -q -e 'No context data set' ${output}.err \
+            && [[ "$1" = "t404"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to skip t506 for MAGMA, range of basis kernels limited for now
+    if [[ "$backend" = *magma* ]] \
+            && [[ "$1" = t506* ]] ; then
         printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
         printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
         printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"

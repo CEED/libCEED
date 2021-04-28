@@ -321,6 +321,7 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
+CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);
 CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
 CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
@@ -579,9 +580,10 @@ CEED_EXTERN int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
     CeedQFunctionContext *ctx_copy);
 CEED_EXTERN int CeedQFunctionContextSetData(CeedQFunctionContext ctx,
     CeedMemType mem_type, CeedCopyMode copy_mode, size_t size, void *data);
+CEED_EXTERN int CeedQFunctionContextTakeData(CeedQFunctionContext ctx,
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
-    CeedMemType mem_type,
-    void *data);
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,

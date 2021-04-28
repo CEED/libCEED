@@ -15,4 +15,7 @@ witharray_read
 setarray!
 syncarray!
 takearray!
+scale!
+LinearAlgebra.axpy!(a::Real, x::CeedVector, y::CeedVector)
+pointwisemult!
 ```

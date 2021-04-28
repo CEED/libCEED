@@ -451,6 +451,57 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
+// Compute x = alpha x on the host
+//------------------------------------------------------------------------------
+static int CeedHostScale_Cuda(CeedScalar *x_array, CeedScalar alpha,
+                              CeedInt length) {
+  for (int i = 0; i < length; i++)
+    x_array[i] *= alpha;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute x = alpha x on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha,
+                         CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute x = alpha x
+//------------------------------------------------------------------------------
+static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(x, &ceed); CeedChkBackend(ierr);
+  CeedVector_Cuda *x_data;
+  ierr = CeedVectorGetData(x, &x_data); CeedChkBackend(ierr);
+  CeedInt length;
+  ierr = CeedVectorGetLength(x, &length); CeedChkBackend(ierr);
+
+  // Set value for synced device/host array
+  switch(x_data->memState) {
+  case CEED_CUDA_HOST_SYNC:
+    ierr = CeedHostScale_Cuda(x_data->h_array, alpha, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_DEVICE_SYNC:
+    ierr = CeedDeviceScale_Cuda(x_data->d_array, alpha, length);
+    CeedChkBackend(ierr);
+    break;
+  case CEED_CUDA_BOTH_SYNC:
+    ierr = CeedDeviceScale_Cuda(x_data->d_array, alpha, length);
+    CeedChkBackend(ierr);
+    x_data->memState = CEED_CUDA_DEVICE_SYNC;
+    break;
+  // LCOV_EXCL_START
+  case CEED_CUDA_NONE_SYNC:
+    break; // Not possible, but included for completness
+    // LCOV_EXCL_STOP
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha,
@@ -617,6 +668,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorReciprocal_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "AXPY",
                                 CeedVectorAXPY_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Scale",
+                                CeedVectorScale_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult",
                                 CeedVectorPointwiseMult_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",

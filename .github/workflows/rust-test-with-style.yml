@@ -48,8 +48,10 @@ jobs:
     - name: Rust setup
       uses: actions-rs/toolchain@v1
       with:
-        # Note: rustfmt not always included in nightly
-        toolchain: stable
+        # Note: rustfmt not always included in nightly, will attempt to downgrade until rustfmt found
+        toolchain: nightly
+        components: rustfmt
     - name: Rust style
       run: |
-        cargo fmt -- --check
+        cargo +nightly fmt --version
+        cargo +nightly fmt -- --check
