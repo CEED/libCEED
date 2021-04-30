@@ -95,20 +95,9 @@ int main(int argc, char **argv) {
   num_levels = app_ctx->num_levels;
   fine_level = num_levels - 1;
 
-  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-
-  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR || ELAS_FSInitial_MR1){
-    // -- Set Mooney-Rivlin parameters
-    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
-    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
-    // if (fabs(app_ctx->nuSmoother) > 1E-14) {
-    //   ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
-    //   ierr = PetscMemcpy(phys_smoother, phys_MR, sizeof(*phys_MR)); CHKERRQ(ierr);
-    //   phys_smoother->nu = app_ctx->nuSmoother;
-    //}
-  }
-  else{
+  if (app_ctx->problem_choice != ELAS_FSInitial_MR1){
     // -- Set Poison's ratio, Young's Modulus
+    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
     ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
     if (fabs(app_ctx->nu_smoother) > 1E-14) {
@@ -117,7 +106,12 @@ int main(int argc, char **argv) {
       phys_smoother->nu = app_ctx->nu_smoother;
     }
   }
-
+  else{
+    // -- Set Mooney-Rivlin parameters
+    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
+    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+  }
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
@@ -130,14 +124,37 @@ int main(int argc, char **argv) {
 
   // Wrap context in libCEED objects
   CeedQFunctionContextCreate(ceed, &ctx_phys); //TO-DO -> update for other models. 
-  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR || ELAS_FSInitial_MR1){
+  switch (app_ctx->problem_choice){
+  case ELAS_LINEAR:
     CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof(*phys_MR), phys_MR);
-  }
-  else{
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_SS_NH:
     CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof(*phys), phys);
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_MR1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys_MR), phys_MR);
+    break;
   }
+
   if (phys_smoother) {
     CeedQFunctionContextCreate(ceed, &ctx_phys_smoother);
     CeedQFunctionContextSetData(ctx_phys_smoother, CEED_MEM_HOST, CEED_USE_POINTER,
