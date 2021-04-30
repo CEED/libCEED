@@ -9,7 +9,7 @@ noether-rocm:
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -29,16 +29,18 @@ noether-rocm:
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-#    Note: These tests don't run in ' make junit realsearch=%' until PETSC_DIR set
-#          PETSC_DIR is not set by default in GitLab runner env
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search="petsc fluids solids"
