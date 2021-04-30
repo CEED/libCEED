@@ -5,7 +5,7 @@ Historically, conventional high-order finite element methods were rarely used fo
 industrial problems because the Jacobian rapidly loses sparsity as the order is
 increased, leading to unaffordable solve times and memory requirements
 :cite:`brown2010`. This effect typically limited the order of accuracy to at most
-quadratic, especially because they are computationally advantageous in terms of
+quadratic, especially because quadratic finite element formulations are computationally advantageous in terms of
 floating point operations (FLOPS) per degree of freedom (DOF)---see
 :numref:`fig-assembledVsmatrix-free`---, despite the fast convergence and favorable
 stability properties offered by higher order discretizations. Nowadays, high-order
