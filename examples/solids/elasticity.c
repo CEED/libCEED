@@ -47,15 +47,10 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         app_ctx;                  // Contains problem options
-<<<<<<< HEAD
   Physics        phys =
     NULL;              // Contains physical constants - Neo Hookean
   Physics_MR     phys_MR =
     NULL;           // Contains physical constants - Mooney-Rivlin
-=======
-  Physics        phys = NULL;              // Contains physical constants - Neo Hookean
-  Physics_MR     phys_MR = NULL;           // Contains physical constants - Mooney-Rivlin
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   //Physics_GP     phys_GP = NULL;           // Contains physical constants - Generalized Polynomial
   Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
   Units          units;                    // Contains units scaling
@@ -101,60 +96,24 @@ int main(int argc, char **argv) {
   num_levels = app_ctx->num_levels;
   fine_level = num_levels - 1;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   if ((app_ctx->problem_choice != ELAS_FSInitial_MR1) && (app_ctx->problem_choice != ELAS_FSInitial_MRc)) {
     // -- Set Poison's ratio, Young's Modulus
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
     ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
     CHKERRQ(ierr);
-=======
-  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-
-  if (app_ctx->problem_choice == ELAS_HYPER_FS_MR || ELAS_FSInitial_MR1){
-    // -- Set Mooney-Rivlin parameters
-    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
-    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
-    // if (fabs(app_ctx->nuSmoother) > 1E-14) {
-    //   ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
-    //   ierr = PetscMemcpy(phys_smoother, phys_MR, sizeof(*phys_MR)); CHKERRQ(ierr);
-    //   phys_smoother->nu = app_ctx->nuSmoother;
-    //}
-  }
-  else{
-=======
-  if (app_ctx->problem_choice != ELAS_FSInitial_MR1){
->>>>>>> fixed call option
-    // -- Set Poison's ratio, Young's Modulus
-    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
-    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
     if (fabs(app_ctx->nu_smoother) > 1E-14) {
       ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
       ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
       phys_smoother->nu = app_ctx->nu_smoother;
     }
-<<<<<<< HEAD
   } else {
     // -- Set Mooney-Rivlin parameters
     ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
     CHKERRQ(ierr);
-=======
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
   }
-<<<<<<< HEAD
-=======
-  else{
-    // -- Set Mooney-Rivlin parameters
-    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
-    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
-  }
->>>>>>> fixed call option
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
@@ -166,7 +125,6 @@ int main(int argc, char **argv) {
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   // Wrap context in libCEED objects
-<<<<<<< HEAD
   CeedQFunctionContextCreate(ceed, &ctx_phys);
   switch (app_ctx->problem_choice) {
   case ELAS_LINEAR:
@@ -203,43 +161,6 @@ int main(int argc, char **argv) {
     break;
   }
 
-=======
-  CeedQFunctionContextCreate(ceed, &ctx_phys); //TO-DO -> update for other models. 
-  switch (app_ctx->problem_choice){
-  case ELAS_LINEAR:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_SS_NH:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_NH1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_NH2:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSCurrent_NH1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSCurrent_NH2:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_MR1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys_MR), phys_MR);
-    break;
-  }
-<<<<<<< HEAD
->>>>>>> refactored MR to work with current version of main. Updated doc with dS for MR
-=======
-
->>>>>>> fixed call option
   if (phys_smoother) {
     CeedQFunctionContextCreate(ceed, &ctx_phys_smoother);
     CeedQFunctionContextSetData(ctx_phys_smoother, CEED_MEM_HOST, CEED_USE_POINTER,
