@@ -764,6 +764,20 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedElemRestriction Erestrict;
   CeedElemRestriction_Hip *restr_data;
 
+  // Check for restriction only identity operator
+  bool is_identity_qf;
+  ierr = CeedQFunctionIsIdentity(qf, &is_identity_qf); CeedChkBackend(ierr);
+  if (is_identity_qf) {
+    CeedEvalMode emodein, emodeout;
+    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[0], &emodein);  CeedChkBackend(ierr);
+    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[0], &emodeout);  CeedChkBackend(ierr);
+    if (emodein == CEED_EVAL_NONE && emodeout == CEED_EVAL_NONE)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Backend does not implement restriction only identity operators");
+    // LCOV_EXCL_STOP
+  }
+
   ostringstream code;
   string devFunctions(deviceFunctions);
   code << devFunctions;

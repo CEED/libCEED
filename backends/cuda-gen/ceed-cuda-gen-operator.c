@@ -59,7 +59,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   CeedEvalMode emode;
   CeedVector vec, outvecs[16] = {};
 
-  //Creation of the operator
+  // Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChkBackend(ierr);
 
   // Input vectors

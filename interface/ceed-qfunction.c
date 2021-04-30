@@ -563,13 +563,6 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
                                 CeedEvalMode out_mode, CeedQFunction *qf) {
   int ierr;
 
-  if (in_mode == CEED_EVAL_NONE && out_mode == CEED_EVAL_NONE)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "CEED_EVAL_NONE for a both the input and "
-                     "output does not make sense with an identity QFunction");
-  // LCOV_EXCL_STOP
-
   ierr = CeedQFunctionCreateInteriorByName(ceed, "Identity", qf); CeedChk(ierr);
   ierr = CeedQFunctionAddInput(*qf, "input", size, in_mode); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(*qf, "output", size, out_mode); CeedChk(ierr);

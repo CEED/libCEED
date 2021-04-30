@@ -111,7 +111,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedInt Q, num_input_fields, num_output_fields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
-  ierr = CeedQFunctionIsIdentity(qf, &impl->identity_qf); CeedChkBackend(ierr);
+  ierr = CeedQFunctionIsIdentity(qf, &impl->is_identity_qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
   CeedChkBackend(ierr);
   CeedOperatorField *op_input_fields, *op_output_fields;
@@ -149,21 +149,22 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   CeedChkBackend(ierr);
 
   // Identity QFunctions
-  if (impl->identity_qf) {
+  if (impl->is_identity_qf) {
     CeedEvalMode in_mode, out_mode;
     CeedQFunctionField *in_fields, *out_fields;
     ierr = CeedQFunctionGetFields(qf, &in_fields, &out_fields);
     CeedChkBackend(ierr);
+    ierr = CeedQFunctionFieldGetEvalMode(in_fields[0], &in_mode);
+    CeedChkBackend(ierr);
+    ierr = CeedQFunctionFieldGetEvalMode(out_fields[0], &out_mode);
+    CeedChkBackend(ierr);
 
-    for (CeedInt i=0; i<num_input_fields; i++) {
-      ierr = CeedQFunctionFieldGetEvalMode(in_fields[i], &in_mode);
-      CeedChkBackend(ierr);
-      ierr = CeedQFunctionFieldGetEvalMode(out_fields[i], &out_mode);
-      CeedChkBackend(ierr);
-
-      ierr = CeedVectorDestroy(&impl->q_vecs_out[i]); CeedChkBackend(ierr);
-      impl->q_vecs_out[i] = impl->q_vecs_in[i];
-      ierr = CeedVectorAddReference(impl->q_vecs_in[i]); CeedChkBackend(ierr);
+    if (in_mode == CEED_EVAL_NONE && out_mode == CEED_EVAL_NONE) {
+      impl->is_identity_restr_op = true;
+    } else {
+      ierr = CeedVectorDestroy(&impl->q_vecs_out[0]); CeedChkBackend(ierr);
+      impl->q_vecs_out[0] = impl->q_vecs_in[0];
+      ierr = CeedVectorAddReference(impl->q_vecs_in[0]); CeedChkBackend(ierr);
     }
   }
 
@@ -425,6 +426,19 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec,
   // Setup
   ierr = CeedOperatorSetup_Ref(op); CeedChkBackend(ierr);
 
+  // Restriction only operator
+  if (impl->is_identity_restr_op) {
+    ierr = CeedOperatorFieldGetElemRestriction(op_input_fields[0], &elem_restr);
+    CeedChkBackend(ierr);
+    ierr = CeedElemRestrictionApply(elem_restr, CEED_NOTRANSPOSE, in_vec,
+                                    impl->e_vecs[0], request); CeedChkBackend(ierr);
+    ierr = CeedOperatorFieldGetElemRestriction(op_output_fields[0], &elem_restr);
+    CeedChkBackend(ierr);
+    ierr = CeedElemRestrictionApply(elem_restr, CEED_TRANSPOSE, impl->e_vecs[0],
+                                    out_vec, request); CeedChkBackend(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
+
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields,
                                      op_input_fields, in_vec, false, impl,
@@ -458,7 +472,7 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec,
     CeedChkBackend(ierr);
 
     // Q function
-    if (!impl->identity_qf) {
+    if (!impl->is_identity_qf) {
       ierr = CeedQFunctionApply(qf, Q, impl->q_vecs_in, impl->q_vecs_out);
       CeedChkBackend(ierr);
     }
@@ -532,7 +546,7 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
   ierr = CeedOperatorSetup_Ref(op); CeedChkBackend(ierr);
 
   // Check for identity
-  if (impl->identity_qf)
+  if (impl->is_identity_qf)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Assembling identity QFunctions not supported");
