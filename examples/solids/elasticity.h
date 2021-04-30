@@ -262,9 +262,8 @@ static inline CeedMemType MemTypeP2C(PetscMemType mem_type) {
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
-// Process physics options
-PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
-PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units);
+// Process physics options; fix this to be problem specific 
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx, Physics phys, Physics_MR phys_MR, Units units);
 
 // -----------------------------------------------------------------------------
 // Setup DM

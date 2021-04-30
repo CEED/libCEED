@@ -364,3 +364,17 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units)
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx, Physics phys, Physics_MR phys_MR, Units units){
+
+  if(app_ctx -> problem_choice == ELAS_FSInitial_MR1 || app_ctx -> problem_choice == ELAS_HYPER_FS_MR )
+    {
+      PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units);
+    }
+  else
+    {
+      PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
+    }
+
+    PetscFunctionReturn(0);
+};
