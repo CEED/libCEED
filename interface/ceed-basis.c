@@ -746,9 +746,11 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode,
                                     u_length%num_qpts != 0)) ||
       (t_mode == CEED_NOTRANSPOSE && (u_length%num_nodes != 0 ||
                                       v_length%num_qpts != 0)))
+    // LCOV_EXCL_START
     return CeedError(basis->ceed, CEED_ERROR_DIMENSION,
                      "Length of input/output vectors "
                      "incompatible with basis dimensions");
+  // LCOV_EXCL_STOP
 
   // Check vector lengths to prevent out of bounds issues
   bool bad_dims = false;

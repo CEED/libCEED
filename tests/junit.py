@@ -116,8 +116,6 @@ def run(test, backends):
                     check_required_failure(case, proc.stderr, 'Cannot destroy CeedElemRestriction, a process has read access to the offset data')
                 if test[:4] in 't303'.split():
                     check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
-                if test[:4] in 't404'.split():
-                    check_required_failure(case, proc.stderr, 'No context data set')
 
             if not case.is_skipped() and not case.status:
                 if proc.stderr:

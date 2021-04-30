@@ -178,15 +178,6 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass test t404 on error
-    if grep -F -q -e 'No context data set' ${output}.err \
-            && [[ "$1" = "t404"* ]] ; then
-        printf "ok $i0 PASS - expected failure $1 $backend\n"
-        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
-        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
-        continue
-    fi
-
     # grep to skip t506 for MAGMA, range of basis kernels limited for now
     if [[ "$backend" = *magma* ]] \
             && [[ "$1" = t506* ]] ; then
