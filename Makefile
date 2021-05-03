@@ -188,7 +188,8 @@ libceed_test.a := $(LIBDIR)/libceed_test.a
 libceed_test := $(if $(STATIC),$(libceed_test.a),$(libceed_test.so))
 libceeds = $(libceed) $(libceed_test)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
-BACKENDS := $(BACKENDS_BUILTIN)
+BACKENDS_MAKE := $(BACKENDS_BUILTIN)
+TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -260,7 +261,7 @@ quiet ?= $($(1))
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
 par:;@$(MAKE) $(MFLAGS) V=$(V) lib
-backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
+backend_status = $(if $(filter $1,$(BACKENDS_MAKE)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
 	$(info CC            = $(CC))
@@ -301,7 +302,10 @@ info:
 	@true
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
-.PHONY: lib all par info info-backends
+	@true
+info-backends-all:
+	$(info make: 'lib' with backends: $(filter-out $(TEST_BACKENDS),$(BACKENDS)))
+	@true
 
 $(libceed.so) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
 $(libceed_test) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed_test)))
@@ -313,7 +317,6 @@ libceed.c += $(opt.c)
 
 # Testing Backends
 test_backends.c := $(template.c)
-TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
@@ -322,7 +325,7 @@ MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += $(MEMCHK_BACKENDS)
+  BACKENDS_MAKE += $(MEMCHK_BACKENDS)
 endif
 
 # AVX Backed
@@ -333,7 +336,7 @@ AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += $(AVX_BACKENDS)
+  BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config
@@ -358,7 +361,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
-  BACKENDS += $(XSMM_BACKENDS)
+  BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
 # OCCA Backends
@@ -374,7 +377,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
   LIBCEED_CONTAINS_CXX = 1
   libceed.cpp += $(occa.cpp)
-  BACKENDS += $(OCCA_BACKENDS)
+  BACKENDS_MAKE += $(OCCA_BACKENDS)
 endif
 
 # CUDA Backends
@@ -386,11 +389,11 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   LIBCEED_CONTAINS_CXX = 1
-  libceed.c   += interface/ceed-cuda.c
-  libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
-  BACKENDS    += $(CUDA_BACKENDS)
+  libceed.c     += interface/ceed-cuda.c
+  libceed.c     += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp   += $(cuda.cpp) $(cuda-gen.cpp)
+  libceed.cu    += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
 
 # HIP Backends
@@ -405,11 +408,11 @@ ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
-  libceed.c   += interface/ceed-hip.c
-  libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
-  libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip += $(hip.hip)
-  BACKENDS    += $(HIP_BACKENDS)
+  libceed.c     += interface/ceed-hip.c
+  libceed.c     += $(hip.c) $(hip-shared.c) $(hip-gen.c)
+  libceed.cpp   += $(hip.cpp) $(hip-gen.cpp)
+  libceed.hip   += $(hip.hip)
+  BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 
 # MAGMA Backend
@@ -449,11 +452,14 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   endif
   LIBCEED_CONTAINS_CXX = 1
-  BACKENDS += $(MAGMA_BACKENDS)
+  BACKENDS_MAKE += $(MAGMA_BACKENDS)
 endif
 
-BACKENDS ?=
-export BACKENDS
+BACKENDS_ENV ?= BACKENDS
+ifneq ($(BACKENDS_ENV),)
+  BACKENDS = $(BACKENDS_MAKE)
+  export BACKENDS
+endif
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
@@ -550,7 +556,7 @@ $(tests) : $(libceed_test)
 $(tests) : CEED_LIBS = -lceed_test
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
-run-t% : BACKENDS += $(TEST_BACKENDS)
+run-t% : BACKENDS_MAKE += $(TEST_BACKENDS)
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 
@@ -582,7 +588,7 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
-prove : BACKENDS += $(TEST_BACKENDS)
+prove : BACKENDS_MAKE += $(TEST_BACKENDS)
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
@@ -592,7 +598,7 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 prove-all :
 	+$(MAKE) prove realsearch=%
 
-junit-t% : BACKENDS = $(BACKENDS) $(TEST_BACKENDS)
+junit-t% : BACKENDS_MAKE += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
@@ -611,7 +617,7 @@ allbenchmarks = petsc-bps
 bench_targets = $(addprefix bench-,$(allbenchmarks))
 .PHONY: $(bench_targets) benchmarks
 $(bench_targets): bench-%: $(OBJDIR)/%
-	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS_MAKE)" -r $(*).sh
 benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
@@ -640,7 +646,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 
-.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends
+.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
