@@ -519,7 +519,7 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
-	mv examples/mfem/$* $@
+	cp examples/mfem/$* $@
 
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
 #       this single Nek bps file to be built in parallel with other examples,
@@ -532,17 +532,17 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 $(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/petsc/$* $@
+	cp examples/petsc/$* $@
 
 $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/fluids/$* $@
+	cp examples/fluids/$* $@
 
 $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/solids/$* $@
+	cp examples/solids/$* $@
 
 libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
 $(libceed_test.so) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
