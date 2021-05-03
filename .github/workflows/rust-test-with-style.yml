@@ -27,7 +27,6 @@ jobs:
         CC: ${{ matrix.compiler }}
         FC: gfortran-9
       with:
-        version: '0.16.0'
         args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/*'
     - name: Codecov upload
       uses: codecov/codecov-action@v1.0.2
