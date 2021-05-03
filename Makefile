@@ -452,6 +452,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   BACKENDS += $(MAGMA_BACKENDS)
 endif
 
+BACKENDS ?=
 export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
@@ -591,7 +592,7 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 prove-all :
 	+$(MAKE) prove realsearch=%
 
-junit-t% : BACKENDS += $(TEST_BACKENDS)
+junit-t% : BACKENDS = $(BACKENDS) $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
