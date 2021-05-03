@@ -62,6 +62,8 @@ def run(test, backends):
     allargs = get_testargs(test)
 
     testcases = []
+    my_env = os.environ.copy()
+    my_env["CEED_ERROR_HANDLER"] = 'exit';
     for args, name in allargs:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
@@ -78,7 +80,8 @@ def run(test, backends):
                 start = time.time()
                 proc = subprocess.run(rargs,
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE,
+                                      env=my_env)
                 proc.stdout = proc.stdout.decode('utf-8')
                 proc.stderr = proc.stderr.decode('utf-8')
 
