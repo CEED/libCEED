@@ -83,7 +83,7 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
   @param[in,out] A  Matrix to apply Householder Q to, in place
   @param Q          Householder Q matrix
   @param tau        Householder scaling factors
-  @param t_mode    Transpose mode for application
+  @param t_mode     Transpose mode for application
   @param m          Number of rows in A
   @param n          Number of columns in A
   @param k          Number of elementary reflectors in Q, k<m
@@ -229,7 +229,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
       collo_grad_1d[j+Q_1d*i] = 0;
   }
 
-  // Apply Qtranspose, collograd = collo_grad Q_transpose
+  // Apply Qtranspose, collo_grad = collo_grad Q_transpose
   ierr = CeedHouseholderApplyQ(collo_grad_1d, interp_1d, tau, CEED_NOTRANSPOSE,
                                Q_1d, Q_1d, P_1d, 1, Q_1d); CeedChk(ierr);
 
@@ -1249,8 +1249,8 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
       sigma += v[j] * v[j];
     }
     CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:m]
-    CeedScalar Rii = -copysign(norm, v[i]);
-    v[i] -= Rii;
+    CeedScalar R_ii = -copysign(norm, v[i]);
+    v[i] -= R_ii;
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
@@ -1261,7 +1261,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
     // Apply Householder reflector to lower right panel
     CeedHouseholderReflect(&mat[i*n+i+1], &v[i], tau[i], m-i, n-i-1, n, 1);
     // Save v
-    mat[i+n*i] = Rii;
+    mat[i+n*i] = R_ii;
     for (CeedInt j=i+1; j<m; j++)
       mat[i+n*j] = v[j];
   }
@@ -1290,10 +1290,10 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
                      "Cannot compute symmetric Schur decomposition of scalars");
   // LCOV_EXCL_STOP
 
-  CeedScalar v[n-1], tau[n-1], matT[n*n];
+  CeedScalar v[n-1], tau[n-1], mat_T[n*n];
 
-  // Copy mat to matT and set mat to I
-  memcpy(matT, mat, n*n*sizeof(mat[0]));
+  // Copy mat to mat_T and set mat to I
+  memcpy(mat_T, mat, n*n*sizeof(mat[0]));
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++)
       mat[j+n*i] = (i==j) ? 1 : 0;
@@ -1302,14 +1302,14 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   for (CeedInt i=0; i<n-1; i++) {
     // Calculate Householder vector, magnitude
     CeedScalar sigma = 0.0;
-    v[i] = matT[i+n*(i+1)];
+    v[i] = mat_T[i+n*(i+1)];
     for (CeedInt j=i+1; j<n-1; j++) {
-      v[j] = matT[i+n*(j+1)];
+      v[j] = mat_T[i+n*(j+1)];
       sigma += v[j] * v[j];
     }
     CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:n-1]
-    CeedScalar Rii = -copysign(norm, v[i]);
-    v[i] -= Rii;
+    CeedScalar R_ii = -copysign(norm, v[i]);
+    v[i] -= R_ii;
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
@@ -1319,46 +1319,47 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
     // Update sub and super diagonal
     for (CeedInt j=i+2; j<n; j++) {
-      matT[i+n*j] = 0; matT[j+n*i] = 0;
+      mat_T[i+n*j] = 0; mat_T[j+n*i] = 0;
     }
     // Apply symmetric Householder reflector to lower right panel
-    CeedHouseholderReflect(&matT[(i+1)+n*(i+1)], &v[i], tau[i],
+    CeedHouseholderReflect(&mat_T[(i+1)+n*(i+1)], &v[i], tau[i],
                            n-(i+1), n-(i+1), n, 1);
-    CeedHouseholderReflect(&matT[(i+1)+n*(i+1)], &v[i], tau[i],
+    CeedHouseholderReflect(&mat_T[(i+1)+n*(i+1)], &v[i], tau[i],
                            n-(i+1), n-(i+1), 1, n);
+
     // Save v
-    matT[i+n*(i+1)] = Rii;
-    matT[(i+1)+n*i] = Rii;
+    mat_T[i+n*(i+1)] = R_ii;
+    mat_T[(i+1)+n*i] = R_ii;
     for (CeedInt j=i+1; j<n-1; j++) {
-      matT[i+n*(j+1)] = v[j];
+      mat_T[i+n*(j+1)] = v[j];
     }
   }
   // Backwards accumulation of Q
   for (CeedInt i=n-2; i>=0; i--) {
     v[i] = 1;
     for (CeedInt j=i+1; j<n-1; j++) {
-      v[j] = matT[i+n*(j+1)];
-      matT[i+n*(j+1)] = 0;
+      v[j] = mat_T[i+n*(j+1)];
+      mat_T[i+n*(j+1)] = 0;
     }
     CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i],
                            n-(i+1), n-(i+1), n, 1);
   }
 
   // Reduce sub and super diagonal
-  CeedInt p = 0, q = 0, itr = 0, maxitr = n*n*n*n;
-  CeedScalar tol = 10*CEED_EPSILON;
+  CeedInt p = 0, q = 0, itr = 0, max_itr = n*n*n*n;
+  CeedScalar tol = CEED_EPSILON;
 
-  while (q < n && itr < maxitr) {
+  while (itr < max_itr) {
     // Update p, q, size of reduced portions of diagonal
     p = 0; q = 0;
     for (CeedInt i=n-2; i>=0; i--) {
-      if (fabs(matT[i+n*(i+1)]) < tol)
+      if (fabs(mat_T[i+n*(i+1)]) < tol)
         q += 1;
       else
         break;
     }
-    for (CeedInt i=0; i<n-1-q; i++) {
-      if (fabs(matT[i+n*(i+1)]) < tol)
+    for (CeedInt i=0; i<n-q-1; i++) {
+      if (fabs(mat_T[i+n*(i+1)]) < tol)
         p += 1;
       else
         break;
@@ -1366,14 +1367,14 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     if (q == n-1) break; // Finished reducing
 
     // Reduce tridiagonal portion
-    CeedScalar tnn = matT[(n-1-q)+n*(n-1-q)],
-               tnnm1 = matT[(n-2-q)+n*(n-1-q)];
-    CeedScalar d = (matT[(n-2-q)+n*(n-2-q)] - tnn)/2;
-    CeedScalar mu = tnn - tnnm1*tnnm1 /
-                    (d + copysign(sqrt(d*d + tnnm1*tnnm1), d));
-    CeedScalar x = matT[p+n*p] - mu;
-    CeedScalar z = matT[p+n*(p+1)];
-    for (CeedInt k=p; k<n-1-q; k++) {
+    CeedScalar t_nn = mat_T[(n-1-q)+n*(n-1-q)],
+               t_nnm1 = mat_T[(n-2-q)+n*(n-1-q)];
+    CeedScalar d = (mat_T[(n-2-q)+n*(n-2-q)] - t_nn)/2;
+    CeedScalar mu = t_nn - t_nnm1*t_nnm1 /
+                    (d + copysign(sqrt(d*d + t_nnm1*t_nnm1), d));
+    CeedScalar x = mat_T[p+n*p] - mu;
+    CeedScalar z = mat_T[p+n*(p+1)];
+    for (CeedInt k=p; k<n-q-1; k++) {
       // Compute Givens rotation
       CeedScalar c = 1, s = 0;
       if (fabs(z) > tol) {
@@ -1387,26 +1388,27 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
       }
 
       // Apply Givens rotation to T
-      CeedGivensRotation(matT, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
-      CeedGivensRotation(matT, c, s, CEED_TRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(mat_T, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(mat_T, c, s, CEED_TRANSPOSE, k, k+1, n, n);
 
       // Apply Givens rotation to Q
       CeedGivensRotation(mat, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
 
       // Update x, z
       if (k < n-q-2) {
-        x = matT[k+n*(k+1)];
-        z = matT[k+n*(k+2)];
+        x = mat_T[k+n*(k+1)];
+        z = mat_T[k+n*(k+2)];
       }
     }
     itr++;
   }
+
   // Save eigenvalues
   for (CeedInt i=0; i<n; i++)
-    lambda[i] = matT[i+n*i];
+    lambda[i] = mat_T[i+n*i];
 
   // Check convergence
-  if (itr == maxitr && q < n-1)
+  if (itr == max_itr && q < n-1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_MINOR,
                      "Symmetric QR failed to converge");
@@ -1454,14 +1456,14 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
   // -- C = D^-1/2 G^T
   for (CeedInt i=0; i<n; i++)
     for (CeedInt j=0; j<n; j++) {
-      mat_G[i+j*n] *= vec_D[i];
-      mat_C[j+i*n]  = mat_G[i+j*n];
+      mat_G[i*n+j] *= vec_D[j];
+      mat_C[j*n+i]  = mat_G[i*n+j];
     }
-  // -- X = D^-1/2 G^T A
+  // -- X = (D^-1/2 G^T) A
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_C,
                             (const CeedScalar *)mat_A, mat_X, n, n, n);
   CeedChk(ierr);
-  // -- C = D^-1/2 G^T A G D^-1/2
+  // -- C = (D^-1/2 G^T A) (G D^-1/2)
   ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_X,
                             (const CeedScalar *)mat_G, mat_C, n, n, n);
   CeedChk(ierr);

@@ -2,45 +2,83 @@
 /// Test Simultaneous Diagonalization
 /// \test Simultaneous Diagonalization
 #include <ceed.h>
+#include <math.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedScalar M[16] = {0.2, 0.0745355993, -0.0745355993, 0.0333333333,
-                      0.0745355993, 1., 0.1666666667, -0.0745355993,
-                      -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                      0.0333333333, -0.0745355993, 0.0745355993, 0.2
-                     };
-  CeedScalar K[16] = {3.0333333333, -3.4148928136, 0.4982261470, -0.1166666667,
-                      -3.4148928136, 5.8333333333, -2.9166666667, 0.4982261470,
-                      0.4982261470, -2.9166666667, 5.8333333333, -3.4148928136,
-                      -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333
-                     };
-  CeedScalar x[16], lambda[4], xxt[16];
+  CeedInt P = 4, Q = 4;
+  CeedScalar M[P*P], K[P*P], X[P*P], lambda[P];
+  CeedBasis basis;
 
   CeedInit(argv[1], &ceed);
 
-  CeedSimultaneousDiagonalization(ceed, K, M, x, lambda, 4);
-
-  for (int i=0; i<4; i++)
-    for (int j=0; j<4; j++) {
-      xxt[j+4*i] = 0;
-      for (int k=0; k<4; k++)
-        xxt[j+4*i] += x[k+4*i]*x[k+4*j];
+  // Create mass, stiffness matrix
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, Q, CEED_GAUSS, &basis);
+  const CeedScalar *interp, *grad, *quad_weights;
+  CeedBasisGetInterp(basis, &interp);
+  CeedBasisGetGrad(basis, &grad);
+  CeedBasisGetQWeights(basis, &quad_weights);
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum_m = 0, sum_k = 0;
+      for (int k=0; k<Q; k++) {
+        sum_m += interp[P*k+i]*quad_weights[k]*interp[P*k+j];
+        sum_k += grad[P*k+i]*quad_weights[k]*grad[P*k+j];
+      }
+      M[P*i+j] = sum_m;
+      K[P*i+j] = sum_k;
     }
 
-  fprintf(stdout, "x x^T:\n");
-  for (int i=0; i<4; i++) {
-    for (int j=0; j<4; j++) {
-      if (xxt[j+4*i] <= 1E-14 && xxt[j+4*i] >= -1E-14) xxt[j+4*i] = 0;
-      fprintf(stdout, "%12.8f\t", xxt[j+4*i]);
+  CeedSimultaneousDiagonalization(ceed, K, M, X, lambda, P);
+
+  // Check X^T M X = I
+  CeedScalar work[P*P];
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += M[P*i+k]*X[P*k+j];
+      work[P*i+j] = sum;
     }
-    fprintf(stdout, "\n");
-  }
-  fprintf(stdout, "lambda:\n");
-  for (int i=0; i<4; i++) {
-    if (lambda[i] <= 1E-14 && lambda[i] >= -1E-14) lambda[i] = 0;
-    fprintf(stdout, "%12.8f\n", lambda[i]);
-  }
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += X[P*k+i]*work[P*k+j];
+      M[P*i+j] = sum;
+    }
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++)
+      if (fabs(M[P*i+j] - (i == j ? 1.0 : 0.0)) > 1E-14)
+        // LCOV_EXCL_START
+        printf("Error in diagonalization of M [%d, %d]: %f != %f\n",
+               i, j, M[P*i+j], (i == j ? 1.0 : 0.0));
+  // LCOV_EXCL_STOP
+
+  // Check X^T K X = Lamda
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += K[P*i+k]*X[P*k+j];
+      work[P*i+j] = sum;
+    }
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += X[P*k+i]*work[P*k+j];
+      K[P*i+j] = sum;
+    }
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++)
+      if (fabs(K[P*i+j] - (i == j ? lambda[i] : 0.0)) > 1E-14)
+        // LCOV_EXCL_START
+        printf("Error in diagonalization of K [%d, %d]: %f != %f\n",
+               i, j, K[P*i+j], (i == j ? lambda[i] : 0.0));
+  // LCOV_EXCL_STOP
+
+  CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);
   return 0;
 }
