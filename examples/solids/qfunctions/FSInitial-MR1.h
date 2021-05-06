@@ -30,11 +30,11 @@
 #define PHYSICS_STRUCT_MR
 typedef struct Physics_private_MR *Physics_MR;
 
-struct Physics_private_MR { 
+struct Physics_private_MR {
   //material properties for MR
-  CeedScalar mu_1; // 
-  CeedScalar mu_2; // 
-  CeedScalar k_1; // 
+  CeedScalar mu_1; //
+  CeedScalar mu_2; //
+  CeedScalar k_1; //
 };
 #endif
 
@@ -122,7 +122,7 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
   // *INDENT-ON*
   // compute CC = C*C = C^2
   CeedScalar CC[3][3];
-  for (CeedInt j = 0; j < 3; j++)    
+  for (CeedInt j = 0; j < 3; j++)
     for (CeedInt k = 0; k < 3; k++) {
       CC[j][k] = 0;
       for (CeedInt m = 0; m < 3; m++)
@@ -171,7 +171,7 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
   dI2bar_dE[5] = pow(J,-4/3) * (-C[0][1] - (2/3)* (*I_2) * Cinvwork[5] );
 
   // (J^2 - J)*C^{-1} or J*(J - 1)*C^{-1}
-  CeedScalar JJm1Cinv[6]; 
+  CeedScalar JJm1Cinv[6];
   JJm1Cinv[0] = J * (*Jm1) * Cinvwork[0];
   JJm1Cinv[1] = J * (*Jm1) * Cinvwork[1];
   JJm1Cinv[2] = J * (*Jm1) * Cinvwork[2];
@@ -412,6 +412,24 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar Swork[6], Cinvwork[6], dI1bar_dE[6], dI2bar_dE[6], I_1, I_2, Jm1;
     commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cinvwork, dI1bar_dE, dI2bar_dE, &I_1, &I_2, &Jm1);
 
+    {
+      // Estimate dS using finite differencing
+      epsilon = 1e-8; //
+      commonFSMR(mu_1, mu_2, k_1, tempgradu + epsilon * graddeltau, Swork2, ...);
+      dS = (Swork2 - Swork) / epsilon;
+      // Integrate: dF S + F dS
+
+      // Notes
+      // Start by testing convergence with finite differencing dS (above), skipping the analytic code below
+      // Test case for convergence:
+      // ./elasticity -mu_1 0.5 -mu_2 0 -K 10 -nu .4 -E .5 -degree 1 -dm_plex_box_faces 4,4,4 -problem FSInitial-MR1 -num_steps 1 -bc_clamp 3 -bc_traction 4 -bc_traction_4 0,0,-.1 -snes_linesearch_type cp -snes_monitor -snes_linesearch_monitor -snes_linesearch_atol 1e-30 -snes_fd -outer_ksp_converged_reason -outer_pc_type lu -outer_ksp_monitor_true_residual -outer_ksp_max_it 10 -outer_ksp_type gmres -outer_ksp_norm_type preconditioned -snes_view
+      //
+      // Linear solves should converge in 2 iterations and Newton converge quadratically. Swap in FSInitial-NH1 to compare.
+      //
+      // Once that works (you're done for purposes of PSAAP meeting), use the FD approximation here to compare with analytic result below.
+      // I think we can reformulate so the code below is cleaner and more closely mirrors the math.
+    }
+
     // dE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar dEwork[6];
@@ -444,12 +462,12 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
           C_inv2[j][k] += C_inv[j][m] * C_inv[m][k];
         }
 
-    // -- C_inv:dE 
+    // -- C_inv:dE
     CeedScalar Cinv_contract_dE = 0;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
         Cinv_contract_dE += C_inv[j][k]*dE[j][k];
-    
+
     // -- C_inv2:dE
     CeedScalar Cinv2_contract_dE = 0;
     for (CeedInt j = 0; j < 3; j++)
@@ -637,7 +655,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // compute CC = C*C = C^2
     CeedScalar CC[3][3];
-    for (CeedInt j = 0; j < 3; j++)    
+    for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
@@ -747,7 +765,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
 
     // Pressure
     const CeedScalar Jm1 = computeJM1(grad_u);
-    diagnostic[3][i] = -k_1*Jm1;  
+    diagnostic[3][i] = -k_1*Jm1;
 
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
@@ -767,7 +785,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // compute CC = C*C = C^2
     CeedScalar CC[3][3];
-    for (CeedInt j = 0; j < 3; j++)    
+    for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
