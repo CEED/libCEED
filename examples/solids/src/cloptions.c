@@ -390,6 +390,7 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
   PetscFunctionReturn(0);
 };
 
+<<<<<<< HEAD
 PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
                                       Physics phys, Physics_MR phys_MR, Units units) {
   PetscErrorCode ierr;
@@ -399,6 +400,18 @@ PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
   } else {
     ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
   }
+=======
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx, Physics phys, Physics_MR phys_MR, Units units){
+
+  if(app_ctx -> problem_choice != ELAS_FSInitial_MR1)
+    {
+      PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
+    }
+  else
+    {
+      PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units);
+    }
+>>>>>>> processphysics and upated naming scheme
 
   PetscFunctionReturn(0);
 };
