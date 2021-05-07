@@ -52,7 +52,9 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
-  int wind_type;
+  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
+  int bubble_dim_type;        // See BubbleDimType: 0=SPHERE, 1=CYLINDER
+  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
 #endif
 

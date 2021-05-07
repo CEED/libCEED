@@ -44,7 +44,9 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
-  int wind_type; // See WindType: 0=ROTATION, 1=TRANSLATION
+  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
+  int bubble_dim_type;        // See BubbleDimType: 0=SPHERE, 1=CYLINDER
+  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
 #endif
 
@@ -132,16 +134,15 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 
   // -- Energy
   CeedScalar r ;
-  CeedInt dim_bubble = 3; // 3 is a sphere, 2 is a cylinder
-  switch (dim_bubble) {
+  switch (context->bubble_dim_type) {
   //  original sphere
-  case 3: {
+  case 0: { // (dim=3)
     r = sqrt(pow((x - x0[0]), 2) +
              pow((y - x0[1]), 2) +
              pow((z - x0[2]), 2));
   } break;
   // cylinder (needs periodicity to work properly)
-  case 2: {
+  case 1: { // (dim=2)
     r = sqrt(pow((x - x0[0]), 2) +
              pow((y - x0[1]), 2) );
   } break;
@@ -163,15 +164,13 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
     break;
   }
 
-  CeedInt continuityBubble = 0;
-  // 0 is original sphere, switch to -1 to challenge solver with sharp gradients in back half of bubble
-  switch (continuityBubble) {
+  switch (context->bubble_continuity_type) {
   // original continuous, smooth shape
   case 0: {
     q[4] = r <= rc ? (1.-r/rc) : 0.;
   } break;
   // discontinuous, sharp back half shape
-  case -1: {
+  case 1: {
     q[4] = ((r <= rc) && (y<center[1])) ? (1.-r/rc) : 0.;
   } break;
   // attempt to define a finite thickness that will get resolved under grid refinement

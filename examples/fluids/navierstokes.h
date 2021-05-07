@@ -51,6 +51,30 @@ static const char *const WindTypes[] = {
   "WindType", "ADVECTION_WIND_", NULL
 };
 
+// Advection - Bubble Dimension Types
+typedef enum {
+  ADVECTION_BUBBLE_DIM_SPHERE   = 0, // dim=3
+  ADVECTION_BUBBLE_DIM_CYLINDER = 1, // dim=2
+} BubbleDimType;
+static const char *const BubbleDimTypes[] = {
+  "sphere",
+  "cylinder",
+  "BubbleDimType", "ADVECTION_BUBBLE_DIM_", NULL
+};
+
+// Advection - Bubble Continuity Types
+typedef enum {
+  ADVECTION_BUBBLE_CONTINUITY_SMOOTH     = 0,  // Original continuous, smooth shape
+  ADVECTION_BUBBLE_CONTINUITY_BACK_SHARP = 1,  // Discontinuous, sharp back half shape
+  ADVECTION_BUBBLE_CONTINUITY_THICK      = 2,  // Define a finite thickness
+} BubbleContinuityType;
+static const char *const BubbleContinuityTypes[] = {
+  "smooth",
+  "back_sharp",
+  "thick",
+  "BubbleContinuityType", "ADVECTION_BUBBLE_CONTINUITY_", NULL
+};
+
 // Euler - test cases
 typedef enum {
   EULER_TEST_NONE = 0,
@@ -71,7 +95,7 @@ static const char *const EulerTestTypes[] = {
 // Stabilization methods
 typedef enum {
   STAB_NONE = 0,
-  STAB_SU   = 1,   // Streamline Upwind
+  STAB_SU   = 1, // Streamline Upwind
   STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 static const char *const StabilizationTypes[] = {
@@ -146,15 +170,17 @@ struct Units_private {
 
 // Setup Context for QFunctions
 struct Physics_private {
-  DCContext         dc_ctx;
-  EulerContext      euler_ctx;
-  AdvectionContext  advection_ctx;
-  WindType          wind_type;
-  EulerTestType     euler_test;
-  StabilizationType stab;
-  PetscBool         implicit;
-  PetscBool         has_current_time;
-  PetscBool         has_neumann;
+  DCContext            dc_ctx;
+  EulerContext         euler_ctx;
+  AdvectionContext     advection_ctx;
+  WindType             wind_type;
+  BubbleDimType        bubble_dim_type;
+  BubbleContinuityType bubble_continuity_type;
+  EulerTestType        euler_test;
+  StabilizationType    stab;
+  PetscBool            implicit;
+  PetscBool            has_current_time;
+  PetscBool            has_neumann;
 };
 
 // Application context from user command line options

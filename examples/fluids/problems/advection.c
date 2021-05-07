@@ -2,15 +2,17 @@
 
 PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                             void *ctx, void *phys) {
-  WindType          wind_type;
-  StabilizationType stab;
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
-  Units             units = *(Units *)ctx;
-  Physics           phys_ctx = *(Physics *)phys;
-  MPI_Comm          comm = PETSC_COMM_WORLD;
-  PetscBool         implicit;
-  PetscBool         has_current_time = PETSC_FALSE;
-  PetscInt          ierr;
+  WindType             wind_type;
+  BubbleDimType        bubble_dim_type;
+  BubbleContinuityType bubble_continuity_type;
+  StabilizationType    stab;
+  SetupContext         setup_context = *(SetupContext *)setup_ctx;
+  Units                units = *(Units *)ctx;
+  Physics              phys_ctx = *(Physics *)phys;
+  MPI_Comm             comm = PETSC_COMM_WORLD;
+  PetscBool            implicit;
+  PetscBool            has_current_time = PETSC_FALSE;
+  PetscInt             ierr;
   PetscFunctionBeginUser;
 
   ierr = PetscCalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
@@ -90,6 +92,14 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                           (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
   if (translation) phys_ctx->has_neumann = translation;
+  ierr = PetscOptionsEnum("-bubble_dim", "Bubble dimension",
+                          NULL, BubbleDimTypes,
+                          (PetscEnum)(bubble_dim_type = ADVECTION_BUBBLE_DIM_SPHERE),
+                          (PetscEnum *)&bubble_dim_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-bubble_continuity", "Bubble continuity",
+                          NULL, BubbleContinuityTypes,
+                          (PetscEnum)(bubble_continuity_type = ADVECTION_BUBBLE_CONTINUITY_SMOOTH),
+                          (PetscEnum *)&bubble_continuity_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -149,25 +159,29 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   rc = fabs(rc) * meter;
 
   // -- Setup Context
-  setup_context->rc        = rc;
-  setup_context->lx        = lx;
-  setup_context->ly        = ly;
-  setup_context->lz        = lz;
-  setup_context->wind[0]   = wind[0];
-  setup_context->wind[1]   = wind[1];
-  setup_context->wind[2]   = wind[2];
-  setup_context->wind_type = wind_type;
-  setup_context->time      = 0;
+  setup_context->rc                     = rc;
+  setup_context->lx                     = lx;
+  setup_context->ly                     = ly;
+  setup_context->lz                     = lz;
+  setup_context->wind[0]                = wind[0];
+  setup_context->wind[1]                = wind[1];
+  setup_context->wind[2]                = wind[2];
+  setup_context->wind_type              = wind_type;
+  setup_context->bubble_dim_type        = bubble_dim_type;
+  setup_context->bubble_continuity_type = bubble_continuity_type;
+  setup_context->time = 0;
 
   // -- QFunction Context
-  phys_ctx->stab                    = stab;
-  phys_ctx->wind_type               = wind_type; // to-do: check
+  phys_ctx->stab                         = stab;
+  phys_ctx->wind_type                    = wind_type;
+  phys_ctx->bubble_dim_type              = bubble_dim_type;
+  phys_ctx->bubble_continuity_type       = bubble_continuity_type;
   //  if passed correctly
-  phys_ctx->implicit                = implicit;
-  phys_ctx->has_current_time        = has_current_time;
-  phys_ctx->advection_ctx->CtauS    = CtauS;
-  phys_ctx->advection_ctx->E_wind   = E_wind;
-  phys_ctx->advection_ctx->implicit = implicit;
+  phys_ctx->implicit                     = implicit;
+  phys_ctx->has_current_time             = has_current_time;
+  phys_ctx->advection_ctx->CtauS         = CtauS;
+  phys_ctx->advection_ctx->E_wind        = E_wind;
+  phys_ctx->advection_ctx->implicit      = implicit;
   phys_ctx->advection_ctx->strong_form   = strong_form;
   phys_ctx->advection_ctx->stabilization = stab;
 
@@ -182,41 +196,27 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Default boundary conditions
-  bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
-  bc->slips[0][0] = 5;
-  bc->slips[0][1] = 6;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
-
-  // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION BCs",
-                           NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsIntArray("-bc_wall",
-                              "Use wall boundary conditions on this list of faces",
-                              NULL, bc->walls,
-                              (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
-                               &len), &flg); CHKERRQ(ierr);
-  if (flg) {
-    bc->num_wall = len;
-    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
+  // Define boundary conditions
+  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
+    bc->slips[0][0] = 5;
+    bc->slips[0][1] = 6;
+    bc->slips[1][0] = 3;
+    bc->slips[1][1] = 4;
+    bc->slips[2][0] = 1;
+    bc->slips[2][1] = 2;
+  } else if (phys->wind_type == ADVECTION_WIND_ROTATION &&
+             phys->bubble_dim_type == ADVECTION_BUBBLE_DIM_CYLINDER) {
+    bc->num_slip[0] = bc->num_slip[1] = 0;
+    bc->num_slip[2] = 2; bc->slips[2][0] = 1; bc->slips[2][1] = 2;
+    bc->num_wall = 6;
+    bc->walls[0] = 3; bc->walls[1] = 4; bc->walls[2] = 5; bc->walls[3] = 6;
+  } else {
     bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
+    bc->num_wall = 6;
+    bc->walls[0] = 1; bc->walls[1] = 2; bc->walls[2] = 3;
+    bc->walls[3] = 4; bc->walls[4] = 5; bc->walls[5] = 6;
   }
-  for (PetscInt j=0; j<3; j++) {
-    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-    ierr = PetscOptionsIntArray(flags[j],
-                                "Use slip boundary conditions on this list of faces",
-                                NULL, bc->slips[j],
-                                (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
-                                 &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc->num_slip[j] = len;
-      bc->user_bc = PETSC_TRUE;
-    }
-  }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   {
     // Slip boundary conditions
@@ -239,22 +239,8 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     CHKERRQ(ierr);
   }
 
-  if (bc->user_bc == PETSC_TRUE) {
-    for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
-        for (PetscInt w = 0; w < bc->num_wall; w++) {
-          if (bc->slips[c][s] == bc->walls[w])
-            SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                     "Boundary condition already set on face %D!\n",
-                     bc->walls[w]);
-        }
-      }
-    }
-  }
-
   // Wall boundary conditions
   //   zero energy density and zero flux
-  //   ToDo: need to set "wall" as the default BC after checking with the regression tests
   {
     DMLabel  label;
     PetscInt comps[1] = {4};
