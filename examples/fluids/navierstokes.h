@@ -135,6 +135,7 @@ typedef struct {
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
+  PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
 } ProblemData;
 // *INDENT-ON*
 
@@ -245,6 +246,19 @@ extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
 
 extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                                      void *setup_ctx);
+
+// Print function for each problem
+extern PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys,
+    SetupContext setup_ctx, AppCtx app_ctx);
+
+extern PetscErrorCode PRINT_EULER_VORTEX(Physics phys, SetupContext setup_ctx,
+    AppCtx app_ctx);
+
+extern PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
+                                      AppCtx app_ctx);
+
+extern PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
+                                        AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 // libCEED functions

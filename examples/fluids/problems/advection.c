@@ -38,6 +38,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   problem->bc                      = Exact_Advection;
   problem->bc_func                 = BC_ADVECTION;
   problem->non_zero_time           = PETSC_FALSE;
+  problem->print_info              = PRINT_ADVECTION;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -122,6 +123,13 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   if (wind_type == ADVECTION_WIND_ROTATION && user_wind) {
     ierr = PetscPrintf(comm,
                        "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+    CHKERRQ(ierr);
+  }
+  if (wind_type == ADVECTION_WIND_TRANSLATION
+      && bubble_dim_type == ADVECTION_BUBBLE_DIM_CYLINDER && wind[2] != 0.) {
+    wind[2] = 0;
+    ierr = PetscPrintf(comm,
+                       "Warning! Background wind in the z direction should be zero (-problem_advection_wind_translation x,x,0) with -bubble_dim cylinder\n");
     CHKERRQ(ierr);
   }
   if (stab == STAB_NONE && CtauS != 0) {
@@ -251,5 +259,31 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                          setup_ctx, NULL); CHKERRQ(ierr);
   }
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
+                               AppCtx app_ctx) {
+  MPI_Comm       comm = PETSC_COMM_WORLD;
+  PetscErrorCode ierr;
+  PetscFunctionBeginUser;
+
+  ierr = PetscPrintf(comm,
+                     "  Problem:\n"
+                     "    Problem Name                       : %s\n"
+                     "    Stabilization                      : %s\n"
+                     "    Bubble Dimension                   : %d\n"
+                     "    Bubble Continuity                  : %s\n"
+                     "    Wind Type                          : %s\n",
+                     app_ctx->problem_name, StabilizationTypes[phys->stab],
+                     phys->bubble_dim_type == ADVECTION_BUBBLE_DIM_SPHERE ? 3 : 2,
+                     BubbleContinuityTypes[phys->bubble_continuity_type],
+                     WindTypes[phys->wind_type]); CHKERRQ(ierr);
+
+  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+    ierr = PetscPrintf(comm,
+                       "    Background Wind                    : %f,%f,%f\n",
+                       setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }

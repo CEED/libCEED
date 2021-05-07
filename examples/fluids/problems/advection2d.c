@@ -36,6 +36,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   problem->bc                      = Exact_Advection2d;
   problem->bc_func                 = BC_ADVECTION2D;
   problem->non_zero_time           = PETSC_TRUE;
+  problem->print_info              = PRINT_ADVECTION2D;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -232,5 +233,27 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                          setup_ctx, NULL); CHKERRQ(ierr);
   }
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
+                                 AppCtx app_ctx) {
+  MPI_Comm       comm = PETSC_COMM_WORLD;
+  PetscErrorCode ierr;
+  PetscFunctionBeginUser;
+
+  ierr = PetscPrintf(comm,
+                     "  Problem:\n"
+                     "    Problem Name                       : %s\n"
+                     "    Stabilization                      : %s\n"
+                     "    Wind Type                          : %s\n",
+                     app_ctx->problem_name, StabilizationTypes[phys->stab],
+                     WindTypes[phys->wind_type]); CHKERRQ(ierr);
+
+  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+    ierr = PetscPrintf(comm,
+                       "    Background Wind                    : %f,%f\n",
+                       setup_ctx->wind[0], setup_ctx->wind[1]); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }

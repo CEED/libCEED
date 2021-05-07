@@ -246,17 +246,29 @@ int main(int argc, char **argv) {
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
 
+    // Header and rank
     ierr = PetscPrintf(comm,
                        "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
-                       "  rank(s)                              : %d\n"
-                       "  Problem:\n"
-                       "    Problem Name                       : %s\n"
-                       "    Stabilization                      : %s\n"
-                       "  PETSc:\n"
-                       "    Box Faces                          : %s\n"
+                       "  rank(s)                              : %d\n",
+                       comm_size); CHKERRQ(ierr);
+
+    // Problem specific info
+    ierr = problem->print_info(phys_ctx, setup_ctx, app_ctx); CHKERRQ(ierr);
+
+    // libCEED
+    ierr = PetscPrintf(comm,
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED Backend MemType            : %s\n",
+                       used_resource, CeedMemTypes[mem_type_backend]); CHKERRQ(ierr);
+    // PETSc
+    ierr = PetscPrintf(comm,
+                       "  PETSc:\n"
+                       "    Box Faces                          : %s\n"
+                       "    Time Stepping Scheme               : %s\n",
+                       box_faces_str, phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
+    // Mesh
+    ierr = PetscPrintf(comm,
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
@@ -265,10 +277,8 @@ int main(int argc, char **argv) {
                        "    DoFs per node                      : %D\n"
                        "    Global nodes                       : %D\n"
                        "    Owned nodes                        : %D\n",
-                       comm_size, app_ctx->problem_name, StabilizationTypes[phys_ctx->stab],
-                       box_faces_str, used_resource, CeedMemTypes[mem_type_backend],
-                       num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes);
-    CHKERRQ(ierr);
+                       num_P, num_Q, glob_dofs, owned_dofs, num_comp_q,
+                       glob_nodes, owned_nodes); CHKERRQ(ierr);
   }
   // -- Restore Q_loc
   ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);

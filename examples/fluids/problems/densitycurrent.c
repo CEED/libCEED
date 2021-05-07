@@ -33,6 +33,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   problem->bc                      = Exact_DC;
   problem->bc_func                 = BC_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
+  problem->print_info              = PRINT_DENSITY_CURRENT;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -314,6 +315,22 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
                          3, comps, (void(*)(void))Exact_DC, NULL,
                          setup_ctx, NULL); CHKERRQ(ierr);
   }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
+                                     AppCtx app_ctx) {
+  MPI_Comm       comm = PETSC_COMM_WORLD;
+  PetscErrorCode ierr;
+  PetscFunctionBeginUser;
+
+  ierr = PetscPrintf(comm,
+                     "  Problem:\n"
+                     "    Problem Name                       : %s\n"
+                     "    Stabilization                      : %s\n",
+                     app_ctx->problem_name, StabilizationTypes[phys->stab]);
+  CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

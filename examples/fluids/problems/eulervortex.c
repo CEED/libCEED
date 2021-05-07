@@ -36,6 +36,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   problem->bc                      = Exact_Euler;
   problem->bc_func                 = BC_EULER_VORTEX;
   problem->non_zero_time           = PETSC_TRUE;
+  problem->print_info              = PRINT_EULER_VORTEX;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -158,6 +159,24 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                        bc->num_slip[2], bc->slips[2], 0, 1, comps,
                        (void(*)(void))NULL, NULL, setup_ctx, NULL);
   CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PRINT_EULER_VORTEX(Physics phys, SetupContext setup_ctx,
+                                  AppCtx app_ctx) {
+  MPI_Comm       comm = PETSC_COMM_WORLD;
+  PetscErrorCode ierr;
+  PetscFunctionBeginUser;
+
+  ierr = PetscPrintf(comm,
+                     "  Problem:\n"
+                     "    Problem Name                       : %s\n"
+                     "    Test Case                          : %s\n"
+                     "    Background Velocity                : %f,%f\n",
+                     app_ctx->problem_name, EulerTestTypes[phys->euler_test],
+                     phys->euler_ctx->etv_mean_velocity[0],
+                     phys->euler_ctx->etv_mean_velocity[1]); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
