@@ -222,17 +222,17 @@ struct CeedData_private {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem,
-    void *setup_ctx, void *ctx, void *phys);
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
+    void *ctx);
 
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem,
-                                      void *setup_ctx, void *ctx, void *phys);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
+                                      void *ctx);
 
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem,
-                                   void *setup_ctx, void *ctx, void *phys);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
+                                   void *ctx);
 
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem,
-                                     void *setup_ctx, void *ctx, void *phys);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
+                                     void *ctx);
 
 // Boundary condition function for each problem
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,

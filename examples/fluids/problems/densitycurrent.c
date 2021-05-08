@@ -1,10 +1,9 @@
 #include "../navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
-                                  void *ctx, void *phys) {
+                                  void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
-  Units             units = *(Units *)ctx;
-  Physics           phys_ctx = *(Physics *)phys;
+  User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
@@ -12,7 +11,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscCalloc1(1, &phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->dc_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
@@ -158,14 +157,14 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   m_per_squared_s = meter / PetscSqr(second);
   W_per_m_K       = kilogram * meter / (pow(second,3) * Kelvin);
 
-  units->meter           = meter;
-  units->kilogram        = kilogram;
-  units->second          = second;
-  units->Kelvin          = Kelvin;
-  units->Pascal          = Pascal;
-  units->J_per_kg_K      = J_per_kg_K;
-  units->m_per_squared_s = m_per_squared_s;
-  units->W_per_m_K       = W_per_m_K;
+  user->units->meter           = meter;
+  user->units->kilogram        = kilogram;
+  user->units->second          = second;
+  user->units->Kelvin          = Kelvin;
+  user->units->Pascal          = Pascal;
+  user->units->J_per_kg_K      = J_per_kg_K;
+  user->units->m_per_squared_s = m_per_squared_s;
+  user->units->W_per_m_K       = W_per_m_K;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -209,17 +208,17 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->time       = 0;
 
   // -- QFunction Context
-  phys_ctx->stab             = stab;
-  phys_ctx->implicit         = implicit;
-  phys_ctx->has_curr_time    = has_curr_time;
-  phys_ctx->dc_ctx->lambda   = lambda;
-  phys_ctx->dc_ctx->mu       = mu;
-  phys_ctx->dc_ctx->k        = k;
-  phys_ctx->dc_ctx->cv       = cv;
-  phys_ctx->dc_ctx->cp       = cp;
-  phys_ctx->dc_ctx->g        = g;
-  phys_ctx->dc_ctx->Rd       = Rd;
-  phys_ctx->dc_ctx->stabilization = stab;
+  user->phys->stab             = stab;
+  user->phys->implicit         = implicit;
+  user->phys->has_curr_time    = has_curr_time;
+  user->phys->dc_ctx->lambda   = lambda;
+  user->phys->dc_ctx->mu       = mu;
+  user->phys->dc_ctx->k        = k;
+  user->phys->dc_ctx->cv       = cv;
+  user->phys->dc_ctx->cp       = cp;
+  user->phys->dc_ctx->g        = g;
+  user->phys->dc_ctx->Rd       = Rd;
+  user->phys->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }

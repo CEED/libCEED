@@ -86,8 +86,8 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &units); CHKERRQ(ierr);
 
   user->app_ctx = app_ctx;
-  user->units = units;
-  user->phys = phys_ctx;
+  user->units   = units;
+  user->phys    = phys_ctx;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -104,12 +104,12 @@ int main(int argc, char **argv) {
   // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   {
-    PetscErrorCode (*p)(ProblemData *, void *, void *, void *);
+    PetscErrorCode (*p)(ProblemData *, void *, void *);
     ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
     CHKERRQ(ierr);
     if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found",
                        app_ctx->problem_name);
-    ierr = (*p)(problem, &setup_ctx, &units, &phys_ctx); CHKERRQ(ierr);
+    ierr = (*p)(problem, &setup_ctx, &user); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

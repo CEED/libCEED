@@ -1,21 +1,19 @@
 #include "../navierstokes.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
-                            void *ctx, void *phys) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   WindType             wind_type;
-  BubbleType        bubble_type;
+  BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
   SetupContext         setup_context = *(SetupContext *)setup_ctx;
-  Units                units = *(Units *)ctx;
-  Physics              phys_ctx = *(Physics *)phys;
+  User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   PetscBool            implicit;
   PetscBool            has_curr_time = PETSC_FALSE;
   PetscInt             ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscCalloc1(1, &phys_ctx->advection_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->advection_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP ADVECTION
@@ -91,7 +89,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                           NULL, WindTypes,
                           (PetscEnum)(wind_type = WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) phys_ctx->has_neumann = translation;
+  if (translation) user->phys->has_neumann = translation;
   ierr = PetscOptionsEnum("-bubble_type", "Bubble dimension",
                           NULL, BubbleTypes,
                           (PetscEnum)(bubble_type = BUBBLE_SPHERE),
@@ -150,10 +148,10 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   // -- Define derived units
   Joule = kilogram * PetscSqr(meter) / PetscSqr(second);
 
-  units->meter    = meter;
-  units->kilogram = kilogram;
-  units->second   = second;
-  units->Joule    = Joule;
+  user->units->meter    = meter;
+  user->units->kilogram = kilogram;
+  user->units->second   = second;
+  user->units->Joule    = Joule;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -179,18 +177,18 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   setup_context->time = 0;
 
   // -- QFunction Context
-  phys_ctx->stab                         = stab;
-  phys_ctx->wind_type                    = wind_type;
-  phys_ctx->bubble_type                  = bubble_type;
-  phys_ctx->bubble_continuity_type       = bubble_continuity_type;
+  user->phys->stab                         = stab;
+  user->phys->wind_type                    = wind_type;
+  user->phys->bubble_type                  = bubble_type;
+  user->phys->bubble_continuity_type       = bubble_continuity_type;
   //  if passed correctly
-  phys_ctx->implicit                     = implicit;
-  phys_ctx->has_curr_time                = has_curr_time;
-  phys_ctx->advection_ctx->CtauS         = CtauS;
-  phys_ctx->advection_ctx->E_wind        = E_wind;
-  phys_ctx->advection_ctx->implicit      = implicit;
-  phys_ctx->advection_ctx->strong_form   = strong_form;
-  phys_ctx->advection_ctx->stabilization = stab;
+  user->phys->implicit                     = implicit;
+  user->phys->has_curr_time                = has_curr_time;
+  user->phys->advection_ctx->CtauS         = CtauS;
+  user->phys->advection_ctx->E_wind        = E_wind;
+  user->phys->advection_ctx->implicit      = implicit;
+  user->phys->advection_ctx->strong_form   = strong_form;
+  user->phys->advection_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }

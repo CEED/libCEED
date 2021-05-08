@@ -1,11 +1,10 @@
 #include "../navierstokes.h"
 
 PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
-                               void *ctx, void *phys) {
+                               void *ctx) {
   EulerTestType euler_test;
   SetupContext  setup_context = *(SetupContext *)setup_ctx;
-  Units         units = *(Units *)ctx;
-  Physics       phys_ctx = *(Physics *)phys;
+  User          user = *(User *)ctx;
   MPI_Comm      comm = PETSC_COMM_WORLD;
   PetscBool     implicit;
   PetscBool     has_curr_time = PETSC_TRUE;
@@ -13,7 +12,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   PetscInt      ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscCalloc1(1, &phys_ctx->euler_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->euler_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
@@ -99,8 +98,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //           Set up the PETSc context
   // ------------------------------------------------------
-  units->meter  = meter;
-  units->second = second;
+  user->units->meter  = meter;
+  user->units->second = second;
 
   // ------------------------------------------------------
   //           Set up the libCEED context
@@ -122,20 +121,20 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   setup_context->time      = 0;
 
   // -- QFunction Context
-  phys_ctx->euler_test                  = euler_test;
-  phys_ctx->implicit                    = implicit;
-  phys_ctx->has_curr_time               = has_curr_time;
-  phys_ctx->has_neumann                 = has_neumann;
-  phys_ctx->euler_ctx->curr_time        = 0.;
-  phys_ctx->euler_ctx->implicit         = implicit;
-  phys_ctx->euler_ctx->euler_test       = euler_test;
-  phys_ctx->euler_ctx->center[0]        = center[0];
-  phys_ctx->euler_ctx->center[1]        = center[1];
-  phys_ctx->euler_ctx->center[2]        = center[2];
-  phys_ctx->euler_ctx->vortex_strength  = vortex_strength;
-  phys_ctx->euler_ctx->mean_velocity[0] = mean_velocity[0];
-  phys_ctx->euler_ctx->mean_velocity[1] = mean_velocity[1];
-  phys_ctx->euler_ctx->mean_velocity[2] = mean_velocity[2];
+  user->phys->euler_test                  = euler_test;
+  user->phys->implicit                    = implicit;
+  user->phys->has_curr_time               = has_curr_time;
+  user->phys->has_neumann                 = has_neumann;
+  user->phys->euler_ctx->curr_time        = 0.;
+  user->phys->euler_ctx->implicit         = implicit;
+  user->phys->euler_ctx->euler_test       = euler_test;
+  user->phys->euler_ctx->center[0]        = center[0];
+  user->phys->euler_ctx->center[1]        = center[1];
+  user->phys->euler_ctx->center[2]        = center[2];
+  user->phys->euler_ctx->vortex_strength  = vortex_strength;
+  user->phys->euler_ctx->mean_velocity[0] = mean_velocity[0];
+  user->phys->euler_ctx->mean_velocity[1] = mean_velocity[1];
+  user->phys->euler_ctx->mean_velocity[2] = mean_velocity[2];
 
   PetscFunctionReturn(0);
 }
