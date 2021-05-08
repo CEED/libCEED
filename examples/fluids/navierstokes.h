@@ -42,46 +42,46 @@ static inline CeedMemType MemTypeP2C(PetscMemType mem_type) {
 
 // Advection - Wind Options
 typedef enum {
-  ADVECTION_WIND_ROTATION    = 0,
-  ADVECTION_WIND_TRANSLATION = 1,
+  WIND_ROTATION    = 0,
+  WIND_TRANSLATION = 1,
 } WindType;
 static const char *const WindTypes[] = {
   "rotation",
   "translation",
-  "WindType", "ADVECTION_WIND_", NULL
+  "WindType", "WIND_", NULL
 };
 
-// Advection - Bubble Dimension Types
+// Advection - Bubble Types
 typedef enum {
-  ADVECTION_BUBBLE_DIM_SPHERE   = 0, // dim=3
-  ADVECTION_BUBBLE_DIM_CYLINDER = 1, // dim=2
-} BubbleDimType;
-static const char *const BubbleDimTypes[] = {
+  BUBBLE_SPHERE   = 0, // dim=3
+  BUBBLE_CYLINDER = 1, // dim=2
+} BubbleType;
+static const char *const BubbleTypes[] = {
   "sphere",
   "cylinder",
-  "BubbleDimType", "ADVECTION_BUBBLE_DIM_", NULL
+  "BubbleType", "BUBBLE_", NULL
 };
 
 // Advection - Bubble Continuity Types
 typedef enum {
-  ADVECTION_BUBBLE_CONTINUITY_SMOOTH     = 0,  // Original continuous, smooth shape
-  ADVECTION_BUBBLE_CONTINUITY_BACK_SHARP = 1,  // Discontinuous, sharp back half shape
-  ADVECTION_BUBBLE_CONTINUITY_THICK      = 2,  // Define a finite thickness
+  BUBBLE_CONTINUITY_SMOOTH     = 0,  // Original continuous, smooth shape
+  BUBBLE_CONTINUITY_BACK_SHARP = 1,  // Discontinuous, sharp back half shape
+  BUBBLE_CONTINUITY_THICK      = 2,  // Define a finite thickness
 } BubbleContinuityType;
 static const char *const BubbleContinuityTypes[] = {
   "smooth",
   "back_sharp",
   "thick",
-  "BubbleContinuityType", "ADVECTION_BUBBLE_CONTINUITY_", NULL
+  "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL
 };
 
 // Euler - test cases
 typedef enum {
   EULER_TEST_NONE = 0,
-  EULER_TEST_1 = 1,
-  EULER_TEST_2 = 2,
-  EULER_TEST_3 = 3,
-  EULER_TEST_4 = 4,
+  EULER_TEST_1    = 1,
+  EULER_TEST_2    = 2,
+  EULER_TEST_3    = 3,
+  EULER_TEST_4    = 4,
 } EulerTestType;
 static const char *const EulerTestTypes[] = {
   "none",
@@ -175,12 +175,12 @@ struct Physics_private {
   EulerContext         euler_ctx;
   AdvectionContext     advection_ctx;
   WindType             wind_type;
-  BubbleDimType        bubble_dim_type;
+  BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
   EulerTestType        euler_test;
   StabilizationType    stab;
   PetscBool            implicit;
-  PetscBool            has_current_time;
+  PetscBool            has_curr_time;
   PetscBool            has_neumann;
 };
 

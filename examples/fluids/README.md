@@ -23,9 +23,9 @@ Available runtime options are:
 | `-ceed`                               | CEED resource specifier                                                                         |
 | `-test`                               | Run in test mode                                                                                |
 | `-problem`                            | Problem to solve (`advection`, `advection2d`, `density_current`, or `euler_vortex`)             |
-| `-problem_advection_wind`             | Wind type in Advection (`rotation` or `translation`)                                            |
-| `-problem_advection_wind_translation` | Constant wind vector when `-problem_advection_wind translation`                                 |
-| `-problem_euler_mean_velocity`        | Constant mean velocity vector in `euler_vortex`                                                 |
+| `-wind_type`                          | Wind type in Advection (`rotation` or `translation`)                                            |
+| `-wind_translation`                   | Constant wind vector when `-wind_type translation`                                              |
+| `-mean_velocity`                      | Constant mean velocity vector in `euler_vortex`                                                 |
 | `-vortex_strength`                    | Strength of vortex in `euler_vortex`                                                            |
 | `-stab`                               | Stabilization method                                                                            |
 | `-implicit`                           | Use implicit time integartor formulation                                                        |

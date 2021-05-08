@@ -8,7 +8,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
-  PetscBool         has_current_time = PETSC_FALSE;
+  PetscBool         has_curr_time = PETSC_FALSE;
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
@@ -211,7 +211,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   // -- QFunction Context
   phys_ctx->stab             = stab;
   phys_ctx->implicit         = implicit;
-  phys_ctx->has_current_time = has_current_time;
+  phys_ctx->has_curr_time    = has_curr_time;
   phys_ctx->dc_ctx->lambda   = lambda;
   phys_ctx->dc_ctx->mu       = mu;
   phys_ctx->dc_ctx->k        = k;
@@ -271,7 +271,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   {
-    // Slip boundary conditions
+    // Set slip boundary conditions
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
@@ -304,7 +304,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     }
   }
 
-  // Wall boundary conditions
+  // Set wall boundary conditions
   //   zero velocity and zero flux for mass density and energy density
   {
     DMLabel  label;

@@ -40,7 +40,7 @@ struct EulerContext_ {
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;
-  CeedScalar etv_mean_velocity[3];
+  CeedScalar mean_velocity[3];
   int euler_test;
   bool implicit;
 };
@@ -83,7 +83,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength    = context->vortex_strength;
   const CeedScalar *center            = context->center; // Center of the domain
-  const CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  const CeedScalar *mean_velocity = context->mean_velocity;
 
   // Setup
   const CeedScalar gamma = 1.4;
@@ -91,8 +91,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar R     = 1.;
   const CeedScalar x     = X[0], y = X[1], z = X[2]; // Coordinates
   // Vortex center
-  const CeedScalar xc = center[0] + etv_mean_velocity[0] * time;
-  const CeedScalar yc = center[1] + etv_mean_velocity[1] * time;
+  const CeedScalar xc = center[0] + mean_velocity[0] * time;
+  const CeedScalar yc = center[1] + mean_velocity[1] * time;
 
   const CeedScalar x0       = x - xc;
   const CeedScalar y0       = y - yc;
@@ -114,8 +114,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     // Solve for rho, then substitute for P
     rho  = pow(T/S_vortex, 1 / (gamma - 1));
     P    = rho * T;
-    u[0] = etv_mean_velocity[0] - C*y0;
-    u[1] = etv_mean_velocity[1] + C*x0;
+    u[0] = mean_velocity[0] - C*y0;
+    u[1] = mean_velocity[1] + C*x0;
 
     // Assign exact solution
     q[0] = rho;
@@ -138,8 +138,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   case 2: // Constant nonzero velocity, density constant, total energy constant
     rho  = 1.;
     E    = 2.;
-    u[0] = etv_mean_velocity[0];
-    u[1] = etv_mean_velocity[1];
+    u[0] = mean_velocity[0];
+    u[1] = mean_velocity[1];
 
     // Assign exact solution
     q[0] = rho;
@@ -169,8 +169,8 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
     P    = 1.;
     T    = 1. - S_bubble * exp(1. - r*r);
     rho  = P / (R*T);
-    u[0] = etv_mean_velocity[0];
-    u[1] = etv_mean_velocity[1];
+    u[0] = mean_velocity[0];
+    u[1] = mean_velocity[1];
 
     // Assign exact solution
     q[0] = rho;
@@ -414,9 +414,9 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
 //   In this problem, only in/outflow BCs are implemented
 //
 //  Inflow and outflow faces are determined based on
-//    sign(dot(etv_mean_velocity, normal)):
-//      sign(dot(etv_mean_velocity, normal)) > 0 : outflow BCs
-//      sign(dot(etv_mean_velocity, normal)) < 0 : inflow BCs
+//    sign(dot(mean_velocity, normal)):
+//      sign(dot(mean_velocity, normal)) > 0 : outflow BCs
+//      sign(dot(mean_velocity, normal)) < 0 : inflow BCs
 //
 //  Outflow BCs:
 //    The validity of the weak form of the governing equations is
@@ -438,9 +438,9 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   EulerContext context = (EulerContext)ctx;
-  const int euler_test          = context->euler_test;
-  const bool implicit           = context->implicit;
-  CeedScalar *etv_mean_velocity = context->etv_mean_velocity;
+  const int euler_test      = context->euler_test;
+  const bool implicit       = context->implicit;
+  CeedScalar *mean_velocity = context->mean_velocity;
 
   const CeedScalar gamma = 1.4;
   const CeedScalar cv    = 2.5;
@@ -450,7 +450,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
   // For test cases 1 and 3 the background velocity is zero
   if (euler_test == 1 || euler_test == 3)
-    for (CeedInt i=0; i<3; i++) etv_mean_velocity[i] = 0.;
+    for (CeedInt i=0; i<3; i++) mean_velocity[i] = 0.;
 
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
@@ -480,9 +480,9 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
                                     };
 
     // face_normal = Normal vector of the face
-    const CeedScalar face_normal = norm[0]*etv_mean_velocity[0] +
-                                   norm[1]*etv_mean_velocity[1] +
-                                   norm[2]*etv_mean_velocity[2];
+    const CeedScalar face_normal = norm[0]*mean_velocity[0] +
+                                   norm[1]*mean_velocity[1] +
+                                   norm[2]*mean_velocity[2];
     // The Physics
     // Zero v so all future terms can safely sum into it
     for (int j=0; j<5; j++) v[j][i] = 0;
@@ -506,8 +506,8 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
     } else { // inflow
       const CeedScalar rho_inlet = P_inlet/(R*T_inlet);
-      const CeedScalar E_kinetic_inlet = (etv_mean_velocity[0]*etv_mean_velocity[0] +
-                                          etv_mean_velocity[1]*etv_mean_velocity[1]) / 2.;
+      const CeedScalar E_kinetic_inlet = (mean_velocity[0]*mean_velocity[0] +
+                                          mean_velocity[1]*mean_velocity[1]) / 2.;
       // incoming total energy
       const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
 
@@ -517,7 +517,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
       // -- Momentum
       for (int j=0; j<3; j++)
-        v[j+1][i] -= wdetJb *(rho_inlet * face_normal * etv_mean_velocity[j] +
+        v[j+1][i] -= wdetJb *(rho_inlet * face_normal * mean_velocity[j] +
                               norm[j] * P_inlet);
 
       // -- Total Energy Density

@@ -3,7 +3,7 @@
 PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                             void *ctx, void *phys) {
   WindType             wind_type;
-  BubbleDimType        bubble_dim_type;
+  BubbleType        bubble_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
   SetupContext         setup_context = *(SetupContext *)setup_ctx;
@@ -11,7 +11,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   Physics              phys_ctx = *(Physics *)phys;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   PetscBool            implicit;
-  PetscBool            has_current_time = PETSC_FALSE;
+  PetscBool            has_curr_time = PETSC_FALSE;
   PetscInt             ierr;
   PetscFunctionBeginUser;
 
@@ -76,8 +76,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
   PetscBool user_wind;
-  ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
-                               "Constant wind vector",
+  ierr = PetscOptionsRealArray("-wind_translation", "Constant wind vector",
                                NULL, wind, &n, &user_wind); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
@@ -88,18 +87,18 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
   PetscBool translation;
-  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
+  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
                           NULL, WindTypes,
-                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+                          (PetscEnum)(wind_type = WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
   if (translation) phys_ctx->has_neumann = translation;
-  ierr = PetscOptionsEnum("-bubble_dim", "Bubble dimension",
-                          NULL, BubbleDimTypes,
-                          (PetscEnum)(bubble_dim_type = ADVECTION_BUBBLE_DIM_SPHERE),
-                          (PetscEnum *)&bubble_dim_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-bubble_type", "Bubble dimension",
+                          NULL, BubbleTypes,
+                          (PetscEnum)(bubble_type = BUBBLE_SPHERE),
+                          (PetscEnum *)&bubble_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-bubble_continuity", "Bubble continuity",
                           NULL, BubbleContinuityTypes,
-                          (PetscEnum)(bubble_continuity_type = ADVECTION_BUBBLE_CONTINUITY_SMOOTH),
+                          (PetscEnum)(bubble_continuity_type = BUBBLE_CONTINUITY_SMOOTH),
                           (PetscEnum *)&bubble_continuity_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
@@ -120,16 +119,16 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   second = fabs(second);
 
   // -- Warnings
-  if (wind_type == ADVECTION_WIND_ROTATION && user_wind) {
+  if (wind_type == WIND_ROTATION && user_wind) {
     ierr = PetscPrintf(comm,
-                       "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+                       "Warning! Use -wind_translation only with -wind_type translation\n");
     CHKERRQ(ierr);
   }
-  if (wind_type == ADVECTION_WIND_TRANSLATION
-      && bubble_dim_type == ADVECTION_BUBBLE_DIM_CYLINDER && wind[2] != 0.) {
+  if (wind_type == WIND_TRANSLATION
+      && bubble_type == BUBBLE_CYLINDER && wind[2] != 0.) {
     wind[2] = 0;
     ierr = PetscPrintf(comm,
-                       "Warning! Background wind in the z direction should be zero (-problem_advection_wind_translation x,x,0) with -bubble_dim cylinder\n");
+                       "Warning! Background wind in the z direction should be zero (-wind_translation x,x,0) with -bubble_type cylinder\n");
     CHKERRQ(ierr);
   }
   if (stab == STAB_NONE && CtauS != 0) {
@@ -175,18 +174,18 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
   setup_context->wind[1]                = wind[1];
   setup_context->wind[2]                = wind[2];
   setup_context->wind_type              = wind_type;
-  setup_context->bubble_dim_type        = bubble_dim_type;
+  setup_context->bubble_type            = bubble_type;
   setup_context->bubble_continuity_type = bubble_continuity_type;
   setup_context->time = 0;
 
   // -- QFunction Context
   phys_ctx->stab                         = stab;
   phys_ctx->wind_type                    = wind_type;
-  phys_ctx->bubble_dim_type              = bubble_dim_type;
+  phys_ctx->bubble_type                  = bubble_type;
   phys_ctx->bubble_continuity_type       = bubble_continuity_type;
   //  if passed correctly
   phys_ctx->implicit                     = implicit;
-  phys_ctx->has_current_time             = has_current_time;
+  phys_ctx->has_curr_time                = has_curr_time;
   phys_ctx->advection_ctx->CtauS         = CtauS;
   phys_ctx->advection_ctx->E_wind        = E_wind;
   phys_ctx->advection_ctx->implicit      = implicit;
@@ -205,7 +204,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
   PetscFunctionBeginUser;
 
   // Define boundary conditions
-  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (phys->wind_type == WIND_TRANSLATION) {
     bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
     bc->slips[0][0] = 5;
     bc->slips[0][1] = 6;
@@ -213,8 +212,8 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     bc->slips[1][1] = 4;
     bc->slips[2][0] = 1;
     bc->slips[2][1] = 2;
-  } else if (phys->wind_type == ADVECTION_WIND_ROTATION &&
-             phys->bubble_dim_type == ADVECTION_BUBBLE_DIM_CYLINDER) {
+  } else if (phys->wind_type == WIND_ROTATION &&
+             phys->bubble_type == BUBBLE_CYLINDER) {
     bc->num_slip[0] = bc->num_slip[1] = 0;
     bc->num_slip[2] = 2; bc->slips[2][0] = 1; bc->slips[2][1] = 2;
     bc->num_wall = 6;
@@ -227,7 +226,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
   }
 
   {
-    // Slip boundary conditions
+    // Set slip boundary conditions
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
@@ -247,7 +246,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     CHKERRQ(ierr);
   }
 
-  // Wall boundary conditions
+  // Set wall boundary conditions
   //   zero energy density and zero flux
   {
     DMLabel  label;
@@ -272,15 +271,16 @@ PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
                      "  Problem:\n"
                      "    Problem Name                       : %s\n"
                      "    Stabilization                      : %s\n"
-                     "    Bubble Dimension                   : %d\n"
+                     "    Bubble Type                        : %s (%dD)\n"
                      "    Bubble Continuity                  : %s\n"
                      "    Wind Type                          : %s\n",
                      app_ctx->problem_name, StabilizationTypes[phys->stab],
-                     phys->bubble_dim_type == ADVECTION_BUBBLE_DIM_SPHERE ? 3 : 2,
+                     BubbleTypes[phys->bubble_type],
+                     phys->bubble_type == BUBBLE_SPHERE ? 3 : 2,
                      BubbleContinuityTypes[phys->bubble_continuity_type],
                      WindTypes[phys->wind_type]); CHKERRQ(ierr);
 
-  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (phys->wind_type == WIND_TRANSLATION) {
     ierr = PetscPrintf(comm,
                        "    Background Wind                    : %f,%f,%f\n",
                        setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]); CHKERRQ(ierr);

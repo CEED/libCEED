@@ -231,11 +231,11 @@ with :math:`\bm{u}` the vector velocity field. In this particular test case, a b
 
    The :math:`3D` version of this test case can be run with::
 
-      ./navierstokes -problem advection -problem_advection_wind rotation
+      ./navierstokes -problem advection -wind_type rotation
 
    while the :math:`2D` version with::
 
-      ./navierstokes -problem advection2d -problem_advection_wind rotation
+      ./navierstokes -problem advection2d -wind_type rotation
 
 - **Translation**
 
@@ -254,11 +254,11 @@ with :math:`\bm{u}` the vector velocity field. In this particular test case, a b
 
    The :math:`3D` version of this test case problem can be run with::
 
-      ./navierstokes -problem advection -problem_advection_wind translation -problem_advection_wind translation .5,-1,0
+      ./navierstokes -problem advection -wind_type translation -wind_type translation .5,-1,0
 
    while the :math:`2D` version with::
 
-      ./navierstokes -problem advection2d -problem_advection_wind translation -problem_advection_wind translation 1,-.5
+      ./navierstokes -problem advection2d -wind_type translation -wind_type translation 1,-.5
 
 
 .. _problem-euler-vortex:
@@ -290,7 +290,7 @@ There is no perturbation in the entropy :math:`S=P/\rho^\gamma` (:math:`\delta S
 
 This problem can be run with::
 
-   ./navierstokes -problem euler_vortex -problem_euler_mean_velocity .5,-.8,0. -dm_plex_box_faces 20,20,1 -lx 1000 -ly 1000 -lz 1
+   ./navierstokes -problem euler_vortex -mean_velocity .5,-.8,0. -dm_plex_box_faces 20,20,1 -lx 1000 -ly 1000 -lz 1
 
 
 .. _problem-density-current:

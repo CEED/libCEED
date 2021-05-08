@@ -192,7 +192,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   if (phys->has_neumann == PETSC_TRUE) {
 
     // --- No BCs for advection problem in the translation mode
-    if (phys->wind_type == ADVECTION_WIND_TRANSLATION)
+    if (phys->wind_type == WIND_TRANSLATION)
       bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
 
     // --- Setup

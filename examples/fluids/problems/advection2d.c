@@ -9,7 +9,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   Physics           phys_ctx = *(Physics *)phys;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
-  PetscBool         has_current_time = PETSC_FALSE;
+  PetscBool         has_curr_time = PETSC_FALSE;
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
@@ -74,8 +74,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscInt n = problem->dim;
   PetscBool user_wind;
-  ierr = PetscOptionsRealArray("-problem_advection_wind_translation",
-                               "Constant wind vector",
+  ierr = PetscOptionsRealArray("-wind_translation", "Constant wind vector",
                                NULL, wind, &n, &user_wind); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-CtauS",
                             "Scale coefficient for tau (nondimensional)",
@@ -86,9 +85,8 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
   PetscBool translation;
-  ierr = PetscOptionsEnum("-problem_advection_wind", "Wind type in Advection",
-                          NULL, WindTypes,
-                          (PetscEnum)(wind_type = ADVECTION_WIND_ROTATION),
+  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
+                          NULL, WindTypes, (PetscEnum)(wind_type = WIND_ROTATION),
                           (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
   if (translation) phys_ctx->has_neumann = translation;
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
@@ -110,9 +108,9 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   second = fabs(second);
 
   // -- Warnings
-  if (wind_type == ADVECTION_WIND_ROTATION && user_wind) {
+  if (wind_type == WIND_ROTATION && user_wind) {
     ierr = PetscPrintf(comm,
-                       "Warning! Use -problem_advection_wind_translation only with -problem_advection_wind translation\n");
+                       "Warning! Use -wind_translation only with -wind_type translation\n");
     CHKERRQ(ierr);
   }
   if (stab == STAB_NONE && CtauS != 0) {
@@ -163,7 +161,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   phys_ctx->stab                         = stab;
   phys_ctx->wind_type                    = wind_type;
   phys_ctx->implicit                     = implicit;
-  phys_ctx->has_current_time             = has_current_time;
+  phys_ctx->has_curr_time                = has_curr_time;
   phys_ctx->advection_ctx->CtauS         = CtauS;
   phys_ctx->advection_ctx->E_wind        = E_wind;
   phys_ctx->advection_ctx->implicit      = implicit;
@@ -185,7 +183,7 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   // ToDo: fix the dimension
   // todo: check if we can define bcs for translation in
   //       function instead
-  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (phys->wind_type == WIND_TRANSLATION) {
     bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
     bc->slips[0][0] = 5;
     bc->slips[0][1] = 6;
@@ -201,7 +199,7 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   }
 
   {
-    // Slip boundary conditions
+    // Set slip boundary conditions
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
@@ -221,7 +219,7 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
     CHKERRQ(ierr);
   }
 
-  // Wall boundary conditions
+  // Set wall boundary conditions
   //   zero energy density and zero flux
   {
     DMLabel  label;
@@ -250,7 +248,7 @@ PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
                      app_ctx->problem_name, StabilizationTypes[phys->stab],
                      WindTypes[phys->wind_type]); CHKERRQ(ierr);
 
-  if (phys->wind_type == ADVECTION_WIND_TRANSLATION) {
+  if (phys->wind_type == WIND_TRANSLATION) {
     ierr = PetscPrintf(comm,
                        "    Background Wind                    : %f,%f\n",
                        setup_ctx->wind[0], setup_ctx->wind[1]); CHKERRQ(ierr);

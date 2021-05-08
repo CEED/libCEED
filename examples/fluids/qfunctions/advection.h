@@ -45,7 +45,7 @@ struct SetupContext_ {
   CeedScalar wind[3];
   CeedScalar time;
   int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_dim_type;        // See BubbleDimType: 0=SPHERE, 1=CYLINDER
+  int bubble_type;        // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
 #endif
@@ -134,7 +134,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
 
   // -- Energy
   CeedScalar r ;
-  switch (context->bubble_dim_type) {
+  switch (context->bubble_type) {
   //  original sphere
   case 0: { // (dim=3)
     r = sqrt(pow((x - x0[0]), 2) +

@@ -8,7 +8,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   Physics       phys_ctx = *(Physics *)phys;
   MPI_Comm      comm = PETSC_COMM_WORLD;
   PetscBool     implicit;
-  PetscBool     has_current_time = PETSC_TRUE;
+  PetscBool     has_curr_time = PETSC_TRUE;
   PetscBool     has_neumann = PETSC_TRUE;
   PetscInt      ierr;
   PetscFunctionBeginUser;
@@ -46,7 +46,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   PetscScalar lx             = 8000.; // m
   PetscScalar ly             = 8000.; // m
   PetscScalar lz             = 4000.; // m
-  PetscReal center[3], etv_mean_velocity[3] = {1., 1., 0}; // to-do: etv -> euler
+  PetscReal center[3], mean_velocity[3] = {1., 1., 0};
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -60,14 +60,13 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsBegin(comm, NULL, "Options for EULER_VORTEX problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
-  PetscBool userVortex;
+  PetscBool user_vortex;
   ierr = PetscOptionsScalar("-vortex_strength", "Strength of Vortex",
-                            NULL, vortex_strength, &vortex_strength, &userVortex);
+                            NULL, vortex_strength, &vortex_strength, &user_vortex);
   CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  ierr = PetscOptionsRealArray("-problem_euler_mean_velocity",
-                               "Mean velocity vector",
-                               NULL, etv_mean_velocity, &n, NULL);
+  ierr = PetscOptionsRealArray("-mean_velocity", "Mean velocity vector",
+                               NULL, mean_velocity, &n, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
@@ -111,32 +110,32 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
-  // todo: scale etv_mean_velocity
+  // todo: scale mean_velocity
 
   // -- Setup Context
-  setup_context->lx         = lx;
-  setup_context->ly         = ly;
-  setup_context->lz         = lz;
-  setup_context->center[0]  = center[0];
-  setup_context->center[1]  = center[1];
-  setup_context->center[2]  = center[2];
-  setup_context->time       = 0;
+  setup_context->lx        = lx;
+  setup_context->ly        = ly;
+  setup_context->lz        = lz;
+  setup_context->center[0] = center[0];
+  setup_context->center[1] = center[1];
+  setup_context->center[2] = center[2];
+  setup_context->time      = 0;
 
   // -- QFunction Context
-  phys_ctx->euler_test                      = euler_test;
-  phys_ctx->implicit                        = implicit;
-  phys_ctx->has_current_time                = has_current_time;
-  phys_ctx->has_neumann                     = has_neumann;
-  phys_ctx->euler_ctx->curr_time            = 0.;
-  phys_ctx->euler_ctx->implicit             = implicit;
-  phys_ctx->euler_ctx->euler_test           = euler_test;
-  phys_ctx->euler_ctx->center[0]            = center[0];
-  phys_ctx->euler_ctx->center[1]            = center[1];
-  phys_ctx->euler_ctx->center[2]            = center[2];
-  phys_ctx->euler_ctx->vortex_strength      = vortex_strength;
-  phys_ctx->euler_ctx->etv_mean_velocity[0] = etv_mean_velocity[0];
-  phys_ctx->euler_ctx->etv_mean_velocity[1] = etv_mean_velocity[1];
-  phys_ctx->euler_ctx->etv_mean_velocity[2] = etv_mean_velocity[2];
+  phys_ctx->euler_test                  = euler_test;
+  phys_ctx->implicit                    = implicit;
+  phys_ctx->has_curr_time               = has_curr_time;
+  phys_ctx->has_neumann                 = has_neumann;
+  phys_ctx->euler_ctx->curr_time        = 0.;
+  phys_ctx->euler_ctx->implicit         = implicit;
+  phys_ctx->euler_ctx->euler_test       = euler_test;
+  phys_ctx->euler_ctx->center[0]        = center[0];
+  phys_ctx->euler_ctx->center[1]        = center[1];
+  phys_ctx->euler_ctx->center[2]        = center[2];
+  phys_ctx->euler_ctx->vortex_strength  = vortex_strength;
+  phys_ctx->euler_ctx->mean_velocity[0] = mean_velocity[0];
+  phys_ctx->euler_ctx->mean_velocity[1] = mean_velocity[1];
+  phys_ctx->euler_ctx->mean_velocity[2] = mean_velocity[2];
 
   PetscFunctionReturn(0);
 }
@@ -146,12 +145,12 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Default boundary conditions
+  // Define boundary conditions
   bc->num_slip[2] = 2;
   bc->slips[2][0] = 1;
   bc->slips[2][1] = 2;
 
-  // Slip boundary conditions
+  // Set boundary conditions
   DMLabel label;
   ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
   PetscInt comps[1] = {3};
@@ -175,8 +174,8 @@ PetscErrorCode PRINT_EULER_VORTEX(Physics phys, SetupContext setup_ctx,
                      "    Test Case                          : %s\n"
                      "    Background Velocity                : %f,%f\n",
                      app_ctx->problem_name, EulerTestTypes[phys->euler_test],
-                     phys->euler_ctx->etv_mean_velocity[0],
-                     phys->euler_ctx->etv_mean_velocity[1]); CHKERRQ(ierr);
+                     phys->euler_ctx->mean_velocity[0],
+                     phys->euler_ctx->mean_velocity[1]); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
