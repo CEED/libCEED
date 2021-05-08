@@ -72,6 +72,12 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  PetscBool translation;
+  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
+                          NULL, WindTypes,
+                          (PetscEnum)(wind_type = WIND_ROTATION),
+                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
+  if (translation) user->phys->has_neumann = PETSC_TRUE;
   PetscInt n = problem->dim;
   PetscBool user_wind;
   ierr = PetscOptionsRealArray("-wind_translation", "Constant wind vector",
@@ -84,12 +90,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
                             NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-  PetscBool translation;
-  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
-                          NULL, WindTypes,
-                          (PetscEnum)(wind_type = WIND_ROTATION),
-                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) user->phys->has_neumann = translation;
   ierr = PetscOptionsEnum("-bubble_type", "Bubble dimension",
                           NULL, BubbleTypes,
                           (PetscEnum)(bubble_type = BUBBLE_SPHERE),
@@ -203,15 +203,14 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
 
   // Define boundary conditions
   if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
+    bc->num_wall = bc->num_slip[2] = 0;
   } else if (phys->wind_type == WIND_ROTATION &&
              phys->bubble_type == BUBBLE_CYLINDER) {
-    bc->num_slip[0] = bc->num_slip[1] = 0;
     bc->num_slip[2] = 2; bc->slips[2][0] = 1; bc->slips[2][1] = 2;
-    bc->num_wall = 6;
+    bc->num_wall = 4;
     bc->walls[0] = 3; bc->walls[1] = 4; bc->walls[2] = 5; bc->walls[3] = 6;
   } else {
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
+    bc->num_slip[2] = 0;
     bc->num_wall = 6;
     bc->walls[0] = 1; bc->walls[1] = 2; bc->walls[2] = 3;
     bc->walls[3] = 4; bc->walls[4] = 5; bc->walls[5] = 6;
@@ -221,17 +220,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     // Set slip boundary conditions
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
-                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
-                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 3;
+    PetscInt comps[1] = {3};
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
                          bc->num_slip[2], bc->slips[2], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);

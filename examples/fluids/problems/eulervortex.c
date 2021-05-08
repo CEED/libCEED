@@ -145,9 +145,7 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   PetscFunctionBeginUser;
 
   // Define boundary conditions
-  bc->num_slip[2] = 2;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
+  bc->num_slip[2] = 2; bc->slips[2][0] = 1; bc->slips[2][1] = 2;
 
   // Set boundary conditions
   DMLabel label;

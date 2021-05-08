@@ -71,6 +71,11 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  PetscBool translation;
+  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
+                          NULL, WindTypes, (PetscEnum)(wind_type = WIND_ROTATION),
+                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
+  if (translation) user->phys->has_neumann = PETSC_TRUE;
   PetscInt n = problem->dim;
   PetscBool user_wind;
   ierr = PetscOptionsRealArray("-wind_translation", "Constant wind vector",
@@ -83,11 +88,6 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                             NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-  PetscBool translation;
-  ierr = PetscOptionsEnum("-wind_type", "Wind type in Advection",
-                          NULL, WindTypes, (PetscEnum)(wind_type = WIND_ROTATION),
-                          (PetscEnum *)&wind_type, &translation); CHKERRQ(ierr);
-  if (translation) user->phys->has_neumann = translation;
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -172,50 +172,28 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
 
 PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                               void *setup_ctx) {
-  PetscInt       len;
-  PetscBool      flg;
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
   // Define boundary conditions
   if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = 0;
+    bc->num_wall = 0;
   } else {
-    bc->num_slip[0] = bc->num_slip[1] = 0;
     bc->num_wall = 6;
     bc->walls[0] = 1; bc->walls[1] = 2;
     bc->walls[2] = 3; bc->walls[3] = 4;
   }
 
-  {
-    // Set slip boundary conditions
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
-                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
-                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-  }
-
-  // Set wall boundary conditions
+  // Set boundary conditions
   //   zero energy density and zero flux
-  {
-    DMLabel  label;
-    PetscInt comps[1] = {4};
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                         bc->num_wall, bc->walls, 0,
-                         1, comps, (void(*)(void))Exact_Advection2d, NULL,
-                         setup_ctx, NULL); CHKERRQ(ierr);
-  }
-
+  DMLabel  label;
+  PetscInt comps[1] = {4};
+  ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+  ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+                       bc->num_wall, bc->walls, 0,
+                       1, comps, (void(*)(void))Exact_Advection2d, NULL,
+                       setup_ctx, NULL); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
