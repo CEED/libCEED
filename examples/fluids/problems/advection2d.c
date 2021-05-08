@@ -180,22 +180,13 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
   PetscFunctionBeginUser;
 
   // Define boundary conditions
-  // ToDo: fix the dimension
-  // todo: check if we can define bcs for translation in
-  //       function instead
   if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
-    bc->slips[0][0] = 5;
-    bc->slips[0][1] = 6;
-    bc->slips[1][0] = 3;
-    bc->slips[1][1] = 4;
-    bc->slips[2][0] = 1;
-    bc->slips[2][1] = 2;
+    bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = 0;
   } else {
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
+    bc->num_slip[0] = bc->num_slip[1] = 0;
     bc->num_wall = 6;
-    bc->walls[0] = 1; bc->walls[1] = 2; bc->walls[2] = 3;
-    bc->walls[3] = 4; bc->walls[4] = 5; bc->walls[5] = 6;
+    bc->walls[0] = 1; bc->walls[1] = 2;
+    bc->walls[2] = 3; bc->walls[3] = 4;
   }
 
   {
@@ -210,11 +201,6 @@ PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
     comps[0] = 2;
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
                          bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
-                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
   }

@@ -205,13 +205,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
 
   // Define boundary conditions
   if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
-    bc->slips[0][0] = 5;
-    bc->slips[0][1] = 6;
-    bc->slips[1][0] = 3;
-    bc->slips[1][1] = 4;
-    bc->slips[2][0] = 1;
-    bc->slips[2][1] = 2;
+    bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
   } else if (phys->wind_type == WIND_ROTATION &&
              phys->bubble_type == BUBBLE_CYLINDER) {
     bc->num_slip[0] = bc->num_slip[1] = 0;

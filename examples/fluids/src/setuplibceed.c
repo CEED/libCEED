@@ -190,11 +190,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
   // -- Create Sub-Operator for in/outflow BCs
   if (phys->has_neumann == PETSC_TRUE) {
-
-    // --- No BCs for advection problem in the translation mode
-    if (phys->wind_type == WIND_TRANSLATION)
-      bc->num_wall = bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
-
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
     ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
