@@ -113,10 +113,10 @@ int main(int argc, char **argv) {
 
     const CeedScalar *v;
     CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-    S[0*4+i] = v[0];
-    S[1*4+i] = v[P-1];
-    S[2*4+i] = v[P*P-P];
-    S[3*4+i] = v[P*P-1];
+    S[0*4+i] = -v[0];
+    S[1*4+i] = -v[P-1];
+    S[2*4+i] = -v[P*P-P];
+    S[3*4+i] = -v[P*P-1];
     CeedVectorRestoreArrayRead(V, &v);
   }
   CeedScalar S_inv[16];
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
       for (CeedInt j=0; j<4; j++) {
         sum += w_Pi[j] * S_inv[i*4+j];
       }
-      v_Pi[i] = -sum;
+      v_Pi[i] = sum;
     }
 
     // -- Set corners
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
     CeedVectorGetArrayRead(W, CEED_MEM_HOST, &w);
     for (CeedInt i=0; i<P; i++)
       for (CeedInt j=0; j<P; j++)
-        if (fabs(u[i*P+j] - w[i*P+j]) > 5e-14)
+        if (fabs(u[i*P+j] - w[i*P+j]) > 2e-3)
           // LCOV_EXCL_START
           printf("[%d, %d] Error in inverse: %e != %e\n", i, j, w[i*P+j], u[i*P+j]);
     // LCOV_EXCL_STOP

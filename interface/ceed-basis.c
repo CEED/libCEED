@@ -1336,13 +1336,15 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   }
   // Backwards accumulation of Q
   for (CeedInt i=n-2; i>=0; i--) {
-    v[i] = 1;
-    for (CeedInt j=i+1; j<n-1; j++) {
-      v[j] = mat_T[i+n*(j+1)];
-      mat_T[i+n*(j+1)] = 0;
+    if (tau[i] > 0.0) {
+      v[i] = 1;
+      for (CeedInt j=i+1; j<n-1; j++) {
+        v[j] = mat_T[i+n*(j+1)];
+        mat_T[i+n*(j+1)] = 0;
+      }
+      CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i],
+                             n-(i+1), n-(i+1), n, 1);
     }
-    CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i],
-                           n-(i+1), n-(i+1), n, 1);
   }
 
   // Reduce sub and super diagonal
@@ -1447,6 +1449,18 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
   memcpy(mat_G, mat_B, n*n*sizeof(mat_B[0]));
   ierr = CeedSymmetricSchurDecomposition(ceed, mat_G, vec_D, n); CeedChk(ierr);
 
+  // Sort eigenvalues
+  for (CeedInt i=n-1; i>=0; i--)
+    for (CeedInt j=0; j<i; j++) {
+      if (fabs(vec_D[j]) > fabs(vec_D[j+1])) {
+        CeedScalar temp;
+        temp = vec_D[j]; vec_D[j] = vec_D[j+1]; vec_D[j+1] = temp;
+        for (CeedInt k=0; k<n; k++) {
+          temp = mat_G[k*n+j]; mat_G[k*n+j] = mat_G[k*n+j+1]; mat_G[k*n+j+1] = temp;
+        }
+      }
+    }
+
   // Compute C = (G D^1/2)^-1 A (G D^1/2)^-T
   //           = D^-1/2 G^T A G D^-1/2
   // -- D = D^-1/2
@@ -1470,6 +1484,18 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
 
   // Compute Q^T C Q = lambda
   ierr = CeedSymmetricSchurDecomposition(ceed, mat_C, lambda, n); CeedChk(ierr);
+
+  // Sort eigenvalues
+  for (CeedInt i=n-1; i>=0; i--)
+    for (CeedInt j=0; j<i; j++) {
+      if (fabs(lambda[j]) > fabs(lambda[j+1])) {
+        CeedScalar temp;
+        temp = lambda[j]; lambda[j] = lambda[j+1]; lambda[j+1] = temp;
+        for (CeedInt k=0; k<n; k++) {
+          temp = mat_C[k*n+j]; mat_C[k*n+j] = mat_C[k*n+j+1]; mat_C[k*n+j+1] = temp;
+        }
+      }
+    }
 
   // Set X = (G D^1/2)^-T Q
   //       = G D^-1/2 Q

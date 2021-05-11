@@ -77,6 +77,5 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
       vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
                    du[1] * dXdxdXdxT[1][j]);
   } // End of Quadrature Point Loop
-
   return 0;
 }
