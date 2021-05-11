@@ -163,8 +163,8 @@ class BasisTensorH1(Basis):
                                                qweight1d_pointer, self._pointer)
         self._ceed._check_error(err_code)
 
-    #
-    def get_interp1d(self):
+    # Get 1D interpolation matrix
+    def get_interp_1d(self):
         """Return 1D interpolation matrix of a tensor product Basis.
 
            Returns:
@@ -182,6 +182,95 @@ class BasisTensorH1(Basis):
 
         # libCEED call
         lib.CeedBasisGetInterp1D(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype="float64")
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D gradient matrix
+    def get_grad_1d(self):
+        """Return 1D gradient matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nnodes_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumNodes1D(self._pointer[0], nnodes_pointer)
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nnodes_pointer[0] * nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetGrad1D(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype="float64")
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D quadrature weights matrix
+    def get_q_weight_1d(self):
+        """Return 1D quadrature weights matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetQWeights(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype="float64")
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D quadrature points matrix
+    def get_q_ref_1d(self):
+        """Return 1D quadrature points matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetQRef(self._pointer[0], array_pointer)
 
         # Return array created from buffer
         # Create buffer object from returned pointer

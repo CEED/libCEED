@@ -248,7 +248,8 @@ int main(int argc, char **argv) {
     CeedVectorGetArray(U, CEED_MEM_HOST, &u);
     for (CeedInt i=0; i<P; i++)
       for (CeedInt j=0; j<P; j++)
-        u[i*P+j] = nodes[i] + nodes[j];
+        u[i*P+j] = -(nodes[i] - 1.0)*(nodes[i] + 1.0) -
+                   (nodes[j] - 1.0)*(nodes[j] + 1.0);
     CeedVectorRestoreArray(U, &u);
   }
 
