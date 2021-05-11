@@ -59,13 +59,13 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsBegin(comm, NULL, "Options for EULER_VORTEX problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
-  PetscBool user_vortex;
   ierr = PetscOptionsScalar("-vortex_strength", "Strength of Vortex",
-                            NULL, vortex_strength, &vortex_strength, &user_vortex);
+                            NULL, vortex_strength, &vortex_strength, NULL);
   CHKERRQ(ierr);
   PetscInt n = problem->dim;
+  PetscBool user_velocity;
   ierr = PetscOptionsRealArray("-mean_velocity", "Background velocity vector",
-                               NULL, mean_velocity, &n, NULL);
+                               NULL, mean_velocity, &n, &user_velocity);
   CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
@@ -94,6 +94,14 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
 
+  // -- Warnings
+  if (user_velocity && (euler_test == EULER_TEST_1
+                        || euler_test == EULER_TEST_3)) {
+    ierr = PetscPrintf(comm,
+                       "Warning! Background velocity vector for -euler_test t1 and -euler_test t3 is (0,0,0)\n");
+    CHKERRQ(ierr);
+  }
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -110,7 +118,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
-  // todo: scale mean_velocity
+  // todo: Scale mean_velocity
 
   // -- Setup Context
   setup_context->lx        = lx;
