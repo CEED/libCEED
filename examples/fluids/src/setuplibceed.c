@@ -451,8 +451,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // *****************************************************************************
   CeedInt height  = 1,
           dim_sur = dim - height,
-          P_sur   = app_ctx->degree + 1,  // todo: change it to q_extra_sur
-          Q_sur   = P_sur + app_ctx->q_extra_sur;
+          P_sur   = app_ctx->degree + 1,
+          Q_sur   = P_sur + app_ctx->q_extra;
   const CeedInt q_data_size_sur = problem->q_data_size_sur;
 
   // -----------------------------------------------------------------------------

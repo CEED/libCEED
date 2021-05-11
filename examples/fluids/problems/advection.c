@@ -90,11 +90,11 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
                             NULL, strong_form, &strong_form, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-E_wind", "Total energy of inflow wind",
                             NULL, E_wind, &E_wind, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-bubble_type", "Bubble dimension",
+  ierr = PetscOptionsEnum("-bubble_type", "Sphere (3D) or cylinder (2D)",
                           NULL, BubbleTypes,
                           (PetscEnum)(bubble_type = BUBBLE_SPHERE),
                           (PetscEnum *)&bubble_type, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-bubble_continuity", "Bubble continuity",
+  ierr = PetscOptionsEnum("-bubble_continuity", "Smooth, back_sharp, or thick",
                           NULL, BubbleContinuityTypes,
                           (PetscEnum)(bubble_continuity_type = BUBBLE_CONTINUITY_SMOOTH),
                           (PetscEnum *)&bubble_continuity_type, NULL); CHKERRQ(ierr);

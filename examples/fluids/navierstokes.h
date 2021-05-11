@@ -188,9 +188,8 @@ struct Physics_private {
 struct AppCtx_private {
   // libCEED arguments
   char              ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
-  PetscInt          degree;                                // todo: degree_sur
+  PetscInt          degree;
   PetscInt          q_extra;
-  PetscInt          q_extra_sur;
   // Post-processing arguments
   PetscInt          output_freq;
   PetscInt          viz_refine;

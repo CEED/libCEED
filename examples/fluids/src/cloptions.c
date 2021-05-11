@@ -100,11 +100,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
                          NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL); CHKERRQ(ierr);
 
-  app_ctx->q_extra_sur = 2;
-  ierr = PetscOptionsInt("-q_extra_boundary",
-                         "Number of extra quadrature points on in/outflow faces",
-                         NULL, app_ctx->q_extra_sur, &app_ctx->q_extra_sur, NULL); CHKERRQ(ierr);
-
   ierr = PetscStrncpy(app_ctx->output_dir, ".", 2); CHKERRQ(ierr);
   ierr = PetscOptionsString("-output_dir", "Output directory",
                             NULL, app_ctx->output_dir, app_ctx->output_dir,

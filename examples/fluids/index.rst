@@ -207,8 +207,8 @@ It is defined as
 
 where parameter :math:`\bm{\tau} \in \mathbb R^{3\times 3}` is an intrinsic time/space scale matrix.
 
-Currently, this demo provides two types of problems/physical models that can be selected at run time via the option ``-problem``.
-One is the problem of the transport of energy in a uniform vector velocity field, called the :ref:`problem-advection` problem, and the other one is the so called :ref:`problem-density-current` problem.
+Currently, this demo provides three types of problems/physical models that can be selected at run time via the option ``-problem``.
+:ref:`problem-advection`, the problem of the transport of energy in a uniform vector velocity field, :ref:`problem-euler-vortex`, the exact solution to the Euler equations, and the so called :ref:`problem-density-current` problem.
 
 
 .. _problem-advection:
@@ -263,7 +263,7 @@ with :math:`\bm{u}` the vector velocity field. In this particular test case, a b
 
 .. _problem-euler-vortex:
 
-Euler Traveling Vortex
+Isentropic Vortex
 ----------------------------------------
 
 Three-dimensional Euler equations, which are simplified version of system :math:numref:`eq-ns` and account only for the convective fluxes, are given by
@@ -290,7 +290,7 @@ There is no perturbation in the entropy :math:`S=P/\rho^\gamma` (:math:`\delta S
 
 This problem can be run with::
 
-   ./navierstokes -problem euler_vortex -mean_velocity .5,-.8,0. -dm_plex_box_faces 20,20,1 -lx 1000 -ly 1000 -lz 1
+   ./navierstokes -problem euler_vortex -mean_velocity .5,-.8,0.
 
 
 .. _problem-density-current:

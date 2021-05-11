@@ -42,9 +42,9 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   CeedScalar curr_time       = 0.;    // s
   CeedScalar vortex_strength = 5.;    // -
-  PetscScalar lx             = 8000.; // m
-  PetscScalar ly             = 8000.; // m
-  PetscScalar lz             = 4000.; // m
+  PetscScalar lx             = 1000.; // m
+  PetscScalar ly             = 1000.; // m
+  PetscScalar lz             = 1.;    // m
   PetscReal center[3], mean_velocity[3] = {1., 1., 0};
 
   // ------------------------------------------------------
@@ -64,7 +64,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                             NULL, vortex_strength, &vortex_strength, &user_vortex);
   CHKERRQ(ierr);
   PetscInt n = problem->dim;
-  ierr = PetscOptionsRealArray("-mean_velocity", "Mean velocity vector",
+  ierr = PetscOptionsRealArray("-mean_velocity", "Background velocity vector",
                                NULL, mean_velocity, &n, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
@@ -77,7 +77,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   center[0] = 0.5 * lx;
   center[1] = 0.5 * ly;
   center[2] = 0.5 * lz;
-
+  ierr = PetscOptionsRealArray("-center", "Location of vortex center",
+                               NULL, center, &n, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
