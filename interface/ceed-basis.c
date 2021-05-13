@@ -895,7 +895,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 /**
   @brief Get total number of quadrature points (in 1 dimension) of a CeedBasis
 
-  @param basis     CeedBasis
+  @param basis      CeedBasis
   @param[out] Q_1d  Variable to store number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -933,7 +933,7 @@ int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref) {
   @brief Get quadrature weights of quadrature points (in dim dimensions)
          of a CeedBasis
 
-  @param basis         CeedBasis
+  @param basis          CeedBasis
   @param[out] q_weight  Variable to store quadrature weights
 
   @return An error code: 0 - success, otherwise - failure
@@ -1281,6 +1281,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 
   @ref Utility
 **/
+CeedPragmaOptimizeOff
 int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
                                     CeedScalar *lambda, CeedInt n) {
   // Check bounds for clang-tidy
@@ -1417,6 +1418,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
   // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
+CeedPragmaOptimizeOn
 
 /**
   @brief Return Simultaneous Diagonalization of two matrices. This solves the
@@ -1436,6 +1438,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
 
   @ref Utility
 **/
+CeedPragmaOptimizeOff
 int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
                                     CeedScalar *mat_B, CeedScalar *mat_X,
                                     CeedScalar *lambda, CeedInt n) {
@@ -1509,5 +1512,6 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
   ierr = CeedFree(&vec_D); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
+CeedPragmaOptimizeOn
 
 /// @}

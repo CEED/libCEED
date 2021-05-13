@@ -1029,6 +1029,7 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Ref(CeedOperator op,
 //------------------------------------------------------------------------------
 // Build Mass, Laplacian matrices
 //------------------------------------------------------------------------------
+CeedPragmaOptimizeOff
 static int CeedBuildMassLaplace(const CeedScalar *interp_1d,
                                 const CeedScalar *grad_1d,
                                 const CeedScalar *q_weight_1d, CeedInt P_1d,
@@ -1055,6 +1056,7 @@ static int CeedBuildMassLaplace(const CeedScalar *interp_1d,
     laplace[i+P_1d*i] += perturbation;
   return CEED_ERROR_SUCCESS;
 }
+CeedPragmaOptimizeOn
 
 //------------------------------------------------------------------------------
 // Create FDM Element Inverse
@@ -1132,6 +1134,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr = CeedBasisGetQWeights(basis, &q_weight_1d); CeedChkBackend(ierr);
   ierr = CeedBuildMassLaplace(interp_1d, grad_1d, q_weight_1d, P_1d, Q_1d, dim,
                               mass, laplace); CeedChkBackend(ierr);
+
   // -- Diagonalize
   ierr = CeedSimultaneousDiagonalization(ceed, laplace, mass, x, lambda, P_1d);
   CeedChkBackend(ierr);
