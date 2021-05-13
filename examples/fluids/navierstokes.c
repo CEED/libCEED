@@ -305,7 +305,6 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
   // -- Vectors
-  CeedVectorDestroy(&ceed_data->x_coord);
   CeedVectorDestroy(&ceed_data->q_data);
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
