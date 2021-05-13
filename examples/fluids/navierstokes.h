@@ -206,7 +206,7 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector           q_data;
+  CeedVector           x_coord, q_data;
   CeedQFunctionContext setup_context, dc_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
@@ -280,7 +280,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
-                                       CeedData ceed_data, CeedVector x_coord, Physics phys,
+                                       CeedData ceed_data, Physics phys,
                                        CeedOperator op_apply_vol, CeedInt height,
                                        CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply);

@@ -18,23 +18,6 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   CeedQFunctionContextRestoreData(ceed_data->setup_context, (void **)&setup_ctx);
 
   // ---------------------------------------------------------------------------
-  // Element coordinates
-  // ---------------------------------------------------------------------------
-  // -- Create CEED vector
-  CeedVector x_coord;
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_x, &x_coord, NULL);
-
-  // -- Copy PETSc vector in CEED vector
-  Vec               X_loc;
-  PetscInt          X_loc_size;
-  const PetscScalar *X_loc_array;
-  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
-  ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
-  CeedVectorSetArray(x_coord, CEED_MEM_HOST, CEED_COPY_VALUES,
-                     (PetscScalar *)X_loc_array);
-  ierr = VecRestoreArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
   // ICs
   // ---------------------------------------------------------------------------
   // -- CEED Restriction
@@ -48,7 +31,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0);
 
   // -- Apply CEED Operator
-  CeedOperatorApply(ceed_data->op_ics, x_coord, q0_ceed,
+  CeedOperatorApply(ceed_data->op_ics, ceed_data->x_coord, q0_ceed,
                     CEED_REQUEST_IMMEDIATE);
 
   // -- Restore vectors
@@ -103,7 +86,6 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   // Cleanup
   CeedVectorDestroy(&mult_vec);
   CeedVectorDestroy(&q0_ceed);
-  CeedVectorDestroy(&x_coord);
 
   PetscFunctionReturn(0);
 }
