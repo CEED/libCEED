@@ -8,6 +8,9 @@
 #include <petscts.h>
 #include <stdbool.h>
 
+// -----------------------------------------------------------------------------
+// Include QFunctions
+// -----------------------------------------------------------------------------
 #include "qfunctions/common.h"
 #include "qfunctions/setupboundary.h"
 #include "qfunctions/advection.h"
@@ -18,7 +21,6 @@
 // -----------------------------------------------------------------------------
 // PETSc Macros
 // -----------------------------------------------------------------------------
-
 #if PETSC_VERSION_LT(3,14,0)
 #  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
 #  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
@@ -118,9 +120,9 @@ typedef struct CeedData_private *CeedData;
 
 // Boundary conditions
 struct SimpleBC_private {
-  PetscInt      num_wall, num_slip[3];
-  PetscInt      walls[6], slips[3][6];
-  PetscBool     user_bc;
+  PetscInt  num_wall, num_slip[3];
+  PetscInt  walls[6], slips[3][6];
+  PetscBool user_bc;
 };
 
 // Problem specific data
@@ -187,7 +189,7 @@ struct Physics_private {
 // Application context from user command line options
 struct AppCtx_private {
   // libCEED arguments
-  char              ceed_resource[PETSC_MAX_PATH_LEN];     // libCEED backend
+  char              ceed_resource[PETSC_MAX_PATH_LEN]; // libCEED backend
   PetscInt          degree;
   PetscInt          q_extra;
   // Post-processing arguments

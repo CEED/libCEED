@@ -118,7 +118,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
-  // todo: Scale mean_velocity
 
   // -- Setup Context
   setup_context->lx        = lx;

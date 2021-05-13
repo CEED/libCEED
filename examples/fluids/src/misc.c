@@ -126,11 +126,10 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
 // Compare reference solution values with current test run for CI
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 
-  Vec Qref;
-  PetscViewer viewer;
-  PetscReal error, Qrefnorm;
+  Vec            Qref;
+  PetscViewer    viewer;
+  PetscReal      error, Qrefnorm;
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
   // Read reference file
@@ -141,7 +140,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   ierr = VecLoad(Qref, viewer); CHKERRQ(ierr);
 
   // Compute error with respect to reference solution
-  ierr = VecAXPY(Q, -1.0, Qref);  CHKERRQ(ierr);
+  ierr = VecAXPY(Q, -1.0, Qref); CHKERRQ(ierr);
   ierr = VecNorm(Qref, NORM_MAX, &Qrefnorm); CHKERRQ(ierr);
   ierr = VecScale(Q, 1./Qrefnorm); CHKERRQ(ierr);
   ierr = VecNorm(Q, NORM_MAX, &error); CHKERRQ(ierr);
@@ -153,7 +152,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
                        (double)error); CHKERRQ(ierr);
   }
 
-  // Clean up objects
+  // Cleanup
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   ierr = VecDestroy(&Qref); CHKERRQ(ierr);
 
@@ -188,7 +187,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
   ierr = PetscPrintf(PETSC_COMM_WORLD,
                      "Relative Error: %g\n",
                      (double)rel_error); CHKERRQ(ierr);
-  // Clean up vectors
+  // Cleanup
   ierr = DMRestoreLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&Q_exact); CHKERRQ(ierr);
 
@@ -227,7 +226,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
   PetscFunctionReturn(0);
 }
 
-// -- Gather initial Q values in case of continuation of simulation
+// Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 
   PetscViewer    viewer;
@@ -244,7 +243,7 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   // Load Q from existent solution
   ierr = VecLoad(Q, viewer); CHKERRQ(ierr);
 
-  // Clean up PETSc object
+  // Cleanup
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);

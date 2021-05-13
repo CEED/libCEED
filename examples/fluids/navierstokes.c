@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
   // TS: Create, setup, and solve
   // ---------------------------------------------------------------------------
   TS ts;
-  PetscScalar final_time;   // todo: refactor this function furthur
+  PetscScalar final_time;
   ierr = TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts);
   CHKERRQ(ierr);
 
