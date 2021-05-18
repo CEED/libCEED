@@ -172,7 +172,6 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
 
 PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                               void *setup_ctx) {
-  MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 

@@ -195,9 +195,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
 
 PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                             void *setup_ctx) {
-  PetscInt       len;
-  PetscBool      flg;
-  MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 

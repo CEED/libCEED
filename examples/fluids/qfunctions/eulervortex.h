@@ -89,7 +89,7 @@ static inline int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar gamma = 1.4;
   const CeedScalar cv    = 2.5;
   const CeedScalar R     = 1.;
-  const CeedScalar x     = X[0], y = X[1], z = X[2]; // Coordinates
+  const CeedScalar x     = X[0], y = X[1]; // Coordinates
   // Vortex center
   const CeedScalar xc = center[0] + mean_velocity[0] * time;
   const CeedScalar yc = center[1] + mean_velocity[1] * time;
@@ -248,12 +248,8 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // Context
-  const EulerContext context = (EulerContext)ctx;
-  const CeedScalar curr_time = context->curr_time;
+
   const CeedScalar gamma     = 1.4;
-  const CeedScalar cv        = 2.5;
-  const CeedScalar R         = 1.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -335,12 +331,8 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // Context
-  const EulerContext context = (EulerContext)ctx;
-  const CeedScalar curr_time = context->curr_time;
+
   const CeedScalar gamma     = 1.4;
-  const CeedScalar cv        = 2.5;
-  const CeedScalar R         = 1.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop

@@ -363,7 +363,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   // -- Copy PETSc vector in CEED vector
   Vec               X_loc;
-  PetscInt          X_loc_size;
   const PetscScalar *X_loc_array;
   ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
   ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
@@ -520,7 +519,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 // Set up contex for QFunctions
 PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
                                        AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
   // ICs
@@ -550,10 +548,6 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
                                 sizeof phys->euler_ctx, phys->euler_ctx);
     if (ceed_data->qf_ics)
       CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->euler_context);
-    if (ceed_data->qf_rhs_vol)
-      CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->euler_context);
-    if (ceed_data->qf_ifunction_vol)
-      CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->euler_context);
     if (ceed_data->qf_apply_sur)
       CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->euler_context);
 

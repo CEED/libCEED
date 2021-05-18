@@ -40,7 +40,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar curr_time       = 0.;    // s
   CeedScalar vortex_strength = 5.;    // -
   PetscScalar lx             = 1000.; // m
   PetscScalar ly             = 1000.; // m

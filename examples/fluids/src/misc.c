@@ -26,7 +26,6 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
 
   // -- Copy PETSc vector in CEED vector
   Vec               X_loc;
-  PetscInt          X_loc_size;
   const PetscScalar *X_loc_array;
   ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
   ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
