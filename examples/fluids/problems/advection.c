@@ -1,4 +1,7 @@
 #include "../navierstokes.h"
+#include "../qfunctions/setupgeo.h"
+#include "../qfunctions/setupboundary.h"
+#include "../qfunctions/advection.h"
 
 PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   WindType             wind_type;

@@ -1,4 +1,7 @@
 #include "../navierstokes.h"
+#include "../qfunctions/setupgeo2d.h"
+#include "../qfunctions/setupboundary2d.h"
+#include "../qfunctions/advection2d.h"
 
 PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                               void *ctx) {

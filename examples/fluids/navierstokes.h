@@ -9,16 +9,6 @@
 #include <stdbool.h>
 
 // -----------------------------------------------------------------------------
-// Include QFunctions
-// -----------------------------------------------------------------------------
-#include "qfunctions/common.h"
-#include "qfunctions/setupboundary.h"
-#include "qfunctions/advection.h"
-#include "qfunctions/advection2d.h"
-#include "qfunctions/eulervortex.h"
-#include "qfunctions/densitycurrent.h"
-
-// -----------------------------------------------------------------------------
 // PETSc Macros
 // -----------------------------------------------------------------------------
 #if PETSC_VERSION_LT(3,14,0)
@@ -117,6 +107,60 @@ typedef struct AppCtx_private   *AppCtx;
 typedef struct Physics_private  *Physics;
 typedef struct SimpleBC_private *SimpleBC;
 typedef struct CeedData_private *CeedData;
+typedef struct SetupContext_    *SetupContext;
+typedef struct DCContext_       *DCContext;
+typedef struct EulerContext_    *EulerContext;
+typedef struct AdvectionContext_ *AdvectionContext;
+
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar wind[3];
+  CeedScalar time;
+  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
+  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
+  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
+};
+
+struct DCContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar Rd;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+
+struct EulerContext_ {
+  CeedScalar center[3];
+  CeedScalar curr_time;
+  CeedScalar vortex_strength;
+  CeedScalar mean_velocity[3];
+  int euler_test;
+  bool implicit;
+};
+
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  CeedScalar E_wind;
+  bool implicit;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
 
 // Boundary conditions
 struct SimpleBC_private {

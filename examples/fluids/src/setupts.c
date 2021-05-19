@@ -1,4 +1,5 @@
 #include "../navierstokes.h"
+#include "../qfunctions/mass.h"
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions

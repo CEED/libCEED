@@ -1,4 +1,7 @@
 #include "../navierstokes.h"
+#include "../qfunctions/setupgeo.h"
+#include "../qfunctions/setupboundary.h"
+#include "../qfunctions/eulervortex.h"
 
 PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                                void *ctx) {
