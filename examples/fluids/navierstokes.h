@@ -101,134 +101,16 @@ static const char *const StabilizationTypes[] = {
 // Structs
 // -----------------------------------------------------------------------------
 // Structs declarations
-typedef struct User_private     *User;
-typedef struct Units_private    *Units;
-typedef struct AppCtx_private   *AppCtx;
-typedef struct Physics_private  *Physics;
-typedef struct SimpleBC_private *SimpleBC;
-typedef struct CeedData_private *CeedData;
-typedef struct SetupContext_    *SetupContext;
-typedef struct DCContext_       *DCContext;
-typedef struct EulerContext_    *EulerContext;
+typedef struct AppCtx_private    *AppCtx;
+typedef struct CeedData_private  *CeedData;
+typedef struct User_private      *User;
+typedef struct Units_private     *Units;
+typedef struct SimpleBC_private  *SimpleBC;
+typedef struct SetupContext_     *SetupContext;
+typedef struct Physics_private   *Physics;
+typedef struct DCContext_        *DCContext;
+typedef struct EulerContext_     *EulerContext;
 typedef struct AdvectionContext_ *AdvectionContext;
-
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar Rd;
-  CeedScalar g;
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
-  CeedScalar time;
-  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
-};
-
-struct DCContext_ {
-  CeedScalar lambda;
-  CeedScalar mu;
-  CeedScalar k;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
-  CeedScalar Rd;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-
-struct EulerContext_ {
-  CeedScalar center[3];
-  CeedScalar curr_time;
-  CeedScalar vortex_strength;
-  CeedScalar mean_velocity[3];
-  int euler_test;
-  bool implicit;
-};
-
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  CeedScalar E_wind;
-  bool implicit;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-
-// Boundary conditions
-struct SimpleBC_private {
-  PetscInt  num_wall, num_slip[3];
-  PetscInt  walls[6], slips[3][6];
-  PetscBool user_bc;
-};
-
-// Problem specific data
-// *INDENT-OFF*
-typedef struct {
-  CeedInt           dim, q_data_size_vol, q_data_size_sur;
-  CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_sur;
-  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
-  bool              non_zero_time;
-  PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
-                          PetscScalar[], void *);
-  PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
-  PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
-} ProblemData;
-// *INDENT-ON*
-
-// PETSc user data
-struct User_private {
-  MPI_Comm     comm;
-  DM           dm;
-  DM           dm_viz;
-  Mat          interp_viz;
-  Ceed         ceed;
-  Units        units;
-  Vec          M;
-  Physics      phys;
-  AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
-};
-
-// Units
-struct Units_private {
-  // fundamental units
-  PetscScalar meter;
-  PetscScalar kilogram;
-  PetscScalar second;
-  PetscScalar Kelvin;
-  // derived units
-  PetscScalar Pascal;
-  PetscScalar J_per_kg_K;
-  PetscScalar m_per_squared_s;
-  PetscScalar W_per_m_K;
-  PetscScalar Joule;
-};
-
-// Setup Context for QFunctions
-struct Physics_private {
-  DCContext            dc_ctx;
-  EulerContext         euler_ctx;
-  AdvectionContext     advection_ctx;
-  WindType             wind_type;
-  BubbleType           bubble_type;
-  BubbleContinuityType bubble_continuity_type;
-  EulerTestType        euler_test;
-  StabilizationType    stab;
-  PetscBool            implicit;
-  PetscBool            has_curr_time;
-  PetscBool            has_neumann;
-};
 
 // Application context from user command line options
 struct AppCtx_private {
@@ -262,6 +144,128 @@ struct CeedData_private {
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
+
+// PETSc user data
+struct User_private {
+  MPI_Comm     comm;
+  DM           dm;
+  DM           dm_viz;
+  Mat          interp_viz;
+  Ceed         ceed;
+  Units        units;
+  Vec          M;
+  Physics      phys;
+  AppCtx       app_ctx;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
+};
+
+// Units
+struct Units_private {
+  // fundamental units
+  PetscScalar meter;
+  PetscScalar kilogram;
+  PetscScalar second;
+  PetscScalar Kelvin;
+  // derived units
+  PetscScalar Pascal;
+  PetscScalar J_per_kg_K;
+  PetscScalar m_per_squared_s;
+  PetscScalar W_per_m_K;
+  PetscScalar Joule;
+};
+
+// Boundary conditions
+struct SimpleBC_private {
+  PetscInt  num_wall, num_slip[3];
+  PetscInt  walls[6], slips[3][6];
+  PetscBool user_bc;
+};
+
+// Initial conditions
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar wind[3];
+  CeedScalar time;
+  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
+  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
+  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
+};
+
+// QFunctions
+struct Physics_private {
+  DCContext            dc_ctx;
+  EulerContext         euler_ctx;
+  AdvectionContext     advection_ctx;
+  WindType             wind_type;
+  BubbleType           bubble_type;
+  BubbleContinuityType bubble_continuity_type;
+  EulerTestType        euler_test;
+  StabilizationType    stab;
+  PetscBool            implicit;
+  PetscBool            has_curr_time;
+  PetscBool            has_neumann;
+};
+
+// DENSITY_CURRENT
+struct DCContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar Rd;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+
+// EULER_VORTEX
+struct EulerContext_ {
+  CeedScalar center[3];
+  CeedScalar curr_time;
+  CeedScalar vortex_strength;
+  CeedScalar mean_velocity[3];
+  int euler_test;
+  bool implicit;
+};
+
+// ADVECTION and ADVECTION2D
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  CeedScalar E_wind;
+  bool implicit;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+
+// Problem specific data
+// *INDENT-OFF*
+typedef struct {
+  CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
+                    apply_sur;
+  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
+                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
+  bool              non_zero_time;
+  PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
+                          PetscScalar[], void *);
+  PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
+  PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
+} ProblemData;
+// *INDENT-ON*
 
 // -----------------------------------------------------------------------------
 // Set up problems
