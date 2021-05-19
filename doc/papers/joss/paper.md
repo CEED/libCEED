@@ -64,7 +64,7 @@ bibliography: paper.bib
 
 # Summary
 
-Finite element methods are widely used to solve partial differential equations (PDE) in science and engineering, but their standard implementation [@dealII92;@libMeshPaper;@LoggMardalWells2012] relies on assembly sparse matrices, resulting in less than 2% utilization of arithmetic units on modern architectures.
+Finite element methods are widely used to solve partial differential equations (PDE) in science and engineering, but their standard implementation [@dealII92;@libMeshPaper;@LoggMardalWells2012] relies on assembly sparse matrices, resulting in less than 2% utilization of arithmetic units on modern architectures [@kruppcomparison].
 Matrix assembly becomes even more problematic when the polynomial degree $p$ of the basis functions is increased, resulting in $O(p^d)$ storage and $O(p^{2d})$ compute per degree of freedom (DoF) in $d$ dimensions.
 Methods pioneered by the spectral element community [@Orszag:1980; @deville2002highorder] exploit problem structure to reduce costs to $O(1)$ storage and $O(p)$ compute per DoF, with very high utilization of modern CPUs and GPUs.
 Unfortunately, high-quality implementations have been relegated to applications and intrusive frameworks that are often difficult to extend to new problems or incorporate into legacy applications, especially when strong preconditioners are required.
@@ -91,6 +91,7 @@ $$ F(u) = \sum_e \mathcal E_e^T B_e^T W_e f(B_e \mathcal E_e u), $$
 where $\mathcal E_e$ restricts to element $e$, $B_e$ evaluates solution values and derivatives to quadrature points, $f$ acts independently at quadrature points, and $W_e$ is a (diagonal) weighting at quadrature points.
 By grouping the operations $W_e$ and $f$ into a point-block diagonal $D$ and stacking the restrictions $\mathcal E_e$ and basis actions $B_e$ for each element, we can express the global residual in operator notation (\autoref{fig:decomposition}), where $\mathcal P$ is an optional external operator, such as the parallel restriction in MPI-based [@gropp2014using] solvers. 
 Inhomogeneous Neumann, Robin, and nonlinear boundary conditions can be added in a similar fashion by adding terms integrated over boundary faces while Dirichlet boundary conditions can be added by setting the target values prior to applying the operator representing the weak form.
+Similar face integral terms can also be used to represent discontinuous Galerkin formulations.
 
 ![`libCEED` uses a logical decomposition to define element-based discretizations, with optimized implementations of the action and preconditioning ingredients. \label{fig:decomposition}](img/libCEED-2-trim.pdf)
 
@@ -107,7 +108,7 @@ $A$           `CeedOperator`           Linear or nonlinear operator acting on L-
 A `CeedOperator` is composed of one or more operators defined as in \autoref{fig:decomposition}, and acts on a `CeedVector`, which typically encapsulates zero-copy access to host or device memory provided by the caller.
 The element restriction $\mathcal E$ requires mesh topology and a numbering of DoFs, and may be a no-op when data is already composed by element (such as with discontinuous Galerkin methods).
 The discrete basis $B$ is the purely algebraic expression of a finite element basis (shape functions) and quadrature; it often possesses structure that is exploited to speed up its action.
-Some constructors are provided for arbitrary order $H^1$ Lagrange bases with a tensor-product representation due to the computational efficiency of computing solution values and derivatives at quadrature points via tensor contractions.
+Some constructors are provided for arbitrary polynomial order $H^1$ Lagrange bases with a tensor-product representation due to the computational efficiency of computing solution values and derivatives at quadrature points via tensor contractions.
 However, the user can define a `CeedBasis` for arbitrary geometry elements, to include tetrahedra, by providing quadrature weights and the matrices used to compute solution values and derivatives at quadrature points from the DoFs on the element.
 The physics (weak form) is expressed through `CeedQFunction`, which can either be defined by the user or selected from a gallery distributed with `libCEED`.
 These pointwise functions do not depend on element resolution, topology, or basis degree, 
