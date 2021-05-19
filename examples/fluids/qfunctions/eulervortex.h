@@ -33,6 +33,19 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+#ifndef euler_context_struct
+#define euler_context_struct
+typedef struct EulerContext_ *EulerContext;
+struct EulerContext_ {
+  CeedScalar center[3];
+  CeedScalar curr_time;
+  CeedScalar vortex_strength;
+  CeedScalar mean_velocity[3];
+  int euler_test;
+  bool implicit;
+};
+#endif
+
 // *****************************************************************************
 // This function sets the initial conditions
 //

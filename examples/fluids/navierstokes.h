@@ -124,9 +124,6 @@ typedef struct Units_private     *Units;
 typedef struct SimpleBC_private  *SimpleBC;
 typedef struct SetupContext_     *SetupContext;
 typedef struct Physics_private   *Physics;
-typedef struct DCContext_        *DCContext;
-typedef struct EulerContext_     *EulerContext;
-typedef struct AdvectionContext_ *AdvectionContext;
 
 // Application context from user command line options
 struct AppCtx_private {
@@ -199,6 +196,9 @@ struct SimpleBC_private {
 };
 
 // Initial conditions
+#ifndef setup_context_struct
+#define setup_context_struct
+typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
   CeedScalar thetaC;
@@ -220,8 +220,52 @@ struct SetupContext_ {
   int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
+#endif
 
-// QFunctions
+// DENSITY_CURRENT
+#ifndef dc_context_struct
+#define dc_context_struct
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar Rd;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+#endif
+
+// EULER_VORTEX
+#ifndef euler_context_struct
+#define euler_context_struct
+typedef struct EulerContext_ *EulerContext;
+struct EulerContext_ {
+  CeedScalar center[3];
+  CeedScalar curr_time;
+  CeedScalar vortex_strength;
+  CeedScalar mean_velocity[3];
+  int euler_test;
+  bool implicit;
+};
+#endif
+
+// ADVECTION and ADVECTION2D
+#ifndef advection_context_struct
+#define advection_context_struct
+typedef struct AdvectionContext_ *AdvectionContext;
+struct AdvectionContext_ {
+  CeedScalar CtauS;
+  CeedScalar strong_form;
+  CeedScalar E_wind;
+  bool implicit;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+#endif
+
+// Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
   DCContext            dc_ctx;
   EulerContext         euler_ctx;
@@ -234,37 +278,6 @@ struct Physics_private {
   PetscBool            implicit;
   PetscBool            has_curr_time;
   PetscBool            has_neumann;
-};
-
-// DENSITY_CURRENT
-struct DCContext_ {
-  CeedScalar lambda;
-  CeedScalar mu;
-  CeedScalar k;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
-  CeedScalar Rd;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-
-// EULER_VORTEX
-struct EulerContext_ {
-  CeedScalar center[3];
-  CeedScalar curr_time;
-  CeedScalar vortex_strength;
-  CeedScalar mean_velocity[3];
-  int euler_test;
-  bool implicit;
-};
-
-// ADVECTION and ADVECTION2D
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  CeedScalar E_wind;
-  bool implicit;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 
 // Problem specific data

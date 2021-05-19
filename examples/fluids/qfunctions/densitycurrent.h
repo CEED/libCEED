@@ -32,6 +32,47 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+#ifndef setup_context_struct
+#define setup_context_struct
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar Rd;
+  CeedScalar g;
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar wind[3];
+  CeedScalar time;
+  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
+  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
+  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
+};
+#endif
+
+#ifndef dc_context_struct
+#define dc_context_struct
+typedef struct DCContext_ *DCContext;
+struct DCContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar Rd;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
+};
+#endif
+
 // *****************************************************************************
 // This function sets the initial conditions and the boundary conditions
 //
