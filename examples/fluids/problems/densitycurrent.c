@@ -19,7 +19,6 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
-#include "../qfunctions/setupboundary.h"
 #include "../qfunctions/densitycurrent.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
