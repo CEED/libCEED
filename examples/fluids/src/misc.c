@@ -41,9 +41,10 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedVector *q0;
+  CeedScalar *q0;
   PetscMemType q0_mem_type;
-  ierr = VecGetArrayAndMemType(Q_loc, &q0, &q0_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(Q_loc, (PetscScalar **)&q0, &q0_mem_type);
+  CHKERRQ(ierr);
   CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0);
 
   // -- Apply CEED Operator
@@ -67,11 +68,12 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedVector *mult;
+  CeedScalar *mult;
   PetscMemType m_mem_type;
   Vec multiplicity_loc;
   ierr = DMGetLocalVector(dm, &multiplicity_loc); CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(multiplicity_loc, &mult, &m_mem_type);
+  ierr = VecGetArrayAndMemType(multiplicity_loc, (PetscScalar **)&mult,
+                               &m_mem_type);
   CHKERRQ(ierr);
   CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, mult);
   CHKERRQ(ierr);

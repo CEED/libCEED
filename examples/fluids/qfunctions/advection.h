@@ -95,7 +95,7 @@ static inline int Exact_Advection(CeedInt dim, CeedScalar time,
   const CeedScalar z = X[2];
 
   // -- Energy
-  CeedScalar r ;
+  CeedScalar r = 0.;
   switch (context->bubble_type) {
   //  original sphere
   case 0: { // (dim=3)

@@ -37,10 +37,11 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
                        CEED_VECTOR_ACTIVE);
 
   // Place PETSc vector in CEED vector
-  CeedVector *m;
+  CeedScalar *m;
   PetscMemType m_mem_type;
   ierr = DMGetLocalVector(dm, &M_loc); CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(M_loc, &m, &m_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(M_loc, (PetscScalar **)&m, &m_mem_type);
+  CHKERRQ(ierr);
   CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
 
   // Apply CEED Operator

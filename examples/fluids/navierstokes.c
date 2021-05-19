@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   // -- Create distribute DM
   DM dm;
   ierr = CreateDistributedDM(comm, problem, setup_ctx, &dm); CHKERRQ(ierr);
-  VecType vec_type;
+  VecType vec_type = NULL;
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
   case CEED_MEM_DEVICE: {
