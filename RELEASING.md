@@ -1,5 +1,17 @@
 # Release Procedures
 
+## Core library
+
+Some minor bookkeeping updates are needed when releasing a new verision of the core library.
+
+The version number must be updated in
+
+* `include/ceed/ceed.h`
+* `ceed.pc.template`
+* `Doxyfile`
+
+Additionally, the release notes in `doc/sphinx/source/releasenotes.rst` should be updated.
+
 ## Julia
 
 libCEED's Julia interface (LibCEED.jl) has two components:
@@ -82,3 +94,11 @@ Upon release, the development tests may be moved to the release tests, so that t
 be tested against the most recent release of libCEED_jll. The release tests are found in the file
 `julia/LibCEED.jl/test/runtests.jl` and the development tests are found in
 `julia/LibCEED.jl/test/rundevtests.jl`.
+
+## Python
+
+ToDo - instructions for releasing an new Python wheel go here
+
+## Rust
+
+ToDo - instructions for releasing the three Rust crates go here
