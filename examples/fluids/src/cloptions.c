@@ -19,9 +19,6 @@
 
 #include "../navierstokes.h"
 
-// -----------------------------------------------------------------------------
-// Process command line options
-// -----------------------------------------------------------------------------
 // Register problems to be available on the command line
 PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 
