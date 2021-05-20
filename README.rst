@@ -253,7 +253,7 @@ forced by setting the environment variable ``MKL=1``.
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
 The ``/gpu/hip/*`` backends provide GPU performance strictly using HIP. They are based on
-the ``/gpu/cuda/*`` backends.  ROCm version 3.5 or newer is required.
+the ``/gpu/cuda/*`` backends.  ROCm version 3.6 or newer is required.
 
 The ``/gpu/*/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
 To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
