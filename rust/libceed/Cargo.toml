@@ -20,7 +20,7 @@ categories = ["science"]
 name = "libceed"
 
 [dependencies]
-libceed-sys = { path = "../libceed-sys" }
+libceed-sys = { version = "0.8", path = "../libceed-sys" }
 
 [dev-dependencies]
 version-sync = "*"
