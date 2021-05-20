@@ -17,6 +17,14 @@ fn main() {
         let mut make = Command::new("make");
         make.arg("install")
             .arg(format!("prefix={}", out_dir.to_string_lossy()))
+            .arg(format!(
+                "OBJDIR={}",
+                out_dir.join("build").to_string_lossy()
+            ))
+            .arg(format!(
+                "LIBDIR={}",
+                out_dir.join("build").join("lib").to_string_lossy()
+            ))
             .env("MAKEFLAGS", makeflags)
             .current_dir("c-src");
         if statik {

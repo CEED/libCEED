@@ -20,12 +20,7 @@ categories = ["science"]
 include = [
     "build.rs",
     "src/**",
-    "c-src",
     "c-src/**",
-    "c-src/backends/**/**",
-    "c-src/gallery/**/**",
-    "c-src/include/**/**",
-    "c-src/interface/**/**",
 ]
 
 [lib]
