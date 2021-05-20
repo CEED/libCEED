@@ -77,7 +77,6 @@ use crate::prelude::*;
 use std::sync::Once;
 
 pub mod prelude {
-    pub(crate) use libceed_sys::bind_ceed;
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
@@ -89,6 +88,7 @@ pub mod prelude {
         ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
         MAX_QFUNCTION_FIELDS,
     };
+    pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
