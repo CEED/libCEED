@@ -1,0 +1,23 @@
+[package]
+authors = [
+    "Jed Brown <jed@jedbrown.org>",
+    "Yohann Dudouit <dudouit1@llnl.gov>",
+    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+]
+build = "build.rs"
+name = "libceed-sys"
+version = "0.8.0"
+links = "libceed-sys"
+edition = "2018"
+
+[lib]
+name = "libceed_sys"
+
+[features]
+default = ["static"]
+static = []
+system = []
+
+[build-dependencies]
+bindgen = "*"
+pkg-config = "0.3.19"

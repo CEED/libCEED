@@ -1,0 +1,18 @@
+[package]
+authors = [
+    "Jed Brown <jed@jedbrown.org>",
+    "Yohann Dudouit <dudouit1@llnl.gov>",
+    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+]
+name = "libceed"
+version = "0.8.0"
+edition = "2018"
+
+[lib]
+name = "libceed"
+
+[dependencies]
+libceed-sys = { path = "../libceed-sys" }
+
+[dev-dependencies]
+version-sync = "*"

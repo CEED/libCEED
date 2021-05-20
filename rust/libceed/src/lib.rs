@@ -77,12 +77,7 @@ use crate::prelude::*;
 use std::sync::Once;
 
 pub mod prelude {
-    pub(crate) mod bind_ceed {
-        #![allow(non_upper_case_globals)]
-        #![allow(non_camel_case_types)]
-        #![allow(dead_code)]
-        include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-    }
+    pub(crate) use libceed_sys::bind_ceed;
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
@@ -303,7 +298,7 @@ impl Ceed {
         let mut ptr = std::ptr::null_mut();
         let mut ierr = unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
         if ierr != 0 {
-            panic!(format!("Error initializing backend resource: {}", resource))
+            panic!("Error initializing backend resource: {}", resource)
         }
         ierr = unsafe { bind_ceed::CeedSetErrorHandler(ptr, Some(eh)) };
         let ceed = Ceed { ptr };
@@ -335,7 +330,7 @@ impl Ceed {
         let message = c_str.to_string_lossy().to_string();
         // Panic if negative code, otherwise return error
         if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
-            panic!(message);
+            panic!("{}", message);
         }
         Err(CeedError { message })
     }

@@ -1,26 +1,2 @@
-[package]
-authors = [
-    "Jed Brown <jed@jedbrown.org>",
-    "Yohann Dudouit <dudouit1@llnl.gov>",
-    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
-]
-build = "build.rs"
-name = "libceed"
-version = "0.8.0"
-links = "libceed"
-edition = "2018"
-
-[lib]
-name = "libceed"
-
-[features]
-default = ["static"]
-static = []
-system = []
-
-[build-dependencies]
-bindgen = "*"
-pkg-config = "0.3.19"
-
-[dev-dependencies]
-version-sync = "*"
+[workspace]
+members = ["libceed-sys", "libceed"]
