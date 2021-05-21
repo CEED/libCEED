@@ -73,8 +73,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   ierr = CeedGetData(ceed, (void **)&ceed_data); CeedChkBackend(ierr);
   CeedChk_Hip(ceed, hipGetDeviceProperties(&prop, ceed_data->deviceId));
   char buff[optslen];
-  std::string gfxName = "gfx" + std::to_string(prop.gcnArch);
-  std::string archArg = "--gpu-architecture="  + gfxName;
+  std::string archArg = "--gpu-architecture="  + std::string(prop.gcnArchName);
   snprintf(buff, optslen, "%s", archArg.c_str());
   opts[1] = buff;
 
