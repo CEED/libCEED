@@ -1,5 +1,6 @@
 #include <ceed.h>
 #include <petsc.h>
+#include "../include/bcfunctions.h"
 
 // -----------------------------------------------------------------------------
 // Boundary Conditions

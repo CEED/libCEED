@@ -47,10 +47,27 @@
 static const char help[] =
   "Compute surface area of a cube or a cubed-sphere using DMPlex in PETSc\n";
 
-#include <ceed.h>
-#include <petscdmplex.h>
+#include <stdbool.h>
 #include <string.h>
+#include <ceed.h>
+#include <petsc.h>
+#include <petscdmplex.h>
+
 #include "area.h"
+#include "include/areaproblemdata.h"
+#include "include/petscmacros.h"
+#include "include/petscutils.h"
+#include "include/matops.h"
+#include "include/structs.h"
+#include "include/libceedsetup.h"
+
+#if PETSC_VERSION_LT(3,12,0)
+#ifdef PETSC_HAVE_CUDA
+#include <petsccuda.h>
+// Note: With PETSc prior to version 3.12.0, providing the source path to
+//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+#endif
+#endif
 
 #ifndef M_PI
 #  define M_PI 3.14159265358979323846

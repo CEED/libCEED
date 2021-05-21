@@ -38,32 +38,33 @@ OBJDIR := build
 SRCDIR := src
 
 utils.c := $(sort $(wildcard $(SRCDIR)/*.c))
+utils.o = $(utils.c:%.c=$(OBJDIR)/%.o)
 
 all: area bps bpsraw bpssphere multigrid
 
-area.c := area.c $(utils.c)
+area.c := area.c
 area.o = $(area.c:%.c=$(OBJDIR)/%.o)
-area: $(area.o) | $(PETSc.pc) $(ceed.pc)
+area: $(area.o) $(utils.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-bps.c := bps.c $(utils.c)
+bps.c := bps.c
 bps.o = $(bps.c:%.c=$(OBJDIR)/%.o)
-bps: $(bps.o) | $(PETSc.pc) $(ceed.pc)
+bps: $(bps.o) $(utils.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-bpsraw.c := bpsraw.c $(utils.c)
+bpsraw.c := bpsraw.c
 bpsraw.o = $(bpsraw.c:%.c=$(OBJDIR)/%.o)
-bpsraw: $(bpsraw.o) | $(PETSc.pc) $(ceed.pc)
+bpsraw: $(bpsraw.o) $(utils.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-bpssphere.c := bpssphere.c $(utils.c)
+bpssphere.c := bpssphere.c
 bpssphere.o = $(bpssphere.c:%.c=$(OBJDIR)/%.o)
-bpssphere: $(bpssphere.o) | $(PETSc.pc) $(ceed.pc)
+bpssphere: $(bpssphere.o) $(utils.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-multigrid.c := multigrid.c $(utils.c)
+multigrid.c := multigrid.c
 multigrid.o = $(multigrid.c:%.c=$(OBJDIR)/%.o)
-multigrid: $(multigrid.o) | $(PETSc.pc) $(ceed.pc)
+multigrid: $(multigrid.o) $(utils.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR

@@ -17,20 +17,6 @@
 #ifndef area_h
 #define area_h
 
-#include "include/areaproblemdata.h"
-#include "include/petscmacros.h"
-#include "include/petscutils.h"
-#include "include/matops.h"
-#include "include/structs.h"
-#include "include/libceedsetup.h"
-
-#include <ceed.h>
-#include <petsc.h>
-#include <petscdmplex.h>
-#include <petscfe.h>
-#include <stdbool.h>
-#include <string.h>
-
 // -----------------------------------------------------------------------------
 // Command Line Options
 // -----------------------------------------------------------------------------

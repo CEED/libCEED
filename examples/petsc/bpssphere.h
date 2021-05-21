@@ -17,19 +17,6 @@
 #ifndef sphere_h
 #define sphere_h
 
-#include "include/sphereproblemdata.h"
-#include "include/petscmacros.h"
-#include "include/petscutils.h"
-#include "include/matops.h"
-#include "include/libceedsetup.h"
-
-#include <ceed.h>
-#include <petsc.h>
-#include <petscdmplex.h>
-#include <petscfe.h>
-#include <stdbool.h>
-#include <string.h>
-
 // -----------------------------------------------------------------------------
 // Command Line Options
 // -----------------------------------------------------------------------------

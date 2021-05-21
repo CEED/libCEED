@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include "../include/libceedsetup.h"
 #include "../include/petscutils.h"
-#include <stdio.h>
 
 // -----------------------------------------------------------------------------
 // Destroy libCEED operator objects

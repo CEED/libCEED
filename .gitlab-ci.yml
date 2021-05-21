@@ -27,7 +27,7 @@ noether-rocm:
     - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
 # libCEED
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
     - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
@@ -37,7 +37,8 @@ noether-rocm:
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU /cpu/self/tmpl /cpu/self/tmpl/sub" junit search=t
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=ex
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
