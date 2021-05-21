@@ -30,6 +30,12 @@
 //! can be used.
 //! ```toml
 //! [dependencies]
+//! libceed-sys = "0.8.0"
+//! ```
+//!
+//! For a development version of the libCEED Rust bindings, use the following `Cargo.toml`.
+//! ```toml
+//! [dependencies]
 //! libceed-sys = { git = "https://github.com/CEED/libCEED", branch = "main" }
 //! ```
 //!
