@@ -540,7 +540,7 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof *setup_ctx, setup_ctx);
+                              sizeof(*setup_ctx), setup_ctx);
   if (ceed_data->qf_ics && strcmp(app_ctx->problem_name, "euler_vortex") != 0)
     CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
 
@@ -549,7 +549,7 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
     CeedQFunctionContextCreate(ceed, &ceed_data->dc_context);
     CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST,
                                 CEED_USE_POINTER,
-                                sizeof phys->dc_ctx, phys->dc_ctx);
+                                sizeof(*phys->dc_ctx), phys->dc_ctx);
     if (ceed_data->qf_rhs_vol)
       CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
     if (ceed_data->qf_ifunction_vol)
@@ -560,7 +560,7 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
     CeedQFunctionContextCreate(ceed, &ceed_data->euler_context);
     CeedQFunctionContextSetData(ceed_data->euler_context, CEED_MEM_HOST,
                                 CEED_USE_POINTER,
-                                sizeof phys->euler_ctx, phys->euler_ctx);
+                                sizeof(*phys->euler_ctx), phys->euler_ctx);
     if (ceed_data->qf_ics)
       CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->euler_context);
     if (ceed_data->qf_apply_sur)
@@ -571,7 +571,7 @@ PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
     CeedQFunctionContextCreate(ceed, &ceed_data->advection_context);
     CeedQFunctionContextSetData(ceed_data->advection_context, CEED_MEM_HOST,
                                 CEED_USE_POINTER,
-                                sizeof phys->advection_ctx, phys->advection_ctx);
+                                sizeof(*phys->advection_ctx), phys->advection_ctx);
     if (ceed_data->qf_rhs_vol)
       CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->advection_context);
     if (ceed_data->qf_ifunction_vol)
