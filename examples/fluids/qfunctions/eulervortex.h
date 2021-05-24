@@ -76,9 +76,8 @@ struct EulerContext_ {
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for Euler traveling vortex
 // *****************************************************************************
-CEED_QFUNCTION_HELPER(Exact_Euler)(CeedInt dim, CeedScalar time,
-                                   const CeedScalar X[],
-                                   CeedInt Nf, CeedScalar q[], void *ctx) {
+static CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time,
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const EulerContext context = (EulerContext)ctx;
   const CeedScalar vortex_strength    = context->vortex_strength;

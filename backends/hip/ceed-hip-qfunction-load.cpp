@@ -75,7 +75,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "#define CEED_QFUNCTION_HELPER(name) inline __device__ int name\n";
+  code << "#define CEED_QFUNCTION_HELPER inline __device__ __forceinline__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";

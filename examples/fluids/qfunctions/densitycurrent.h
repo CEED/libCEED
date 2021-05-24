@@ -125,9 +125,8 @@ struct DCContext_ {
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for density current
 // *****************************************************************************
-CEED_QFUNCTION_HELPER(Exact_DC)(CeedInt dim, CeedScalar time,
-                                const CeedScalar X[],
-                                CeedInt Nf, CeedScalar q[], void *ctx) {
+static CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar theta0   = context->theta0;

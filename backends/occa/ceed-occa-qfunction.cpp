@@ -85,12 +85,12 @@ namespace ceed {
       props["defines/CEED_ERROR_SUCCESS"] = 0;
 
       std::stringstream ss;
-      ss << "#define CEED_QFUNCTION(FUNC_NAME) \\"        << std::endl
-         << "  inline int FUNC_NAME"                      << std::endl
-         << "#define CEED_QFUNCTION_HELPER(FUNC_NAME) \\" << std::endl
-         << "  inline int FUNC_NAME"                      << std::endl
-         <<                                                  std::endl
-         << "#include \"" << filename << "\""             << std::endl;
+      ss << "#define CEED_QFUNCTION(FUNC_NAME) \\" << std::endl
+         << "  inline int FUNC_NAME"               << std::endl
+         << "#define CEED_QFUNCTION_HELPER \\"     << std::endl
+         << "  inline"                             << std::endl
+         <<                                           std::endl
+         << "#include \"" << filename << "\""      << std::endl;
 
       props["headers"].asArray() += ss.str();
 
