@@ -251,10 +251,14 @@ int main(int argc, char **argv) {
     CeedGetResource(ceed, &used_resource);
 
     // Header and rank
+    char hostname[PETSC_MAX_PATH_LEN];
+    ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
-                       "  rank(s)                              : %d\n",
-                       comm_size); CHKERRQ(ierr);
+                       "  MPI:\n"
+                       "    Hostname                           : %s\n"
+                       "    Total ranks                        : %d\n",
+                       hostname, comm_size); CHKERRQ(ierr);
 
     // Problem specific info
     ierr = problem->print_info(phys_ctx, setup_ctx, app_ctx); CHKERRQ(ierr);
