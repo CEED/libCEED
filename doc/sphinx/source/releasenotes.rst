@@ -25,6 +25,10 @@ Performance improvements
 Examples
 ^^^^^^^^
 
+Deprecated backends
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* The ``/cpu/self/tmpl`` and ``/cpu/self/tmpl/sub`` backends have been removed. These backends were intially added to test the backend inheritance mechanism, but this mechanism is now widely used and tested in multiple backends.
+
 
 .. _v0.8:
 
