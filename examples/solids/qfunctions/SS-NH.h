@@ -42,7 +42,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES
 #define LOG1P_SERIES
-static inline CeedScalar log1p_series(CeedScalar x) {
+CEED_QFUNCTION_HELPER(log1p_series)(CeedScalar x, CeedScalar *log1p) {
   CeedScalar sum = 0;
   CeedScalar y = x / (2. + x);
   const CeedScalar y2 = y*y;
@@ -53,7 +53,8 @@ static inline CeedScalar log1p_series(CeedScalar x) {
   sum += y / 5;
   y *= y2;
   sum += y / 7;
-  return 2 * sum;
+  *log1p = 2 * sum;
+  return 0;
 };
 #endif
 
@@ -157,7 +158,8 @@ CEED_QFUNCTION(ElasSSNHF)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Above Voigt Notation is placed in a 3x3 matrix:
     // Volumetric strain
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    const CeedScalar llv = log1p_series(strain_vol);
+    CeedScalar llv;
+    log1p_series(strain_vol, &llv);
     const CeedScalar sigma00 = lambda*llv + TwoMu*e[0][0],
                      sigma11 = lambda*llv + TwoMu*e[1][1],
                      sigma22 = lambda*llv + TwoMu*e[2][2],
@@ -407,7 +409,8 @@ CEED_QFUNCTION(ElasSSNHEnergy)(void *ctx, CeedInt Q,
 
     // Strain Energy
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    const CeedScalar llv = log1p_series(strain_vol);
+    CeedScalar llv;
+    log1p_series(strain_vol, &llv);
     energy[i] = (lambda*(1 + strain_vol)*(llv - 1) + strain_vol*mu +
                  (e[0][1]*e[0][1]+e[0][2]*e[0][2]+e[1][2]*e[1][2])*2*mu)*wdetJ;
 
@@ -505,7 +508,8 @@ CEED_QFUNCTION(ElasSSNHDiagnostic)(void *ctx, CeedInt Q,
 
     // Pressure
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    const CeedScalar llv = log1p_series(strain_vol);
+    CeedScalar llv;
+    log1p_series(strain_vol, &llv);
     diagnostic[3][i] = -lambda*llv;
 
     // Stress tensor invariants
