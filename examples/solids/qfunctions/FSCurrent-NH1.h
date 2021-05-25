@@ -113,7 +113,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   for (CeedInt m = 0; m < 6; m++) {
     bMI3[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
     for (CeedInt n = 0; n < 3; n++)
-      bMI3[m] += grad_u[n][indk[m]]*grad_u[n][indj[m]];
+      bMI3[m] += grad_u[indj[m]][n] * grad_u[indk[m]][n];
   }
 
   CeedScalar Jm1;
