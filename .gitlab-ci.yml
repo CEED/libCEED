@@ -77,3 +77,27 @@ noether-rocm:
     reports:
       junit: build/*.junit
       performance: performance.json
+
+lv-cuda:
+  stage: test
+  tags:
+    - cuda
+  before_script:
+# Compilers
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran CUDA_DIR=/usr/local/cuda
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- NVCC ----------------" && $CUDA_DIR/bin/nvcc --version
+    - make configure OPT='-O -march=native -ffp-contract=fast'
+    - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - make info
+  script:
+    - nice make -k -j8 -l8
+    - nice make -k -j8 junit BACKENDS="$BACKENDS_GPU" realsearch=%
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
