@@ -209,13 +209,13 @@ struct CeedData_private {
   CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_qd_i,
                       elem_restr_gradu_i,
                       elem_restr_energy, elem_restr_diagnostic,
-                      elem_restr_dXdx, elem_restr_tau, elem_restr_Cc1,
+                      elem_restr_dXdx, elem_restr_tau,
                       elem_restr_C_inv, elem_restr_lam_log_J, elem_restr_qd_diagnostic_i;
   CeedQFunction       qf_apply, qf_jacob, qf_energy, qf_diagnostic;
   CeedOperator        op_apply, op_jacob, op_restrict, op_prolong, op_energy,
                       op_diagnostic;
   CeedVector          q_data, q_data_diagnostic, grad_u, x_ceed,
-                      y_ceed, true_soln, dXdx, tau, Cc1, C_inv, lam_log_J;
+                      y_ceed, true_soln, dXdx, tau, C_inv, lam_log_J;
 };
 
 // Translate PetscMemType to CeedMemType

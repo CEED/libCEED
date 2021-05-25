@@ -102,8 +102,8 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
   CeedScalar (*dXdx)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // Store tau
   CeedScalar (*tau)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
-  // Store constant Cc1 = mu-lambda*log(J)
-  CeedScalar (*Cc1)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
+  // Store constant lam_log_J = lambda*log(J)
+  CeedScalar (*lam_log_J)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
   // *INDENT-ON*
 
   // Context
@@ -181,32 +181,30 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                             Gradu[2][1],
                             Gradu[2][2] + 1}
                           };
+
     // *INDENT-ON*
-    // b - left Cauchy-Green
-    // b =  F*F^T
-    CeedScalar b[3][3];
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++) {
-        b[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          b[j][k] += F[j][m] * F[k][m]; // F * F^T
-      }
+    //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
+    const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+    CeedScalar bMI3[6];
+    for (CeedInt m = 0; m < 6; m++) {
+      bMI3[m] = Gradu[indj[m]][indk[m]] + Gradu[indk[m]][indj[m]];
+      for (CeedInt n = 0; n < 3; n++)
+        bMI3[m] += Gradu[indj[m]][n] * Gradu[indk[m]][n];
+    }
 
     CeedScalar Jm1;
     Jm1 = computeJM1(Gradu);
-    // compute log(J)
-    CeedScalar logJ = log1p_series_shifted(Jm1);
 
-    // Cc1 = mu-lambda*log(J)
-    Cc1[0][i] = mu - lambda*logJ;
+    // store lam_log_J = lambda*log(J)
+    lam_log_J[0][i] = lambda*log1p_series_shifted(Jm1);
 
     // tau = mu*b - Cc1*I3;
-    tau[0][i] = mu*b[0][0] - Cc1[0][i];
-    tau[1][i] = mu*b[1][1] - Cc1[0][i];
-    tau[2][i] = mu*b[2][2] - Cc1[0][i];
-    tau[3][i] = mu*b[1][2];
-    tau[4][i] = mu*b[0][2];
-    tau[5][i] = mu*b[0][1];
+    tau[0][i] = mu*bMI3[0] + lam_log_J[0][i];
+    tau[1][i] = mu*bMI3[1] + lam_log_J[0][i];
+    tau[2][i] = mu*bMI3[2] + lam_log_J[0][i];
+    tau[3][i] = mu*bMI3[3];
+    tau[4][i] = mu*bMI3[4];
+    tau[5][i] = mu*bMI3[5];
 
     // *INDENT-OFF*
     //Computer F^{-1}
@@ -280,8 +278,8 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
   const CeedScalar (*dXdx)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
   // tau computed in residual
   const CeedScalar (*tau)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  // Cc1 = mu -lambda*log(J) computed in residual
-  const CeedScalar (*Cc1)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // lam_log_J = lambda*log(J) computed in residual
+  const CeedScalar (*lam_log_J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -293,6 +291,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
 
   // Constants
   const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
@@ -358,15 +357,15 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
     dcF_tau[1][1] += lambda*tr_eps;
     dcF_tau[2][2] += lambda*tr_eps;
 
-    CeedScalar ds[3][3] = {{dcF_tau[0][0] + 2*Cc1[0][i]*epsilon[0][0], 
-                            dcF_tau[0][1] + 2*Cc1[0][i]*epsilon[0][1],
-                            dcF_tau[0][2] + 2*Cc1[0][i]*epsilon[0][2]},
-                           {dcF_tau[1][0] + 2*Cc1[0][i]*epsilon[1][0], 
-                            dcF_tau[1][1] + 2*Cc1[0][i]*epsilon[1][1],
-                            dcF_tau[1][2] + 2*Cc1[0][i]*epsilon[1][2]},
-                           {dcF_tau[2][0] + 2*Cc1[0][i]*epsilon[2][0], 
-                            dcF_tau[2][1] + 2*Cc1[0][i]*epsilon[2][1],
-                            dcF_tau[2][2] + 2*Cc1[0][i]*epsilon[2][2]}
+    CeedScalar ds[3][3] = {{dcF_tau[0][0] + 2*(mu - lam_log_J[0][i])*epsilon[0][0], 
+                            dcF_tau[0][1] + 2*(mu - lam_log_J[0][i])*epsilon[0][1],
+                            dcF_tau[0][2] + 2*(mu - lam_log_J[0][i])*epsilon[0][2]},
+                           {dcF_tau[1][0] + 2*(mu - lam_log_J[0][i])*epsilon[1][0], 
+                            dcF_tau[1][1] + 2*(mu - lam_log_J[0][i])*epsilon[1][1],
+                            dcF_tau[1][2] + 2*(mu - lam_log_J[0][i])*epsilon[1][2]},
+                           {dcF_tau[2][0] + 2*(mu - lam_log_J[0][i])*epsilon[2][0], 
+                            dcF_tau[2][1] + 2*(mu - lam_log_J[0][i])*epsilon[2][1],
+                            dcF_tau[2][2] + 2*(mu - lam_log_J[0][i])*epsilon[2][2]}
                           };
 
 
