@@ -688,7 +688,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->dXdx);
     CeedOperatorSetField(op_apply, "tau", data[fine_level]->elem_restr_tau,
                          CEED_BASIS_COLLOCATED, data[fine_level]->tau);
-    CeedOperatorSetField(op_apply, "lam_log_J", data[fine_level]->elem_restr_lam_log_J,
+    CeedOperatorSetField(op_apply, "lam_log_J",
+                         data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
   }
@@ -772,7 +773,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->dXdx);
     CeedOperatorSetField(op_jacob, "tau", data[fine_level]->elem_restr_tau,
                          CEED_BASIS_COLLOCATED, data[fine_level]->tau);
-    CeedOperatorSetField(op_jacob, "lam_log_J", data[fine_level]->elem_restr_lam_log_J,
+    CeedOperatorSetField(op_jacob, "lam_log_J",
+                         data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
   }

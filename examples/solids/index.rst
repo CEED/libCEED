@@ -700,6 +700,14 @@ Collecting terms, the weak form of the Newton linearization for Neo-Hookean mate
 which equivalent to Algorithm 2 of :cite:`davydov2020matrix` and requires only derivatives with respect to the current configuration. Note that :math:numref:`cur_simp_Jac` and :math:numref:`jacobian-weak-form-current2` have recovered the same representation 
 using different algebraic manipulations. 
 
+.. tip::
+   An alternative form of Kirchhoff stress tensor, :math:`\bm{\tau}`, can be achieved by rewriting :math:`\bm{b} - \bm{I}_3` in terms of :math:`\nabla_X \bm{u}` in :math:numref:`tau-neo-hookean` as
+
+   .. math::
+      \bm \tau = \mu \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} (\nabla_X \bm{u})^T \Big) + \lambda \log J \bm I_{3}.
+
+   which is more numerically stable for small strain, and thus preferred for computation.
+
 Jacobian representation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -736,6 +744,6 @@ We have implemented four storage variants for the Jacobian in our finite strain 
 
    * - :code:`FSCurrent-NH2`
      - :math:`\operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_x \hat X, \bm \tau, \mu - \lambda \log J`
+     - :math:`\nabla_x \hat X, \bm \tau, \lambda \log J`
      - 17
      - :math:numref:`jacobian-weak-form-current` :math:numref:`jacobian-weak-form-current2`
