@@ -257,7 +257,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                            ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
 
       // ----- Apply CEED operator for Setup
-      CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur, CEED_REQUEST_IMMEDIATE);
+      CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
+                        CEED_REQUEST_IMMEDIATE);
 
       // ----- Apply Sub-Operator for the Boundary
       CeedCompositeOperatorAddSub(*op_apply, op_apply_sur);
@@ -373,7 +374,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // Element coordinates
   // ---------------------------------------------------------------------------
   // -- Create CEED vector
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_x, &ceed_data->x_coord, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_x, &ceed_data->x_coord,
+                                  NULL);
 
   // -- Copy PETSc vector in CEED vector
   Vec               X_loc;
@@ -510,8 +512,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED Operator Apply
   // *****************************************************************************
   // -- Apply CEED Operator for the geometric data
-  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_coord, ceed_data->q_data,
-                    CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_coord,
+                    ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS

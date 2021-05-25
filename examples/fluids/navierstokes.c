@@ -223,59 +223,52 @@ int main(int argc, char **argv) {
   // Print problem summary
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
-    const PetscInt num_comp_q = 5;
-    CeedInt        glob_dofs, owned_dofs;
-    PetscInt       glob_nodes, owned_nodes;
-    const CeedInt  num_P = app_ctx->degree + 1,
-                   num_Q = num_P + app_ctx->q_extra;
-    int            comm_size;
-    char           box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
-
-    // -- Get global size
-    ierr = VecGetSize(Q, &glob_dofs); CHKERRQ(ierr);
-    ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
-    glob_nodes = glob_dofs/num_comp_q;
-
-    // -- Get local size
-    ierr = VecGetSize(Q_loc, &owned_nodes); CHKERRQ(ierr);
-    owned_nodes /= num_comp_q;
-
-    // Get rank size
-    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
-
-    // Get DM size
-    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
-                                 sizeof(box_faces_str), NULL); CHKERRQ(ierr);
-    // Get used ceed resource
-    const char *used_resource;
-    CeedGetResource(ceed, &used_resource);
 
     // Header and rank
-    char hostname[PETSC_MAX_PATH_LEN];
-    ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
+    char host_name[PETSC_MAX_PATH_LEN];
+    int  comm_size;
+    ierr = PetscGetHostName(host_name, sizeof host_name); CHKERRQ(ierr);
+    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
                        "  MPI:\n"
-                       "    Hostname                           : %s\n"
+                       "    Host Name                          : %s\n"
                        "    Total ranks                        : %d\n",
-                       hostname, comm_size); CHKERRQ(ierr);
+                       host_name, comm_size); CHKERRQ(ierr);
 
     // Problem specific info
     ierr = problem->print_info(phys_ctx, setup_ctx, app_ctx); CHKERRQ(ierr);
 
     // libCEED
+    const char *used_resource;
+    CeedGetResource(ceed, &used_resource);
     ierr = PetscPrintf(comm,
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n",
                        used_resource, CeedMemTypes[mem_type_backend]); CHKERRQ(ierr);
     // PETSc
+    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
+                                 sizeof(box_faces_str), NULL); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "  PETSc:\n"
                        "    Box Faces                          : %s\n"
                        "    Time Stepping Scheme               : %s\n",
                        box_faces_str, phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
     // Mesh
+    const PetscInt num_comp_q = 5;
+    CeedInt        glob_dofs, owned_dofs;
+    PetscInt       glob_nodes, owned_nodes;
+    const CeedInt  num_P = app_ctx->degree + 1,
+                   num_Q = num_P + app_ctx->q_extra;
+    // -- Get global size
+    ierr = VecGetSize(Q, &glob_dofs); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
+    glob_nodes = glob_dofs/num_comp_q;
+    // -- Get local size
+    ierr = VecGetSize(Q_loc, &owned_nodes); CHKERRQ(ierr);
+    owned_nodes /= num_comp_q;
     ierr = PetscPrintf(comm,
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
