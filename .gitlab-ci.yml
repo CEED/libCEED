@@ -5,6 +5,7 @@ noether-rocm:
   stage: test
   tags:
     - rocm
+  interruptible: true
   image: jedbrown/rocm:latest
   script:
 # Compilers
@@ -82,6 +83,7 @@ lv-cuda:
   stage: test
   tags:
     - cuda
+  interruptible: true
   before_script:
 # Compilers
     - . /opt/rh/gcc-toolset-10/enable
