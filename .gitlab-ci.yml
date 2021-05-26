@@ -84,6 +84,7 @@ lv-cuda:
     - cuda
   before_script:
 # Compilers
+    - . /opt/rh/gcc-toolset-10/enable
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran CUDA_DIR=/usr/local/cuda
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):4)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
