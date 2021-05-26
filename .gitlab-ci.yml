@@ -90,12 +90,21 @@ lv-cuda:
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
     - echo "-------------- NVCC ----------------" && $CUDA_DIR/bin/nvcc --version
+# libCEED
     - make configure OPT='-O -march=native -ffp-contract=fast'
+    - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
-    - make info
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
   script:
-    - nice make -k -j8 -l8
-    - nice make -k -j8 junit BACKENDS="$BACKENDS_GPU" realsearch=%
+    - nice make -k -j$NPROC_GPU -l$NPROC_GPU
+    - echo "-------------- core tests ----------"
+    - export PETSC_DIR= PETSC_ARCH=
+    - nice make -k -j$NPROC_GPU junit BACKENDS="$BACKENDS_GPU" realsearch=%
+# Libraries for examples
+# -- PETSc with CUDA (minimal)
+    - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
+    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc fluids solids"
   artifacts:
     paths:
       - build/*.junit
