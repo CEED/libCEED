@@ -183,10 +183,7 @@ CEED_LIBS = -lceed
 libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
-libceed_test.so := $(LIBDIR)/libceed_test.$(SO_EXT)
-libceed_test.a := $(LIBDIR)/libceed_test.a
-libceed_test := $(if $(STATIC),$(libceed_test.a),$(libceed_test.so))
-libceeds = $(libceed) $(libceed_test)
+libceeds = $(libceed)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
 TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
@@ -217,10 +214,9 @@ fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
-# Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
+# Backends/[ref, blocked, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
-template.c     := $(sort $(wildcard backends/template/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
 opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
@@ -308,15 +304,11 @@ info-backends-all:
 	@true
 
 $(libceed.so) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
-$(libceed_test) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed_test)))
 
 # Standard Backends
 libceed.c += $(ref.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
-
-# Testing Backends
-test_backends.c := $(template.c)
 
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
@@ -544,19 +536,10 @@ $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
 
-libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
-$(libceed_test.so) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
-	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
-
-$(libceed_test.a) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
-	$(call quiet,AR) $(ARFLAGS) $@ $^
-
 $(examples) : $(libceed)
-$(tests) : $(libceed_test)
-$(tests) : CEED_LIBS = -lceed_test
+$(tests) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
-run-t% : BACKENDS_MAKE += $(TEST_BACKENDS)
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 
@@ -588,7 +571,6 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
-prove : BACKENDS_MAKE += $(TEST_BACKENDS)
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
@@ -598,7 +580,6 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 prove-all :
 	+$(MAKE) prove realsearch=%
 
-junit-t% : BACKENDS_MAKE += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
