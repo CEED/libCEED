@@ -332,6 +332,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    An equivalent form of :math:numref:`neo-hookean-stress` is
 
    .. math::
+      :label: neo-hookean-stress-stable
+
       \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
 
    which is more numerically stable for small :math:`\bm E`, and thus preferred for computation.
@@ -342,6 +344,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    Then we compute
 
    .. math::
+      :label: log1p
+
       \log J = \mathtt{log1p}(u_{0,0} + u_{1,1} + u_{0,0} u_{1,1} - u_{0,1} u_{1,0}),
 
    which gives accurate results even in the limit when the entries :math:`u_{i,j}` are very small.
@@ -704,14 +708,18 @@ using different algebraic manipulations.
    We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain :math:numref:`eq-green-lagrange-strain`) as
 
    .. math::
+      :label: green-euler-strain
+
       \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
 
    Then, the Kirchhoff stress tensor :math:numref:`tau-neo-hookean` can be written as
 
    .. math::
+      :label: tau-neo-hookean-stable
+      
       \bm \tau = 2\mu \bm e + \lambda \log J \bm I_{3},
 
-   which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p``, as we discussed in the previous tip.
+   which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p`` :math:numref:`log1p`, as we discussed in the previous tip.
 
 
 Jacobian representation
