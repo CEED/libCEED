@@ -104,7 +104,7 @@ lv-cuda:
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc fluids solids"
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc"
   artifacts:
     paths:
       - build/*.junit
