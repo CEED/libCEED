@@ -106,6 +106,18 @@ lv-cuda:
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc"
+# Report status
+    - echo "SUCCESS" > .job_status
+  after_script:
+    - |
+      if [ $(cat .job_status) == "SUCCESS" ]; then
+        lcov --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
   artifacts:
     paths:
       - build/*.junit
