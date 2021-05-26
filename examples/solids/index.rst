@@ -701,7 +701,7 @@ which equivalent to Algorithm 2 of :cite:`davydov2020matrix` and requires only d
 using different algebraic manipulations. 
 
 .. tip::
-   We define a second order *Green-Euler* strain tensor as
+   We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain :math:numref:`eq-green-lagrange-strain`) as
 
    .. math::
       \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
@@ -711,7 +711,7 @@ using different algebraic manipulations.
    .. math::
       \bm \tau = 2\mu \bm e + \lambda \log J \bm I_{3},
 
-   which is more numerically stable for small strain, and thus preferred for computation.
+   which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p``, as we discussed in the previous tip.
 
 
 Jacobian representation
