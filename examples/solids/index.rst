@@ -701,12 +701,18 @@ which equivalent to Algorithm 2 of :cite:`davydov2020matrix` and requires only d
 using different algebraic manipulations. 
 
 .. tip::
-   An alternative form of Kirchhoff stress tensor, :math:`\bm{\tau}`, can be achieved by rewriting :math:`\bm{b} - \bm{I}_3` in terms of :math:`\nabla_X \bm{u}` in :math:numref:`tau-neo-hookean` as
+   We define a second order *Green-Euler* strain tensor as
 
    .. math::
-      \bm \tau = \mu \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} (\nabla_X \bm{u})^T \Big) + \lambda \log J \bm I_{3}.
+      \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
+
+   Then, the Kirchhoff stress tensor :math:numref:`tau-neo-hookean` can be written as
+
+   .. math::
+      \bm \tau = 2\mu \bm e + \lambda \log J \bm I_{3},
 
    which is more numerically stable for small strain, and thus preferred for computation.
+
 
 Jacobian representation
 ^^^^^^^^^^^^^^^^^^^^^^^
