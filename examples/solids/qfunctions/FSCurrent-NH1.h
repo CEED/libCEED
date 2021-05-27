@@ -105,22 +105,19 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                           grad_u[2][1],
                           grad_u[2][2] + 1}
                         };
-  // *INDENT-ON*
-  // b - left Cauchy-Green
-  // b =  F*F^T
-  CeedScalar b[3][3];
-  for (CeedInt j = 0; j < 3; j++)
-    for (CeedInt k = 0; k < 3; k++) {
-      b[j][k] = 0;
-      for (CeedInt m = 0; m < 3; m++)
-        b[j][k] += F[j][m] * F[k][m]; // F * F^T
-    }
 
   // *INDENT-ON*
+  //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
+  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+  CeedScalar bMI3[6];
+  for (CeedInt m = 0; m < 6; m++) {
+    bMI3[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+    for (CeedInt n = 0; n < 3; n++)
+      bMI3[m] += grad_u[indj[m]][n] * grad_u[indk[m]][n];
+  }
+
   CeedScalar Jm1;
   Jm1 = computeJM1(grad_u);
-
-  CeedScalar logJ = log1p_series_shifted(Jm1);
 
   // *INDENT-OFF*
   //Computer F^(-1)
@@ -149,15 +146,15 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   F_inv[2][1] = F_invwork[6];
   F_inv[2][2] = F_invwork[2];
 
-  // Compute the Kirchhoff stress (tau)
-  *llnj = lambda*(logJ);
+  // Compute the Kirchhoff stress (tau) tau = mu*(b - I3) + lambda*log(J)*I3
+  *llnj = lambda*log1p_series_shifted(Jm1);
 
-  tau_work[0] = (*llnj-mu)+mu*b[0][0];
-  tau_work[1] = (*llnj-mu)+mu*b[1][1];
-  tau_work[2] = (*llnj-mu)+mu*b[2][2];
-  tau_work[3] = mu*b[1][2];
-  tau_work[4] = mu*b[0][2];
-  tau_work[5] = mu*b[0][1];
+  tau_work[0] = mu*bMI3[0] + *llnj;
+  tau_work[1] = mu*bMI3[1] + *llnj;
+  tau_work[2] = mu*bMI3[2] + *llnj;
+  tau_work[3] = mu*bMI3[3];
+  tau_work[4] = mu*bMI3[4];
+  tau_work[5] = mu*bMI3[5];
 
   return 0;
 };
@@ -198,7 +195,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
   //  F =  I3 + grad_ue
   //  J = det(F)
   //  b = F*F(^T)
-  //  tau = mu*b + (lambda*log(J)-mu)*I3;
+  //  tau = mu*(b - I3) + lambda*log(J)*I3;
 
   // Quadrature Point Loop
   CeedPragmaSIMD

@@ -332,6 +332,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    An equivalent form of :math:numref:`neo-hookean-stress` is
 
    .. math::
+      :label: neo-hookean-stress-stable
+
       \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
 
    which is more numerically stable for small :math:`\bm E`, and thus preferred for computation.
@@ -342,6 +344,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    Then we compute
 
    .. math::
+      :label: log1p
+
       \log J = \mathtt{log1p}(u_{0,0} + u_{1,1} + u_{0,0} u_{1,1} - u_{0,1} u_{1,0}),
 
    which gives accurate results even in the limit when the entries :math:`u_{i,j}` are very small.
@@ -700,6 +704,24 @@ Collecting terms, the weak form of the Newton linearization for Neo-Hookean mate
 which equivalent to Algorithm 2 of :cite:`davydov2020matrix` and requires only derivatives with respect to the current configuration. Note that :math:numref:`cur_simp_Jac` and :math:numref:`jacobian-weak-form-current2` have recovered the same representation 
 using different algebraic manipulations. 
 
+.. tip::
+   We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain :math:numref:`eq-green-lagrange-strain`) as
+
+   .. math::
+      :label: green-euler-strain
+
+      \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
+
+   Then, the Kirchhoff stress tensor :math:numref:`tau-neo-hookean` can be written as
+
+   .. math::
+      :label: tau-neo-hookean-stable
+      
+      \bm \tau = \lambda \log J \bm I_{3} + 2\mu \bm e,
+
+   which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p`` :math:numref:`log1p`, as we discussed in the previous tip.
+
+
 Jacobian representation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -736,6 +758,6 @@ We have implemented four storage variants for the Jacobian in our finite strain 
 
    * - :code:`FSCurrent-NH2`
      - :math:`\operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_x \hat X, \bm \tau, \mu - \lambda \log J`
+     - :math:`\nabla_x \hat X, \bm \tau, \lambda \log J`
      - 17
      - :math:numref:`jacobian-weak-form-current` :math:numref:`jacobian-weak-form-current2`
