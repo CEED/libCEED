@@ -25,7 +25,7 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-static CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) {
   return 2 * x;
 }
 

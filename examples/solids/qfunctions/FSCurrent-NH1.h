@@ -44,7 +44,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
-CEED_QFUNCTION_HELPER static CeedScalar log1p_series_shifted(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
@@ -74,8 +74,7 @@ CEED_QFUNCTION_HELPER static CeedScalar log1p_series_shifted(CeedScalar x) {
 // -----------------------------------------------------------------------------
 #ifndef DETJM1
 #define DETJM1
-CEED_QFUNCTION_HELPER static CeedScalar computeJM1(const CeedScalar
-    grad_u[3][3]) {
+CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
   return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
          grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
          grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
@@ -89,10 +88,10 @@ CEED_QFUNCTION_HELPER static CeedScalar computeJM1(const CeedScalar
 // -----------------------------------------------------------------------------
 // Common computations between Ftau and dFtau
 // -----------------------------------------------------------------------------
-static int CEED_QFUNCTION_HELPER commonFtau(const CeedScalar lambda,
-    const CeedScalar mu,
-    const CeedScalar grad_u[3][3], CeedScalar F_inv[3][3],
-    CeedScalar tau_work[6], CeedScalar *llnj) {
+CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
+                                     const CeedScalar mu, const CeedScalar grad_u[3][3],
+                                     CeedScalar F_inv[3][3], CeedScalar tau_work[6],
+                                     CeedScalar *llnj) {
 
 
   // Compute The Deformation Gradient : F = I3 + grad_u

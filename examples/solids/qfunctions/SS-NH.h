@@ -42,7 +42,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES
 #define LOG1P_SERIES
-static CEED_QFUNCTION_HELPER CeedScalar log1p_series(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar log1p_series(CeedScalar x) {
   CeedScalar sum = 0;
   CeedScalar y = x / (2. + x);
   const CeedScalar y2 = y*y;

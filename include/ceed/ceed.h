@@ -74,7 +74,7 @@
     values for CPU backends.
 **/
 #ifndef CEED_QFUNCTION_HELPER
-#define CEED_QFUNCTION_HELPER inline
+#define CEED_QFUNCTION_HELPER static inline
 #endif
 
 /**
