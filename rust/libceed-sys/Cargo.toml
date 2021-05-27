@@ -32,8 +32,8 @@ static = []
 system = []
 
 [build-dependencies]
-bindgen = "*"
+bindgen = "0.58.1"
 pkg-config = "0.3.19"
 
 [dev-dependencies]
-version-sync = "*"
+version-sync = "0.9.2"
