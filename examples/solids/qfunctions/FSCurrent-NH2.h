@@ -196,7 +196,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
     const CeedScalar logJ = log1p_series_shifted(Jm1);
 
     // store lam_log_J = lambda*log(J)
-    lam_log_J[0][i] = lambda*log1p_series_shifted(Jm1);
+    lam_log_J[0][i] = lambda*logJ;
 
     // tau = mu*b - Cc1*I3;
     tau[0][i] = mu*bMI3[0] + lam_log_J[0][i];

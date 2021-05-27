@@ -108,6 +108,14 @@ CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
                         };
 
   // *INDENT-ON*
+  //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
+  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+  CeedScalar bMI3[6];
+  for (CeedInt m = 0; m < 6; m++) {
+    bMI3[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+    for (CeedInt n = 0; n < 3; n++)
+      bMI3[m] += grad_u[indj[m]][n] * grad_u[indk[m]][n];
+  }
   const CeedScalar Jm1 = computeJM1(grad_u);
   const CeedScalar logJ = log1p_series_shifted(Jm1);
 
@@ -139,7 +147,7 @@ CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
   F_inv[2][2] = F_invwork[2];
 
   // Compute the Kirchhoff stress (tau) tau = mu*(b - I3) + lambda*log(J)*I3
-  *llnj = lambda*log1p_series_shifted(Jm1);
+  *llnj = lambda*logJ;
 
   tau_work[0] = mu*bMI3[0] + *llnj;
   tau_work[1] = mu*bMI3[1] + *llnj;
