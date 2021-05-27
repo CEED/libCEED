@@ -34,3 +34,6 @@ system = []
 [build-dependencies]
 bindgen = "*"
 pkg-config = "0.3.19"
+
+[dev-dependencies]
+version-sync = "*"

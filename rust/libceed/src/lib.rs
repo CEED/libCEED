@@ -14,45 +14,48 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 
-//! # libCEED Rust Interface
-//!
-//! This is the documentation for the high level libCEED Rust interface.
-//! See the full libCEED user manual [here](https://libceed.readthedocs.io).
-//!
-//! libCEED is a low-level API for for the efficient high-order discretization methods
-//! developed by the ECP co-design Center for Efficient Exascale Discretizations (CEED).
-//! While our focus is on high-order finite elements, the approach is mostly algebraic
-//! and thus applicable to other discretizations in factored form.
-//!
-//! ## Usage
-//!
-//! To call libCEED from a Rust package, the following `Cargo.toml` can be used.
-//! ```toml
-//! [dependencies]
-//! libceed = "0.8.0"
-//! ```
-//!
-//! For a development version of the libCEED Rust bindings, use the following `Cargo.toml`.
-//! ```toml
-//! [dependencies]
-//! libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
-//! ```
-//!
-//! ```
-//! extern crate libceed;
-//!
-//! fn main() {
-//!     let ceed = libceed::Ceed::init("/cpu/self/ref");
-//!     let xc = ceed.vector_from_slice(&[0., 0.5, 1.0]).unwrap();
-//!     let xs = xc.view();
-//!     assert_eq!(xs[..], [0., 0.5, 1.0]);
-//! }
-//! ```
-//!
-//! ## Examples
-//!
-//! Examples of libCEED can be found in the libCEED GitHub repository under the
-//! `examples/rust` folder.
+/*!
+
+This is the documentation for the high level libCEED Rust interface. See the
+[libCEED user manual](https://libceed.readthedocs.io) for details on the
+abstraction and extensive examples.
+
+libCEED is a low-level API for for the efficient high-order discretization methods
+developed by the ECP co-design Center for Efficient Exascale Discretizations (CEED).
+While our focus is on high-order finite elements, the approach is mostly algebraic
+and thus applicable to other discretizations in factored form.
+
+## Usage
+
+To call libCEED from a Rust package, the following `Cargo.toml` can be used.
+```toml
+[dependencies]
+libceed = "0.8.0"
+```
+
+For a development version of the libCEED Rust bindings, use the following `Cargo.toml`.
+```toml
+[dependencies]
+libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+```
+
+```
+extern crate libceed;
+
+fn main() {
+    let ceed = libceed::Ceed::init("/cpu/self/ref");
+    let xc = ceed.vector_from_slice(&[0., 0.5, 1.0]).unwrap();
+    let xs = xc.view();
+    assert_eq!(xs[..], [0., 0.5, 1.0]);
+}
+```
+
+## Examples
+
+Examples of libCEED can be found in the [libCEED repository](https://github.com/CEED/libCEED) under the
+`examples/rust` directory.
+
+*/
 
 // -----------------------------------------------------------------------------
 // Exceptions
