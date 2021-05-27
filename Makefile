@@ -521,18 +521,27 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
-$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+# Several executables have common utilities, but we can't build the utilities
+# from separate submake invocations because they'll compete with each
+# other/corrupt output. So we put it in this utility library, but we don't want
+# to manually list source dependencies up at this level, so we'll just always
+# call recursive make to check that this utility is up to date.
+examples/petsc/libutils.a.PHONY: $(libceed) $(ceed.pc)
+	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` AR=$(AR) ARFLAGS=$(ARFLAGS) \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $(basename $(@F))
+
+$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
 $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
+	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
 $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
+	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
 
@@ -631,8 +640,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
-	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
-	$(MAKE) -C python/tests clean
+	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(call quiet,MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
