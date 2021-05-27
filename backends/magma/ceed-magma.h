@@ -15,7 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 // magma functions specific to ceed
-#ifndef _ceed_mamga_h
+#ifndef _ceed_magma_h
 #define _ceed_magma_h
 
 #include <ceed/ceed.h>
