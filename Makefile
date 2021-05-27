@@ -536,12 +536,12 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	cp examples/petsc/$* $@
 
 $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
+	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
 $(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
+	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
 
@@ -640,8 +640,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
-	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
-	$(MAKE) -C python/tests clean
+	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(call quiet,MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
