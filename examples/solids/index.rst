@@ -717,7 +717,7 @@ using different algebraic manipulations.
    .. math::
       :label: tau-neo-hookean-stable
       
-      \bm \tau = 2\mu \bm e + \lambda \log J \bm I_{3},
+      \bm \tau = \lambda \log J \bm I_{3} + 2\mu \bm e,
 
    which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p`` :math:numref:`log1p`, as we discussed in the previous tip.
 
