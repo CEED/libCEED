@@ -8,7 +8,7 @@ name = "libceed"
 version = "0.8.0"
 edition = "2018"
 license = "BSD-2-Clause"
-repository = "https://github.com/CEED/libCEED/rust/libceed"
+repository = "https://github.com/CEED/libCEED"
 documentation = "https://libceed.readthedocs.io/en/latest/"
 description = """
 High-level interface for libCEED - the efficient high-order discretization library developed by the ECP co-design center CEED.
