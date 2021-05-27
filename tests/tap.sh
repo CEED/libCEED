@@ -93,12 +93,11 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue;
     fi
 
-    # Navier-Stokes test problem too large for most CUDA backends
-    if [[ "$backend" = *gpu* && "$backend" != /gpu/cuda/gen && \
-            ( "$1" = fluids-* ) ]]; then
-        printf "ok $i0 # SKIP - test problem too large for $backend\n"
-        printf "ok $i1 # SKIP - test problem too large for $backend stdout\n"
-        printf "ok $i2 # SKIP - test problem too large for $backend stderr\n"
+    # Navier-Stokes test problem has too many components for MAGMA backends
+    if [[ "$backend" = *magma* && ( "$1" = fluids-* ) ]]; then
+        printf "ok $i0 # SKIP - backend basis kernel not available $backend\n"
+        printf "ok $i1 # SKIP - backend basis kernel not available $backend stdout\n"
+        printf "ok $i2 # SKIP - backend basis kernel not available $backend stderr\n"
         continue;
     fi
 

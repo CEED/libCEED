@@ -44,7 +44,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
-static inline CeedScalar log1p_series_shifted(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
@@ -74,7 +74,7 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 // -----------------------------------------------------------------------------
 #ifndef DETJM1
 #define DETJM1
-static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
+CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
   return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
          grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
          grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
@@ -88,9 +88,10 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // -----------------------------------------------------------------------------
 // Common computations between Ftau and dFtau
 // -----------------------------------------------------------------------------
-static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
-                             const CeedScalar grad_u[3][3], CeedScalar F_inv[3][3],
-                             CeedScalar tau_work[6], CeedScalar *llnj) {
+CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
+                                     const CeedScalar mu, const CeedScalar grad_u[3][3],
+                                     CeedScalar F_inv[3][3], CeedScalar tau_work[6],
+                                     CeedScalar *llnj) {
 
 
   // Compute The Deformation Gradient : F = I3 + grad_u
@@ -115,9 +116,8 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
     for (CeedInt n = 0; n < 3; n++)
       bMI3[m] += grad_u[indj[m]][n] * grad_u[indk[m]][n];
   }
-
-  CeedScalar Jm1;
-  Jm1 = computeJM1(grad_u);
+  const CeedScalar Jm1 = computeJM1(grad_u);
+  const CeedScalar logJ = log1p_series_shifted(Jm1);
 
   // *INDENT-OFF*
   //Computer F^(-1)
@@ -131,7 +131,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
                      F[1][0]*F[2][1] - F[1][1]*F[2][0], /* *NOPAD* */
                      F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
                     };
-  // *INDENT-ON*                 
+  // *INDENT-ON*
   CeedScalar F_invwork[9];
   for (CeedInt m = 0; m < 9; m++)
     F_invwork[m] = B[m] / (Jm1 + 1.);
@@ -147,7 +147,7 @@ static inline int commonFtau(const CeedScalar lambda, const CeedScalar mu,
   F_inv[2][2] = F_invwork[2];
 
   // Compute the Kirchhoff stress (tau) tau = mu*(b - I3) + lambda*log(J)*I3
-  *llnj = lambda*log1p_series_shifted(Jm1);
+  *llnj = lambda*logJ;
 
   tau_work[0] = mu*bMI3[0] + *llnj;
   tau_work[1] = mu*bMI3[1] + *llnj;
@@ -418,13 +418,13 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     dcF_tau[1][1] += lambda*tr_eps;
     dcF_tau[2][2] += lambda*tr_eps;
 
-    CeedScalar ds[3][3] = {{dcF_tau[0][0] + c1*epsilon[0][0], 
+    CeedScalar ds[3][3] = {{dcF_tau[0][0] + c1*epsilon[0][0],
                             dcF_tau[0][1] + c1*epsilon[0][1],
                             dcF_tau[0][2] + c1*epsilon[0][2]},
-                           {dcF_tau[1][0] + c1*epsilon[1][0], 
+                           {dcF_tau[1][0] + c1*epsilon[1][0],
                             dcF_tau[1][1] + c1*epsilon[1][1],
                             dcF_tau[1][2] + c1*epsilon[1][2]},
-                           {dcF_tau[2][0] + c1*epsilon[2][0], 
+                           {dcF_tau[2][0] + c1*epsilon[2][0],
                             dcF_tau[2][1] + c1*epsilon[2][1],
                             dcF_tau[2][2] + c1*epsilon[2][2]}
                           };
@@ -532,11 +532,11 @@ CEED_QFUNCTION(ElasFSCurrentNH1Energy)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar Jm1 = computeJM1(grad_u);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
-    CeedScalar logj = log1p_series_shifted(Jm1);
-    energy[i] = (lambda*logj*logj/2. - mu*logj +
+    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
+    energy[i] = (lambda*logJ*logJ/2. - mu*logJ +
                  mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
 
   } // End of Quadrature Point Loop
@@ -630,8 +630,8 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q,
 
     // Pressure
     const CeedScalar Jm1 = computeJM1(grad_u);
-    CeedScalar logj = log1p_series_shifted(Jm1);
-    diagnostic[3][i] = -lambda*logj;
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
+    diagnostic[3][i] = -lambda*logJ;
 
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
@@ -642,7 +642,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q,
     diagnostic[6][i] = Jm1 + 1.;
 
     // Strain energy
-    diagnostic[7][i] = (lambda*logj*logj/2. - mu*logj +
+    diagnostic[7][i] = (lambda*logJ*logJ/2. - mu*logJ +
                         mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.);
 
   } // End of Quadrature Point Loop

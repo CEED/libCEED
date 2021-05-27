@@ -87,6 +87,8 @@ namespace ceed {
       std::stringstream ss;
       ss << "#define CEED_QFUNCTION(FUNC_NAME) \\" << std::endl
          << "  inline int FUNC_NAME"               << std::endl
+         << "#define CEED_QFUNCTION_HELPER \\"     << std::endl
+         << "  inline"                             << std::endl
          <<                                           std::endl
          << "#include \"" << filename << "\""      << std::endl;
 

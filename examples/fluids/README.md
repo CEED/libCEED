@@ -2,11 +2,10 @@
 
 This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
 
-The Navier-Stokes problem solves the compressible Navier-Stokes equations in three dimensions using an
-explicit time integration. The state variables are mass density, momentum density, and energy density.
+The Navier-Stokes problem solves the compressible Navier-Stokes equations in three dimensions using an explicit time integration.
+The state variables are mass density, momentum density, and energy density.
 
-The main Navier-Stokes solver for libCEED is defined in [`navierstokes.c`](navierstokes.c)
-with different problem definitions according to the application of interest.
+The main Navier-Stokes solver for libCEED is defined in [`navierstokes.c`](navierstokes.c) with different problem definitions according to the application of interest.
 
 Build by using
 
@@ -16,78 +15,26 @@ and run with
 
 `./navierstokes`
 
-Available runtime options are:
+Available runtime options for all problem cases are:
 
-|  Option                               | Meaning                                                                                         |
-| :-------------------------------------| :-----------------------------------------------------------------------------------------------|
-| `-ceed`                               | CEED resource specifier                                                                         |
-| `-test`                               | Run in test mode                                                                                |
-| `-problem`                            | Problem to solve (`advection`, `advection2d`, `density_current`, or `euler_vortex`)             |
-| `-problem_advection_wind`             | Wind type in Advection (`rotation` or `translation`)                                            |
-| `-problem_advection_wind_translation` | Constant wind vector when `-problem_advection_wind translation`                                 |
-| `-problem_euler_mean_velocity`        | Constant mean velocity vector in `euler_vortex`                                                 |
-| `-vortex_strength`                    | Strength of vortex in `euler_vortex`                                                            |
-| `-stab`                               | Stabilization method                                                                            |
-| `-implicit`                           | Use implicit time integartor formulation                                                        |
-| `-bc_wall`                            | Use wall boundary conditions on this list of faces                                              |
-| `-bc_slip_x`                          | Use slip boundary conditions, for the x component, on this list of faces                        |
-| `-bc_slip_y`                          | Use slip boundary conditions, for the y component, on this list of faces                        |
-| `-bc_slip_z`                          | Use slip boundary conditions, for the z component, on this list of faces                        |
-| `-viz_refine`                         | Use regular refinement for visualization                                                        |
-| `-degree`                             | Polynomial degree of tensor product basis (must be >= 1)                                        |
-| `-units_meter`                        | 1 meter in scaled length units                                                                  |
-| `-units_second`                       | 1 second in scaled time units                                                                   |
-| `-units_kilogram`                     | 1 kilogram in scaled mass units                                                                 |
-| `-units_Kelvin`                       | 1 Kelvin in scaled temperature units                                                            |
-| `-theta0`                             | Reference potential temperature                                                                 |
-| `-thetaC`                             | Perturbation of potential temperature                                                           |
-| `-P0`                                 | Atmospheric pressure                                                                            |
-| `-E_wind`                             | Total energy of inflow wind                                                                     |
-| `-N`                                  | Brunt-Vaisala frequency                                                                         |
-| `-cv`                                 | Heat capacity at constant volume                                                                |
-| `-cp`                                 | Heat capacity at constant pressure                                                              |
-| `-g`                                  | Gravitational acceleration                                                                      |
-| `-lambda`                             | Stokes hypothesis second viscosity coefficient                                                  |
-| `-mu`                                 | Shear dynamic viscosity coefficient                                                             |
-| `-k`                                  | Thermal conductivity                                                                            |
-| `-CtauS`                              | Scale coefficient for stabilization tau (nondimensional)                                        |
-| `-strong_form`                        | Strong (1) or weak/integrated by parts (0) advection residual                                   |
-| `-lx`                                 | Length scale in x direction                                                                     |
-| `-ly`                                 | Length scale in y direction                                                                     |
-| `-lz`                                 | Length scale in z direction                                                                     |
-| `-rc`                                 | Characteristic radius of thermal bubble                                                         |
-| `-resx`                               | Resolution in x                                                                                 |
-| `-resy`                               | Resolution in y                                                                                 |
-| `-resz`                               | Resolution in z                                                                                 |
-| `-center`                             | Location of bubble center                                                                       |
-| `-dc_axis`                            | Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric               |
-| `-output_freq`                        | Frequency of output, in number of steps                                                         |
-| `-continue`                           | Continue from previous solution                                                                 |
-| `-degree`                             | Polynomial degree of tensor product basis                                                       |
-| `-qextra`                             | Number of extra quadrature points                                                               |
-| `-qextra_boundary`                    | Number of extra quadrature points on in/outflow faces                                           |
-| `-output_dir`                         | Output directory                                                                                |
-
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`,
-`-bc_slip_y`, and `-bc_slip_z` are:
-
-* 2D:
-  - faceMarkerBottom = 1;
-  - faceMarkerRight  = 2;
-  - faceMarkerTop    = 3;
-  - faceMarkerLeft   = 4;
-* 3D:
-  - faceMarkerBottom = 1;
-  - faceMarkerTop    = 2;
-  - faceMarkerFront  = 3;
-  - faceMarkerBack   = 4;
-  - faceMarkerRight  = 5;
-  - faceMarkerLeft   = 6;
+|  Option                         | Meaning                                                                             | Default                 |
+| :-------------------------------| :-----------------------------------------------------------------------------------| :-----------------------|
+| `-ceed`                         | CEED resource specifier                                                             | `/cpu/self/opt/blocked` |
+| `-test`                         | Run in test mode                                                                    | `false`                 |
+| `-compare_final_state_atol`     | Test absolute tolerance                                                             | `1E-11`                 |
+| `-compare_final_state_filename` | Test filename                                                                       |                         |
+| `-problem`                      | Problem to solve (`advection`, `advection2d`, `density_current`, or `euler_vortex`) | `density_current`       |
+| `-implicit`                     | Use implicit time integartor formulation                                            | `false` (`explicit`)    |
+| `-viz_refine`                   | Use regular refinement for visualization                                            | `0`                     |
+| `-degree`                       | Polynomial degree of tensor product basis (must be >= 1)                            | `1`                     |
+| `-q_extra`                      | Number of extra quadrature points                                                   | `2`                     |
+| `-output_freq`                  | Frequency of output, in number of steps                                             | `10`                    |
+| `-continue`                     | Continue from previous solution                                                     | `0`                     |
+| `-output_dir`                   | Output directory                                                                    | `.`                     |
 
 ### Advection
 
-This problem solves the convection (advection) equation for the total (scalar) energy density,
-transported by the (vector) velocity field.
+This problem solves the convection (advection) equation for the total (scalar) energy density, transported by the (vector) velocity field.
 
 This is 3D advection given in two formulations based upon the weak form.
 
@@ -150,12 +97,48 @@ Outflow BCs:
 
 Both In/Outflow BCs for E are applied weakly.
 
+#### Runtime options for Advection 2D (-problem advection2d)
+
+|  Option             | Meaning                                                  | Default    | Unit |
+| :-------------------| :--------------------------------------------------------| :----------| :----|
+| `-lx`               | Length scale in x direction                              | `8000`     | `m`  |
+| `-ly`               | Length scale in y direction                              | `8000`     | `m`  |
+| `-rc`               | Characteristic radius of thermal bubble                  | `1000`     | `m`  |
+| `-units_meter`      | 1 meter in scaled length units                           | `1E-2`     |      |
+| `-units_second`     | 1 second in scaled time units                            | `1E-2`     |      |
+| `-units_kilogram`   | 1 kilogram in scaled mass units                          | `1E-6`     |      |
+| `-strong_form`      | Strong (1) or weak/integrated by parts (0) residual      | `0`        |      |
+| `-stab`             | Stabilization method (`none`, `su`, or `supg`)           | `none`     |      |
+| `-CtauS`            | Scale coefficient for stabilization tau (nondimensional) | `0`        |      |
+| `-wind_type`        | Wind type in Advection (`rotation` or `translation`)     | `rotation` |      |
+| `-wind_translation` | Constant wind vector when `-wind_type translation`       | `1,0,0`    |      |
+| `-E_wind`           | Total energy of inflow wind when `-wind_type translation`| `1E6`      | `J`  |
+
+
+#### Runtime options for Advection 3D (-problem advection)
+
+|  Option              | Meaning                                                   | Default    | Unit |
+| :--------------------| :---------------------------------------------------------| :----------| :----|
+| `-lx`                | Length scale in x direction                               | `8000`     | `m`  |
+| `-ly`                | Length scale in y direction                               | `8000`     | `m`  |
+| `-lz`                | Length scale in z direction                               | `4000`     | `m`  |
+| `-rc`                | Characteristic radius of thermal bubble                   | `1000`     | `m`  |
+| `-units_meter`       | 1 meter in scaled length units                            | `1E-2`     |      |
+| `-units_second`      | 1 second in scaled time units                             | `1E-2`     |      |
+| `-units_kilogram`    | 1 kilogram in scaled mass units                           | `1E-6`     |      |
+| `-strong_form`       | Strong (1) or weak/integrated by parts (0) residual       | `0`        |      |
+| `-stab`              | Stabilization method (`none`, `su`, or `supg`)            | `none`     |      |
+| `-CtauS`             | Scale coefficient for stabilization tau (nondimensional)  | `0`        |      |
+| `-wind_type`         | Wind type in Advection (`rotation` or `translation`)      | `rotation` |      |
+| `-wind_translation`  | Constant wind vector when `-wind_type translation`        | `1,0,0`    |      |
+| `-E_wind`            | Total energy of inflow wind when `-wind_type translation` | `1E6`      | `J`  |
+| `-bubble_type`       | `sphere` (3D) or `cylinder` (2D)                          | `shpere`   |      |
+| `-bubble_continuity` | `smooth`, `back_sharp`, or `thick`                        | `smooth`   |      |
+
 
 ### Euler Traveling Vortex
 
-This problem solves the 3D Euler equations for vortex evolution provided
-in On the Order of Accuracy and Numerical Performance of Two Classes of
-Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
+This problem solves the 3D Euler equations for vortex evolution provided in On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
 
 State Variables:
 
@@ -217,16 +200,26 @@ form of the governing equations is extended to the outflow.
 For the inflow fluxes, prescribed T_inlet and P_inlet are converted to
 conservative variables and applied weakly.
 
+#### Runtime options for Euler Traveling Vortex (-problem euler_vortex)
+
+|  Option            | Meaning                                  | Default        | Unit      |
+| :------------------| :----------------------------------------| :--------------| :---------|
+| `-lx`              | Length scale in x direction              | `1000`         | `m`       |
+| `-ly`              | Length scale in y direction              | `1000`         | `m`       |
+| `-lz`              | Length scale in z direction              | `1`            | `m`       |
+| `-center`          | Location of vortex center                | `(lx,ly,lz)/2` | `(m,m,m)` |
+| `-units_meter`     | 1 meter in scaled length units           | `1E-2`         |           |
+| `-units_second`    | 1 second in scaled time units            | `1E-2`         |           |
+| `-mean_velocity`   | Background velocity vector               | `(1,1,0)`      |           |
+| `-vortex_strength` | Strength of vortex                       | `5`            |           |
+| `-euler_test`      | Euler test option (`t1`-`t4` and `none`) | `none`         |           |
+
 ### Density Current
 
-This problem solves the full compressible Navier-Stokes equations, using
-operator composition and design of coupled solvers in the context of atmospheric
-modeling. This problem uses the formulation given in Semi-Implicit Formulations
-of the Navier-Stokes Equations: Application to Nonhydrostatic Atmospheric Modeling,
-Giraldo, Restelli, and Lauter (2010).
+This problem solves the full compressible Navier-Stokes equations, using operator composition and design of coupled solvers in the context of atmospheric modeling.
+This problem uses the formulation given in Semi-Implicit Formulations of the Navier-Stokes Equations: Application to Nonhydrostatic Atmospheric Modeling, Giraldo, Restelli, and Lauter (2010).
 
-The 3D compressible Navier-Stokes equations are formulated in conservation form with state
-variables of density, momentum density, and total energy density.
+The 3D compressible Navier-Stokes equations are formulated in conservation form with state variables of density, momentum density, and total energy density.
 
 State Variables:
 
@@ -349,13 +342,55 @@ Momentum Density:
 Energy Density:
     0.0 flux
 
+#### Runtime options for Density Current (-problem density_current)
+
+|  Option           | Meaning                                                                             | Default        | Unit       |
+| :-----------------| :-----------------------------------------------------------------------------------| :--------------| :----------|
+| `-lx`             | Length scale in x direction                                                         | `8000`         | `m`        |
+| `-ly`             | Length scale in y direction                                                         | `8000`         | `m`        |
+| `-lz`             | Length scale in z direction                                                         | `4000`         | `m`        |
+| `-center`         | Location of bubble center                                                           | `(lx,ly,lz)/2` | `(m,m,m)`  |
+| `-dc_axis`        | Axis of density current cylindrical anomaly, or `(0,0,0)` for spherically symmetric | `(0,0,0)`      |            |
+| `-rc`             | Characteristic radius of thermal bubble                                             | `1000`         | `m`        |
+| `-bc_wall`        | Use wall boundary conditions on this list of faces                                  | `-`            |            |
+| `-bc_slip_x`      | Use slip boundary conditions, for the x component, on this list of faces            | `5,6`          |            |
+| `-bc_slip_y`      | Use slip boundary conditions, for the y component, on this list of faces            | `3,4`          |            |
+| `-bc_slip_z`      | Use slip boundary conditions, for the z component, on this list of faces            | `1,2`          |            |
+| `-units_meter`    | 1 meter in scaled length units                                                      | `1E-2`         |            |
+| `-units_second`   | 1 second in scaled time units                                                       | `1E-2`         |            |
+| `-units_kilogram` | 1 kilogram in scaled mass units                                                     | `1E-6`         |            |
+| `-units_Kelvin`   | 1 Kelvin in scaled temperature units                                                | `1`            |            |
+| `-stab`           | Stabilization method (`none`, `su`, or `supg`)                                      | `none`         |            |
+| `-theta0`         | Reference potential temperature                                                     | `300`          | `K`        |
+| `-thetaC`         | Perturbation of potential temperature                                               | `-15`          | `K`        |
+| `-P0`             | Atmospheric pressure                                                                | `1E5`          | `Pa`       |
+| `-N`              | Brunt-Vaisala frequency                                                             | `0.01`         | `1/s`      |
+| `-cv`             | Heat capacity at constant volume                                                    | `717`          | `J/(kg K)` |
+| `-cp`             | Heat capacity at constant pressure                                                  | `1004 `        | `J/(kg K)` |
+| `-g`              | Gravitational acceleration                                                          |  `9.81`        | `m/s^2`    |
+| `-lambda`         | Stokes hypothesis second viscosity coefficient                                      |  `-2/3`        |            |
+| `-mu`             | Shear dynamic viscosity coefficient                                                 |  `75`          | `Pa s`     |
+| `-k`              | Thermal conductivity                                                                | `0.02638`      | `W/(m K)`  |
+
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+
+* 2D:
+  - faceMarkerBottom = 1;
+  - faceMarkerRight  = 2;
+  - faceMarkerTop    = 3;
+  - faceMarkerLeft   = 4;
+* 3D:
+  - faceMarkerBottom = 1;
+  - faceMarkerTop    = 2;
+  - faceMarkerFront  = 3;
+  - faceMarkerBack   = 4;
+  - faceMarkerRight  = 5;
+  - faceMarkerLeft   = 6;
+
 ### Time Discretization
 
-For all different problems, the time integration is performed with an explicit
-or implicit formulation.
+For all different problems, the time integration is performed with an explicit or implicit formulation.
 
 ### Space Discretization
 
-The geometric factors and coordinate transformations required for the integration of the weak form
-for the interior domain and for the boundaries are described in the files [`common.h`](common.h)
-and [`setup-boundary.h`](setup-boundary.h), respectively.
+The geometric factors and coordinate transformations required for the integration of the weak form for the interior domain and for the boundaries are described in the files [`common.h`](common.h) and [`setup-boundary.h`](setup-boundary.h), respectively.

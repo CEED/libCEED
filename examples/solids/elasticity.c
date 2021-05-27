@@ -343,13 +343,20 @@ int main(int argc, char **argv) {
   if (!app_ctx->test_mode) {
     const char *usedresource;
     CeedGetResource(ceed, &usedresource);
+    char hostname[PETSC_MAX_PATH_LEN];
+    ierr = PetscGetHostName(hostname, sizeof hostname); CHKERRQ(ierr);
+    PetscInt comm_size;
+    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
                        "\n-- Elasticity Example - libCEED + PETSc --\n"
+                       "  MPI:\n"
+                       "    Hostname                           : %s\n"
+                       "    Total ranks                        : %d\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n",
-                       usedresource, CeedMemTypes[mem_type_backend]);
+                       hostname, comm_size, usedresource, CeedMemTypes[mem_type_backend]);
     CHKERRQ(ierr);
 
     VecType vecType;

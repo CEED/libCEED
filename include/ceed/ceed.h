@@ -69,6 +69,16 @@
 
 /**
   @ingroup CeedQFunction
+  This macro populates the correct function annotations for User QFunction
+    helper function source for code generation backends or populates default
+    values for CPU backends.
+**/
+#ifndef CEED_QFUNCTION_HELPER
+#define CEED_QFUNCTION_HELPER static inline
+#endif
+
+/**
+  @ingroup CeedQFunction
   Using VLA syntax to reshape User QFunction inputs and outputs can make
     user code more readable. VLA is a C99 feature that is not supported by
     the C++ dialect used by CUDA. This macro allows users to use the VLA

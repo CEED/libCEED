@@ -15,10 +15,10 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Geometric factors and mass operator for Navier-Stokes example using PETSc
+/// Geometric factors (3D) for Navier-Stokes example using PETSc
 
-#ifndef common_h
-#define common_h
+#ifndef setup_geo_h
+#define setup_geo_h
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -44,7 +44,7 @@
 //     Aij = Adjoint ij
 //
 // Stored: w detJ
-//   in qdata[0]
+//   in q_data[0]
 //
 // We require the transpose of the inverse of the Jacobian to properly compute
 //   integrals of the form: int( gradv u )
@@ -53,7 +53,7 @@
 //   dXdx_i,j = Aij / detJ
 //
 // Stored: Aij / detJ
-//   in qdata[1:9] as
+//   in q_data[1:9] as
 //   (detJ^-1) * [A11 A12 A13]
 //               [A21 A22 A23]
 //               [A31 A32 A33]
@@ -67,7 +67,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
                    (*w) = in[1];
 
   // Outputs
-  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -95,19 +95,19 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
 
     // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Interp q_data
+    q_data[0][i] = w[i] * detJ;
+    // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] = A11 / detJ;
-    qdata[2][i] = A12 / detJ;
-    qdata[3][i] = A13 / detJ;
-    qdata[4][i] = A21 / detJ;
-    qdata[5][i] = A22 / detJ;
-    qdata[6][i] = A23 / detJ;
-    qdata[7][i] = A31 / detJ;
-    qdata[8][i] = A32 / detJ;
-    qdata[9][i] = A33 / detJ;
+    q_data[1][i] = A11 / detJ;
+    q_data[2][i] = A12 / detJ;
+    q_data[3][i] = A13 / detJ;
+    q_data[4][i] = A21 / detJ;
+    q_data[5][i] = A22 / detJ;
+    q_data[6][i] = A23 / detJ;
+    q_data[7][i] = A31 / detJ;
+    q_data[8][i] = A32 / detJ;
+    q_data[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 
@@ -116,37 +116,70 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// This function provides the 2D variant of the above setup
+// This QFunction sets up the geometric factor required for integration when
+//   reference coordinates are in 2D and the physical coordinates are in 3D
+//
+// Reference (parent) 2D coordinates: X
+// Physical (current) 3D coordinates: x
+// Change of coordinate matrix:
+//   dxdX_{i,j} = dx_i/dX_j (indicial notation) [3 * 2]
+//
+// (J1,J2,J3) is given by the cross product of the columns of dxdX_{i,j}
+//
+// detJb is the magnitude of (J1,J2,J3)
+//
+// All quadrature data is stored in 4 field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Stored: w detJb
+//   in q_data_sur[0]
+//
+// Normal vector = (J1,J2,J3) / detJb
+//
+// Stored: (J1,J2,J3) / detJb
+//   in q_data_sur[1:3] as
+//   (detJb^-1) * [ J1 ]
+//                [ J2 ]
+//                [ J3 ]
+//
 // *****************************************************************************
-CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
+                              const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0],
+  const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                    (*w) = in[1];
   // Outputs
-  CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
+  CeedScalar (*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
-    const CeedScalar J11 = J[0][0][i];
-    const CeedScalar J21 = J[0][1][i];
-    const CeedScalar J12 = J[1][0][i];
-    const CeedScalar J22 = J[1][1][i];
-    const CeedScalar detJ = J11*J22 - J21*J12;
+    const CeedScalar dxdX[3][2] = {{J[0][0][i],
+                                    J[1][0][i]},
+                                   {J[0][1][i],
+                                    J[1][1][i]},
+                                   {J[0][2][i],
+                                    J[1][2][i]}
+                                   };
+    // *INDENT-ON*
+    // J1, J2, and J3 are given by the cross product of the columns of dxdX
+    const CeedScalar J1 = dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1];
+    const CeedScalar J2 = dxdX[2][0]*dxdX[0][1] - dxdX[0][0]*dxdX[2][1];
+    const CeedScalar J3 = dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1];
 
-    // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
-    // -- Interp-to-Grad qdata
-    // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] =  J22 / detJ;
-    qdata[2][i] = -J21 / detJ;
-    qdata[3][i] = -J12 / detJ;
-    qdata[4][i] =  J11 / detJ;
+    const CeedScalar detJb = sqrt(J1*J1 + J2*J2 + J3*J3);
+
+    // q_data_sur
+    // -- Interp-to-Interp q_data_sur
+    q_data_sur[0][i] = w[i] * detJb;
+    q_data_sur[1][i] = J1 / detJb;
+    q_data_sur[2][i] = J2 / detJb;
+    q_data_sur[3][i] = J3 / detJb;
+
   } // End of Quadrature Point Loop
 
   // Return
@@ -154,38 +187,5 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// This QFunction applies the mass matrix to five interlaced fields.
-//
-// Inputs:
-//   u     - Input vector at quadrature points
-//   qdata - Quadrature weights
-//
-// Output:
-//   v - Output vector at quadrature points
-//
-// *****************************************************************************
-CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*qdata) = in[1];
 
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    v[0][i] = qdata[i] * u[0][i];
-    v[1][i] = qdata[i] * u[1][i];
-    v[2][i] = qdata[i] * u[2][i];
-    v[3][i] = qdata[i] * u[3][i];
-    v[4][i] = qdata[i] * u[4][i];
-  }
-  return 0;
-}
-
-// *****************************************************************************
-
-#endif // common_h
+#endif // setup_geo_h
