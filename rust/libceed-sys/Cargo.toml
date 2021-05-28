@@ -19,6 +19,7 @@ keywords = ["libceed", "exascale", "high-order"]
 categories = ["science"]
 include = [
     "build.rs",
+    "README.md",
     "src/**",
     "c-src/**",
 ]

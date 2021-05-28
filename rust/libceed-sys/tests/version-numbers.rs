@@ -12,7 +12,7 @@ fn get_rel_path(rel: impl AsRef<Path>) -> PathBuf {
 #[test]
 fn test_doc_version() {
     version_sync::assert_contains_regex!(
-        get_rel_path("src/lib.rs").to_str().unwrap(),
+        get_rel_path("README.md").to_str().unwrap(),
         "{name} = \"{version}\""
     );
 }
