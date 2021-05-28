@@ -16,9 +16,6 @@ High-level interface for libCEED - the efficient high-order discretization libra
 keywords = ["libceed", "exascale", "high-order"]
 categories = ["science"]
 
-[lib]
-name = "libceed"
-
 [dependencies]
 libceed-sys = { version = "0.8", path = "../libceed-sys" }
 

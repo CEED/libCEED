@@ -23,9 +23,6 @@ include = [
     "c-src/**",
 ]
 
-[lib]
-name = "libceed_sys"
-
 [features]
 default = ["static"]
 static = []
