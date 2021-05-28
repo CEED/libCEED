@@ -1,6 +1,7 @@
 [workspace]
 members = [
-        "rust",
+        "rust/libceed",
+        "rust/libceed-sys",
         "examples/rust/ex1-volume",
         "examples/rust/ex2-surface",
 ]

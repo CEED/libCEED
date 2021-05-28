@@ -1,0 +1,37 @@
+[package]
+authors = [
+    "Jed Brown <jed@jedbrown.org>",
+    "Yohann Dudouit <dudouit1@llnl.gov>",
+    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+]
+build = "build.rs"
+name = "libceed-sys"
+version = "0.8.0"
+links = "libceed-sys"
+edition = "2018"
+license = "BSD-2-Clause"
+repository = "https://github.com/CEED/libCEED"
+documentation = "https://libceed.readthedocs.io/en/latest/"
+description = """
+Low-level bindings for libCEED library.
+"""
+keywords = ["libceed", "exascale", "high-order"]
+categories = ["science"]
+include = [
+    "build.rs",
+    "README.md",
+    "src/**",
+    "c-src/**",
+]
+
+[features]
+default = ["static"]
+static = []
+system = []
+
+[build-dependencies]
+bindgen = "0.58.1"
+pkg-config = "0.3.19"
+
+[dev-dependencies]
+version-sync = "0.9.2"

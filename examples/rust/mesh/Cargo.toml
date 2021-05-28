@@ -7,4 +7,4 @@ authors = [
 edition = "2018"
 
 [dependencies]
-libceed = { path = "../../../rust" }
+libceed = { path = "../../../rust/libceed" }

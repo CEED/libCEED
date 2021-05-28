@@ -1,7 +1,7 @@
 extern crate bindgen;
 extern crate pkg_config;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -17,8 +17,16 @@ fn main() {
         let mut make = Command::new("make");
         make.arg("install")
             .arg(format!("prefix={}", out_dir.to_string_lossy()))
+            .arg(format!(
+                "OBJDIR={}",
+                out_dir.join("build").to_string_lossy()
+            ))
+            .arg(format!(
+                "LIBDIR={}",
+                out_dir.join("build").join("lib").to_string_lossy()
+            ))
             .env("MAKEFLAGS", makeflags)
-            .current_dir("..");
+            .current_dir("c-src");
         if statik {
             make.arg("STATIC=1");
         }
@@ -37,9 +45,11 @@ fn main() {
         .unwrap();
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=../include/ceed/ceed.h");
-    println!("cargo:rerun-if-changed=../Makefile");
-    println!("cargo:rerun-if-changed=../config.mk");
+    println!("cargo:rerun-if-changed=c-src/include/ceed/ceed.h");
+    println!("cargo:rerun-if-changed=c-src/Makefile");
+    if Path::new("c-src/config.mk").is_file() {
+        println!("cargo:rerun-if-changed=c-src/config.mk");
+    }
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
@@ -47,7 +57,17 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("../include/ceed/ceed.h")
+        .header("c-src/include/ceed/ceed.h")
+        .allowlist_function("Ceed.*")
+        .allowlist_type("Ceed.*")
+        .allowlist_var("Ceed.*")
+        .allowlist_var("CEED_.*")
+        // Don't chase recursive definitions of these system types
+        .opaque_type("FILE")
+        .opaque_type("va_list")
+        // Accessing directly here, but perhaps should use libc crate
+        .allowlist_function("fclose")
+        .allowlist_function("open_memstream")
         // Tell cargo to not mangle the function names
         .trust_clang_mangling(false)
         // Tell cargo to invalidate the built crate whenever any of the

@@ -24,9 +24,7 @@ jobs:
         toolchain: stable
     - name: Build documentation
       run: |
-        cd rust
-        cargo doc --all --no-deps
-        cd ..
+        cargo doc --package libceed-sys --package libceed --no-deps
         touch ./target/doc/.nojekyll
         echo "<meta http-equiv=refresh content=0;url=libceed/index.html>" > ./target/doc/index.html
     - name: Deploy documentation

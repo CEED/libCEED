@@ -14,57 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative
 
-//! # libCEED Rust Interface
-//!
-//! This is the documentation for the high level libCEED Rust interface.
-//! See the full libCEED user manual [here](https://libceed.readthedocs.io).
-//!
-//! libCEED is a low-level API for for the efficient high-order discretization methods
-//! developed by the ECP co-design Center for Efficient Exascale Discretizations (CEED).
-//! While our focus is on high-order finite elements, the approach is mostly algebraic
-//! and thus applicable to other discretizations in factored form.
-//!
-//! ## Usage
-//!
-//! To call libCEED from a Rust package, the following `Cargo.toml` can be used.
-//! ```toml
-//! [dependencies]
-//! libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
-//! ```
-//!
-//! Supported features:
-//! * `static` (default): link to static libceed.a
-//! * `system`: use libceed from a system directory (otherwise, install from source)
-//!
-//! ```
-//! extern crate libceed;
-//!
-//! fn main() {
-//!     let ceed = libceed::Ceed::init("/cpu/self/ref");
-//!     let xc = ceed.vector_from_slice(&[0., 0.5, 1.0]).unwrap();
-//!     let xs = xc.view();
-//!     assert_eq!(xs[..], [0., 0.5, 1.0]);
-//! }
-//! ```
-//!
-//! ## Examples
-//!
-//! Examples of libCEED can be found in the libCEED GitHub repository under the
-//! `examples/rust` folder.
-//!
-//! ## Development
-//!
-//! To develop libCEED, use `cargo build` in the `rust/` directory to install a
-//! local copy and build the bindings. If you need custom flags for the C
-//! project, we recommend using `make configure` to cache arguments. If you
-//! disable the `static` feature, then you'll need to set `LD_LIBRARY_PATH` for
-//! doctests to be able to find it. You can do this in `$CEED_DIR/lib` and set
-//! `PKG_CONFIG_PATH`.
-//!
-//! Note: the `LD_LIBRARY_PATH` workarounds will become unnecessary if [this
-//! issue](https://github.com/rust-lang/cargo/issues/1592) is resolved -- it's
-//! currently closed, but the problem still exists.
-
+// Fenced `rust` code blocks included from README.md are executed as part of doctests.
+#![doc = include_str!("../README.md")]
 // -----------------------------------------------------------------------------
 // Exceptions
 // -----------------------------------------------------------------------------
@@ -77,12 +28,6 @@ use crate::prelude::*;
 use std::sync::Once;
 
 pub mod prelude {
-    pub(crate) mod bind_ceed {
-        #![allow(non_upper_case_globals)]
-        #![allow(non_camel_case_types)]
-        #![allow(dead_code)]
-        include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-    }
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
@@ -94,6 +39,7 @@ pub mod prelude {
         ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
         MAX_QFUNCTION_FIELDS,
     };
+    pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
@@ -303,7 +249,7 @@ impl Ceed {
         let mut ptr = std::ptr::null_mut();
         let mut ierr = unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
         if ierr != 0 {
-            panic!(format!("Error initializing backend resource: {}", resource))
+            panic!("Error initializing backend resource: {}", resource)
         }
         ierr = unsafe { bind_ceed::CeedSetErrorHandler(ptr, Some(eh)) };
         let ceed = Ceed { ptr };
@@ -335,7 +281,7 @@ impl Ceed {
         let message = c_str.to_string_lossy().to_string();
         // Panic if negative code, otherwise return error
         if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
-            panic!(message);
+            panic!("{}", message);
         }
         Err(CeedError { message })
     }
