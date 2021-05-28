@@ -1,7 +1,7 @@
 extern crate bindgen;
 extern crate pkg_config;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -47,7 +47,9 @@ fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=c-src/include/ceed/ceed.h");
     println!("cargo:rerun-if-changed=c-src/Makefile");
-    println!("cargo:rerun-if-changed=c-src/config.mk");
+    if Path::new("c-src/config.mk").is_file() {
+        println!("cargo:rerun-if-changed=c-src/config.mk");
+    }
 
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
