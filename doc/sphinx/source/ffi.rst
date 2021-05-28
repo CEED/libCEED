@@ -14,4 +14,4 @@ information on the Python interface is available in the `SciPy paper
 <https://doi.org/10.25080/Majora-342d178e-00c>`_.
 
 More information about the Rust interface can be found at the `Rust interface
-documentation <http://ceed.exascaleproject.org/libCEED-rust-docs>`_.
+documentation <https://docs.rs/libceed>`_.
