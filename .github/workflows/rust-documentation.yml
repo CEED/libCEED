@@ -2,16 +2,13 @@ name: Rust Documentation
 
 on:
   push:
-    branches:
-      - main
-      - jeremy/rust
-    tags: '*'
 
 jobs:
-  build:
+  test:
     strategy:
       matrix:
         os: [ubuntu-20.04]
+        compiler: [clang]
 
     runs-on: ${{ matrix.os }}
 
@@ -21,15 +18,7 @@ jobs:
     - name: Rust setup
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        toolchain: nightly
     - name: Build documentation
       run: |
-        cargo doc --package libceed-sys --package libceed --no-deps
-        touch ./target/doc/.nojekyll
-        echo "<meta http-equiv=refresh content=0;url=libceed/index.html>" > ./target/doc/index.html
-    - name: Deploy documentation
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        external_repository: CEED/libCEED-rust-docs
-        deploy_key: ${{ secrets.RUST_DOCS_KEY }}
-        publish_dir: ./target/doc
+        cargo +nightly doc --package libceed-sys --package libceed --no-deps
