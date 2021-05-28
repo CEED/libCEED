@@ -11,7 +11,7 @@ links = "libceed-sys"
 edition = "2018"
 license = "BSD-2-Clause"
 repository = "https://github.com/CEED/libCEED"
-documentation = "https://libceed.readthedocs.io/en/latest/"
+documentation = "https://docs.rs/libceed-sys"
 description = """
 Low-level bindings for libCEED library.
 """
