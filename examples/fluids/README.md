@@ -393,4 +393,4 @@ For all different problems, the time integration is performed with an explicit o
 
 ### Space Discretization
 
-The geometric factors and coordinate transformations required for the integration of the weak form for the interior domain and for the boundaries are described in the files [`common.h`](common.h) and [`setup-boundary.h`](setup-boundary.h), respectively.
+The geometric factors and coordinate transformations required for the integration of the weak form are described in the files [`qfunctions/setupgeo.h`](qfunctions/setupgeo.h) and [`qfunctions/setupgeo2d.h`](qfunctions/setupgeo2d.h).
