@@ -535,7 +535,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
       for (CeedInt k = 0; k < 3; k++) {
         dP[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dP[j][k] += graddeltau[j][m]*S[m][k] + F[j][m]*dS[m][k];
+          dP[j][k] += graddeltau[j][m]*S2[m][k] + F[j][m]*dS2[m][k];
       }
 
     // Apply dXdx^T and weight
