@@ -1,0 +1,20 @@
+name: Release Notes
+
+on:
+  push:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Check release notes
+      run: |
+        git fetch origin main
+        git diff origin/main --exit-code include/ceed/* && ! git diff origin/main --exit-code doc/sphinx/source/releasenotes.rst
