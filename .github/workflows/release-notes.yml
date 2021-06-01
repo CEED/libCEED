@@ -2,6 +2,9 @@ name: Release Notes
 
 on:
   push:
+    branches:
+      - '*'
+      - '!main'
 
 jobs:
   test:
