@@ -191,6 +191,13 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           "Write out final solution vector for viewing",
                           NULL, app_ctx->view_final_soln, &(app_ctx->view_final_soln),
                           NULL); CHKERRQ(ierr);
+  CHKERRQ(ierr); 
+  
+  app_ctx->print_strain_every_increment = PETSC_FALSE;
+  ierr = PetscOptionsBool("-print_strain_every_increment",
+                          "Print out current strain energy at every load increment",
+                          NULL, app_ctx->print_strain_every_increment, &(app_ctx->print_strain_every_increment),
+                          NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set

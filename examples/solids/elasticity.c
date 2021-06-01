@@ -743,6 +743,19 @@ int main(int argc, char **argv) {
     ierr = SNESGetConvergedReason(snes, &reason); CHKERRQ(ierr);
     if (reason < 0)
       break;
+    
+    if (!app_ctx->test_mode && app_ctx->print_strain_every_increment == PETSC_TRUE) {
+    
+    // -- Print out strain energy for current load increment
+    CeedScalar energy;
+    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+                               U, &energy); CHKERRQ(ierr);
+
+    // -- Output
+    ierr = PetscPrintf(comm,
+                       "    Strain Energy                      : %.12e\n",
+                       energy); CHKERRQ(ierr);
+    }
   }
 
   // Timing
