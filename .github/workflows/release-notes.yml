@@ -19,4 +19,4 @@ jobs:
     - name: Check release notes
       run: |
         git fetch origin main
-        git diff origin/main --exit-code include/ceed/* && ! git diff origin/main --exit-code doc/sphinx/source/releasenotes.rst
+        ( ! git diff origin/main --exit-code include/ceed/* ) || git diff origin/main --exit-code doc/sphinx/source/releasenotes.rst
