@@ -1,8 +1,12 @@
 # Release Procedures
 
-## Core library
+*These notes are meant for a maintainer to create official releases.*
 
-Some minor bookkeeping updates are needed when releasing a new verision of the core library.
+In preparing a release, create a branch to hold pre-release commits. We ideally want all release mechanics (for all languages) to be in one commit, which will then be tagged. (This will change if/when we stop synchronizing releases across all language bindings.)
+
+## Core C library
+
+Some minor bookkeeping updates are needed when releasing a new version of the core library.
 
 The version number must be updated in
 
@@ -10,7 +14,41 @@ The version number must be updated in
 * `ceed.pc.template`
 * `Doxyfile`
 
-Additionally, the release notes in `doc/sphinx/source/releasenotes.rst` should be updated.
+as well as `include/ceed/ceed.h` (`CEED_VERSION_MAJOR`, `CEED_VERSION_MINOR`).
+
+Additionally, the release notes in `doc/sphinx/source/releasenotes.rst` should be updated. Use `git log --first-parent v0.7..` to get a sense of the pull requests that have been merged and thus might warrant emphasizing in the release notes. While doing this, gather a couple sentences for key features to highlight on [GitHub releases](https://github.com/CEED/libCEED/releases). The "Current Main" heading needs to be named for the release.
+
+Use `make doc-latexpdf` to build a PDF users manual and inspect it for missing references or formatting problems (e.g., with images that were converted to PDF). This contains the same content as the website, but will be archived on Zenodo.
+
+### Quality control and good citizenry
+
+1. If making a minor release, check for API and ABI changes that could break [semantic versioning](https://semver.org/). The [ABI compliance checker](https://github.com/lvc/abi-compliance-checker) is a useful tool, as is `nm -D libceed.so` and checking for public symbols (capital letters like `T` and `D` that are not namespaced).
+
+2. Double check testing on any architectures that may not be exercised in continuous integration (e.g., HPC facilities) and with users of libCEED, such as MFEM and PETSc applications. While unsupported changes do not prevent release, it's polite to make a PR to support the new release, and it's good for quality to test before taggin a libCEED release.
+
+3. Update and test all the language bindings (see below) within the branch.
+
+4. Check that `spack install libceed@develop` works prior to tagging. The Spack `libceed/package.py` file should be updated immediately after tagging a release.
+
+### Tagging and releasing on GitHub
+
+0. Confirm all the steps above, including all language bindings.
+1. `git commit -am'libCEED 0.8.1'`
+More frequently, this is amending the commit message on an in-progress commit, after rebasing if applicable on latest `main`.
+2. `git push` updates the PR holding release; opportunity for others to review
+3. `git switch main && git merge --ff-only HEAD@{1}` fast-forward merge into `main`
+4. `git tag --sign -m'libCEED 0.8.1'`
+5. `git push origin main v0.8.1`
+6. Draft a [new release on GitHub](https://github.com/CEED/libCEED/releases), using a few sentences gathered from the release notes.
+7. Submit a PR to Spack.
+8. Publish Julia, Python, and Rust packages.
+
+### Archive Users Manual on Zenodo
+
+Generate the PDF using `make doc-latexpdf`, click "New version" on the [Zenodo
+record](https://zenodo.org/record/4302737) and upload. Update author info if applicable (new
+authors, or existing authors changing institutions). Make a new PR to update the version
+number and DOI in `README.rst` and `doc/bib/references.bib`.
 
 ## Julia
 
@@ -79,7 +117,7 @@ registered using the GitHub registrator bot by commenting on the commit:
 
 > @JuliaRegistrator register branch=main subdir=julia/LibCEED.jl
 
-At this point, the bot should create against the [general Julia
+At this point, the bot should create a PR against the [general Julia
 registry](https://github.com/JuliaRegistries/General), which should be merged automatically after a
 short delay.
 
@@ -97,8 +135,46 @@ be tested against the most recent release of libCEED_jll. The release tests are 
 
 ## Python
 
-ToDo - instructions for releasing an new Python wheel go here
+The Python package gets its version from `ceed.pc.template` so there are no file modifications necessary.
+
+1. `make wheel` builds and tests the wheels using Docker. See the [manylinux repo](https://github.com/pypa/manylinux) for source and usage inforamtion. If this succeeds, the completed wheels are in `wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`.
+2. Manually test one or more of the wheels by creating a virtualenv and using `pip install wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`, then `python -c 'import libceed'` or otherwise running tests.
+3. Create a `~/.pypirc` with entries for `testpypi` (`https://test.pypi.org/legacy/`) and the real `pypi`.
+4. Upload to `testpypi` using
+```console
+$ twine upload --repository testpypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
+```
+5. Test installing on another machine/in a virtualenv:
+```console
+$ pip install --index-url https://test.pypi.org/simple --extra-index-url https://pypi.org/simple libceed
+```
+The `--extra-index-url` argument allows dependencies like `cffi` and `numpy` from being fetched from the non-test repository.
+6. Do it live:
+```console
+$ twine upload --repository pypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
+```
+Note that this cannot be amended.
 
 ## Rust
 
-ToDo - instructions for releasing the three Rust crates go here
+The Rust crates for libCEED are split into
+1. [`libceed-sys`](https://crates.io/crates/libceed-sys), which handles building/finding the `libceed.so` or `libceed.a` library and providing unsafe Rust bindings (one to one with the C interface, using C FFI datatypes)
+2. [`libceed`](https://crates.io/crates/libceed) containing the safe and idiomatic Rust bindings.
+
+We currently apply the same version number across both of these crates. There are some tests for version strings matching, but in short, one needs to update the following locations.
+
+```console
+$ git grep '0\.8' -- rust/
+rust/libceed-sys/Cargo.toml:version = "0.8.0"
+rust/libceed-sys/README.md:libceed-sys = "0.8.0"
+rust/libceed-sys/build.rs:        .atleast_version("0.8")
+rust/libceed/Cargo.toml:version = "0.8.0"
+rust/libceed/Cargo.toml:libceed-sys = { version = "0.8", path = "../libceed-sys" }
+rust/libceed/README.md:libceed = "0.8.0"
+```
+
+After doing this,
+
+1. `cargo package --list` to see that the file list makes sense.
+2. `cargo package` to build crates locally
+3. `cargo publish` to publish the crates to https://crates.io
