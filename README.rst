@@ -464,16 +464,17 @@ If you utilize libCEED please cite::
                      Ghaffari, Leila and
                      Kolev, Tzanio and
                      Medina, David and
+                     Pazner, Will and
                      Rathnayake, Thilina and
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
      title        = {libCEED User Manual},
-     month        = sep,
-     year         = 2020,
+     month        = mar,
+     year         = 2021,
      publisher    = {Zenodo},
-     version      = {0.7},
-     doi          = {10.5281/zenodo.4302737},
-     url          = {https://doi.org/10.5281/zenodo.4302737}
+     version      = {0.8},
+     doi          = {10.5281/zenodo.4895340},
+     url          = {https://doi.org/10.5281/zenodo.4895340}
    }
 
 For libCEED's Python interface please cite::
