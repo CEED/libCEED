@@ -100,10 +100,12 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                                 const char *ceed_resource) {
   PetscErrorCode ierr;
   double my_rt_start, my_rt, rt_min, rt_max;
+  PetscBool is_periodic;
   PetscInt xl_size, l_size, g_size;
   PetscScalar *r;
   Vec X, X_loc, rhs, rhs_loc;
   Mat mat_O;
+  MatNullSpace null_space = NULL;
   KSP ksp;
   UserO user_O;
   Ceed ceed;
@@ -154,6 +156,12 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL,
                               (void(*)(void))MatGetDiag); CHKERRQ(ierr);
   ierr = MatShellSetVecType(mat_O, vec_type); CHKERRQ(ierr);
+  ierr = DMGetPeriodicity(dm, &is_periodic, NULL, NULL, NULL); CHKERRQ(ierr);
+  if (is_periodic && rp->bp_choice > CEED_BP2) {
+    ierr = MatNullSpaceCreate(rp->comm, PETSC_TRUE, 0, NULL, &null_space);
+    CHKERRQ(ierr);
+    ierr = MatSetNullSpace(mat_O, null_space); CHKERRQ(ierr);
+  }
 
   // Print summary
   if (!rp->test_mode) {
@@ -278,8 +286,14 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   }
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
 
+  // Remove nullspace from initial guess
+  ierr = VecSetRandom(X, NULL); CHKERRQ(ierr);
+  if (is_periodic && rp->bp_choice > CEED_BP2) {
+    ierr = MatNullSpaceRemove(null_space, X); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(ksp, PETSC_TRUE); CHKERRQ(ierr);
+  }
+
   // Timed solve
-  ierr = VecZeroEntries(X); CHKERRQ(ierr);
   ierr = PetscBarrier((PetscObject)ksp); CHKERRQ(ierr);
 
   // -- Performance logging
@@ -355,6 +369,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&user_O->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
+  ierr = MatNullSpaceDestroy(&null_space); CHKERRQ(ierr);
   ierr = PetscFree(user_O); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
 
