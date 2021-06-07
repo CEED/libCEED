@@ -409,8 +409,8 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
       }
     }
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, PETSC_FALSE,
-                               rp->mesh_elem,
-                               NULL, NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
+                               rp->mesh_elem, NULL, NULL, NULL, PETSC_TRUE, &dm);
+    CHKERRQ(ierr);
   }
 
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
