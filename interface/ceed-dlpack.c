@@ -203,7 +203,7 @@ int CeedVectorToDLPack(Ceed ceed,
   CeedScalar *array;
   const char *backend;
   ierr = CeedMalloc(1, &tensor);
-  tensor-manager_ctx = (void*)vec;
+  tensor->manager_ctx = (void*)vec;
   tensor->deleter = CeedDLPackDeleter;
   ierr = CeedVectorGetArray(vec, dl_mem_type, &array); CeedChk(ierr);
   tensor->dl_tensor.data = (void *)array;
