@@ -20,11 +20,13 @@
 #include <ceed/ceed.h>
 #include <dlpack.h>
 
-CEED_EXTERN int CeedVectorTakeFromDLPack(CeedVector vec,
+CEED_EXTERN int CeedVectorTakeFromDLPack(Ceed ceed,
+					 CeedVector vec,
 					 DLManagedTensor *dl_tensor,
-					 CeedMemType mem_type);
-CEED_EXTERN int CeedVectorToDLPack(CeedVector vec,
+					 CeedCopyMode copy_mode);
+CEED_EXTERN int CeedVectorToDLPack(Ceed ceed,
+				   CeedVector vec,
 				   DLManagedTensor **dl_tensor,
-				   CeedMemType mem_type);
+				   CeedCopyMode copy_mode);
 
 #endif
