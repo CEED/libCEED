@@ -321,7 +321,20 @@ def test_124(ceed_resource):
     x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
     check_values(ceed, x, 5.3)
 
+
 def test_125(ceed_resource):
+    from jax import numpy as jnp
+    import jax.dlpack
+    ceed = libceed.Ceed(ceed_resource)
+    import jax
+    jax.config.update('jax_enable_x64', True) # to prevent dtype incompatibility
+    n = 10
+    x = ceed.Vector(n)
+    x.set_value(5.0)
+    y = jax.dlpack.from_dlpack(x.to_dlpack(mem_type=libceed.MEM_HOST))
+    assert jnp.allclose(y, 5.0)
+
+def test_126(ceed_resource):
     from jax import numpy as jnp
     import jax.dlpack
     ceed = libceed.Ceed(ceed_resource)
@@ -332,6 +345,11 @@ def test_125(ceed_resource):
     a = 5.3 * jnp.ones(n)
     x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=True))
     check_values(ceed, x, 5.3)
+
+
+    
+
+
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array

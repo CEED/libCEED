@@ -322,8 +322,14 @@ class Vector():
                                       self._pointer[0], mem_type,
                                       dl_tensor)
         self._ceed._check_error(ierr)
-        return dl_tensor
+        ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]
+        val = ctypes.pythonapi.PyCapsule_New(dl_tensor,
+                                              ctypes.create_string_buffer("dltensor".encode())
+                                              )
+        print('value:', val, 'with type', type(val))
+        return val
 
+    
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
         #ctypes.pythonapi.PyCapsule_GetPointer.restype = DLManagedTensorHandle
         #ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_capsule]
