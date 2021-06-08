@@ -319,13 +319,6 @@ CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedCopyMode copy_mode, CeedScalar *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
-#ifdef CEED_DLPACK
-#include <dlpack.h>
-CEED_EXTERN int CeedVectorTakeFromDLPack(CeedVector vec, DLManagedTensor *dl_tensor,
-					 CeedMemType mem_type);
-CEED_EXTERN int CeedVectorToDLPack(CeedVector vec, DLManagedTensor **dl_tensor,
-				   CeedMemType mem_type);
-#endif
 CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
 CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
                                     CeedScalar **array);
