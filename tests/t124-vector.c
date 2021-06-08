@@ -4,7 +4,7 @@
 #include <ceed/ceed.h>
 #include <ceed/dlpack.h>
 #include <ceed/backend.h>
-
+#include <stdlib.h>
 static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   const CeedScalar *b;
   CeedInt n;
@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   CeedInt n;
   int ierr;
   CeedInit(argv[1], &ceed);
+  dl_tensor = malloc(sizeof(dl_tensor));
   n = 10;
   /* test fills a vector with a true value (5) and another vector with
      a signal value (-1). The "true" value is copied into the other vector
@@ -39,13 +40,12 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(y, -1.0);
 
   ierr = CeedVectorToDLPack(ceed, x, CEED_MEM_HOST,
-			    &dl_tensor); CeedChk(ierr);
+			    dl_tensor); CeedChk(ierr);
 
   ierr = CeedVectorTakeFromDLPack(ceed, y, dl_tensor,
 				  CEED_USE_POINTER); CeedChk(ierr);
   CheckValues(ceed, y, 5.0);
   CeedVectorDestroy(&y); /* should only need to destroy this version, since it
 			    uses the pointer from x */
-  //CeedFree(&dl_tensor);
   return 0;
 }

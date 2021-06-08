@@ -191,20 +191,19 @@ void CeedDLPackDeleter(struct DLManagedTensor *self)
   CeedVector vec = (CeedVector)self->manager_ctx;
   CeedScalar *array = (CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset);
   CeedVectorRestoreArray(vec, &array);
+  CeedFree(&(self->dl_tensor.shape));
   CeedVectorDestroy(&vec);
 }
 
 int CeedVectorToDLPack(Ceed ceed,
 		       CeedVector vec,
 		       CeedMemType dl_mem_type,
-		       DLManagedTensor **dl_tensor)
+		       DLManagedTensor *tensor)
 {
   int ierr;
   CeedInt veclen;
-  DLManagedTensor *tensor;
   CeedScalar *array;
   const char *backend;
-  ierr = CeedMalloc(1, &tensor);
   tensor->manager_ctx = (void*)vec;
   tensor->deleter = CeedDLPackDeleter;
   ierr = CeedVectorGetArray(vec, dl_mem_type, &array); CeedChk(ierr);
@@ -228,7 +227,5 @@ int CeedVectorToDLPack(Ceed ceed,
 		     backend);
   }
   tensor->dl_tensor.device.device_type = devtype;
-
-  *dl_tensor = tensor;
   return CEED_ERROR_SUCCESS;
 }

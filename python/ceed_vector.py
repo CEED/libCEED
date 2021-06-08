@@ -316,6 +316,21 @@ class Vector():
         err_code = lib.CeedVectorSyncArray(self._pointer[0], memtype)
         self._ceed._check_error(err_code)
 
+    def to_dlpack(self, mem_type):
+        dl_tensor = ffi.new("DLManagedTensor *")
+        ierr = lib.CeedVectorToDLPack(self._ceed._pointer[0],
+                                      self._pointer[0], mem_type,
+                                      dl_tensor)
+        self._ceed._check_error(ierr)
+        return dl_tensor
+
+    def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
+        ierr = lib.CeedVectorTakeFromDLPack(self._ceed._pointer[0],
+                                            self._pointer[0],
+                                            dl_tensor,
+                                            copy_mode)
+        self._ceed._check_error(ierr)
+        
     # Compute the norm of a vector
     def norm(self, normtype=NORM_2):
         """Get the norm of a Vector.

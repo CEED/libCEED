@@ -307,6 +307,20 @@ def test_123(ceed_resource, capsys):
         assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
+# Test from_dlpack()
+# -------------------------------------------------------------------------------
+def test_124(ceed_resource):
+    from jax import numpy as jnp
+    import jax.dlpack
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+    a = 5.3 * jnp.ones(n)
+    x.from_dlpack(jax.dlpack.to_dlpack(a))
+    check_values(ceed, x, 5.3)
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 
@@ -323,3 +337,4 @@ def test_199(ceed_resource):
         assert np.all(x == np.eye(4, 3).reshape(3, 4))
 
 # -------------------------------------------------------------------------------
+
