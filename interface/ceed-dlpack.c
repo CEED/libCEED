@@ -9,7 +9,7 @@ bool starts_with(const char *string, const char *startswith)
   if (!string || !startswith) {
     return false;
   }
-  char *str = string, *sub = startswith;
+  const char *str = string, *sub = startswith;
   while (*str && *sub) {
     if (*str != *sub) {
       return false;
@@ -176,7 +176,7 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
 		     "Data type %s has size %d, which is incompatible "
 		     "with CeedScalar, which has size %d",
 		     DLDtypeName(&dl_tensor->dl_tensor),
-		     dl_tensor->dl_tensor.dtype.bits,
+		     dl_tensor->dl_tensor.dtype.bits / 8,
 		     sizeof(CeedScalar));
   }
   ierr = DLValidShape(ceed, vec, &dl_tensor->dl_tensor); CeedChk(ierr);

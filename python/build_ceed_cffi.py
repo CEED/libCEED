@@ -55,6 +55,7 @@ ffibuilder.set_source("_ceed_cffi",
                       """
   #define va_list const char *
   #include <ceed.h>   // the C header of the library
+  #include <ceed/dlpack.h>
   """,
                       include_dirs=[
                           os.path.abspath("include")],  # include path

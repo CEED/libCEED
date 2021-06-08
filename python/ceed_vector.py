@@ -19,7 +19,7 @@ import tempfile
 import numpy as np
 import contextlib
 from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
-
+import ctypes
 # ------------------------------------------------------------------------------
 
 
@@ -325,9 +325,16 @@ class Vector():
         return dl_tensor
 
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
+        #ctypes.pythonapi.PyCapsule_GetPointer.restype = DLManagedTensorHandle
+        #ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_capsule]
+        ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+        ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+        dl_tensor = ctypes.pythonapi.PyCapsule_GetPointer(dl_tensor,
+                                                          ctypes.create_string_buffer("dltensor".encode()))
+        
         ierr = lib.CeedVectorTakeFromDLPack(self._ceed._pointer[0],
                                             self._pointer[0],
-                                            dl_tensor,
+                                            ffi.cast("DLManagedTensor *", dl_tensor),#ctypes.cast(dl_tensor, DLManagedTensorHandle),
                                             copy_mode)
         self._ceed._check_error(ierr)
         

@@ -313,11 +313,12 @@ def test_124(ceed_resource):
     from jax import numpy as jnp
     import jax.dlpack
     ceed = libceed.Ceed(ceed_resource)
-
+    import jax
+    jax.config.update('jax_enable_x64', True) # to prevent dtype incompatibility
     n = 10
     x = ceed.Vector(n)
     a = 5.3 * jnp.ones(n)
-    x.from_dlpack(jax.dlpack.to_dlpack(a))
+    x.from_dlpack(jax.dlpack.to_dlpack(a, False))
     check_values(ceed, x, 5.3)
 
 # -------------------------------------------------------------------------------
