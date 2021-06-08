@@ -21,7 +21,7 @@ import os
 import libceed
 import numpy as np
 import check
-
+import pytest
 # -------------------------------------------------------------------------------
 # Utility
 # -------------------------------------------------------------------------------
@@ -347,6 +347,29 @@ def test_126(ceed_resource):
     check_values(ceed, x, 5.3)
 
 
+@pytest.mark.xfail
+def test_127(ceed_resource):
+    from jax import numpy as jnp
+    import jax.dlpack
+    ceed = libceed.Ceed(ceed_resource)
+    import jax
+    jax.config.update('jax_enable_x64', True) # to prevent dtype incompatibility
+    n = 10
+    x = ceed.Vector(n)
+    a = 5.3 * jnp.ones((n,n))
+    #should fail, wrong shape
+    x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
+
+
+def test_128(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+    n = 10
+    x = ceed.Vector(n)
+    x.set_value(10.0)
+    y = x.to_dlpack(libceed.MEM_HOST)
+    z = ceed.Vector(n)
+    z.from_dlpack(y)
+    check_values(ceed, z, 10.0)
     
 
 

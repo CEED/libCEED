@@ -322,25 +322,27 @@ class Vector():
                                       self._pointer[0], mem_type,
                                       dl_tensor)
         self._ceed._check_error(ierr)
-        ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]
-        val = ctypes.pythonapi.PyCapsule_New(dl_tensor,
-                                              ctypes.create_string_buffer("dltensor".encode())
-                                              )
-        print('value:', val, 'with type', type(val))
-        return val
-
+        #ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]
+        #val = ctypes.pythonapi.PyCapsule_New(dl_tensor,
+        #                                      ctypes.create_string_buffer("dltensor".encode())
+        #                                      )
+        #print('value:', val, 'with type', type(val))
+        #return val
+        return dl_tensor
     
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
         #ctypes.pythonapi.PyCapsule_GetPointer.restype = DLManagedTensorHandle
         #ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_capsule]
-        ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
-        ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
-        dl_tensor = ctypes.pythonapi.PyCapsule_GetPointer(dl_tensor,
-                                                          ctypes.create_string_buffer("dltensor".encode()))
+        if not isinstance(dl_tensor, ffi.CData):
+            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
+            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
+            dl_tensor = ctypes.pythonapi.PyCapsule_GetPointer(dl_tensor,
+                                                              ctypes.create_string_buffer("dltensor".encode()))
+            dl_tensor = ffi.cast("DLManagedTensor *", dl_tensor)
         
         ierr = lib.CeedVectorTakeFromDLPack(self._ceed._pointer[0],
                                             self._pointer[0],
-                                            ffi.cast("DLManagedTensor *", dl_tensor),#ctypes.cast(dl_tensor, DLManagedTensorHandle),
+                                            dl_tensor,#,#ctypes.cast(dl_tensor, DLManagedTensorHandle),
                                             copy_mode)
         self._ceed._check_error(ierr)
         
