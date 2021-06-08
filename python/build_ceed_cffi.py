@@ -47,6 +47,7 @@ with open(os.path.abspath("include/ceed/dlpack.h")) as f:
              "const char *, ...);" not in line and
              not line.startswith("CEED_EXTERN const char *const") and
              not ceed_version_ge.match(line)]
+    lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
     header += '\n'.join(lines)
 ffibuilder.cdef(header)
 
