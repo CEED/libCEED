@@ -3,6 +3,7 @@
 /// Test CeedVectorToDLPack
 #include <ceed/ceed.h>
 #include <ceed/dlpack.h>
+#include <ceed/backend.h>
 
 static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   const CeedScalar *b;
@@ -45,6 +46,6 @@ int main(int argc, char **argv) {
   CheckValues(ceed, y, 5.0);
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&y);
-  CeedFree(&dl_tensor);
+  //CeedFree(&dl_tensor);
   return 0;
 }

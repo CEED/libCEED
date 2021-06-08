@@ -1,4 +1,5 @@
 #include <ceed/dlpack.h>
+#include <ceed/backend.h>
 #include <ceed-impl.h>
 #include <stdbool.h>
 #include <stdlib.h>
