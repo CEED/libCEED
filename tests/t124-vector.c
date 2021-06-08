@@ -44,8 +44,8 @@ int main(int argc, char **argv) {
   ierr = CeedVectorTakeFromDLPack(ceed, y, dl_tensor,
 				  CEED_USE_POINTER); CeedChk(ierr);
   CheckValues(ceed, y, 5.0);
-  CeedVectorDestroy(&x);
-  CeedVectorDestroy(&y);
+  CeedVectorDestroy(&y); /* should only need to destroy this version, since it
+			    uses the pointer from x */
   //CeedFree(&dl_tensor);
   return 0;
 }
