@@ -1,7 +1,7 @@
 #include <ceed/dlpack.h>
 #include <ceed-impl.h>
 #include <stdbool.h>
-#include <cstdlib.h>
+#include <stdlib.h>
 
 bool starts_with(const char *string, const char *startswith)
 {
@@ -62,7 +62,7 @@ int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
   case kDLCUDAManaged:
   case kDLCUDAHost:
   case kDLCUDA:
-    if (starts_with(backend "/gpu/cuda") || starts_with(backend, "/gpu/occa")) {
+    if (starts_with(backend, "/gpu/cuda") || starts_with(backend, "/gpu/occa")) {
       if (device.device_type == kDLCUDA || device.device_type == kDLCUDAManaged) {
 	*memtype = CEED_MEM_DEVICE;
       } else {
@@ -124,10 +124,10 @@ int DLValidShape(Ceed ceed, CeedVector vec, DLTensor *tensor)
 		     "CeedVector can only be filled from a 1-dimensional "
 		     "DLPack tensor, not a %d-dimensional one", tensor->ndim);
   }
-  if (tensor->lanes != 1) {
+  if (tensor->dtype.lanes != 1) {
     return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
 		     "CeedVector can only be filled from a DLPack tensor with "
-		     "scalar elements (1 lane), not one with %d lanes", tensor->lanes);
+		     "scalar elements (1 lane), not one with %d lanes", tensor->dtype.lanes);
   }
   ierr = CeedVectorGetLength(vec, &veclen); CeedChk(ierr);
   if (tensor->shape[0] != veclen) {
@@ -170,7 +170,7 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
   
   ierr = CheckValidDeviceType(dl_tensor->dl_tensor.device, ceed,
 			      &dl_mem_type); CeedChk(ierr);
-  if (DLDtypeSize(dl_tensor->dl_tensor) != sizeof(CeedScalar)) {
+  if (DLDtypeSize(&dl_tensor->dl_tensor) != sizeof(CeedScalar)) {
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
 		     "Data type %s has size %d, which is incompatible "
 		     "with CeedScalar, which has size %d",
@@ -179,7 +179,7 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
 		     sizeof(CeedScalar));
   }
   ierr = DLValidShape(ceed, vec, &dl_tensor->dl_tensor); CeedChk(ierr);
-  ierr = CeedVectorSetArray(ceed, dl_mem_type, copy_mode,
+  ierr = CeedVectorSetArray(vec, dl_mem_type, copy_mode,
 			    (CeedScalar *)(dl_tensor->dl_tensor.data + dl_tensor->dl_tensor.byte_offset)); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -188,7 +188,8 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
 void CeedDLPackDeleter(struct DLManagedTensor *self)
 {
   CeedVector vec = (CeedVector)self->manager_ctx;
-  CeedVectorRestoreArray(vec, &((CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset)));
+  CeedScalar *array = (CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset);
+  CeedVectorRestoreArray(vec, &array);
   CeedVectorDestroy(&vec);
 }
 
