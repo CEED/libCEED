@@ -26,9 +26,27 @@ bool starts_with(const char *string, const char *startswith)
 
 uint8_t DLDtypeSize(DLTensor *tensor)
 {
-  return tensor->dtype.bits;
+  return tensor->dtype.bits / 8;
 }
 
+DLDeviceType GetDLDeviceType(Ceed ceed, CeedMemType mem_type)
+{
+  const char *backend;
+  int ierr;
+  ierr = CeedGetResource(ceed, &backend); CeedChk(ierr);
+  if (mem_type == CEED_MEM_HOST) {
+    return kDLCPU;
+  }
+  else {
+    if (starts_with(backend, "/gpu/cuda")) {
+      return kDLCUDA;
+    } else if (starts_with(backend, "/gpu/hip") || starts_with(backend, "/gpu/occa")) {
+      return kDLROCM;
+    } else {
+      return kDLExtDev; /* unknown */
+    }
+  }
+}
 
 // DLDevice is two ints, so cheaper to copy than to dereference
 int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
@@ -44,7 +62,7 @@ int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
   case kDLCUDAManaged:
   case kDLCUDAHost:
   case kDLCUDA:
-    if (starts_with(backend "/gpu/cuda")) {
+    if (starts_with(backend "/gpu/cuda") || starts_with(backend, "/gpu/occa")) {
       if (device.device_type == kDLCUDA || device.device_type == kDLCUDAManaged) {
 	*memtype = CEED_MEM_DEVICE;
       } else {
@@ -58,10 +76,16 @@ int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
     }
 
   case kDLOpenCL:
+    if (starts_with(backend, "/gpu/occa")) {
+      return CEED_ERROR_SUCCESS;
+    }
     return CeedError(ceed, CEED_ERROR_BACKEND,
 		     "CeedVectorTakeFromDLPack is currently not supported "
 		     "for OpenCL memory");
   case kDLVulkan:
+    if (starts_with(backend, "/gpu/occa")) {
+      return CEED_ERROR_SUCCESS;
+    }
     return CeedError(ceed, CEED_ERROR_BACKEND,
 		     "CeedVectorTakeFromDLPack is currently not supported "
 		     "for Vulkan memory");
@@ -71,7 +95,7 @@ int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
 		     "for Verilog memory");
   case kDLROCMHost:
   case kDLROCM:
-    if (starts_with(backend, "/gpu/hip")) {
+    if (starts_with(backend, "/gpu/hip") || starts_with(backend, "/gpu/occa")) {
       if (device.device_type == kDLROCM) {
 	*memtype = CEED_MEM_DEVICE;
       } else {
@@ -99,6 +123,11 @@ int DLValidShape(Ceed ceed, CeedVector vec, DLTensor *tensor)
     return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
 		     "CeedVector can only be filled from a 1-dimensional "
 		     "DLPack tensor, not a %d-dimensional one", tensor->ndim);
+  }
+  if (tensor->lanes != 1) {
+    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
+		     "CeedVector can only be filled from a DLPack tensor with "
+		     "scalar elements (1 lane), not one with %d lanes", tensor->lanes);
   }
   ierr = CeedVectorGetLength(vec, &veclen); CeedChk(ierr);
   if (tensor->shape[0] != veclen) {
@@ -152,5 +181,52 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
   ierr = DLValidShape(ceed, vec, &dl_tensor->dl_tensor); CeedChk(ierr);
   ierr = CeedVectorSetArray(ceed, dl_mem_type, copy_mode,
 			    (CeedScalar *)(dl_tensor->dl_tensor.data + dl_tensor->dl_tensor.byte_offset)); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+
+void CeedDLPackDeleter(struct DLManagedTensor *self)
+{
+  CeedVector vec = (CeedVector)self->manager_ctx;
+  CeedVectorRestoreArray(vec, &((CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset)));
+  CeedVectorDestroy(&vec);
+}
+
+int CeedVectorToDLPack(Ceed ceed,
+		       CeedVector vec,
+		       CeedMemType dl_mem_type,
+		       DLManagedTensor **dl_tensor)
+{
+  int ierr;
+  CeedInt veclen;
+  DLManagedTensor *tensor;
+  CeedScalar *array;
+  const char *backend;
+  ierr = CeedMalloc(1, &tensor);
+  tensor-manager_ctx = (void*)vec;
+  tensor->deleter = CeedDLPackDeleter;
+  ierr = CeedVectorGetArray(vec, dl_mem_type, &array); CeedChk(ierr);
+  tensor->dl_tensor.data = (void *)array;
+  tensor->dl_tensor.byte_offset = 0;
+  tensor->dl_tensor.dtype.code = sizeof(CeedScalar) <= 8 ? kDLFloat : kDLComplex;
+  tensor->dl_tensor.dtype.bits = 8 * sizeof(CeedScalar);
+  tensor->dl_tensor.dtype.lanes = 1;
+  
+  ierr = CeedVectorGetLength(vec, &veclen); CeedChk(ierr);
+  tensor->dl_tensor.ndim = 1;
+  ierr = CeedMalloc(1, &(tensor->dl_tensor.shape)); CeedChk(ierr);
+  tensor->dl_tensor.shape[0] = veclen;
+  tensor->dl_tensor.strides = NULL;
+
+  DLDeviceType devtype = GetDLDeviceType(ceed, dl_mem_type);
+  if (devtype == kDLExtDev) {
+    ierr = CeedGetResource(ceed, &backend); CeedChk(ierr);
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+		     "Backend %s does not currently have DLPack support",
+		     backend);
+  }
+  tensor->dl_tensor.device.device_type = devtype;
+
+  *dl_tensor = tensor;
   return CEED_ERROR_SUCCESS;
 }

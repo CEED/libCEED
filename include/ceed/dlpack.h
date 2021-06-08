@@ -24,9 +24,10 @@ CEED_EXTERN int CeedVectorTakeFromDLPack(Ceed ceed,
 					 CeedVector vec,
 					 DLManagedTensor *dl_tensor,
 					 CeedCopyMode copy_mode);
+
 CEED_EXTERN int CeedVectorToDLPack(Ceed ceed,
 				   CeedVector vec,
-				   DLManagedTensor **dl_tensor,
-				   CeedCopyMode copy_mode);
+				   CeedMemType dl_mem_type,
+				   DLManagedTensor **dl_tensor);
 
 #endif
