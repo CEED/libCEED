@@ -307,7 +307,7 @@ def test_123(ceed_resource, capsys):
         assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
-# Test from_dlpack()
+# Test from_dlpack() and to_dlpack()
 # -------------------------------------------------------------------------------
 def test_124(ceed_resource):
     from jax import numpy as jnp
@@ -318,7 +318,19 @@ def test_124(ceed_resource):
     n = 10
     x = ceed.Vector(n)
     a = 5.3 * jnp.ones(n)
-    x.from_dlpack(jax.dlpack.to_dlpack(a, False))
+    x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
+    check_values(ceed, x, 5.3)
+
+def test_125(ceed_resource):
+    from jax import numpy as jnp
+    import jax.dlpack
+    ceed = libceed.Ceed(ceed_resource)
+    import jax
+    jax.config.update('jax_enable_x64', True) # to prevent dtype incompatibility
+    n = 10
+    x = ceed.Vector(n)
+    a = 5.3 * jnp.ones(n)
+    x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=True))
     check_values(ceed, x, 5.3)
 
 # -------------------------------------------------------------------------------
