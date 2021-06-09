@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
            mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree, *level_degrees;
   PetscScalar *r;
   PetscScalar eps = 1.0;
-  PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscBool test_mode, benchmark_mode, read_mesh, write_solution, is_periodic;
   PetscLogStage solve_stage;
   PetscLogEvent assemble_event;
   DM  *dm, dm_orig;
@@ -209,6 +209,7 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(num_levels, &g_size); CHKERRQ(ierr);
 
   // Setup DM and Operator Mat Shells for each level
+  ierr = DMGetPeriodicity(dm_orig, &is_periodic, NULL, NULL, NULL); CHKERRQ(ierr);
   for (CeedInt i=0; i<num_levels; i++) {
     // Create DM
     ierr = DMClone(dm_orig, &dm[i]); CHKERRQ(ierr);
@@ -236,6 +237,13 @@ int main(int argc, char **argv) {
     ierr = MatShellSetOperation(mat_O[i], MATOP_GET_DIAGONAL,
                                 (void(*)(void))MatGetDiag); CHKERRQ(ierr);
     ierr = MatShellSetVecType(mat_O[i], vec_type); CHKERRQ(ierr);
+    if (is_periodic && bp_choice > CEED_BP2) {
+      MatNullSpace null_space;
+      ierr = MatNullSpaceCreate(comm, PETSC_TRUE, 0, NULL, &null_space);
+      CHKERRQ(ierr);
+      ierr = MatSetNullSpace(mat_O[i], null_space); CHKERRQ(ierr);
+      ierr = MatNullSpaceDestroy(&null_space); CHKERRQ(ierr);
+    }
 
     // Level transfers
     if (i > 0) {
