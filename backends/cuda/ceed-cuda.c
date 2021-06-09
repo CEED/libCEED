@@ -56,7 +56,11 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
   }
 
   // Standard backend options
-  opts[numopts]     = "-DCeedScalar=double";
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+    opts[numopts]     = "-DCeedScalar=float";
+  } else {
+    opts[numopts]     = "-DCeedScalar=double";
+  }
   opts[numopts + 1] = "-DCeedInt=int";
   opts[numopts + 2] = "-default-device";
   struct cudaDeviceProp prop;

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
             a[i*strides[0] + j*strides[1] + k*strides[2]])
           // LCOV_EXCL_START
           printf("Error in restricted array y[%d][%d][%d] = %f",
-                 i, j, k, (double)yy[i*strides[0] + j*strides[1] + j*strides[2]]);
+                 i, j, k, (CeedScalar)yy[i*strides[0] + j*strides[1] + j*strides[2]]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);
 

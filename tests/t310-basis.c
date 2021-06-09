@@ -9,7 +9,8 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis b;
   CeedVector U, V;
-  int i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((double)(Q_1d), dim) + 0.4);
+  int i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((CeedScalar)(Q_1d),
+                                   dim) + 0.4);
   CeedScalar u[len];
   const CeedScalar *v;
 

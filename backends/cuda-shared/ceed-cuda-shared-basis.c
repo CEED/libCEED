@@ -709,7 +709,7 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
                                   const CeedScalar *c_B,
                                   const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
-  extern __shared__ double slice[];
+  extern __shared__ CeedScalar slice[];
   if (BASIS_DIM == 1) {
     interp1d(nelem, transpose, c_B, d_U, d_V, slice);
   } else if (BASIS_DIM == 2) {
@@ -726,7 +726,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
                                 const CeedScalar *c_B, const CeedScalar *c_G,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  extern __shared__ double slice[];
+  extern __shared__ CeedScalar slice[];
   if (BASIS_DIM == 1) {
     grad1d(nelem, transpose, c_B, c_G, d_U, d_V, slice);
   } else if (BASIS_DIM == 2) {

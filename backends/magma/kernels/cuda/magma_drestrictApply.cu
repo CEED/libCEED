@@ -25,7 +25,7 @@
 extern "C" void
 magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                      const magma_int_t esize, const magma_int_t nelem,
-                     magma_int_t *offsets, const double *du, double *dv,
+                     magma_int_t *offsets, const CeedScalar *du, CeedScalar *dv,
                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
@@ -42,7 +42,7 @@ magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                       const magma_int_t nelem, const int *strides,
-                      const double *du, double *dv,
+                      const CeedScalar *du, CeedScalar *dv,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
@@ -59,15 +59,22 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
 extern "C" void
 magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       const magma_int_t esize, const magma_int_t nelem,
-                      magma_int_t *offsets, const double *du, double *dv,
+                      magma_int_t *offsets, const CeedScalar *du, CeedScalar *dv,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
-
-    magma_writeDofsOffset_kernel<<<grid, threads, 0,
-      magma_queue_get_cuda_stream(queue)>>>(NCOMP, compstride,
-      esize, nelem, offsets, du, dv);
+   
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      magma_writeDofsOffset_kernel_s<<<grid, threads, 0,
+        magma_queue_get_cuda_stream(queue)>>>(NCOMP, compstride,
+        esize, nelem, offsets, (float*)du, (float*)dv);
+    }
+    else {
+      magma_writeDofsOffset_kernel_d<<<grid, threads, 0,
+        magma_queue_get_cuda_stream(queue)>>>(NCOMP, compstride,
+        esize, nelem, offsets, (double*)du, (double*)dv);
+    }
 }
 
 // WriteDofs from device memory, strided description for L-vector
@@ -76,13 +83,20 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                        const magma_int_t nelem, const int *strides,
-                       const double *du, double *dv,
+                       const CeedScalar *du, CeedScalar *dv,
                        magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    magma_writeDofsStrided_kernel<<<grid, threads, 0,
-      magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
-      strides, du, dv);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      magma_writeDofsStrided_kernel_s<<<grid, threads, 0,
+        magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
+        strides, (float*)du, (float*)dv);
+    }
+    else {
+      magma_writeDofsStrided_kernel_d<<<grid, threads, 0,
+        magma_queue_get_cuda_stream(queue)>>>(NCOMP, esize, nelem, 
+        strides, (double*)du, (double*)dv);
+    }
 }

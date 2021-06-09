@@ -61,7 +61,12 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   }
 
   // Standard backend options
-  code << "#define CeedScalar double\n";
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) { 
+    code << "#define CeedScalar float\n";
+  }
+  else {
+    code << "#define CeedScalar double\n";
+  }
   code << "#define CeedInt int\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
  

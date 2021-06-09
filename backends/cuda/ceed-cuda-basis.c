@@ -252,8 +252,8 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
                                   CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
-  const double *U;
-  double V;
+  const CeedScalar *U;
+  CeedScalar V;
   //TODO load B in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
@@ -287,20 +287,20 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
                                 CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
-  const double *U;
+  const CeedScalar *U;
   //TODO load G in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for (int comp=0; comp<BASIS_NCOMP; comp++) {
       if (!transpose) { // run with Q threads
-        double V[BASIS_DIM];
+        CeedScalar V[BASIS_DIM];
         U = d_U + elem*P + comp*nelem*P;
         for (int dim = 0; dim < BASIS_DIM; dim++)
           V[dim] = 0.0;
 
         for (int i = 0; i < P; ++i) {
-          const double val = U[i];
+          const CeedScalar val = U[i];
           for(int dim = 0; dim < BASIS_DIM; dim++)
             V[dim] += d_G[i + tid*P + dim*P*Q]*val;
         }
@@ -308,7 +308,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
           d_V[elem*Q + comp*nelem*Q + dim*BASIS_NCOMP*nelem*Q + tid] = V[dim];
         }
       } else { // run with P threads
-        double V = 0.0;
+        CeedScalar V = 0.0;
         for (int dim = 0; dim < BASIS_DIM; dim++) {
           U = d_U + elem*Q + comp*nelem*Q +dim*BASIS_NCOMP*nelem*Q;
           for (int i = 0; i < Q; ++i)

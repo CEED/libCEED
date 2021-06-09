@@ -22,9 +22,9 @@ int
 magma_dgemm_nontensor(
   magma_trans_t transA, magma_trans_t transB,
   magma_int_t m, magma_int_t n, magma_int_t k,
-  double alpha, const double *dA, magma_int_t ldda,
-  const double *dB, magma_int_t lddb,
-  double beta,  double *dC, magma_int_t lddc,
+  CeedScalar alpha, const CeedScalar *dA, magma_int_t ldda,
+  const CeedScalar *dB, magma_int_t lddb,
+  CeedScalar beta,  CeedScalar *dC, magma_int_t lddc,
   magma_queue_t queue ) {
 
   // check for specific transpositions (NN and TN only)
@@ -129,8 +129,8 @@ magma_dgemm_nontensor(
         magma_queue_get_hipblas_handle( queue ),
         hipblas_trans_const(transA), hipblas_trans_const(transB),
         (int)m, (int)n1, (int)k,
-        &alpha, (const double *) dA, (int)ldda, strideA,
-        (const double *) dB, (int)lddb, strideB,
+        &alpha, (const CeedScalar *) dA, (int)ldda, strideA,
+        (const CeedScalar *) dB, (int)lddb, strideB,
         &beta,                  dC, (int)lddc, strideC, (int)batchCount );
 
       // cleanup
@@ -139,8 +139,8 @@ magma_dgemm_nontensor(
           magma_queue_get_hipblas_handle( queue ),
           hipblas_trans_const(transA), hipblas_trans_const(transB),
           (int)m, (int)n2, (int)k,
-          &alpha, (const double *) dA, (int)ldda, strideA,
-          (const double *) dB + batchCount * strideB, (int)lddb, strideB,
+          &alpha, (const CeedScalar *) dA, (int)ldda, strideA,
+          (const CeedScalar *) dB + batchCount * strideB, (int)lddb, strideB,
           &beta,                  dC + batchCount * strideC, (int)lddc, strideC, 1 );
       }
     }
@@ -157,9 +157,9 @@ int
 magma_dgemm_nontensor(
   magma_trans_t transA, magma_trans_t transB,
   magma_int_t m, magma_int_t n, magma_int_t k,
-  double alpha, const double *dA, magma_int_t ldda,
-  const double *dB, magma_int_t lddb,
-  double beta,  double *dC, magma_int_t lddc,
+  CeedScalar alpha, const CeedScalar *dA, magma_int_t ldda,
+  const CeedScalar *dB, magma_int_t lddb,
+  CeedScalar beta,  CeedScalar *dC, magma_int_t lddc,
   magma_queue_t queue ) {
 
   // check for specific transpositions (NN and TN only)
@@ -263,8 +263,8 @@ magma_dgemm_nontensor(
         magma_queue_get_cublas_handle( queue ),
         cublas_trans_const(transA), cublas_trans_const(transB),
         (int)m, (int)n1, (int)k,
-        &alpha, (const double *) dA, (int)ldda, strideA,
-        (const double *) dB, (int)lddb, strideB,
+        &alpha, (const CeedScalar *) dA, (int)ldda, strideA,
+        (const CeedScalar *) dB, (int)lddb, strideB,
         &beta,                  dC, (int)lddc, strideC, (int)batchCount );
 
       // cleanup
@@ -273,8 +273,8 @@ magma_dgemm_nontensor(
           magma_queue_get_cublas_handle( queue ),
           cublas_trans_const(transA), cublas_trans_const(transB),
           (int)m, (int)n2, (int)k,
-          &alpha, (const double *) dA, (int)ldda, strideA,
-          (const double *) dB + batchCount * strideB, (int)lddb, strideB,
+          &alpha, (const CeedScalar *) dA, (int)ldda, strideA,
+          (const CeedScalar *) dB + batchCount * strideB, (int)lddb, strideB,
           &beta,                  dC + batchCount * strideC, (int)lddc, strideC, 1 );
       }
     }

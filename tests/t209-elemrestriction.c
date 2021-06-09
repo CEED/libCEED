@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<3*num_elem+1; i++)
     if ((1 + (i > 0 && i < 3*num_elem && (i%3==0) ? 1 : 0)) != mm[i])
       // LCOV_EXCL_START
-      printf("Error in multiplicity vector: mult[%d] = %f\n", i, (double)mm[i]);
+      printf("Error in multiplicity vector: mult[%d] = %f\n", i, (CeedScalar)mm[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(mult, &mm);
 

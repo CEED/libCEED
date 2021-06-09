@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         if (yy[i*layout[0]+j*layout[1]+k*layout[2]] != a[ind[i+k*2]+j])
           // LCOV_EXCL_START
           printf("Error in restricted array y[%d][%d][%d] = %f != %f\n",
-                 i, j, k, (double)yy[i*layout[0]+j*layout[1]+k*layout[2]],
+                 i, j, k, (CeedScalar)yy[i*layout[0]+j*layout[1]+k*layout[2]],
                  a[ind[i+k*2]+j*(num_elem+1)]);
   // LCOV_EXCL_STOP
 

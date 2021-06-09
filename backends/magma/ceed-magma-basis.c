@@ -60,7 +60,13 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
     ierr = CeedVectorGetLength(V, &length); CeedChkBackend(ierr);
-    magmablas_dlaset(MagmaFull, length, 1, 0., 0., v, length, data->queue);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *) v, length,
+                       data->queue);
+    } else {
+      magmablas_dlaset(MagmaFull, length, 1, 0., 0., (double *) v, length,
+                       data->queue);
+    }
     ceed_magma_queue_sync( data->queue );
   }
   switch (emode) {
@@ -242,7 +248,13 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
     ierr = CeedVectorGetLength(V, &length);
-    magmablas_dlaset(MagmaFull, length, 1, 0., 0., dv, length, data->queue);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *) dv, length,
+                       data->queue);
+    } else {
+      magmablas_dlaset(MagmaFull, length, 1, 0., 0., (double *) dv, length,
+                       data->queue);
+    }
     ceed_magma_queue_sync( data->queue );
   }
   switch (emode) {
@@ -266,7 +278,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   case CEED_EVAL_GRAD: {
     CeedInt P = ndof, Q = nqpt;
     if (tmode == CEED_TRANSPOSE) {
-      double beta = 0.0;
+      CeedScalar beta = 0.0;
       for(int d=0; d<dim; d++) {
         if (d>0)
           beta = 1.0;

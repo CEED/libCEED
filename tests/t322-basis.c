@@ -5,7 +5,7 @@
 #include <math.h>
 #include "t320-basis.h"
 
-double feval(double x1, double x2) {
+CeedScalar feval(CeedScalar x1, CeedScalar x2) {
   return x1*x1 + x2*x2 + x1*x2 + 1;
 }
 
