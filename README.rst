@@ -465,7 +465,7 @@ If you utilize libCEED please cite::
                      Kolev, Tzanio and
                      Medina, David and
                      Pazner, Will and
-                     Rathnayake, Thilina and
+                     Ratnayaka, Thilina and
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
      title        = {libCEED User Manual},
