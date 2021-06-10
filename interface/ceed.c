@@ -655,7 +655,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
       return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
-};
+}
 // LCOV_EXCL_STOP
 
 /**
