@@ -37,9 +37,10 @@ authors:
   - name: David Medina
     affiliation: 4
   - name: Will Pazner
-    affiliation: 2
     orcid: 0000-0003-4885-2934
-  - name: Thilina Rathnayake
+    affiliation: 2
+  - name: Thilina Ratnayaka
+    orcid: 0000-0001-6102-6560
     affiliation: 5
   - name: Jeremy Thompson
     orcid: 0000-0003-2980-0899
