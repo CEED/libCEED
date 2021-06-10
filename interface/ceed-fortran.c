@@ -63,7 +63,7 @@ typedef int fortran_charlen_t;
 #define FIX_STRING(stringname)                                          \
   char Splice(stringname, _c)[1024];                                    \
   if (Splice(stringname, _len) > 1023)                                  \
-    CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
+    *err = CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
   strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len)); \
   Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
 

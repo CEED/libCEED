@@ -298,7 +298,7 @@ static struct CeedElemRestriction_private ceed_elemrestriction_none;
 /// @{
 
 /// Indicate that the stride is determined by the backend
-const CeedInt CEED_STRIDES_BACKEND[3] = {};
+const CeedInt CEED_STRIDES_BACKEND[3] = {0};
 
 /// Indicate that no CeedElemRestriction is provided by the user
 const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
