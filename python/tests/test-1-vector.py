@@ -322,7 +322,7 @@ def test_124(ceed_resource):
     x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
     check_values(ceed, x, 5.3)
 
-
+@pytest.mark.skip(reason='segfaults')
 def test_125(ceed_resource):
     from jax import numpy as jnp
     import jax.dlpack
@@ -341,7 +341,7 @@ def test_125(ceed_resource):
     print('close to 5')
     del y
 
-'''
+@pytest.mark.skip(reason='segfaults')
 def test_126(ceed_resource):
     from jax import numpy as jnp
     import jax.dlpack
@@ -353,7 +353,7 @@ def test_126(ceed_resource):
     a = 5.3 * jnp.ones(n)
     x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=True))
     check_values(ceed, x, 5.3)
-'''
+
 
 @pytest.mark.xfail
 def test_127(ceed_resource):
