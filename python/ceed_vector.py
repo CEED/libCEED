@@ -316,18 +316,30 @@ class Vector():
         err_code = lib.CeedVectorSyncArray(self._pointer[0], memtype)
         self._ceed._check_error(err_code)
 
-    def to_dlpack(self, mem_type):
+    def to_dlpack(self, mem_type, return_capsule=False):
+        # return a PyCapsule if return_capsule is True
         dl_tensor = ffi.new("DLManagedTensor *")
         ierr = lib.CeedVectorToDLPack(self._ceed._pointer[0],
                                       self._pointer[0], mem_type,
                                       dl_tensor)
         self._ceed._check_error(ierr)
-        #ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]
-        #val = ctypes.pythonapi.PyCapsule_New(dl_tensor,
-        #                                      ctypes.create_string_buffer("dltensor".encode())
-        #                                      )
-        #print('value:', val, 'with type', type(val))
-        #return val
+        if return_capsule:
+            def get_capsule_type():
+                class PyTypeObject(ctypes.Structure):
+                    pass  # don't need to define the full structure
+                capsuletype = PyTypeObject.in_dll(ctypes.pythonapi, "PyCapsule_Type")
+                capsuletypepointer = ctypes.pointer(capsuletype)
+                return ctypes.py_object.from_address(ctypes.addressof(capsuletypepointer)).value
+            PyCapsule_Destructor = ctypes.CFUNCTYPE(None, ctypes.py_object)
+            ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]#, ctypes.c_void_p]
+            ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object#ctypes.c_void_p
+            # causes segfault --- why??
+            dl_tensor = ctypes.pythonapi.PyCapsule_New(dl_tensor,
+                                                      b'dltensor'
+                                                       )
+            
+        print('value:', dl_tensor, 'with type', type(dl_tensor))
+        
         return dl_tensor
     
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):

@@ -205,6 +205,14 @@ typedef struct DLManagedTensor {
   void (*deleter)(struct DLManagedTensor * self);
 } DLManagedTensor;
 
+/*
+// opaque pointer for PyObject 
+typedef struct _object PyObject;
+
+// for interfacing with TensorFlow 
+CEED_EXTERN int CeedDLPackGetPyCapsule(DLManagedTensor *dl_tensor,
+				       PyObject **capsule);
+		*/		       
 
 CEED_EXTERN int CeedVectorTakeFromDLPack(Ceed ceed,
 					 CeedVector vec,

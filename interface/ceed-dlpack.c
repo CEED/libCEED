@@ -1,8 +1,10 @@
-#include <ceed/dlpack.h>
 #include <ceed/backend.h>
 #include <ceed-impl.h>
 #include <stdbool.h>
 #include <stdlib.h>
+//#include <Python.h>
+#define CEED_DLPACK_MODULE
+#include <ceed/dlpack.h>
 
 bool starts_with(const char *string, const char *startswith)
 {
@@ -190,9 +192,12 @@ void CeedDLPackDeleter(struct DLManagedTensor *self)
 {
   CeedVector vec = (CeedVector)self->manager_ctx;
   CeedScalar *array = (CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset);
-  CeedVectorRestoreArray(vec, &array);
+  CeedVectorSetArray(vec, (self->dl_tensor.device.device_type == kDLCPU) ?
+		     CEED_MEM_HOST : CEED_MEM_DEVICE, CEED_USE_POINTER, &array);
   CeedFree(&(self->dl_tensor.shape));
-  CeedVectorDestroy(&vec);
+  CeedFree(&(self->dl_tensor.data));
+  //CeedVectorDestroy(&vec);
+  //;
 }
 
 int CeedVectorToDLPack(Ceed ceed,
@@ -206,14 +211,14 @@ int CeedVectorToDLPack(Ceed ceed,
   const char *backend;
   tensor->manager_ctx = (void*)vec;
   tensor->deleter = CeedDLPackDeleter;
-  ierr = CeedVectorGetArray(vec, dl_mem_type, &array); CeedChk(ierr);
+  ierr = CeedVectorGetLength(vec, &veclen); CeedChk(ierr);
+  ierr = CeedVectorTakeArray(vec, dl_mem_type, &array); CeedChk(ierr);
   tensor->dl_tensor.data = (void *)array;
   tensor->dl_tensor.byte_offset = 0;
   tensor->dl_tensor.dtype.code = sizeof(CeedScalar) <= 8 ? kDLFloat : kDLComplex;
   tensor->dl_tensor.dtype.bits = 8 * sizeof(CeedScalar);
   tensor->dl_tensor.dtype.lanes = 1;
-  
-  ierr = CeedVectorGetLength(vec, &veclen); CeedChk(ierr);
+
   tensor->dl_tensor.ndim = 1;
   ierr = CeedMalloc(1, &(tensor->dl_tensor.shape)); CeedChk(ierr);
   tensor->dl_tensor.shape[0] = veclen;
