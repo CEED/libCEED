@@ -737,3 +737,4 @@ wheel :
 
 # Include *.d deps when not -B = --always-make: useful if the paths are wonky in a container
 -include $(if $(filter B,$(MAKEFLAGS)),,$(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d))
+
