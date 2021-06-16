@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
   PetscInt       num_levels = 1, fine_level = 0;
   PetscInt       *U_g_size, *U_l_size, *U_loc_size;
   PetscInt       snes_its = 0, ksp_its = 0;
+  PetscViewer viewer = NULL;
   // Timing
   double         start_time, elapsed_time, min_time, max_time;
 
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
     // -- Set Poison's ratio, Young's Modulus
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
-    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units); CHKERRQ(ierr);
     if (fabs(app_ctx->nu_smoother) > 1E-14) {
       ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
       ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
     // -- Set Mooney-Rivlin parameters
     ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units); CHKERRQ(ierr);
   }
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -123,7 +124,7 @@ int main(int argc, char **argv) {
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   // Wrap context in libCEED objects
-  CeedQFunctionContextCreate(ceed, &ctx_phys); //TO-DO -> update for other models. 
+  CeedQFunctionContextCreate(ceed, &ctx_phys);
   switch (app_ctx->problem_choice){
   case ELAS_LINEAR:
     CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
@@ -744,17 +745,25 @@ int main(int argc, char **argv) {
     if (reason < 0)
       break;
     
-    if (!app_ctx->test_mode && app_ctx->print_strain_every_increment == PETSC_TRUE) {
+    if (!app_ctx->test_mode && app_ctx->print_strain_every_increment == PETSC_TRUE) { //put csv output here
     
-    // -- Print out strain energy for current load increment
-    CeedScalar energy;
-    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+      // -- Print out strain energy for current load increment
+      CeedScalar energy;
+      ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
                                U, &energy); CHKERRQ(ierr);
 
-    // -- Output
-    ierr = PetscPrintf(comm,
+      // -- Output
+      ierr = PetscPrintf(comm,
                        "    Strain Energy                      : %.12e\n",
                        energy); CHKERRQ(ierr);
+                       
+      PetscViewerASCIIOpen(PETSC_COMM_WORLD,"test.csv",&viewer);
+      PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_CSV);
+      // PetscScalarView(1, &energy,viewer);
+      // PetscScalarView(1, &load_increment,viewer);
+      CeedScalar out = {increment, energy};
+      PetscScalarView(2, &out,viewer);
+      PetscViewerPopFormat(viewer);
     }
   }
 
