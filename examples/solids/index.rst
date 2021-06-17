@@ -418,7 +418,43 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       & + 4J^{-4/3}\Big(\frac{5}{3}\operatorname{trace}(\diff \bm E) \bm{I}_3 - \diff \bm E \Big)
       \end{aligned}
    
+.. dropdown:: Mooney-Rivlin strain energy comparison
+
+   We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
+
+   .. altair-plot::
+
+      import altair as alt
+      import pandas as pd
+      nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      nh["model"] = "Neo-Hookean"
+      nh["parameters"] = "E=10, nu=.4"
+      print(nh)
+
+      # TODO: read MR-strain.csv and use correct parameters
+      mr = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      mr["model"] = "Mooney-Rivlin"
+      mr["parameters"] = "mu_1=4, mu_2=4, K=20"
+      mr["energy"] *= 1.1 # FIXME
+
+      df = pd.concat([nh, mr])
+      highlight = alt.selection_single(
+         on = "mouseover",
+         nearest = True,
+         fields=["model", "parameters"],
+      )
+      base = alt.Chart(df).encode(
+         alt.X("increment"),
+         alt.Y("energy", scale=alt.Scale(type="sqrt")),
+         alt.Color("model"),
+         alt.Tooltip(("model", "parameters")),
+         opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
+         size=alt.condition(highlight, alt.value(2), alt.value(1)),
+      )
+      base.mark_point().add_selection(highlight) + base.mark_line()
+   
 .. dropdown:: Generalized Polynomial model
+
 
    The Generalized Polynomial strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
 
@@ -433,6 +469,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       :label: generalized-polynomial-stress
 
       \bm S = \sum_{i + j = 1}^N 2C_{ij}\left( j(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^{j-1}J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + i(\mathbb{\bar I}_2 -3)^j(\mathbb{\bar I}_1 -3)^{i-1} J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \right) + \sum_{i = 1}^N k_i i(J -1)^{2i-1}J\bm C^{-1},
+
 
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to

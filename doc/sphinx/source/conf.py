@@ -39,6 +39,7 @@ from sphinxcontrib import katex
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'altair.sphinxext.altairplot',
     'breathe',
     'hoverxref.extension',
     'recommonmark',
@@ -305,6 +306,12 @@ except FileNotFoundError:
     pass
 for filename in glob.glob(os.path.join(
         rootdir, 'examples/**/*.rst'), recursive=True):
+    destdir = os.path.dirname(os.path.relpath(filename, rootdir))
+    mkdir_p(destdir)
+    shutil.copy2(filename, destdir)
+
+for filename in glob.glob(os.path.join(
+        rootdir, 'examples/**/*.csv'), recursive=True):
     destdir = os.path.dirname(os.path.relpath(filename, rootdir))
     mkdir_p(destdir)
     shutil.copy2(filename, destdir)

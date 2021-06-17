@@ -156,7 +156,7 @@ struct AppCtx_private {
   PetscBool     test_mode;
   PetscBool     view_soln;
   PetscBool     view_final_soln;
-  PetscBool     print_strain_every_increment; 
+  PetscViewer   energy_viewer;
   problemType   problem_choice;
   forcingType   forcing_choice;
   multigridType multigrid_choice;

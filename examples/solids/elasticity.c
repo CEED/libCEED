@@ -78,8 +78,6 @@ int main(int argc, char **argv) {
   PetscInt       num_levels = 1, fine_level = 0;
   PetscInt       *U_g_size, *U_l_size, *U_loc_size;
   PetscInt       snes_its = 0, ksp_its = 0;
-  PetscViewer energy_viewer = NULL;
-  // Timing
   double         start_time, elapsed_time, min_time, max_time;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -706,15 +704,6 @@ int main(int argc, char **argv) {
   ierr = PetscBarrier((PetscObject)snes); CHKERRQ(ierr);
   start_time = MPI_Wtime();
 
-  if (!app_ctx->test_mode && app_ctx->print_strain_every_increment) {
-    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"test.csv",&energy_viewer); CHKERRQ(ierr);
-    ierr = PetscViewerPushFormat(energy_viewer, PETSC_VIEWER_ASCII_CSV); CHKERRQ(ierr);
-    ierr = PetscViewerASCIIPrintf(energy_viewer, "increment,energy\n"); CHKERRQ(ierr);
-    // Initial configuration is base energy state; this may not be true if we extend in the future to
-    // initially loaded configurations (because a truly at-rest initial state may not be realizable).
-    ierr = PetscViewerASCIIPrintf(energy_viewer, "%f,%e\n", 0., 0.); CHKERRQ(ierr);
-  }
-
   // Solve for each load increment
   PetscInt increment;
   for (increment = 1; increment <= app_ctx->num_increments; increment++) {
@@ -754,23 +743,21 @@ int main(int argc, char **argv) {
     if (reason < 0)
       break;
     
-    if (!app_ctx->test_mode && app_ctx->print_strain_every_increment) { //put csv output here
-    
-      // -- Print out strain energy for current load increment
+    if (app_ctx->energy_viewer) {
+      // -- Log strain energy for current load increment
       CeedScalar energy;
       ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
                                U, &energy); CHKERRQ(ierr);
 
-      // -- Output
-      ierr = PetscPrintf(comm,
-                       "    Strain Energy                      : %.12e\n",
-                       energy); CHKERRQ(ierr);
-                       
-      ierr = PetscViewerASCIIPrintf(energy_viewer, "%f,%e\n", load_increment, energy); CHKERRQ(ierr);
+      if (!app_ctx->test_mode) {
+        // -- Output
+        ierr = PetscPrintf(comm,
+                           "    Strain Energy                      : %.12e\n",
+                           energy); CHKERRQ(ierr);
+      }
+      ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", load_increment, energy); CHKERRQ(ierr);
     }
   }
-  // ierr = PetscViewerPopFormat(energy_viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&energy_viewer); CHKERRQ(ierr);
 
   // Timing
   elapsed_time = MPI_Wtime() - start_time;
@@ -968,6 +955,8 @@ int main(int argc, char **argv) {
     // libCEED objects
     ierr = CeedDataDestroy(level, ceed_data[level]); CHKERRQ(ierr);
   }
+
+  ierr = PetscViewerDestroy(&app_ctx->energy_viewer); CHKERRQ(ierr);
 
   // Arrays
   ierr = PetscFree(U_g); CHKERRQ(ierr);

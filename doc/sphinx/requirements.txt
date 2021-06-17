@@ -1,4 +1,5 @@
 sphinx>=3.0
+altair>=4.1
 breathe>=4.17
 markdown==3.2.1
 recommonmark

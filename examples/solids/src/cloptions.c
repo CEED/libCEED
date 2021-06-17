@@ -193,11 +193,21 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           NULL); CHKERRQ(ierr);
   CHKERRQ(ierr); 
   
-  app_ctx->print_strain_every_increment = PETSC_FALSE;
-  ierr = PetscOptionsBool("-print_strain_every_increment",
-                          "Print out current strain energy at every load increment",
-                          NULL, app_ctx->print_strain_every_increment, &(app_ctx->print_strain_every_increment),
-                          NULL); CHKERRQ(ierr);
+  app_ctx->energy_viewer = NULL;
+  char energy_viewer_filename[PETSC_MAX_PATH_LEN] = "";
+  PetscBool set;
+  ierr = PetscOptionsString("-strain_energy_monitor",
+                           "Print out current strain energy at every load increment",
+                           NULL, energy_viewer_filename,
+                           energy_viewer_filename, sizeof(energy_viewer_filename),
+                           &set);CHKERRQ(ierr);
+  if (set) {
+    ierr = PetscViewerASCIIOpen(comm, energy_viewer_filename, &app_ctx->energy_viewer); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "increment,energy\n"); CHKERRQ(ierr);
+    // Initial configuration is base energy state; this may not be true if we extend in the future to
+    // initially loaded configurations (because a truly at-rest initial state may not be realizable).
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.); CHKERRQ(ierr);
+  }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set
