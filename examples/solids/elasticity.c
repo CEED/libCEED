@@ -711,15 +711,6 @@ int main(int argc, char **argv) {
   ierr = PetscBarrier((PetscObject)snes); CHKERRQ(ierr);
   start_time = MPI_Wtime();
 
-  if (!app_ctx->test_mode && app_ctx->print_strain_every_increment) {
-    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"test.csv",&energy_viewer); CHKERRQ(ierr);
-    ierr = PetscViewerPushFormat(energy_viewer, PETSC_VIEWER_ASCII_CSV); CHKERRQ(ierr);
-    ierr = PetscViewerASCIIPrintf(energy_viewer, "increment,energy\n"); CHKERRQ(ierr);
-    // Initial configuration is base energy state; this may not be true if we extend in the future to
-    // initially loaded configurations (because a truly at-rest initial state may not be realizable).
-    ierr = PetscViewerASCIIPrintf(energy_viewer, "%f,%e\n", 0., 0.); CHKERRQ(ierr);
-  }
-
   // Solve for each load increment
   PetscInt increment;
   for (increment = 1; increment <= app_ctx->num_increments; increment++) {
@@ -758,7 +749,6 @@ int main(int argc, char **argv) {
     ierr = SNESGetConvergedReason(snes, &reason); CHKERRQ(ierr);
     if (reason < 0)
       break;
-
     if (app_ctx->energy_viewer) {
       // -- Log strain energy for current load increment
       CeedScalar energy;
@@ -775,8 +765,6 @@ int main(int argc, char **argv) {
                                     energy); CHKERRQ(ierr);
     }
   }
-  // ierr = PetscViewerPopFormat(energy_viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&energy_viewer); CHKERRQ(ierr);
 
   // Timing
   elapsed_time = MPI_Wtime() - start_time;
