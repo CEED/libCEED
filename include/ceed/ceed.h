@@ -123,8 +123,21 @@
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
-/// Scalar (floating point) type
+
+/// Scalar (floating point) types
+///
 /// @ingroup Ceed
+typedef enum {
+  /// Single precision
+  CEED_SCALAR_FP32,
+  /// Double precision
+  CEED_SCALAR_FP64,
+} CeedScalarType;
+/// Base scalar type for the library to use
+/// @ingroup Ceed
+#ifndef CEED_SCALAR_TYPE
+#define CEED_SCALAR_TYPE CEED_SCALAR_FP64
+#endif
 typedef double CeedScalar;
 
 /// Library context created by CeedInit()
