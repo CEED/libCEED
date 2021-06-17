@@ -21,6 +21,12 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, a);
   CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, a);
 
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(y, type);
+  }
   CeedVectorAXPY(y, -0.5, x);
 
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &b);

@@ -23,6 +23,12 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, a);
 
   // Test multiplying two vectors into third
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(w, type);
+  }
   CeedVectorPointwiseMult(w, x, y);
   CeedVectorGetArrayRead(w, CEED_MEM_HOST, &b);
   for (CeedInt i=0; i<n; i++)
@@ -53,6 +59,12 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(w, &b);
 
   // Test multiplying vector by itself and putting product into self
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(y, type);
+  }
   CeedVectorPointwiseMult(y, y, y);
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &b);
   for (CeedInt i=0; i<n; i++)
