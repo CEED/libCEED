@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
   // Taking array should return a
   CeedVectorTakeArray(x, CEED_MEM_HOST, &c);
-  if (fabs(c[3] + 3.14) > 1E-15)
+  if (fabs(c[3] + 3.14) > 10.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("Error taking array c[3] = %f", (CeedScalar)c[3]);
   // LCOV_EXCL_STOP
@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   b[5] = -3.14;
   CeedVectorRestoreArray(x, &b);
 
-  if (fabs(a[5] + 3.14) < 1E-15)
+  if (fabs(a[5] + 3.14) < 10.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("Error protecting array a[3] = %f", (CeedScalar)a[3]);
   // LCOV_EXCL_STOP

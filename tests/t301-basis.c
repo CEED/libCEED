@@ -12,11 +12,11 @@ int main(int argc, char **argv) {
 
   CeedQRFactorization(ceed, qr, tau, 4, 3);
   for (int i=0; i<12; i++) {
-    if (qr[i] <= 1E-14 && qr[i] >= -1E-14) qr[i] = 0;
+    if (qr[i] <= 100.*CEED_EPSILON && qr[i] >= -100.*CEED_EPSILON) qr[i] = 0;
     fprintf(stdout, "%12.8f\n", qr[i]);
   }
   for (int i=0; i<3; i++) {
-    if (tau[i] <= 1E-14 && tau[i] >= -1E-14) tau[i] = 0;
+    if (tau[i] <= 100.*CEED_EPSILON && tau[i] >= -100.*CEED_EPSILON) tau[i] = 0;
     fprintf(stdout, "%12.8f\n", tau[i]);
   }
   CeedDestroy(&ceed);

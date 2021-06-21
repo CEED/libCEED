@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<Q; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<Q; j++) {
-      if (fabs(collo_grad_1d[j+Q*i]) <= 1E-14) collo_grad_1d[j+Q*i] = 0;
+      if (fabs(collo_grad_1d[j+Q*i]) <= 100.*CEED_EPSILON) collo_grad_1d[j+Q*i] = 0;
       fprintf(stdout, "\t% 12.8f", collo_grad_1d[j+Q*i]);
     }
     fprintf(stdout, "\n");
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<Q; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<Q; j++) {
-      if (fabs(collo_grad_1d[j+Q*i]) <= 1E-14) collo_grad_1d[j+Q*i] = 0;
+      if (fabs(collo_grad_1d[j+Q*i]) <= 100.*CEED_EPSILON) collo_grad_1d[j+Q*i] = 0;
       fprintf(stdout, "\t% 12.8f", collo_grad_1d[j+Q*i]);
     }
     fprintf(stdout, "\n");
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<P+2; i++) {
     fprintf(stdout, "%12s[%d]:", "collograd1d", i);
     for (int j=0; j<P+2; j++) {
-      if (fabs(collo_grad_1d_2[j+(P+2)*i]) <= 1E-14) collo_grad_1d_2[j+(P+2)*i] = 0;
+      if (fabs(collo_grad_1d_2[j+(P+2)*i]) <= 100.*CEED_EPSILON) collo_grad_1d_2[j+(P+2)*i] = 0;
       fprintf(stdout, "\t% 12.8f", collo_grad_1d_2[j+(P+2)*i]);
     }
     fprintf(stdout, "\n");

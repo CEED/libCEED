@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<num_dofs; i++)
-    if (fabs(hv[i])>1e-14) printf("Computed: %f != True: 0.0\n", hv[i]);
+    if (fabs(hv[i])>100.*CEED_EPSILON) printf("Computed: %f != True: 0.0\n", hv[i]);
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Cleanup
