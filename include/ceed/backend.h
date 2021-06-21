@@ -28,9 +28,7 @@
 
 #define CEED_MAX_RESOURCE_LEN 1024
 #define CEED_MAX_BACKEND_PRIORITY UINT_MAX
-#define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
-#define CEED_EPSILON 1E-16
 
 /// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & macros
 #ifndef CEED_DEBUG_COLOR

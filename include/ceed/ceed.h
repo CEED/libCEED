@@ -131,14 +131,11 @@ typedef enum {
   /// Single precision
   CEED_SCALAR_FP32,
   /// Double precision
-  CEED_SCALAR_FP64,
+  CEED_SCALAR_FP64
 } CeedScalarType;
-/// Base scalar type for the library to use
-/// @ingroup Ceed
-#ifndef CEED_SCALAR_TYPE
-#define CEED_SCALAR_TYPE CEED_SCALAR_FP64
-#endif
-typedef double CeedScalar;
+/// Base scalar type for the library to use: change which header is 
+/// included to change the precision.
+#include <ceed/ceed-f64.h>
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
