@@ -31,9 +31,9 @@
 // Blocked Tensor Contract
 //------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1; t_stride_1 = J;
@@ -89,9 +89,9 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract,
 // Serial Tensor Contract Remainder
 //------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1; t_stride_1 = J;
@@ -129,7 +129,7 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
     // Remainder of rows, all columns
     for (CeedInt j=J_break; j<J; j++)
       for (CeedInt b=0; b<B; b++) {
-        CeedScalar tq = t[j*t_stride_0 + b*t_stride_1];
+        double tq = t[j*t_stride_0 + b*t_stride_1];
         for (CeedInt c=(C/CC)*CC; c<C; c++)
           v[(a*J+j)*C+c] += tq * u[(a*B+b)*C+c];
       }
@@ -141,9 +141,9 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract,
 // Serial Tensor Contract C=1
 //------------------------------------------------------------------------------
 static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v, const CeedInt AA, const CeedInt JJ) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v, const CeedInt AA, const CeedInt JJ) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1; t_stride_1 = J;
@@ -230,7 +230,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
   // Remainder of rows, all columns
   for (CeedInt b=0; b<B; b++) {
     for (CeedInt j=(J/JJ)*JJ; j<J; j++) {
-      CeedScalar tq = t[j*t_stride_0 + b*t_stride_1];
+      double tq = t[j*t_stride_0 + b*t_stride_1];
       for (CeedInt a=A_break; a<A; a++)
         v[a*J+j] += tq * u[a*B+b];
     }
@@ -242,23 +242,23 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract,
 // Tensor Contract - Common Sizes
 //------------------------------------------------------------------------------
 static int CeedTensorContract_Avx_Blocked_4_8(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v) {
   return CeedTensorContract_Avx_Blocked(contract, A, B, C, J, t, t_mode, add, u,
                                         v, 4, 8);
 }
 static int CeedTensorContract_Avx_Remainder_8_8(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v) {
   return CeedTensorContract_Avx_Remainder(contract, A, B, C, J, t, t_mode, add,
                                           u, v, 8, 8);
 }
 static int CeedTensorContract_Avx_Single_4_8(CeedTensorContract contract,
-    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-    CeedScalar *restrict v) {
+    CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
+    CeedTransposeMode t_mode, const CeedInt add, const double *restrict u,
+    double *restrict v) {
   return CeedTensorContract_Avx_Single(contract, A, B, C, J, t, t_mode, add, u,
                                        v, 4, 8);
 }
@@ -268,16 +268,16 @@ static int CeedTensorContract_Avx_Single_4_8(CeedTensorContract contract,
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A,
                                        CeedInt B, CeedInt C, CeedInt J,
-                                       const CeedScalar *restrict t,
+                                       const double *restrict t,
                                        CeedTransposeMode t_mode,
                                        const CeedInt add,
-                                       const CeedScalar *restrict u,
-                                       CeedScalar *restrict v) {
+                                       const double *restrict u,
+                                       double *restrict v) {
   const CeedInt blk_size = 8;
 
   if (!add)
     for (CeedInt q=0; q<A*J*C; q++)
-      v[q] = (CeedScalar) 0.0;
+      v[q] = (double) 0.0;
 
   if (C == 1) {
     // Serial C=1 Case

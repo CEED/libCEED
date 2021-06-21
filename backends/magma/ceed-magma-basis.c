@@ -257,6 +257,10 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     }
     ceed_magma_queue_sync( data->queue );
   }
+  // For now, this code will only be used if CEED_SCALAR_TYPE is FP64
+  // (DGEMM only). A non-tensor basis is only available for creation
+  // when using FP64, so this routine should never be called with
+  // a different type.
   switch (emode) {
   case CEED_EVAL_INTERP: {
     CeedInt P = ndof, Q = nqpt;

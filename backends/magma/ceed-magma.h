@@ -213,9 +213,9 @@ CEED_INTERN {
   int magma_dgemm_nontensor(
     magma_trans_t transA, magma_trans_t transB,
     magma_int_t m, magma_int_t n, magma_int_t k,
-    CeedScalar alpha, const CeedScalar *dA, magma_int_t ldda,
-    const CeedScalar *dB, magma_int_t lddb,
-    CeedScalar beta,  CeedScalar *dC, magma_int_t lddc,
+    double alpha, const double *dA, magma_int_t ldda,
+    const double *dB, magma_int_t lddb,
+    double beta,  double *dC, magma_int_t lddc,
     magma_queue_t queue );
 
   magma_int_t
