@@ -24,8 +24,7 @@
 #include <ceed/ceed.h>
 
 /// Set base scalar type to FP32.  (See CeedScalarType enum in ceed/ceed.h
-/// for all options.)ase scalar type for the library to use: change which header is 
-/// included to change the precision.
+/// for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP32
 typedef float CeedScalar;
 
