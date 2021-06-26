@@ -1241,6 +1241,10 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
   // LCOV_EXCL_STOP
 
   for (CeedInt i=0; i<n; i++) {
+    if (i >= m-1) { // last row of matrix, no reflection needed
+      tau[i] = 0.;
+      break;
+    }
     // Calculate Householder vector, magnitude
     CeedScalar sigma = 0.0;
     v[i] = mat[i+n*i];
