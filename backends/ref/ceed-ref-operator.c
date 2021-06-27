@@ -909,7 +909,7 @@ static inline int CeedOperatorAssembleAddDiagonalCore_Ref(CeedOperator op,
   ierr = CeedBasisGetGrad(basis_out, &grad_out); CeedChkBackend(ierr);
   // Compute the diagonal of B^T D B
   // Each element
-  const CeedScalar qf_value_bound = max_norm*(100*CEED_EPSILON);
+  const CeedScalar qf_value_bound = max_norm*100*CEED_EPSILON;
   for (CeedInt e=0; e<num_elem; e++) {
     CeedInt d_out = -1;
     // Each basis eval mode pair
@@ -1168,13 +1168,13 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   ierr = CeedVectorGetArrayRead(q_weight, CEED_MEM_HOST, &q_weight_array);
   CeedChkBackend(ierr);
   ierr = CeedCalloc(num_elem, &elem_avg); CeedChkBackend(ierr);
+  const CeedScalar qf_value_bound = max_norm*100*CEED_EPSILON;
   for (CeedInt e=0; e<num_elem; e++) {
     CeedInt count = 0;
     CeedInt elem_offset = e*num_qpts*num_comp*num_comp*num_modes*num_modes;
     for (CeedInt q=0; q<num_qpts; q++)
       for (CeedInt i=0; i<num_comp*num_comp*num_modes*num_modes; i++)
-        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > max_norm*
-            (100*CEED_EPSILON)) {
+        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > qf_value_bound) {
           elem_avg[e] += assembled_array[elem_offset + i*num_qpts + q] /
                          q_weight_array[q];
           count++;
@@ -1196,6 +1196,7 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
   CeedVector q_data;
   CeedScalar *q_data_array, *fdm_diagonal;
   ierr = CeedCalloc(num_comp*elem_size, &fdm_diagonal); CeedChkBackend(ierr);
+  const CeedScalar fdm_diagonal_bound = elem_size*CEED_EPSILON;
   for (CeedInt c=0; c<num_comp; c++)
     for (CeedInt n=0; n<elem_size; n++) {
       if (interp)
@@ -1205,8 +1206,8 @@ int CeedOperatorCreateFDMElementInverse_Ref(CeedOperator op,
           CeedInt i = (n / CeedIntPow(P_1d, d)) % P_1d;
           fdm_diagonal[c*elem_size + n] += lambda[i];
         }
-      if (fabs(fdm_diagonal[c*elem_size + n]) < 1000*CEED_EPSILON)
-        fdm_diagonal[c*elem_size + n] = 1000*CEED_EPSILON;
+      if (fabs(fdm_diagonal[c*elem_size + n]) < fdm_diagonal_bound)
+        fdm_diagonal[c*elem_size + n] = fdm_diagonal_bound;
     }
   ierr = CeedVectorCreate(ceed_parent, num_elem*num_comp*elem_size, &q_data);
   CeedChkBackend(ierr);
