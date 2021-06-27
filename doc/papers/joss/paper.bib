@@ -46,9 +46,10 @@
              Thompson, Jeremy and
              Tomboulides, Ananias and
              Tomov, Vladimir},
-  title   = {Efficient Exascale Discretizations},
-  journal = {The International Journal of High Performance Computing Applications, in review},
-  year    = {2021}
+  title   = {Efficient Exascale Discretizations: High-Order Finite Element Methods},
+  journal = {International Journal of High Performance Computing Applications},
+  year    = {2021},
+  doi     = {10.1177/10943420211020803}
 }
 
 @misc{CEEDMS25,
@@ -118,13 +119,13 @@
 @misc{CEEDwebsite,
   title = "CEED",
   url = "https://ceed.exascaleproject.org/",
-  year = "2020"
+  year = "2021"
 }
 
 @misc{CUDAwebsite,
   title = "CUDA",
   url = "https://developer.nvidia.com/about-cuda",
-  year = "2020"
+  year = "2021"
 }
 
 @article{Fischer2020scalability,
@@ -145,7 +146,7 @@
 @misc{HIPwebsite,
   title = "HIP",
   url = "https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP-GUIDE.html",
-  year = "2020"
+  year = "2021"
 }
 
 @article{Julia-lang,
@@ -196,19 +197,19 @@
 @misc{LIBXSMM,
   title = "{LIBXSMM development site}",
   url = "http://github.com/hfp/libxsmm",
-  year = "2020"
+  year = "2021"
 }
 
 @misc{MAGMAwebsite,
   title = "{MAGMA development site}",
   url = "https://bitbucket.org/icl/magma",
-  year = "2020"
+  year = "2021"
 }
 
 @misc{MFEMlibrary,
   title = "{MFEM}: {Modular Finite Element Methods Library}",
   url = "https://mfem.org/",
-  year = "2020",
+  year = "2021",
   doi = "10.11578/dc.20171025.1248"
 }
 
@@ -225,7 +226,7 @@
 @misc{Nekwebsite,
   title = "Nek5000",
   url = "https://nek5000.mcs.anl.gov/",
-  year = "2020"
+  year = "2021"
 }
 
 @inproceedings{Numba,
@@ -270,13 +271,13 @@ series = {LLVM '15}
 @misc{NVRTCwebsite,
   title = "NVRTC",
   url = "https://docs.nvidia.com/cuda/nvrtc/index.html",
-  year = "2020"
+  year = "2021"
 }
 
 @misc{OCCAwebsite,
   title = "{OCCA} development site",
   url = "http://github.com/libocca/occa",
-  year = "2020"
+  year = "2021"
 }
 
 @article{Orszag:1980,
@@ -297,26 +298,26 @@ series = {LLVM '15}
             and Barry~F. Smith and Stefano Zampini and Hong Zhang and Hong Zhang},
   title  = {{PETS}c Users Manual},
   institution = {Argonne National Laboratory},
-  year   = 2020,
-  number = {ANL-95/11 - Revision 3.13}
+  year   = 2021,
+  number = {ANL-95/11 - Revision 3.15}
 }
 
 @misc{Python-lang,
   title = "Python",
   url = "https://www.python.org/",
-  year = "2020",
+  year = "2021",
 }
 
 @misc{Rust-lang,
   title = "Rust",
   url = "https://www.rust-lang.org/",
-  year = "2020",
+  year = "2021",
 }
 
 @misc{python-cffi,
   title = "C Foreign Function Interface for {Python}",
   url = "https://cffi.readthedocs.io",
-  year = "2020",
+  year = "2021",
 }
 
 @article{straka1993numerical,
@@ -357,13 +358,16 @@ series = {LLVM '15}
   year = 2006,
   doi = {10.1007/s00366-006-0049-3}
 }
-
 @book{LoggMardalWells2012,
-  title  = {Automated solution of differential equations by the finite element method: The FEniCS book},
-  author = {Logg, Anders and Mardal, Kent-Andre and Wells, Garth},
+  title  = {Automated solution of differential equations by the finite element method: The {FEniCS} book},
+  title = {Automated Solution of Differential Equations by the Finite Element Method},
+  author = {Anders Logg and Kent-Andre Mardal and Garth N. Wells and others},
+  editor = {Anders Logg and Kent-Andre Mardal and Garth N. Wells},
   volume = {84},
-  year   = {2012},
-  publisher = {Springer Science \& Business Media}
+  year = {2012},
+  publisher = {Springer},
+  doi = {10.1007/978-3-642-23099-8},
+  isbn = {978-3-642-23098-1}
 }
 
 @article{dealII92,
@@ -388,4 +392,50 @@ series = {LLVM '15}
   author={Karl Rupp},
   url={https://github.com/karlrupp/cpu-gpu-mic-comparison},
   year={2020}
+}
+
+@article{williams2009roofline,
+  title={Roofline: an insightful visual performance model for multicore architectures},
+  author={Williams, Samuel and Waterman, Andrew and Patterson, David},
+  journal={Communications of the ACM},
+  volume={52},
+  number={4},
+  pages={65--76},
+  year={2009},
+  publisher={ACM},
+  doi={10.1145/1498765.1498785}
+}
+
+@article{babuska1994hpfem,
+  title={The $p$ and $h-p$ versions of the finite element method, basic principles and properties},
+  author={Babu{\v{s}}ka, Ivo and Suri, Manil},
+  journal={SIAM Review},
+  volume={36},
+  number={4},
+  pages={578--632},
+  year={1994},
+  publisher={SIAM},
+  doi={10.1137/1036141}
+}
+
+@article{lottes2005hms,
+  title={Hybrid Multigrid/{Schwarz} Algorithms for the Spectral Element Method},
+  author={Lottes, J.W. and Fischer, P.F.},
+  journal={Journal of Scientific Computing},
+  volume={24},
+  number={1},
+  pages={45--78},
+  year={2005},
+  publisher={Springer},
+  doi={10.1007/s10915-004-4787-3}
+}
+
+@article{zhang2021petscsf,
+  title={The {PetscSF} Scalable Communication Layer},
+  author={Zhang, Junchao and Brown, Jed and Balay, Satish and Faibussowitsch, Jacob and Knepley, Matthew and Marin, Oana and Mills, Richard Tran and Munson, Todd and Smith, Barry F and Zampini, Stefano},
+  journal={IEEE Transactions on Parallel and Distributed Systems},
+  archivePrefix={arXiv},
+  eprint={2102.13018},
+  year={2021},
+  doi={10.1109/TPDS.2021.3084070}
 }
