@@ -19,6 +19,7 @@ New features
 ^^^^^^^^^^^^
 * Add :c:func:`CeedVectorAXPY` and :c:func:`CeedVectorPointwiseMult` as a convenience for stand-alone testing and internal use.
 * Add `CEED_QFUNCTION_HELPER` macro to properly annotate QFunction helper functions for code generation backends.
+* Add `CeedPragmaOptimizeOff` macro for code that is sensitive to floating point errors from fast math optimizations.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^

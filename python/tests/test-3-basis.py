@@ -101,29 +101,19 @@ def test_301(ceed_resource, capsys):
 def test_304(ceed_resource, capsys):
     ceed = libceed.Ceed(ceed_resource)
 
-    A = np.array([0.19996678, 0.0745459, -0.07448852, 0.0332866,
-                  0.0745459, 1., 0.16666509, -0.07448852,
-                  -0.07448852, 0.16666509, 1., 0.0745459,
-                  0.0332866, -0.07448852, 0.0745459, 0.19996678], dtype="float64")
+    A = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
+                  0.0745355993, 1., 0.1666666667, -0.0745355993,
+                  -0.0745355993, 0.1666666667, 1., 0.0745355993,
+                  0.0333333333, -0.0745355993, 0.0745355993, 0.2], dtype="float64")
 
-    lam = ceed.symmetric_schur_decomposition(A, 4)
+    Q = A.copy()
 
-    print("Q: ")
-    for i in range(4):
-        for j in range(4):
-            if A[j + 4 * i] <= TOL and A[j + 4 * i] >= -TOL:
-                A[j + 4 * i] = 0
-            print("%12.8f" % A[j + 4 * i])
+    lam = ceed.symmetric_schur_decomposition(Q, 4)
+    Q = Q.reshape(4, 4)
+    lam = np.diag(lam)
 
-    print("lambda: ")
-    for i in range(4):
-        if lam[i] <= TOL and lam[i] >= -TOL:
-            lam[i] = 0
-        print("%12.8f" % lam[i])
-
-    stdout, stderr, ref_stdout = check.output(capsys)
-    assert not stderr
-    assert stdout == ref_stdout
+    Q_lambda_Qt = np.matmul(np.matmul(Q, lam), Q.T)
+    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < 1E-14
 
 # -------------------------------------------------------------------------------
 # Test Simultaneous Diagonalization
@@ -133,33 +123,27 @@ def test_304(ceed_resource, capsys):
 def test_305(ceed_resource, capsys):
     ceed = libceed.Ceed(ceed_resource)
 
-    M = np.array([0.19996678, 0.0745459, -0.07448852, 0.0332866,
-                  0.0745459, 1., 0.16666509, -0.07448852,
-                  -0.07448852, 0.16666509, 1., 0.0745459,
-                  0.0332866, -0.07448852, 0.0745459, 0.19996678], dtype="float64")
-    K = np.array([3.03344425, -3.41501767, 0.49824435, -0.11667092,
-                  -3.41501767, 5.83354662, -2.9167733, 0.49824435,
-                  0.49824435, -2.9167733, 5.83354662, -3.41501767,
-                  -0.11667092, 0.49824435, -3.41501767, 3.03344425], dtype="float64")
+    M = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
+                  0.0745355993, 1., 0.1666666667, -0.0745355993,
+                  -0.0745355993, 0.1666666667, 1., 0.0745355993,
+                  0.0333333333, -0.0745355993, 0.0745355993, 0.2], dtype="float64")
+    K = np.array([3.0333333333, -3.4148928136, 0.4982261470, -0.1166666667,
+                  -3.4148928136, 5.8333333333, -2.9166666667, 0.4982261470,
+                  0.4982261470, -2.9166666667, 5.8333333333, -3.4148928136,
+                  -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333], dtype="float64")
 
-    x, lam = ceed.simultaneous_diagonalization(K, M, 4)
+    X, lam = ceed.simultaneous_diagonalization(K, M, 4)
+    X = X.reshape(4, 4)
+    np.diag(lam)
 
-    print("x: ")
-    for i in range(4):
-        for j in range(4):
-            if x[j + 4 * i] <= TOL and x[j + 4 * i] >= -TOL:
-                x[j + 4 * i] = 0
-            print("%12.8f" % x[j + 4 * i])
+    M = M.reshape(4, 4)
+    K = K.reshape(4, 4)
 
-    print("lambda: ")
-    for i in range(4):
-        if lam[i] <= TOL and lam[i] >= -TOL:
-            lam[i] = 0
-        print("%12.8f" % lam[i])
+    Xt_M_X = np.matmul(X.T, np.matmul(M, X))
+    assert np.max(Xt_M_X - np.identity(4)) < 1E-14
 
-    stdout, stderr, ref_stdout = check.output(capsys)
-    assert not stderr
-    assert stdout == ref_stdout
+    Xt_K_X = np.matmul(X.T, np.matmul(K, X))
+    assert np.max(Xt_K_X - lam) < 1E-14
 
 # -------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis
