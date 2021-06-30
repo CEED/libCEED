@@ -385,14 +385,23 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-energy
 
-      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (J - 1)^2,
+      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (\log J)^2,
 
    which we differentiate as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
    .. math::
       :label: mooney-rivlin-stress
 
+<<<<<<< HEAD
       \bm S = \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1} ,
+=======
+      \begin{aligned}
+      \bm S &= \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1\log J \bm C^{-1}\\
+      &= \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1\log J \bm C^{-1}.
+      \end{aligned}
+
+   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, which is
+>>>>>>> solids/doc: added derivation of dS for MR
 
    The derivative of :math:numref:`mooney-rivlin-stress`, :math:`dS`, is
    .. math::
@@ -402,6 +411,59 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
         + k_1 \left( (J^2 -J)(-2\bm C^{-1}\diff \bm E \bm C^{-1}) + J\bm C^{-2}(2J -1)\right)
    which can be used in the Newton linearization. 
 
+<<<<<<< HEAD
+=======
+      \begin{aligned}
+      \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
+                 & + k_1(\bm{C}^{-1} \!:\! \diff \bm E)\bm{C}^{-1} - 2k_1(\log J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
+      \end{aligned}
+
+   where we have used :math:`\frac{\partial \bm{C}^{-1}}{\partial \bm{E}} \!:\! \diff \bm{E} = -2\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}`, and
+
+   .. math::
+      \begin{aligned}
+      \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{2}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} - \frac{4}{3} J^{-2/3} \Big(\operatorname{trace}(\diff \bm E)\bm{C}^{-1} - \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big) \\
+      \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{4}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_2}}{\partial \bm E}  + 4 J^{-4/3} \Big( \operatorname{trace}(\diff \bm E)\bm{I}_{3} - \diff \bm E \Big)\\
+      & - \frac{8}{3} J^{-4/3}\Big[\Big(\operatorname{trace}(\diff \bm E) \mathbb{I_1} - (\bm{C} \!:\! \diff \bm E) \Big) \bm{C}^{-1} - \mathbb{I_2}\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big]
+      \end{aligned}
+   
+.. dropdown:: Mooney-Rivlin strain energy comparison
+
+   We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
+
+   .. altair-plot::
+
+      import altair as alt
+      import pandas as pd
+      nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      nh["model"] = "Neo-Hookean"
+      nh["parameters"] = "E=10, nu=.4"
+      print(nh)
+
+      # TODO: read MR-strain.csv and use correct parameters
+      mr = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      mr["model"] = "Mooney-Rivlin"
+      mr["parameters"] = "mu_1=4, mu_2=4, K=20"
+      mr["energy"] *= 1.1 # FIXME
+
+      df = pd.concat([nh, mr])
+      highlight = alt.selection_single(
+         on = "mouseover",
+         nearest = True,
+         fields=["model", "parameters"],
+      )
+      base = alt.Chart(df).encode(
+         alt.X("increment"),
+         alt.Y("energy", scale=alt.Scale(type="sqrt")),
+         alt.Color("model"),
+         alt.Tooltip(("model", "parameters")),
+         opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
+         size=alt.condition(highlight, alt.value(2), alt.value(1)),
+      )
+      base.mark_point().add_selection(highlight) + base.mark_line()
+   
+.. dropdown:: Generalized Polynomial model
+>>>>>>> solids/doc: added derivation of dS for MR
 
 .. admonition:: Generalized Polynomial model
    :class: dropdown
