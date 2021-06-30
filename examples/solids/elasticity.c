@@ -47,8 +47,10 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         app_ctx;                  // Contains problem options
-  Physics        phys = NULL;              // Contains physical constants - Neo Hookean
-  Physics_MR     phys_MR = NULL;           // Contains physical constants - Mooney-Rivlin
+  Physics        phys =
+    NULL;              // Contains physical constants - Neo Hookean
+  Physics_MR     phys_MR =
+    NULL;           // Contains physical constants - Mooney-Rivlin
   //Physics_GP     phys_GP = NULL;           // Contains physical constants - Generalized Polynomial
   Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
   Units          units;                    // Contains units scaling
@@ -94,22 +96,23 @@ int main(int argc, char **argv) {
   num_levels = app_ctx->num_levels;
   fine_level = num_levels - 1;
 
-  if (app_ctx->problem_choice != ELAS_FSInitial_MR1){
+  if (app_ctx->problem_choice != ELAS_FSInitial_MR1) {
     // -- Set Poison's ratio, Young's Modulus
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
-    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
+    CHKERRQ(ierr);
     if (fabs(app_ctx->nu_smoother) > 1E-14) {
       ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
       ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
       phys_smoother->nu = app_ctx->nu_smoother;
     }
-  }
-  else{
+  } else {
     // -- Set Mooney-Rivlin parameters
     ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
+    CHKERRQ(ierr);
   }
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -123,7 +126,7 @@ int main(int argc, char **argv) {
 
   // Wrap context in libCEED objects
   CeedQFunctionContextCreate(ceed, &ctx_phys);
-  switch (app_ctx->problem_choice){
+  switch (app_ctx->problem_choice) {
   case ELAS_LINEAR:
     CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
                                 sizeof(*phys), phys);
@@ -742,12 +745,12 @@ int main(int argc, char **argv) {
     ierr = SNESGetConvergedReason(snes, &reason); CHKERRQ(ierr);
     if (reason < 0)
       break;
-    
+
     if (app_ctx->energy_viewer) {
       // -- Log strain energy for current load increment
       CeedScalar energy;
       ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
-                               U, &energy); CHKERRQ(ierr);
+                                 U, &energy); CHKERRQ(ierr);
 
       if (!app_ctx->test_mode) {
         // -- Output
@@ -755,7 +758,8 @@ int main(int argc, char **argv) {
                            "    Strain Energy                      : %.12e\n",
                            energy); CHKERRQ(ierr);
       }
-      ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", load_increment, energy); CHKERRQ(ierr);
+      ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", load_increment,
+                                    energy); CHKERRQ(ierr);
     }
   }
 

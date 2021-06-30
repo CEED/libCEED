@@ -46,11 +46,11 @@ struct Physics_private {
 #define PHYSICS_STRUCT_MR
 typedef struct Physics_private_MR *Physics_MR;
 
-struct Physics_private_MR { 
+struct Physics_private_MR {
   //material properties for MR
-  CeedScalar mu_1; // 
-  CeedScalar mu_2; // 
-  CeedScalar k_1; // 
+  CeedScalar mu_1; //
+  CeedScalar mu_2; //
+  CeedScalar k_1; //
 };
 #endif
 
@@ -61,7 +61,7 @@ struct Physics_private_MR {
 #define PHYSICS_STRUCT_GP
 typedef struct Physics_private_GP *Physics_GP;
 
-struct Physics_private_GP { 
+struct Physics_private_GP {
   CeedScalar   nu;      // Poisson's ratio rm
   CeedScalar   E;       // Young's Modulus rm
   //material properties for GP
@@ -263,8 +263,9 @@ static inline CeedMemType MemTypeP2C(PetscMemType mem_type) {
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
-// Process physics options; fix this to be problem specific 
-PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx, Physics phys, Physics_MR phys_MR, Units units);
+// Process physics options; fix this to be problem specific
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
+                                      Physics phys, Physics_MR phys_MR, Units units);
 
 // -----------------------------------------------------------------------------
 // Setup DM

@@ -90,7 +90,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
        app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH2 ||
        app_ctx->problem_choice == ELAS_FSInitial_MR1) &&
-       app_ctx->forcing_choice == FORCE_CONST)
+      app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "
             "Constant forcing in reference frame currently unavaliable.");
@@ -191,22 +191,25 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           "Write out final solution vector for viewing",
                           NULL, app_ctx->view_final_soln, &(app_ctx->view_final_soln),
                           NULL); CHKERRQ(ierr);
-  CHKERRQ(ierr); 
-  
+  CHKERRQ(ierr);
+
   app_ctx->energy_viewer = NULL;
   char energy_viewer_filename[PETSC_MAX_PATH_LEN] = "";
   PetscBool set;
   ierr = PetscOptionsString("-strain_energy_monitor",
-                           "Print out current strain energy at every load increment",
-                           NULL, energy_viewer_filename,
-                           energy_viewer_filename, sizeof(energy_viewer_filename),
-                           &set);CHKERRQ(ierr);
+                            "Print out current strain energy at every load increment",
+                            NULL, energy_viewer_filename,
+                            energy_viewer_filename, sizeof(energy_viewer_filename),
+                            &set); CHKERRQ(ierr);
   if (set) {
-    ierr = PetscViewerASCIIOpen(comm, energy_viewer_filename, &app_ctx->energy_viewer); CHKERRQ(ierr);
-    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "increment,energy\n"); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIOpen(comm, energy_viewer_filename,
+                                &app_ctx->energy_viewer); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "increment,energy\n");
+    CHKERRQ(ierr);
     // Initial configuration is base energy state; this may not be true if we extend in the future to
     // initially loaded configurations (because a truly at-rest initial state may not be realizable).
-    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.);
+    CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
@@ -318,7 +321,8 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
 };
 
 // Process physics options - Mooney-Rivlin
-PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units) { 
+PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
+                                 Units units) {
   PetscErrorCode ierr;
   PetscBool mu_1_Flag = PETSC_FALSE;
   PetscBool mu_2_Flag = PETSC_FALSE;
@@ -336,13 +340,16 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units)
                            "Elasticity / Hyperelasticity in PETSc with libCEED",
                            NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL, phys_MR->mu_1, &phys_MR->mu_1,
+  ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
+                            phys_MR->mu_1, &phys_MR->mu_1,
                             &mu_1_Flag); CHKERRQ(ierr);
 
-  ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL, phys_MR->mu_2, &phys_MR->mu_2,
+  ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL,
+                            phys_MR->mu_2, &phys_MR->mu_2,
                             &mu_2_Flag); CHKERRQ(ierr);
 
-  ierr = PetscOptionsScalar("-K", "Material Property K_1", NULL, phys_MR->k_1, &phys_MR->k_1,
+  ierr = PetscOptionsScalar("-K", "Material Property K_1", NULL, phys_MR->k_1,
+                            &phys_MR->k_1,
                             &k_1_Flag); CHKERRQ(ierr);
 
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
@@ -382,16 +389,14 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR, Units units)
   PetscFunctionReturn(0);
 };
 
-PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx, Physics phys, Physics_MR phys_MR, Units units){
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
+                                      Physics phys, Physics_MR phys_MR, Units units) {
   PetscErrorCode ierr;
-  if(app_ctx -> problem_choice != ELAS_FSInitial_MR1)
-    {
-      ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
-    }
-  else
-    {
-      ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
-    }
+  if(app_ctx -> problem_choice != ELAS_FSInitial_MR1) {
+    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+  } else {
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+  }
 
-    PetscFunctionReturn(0);
+  PetscFunctionReturn(0);
 };

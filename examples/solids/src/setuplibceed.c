@@ -522,21 +522,21 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     // ------ Storage: dXdx, Grad(u)
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
                                      dim*num_comp_u*num_elem*Q*Q*Q,
@@ -626,15 +626,15 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->grad_u);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
                      &data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
                      &data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
                      &data[fine_level]->grad_u);
     break;
@@ -715,13 +715,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     */
@@ -775,15 +775,15 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
@@ -831,13 +831,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     */
@@ -892,15 +892,15 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
     /*
-  case ELAS_HYPER_FS_NH:
+    case ELAS_HYPER_FS_NH:
     CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_MR:
+    case ELAS_HYPER_FS_MR:
     CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
-  case ELAS_HYPER_FS_GP:
+    case ELAS_HYPER_FS_GP:
     CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;

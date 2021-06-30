@@ -94,10 +94,10 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
-                           const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                           CeedScalar Cinvwork[6], CeedScalar dI1bar_dE[6],
-                           CeedScalar dI2bar_dE[6], CeedScalar *I_1,
-                           CeedScalar *I_2, CeedScalar *Jm1) {
+                             const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
+                             CeedScalar Cinvwork[6], CeedScalar dI1bar_dE[6],
+                             CeedScalar dI2bar_dE[6], CeedScalar *I_1,
+                             CeedScalar *I_2, CeedScalar *Jm1) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -127,7 +127,7 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
       CC[j][k] = 0;
       for (CeedInt m = 0; m < 3; m++)
         CC[j][k] += C[j][m] * C[m][k];
-      }
+    }
 
   // compute invariants
   // I_1 = trace(C)
@@ -287,7 +287,8 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // Common components of finite strain calculations
     CeedScalar Swork[6], Cinvwork[6], dI1bar_dE[6], dI2bar_dE[6], I_1, I_2, Jm1;
-    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cinvwork, dI1bar_dE, dI2bar_dE, &I_1, &I_2, &Jm1);
+    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cinvwork, dI1bar_dE, dI2bar_dE,
+               &I_1, &I_2, &Jm1);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -410,47 +411,50 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // Common components of finite strain calculations
     CeedScalar Swork[6], Cinvwork[6], dI1bar_dE[6], dI2bar_dE[6], I_1, I_2, Jm1;
-    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cinvwork, dI1bar_dE, dI2bar_dE, &I_1, &I_2, &Jm1);
+    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cinvwork, dI1bar_dE, dI2bar_dE,
+               &I_1, &I_2, &Jm1);
 
     // debugging plan below
     // Estimate dS using finite differencing
     CeedScalar epsilon = 1e-8; //
-    CeedScalar Swork2[6], Cinvwork2[6], dI1bar_dE2[6], dI2bar_dE2[6], I_12, I_22, Jm12;
+    CeedScalar Swork2[6], Cinvwork2[6], dI1bar_dE2[6], dI2bar_dE2[6], I_12, I_22,
+               Jm12;
     CeedScalar temp_graddeltau_eps[3][3]; // epsilon * graddeltau
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
         temp_graddeltau_eps[j][k] =  graddeltau[j][k] * epsilon;
-    
+
     CeedScalar temp_gradu_eps_graddeltau[3][3];
-      
+
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         temp_gradu_eps_graddeltau[j][k] = tempgradu[j][k] + temp_graddeltau_eps[j][k];
       }
-    commonFSMR(mu_1, mu_2, k_1, temp_gradu_eps_graddeltau, Swork2, Cinvwork2, dI1bar_dE2, dI2bar_dE2, &I_12, &I_22, &Jm12);
-      // dS = (Swork2 - Swork) / epsilon;
-      // Integrate: dF S + F dS
+    commonFSMR(mu_1, mu_2, k_1, temp_gradu_eps_graddeltau, Swork2, Cinvwork2,
+               dI1bar_dE2, dI2bar_dE2, &I_12, &I_22, &Jm12);
+    // dS = (Swork2 - Swork) / epsilon;
+    // Integrate: dF S + F dS
 
-      // Notes
-      // Start by testing convergence with finite differencing dS (above), skipping the analytic code below
-      // Test case for convergence:
-      // ./elasticity -mu_1 0.5 -mu_2 0 -K 10 -nu .4 -E .5 -degree 1 -dm_plex_box_faces 4,4,4 -problem FSInitial-MR1 -num_steps 1 -bc_clamp 3 -bc_traction 4 -bc_traction_4 0,0,-.1 -snes_linesearch_type cp -snes_monitor -snes_linesearch_monitor -snes_linesearch_atol 1e-30 -snes_fd -outer_ksp_converged_reason -outer_pc_type lu -outer_ksp_monitor_true_residual -outer_ksp_max_it 10 -outer_ksp_type gmres -outer_ksp_norm_type preconditioned -snes_view
-      //
-      // Linear solves should converge in 2 iterations and Newton converge quadratically. Swap in FSInitial-NH1 to compare.
-      //
-      // TO DO : finish fixing analytic version (WIP)
+    // Notes
+    // Start by testing convergence with finite differencing dS (above), skipping the analytic code below
+    // Test case for convergence:
+    // ./elasticity -mu_1 0.5 -mu_2 0 -K 10 -nu .4 -E .5 -degree 1 -dm_plex_box_faces 4,4,4 -problem FSInitial-MR1 -num_steps 1 -bc_clamp 3 -bc_traction 4 -bc_traction_4 0,0,-.1 -snes_linesearch_type cp -snes_monitor -snes_linesearch_monitor -snes_linesearch_atol 1e-30 -snes_fd -outer_ksp_converged_reason -outer_pc_type lu -outer_ksp_monitor_true_residual -outer_ksp_max_it 10 -outer_ksp_type gmres -outer_ksp_norm_type preconditioned -snes_view
+    //
+    // Linear solves should converge in 2 iterations and Newton converge quadratically. Swap in FSInitial-NH1 to compare.
+    //
+    // TO DO : finish fixing analytic version (WIP)
 
     // dS = (Swork2 - Swork) / epsilon
     CeedScalar dS2[3][3] = {{(Swork2[0] - Swork[0])/ epsilon, (Swork2[5] - Swork[5])/ epsilon, (Swork2[4] - Swork[4])/ epsilon},
-                           {(Swork2[5] - Swork[5])/ epsilon, (Swork2[1] - Swork[1])/ epsilon, (Swork2[3] - Swork[3])/ epsilon},
-                           {(Swork2[4] - Swork[4])/ epsilon, (Swork2[3] - Swork[3])/ epsilon, (Swork2[2] - Swork[2])/ epsilon}
-                          };
+      {(Swork2[5] - Swork[5])/ epsilon, (Swork2[1] - Swork[1])/ epsilon, (Swork2[3] - Swork[3])/ epsilon},
+      {(Swork2[4] - Swork[4])/ epsilon, (Swork2[3] - Swork[3])/ epsilon, (Swork2[2] - Swork[2])/ epsilon}
+    };
     // Second Piola-Kirchhoff (S)
     const CeedScalar S2[3][3] = {{Swork2[0], Swork2[5], Swork2[4]},
-                                {Swork2[5], Swork2[1], Swork2[3]},
-                                {Swork2[4], Swork2[3], Swork2[2]}
-                               };
-    
+      {Swork2[5], Swork2[1], Swork2[3]},
+      {Swork2[4], Swork2[3], Swork2[2]}
+    };
+
     // dP = dPdF:dF = dF*S + F*dS
     CeedScalar dP[3][3];
     for (CeedInt j = 0; j < 3; j++)
@@ -565,8 +569,8 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-            CC[j][k] += C[j][m] * C[m][k];
-        }
+          CC[j][k] += C[j][m] * C[m][k];
+      }
 
     CeedScalar J = Jm1 + 1;
     // compute invariants
@@ -581,7 +585,8 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
 
 
     // Strain energy Phi(E) for Moony-Rivlin
-    energy[i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(Jm1)*(Jm1)) * wdetJ; //0.5*k_1*(log(J))*(log(J))) * wdetJ;// 
+    energy[i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(Jm1)*
+                 (Jm1)) * wdetJ; //0.5*k_1*(log(J))*(log(J))) * wdetJ;//
 
   } // End of Quadrature Point Loop
 
@@ -695,8 +700,8 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-            CC[j][k] += C[j][m] * C[m][k];
-        }
+          CC[j][k] += C[j][m] * C[m][k];
+      }
 
     CeedScalar J = Jm1 + 1;
     // compute invariants
@@ -711,7 +716,8 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
 
 
     // Strain energy
-    diagnostic[7][i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(Jm1)*(Jm1));
+    diagnostic[7][i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*
+                        (Jm1)*(Jm1));
 
   } // End of Quadrature Point Loop
 
