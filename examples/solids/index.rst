@@ -384,7 +384,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-energy
 
-      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (J - 1)^2,
+      \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \frac{\mu_1}{2} (\mathbb{\bar I_1} - 3) + \frac{\mu_2}{2} (\mathbb{\bar I_2} - 3) + \frac{k_1}{2} (\log J)^2,
 
    which we differentiate as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
@@ -392,8 +392,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       :label: mooney-rivlin-stress
 
       \begin{aligned}
-      \bm S &= \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1(J^2 -J)\bm C^{-1}\\
-      &= \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1(J^2 -J)\bm C^{-1}.
+      \bm S &= \frac{1}{2} \mu_1 \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + \frac{1}{2} \mu_2 \frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + k_1\log J \bm C^{-1}\\
+      &= \mu _1 J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) + \mu _2 J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + k_1\log J \bm C^{-1}.
       \end{aligned}
 
    For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress`, :math:`\diff \bm{S}`, which is
@@ -403,19 +403,16 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       \begin{aligned}
       \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E = & \frac{1}{2}\mu_1 \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{1}{2}\mu_2 \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E \\
-                 & + k_1(2J^2-J)(\bm{C}^{-2} \!:\! \diff \bm E)\bm{I}_{3} - 2k_1(J^2-J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
+                 & + k_1(\bm{C}^{-1} \!:\! \diff \bm E)\bm{C}^{-1} - 2k_1(\log J) \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}, \\
       \end{aligned}
 
    where we have used :math:`\frac{\partial \bm{C}^{-1}}{\partial \bm{E}} \!:\! \diff \bm{E} = -2\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1}`, and
 
    .. math::
-   
-      \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E = \frac{4}{3} J^{-2/3} \mathbb{I_1} \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} - \frac{2}{3} \Big(\frac{\partial \mathbb{\bar I_1}}{\partial \bm E} + 2J^{-2/3}\bm{I}_3 \Big) \bm{C}^{-1} \!:\! \diff \bm E
-   
-   .. math::
       \begin{aligned}
-      \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E = & \frac{8}{3} J^{-4/3} \mathbb{I_2} \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} - \frac{4}{3} \Big(\frac{\partial \mathbb{\bar I_2}}{\partial \bm E} + 2J^{-4/3} \mathbb{I_1} \bm{I}_3 \Big) \bm{C}^{-1} \!:\! \diff \bm E \\
-      & + 4J^{-4/3}\Big(\frac{5}{3}\operatorname{trace}(\diff \bm E) \bm{I}_3 - \diff \bm E \Big)
+      \frac{\partial^2 \mathbb{\bar I_1}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{2}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_1}}{\partial \bm E} - \frac{4}{3} J^{-2/3} \Big(\operatorname{trace}(\diff \bm E)\bm{C}^{-1} - \bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big) \\
+      \frac{\partial^2 \mathbb{\bar I_2}}{\partial \bm E^2}\!:\! \diff \bm E =& -\frac{4}{3} (\bm{C}^{-1} \!:\! \diff \bm E) \frac{\partial \mathbb{\bar I_2}}{\partial \bm E}  + 4 J^{-4/3} \Big( \operatorname{trace}(\diff \bm E)\bm{I}_{3} - \diff \bm E \Big)\\
+      & - \frac{8}{3} J^{-4/3}\Big[\Big(\operatorname{trace}(\diff \bm E) \mathbb{I_1} - (\bm{C} \!:\! \diff \bm E) \Big) \bm{C}^{-1} - \mathbb{I_2}\bm{C}^{-1} \diff \bm{E} \bm{C}^{-1} \Big]
       \end{aligned}
    
 .. dropdown:: Mooney-Rivlin strain energy comparison
