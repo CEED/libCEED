@@ -89,8 +89,12 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
        app_ctx->problem_choice == ELAS_FSInitial_NH2 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH2 ||
+<<<<<<< HEAD
        app_ctx->problem_choice == ELAS_FSInitial_MR1 ||
        app_ctx->problem_choice == ELAS_FSInitial_MRc) &&
+=======
+       app_ctx->problem_choice == ELAS_FSInitial_MR1) &&
+>>>>>>> fixed style
       app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "
@@ -393,11 +397,18 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
 PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
                                       Physics phys, Physics_MR phys_MR, Units units) {
   PetscErrorCode ierr;
+<<<<<<< HEAD
   if(app_ctx -> problem_choice == ELAS_FSInitial_MR1 || 
      app_ctx -> problem_choice == ELAS_FSInitial_MRc) {
        ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
   } else {
     ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+=======
+  if(app_ctx -> problem_choice != ELAS_FSInitial_MR1) {
+    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+  } else {
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+>>>>>>> fixed style
   }
 
   PetscFunctionReturn(0);
