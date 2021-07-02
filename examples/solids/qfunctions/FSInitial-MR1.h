@@ -546,91 +546,74 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
     //...(d2I1bar_dE2:dE)/2 = -1/3*(Cinv:dE)*dI1bar_dE - 2/3 J^(-2/3) *[tr(dE)Cinv - Cinv*dE*Cinv]
     CeedScalar d2I1bar_dE2_dE[6];
-    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
-    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
-    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
-    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
-    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
-    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2/3)*pow(J,
-                        -2/3)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
+    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
+    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
+    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
+    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
+    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
+    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
 
     //...(d2I2bar_dE2:dE)/2 = -2/3*(Cinv:dE)*dI2bar_dE + 2 J^(-4/3)*(tr(dE)*I3 - dE) + 4/3 J^(-4/3) *[cc*Cinv + I_2*Cinv*dE*Cinv]
     CeedScalar cc = I_1*tr_dE - C_contract_dE;
     CeedScalar d2I2bar_dE2_dE[6];
-    d2I2bar_dE2_dE[0] = -(2/3)*Cinv_contract_dE*dI2bar_dE[0] + 2*pow(J,
-                        -4/3)*(tr_dE-dEwork[0]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[0][0] - I_2*Cinv_dE_Cinv[0][0]);
-    d2I2bar_dE2_dE[1] = -(2/3)*Cinv_contract_dE*dI2bar_dE[1] + 2*pow(J,
-                        -4/3)*(tr_dE-dEwork[1]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[1][1] - I_2*Cinv_dE_Cinv[1][1]);
-    d2I2bar_dE2_dE[2] = -(2/3)*Cinv_contract_dE*dI2bar_dE[2] + 2*pow(J,
-                        -4/3)*(tr_dE-dEwork[2]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[2][2] - I_2*Cinv_dE_Cinv[2][2]);
-    d2I2bar_dE2_dE[3] = -(2/3)*Cinv_contract_dE*dI2bar_dE[3] + 2*pow(J,
-                        -4/3)*(-dEwork[3]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[1][2] - I_2*Cinv_dE_Cinv[1][2]);
-    d2I2bar_dE2_dE[4] = -(2/3)*Cinv_contract_dE*dI2bar_dE[4] + 2*pow(J,
-                        -4/3)*(-dEwork[4]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[0][2] - I_2*Cinv_dE_Cinv[0][2]);
-    d2I2bar_dE2_dE[5] = -(2/3)*Cinv_contract_dE*dI2bar_dE[5] + 2*pow(J,
-                        -4/3)*(-dEwork[5]) - (4/3)*pow(J,
-                            -4/3)*(cc*C_inv[0][1] - I_2*Cinv_dE_Cinv[0][1]);
-    // //...[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]=logJCinvdECinv
-    CeedScalar logJCinvdECinv[6];
-    logJCinvdECinv[0] = Cinv_contract_dE*C_inv[0][0] - 2*logJ*Cinv_dE_Cinv[0][0];
-    logJCinvdECinv[1] = Cinv_contract_dE*C_inv[1][1] - 2*logJ*Cinv_dE_Cinv[1][1];
-    logJCinvdECinv[2] = Cinv_contract_dE*C_inv[2][2] - 2*logJ*Cinv_dE_Cinv[2][2];
-    logJCinvdECinv[3] = Cinv_contract_dE*C_inv[1][2] - 2*logJ*Cinv_dE_Cinv[1][2];
-    logJCinvdECinv[4] = Cinv_contract_dE*C_inv[0][2] - 2*logJ*Cinv_dE_Cinv[0][2];
-    logJCinvdECinv[5] = Cinv_contract_dE*C_inv[0][1] - 2*logJ*Cinv_dE_Cinv[0][1];
+    d2I2bar_dE2_dE[0] = -(2/3)*Cinv_contract_dE*dI2bar_dE[0] + 2*pow(J,-4/3)*(tr_dE-dEwork[0]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][0] - I_2*Cinv_dE_Cinv[0][0]);
+    d2I2bar_dE2_dE[1] = -(2/3)*Cinv_contract_dE*dI2bar_dE[1] + 2*pow(J,-4/3)*(tr_dE-dEwork[1]) - (4/3)*pow(J,-4/3)*(cc*C_inv[1][1] - I_2*Cinv_dE_Cinv[1][1]);
+    d2I2bar_dE2_dE[2] = -(2/3)*Cinv_contract_dE*dI2bar_dE[2] + 2*pow(J,-4/3)*(tr_dE-dEwork[2]) - (4/3)*pow(J,4/3)*(cc*C_inv[2][2] - I_2*Cinv_dE_Cinv[2][2]);
+    d2I2bar_dE2_dE[3] = -(2/3)*Cinv_contract_dE*dI2bar_dE[3] + 2*pow(J,-4/3)*(-dEwork[3]) - (4/3)*pow(J,-4/3)*(cc*C_inv[1][2] - I_2*Cinv_dE_Cinv[1][2]);
+    d2I2bar_dE2_dE[4] = -(2/3)*Cinv_contract_dE*dI2bar_dE[4] + 2*pow(J,-4/3)*(-dEwork[4]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][2] - I_2*Cinv_dE_Cinv[0][2]);
+    d2I2bar_dE2_dE[5] = -(2/3)*Cinv_contract_dE*dI2bar_dE[5] + 2*pow(J,-4/3)*(-dEwork[5]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][1] - I_2*Cinv_dE_Cinv[0][1]);
 
-    // // dS...
+    // if you use logJ...[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]= bulk_term
+    // if you use (J-1)...[(2*J^2-J)(C_inv:dE)*Cinv -2*J(J-1)*Cinv*dE*Cinv]= bulk_term
+    // use cc1 = 1, cc2 = logJ when you use logJ case
+    // use cc1 = 2*J*J-J, cc2 = J*Jm1 when you use (J-1) case
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
+    CeedScalar cc1 = 1.;
+    CeedScalar cc2 = logJ;
+    CeedScalar bulk_term[6];
+    bulk_term[0] = cc1*Cinv_contract_dE*C_inv[0][0] - 2*cc2*Cinv_dE_Cinv[0][0];
+    bulk_term[1] = cc1*Cinv_contract_dE*C_inv[1][1] - 2*cc2*Cinv_dE_Cinv[1][1];
+    bulk_term[2] = cc1*Cinv_contract_dE*C_inv[2][2] - 2*cc2*Cinv_dE_Cinv[2][2];
+    bulk_term[3] = cc1*Cinv_contract_dE*C_inv[1][2] - 2*cc2*Cinv_dE_Cinv[1][2];
+    bulk_term[4] = cc1*Cinv_contract_dE*C_inv[0][2] - 2*cc2*Cinv_dE_Cinv[0][2];
+    bulk_term[5] = cc1*Cinv_contract_dE*C_inv[0][1] - 2*cc2*Cinv_dE_Cinv[0][1];
+
+    // dS...
     CeedScalar dSwork[6];
-    dSwork[0] = mu_1*d2I1bar_dE2_dE[0] + mu_2*d2I2bar_dE2_dE[0] +
-                k_1*logJCinvdECinv[0];
-    dSwork[1] = mu_1*d2I1bar_dE2_dE[1] + mu_2*d2I2bar_dE2_dE[1] +
-                k_1*logJCinvdECinv[1];
-    dSwork[2] = mu_1*d2I1bar_dE2_dE[2] + mu_2*d2I2bar_dE2_dE[2] +
-                k_1*logJCinvdECinv[2];
-    dSwork[3] = mu_1*d2I1bar_dE2_dE[3] + mu_2*d2I2bar_dE2_dE[3] +
-                k_1*logJCinvdECinv[3];
-    dSwork[4] = mu_1*d2I1bar_dE2_dE[4] + mu_2*d2I2bar_dE2_dE[4] +
-                k_1*logJCinvdECinv[4];
-    dSwork[5] = mu_1*d2I1bar_dE2_dE[5] + mu_2*d2I2bar_dE2_dE[5] +
-                k_1*logJCinvdECinv[5];
+    dSwork[0] = mu_1*d2I1bar_dE2_dE[0] + mu_2*d2I2bar_dE2_dE[0] + k_1*bulk_term[0];
+    dSwork[1] = mu_1*d2I1bar_dE2_dE[1] + mu_2*d2I2bar_dE2_dE[1] + k_1*bulk_term[1];
+    dSwork[2] = mu_1*d2I1bar_dE2_dE[2] + mu_2*d2I2bar_dE2_dE[2] + k_1*bulk_term[2];
+    dSwork[3] = mu_1*d2I1bar_dE2_dE[3] + mu_2*d2I2bar_dE2_dE[3] + k_1*bulk_term[3];
+    dSwork[4] = mu_1*d2I1bar_dE2_dE[4] + mu_2*d2I2bar_dE2_dE[4] + k_1*bulk_term[4];
+    dSwork[5] = mu_1*d2I1bar_dE2_dE[5] + mu_2*d2I2bar_dE2_dE[5] + k_1*bulk_term[5];
 
-    // // *INDENT-OFF*
+
      CeedScalar dS[3][3] = {{dSwork[0], dSwork[5], dSwork[4]},
                             {dSwork[5], dSwork[1], dSwork[3]},
                             {dSwork[4], dSwork[3], dSwork[2]}
                            };
-    // // Second Piola-Kirchhoff (S)
+    // Second Piola-Kirchhoff (S)
      const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
                                  {Swork[5], Swork[1], Swork[3]},
                                  {Swork[4], Swork[3], Swork[2]}
                                 };
+    // *INDENT-ON*
+    // dP = dPdF:dF = dF*S + F*dS
+    CeedScalar dP[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        dP[j][k] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          dP[j][k] += graddeltau[j][m]*S[m][k] + F[j][m]*dS[m][k];
+      }
 
-    // // dP = dPdF:dF = dF*S + F*dS
-     CeedScalar dP[3][3];
-     for (CeedInt j = 0; j < 3; j++)
-       for (CeedInt k = 0; k < 3; k++) {
-         dP[j][k] = 0;
-         for (CeedInt m = 0; m < 3; m++)
-           dP[j][k] += graddeltau[j][m]*S[m][k] + F[j][m]*dS[m][k];
-       }
-
-    // // Apply dXdx^T and weight
-     for (CeedInt j = 0; j < 3; j++)     // Component
-       for (CeedInt k = 0; k < 3; k++) { // Derivative
-         deltadvdX[k][j][i] = 0;
-         for (CeedInt m = 0; m < 3; m++)
-           deltadvdX[k][j][i] += dXdx[k][m] * dP[j][m] * wdetJ;
-       }
+    // Apply dXdx^T and weight
+    for (CeedInt j = 0; j < 3; j++)     // Component
+      for (CeedInt k = 0; k < 3; k++) { // Derivative
+        deltadvdX[k][j][i] = 0;
+        for (CeedInt m = 0; m < 3; m++)
+          deltadvdX[k][j][i] += dXdx[k][m] * dP[j][m] * wdetJ;
+      }
 
   } // End of Quadrature Point Loop
 
