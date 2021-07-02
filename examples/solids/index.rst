@@ -420,19 +420,19 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
 
    .. altair-plot::
+      :hide-code:
 
       import altair as alt
       import pandas as pd
       nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
       nh["model"] = "Neo-Hookean"
-      nh["parameters"] = "E=10, nu=.4"
+      nh["parameters"] = "E=1.4754098, nu=0.47540983607"
       print(nh)
 
       # TODO: read MR-strain.csv and use correct parameters
-      mr = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
       mr["model"] = "Mooney-Rivlin"
-      mr["parameters"] = "mu_1=4, mu_2=4, K=20"
-      mr["energy"] *= 1.1 # FIXME
+      mr["parameters"] = "mu_1=0.5, mu_2=0.0, K=10"
 
       df = pd.concat([nh, mr])
       highlight = alt.selection_single(
