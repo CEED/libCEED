@@ -62,6 +62,7 @@ doc/sphinx/source/examples/
 *.xz
 *.zstd
 perf.data
+examples/solids/output/*.csv
 
 # Editor Misc
 .cache/
