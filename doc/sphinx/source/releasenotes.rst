@@ -4,12 +4,10 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
-.. _main:
+.. v0.9
 
-Current Main
+v0.9 (Jul 6, 2021)
 ----------------------------------------
-
-The current ``main`` branch contains bug fixes and additional features.
 
 Interface changes
 ^^^^^^^^^^^^^^^^^
@@ -20,13 +18,15 @@ New features
 * Add :c:func:`CeedVectorAXPY` and :c:func:`CeedVectorPointwiseMult` as a convenience for stand-alone testing and internal use.
 * Add `CEED_QFUNCTION_HELPER` macro to properly annotate QFunction helper functions for code generation backends.
 * Add `CeedPragmaOptimizeOff` macro for code that is sensitive to floating point errors from fast math optimizations.
+* Rust support: split ``libceed-sys`` crate out of ``libceed`` and `publish both on crates.io <https://crates.io/crates/libceed>`_.
 
 Performance improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Examples
 ^^^^^^^^
-* Solid mechanics mini-app updated to explore the performance impacts of various formulations in the initial and current configuration.
+* Solid mechanics mini-app updated to explore the performance impacts of various formulations in the initial and current configurations.
+* Fluid mechanics example adds GPU support and improves modularity.
 
 Deprecated backends
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
