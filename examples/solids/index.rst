@@ -431,10 +431,14 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
       # TODO: read MR-strain.csv and use correct parameters
       mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
-      mr["model"] = "Mooney-Rivlin"
+      mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
       mr["parameters"] = "mu_1=0.5, mu_2=0.0, K=10"
 
-      df = pd.concat([nh, mr])
+      mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
+      mr1["model"] = "Mooney-Rivlin"
+      mr1["parameters"] = "mu_1=0.25, mu_2=0.25, K=10"
+
+      df = pd.concat([nh, mr, mr1])
       highlight = alt.selection_single(
          on = "mouseover",
          nearest = True,
