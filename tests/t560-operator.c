@@ -137,7 +137,8 @@ int main(int argc, char **argv) {
   // Check output
   for (int i=0; i<num_dofs; i++)
     for (int j=0; j<num_dofs; j++)
-      if (fabs(assembled[j*num_dofs+i] - assembled_true[j*num_dofs+i]) > 100.*CEED_EPSILON)
+      if (fabs(assembled[j*num_dofs+i] - assembled_true[j*num_dofs+i]) >
+          100.*CEED_EPSILON)
         // LCOV_EXCL_START
         printf("[%d,%d] Error in assembly: %f != %f\n", i, j,
                assembled[j*num_dofs+i], assembled_true[j*num_dofs+i]);

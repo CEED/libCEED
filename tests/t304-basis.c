@@ -18,14 +18,16 @@ int main(int argc, char **argv) {
   fprintf(stdout, "Q:\n");
   for (int i=0; i<4; i++) {
     for (int j=0; j<4; j++) {
-      if (A[j+4*i] <= 100.*CEED_EPSILON && A[j+4*i] >= -100.*CEED_EPSILON) A[j+4*i] = 0;
+      if (A[j+4*i] <= 100.*CEED_EPSILON
+          && A[j+4*i] >= -100.*CEED_EPSILON) A[j+4*i] = 0;
       fprintf(stdout, "%12.8f\t", A[j+4*i]);
     }
     fprintf(stdout, "\n");
   }
   fprintf(stdout, "lambda:\n");
   for (int i=0; i<4; i++) {
-    if (lambda[i] <= 100.*CEED_EPSILON && lambda[i] >= -100.*CEED_EPSILON) lambda[i] = 0;
+    if (lambda[i] <= 100.*CEED_EPSILON
+        && lambda[i] >= -100.*CEED_EPSILON) lambda[i] = 0;
     fprintf(stdout, "%12.8f\n", lambda[i]);
   }
   CeedDestroy(&ceed);
