@@ -65,12 +65,14 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
     magma_int_t threads = 256;
 
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_s, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
-        esize, nelem, offsets, du, dv);
+      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_s, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
+        esize, nelem, offsets, (float*)du, (float*)dv);
     }
     else {
-      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_d, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
-        esize, nelem, offsets, du, dv);
+      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_d, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
+        esize, nelem, offsets, (double*)du, (double*)dv);
     }
 }
 
@@ -87,11 +89,13 @@ magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
     magma_int_t threads = 256;
 
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_s, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem, 
+      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_s, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem,
         strides, (float*)du, (float*)dv);
     }
     else {
-      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_d, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem, 
+      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_d, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem,
         strides, (double *)du, (double*)dv); 
     }
 
