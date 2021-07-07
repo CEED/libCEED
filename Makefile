@@ -622,6 +622,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
