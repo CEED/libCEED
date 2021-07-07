@@ -4,6 +4,12 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
+.. _main:
+
+Current ``main``_branch
+-----------------------
+
+
 .. _v0.9:
 
 v0.9 (Jul 6, 2021)
