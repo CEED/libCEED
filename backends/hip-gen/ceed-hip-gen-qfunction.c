@@ -76,7 +76,7 @@ static int loadHipFunction(CeedQFunction qf, char *c_src_file) {
   fp = fopen (hip_file, "rb");
   if (!fp)
     // LCOV_EXCL_START
-    CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
+    return CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
   // LCOV_EXCL_STOP
 
   // Compute size of source file
@@ -92,7 +92,7 @@ static int loadHipFunction(CeedQFunction qf, char *c_src_file) {
     // LCOV_EXCL_START
     fclose(fp);
     ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-    CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
+    return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
     // LCOV_EXCL_STOP
   }
 

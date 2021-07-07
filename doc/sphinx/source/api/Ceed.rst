@@ -23,6 +23,12 @@ Macros
 .. doxygendefine:: CeedPragmaSIMD
    :project: libCEED
 
+.. doxygendefine:: CeedPragmaOptimizeOn
+   :project: libCEED
+
+.. doxygendefine:: CeedPragmaOptimizeOff
+   :project: libCEED
+
 .. doxygendefine:: CEED_VERSION_GE
    :project: libCEED
 

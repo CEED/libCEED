@@ -497,7 +497,8 @@ int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
 /**
   @brief Flag Ceed context as deterministic
 
-  @param ceed  Ceed to flag as deterministic
+  @param ceed                   Ceed to flag as deterministic
+  @param[out] is_deterministic  Deterministic status to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -654,7 +655,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
       return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
-};
+}
 // LCOV_EXCL_STOP
 
 /**
@@ -770,6 +771,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, RestoreArray),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
     CEED_FTABLE_ENTRY(CeedVector, Norm),
+    CEED_FTABLE_ENTRY(CeedVector, Scale),
     CEED_FTABLE_ENTRY(CeedVector, AXPY),
     CEED_FTABLE_ENTRY(CeedVector, PointwiseMult),
     CEED_FTABLE_ENTRY(CeedVector, Reciprocal),
@@ -787,6 +789,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunction, SetHIPUserFunction),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, SetData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, TakeData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),

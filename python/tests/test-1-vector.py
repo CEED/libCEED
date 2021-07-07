@@ -248,8 +248,7 @@ def test_121(ceed_resource, capsys):
 
     y.axpy(-0.5, x)
     with y.array() as b:
-        for i in range(len(b)):
-            assert abs(b[i] - (10 + i) / 2) < 1e-14
+        assert np.allclose(.5 * a, b)
 
 # -------------------------------------------------------------------------------
 # Test pointwise multiplication
@@ -288,6 +287,24 @@ def test_122(ceed_resource, capsys):
     with y.array() as b:
         for i in range(len(b)):
             assert abs(b[i] - i * i) < 1e-14
+
+# -------------------------------------------------------------------------------
+# Test Scale
+# -------------------------------------------------------------------------------
+
+
+def test_123(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype="float64")
+    x.set_array(a, cmode=libceed.COPY_VALUES)
+
+    x.scale(-0.5)
+    with x.array() as b:
+        assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array

@@ -31,7 +31,7 @@ typedef struct {
 } CeedBasis_Opt;
 
 typedef struct {
-  bool identity_qf;
+  bool is_identity_qf, is_identity_restr_op;
   CeedElemRestriction *blk_restr; /* Blocked versions of restrictions */
   CeedVector
   *e_vecs;   /* E-vectors needed to apply operator (input followed by outputs) */

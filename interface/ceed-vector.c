@@ -36,7 +36,7 @@ static struct CeedVector_private ceed_vector_none;
 ///   CeedOperatorApply().
 const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
-/// Indicate that no vector is applicable (i.e., for @ref CEED_EVAL_WEIGHTS).
+/// Indicate that no vector is applicable (i.e., for @ref CEED_EVAL_WEIGHT).
 const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 
 /// @}
@@ -532,11 +532,41 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 }
 
 /**
+  @brief Compute x = alpha x
+
+  @param[in,out] x  vector for scaling
+  @param[in] alpha  scaling factor
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorScale(CeedVector x, CeedScalar alpha) {
+  int ierr;
+  CeedScalar *x_array;
+  CeedInt n_x;
+
+  ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
+
+  // Backend implementation
+  if (x->Scale)
+    return x->Scale(x, alpha);
+
+  // Default implementation
+  ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
+  for (CeedInt i=0; i<n_x; i++)
+    x_array[i] *= alpha;
+  ierr = CeedVectorRestoreArray(x, &x_array); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Compute y = alpha x + y
 
-  @param y[in,out]  target vector for sum
-  @param alpha[in]  scaling factor
-  @param x[in]      second vector, must be different than y
+  @param[in,out] y  target vector for sum
+  @param[in] alpha  scaling factor
+  @param[in] x      second vector, must be different than y
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -591,9 +621,9 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   @brief Compute the pointwise multiplication w = x .* y. Any
            subset of x, y, and w may be the same vector.
 
-  @param w[out]  target vector for the product
-  @param x[in]   first vector for product
-  @param y[in]   second vector for the product
+  @param[out] w  target vector for the product
+  @param[in] x   first vector for product
+  @param[in] y   second vector for the product
 
   @return An error code: 0 - success, otherwise - failure
 

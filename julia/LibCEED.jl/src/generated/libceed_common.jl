@@ -7,6 +7,13 @@ const FILE = Cvoid
 
 # Skipping MacroDefinition: CeedError ( ceed , ecode , ... ) ( CeedErrorImpl ( ( ceed ) , __FILE__ , __LINE__ , __func__ , ( ecode ) , __VA_ARGS__ ) ? : ( ecode ) )
 
+const CEED_VERSION_MAJOR = 0
+const CEED_VERSION_MINOR = 8
+const CEED_VERSION_PATCH = 0
+const CEED_VERSION_RELEASE = false
+
+# Skipping MacroDefinition: CEED_VERSION_GE ( major , minor , patch ) ( ! CEED_VERSION_RELEASE || ( CEED_VERSION_MAJOR > major || ( CEED_VERSION_MAJOR == major && ( CEED_VERSION_MINOR > minor || ( CEED_VERSION_MINOR == minor && CEED_VERSION_PATCH >= patch ) ) ) ) )
+
 const CeedInt = Int32
 const CeedScalar = Cdouble
 const Ceed_private = Cvoid
@@ -25,6 +32,19 @@ const CeedQFunctionContext_private = Cvoid
 const CeedQFunctionContext = Ptr{CeedQFunctionContext_private}
 const CeedOperator_private = Cvoid
 const CeedOperator = Ptr{CeedOperator_private}
+const CeedErrorHandler = Ptr{Cvoid}
+
+@cenum CeedErrorType::Int32 begin
+    CEED_ERROR_SUCCESS = 0
+    CEED_ERROR_MINOR = 1
+    CEED_ERROR_DIMENSION = 2
+    CEED_ERROR_INCOMPLETE = 3
+    CEED_ERROR_INCOMPATIBLE = 4
+    CEED_ERROR_ACCESS = 5
+    CEED_ERROR_MAJOR = -1
+    CEED_ERROR_BACKEND = -2
+    CEED_ERROR_UNSUPPORTED = -3
+end
 
 @cenum CeedMemType::UInt32 begin
     CEED_MEM_HOST = 0
@@ -76,8 +96,10 @@ end
 const CeedQFunctionUser = Ptr{Cvoid}
 
 # Skipping MacroDefinition: CEED_INTERN CEED_EXTERN __attribute__ ( ( visibility ( "hidden" ) ) )
+# Skipping MacroDefinition: CEED_UNUSED __attribute__ ( ( unused ) )
 
 const CEED_MAX_RESOURCE_LEN = 1024
+const CEED_MAX_BACKEND_PRIORITY = typemax(Cuint)
 const CEED_ALIGN = 64
 const CEED_COMPOSITE_MAX = 16
 const CEED_EPSILON = 1.0e-16
@@ -86,7 +108,8 @@ const CEED_DEBUG_COLOR = 0
 # Skipping MacroDefinition: CeedDebug1 ( ceed , format , ... ) CeedDebugImpl ( ceed , format , ## __VA_ARGS__ )
 # Skipping MacroDefinition: CeedDebug256 ( ceed , color , ... ) CeedDebugImpl256 ( ceed , color , ## __VA_ARGS__ )
 # Skipping MacroDefinition: CeedDebug ( ... ) CeedDebug256 ( ceed , ( unsigned char ) CEED_DEBUG_COLOR , ## __VA_ARGS__ )
-# Skipping MacroDefinition: CeedChk ( ierr ) do { if ( ierr ) return ierr ; } while ( 0 )
+# Skipping MacroDefinition: CeedChk ( ierr ) do { int ierr_ = ierr ; if ( ierr_ ) return ierr_ ; } while ( 0 )
+# Skipping MacroDefinition: CeedChkBackend ( ierr ) do { int ierr_ = ierr ; if ( ierr_ ) { if ( ierr_ > CEED_ERROR_SUCCESS ) return CEED_ERROR_BACKEND ; else return ierr_ ; } } while ( 0 )
 # Skipping MacroDefinition: CeedMalloc ( n , p ) CeedMallocArray ( ( n ) , sizeof ( * * ( p ) ) , p )
 # Skipping MacroDefinition: CeedCalloc ( n , p ) CeedCallocArray ( ( n ) , sizeof ( * * ( p ) ) , p )
 # Skipping MacroDefinition: CeedRealloc ( n , p ) CeedReallocArray ( ( n ) , sizeof ( * * ( p ) ) , p )

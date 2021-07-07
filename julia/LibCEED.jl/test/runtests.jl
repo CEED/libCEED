@@ -18,7 +18,11 @@ mutable struct CtxData
     x::Vector{Float64}
 end
 
-@testset "LibCEED" begin
+if "--run-dev-tests" in ARGS
+    include("rundevtests.jl")
+end
+
+@testset "LibCEED Release Tests" begin
     @testset "Ceed" begin
         res = "/cpu/self/ref/serial"
         c = Ceed(res)

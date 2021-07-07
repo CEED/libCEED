@@ -128,9 +128,11 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
   // Basis
   if (b != CEED_BASIS_COLLOCATED) {
     if (eval_mode == CEED_EVAL_NONE)
+      // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
                        "Field '%s' configured with CEED_EVAL_NONE must "
                        "be used with CEED_BASIS_COLLOCATED",
+                       // LCOV_EXCL_STOP
                        qf_field->field_name);
     ierr = CeedBasisGetDimension(b, &dim); CeedChk(ierr);
     ierr = CeedBasisGetNumComponents(b, &num_comp); CeedChk(ierr);

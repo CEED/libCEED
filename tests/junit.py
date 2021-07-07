@@ -47,14 +47,14 @@ def contains_any(resource, substrings):
 
 def skip_rule(test, resource):
     return any((
-        test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
+        test.startswith('fluids-') and contains_any(resource, ['occa', 'magma']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('t507') and contains_any(resource, ['occa']),
-        test.startswith('t318') and contains_any(resource, ['magma']),
-        test.startswith('t506') and contains_any(resource, ['magma']),
+        test.startswith('t318') and contains_any(resource, ['magma', '/gpu/cuda/ref']),
+        test.startswith('t506') and contains_any(resource, ['magma', '/gpu/cuda/shared']),
         ))
-        
+
 def run(test, backends):
     import subprocess
     import time
@@ -62,6 +62,8 @@ def run(test, backends):
     allargs = get_testargs(test)
 
     testcases = []
+    my_env = os.environ.copy()
+    my_env["CEED_ERROR_HANDLER"] = 'exit';
     for args, name in allargs:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
@@ -78,7 +80,8 @@ def run(test, backends):
                 start = time.time()
                 proc = subprocess.run(rargs,
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE,
+                                      env=my_env)
                 proc.stdout = proc.stdout.decode('utf-8')
                 proc.stderr = proc.stderr.decode('utf-8')
 

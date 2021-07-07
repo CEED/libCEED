@@ -332,20 +332,24 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    An equivalent form of :math:numref:`neo-hookean-stress` is
 
    .. math::
+      :label: neo-hookean-stress-stable
+
       \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
 
    which is more numerically stable for small :math:`\bm E`, and thus preferred for computation.
    Note that the product :math:`\bm C^{-1} \bm E` is also symmetric, and that :math:`\bm E` should be computed using :math:numref:`eq-green-lagrange-strain`.
 
    Similarly, it is preferable to compute :math:`\log J` using ``log1p``, especially in case of nearly incompressible materials.
-   To sketch this idea, suppose we have the :math:`2\times 2` symmetric matrix :math:`C = \left( \begin{smallmatrix} 1 + e_{00} & e_{01} \\ e_{01} & 1 + e_{11} \end{smallmatrix} \right)`.
+   To sketch this idea, suppose we have the :math:`2\times 2` non-symmetric matrix :math:`\bm{F} = \left( \begin{smallmatrix} 1 + u_{0,0} & u_{0,1} \\ u_{1,0} & 1 + u_{1,1} \end{smallmatrix} \right)`.
    Then we compute
 
    .. math::
-      \log \sqrt{\lvert C \rvert} = \frac 1 2 \mathtt{log1p}(e_{00} + e_{11} + e_{00} e_{11} - e_{01}^2).
+      :label: log1p
 
-   which gives accurate results even in the limit when the entries :math:`e_{ij}` are very small.
-   For example, if :math:`e_{ij} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
+      \log J = \mathtt{log1p}(u_{0,0} + u_{1,1} + u_{0,0} u_{1,1} - u_{0,1} u_{1,0}),
+
+   which gives accurate results even in the limit when the entries :math:`u_{i,j}` are very small.
+   For example, if :math:`u_{i,j} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
 
 .. note::
@@ -700,6 +704,24 @@ Collecting terms, the weak form of the Newton linearization for Neo-Hookean mate
 which equivalent to Algorithm 2 of :cite:`davydov2020matrix` and requires only derivatives with respect to the current configuration. Note that :math:numref:`cur_simp_Jac` and :math:numref:`jacobian-weak-form-current2` have recovered the same representation 
 using different algebraic manipulations. 
 
+.. tip::
+   We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain :math:numref:`eq-green-lagrange-strain`) as
+
+   .. math::
+      :label: green-euler-strain
+
+      \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
+
+   Then, the Kirchhoff stress tensor :math:numref:`tau-neo-hookean` can be written as
+
+   .. math::
+      :label: tau-neo-hookean-stable
+      
+      \bm \tau = \lambda \log J \bm I_{3} + 2\mu \bm e,
+
+   which is more numerically stable for small strain, and thus preferred for computation. Note that the :math:`\log J` is computed via ``log1p`` :math:numref:`log1p`, as we discussed in the previous tip.
+
+
 Jacobian representation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -736,6 +758,6 @@ We have implemented four storage variants for the Jacobian in our finite strain 
 
    * - :code:`FSCurrent-NH2`
      - :math:`\operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_x \hat X, \bm \tau, \mu - \lambda \log J`
+     - :math:`\nabla_x \hat X, \bm \tau, \lambda \log J`
      - 17
      - :math:numref:`jacobian-weak-form-current` :math:numref:`jacobian-weak-form-current2`

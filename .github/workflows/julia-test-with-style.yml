@@ -25,6 +25,6 @@ jobs:
           make -j2
           export JULIA_LIBCEED_LIB=$(find $PWD/lib -name "libceed.*")
           pushd julia/LibCEED.jl
-          julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED"; coverage=true)'
+          [[ "$GITHUB_REF" =~ ^refs/(heads/release|tags/).* ]] || julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED"; coverage=true, test_args=["--run-dev-tests"])'
           unset JULIA_LIBCEED_LIB && julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED")'
           julia --project=.style/ -e 'import Pkg; Pkg.instantiate()' && julia --project=.style/ .style/ceed_style.jl && git diff --exit-code src test examples

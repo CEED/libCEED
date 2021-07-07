@@ -149,7 +149,56 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Get array
+// Take data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
+    const CeedMemType mtype, CeedScalar *data) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
+  CeedQFunctionContext_Hip *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
+  if(impl->h_data == NULL && impl->d_data == NULL)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
+  // LCOV_EXCL_STOP
+
+  // Sync array to requested memtype and update pointer
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    if (impl->h_data == NULL) {
+      ierr = CeedMalloc(bytes(ctx), &impl->h_data_allocated);
+      CeedChkBackend(ierr);
+      impl->h_data = impl->h_data_allocated;
+    }
+    if (impl->memState == CEED_HIP_DEVICE_SYNC) {
+      ierr = CeedQFunctionContextSyncD2H_Hip(ctx); CeedChkBackend(ierr);
+    }
+    impl->memState = CEED_HIP_HOST_SYNC;
+    *(void **)data = impl->h_data;
+    impl->h_data = NULL;
+    impl->h_data_allocated = NULL;
+    break;
+  case CEED_MEM_DEVICE:
+    if (impl->d_data == NULL) {
+      ierr = hipMalloc((void **)&impl->d_data_allocated, bytes(ctx));
+      CeedChk_Hip(ceed, ierr);
+      impl->d_data = impl->d_data_allocated;
+    }
+    if (impl->memState == CEED_HIP_HOST_SYNC) {
+      ierr = CeedQFunctionContextSyncH2D_Hip(ctx); CeedChkBackend(ierr);
+    }
+    impl->memState = CEED_HIP_DEVICE_SYNC;
+    *(void **)data = impl->d_data;
+    impl->d_data = NULL;
+    impl->d_data_allocated = NULL;
+    break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Get data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
     const CeedMemType mtype, CeedScalar *data) {
@@ -227,6 +276,8 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
 
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
                                 CeedQFunctionContextSetData_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "TakeData",
+                                CeedQFunctionContextTakeData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",

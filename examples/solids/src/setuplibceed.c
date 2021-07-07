@@ -158,7 +158,6 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedVectorDestroy(&data->lam_log_J);
   CeedVectorDestroy(&data->dXdx);
   CeedVectorDestroy(&data->tau);
-  CeedVectorDestroy(&data->Cc1);
   CeedVectorDestroy(&data->x_ceed);
   CeedVectorDestroy(&data->y_ceed);
   CeedVectorDestroy(&data->true_soln);
@@ -171,7 +170,6 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedElemRestrictionDestroy(&data->elem_restr_lam_log_J);
   CeedElemRestrictionDestroy(&data->elem_restr_dXdx);
   CeedElemRestrictionDestroy(&data->elem_restr_tau);
-  CeedElemRestrictionDestroy(&data->elem_restr_Cc1);
   CeedElemRestrictionDestroy(&data->elem_restr_qd_i);
   CeedElemRestrictionDestroy(&data->elem_restr_energy);
   CeedElemRestrictionDestroy(&data->elem_restr_diagnostic);
@@ -498,7 +496,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, 1,
                                      1*num_elem*Q*Q*Q,
                                      CEED_STRIDES_BACKEND,
-                                     &data[fine_level]->elem_restr_Cc1);
+                                     &data[fine_level]->elem_restr_lam_log_J);
     break;
   }
   // -- Geometric data restriction
@@ -575,7 +573,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->dXdx);
     CeedVectorCreate(ceed, (dim+1)*num_comp_u*num_elem*num_qpts/2,
                      &data[fine_level]->tau);
-    CeedVectorCreate(ceed, 1*num_elem*num_qpts, &data[fine_level]->Cc1);
+    CeedVectorCreate(ceed, 1*num_elem*num_qpts, &data[fine_level]->lam_log_J);
     break;
   }
   // -- Operator action variables
@@ -647,7 +645,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   case ELAS_FSCurrent_NH2:
     CeedQFunctionAddOutput(qf_apply, "dXdx", num_comp_u*dim, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_apply, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_apply, "Cc1", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_apply, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
   }
   CeedQFunctionSetContext(qf_apply, phys_ctx);
@@ -690,8 +688,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->dXdx);
     CeedOperatorSetField(op_apply, "tau", data[fine_level]->elem_restr_tau,
                          CEED_BASIS_COLLOCATED, data[fine_level]->tau);
-    CeedOperatorSetField(op_apply, "Cc1", data[fine_level]->elem_restr_Cc1,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->Cc1);
+    CeedOperatorSetField(op_apply, "lam_log_J",
+                         data[fine_level]->elem_restr_lam_log_J,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
   }
   // -- Save libCEED data
@@ -730,7 +729,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   case ELAS_FSCurrent_NH2:
     CeedQFunctionAddInput(qf_jacob, "dXdx", num_comp_u*dim, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_jacob, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_jacob, "Cc1", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_jacob, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
   }
   CeedQFunctionAddOutput(qf_jacob, "deltadv", num_comp_u*dim, CEED_EVAL_GRAD);
@@ -774,8 +773,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->dXdx);
     CeedOperatorSetField(op_jacob, "tau", data[fine_level]->elem_restr_tau,
                          CEED_BASIS_COLLOCATED, data[fine_level]->tau);
-    CeedOperatorSetField(op_jacob, "Cc1", data[fine_level]->elem_restr_Cc1,
-                         CEED_BASIS_COLLOCATED, data[fine_level]->Cc1);
+    CeedOperatorSetField(op_jacob, "lam_log_J",
+                         data[fine_level]->elem_restr_lam_log_J,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
   }
   // -- Save libCEED data

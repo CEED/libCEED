@@ -69,6 +69,16 @@
 
 /**
   @ingroup CeedQFunction
+  This macro populates the correct function annotations for User QFunction
+    helper function source for code generation backends or populates default
+    values for CPU backends.
+**/
+#ifndef CEED_QFUNCTION_HELPER
+#define CEED_QFUNCTION_HELPER static inline
+#endif
+
+/**
+  @ingroup CeedQFunction
   Using VLA syntax to reshape User QFunction inputs and outputs can make
     user code more readable. VLA is a C99 feature that is not supported by
     the C++ dialect used by CUDA. This macro allows users to use the VLA
@@ -170,7 +180,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 /// Use nonstandard ternary to convince the compiler/clang-tidy that this
 /// function never returns zero.
 #  define CeedError(ceed, ecode, ...)                                     \
-  (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode))
+  (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
 #else
 #  define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
@@ -195,9 +205,9 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 /// libCEED library version numbering
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 8
+#define CEED_VERSION_MINOR 9
 #define CEED_VERSION_PATCH 0
-#define CEED_VERSION_RELEASE false
+#define CEED_VERSION_RELEASE true
 
 /// Compile-time check that the the current library version is at least as
 /// recent as the specified version. This macro is typically used in
@@ -321,6 +331,7 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
+CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);
 CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
 CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
@@ -579,9 +590,10 @@ CEED_EXTERN int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
     CeedQFunctionContext *ctx_copy);
 CEED_EXTERN int CeedQFunctionContextSetData(CeedQFunctionContext ctx,
     CeedMemType mem_type, CeedCopyMode copy_mode, size_t size, void *data);
+CEED_EXTERN int CeedQFunctionContextTakeData(CeedQFunctionContext ctx,
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
-    CeedMemType mem_type,
-    void *data);
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,

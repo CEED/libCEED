@@ -341,6 +341,16 @@ class Vector():
 
         return self
 
+    # Compute self = alpha self
+    def scale(self, alpha):
+        """Compute self = alpha self."""
+
+        # libCEED call
+        err_code = lib.CeedVectorScale(self._pointer[0], alpha)
+        self._ceed._check_error(err_code)
+
+        return self
+
     # Compute self = alpha x + self
     def axpy(self, alpha, x):
         """Compute self = alpha x + self."""

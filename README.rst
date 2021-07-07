@@ -253,7 +253,7 @@ forced by setting the environment variable ``MKL=1``.
 The ``/gpu/cuda/*`` backends provide GPU performance strictly using CUDA.
 
 The ``/gpu/hip/*`` backends provide GPU performance strictly using HIP. They are based on
-the ``/gpu/cuda/*`` backends.  ROCm version 3.5 or newer is required.
+the ``/gpu/cuda/*`` backends.  ROCm version 3.6 or newer is required.
 
 The ``/gpu/*/magma/*`` backends rely upon the `MAGMA <https://bitbucket.org/icl/magma>`_ package.
 To enable the MAGMA backends, the environment variable ``MAGMA_DIR`` must point to the top-level
@@ -464,16 +464,17 @@ If you utilize libCEED please cite::
                      Ghaffari, Leila and
                      Kolev, Tzanio and
                      Medina, David and
-                     Rathnayake, Thilina and
+                     Pazner, Will and
+                     Ratnayaka, Thilina and
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
      title        = {libCEED User Manual},
-     month        = sep,
-     year         = 2020,
+     month        = jul,
+     year         = 2021,
      publisher    = {Zenodo},
-     version      = {0.7},
-     doi          = {10.5281/zenodo.4302737},
-     url          = {https://doi.org/10.5281/zenodo.4302737}
+     version      = {0.9.0},
+     doi          = {10.5281/zenodo.5077489},
+     url          = {https://doi.org/10.5281/zenodo.5077489}
    }
 
 For libCEED's Python interface please cite::

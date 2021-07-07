@@ -5,11 +5,12 @@ noether-rocm:
   stage: test
   tags:
     - rocm
+  interruptible: true
   image: jedbrown/rocm:latest
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -27,18 +28,20 @@ noether-rocm:
     - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
 # libCEED
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_CPU=$(make info-backends | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-#    Note: These tests don't run in ' make junit realsearch=%' until PETSC_DIR set
-#          PETSC_DIR is not set by default in GitLab runner env
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search="petsc fluids solids"
@@ -75,3 +78,50 @@ noether-rocm:
     reports:
       junit: build/*.junit
       performance: performance.json
+
+lv-cuda:
+  stage: test
+  tags:
+    - cuda
+  interruptible: true
+  before_script:
+# Compilers
+    - . /opt/rh/gcc-toolset-10/enable
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran CUDA_DIR=/usr/local/cuda
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):4)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- NVCC ----------------" && $CUDA_DIR/bin/nvcc --version
+# libCEED
+    - make configure OPT='-O -march=native -ffp-contract=fast'
+    - echo "-------------- libCEED -------------" && make info
+    - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
+  script:
+    - nice make -k -j$NPROC_GPU -l$NPROC_GPU
+    - echo "-------------- core tests ----------"
+    - export PETSC_DIR= PETSC_ARCH=
+    - nice make -k -j$NPROC_GPU junit BACKENDS="$BACKENDS_GPU" realsearch=%
+# Libraries for examples
+# -- PETSc with CUDA (minimal)
+    - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
+    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc"
+# Report status
+    - echo "SUCCESS" > .job_status
+  after_script:
+    - |
+      if [ $(cat .job_status) == "SUCCESS" ]; then
+        lcov --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit

@@ -1,0 +1,27 @@
+name: Release Notes
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v2
+    - name: Check release notes
+      run: |
+        git fetch origin main
+        if git diff origin/main --exit-code include/ceed/*; then
+          echo "No public interface changes detected"
+        elif git diff origin/main --exit-code doc/sphinx/source/releasenotes.rst; then
+          echo "API changes detected, but release notes not updated"
+          exit 1
+        fi

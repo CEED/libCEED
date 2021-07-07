@@ -44,7 +44,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
-static inline CeedScalar log1p_series_shifted(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
@@ -70,35 +70,18 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 #endif
 
 // -----------------------------------------------------------------------------
-// Compute det F
+// Compute det F - 1
 // -----------------------------------------------------------------------------
-#ifndef DETF
-#define DETF
-static inline CeedScalar computeDetF(CeedScalar F[3][3]) {
-  CeedScalar a1 = F[0][0] * F[1][1] * F[2][2];
-  CeedScalar a2 = F[0][1] * F[1][2] * F[2][0];
-  CeedScalar a3 = F[0][2] * F[1][0] * F[2][1];
-  CeedScalar a4 = F[0][2] * F[1][1] * F[2][0];
-  CeedScalar a5 = F[0][0] * F[1][2] * F[2][1];
-  CeedScalar a6 = F[0][1] * F[1][0] * F[2][2];
-
-  return (a1+a2+a3) - (a4+a5+a6);
-};
-#endif
-
-// -----------------------------------------------------------------------------
-// Compute det C - 1
-// -----------------------------------------------------------------------------
-#ifndef DETCM1
-#define DETCM1
-static inline CeedScalar computeDetCM1(CeedScalar E2work[6]) {
-  return E2work[0]*(E2work[1]*E2work[2]-E2work[3]*E2work[3]) +
-         E2work[5]*(E2work[4]*E2work[3]-E2work[5]*E2work[2]) +
-         E2work[4]*(E2work[5]*E2work[3]-E2work[4]*E2work[1]) +
-         E2work[0] + E2work[1] + E2work[2] +
-         E2work[0]*E2work[1] + E2work[0]*E2work[2] +
-         E2work[1]*E2work[2] - E2work[5]*E2work[5] -
-         E2work[4]*E2work[4] - E2work[3]*E2work[3];
+#ifndef DETJM1
+#define DETJM1
+CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
+  return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
+         grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
+         grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
+         grad_u[0][0] + grad_u[1][1] + grad_u[2][2] +
+         grad_u[0][0]*grad_u[1][1] + grad_u[0][0]*grad_u[2][2] +
+         grad_u[1][1]*grad_u[2][2] - grad_u[0][1]*grad_u[1][0] -
+         grad_u[0][2]*grad_u[2][0] - grad_u[1][2]*grad_u[2][1];
 };
 #endif
 
@@ -119,8 +102,8 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
   CeedScalar (*dXdx)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // Store tau
   CeedScalar (*tau)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
-  // Store constant Cc1 = mu-lambda*log(J)
-  CeedScalar (*Cc1)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
+  // Store constant lam_log_J = lambda*log(J)
+  CeedScalar (*lam_log_J)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
   // *INDENT-ON*
 
   // Context
@@ -174,7 +157,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                                             q_data[9][i]}
                                           };
 
-    // *INDENT-ON* 
+    // *INDENT-ON*
     // X is natural coordinate sys OR Reference system
     // x_initial is initial config coordinate system
     // Gradu =du/dx_initial= du/dX * dX/dx_initial
@@ -198,42 +181,30 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                             Gradu[2][1],
                             Gradu[2][2] + 1}
                           };
-    // *INDENT-ON*
-    // b - left Cauchy-Green
-    // b =  F*F^T
-    CeedScalar b[3][3];
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++) {
-        b[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          b[j][k] += F[j][m] * F[k][m]; // F * F^T
-      }
 
-    // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    // *INDENT-ON*
+    //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
-    CeedScalar E2work[6];
+    CeedScalar bMI3[6];
     for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = Gradu[indj[m]][indk[m]] + Gradu[indk[m]][indj[m]];
+      bMI3[m] = Gradu[indj[m]][indk[m]] + Gradu[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += Gradu[n][indj[m]]*Gradu[n][indk[m]];
+        bMI3[m] += Gradu[indj[m]][n] * Gradu[indk[m]][n];
     }
 
-    CeedScalar detC_m1;
-    detC_m1 = computeDetCM1(E2work);
-    // compute log(J)
-    CeedScalar logJ = log1p_series_shifted(detC_m1)/2.;
+    const CeedScalar Jm1 = computeJM1(Gradu);
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
 
-    // Cc1 = mu-lambda*log(J)
-    Cc1[0][i] = mu - lambda*logJ;
+    // store lam_log_J = lambda*log(J)
+    lam_log_J[0][i] = lambda*logJ;
 
     // tau = mu*b - Cc1*I3;
-    tau[0][i] = mu*b[0][0] - Cc1[0][i];
-    tau[1][i] = mu*b[1][1] - Cc1[0][i];
-    tau[2][i] = mu*b[2][2] - Cc1[0][i];
-    tau[3][i] = mu*b[1][2];
-    tau[4][i] = mu*b[0][2];
-    tau[5][i] = mu*b[0][1];
+    tau[0][i] = mu*bMI3[0] + lam_log_J[0][i];
+    tau[1][i] = mu*bMI3[1] + lam_log_J[0][i];
+    tau[2][i] = mu*bMI3[2] + lam_log_J[0][i];
+    tau[3][i] = mu*bMI3[3];
+    tau[4][i] = mu*bMI3[4];
+    tau[5][i] = mu*bMI3[5];
 
     // *INDENT-OFF*
     //Computer F^{-1}
@@ -248,10 +219,9 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
                              F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
                             };
     // *INDENT-ON*
-    const CeedScalar J = computeDetF(F);
     CeedScalar Finvwork[9];
     for (CeedInt m = 0; m < 9; m++)
-      Finvwork[m] = B[m] / J;
+      Finvwork[m] = B[m] / (Jm1 + 1.);
 
     CeedScalar Finv[3][3];
     Finv[0][0] = Finvwork[0];
@@ -308,8 +278,8 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
   const CeedScalar (*dXdx)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
   // tau computed in residual
   const CeedScalar (*tau)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  // Cc1 = mu -lambda*log(J) computed in residual
-  const CeedScalar (*Cc1)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // lam_log_J = lambda*log(J) computed in residual
+  const CeedScalar (*lam_log_J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -321,6 +291,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
 
   // Constants
   const CeedScalar TwoMu = E / (1 + nu);
+  const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
   const CeedScalar lambda = (3*Kbulk - TwoMu) / 3;
 
@@ -386,15 +357,15 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
     dcF_tau[1][1] += lambda*tr_eps;
     dcF_tau[2][2] += lambda*tr_eps;
 
-    CeedScalar ds[3][3] = {{dcF_tau[0][0] + 2*Cc1[0][i]*epsilon[0][0], 
-                            dcF_tau[0][1] + 2*Cc1[0][i]*epsilon[0][1],
-                            dcF_tau[0][2] + 2*Cc1[0][i]*epsilon[0][2]},
-                           {dcF_tau[1][0] + 2*Cc1[0][i]*epsilon[1][0], 
-                            dcF_tau[1][1] + 2*Cc1[0][i]*epsilon[1][1],
-                            dcF_tau[1][2] + 2*Cc1[0][i]*epsilon[1][2]},
-                           {dcF_tau[2][0] + 2*Cc1[0][i]*epsilon[2][0], 
-                            dcF_tau[2][1] + 2*Cc1[0][i]*epsilon[2][1],
-                            dcF_tau[2][2] + 2*Cc1[0][i]*epsilon[2][2]}
+    CeedScalar ds[3][3] = {{dcF_tau[0][0] + 2*(mu - lam_log_J[0][i])*epsilon[0][0],
+                            dcF_tau[0][1] + 2*(mu - lam_log_J[0][i])*epsilon[0][1],
+                            dcF_tau[0][2] + 2*(mu - lam_log_J[0][i])*epsilon[0][2]},
+                           {dcF_tau[1][0] + 2*(mu - lam_log_J[0][i])*epsilon[1][0],
+                            dcF_tau[1][1] + 2*(mu - lam_log_J[0][i])*epsilon[1][1],
+                            dcF_tau[1][2] + 2*(mu - lam_log_J[0][i])*epsilon[1][2]},
+                           {dcF_tau[2][0] + 2*(mu - lam_log_J[0][i])*epsilon[2][0],
+                            dcF_tau[2][1] + 2*(mu - lam_log_J[0][i])*epsilon[2][1],
+                            dcF_tau[2][2] + 2*(mu - lam_log_J[0][i])*epsilon[2][2]}
                           };
 
 
@@ -490,11 +461,11 @@ CEED_QFUNCTION(ElasFSCurrentNH2Energy)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
+    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
-    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
-    energy[i] = (lambda*logj*logj/2. - mu*logj +
+    energy[i] = (lambda*logJ*logJ/2. - mu*logJ +
                  mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
 
   } // End of Quadrature Point Loop
@@ -587,9 +558,9 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
     diagnostic[2][i] = u[2][i];
 
     // Pressure
-    const CeedScalar detC_m1 = computeDetCM1(E2work);
-    CeedScalar logj = log1p_series_shifted(detC_m1)/2.;
-    diagnostic[3][i] = -lambda*logj;
+    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar logJ = log1p_series_shifted(Jm1);
+    diagnostic[3][i] = -lambda*logJ;
 
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
@@ -597,10 +568,10 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt m = 0; m < 3; m++)
         diagnostic[5][i] += E2[j][m] * E2[m][j] / 4.;
-    diagnostic[6][i] = sqrt(detC_m1 + 1);
+    diagnostic[6][i] = Jm1 + 1.;
 
     // Strain energy
-    diagnostic[7][i] = (lambda*logj*logj/2. - mu*logj +
+    diagnostic[7][i] = (lambda*logJ*logJ/2. - mu*logJ +
                         mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.);
 
   } // End of Quadrature Point Loop

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2017, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
 #

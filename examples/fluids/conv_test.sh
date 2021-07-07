@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+# Copyright (c) 2017, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
 #
@@ -52,13 +52,15 @@ for ((d=${test_flags[degree_start]}; d<=${test_flags[degree_end]}; d+=${test_fla
                 args="$args -$arg ${run_flags[$arg]}"
             fi
         done
-        ./navierstokes $args | grep "Relative Error:" | awk -v i="$i" -v res="$res" -v d="$d" '{ print i","res","d","$3}' >> $file_name
+        ./navierstokes $args | grep "Relative Error:" | awk -v i="$i" -v res="$res" -v d="$d" '{ printf "%d,%d,%d,%.5f\n", i, res, d, $3}' >> $file_name
         i=$((i+1))
     done
 done
 
 # Compare the output CSV file with the reference file
-count=$(diff conv_test_result.csv tests-output/fluids_navierstokes_etv.csv | grep "^>" | wc -l)
+count=$(diff conv_test_result.csv tests-output/fluids-navierstokes-conv-euler.csv | grep "^>" | wc -l)
 if [ ${count} != 0 ]; then
     printf "\n# TEST FAILED!\n\n"
+    diff -q conv_test_result.csv tests-output/fluids-navierstokes-conv-euler.csv
+    printf "\n"
 fi

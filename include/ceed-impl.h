@@ -138,6 +138,7 @@ struct CeedVector_private {
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
+  int (*Scale)(CeedVector, CeedScalar);
   int (*AXPY)(CeedVector, CeedScalar, CeedVector);
   int (*PointwiseMult)(CeedVector, CeedVector, CeedVector);
   int (*Reciprocal)(CeedVector);
@@ -250,6 +251,7 @@ struct CeedQFunctionContext_private {
   Ceed ceed;
   int ref_count;
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
+  int (*TakeData)(CeedQFunctionContext, CeedMemType, void *);
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);

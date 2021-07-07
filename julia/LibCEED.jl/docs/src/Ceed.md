@@ -6,4 +6,6 @@ getresource
 get_preferred_memtype
 isdeterministic
 iscuda
+ceedversion
+isrelease
 ```

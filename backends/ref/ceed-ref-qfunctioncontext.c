@@ -56,6 +56,32 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
+// QFunctionContext Take Data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx,
+    CeedMemType mem_type, CeedScalar *data) {
+  int ierr;
+  CeedQFunctionContext_Ref *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
+  CeedChkBackend(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
+
+  if (mem_type != CEED_MEM_HOST)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+  // LCOV_EXCL_STOP
+  if (!impl->data)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
+  // LCOV_EXCL_STOP
+  *(void **)data = impl->data;
+  impl->data = NULL;
+  impl->data_allocated = NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
@@ -110,6 +136,8 @@ int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
 
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
                                 CeedQFunctionContextSetData_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "TakeData",
+                                CeedQFunctionContextTakeData_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
