@@ -469,12 +469,12 @@ If you utilize libCEED please cite::
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
      title        = {libCEED User Manual},
-     month        = mar,
+     month        = jul,
      year         = 2021,
      publisher    = {Zenodo},
-     version      = {0.8},
-     doi          = {10.5281/zenodo.4895340},
-     url          = {https://doi.org/10.5281/zenodo.4895340}
+     version      = {0.9.0},
+     doi          = {10.5281/zenodo.5077489},
+     url          = {https://doi.org/10.5281/zenodo.5077489}
    }
 
 For libCEED's Python interface please cite::

@@ -4,7 +4,7 @@ Changes/Release Notes
 On this page we provide a summary of the main API changes, new features and examples
 for each release of libCEED.
 
-.. v0.9
+.. _v0.9:
 
 v0.9 (Jul 6, 2021)
 ----------------------------------------
