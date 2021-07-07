@@ -33,7 +33,8 @@ def test_200(ceed_resource):
     ne = 3
 
     x = ceed.Vector(ne + 1)
-    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    a = np.arange(10, 10 + ne + 1,
+                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     ind = np.zeros(2 * ne, dtype="int32")
@@ -63,7 +64,8 @@ def test_201(ceed_resource):
     ne = 3
 
     x = ceed.Vector(2 * ne)
-    a = np.arange(10, 10 + 2 * ne, dtype="float64")
+    a = np.arange(10, 10 + 2 * ne,
+                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     strides = np.array([1, 2, 2], dtype="int32")
@@ -90,7 +92,8 @@ def test_202(ceed_resource, capsys):
     blksize = 5
 
     x = ceed.Vector(ne + 1)
-    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    a = np.arange(10, 10 + ne + 1,
+                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     ind = np.zeros(2 * ne, dtype="int32")
@@ -127,7 +130,8 @@ def test_208(ceed_resource, capsys):
     blksize = 5
 
     x = ceed.Vector(ne + 1)
-    a = np.arange(10, 10 + ne + 1, dtype="float64")
+    a = np.arange(10, 10 + ne + 1, dtype=libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     ind = np.zeros(2 * ne, dtype="int32")

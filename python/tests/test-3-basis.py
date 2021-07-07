@@ -24,7 +24,7 @@ import numpy as np
 import buildmats as bm
 import check
 
-TOL = np.finfo(float).eps * 256
+TOL = libceed.lib.CEED_EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utilities
@@ -63,6 +63,7 @@ def test_300(ceed_resource, capsys):
     del b
 
     stdout, stderr, ref_stdout = check.output(capsys)
+# TODO: fix this for float or double
     assert not stderr
     assert stdout == ref_stdout
 
@@ -74,8 +75,9 @@ def test_300(ceed_resource, capsys):
 def test_301(ceed_resource, capsys):
     ceed = libceed.Ceed(ceed_resource)
 
-    qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
-    tau = np.empty(3, dtype="float64")
+    qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
+                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    tau = np.empty(3, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
     qr, tau = ceed.qr_factorization(qr, tau, 4, 3)
 
@@ -90,6 +92,7 @@ def test_301(ceed_resource, capsys):
         print("%12.8f" % tau[i])
 
     stdout, stderr, ref_stdout = check.output(capsys)
+# TODO: fix this for float or double
     assert not stderr
     assert stdout == ref_stdout
 
@@ -104,7 +107,8 @@ def test_304(ceed_resource, capsys):
     A = np.array([0.19996678, 0.0745459, -0.07448852, 0.0332866,
                   0.0745459, 1., 0.16666509, -0.07448852,
                   -0.07448852, 0.16666509, 1., 0.0745459,
-                  0.0332866, -0.07448852, 0.0745459, 0.19996678], dtype="float64")
+                  0.0332866, -0.07448852, 0.0745459, 0.19996678],
+                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
     lam = ceed.symmetric_schur_decomposition(A, 4)
 
@@ -122,6 +126,7 @@ def test_304(ceed_resource, capsys):
         print("%12.8f" % lam[i])
 
     stdout, stderr, ref_stdout = check.output(capsys)
+# TODO: fix this for float or double
     assert not stderr
     assert stdout == ref_stdout
 
@@ -136,11 +141,13 @@ def test_305(ceed_resource, capsys):
     M = np.array([0.19996678, 0.0745459, -0.07448852, 0.0332866,
                   0.0745459, 1., 0.16666509, -0.07448852,
                   -0.07448852, 0.16666509, 1., 0.0745459,
-                  0.0332866, -0.07448852, 0.0745459, 0.19996678], dtype="float64")
+                  0.0332866, -0.07448852, 0.0745459, 0.19996678],
+                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     K = np.array([3.03344425, -3.41501767, 0.49824435, -0.11667092,
                   -3.41501767, 5.83354662, -2.9167733, 0.49824435,
                   0.49824435, -2.9167733, 5.83354662, -3.41501767,
-                  -0.11667092, 0.49824435, -3.41501767, 3.03344425], dtype="float64")
+                  -0.11667092, 0.49824435, -3.41501767, 3.03344425],
+                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
     x, lam = ceed.simultaneous_diagonalization(K, M, 4)
 
@@ -158,6 +165,7 @@ def test_305(ceed_resource, capsys):
         print("%12.8f" % lam[i])
 
     stdout, stderr, ref_stdout = check.output(capsys)
+# TODO: fix this for float or double
     assert not stderr
     assert stdout == ref_stdout
 
@@ -189,8 +197,10 @@ def test_313(ceed_resource):
         Q = 10
         Qdim = Q**dim
         Xdim = 2**dim
-        x = np.empty(Xdim * dim, dtype="float64")
-        uq = np.empty(Qdim, dtype="float64")
+        x = np.empty(Xdim * dim,
+                     dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+        uq = np.empty(
+            Qdim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
         for d in range(dim):
             for i in range(Xdim):
@@ -212,7 +222,8 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Qdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(
+                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 uq[i] = eval(dim, xx)
@@ -230,7 +241,8 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq, Uq.array_read() as u:
             for i in range(Qdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(
+                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 fx = eval(dim, xx)
@@ -250,8 +262,10 @@ def test_314(ceed_resource):
         Qdim = Q**dim
         Xdim = 2**dim
         sum1 = sum2 = 0
-        x = np.empty(Xdim * dim, dtype="float64")
-        u = np.empty(Pdim, dtype="float64")
+        x = np.empty(Xdim * dim,
+                     dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+        u = np.empty(
+            Pdim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
         for d in range(dim):
             for i in range(Xdim):
@@ -276,7 +290,8 @@ def test_314(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Pdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(
+                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
                 for d in range(dim):
                     xx[d] = xq[d * Pdim + i]
                 u[i] = eval(dim, xx)
@@ -295,7 +310,7 @@ def test_314(ceed_resource):
             for i in range(dim * Qdim):
                 sum2 += uq[i]
 
-        assert math.fabs(sum1 - sum2) < 1E-10
+        assert math.fabs(sum1 - sum2) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test creation and destruction of a 2D Simplex non-tensor H1 basis
@@ -307,11 +322,15 @@ def test_320(ceed_resource):
 
     P, Q, dim = 6, 4, 2
 
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+    in_array = np.empty(
+        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(
+        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qweight = np.empty(
+        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -329,12 +348,16 @@ def test_322(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype="float64")
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+                   0., 0.5, 0.5, 1.], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    in_array = np.empty(
+        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(
+        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qweight = np.empty(
+        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -357,7 +380,7 @@ def test_322(ceed_resource):
         sum = 0
         for i in range(Q):
             sum += out_array[i] * weights_array[i]
-        assert math.fabs(sum - 17. / 24.) < 1E-10
+        assert math.fabs(sum - 17. / 24.) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test grad with a 2D Simplex non-tensor H1 basis
@@ -370,14 +393,18 @@ def test_323(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xq = np.array([0.2, 0.6, 1. / 3., 0.2, 0.2, 0.2,
-                   1. / 3., 0.6], dtype="float64")
+                   1. / 3., 0.6], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype="float64")
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+                   0., 0.5, 0.5, 1.], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    in_array = np.empty(
+        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(
+        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qweight = np.empty(
+        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -396,9 +423,9 @@ def test_323(ceed_resource):
     with out_vec.array_read() as out_array:
         for i in range(Q):
             value = dfeval(xq[0 * Q + i], xq[1 * Q + i])
-            assert math.fabs(out_array[0 * Q + i] - value) < 1E-10
+            assert math.fabs(out_array[0 * Q + i] - value) < 10. * TOL
 
             value = dfeval(xq[1 * Q + i], xq[0 * Q + i])
-            assert math.fabs(out_array[1 * Q + i] - value) < 1E-10
+            assert math.fabs(out_array[1 * Q + i] - value) < 10. * TOL
 
 # -------------------------------------------------------------------------------
