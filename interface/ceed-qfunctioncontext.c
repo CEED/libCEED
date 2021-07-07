@@ -60,22 +60,6 @@ int CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state) {
 }
 
 /**
-  @brief Get data size for a Context
-
-  @param ctx            CeedQFunctionContext
-  @param[out] ctx_size  Variable to store size of context data values
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
-                                       size_t *ctx_size) {
-  *ctx_size = ctx->ctx_size;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get backend data of a CeedQFunctionContext
 
   @param ctx        CeedQFunctionContext
@@ -334,6 +318,23 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
   ctx->state += 1;
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Get data size for a Context
+
+  @param ctx            CeedQFunctionContext
+  @param[out] ctx_size  Variable to store size of context data values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
+                                       size_t *ctx_size) {
+  *ctx_size = ctx->ctx_size;
+  return CEED_ERROR_SUCCESS;
+}
+
 
 /**
   @brief View a CeedQFunctionContext
