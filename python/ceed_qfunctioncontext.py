@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 import contextlib
-from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES
+from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, scalar_types
 
 # ------------------------------------------------------------------------------
 
@@ -115,7 +115,7 @@ class QFunctionContext():
              *data: Numpy or Numba array"""
 
         # Retrieve the length of the array
-        size_pointer = ffi.new("CeedInt *")
+        size_pointer = ffi.new("size_t *")
         err_code = lib.CeedQFunctionContextGetContextSize(
             self._pointer[0], size_pointer)
         self._ceed._check_error(err_code)
@@ -133,17 +133,20 @@ class QFunctionContext():
             # Create buffer object from returned pointer
             buff = ffi.buffer(
                 data_pointer[0],
-                ffi.sizeof("CeedScalar") *
-                length_pointer[0])
+                size_pointer[0])
             # return Numpy array
-            return np.frombuffer(buff, dtype="float64")
+            return np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         else:
             # CUDA array interface
             # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
             import numba.cuda as nbcuda
+            if lib.CEED_SCALAR_TYPE == lib.CEED_SCALAR_FP32:
+                scalar_type_str = '>f4'
+            else:
+                scalar_type_str = '>f8'
             desc = {
-                'shape': (length_pointer[0]),
-                'typestr': '>f8',
+                'shape': (size_pointer[0] / ffi.sizeof("CeedScalar")),
+                'typestr': scalar_type_str,
                 'data': (int(ffi.cast("intptr_t", data_pointer[0])), False),
                 'version': 2
             }
