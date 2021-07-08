@@ -25,8 +25,9 @@ jobs:
           make -j2
           LIBCEED_LIB=$(find $PWD/lib -name "libceed.*")
           pushd julia/LibCEED.jl
-          echo "[libCEED_jll]" >> LocalPreferences.toml
-          echo "libceed_path = \"$(LIBCEED_LIB)\"" >> LocalPreferences.toml
-          [[ "$GITHUB_REF" =~ ^refs/(heads/release|tags/).* ]] || julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED"; coverage=true, test_args=["--run-dev-tests"])'
-          rm LocalPreferences.toml && julia --project -e 'import Pkg; Pkg.build(); Pkg.test("LibCEED")'
+          echo >> test/Project.toml
+          echo "[preferences.libCEED_jll]" >> test/Project.toml
+          echo "libceed_path = \"$LIBCEED_LIB\"" >> test/Project.toml
+          [[ "$GITHUB_REF" =~ ^refs/(heads/release|tags/).* ]] || julia --project -e 'import Pkg; Pkg.test("LibCEED"; coverage=true, test_args=["--run-dev-tests"])'
+          git checkout test/Project.toml && julia --project -e 'import Pkg; Pkg.test("LibCEED")'
           julia --project=.style/ -e 'import Pkg; Pkg.instantiate()' && julia --project=.style/ .style/ceed_style.jl && git diff --exit-code src test examples
