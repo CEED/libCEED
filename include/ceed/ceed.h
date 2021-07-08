@@ -135,7 +135,7 @@ typedef enum {
 } CeedScalarType;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.
-#include <ceed/ceed-f64.h>
+#include "ceed-f64.h"
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
