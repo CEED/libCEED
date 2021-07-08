@@ -192,8 +192,6 @@ CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext cxt,
     Ceed *ceed);
 CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx,
     uint64_t *state);
-CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
-    size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
