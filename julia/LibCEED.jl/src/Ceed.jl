@@ -139,3 +139,45 @@ function iscuda(c::Ceed)
     res_split = split(getresource(c), "/")
     length(res_split) >= 3 && res_split[3] == "cuda"
 end
+
+"""
+    set_libceed_path!(path::AbstractString)
+
+Sets the path of the libCEED dynamic library. `path` should be the absolute path to the library
+file. This function sets the library path as a _preference_ associated with the currently active
+environment. Changes will take effect after restarting the Julia session. See the Preferences.jl
+documentation for more information.
+"""
+function set_libceed_path!(path::AbstractString)
+    set_preferences!(C.libCEED_jll, "libceed_path" => path; force=true)
+    @info "Setting the libCEED library path to $path."
+    @info "Restart the Julia session for changes to take effect."
+end
+
+"""
+    unset_libceed_path!()
+
+Unsets the path of the libCEED dynamic library (i.e. undoes a call to [`set_libceed_path!`](@ref)).
+This function deletes the library path preference associated with the currently active environment.
+Changes will take effect after restarting the Julia session. See the Preferences.jl documentation
+for more information.
+"""
+function unset_libceed_path!()
+    delete_preferences!(Preferences.get_uuid(C.libCEED_jll), "libceed_path"; force=true)
+    @info "Deleting preference for libCEED library path."
+    @info "Restart the Julia session for changes to take effect."
+end
+
+"""
+    use_prebuilt_libceed!()
+
+Indicates that the prebuilt version of the libCEED library (bundled with libCEED_jll) should be
+used. This function *clears* the library path preference associated with the currently active
+environment. Changes will take effect after restarting the Julia session. See the Preferences.jl
+documentation for more information.
+"""
+function use_prebuilt_libceed!()
+    set_preferences!(C.libCEED_jll, "libceed_path" => nothing; force=true)
+    @info "Using the prebuilt libCEED binary."
+    @info "Restart the Julia session for changes to take effect."
+end

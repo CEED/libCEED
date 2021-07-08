@@ -1,6 +1,6 @@
 module LibCEED
 
-using StaticArrays, UnsafeArrays, Requires
+using StaticArrays, UnsafeArrays, Requires, Preferences
 using Base: RefValue
 
 # import low-level C interface
@@ -124,12 +124,15 @@ export @interior_qf,
     set_cufunction!,
     set_data!,
     set_field!,
+    set_libceed_path!,
     setarray!,
     setvalue!,
     setvoigt!,
     setvoigt,
     syncarray!,
     takearray!,
+    unset_libceed_path!,
+    use_prebuilt_libceed!,
     witharray,
     witharray_read
 
