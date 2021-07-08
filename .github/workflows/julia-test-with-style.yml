@@ -12,6 +12,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      # Set `JULIA_PKG_SERVER` to the empty string so that the registry will
+      # be fetched using git instead of the package server (to avoid delays).
+      JULIA_PKG_SERVER: ""
+
     steps:
       - name: Environment setup
         uses: actions/checkout@v2
