@@ -31,23 +31,20 @@ as described in the [Configuring LibCEED.jl](@ref) section.
 By default, LibCEED.jl will use the pre-built libCEED binaries provided by the
 [libCEED_jll](https://juliahub.com/ui/Packages/libCEED_jll/LB2fn) package. If
 you wish to use a different libCEED binary (e.g. one built from source),
-LibCEED.jl can be configured using the `JULIA_LIBCEED_LIB` environment variable
-set to the absolute path of the libCEED dynamic library. For the configuration
-to take effect, LibCEED.jl must be **built** with this environment variable, for
-example:
+LibCEED.jl can be configured using Julia's _preferences_ mechanism. Note that
+this preference will be set for the currently active Julia environemnt, and can
+be different between different environments. The Julia session must be restarted
+for changes to take effect.
 
 ```julia
-% JULIA_LIBCEED_LIB=/path/to/libceed.so julia
-julia> # press ] to enter package manager
-(env) pkg> build LibCEED
-```
-or, equivalently,
-```julia
-julia> withenv("JULIA_LIBCEED_LIB" => "/path/to/libceed.so") do
-    Pkg.build("LibCEED")
-end
+julia> using LibCEED
+julia> set_libceed_path!("/path/to/libceed.so")
+[ Info: Setting the libCEED library path to /path/to/libceed.so.
+[ Info: Restart the Julia session for changes to take effect.
 ```
 
+See [Preferences.jl](https://github.com/JuliaPackaging/Preferences.jl) for more
+information.
 
 ### Features of the high-level interface for libCEED
 
