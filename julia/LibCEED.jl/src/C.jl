@@ -2,10 +2,10 @@
 
 module C
 
-using CEnum, Libdl, libCEED_jll
+using Libdl, libCEED_jll
 
-include(joinpath(@__DIR__, "generated", "libceed_common.jl"))
-include(joinpath(@__DIR__, "generated", "libceed_api.jl"))
+const UINT_MAX = typemax(Cuint)
+include(joinpath(@__DIR__, "generated", "libceed_bindings.jl"))
 
 const CEED_STRIDES_BACKEND = Ref{Ptr{CeedInt}}()
 const CEED_BASIS_COLLOCATED = Ref{CeedBasis}()

@@ -72,9 +72,9 @@ Base.show(io::IO, ::MIME"text/plain", c::Ceed) = ceed_show(io, c, C.CeedView)
 Returns the resource string associated with the given [`Ceed`](@ref) object.
 """
 function getresource(c::Ceed)
-    res = Ref{Cstring}()
+    res = Ref{Ptr{Cchar}}()
     C.CeedGetResource(c[], res)
-    unsafe_string(res[])
+    unsafe_string(Cstring(res[]))
 end
 
 """
