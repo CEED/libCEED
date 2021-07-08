@@ -2,15 +2,14 @@
 
 module C
 
-using CEnum, Libdl
+using CEnum, Libdl, Preferences, libCEED_jll
 
-# Get the path to the libCEED dynamic library, configured during the build step
-# of the LibCEED.jl package.
-const depsfile = joinpath(@__DIR__, "..", "deps", "deps.jl")
-if !isfile(depsfile)
-    error("LibCEED.jl not properly installed. Please run Pkg.build(\"LibCEED\")")
-end
-include(depsfile)
+export configure_ceed_scalar!
+
+const CeedScalar = @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
+const UINT_MAX = typemax(UInt32)
+const FILE = Cvoid
+const va_list = Cvoid
 
 include(joinpath(@__DIR__, "generated", "libceed_common.jl"))
 include(joinpath(@__DIR__, "generated", "libceed_api.jl"))
@@ -40,6 +39,14 @@ function __init__()
         unsafe_load(cglobal((:CEED_REQUEST_IMMEDIATE, libceed), Ptr{CeedRequest}))
     CEED_REQUEST_ORDERED[] =
         unsafe_load(cglobal((:CEED_REQUEST_ORDERED, libceed), Ptr{CeedRequest}))
+end
+
+function configure_ceed_scalar!(scalar_type::Union{Type{Float32},Type{Float64}})
+    if scalar_type == Float32
+        @set_preferences!("CeedScalar" => "Float32")
+    elseif scalar_type == Float64
+        @set_preferences!("CeedScalar" => "Float64")
+    end
 end
 
 end # module

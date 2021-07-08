@@ -1,6 +1,6 @@
 # Julia wrapper for header: ceed.h
 # Automatically generated using Clang.jl
-#! format: off
+
 
 function CeedRegistryGetList(n, resources, array)
     ccall((:CeedRegistryGetList, libceed), Cint, (Ptr{Csize_t}, Ptr{Ptr{Cstring}}, Ptr{Ptr{CeedInt}}), n, resources, array)
@@ -31,19 +31,19 @@ function CeedDestroy(ceed)
 end
 
 function CeedErrorReturn(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-    ccall((:CeedErrorReturn, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{Cvoid}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    ccall((:CeedErrorReturn, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{va_list}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 end
 
 function CeedErrorStore(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-    ccall((:CeedErrorStore, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{Cvoid}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    ccall((:CeedErrorStore, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{va_list}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 end
 
 function CeedErrorAbort(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-    ccall((:CeedErrorAbort, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{Cvoid}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    ccall((:CeedErrorAbort, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{va_list}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 end
 
 function CeedErrorExit(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-    ccall((:CeedErrorExit, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{Cvoid}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+    ccall((:CeedErrorExit, libceed), Cint, (Ceed, Cstring, Cint, Cstring, Cint, Cstring, Ptr{va_list}), arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 end
 
 function CeedSetErrorHandler(ceed, eh)
@@ -366,12 +366,20 @@ function CeedQFunctionContextSetData(ctx, mem_type, copy_mode, size, data)
     ccall((:CeedQFunctionContextSetData, libceed), Cint, (CeedQFunctionContext, CeedMemType, CeedCopyMode, Csize_t, Ptr{Cvoid}), ctx, mem_type, copy_mode, size, data)
 end
 
+function CeedQFunctionContextTakeData(ctx, mem_type, data)
+    ccall((:CeedQFunctionContextTakeData, libceed), Cint, (CeedQFunctionContext, CeedMemType, Ptr{Cvoid}), ctx, mem_type, data)
+end
+
 function CeedQFunctionContextGetData(ctx, mem_type, data)
     ccall((:CeedQFunctionContextGetData, libceed), Cint, (CeedQFunctionContext, CeedMemType, Ptr{Cvoid}), ctx, mem_type, data)
 end
 
 function CeedQFunctionContextRestoreData(ctx, data)
     ccall((:CeedQFunctionContextRestoreData, libceed), Cint, (CeedQFunctionContext, Ptr{Cvoid}), ctx, data)
+end
+
+function CeedQFunctionContextGetContextSize(ctx, ctx_size)
+    ccall((:CeedQFunctionContextGetContextSize, libceed), Cint, (CeedQFunctionContext, Ptr{Csize_t}), ctx, ctx_size)
 end
 
 function CeedQFunctionContextView(ctx, stream)
@@ -782,10 +790,6 @@ end
 
 function CeedQFunctionContextGetState(ctx, state)
     ccall((:CeedQFunctionContextGetState, libceed), Cint, (CeedQFunctionContext, Ptr{UInt64}), ctx, state)
-end
-
-function CeedQFunctionContextGetContextSize(ctx, ctx_size)
-    ccall((:CeedQFunctionContextGetContextSize, libceed), Cint, (CeedQFunctionContext, Ptr{Csize_t}), ctx, ctx_size)
 end
 
 function CeedQFunctionContextGetBackendData(ctx, data)

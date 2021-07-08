@@ -5,7 +5,7 @@ using Base: RefValue
 
 # import low-level C interface
 include("C.jl")
-import .C
+using .C
 
 export @interior_qf,
     @witharray,
@@ -73,6 +73,7 @@ export @interior_qf,
     assemble_diagonal!,
     axpy!,
     ceedversion,
+    configure_ceed_scalar!,
     create_composite_operator,
     create_elem_restriction,
     create_elem_restriction_strided,

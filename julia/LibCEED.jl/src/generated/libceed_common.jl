@@ -1,9 +1,9 @@
 # Automatically generated using Clang.jl
 #! format: off
 
-const FILE = Cvoid
 
 # Skipping MacroDefinition: CEED_QFUNCTION ( name ) static const char name ## _loc [ ] = __FILE__ ":" # name ; static int name
+# Skipping MacroDefinition: CEED_QFUNCTION_HELPER static inline
 
 # Skipping MacroDefinition: CeedError ( ceed , ecode , ... ) ( CeedErrorImpl ( ( ceed ) , __FILE__ , __LINE__ , __func__ , ( ecode ) , __VA_ARGS__ ) ? : ( ecode ) )
 
@@ -15,7 +15,13 @@ const CEED_VERSION_RELEASE = false
 # Skipping MacroDefinition: CEED_VERSION_GE ( major , minor , patch ) ( ! CEED_VERSION_RELEASE || ( CEED_VERSION_MAJOR > major || ( CEED_VERSION_MAJOR == major && ( CEED_VERSION_MINOR > minor || ( CEED_VERSION_MINOR == minor && CEED_VERSION_PATCH >= patch ) ) ) ) )
 
 const CeedInt = Int32
-const CeedScalar = Cdouble
+
+@cenum CeedScalarType::UInt32 begin
+    CEED_SCALAR_FP32 = 0
+    CEED_SCALAR_FP64 = 1
+end
+
+
 const Ceed_private = Cvoid
 const Ceed = Ptr{Ceed_private}
 const CeedRequest_private = Cvoid
@@ -99,10 +105,8 @@ const CeedQFunctionUser = Ptr{Cvoid}
 # Skipping MacroDefinition: CEED_UNUSED __attribute__ ( ( unused ) )
 
 const CEED_MAX_RESOURCE_LEN = 1024
-const CEED_MAX_BACKEND_PRIORITY = typemax(Cuint)
-const CEED_ALIGN = 64
+const CEED_MAX_BACKEND_PRIORITY = UINT_MAX
 const CEED_COMPOSITE_MAX = 16
-const CEED_EPSILON = 1.0e-16
 const CEED_DEBUG_COLOR = 0
 
 # Skipping MacroDefinition: CeedDebug1 ( ceed , format , ... ) CeedDebugImpl ( ceed , format , ## __VA_ARGS__ )
