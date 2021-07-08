@@ -37,34 +37,6 @@ function handle_ceed_error(
     throw(CeedError(fname, lineno, func, ecode, message))
 end
 
-"""
-    ceedversion()
-
-Returns a `VersionNumber` corresponding to the version of the libCEED library currently used.
-"""
-function ceedversion()
-    major = Ref{Cint}()
-    minor = Ref{Cint}()
-    patch = Ref{Cint}()
-    release = Ref{Bool}()
-    C.CeedGetVersion(major, minor, patch, release)
-    return VersionNumber(major[], minor[], patch[])
-end
-
-"""
-    isrelease()
-
-Returns true if the libCEED library is a release build, false otherwise.
-"""
-function isrelease()
-    major = Ref{Cint}()
-    minor = Ref{Cint}()
-    patch = Ref{Cint}()
-    release = Ref{Bool}()
-    C.CeedGetVersion(major, minor, patch, release)
-    return release[]
-end
-
 mutable struct Ceed
     ref::RefValue{C.Ceed}
 end
