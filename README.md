@@ -121,13 +121,8 @@ julia> ]
 pkg> add LibCEED
 ```
 
-in the Julia package manager or in a clone of the repository via:
-
-```
-JULIA_LIBCEED_LIB=/path/to/libceed.so julia
-julia> # press ] to enter package manager
-(env) pkg> build LibCEED
-```
+See the [LibCEED.jl documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev/)
+for more information.
 
 Rust users can include libCEED via `Cargo.toml`:
 
