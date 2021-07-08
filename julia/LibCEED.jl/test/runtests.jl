@@ -1,16 +1,7 @@
 using Test, LibCEED, LinearAlgebra, StaticArrays
 
-function iostr(f, x)
-    io = IOBuffer()
-    f(io, x)
-    String(take!(io))
-end
-function showstr(x)
-    iostr(x) do io, y
-        show(io, MIME("text/plain"), y)
-    end
-end
-summarystr(x) = iostr(summary, x)
+showstr(x) = sprint(show, MIME("text/plain"), x)
+summarystr(x) = sprint(summary, x)
 getoutput(fname) = chomp(read(joinpath(@__DIR__, "output", fname), String))
 
 mutable struct CtxData
@@ -18,7 +9,7 @@ mutable struct CtxData
     x::Vector{Float64}
 end
 
-const run_dev_tests = "--run-dev-tests" in ARGS
+const run_dev_tests = !isrelease() || ("--run-dev-tests" in ARGS)
 
 if run_dev_tests
     include("rundevtests.jl")
@@ -28,6 +19,12 @@ if LibCEED.minimum_libceed_version > ceedversion() && !run_dev_tests
     @warn "Skipping tests because of incompatible libCEED versions."
 else
     @testset "LibCEED Release Tests" begin
+        @testset "LibCEED" begin
+            @test ceedversion() isa VersionNumber
+            @test isrelease() isa Bool
+            @test isfile(get_libceed_path())
+        end
+
         @testset "Ceed" begin
             res = "/cpu/self/ref/serial"
             c = Ceed(res)
@@ -125,36 +122,6 @@ else
             axpy!(alpha, w2, w1)
             @test @witharray_read(a = cv1, a ≈ w1)
         end
-        @test_throws Exception norm(v, 3)
-        @test witharray_read(sum, v) == sum(v1)
-        reciprocal!(v)
-        @test @witharray(a = v, mtype = MEM_HOST, all(a .== 1.0 ./ v1))
-
-        witharray(x -> x .= 1.0, v)
-        @test @witharray(a = v, all(a .== 1.0))
-
-        @test summarystr(v) == "$n-element CeedVector"
-        @test iostr(show, v) == @witharray_read(a = v, iostr(show, a))
-        io = IOBuffer()
-        summary(io, v)
-        println(io, ":")
-        @witharray_read(a = v, Base.print_array(io, a))
-        s1 = String(take!(io))
-        @test showstr(v) == s1
-
-        setarray!(v, MEM_HOST, USE_POINTER, v1)
-        syncarray!(v, MEM_HOST)
-        @test @witharray_read(a = v, a == v1)
-        p = takearray!(v, MEM_HOST)
-        @test p == pointer(v1)
-
-        m = rand(10, 10)
-        vm = CeedVector(c, vec(m))
-        @test @witharray_read(a = vm, size = size(m), a == m)
-
-        @test CeedVectorActive()[] == LibCEED.C.CEED_VECTOR_ACTIVE[]
-        @test CeedVectorNone()[] == LibCEED.C.CEED_VECTOR_NONE[]
-    end
 
         @testset "Basis" begin
             c = Ceed()
