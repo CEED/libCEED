@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_dofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1e-14)
+  if (fabs(area - 1.0) > 100.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("Error: True operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_dofs; i++)
     area += vv[i];
   CeedVectorRestoreArrayRead(v, &vv);
-  if (fabs(area - 1.0) > 1e-10)
+  if (fabs(area - 1.0) > 1000.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("Error: Linearized operator computed area = %f != 1.0\n", area);
   // LCOV_EXCL_STOP

@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   sum = 0;
   for (int i=0; i<Q; i++)
     sum += out[i]*weights[i];
-  if (fabs(sum - 17./24.) > 1E-10)
+  if (fabs(sum - 17./24.) > 100.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("%f != %f\n", sum, 17./24.);
   // LCOV_EXCL_STOP

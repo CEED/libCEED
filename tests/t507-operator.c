@@ -101,10 +101,10 @@ int main(int argc, char **argv) {
     sum_1 += hv[2*i];
     sum_2 += hv[2*i+1];
   }
-  if (fabs(sum_1-1.)>1e-10) printf("Computed Area: %f != True Area: 1.0\n",
-                                     sum_1);
-  if (fabs(sum_2-2.)>1e-10) printf("Computed Area: %f != True Area: 2.0\n",
-                                     sum_2);
+  if (fabs(sum_1-1.)>1000.*CEED_EPSILON)
+    printf("Computed Area: %f != True Area: 1.0\n", sum_1);
+  if (fabs(sum_2-2.)>1000.*CEED_EPSILON)
+    printf("Computed Area: %f != True Area: 2.0\n", sum_2);
   CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);

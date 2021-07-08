@@ -96,7 +96,8 @@ int main(int argc, char **argv) {
   sum = 0.;
   for (CeedInt i=0; i<num_nodes_u; i++)
     sum += hv[i];
-  if (fabs(sum-1.)>1e-10) printf("Computed Area: %f != True Area: 1.0\n", sum);
+  if (fabs(sum-1.)>1000.*CEED_EPSILON)
+    printf("Computed Area: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Apply with V = 1
@@ -108,7 +109,8 @@ int main(int argc, char **argv) {
   sum = -num_nodes_u;
   for (CeedInt i=0; i<num_nodes_u; i++)
     sum += hv[i];
-  if (fabs(sum-(1.))>1e-10) printf("Computed Area: %f != True Area: 1.0\n", sum);
+  if (fabs(sum-(1.))>1000.*CEED_EPSILON)
+    printf("Computed Area: %f != True Area: 1.0\n", sum);
   CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);

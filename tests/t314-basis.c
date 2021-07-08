@@ -11,6 +11,19 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   return result;
 }
 
+static CeedScalar GetTolerance(CeedScalarType scalar_type, int dim) {
+  CeedScalar tol;
+  if (scalar_type == CEED_SCALAR_FP32) {
+    if (dim == 3)
+      tol = 0.05;
+    else
+      tol = 1.e-4;
+  } else {
+    tol = 1.e-11;
+  }
+  return tol;
+}
+
 int main(int argc, char **argv) {
   Ceed ceed;
 
@@ -72,7 +85,8 @@ int main(int argc, char **argv) {
       sum_2 += u_q[i];
     CeedVectorRestoreArrayRead(grad_T_ones, &grad_t_ones_array);
     CeedVectorRestoreArrayRead(U_q, &u_q);
-    if (fabs(sum_1 - sum_2) > 1E-10)
+    CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
+    if (fabs(sum_1 - sum_2) > tol)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", dim, sum_1, sum_2);
     // LCOV_EXCL_STOP
