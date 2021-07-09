@@ -468,7 +468,7 @@ If you utilize libCEED please cite::
                      Ratnayaka, Thilina and
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
-     title        = {libCEED User Manual},
+     title        = {{libCEED} User Manual},
      month        = jul,
      year         = 2021,
      publisher    = {Zenodo},
