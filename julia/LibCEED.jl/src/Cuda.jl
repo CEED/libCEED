@@ -1,8 +1,6 @@
 # COV_EXCL_START
 using .CUDA, Cassette
 
-cuda_is_loaded = true
-
 #! format: off
 const cudafuns = (
     :cos, :cospi, :sin, :sinpi, :tan,

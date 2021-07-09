@@ -100,7 +100,7 @@ function generate_user_qfunction(
                 "or /gpu/cuda/ref",
             ),
         )
-        if cuda_is_loaded
+        if isdefined(@__MODULE__, CUDA)
             !has_cuda() && error("No valid CUDA installation found")
             qf2 = gensym(qf_name)
             kf = Core.eval(
