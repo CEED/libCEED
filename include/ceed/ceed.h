@@ -247,6 +247,8 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
                                bool *release);
 
+CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
+
 /// Ceed Errors
 ///
 /// This enum is used to specify the type of error returned by a function.
