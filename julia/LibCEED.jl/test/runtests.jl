@@ -11,7 +11,15 @@ function showstr(x)
     end
 end
 summarystr(x) = iostr(summary, x)
-getoutput(fname) = chomp(read(joinpath(@__DIR__, "output", fname), String))
+getoutput(fname) = chomp(read(joinpath(@__DIR__, "output", string(CeedScalar), fname), String))
+
+function checkoutput(str, fname)
+    if str != getoutput(fname)
+        write(fname, str)
+        return false
+    end
+    return true
+end
 
 mutable struct CtxData
     io::IOBuffer
@@ -99,9 +107,7 @@ end
         @test CeedVectorNone()[] == LibCEED.C.CEED_VECTOR_NONE[]
     end
 
-    # TEMPORARY HACK: these tests rely on comparing computations with pre-computed output, and fail
-    # if they are run with Float32 instead of Float64. This should be fixed.
-    CeedScalar == Float64 && @testset "Basis" begin
+    @testset "Basis" begin
         c = Ceed()
         dim = 3
         ncomp = 1
@@ -109,7 +115,7 @@ end
         q = 6
         b1 = create_tensor_h1_lagrange_basis(c, dim, ncomp, p, q, GAUSS_LOBATTO)
 
-        @test showstr(b1) == getoutput("b1.out")
+        @test checkoutput(showstr(b1), "b1.out")
         @test getdimension(b1) == 3
         @test gettopology(b1) == HEX
         @test getnumcomponents(b1) == ncomp
@@ -119,17 +125,17 @@ end
         @test getnumqpts1d(b1) == q
 
         q1d, w1d = lobatto_quadrature(3, AbscissaAndWeights)
-        @test q1d ≈ [-1.0, 0.0, 1.0]
-        @test w1d ≈ [1/3, 4/3, 1/3]
+        @test q1d ≈ CeedScalar[-1.0, 0.0, 1.0]
+        @test w1d ≈ CeedScalar[1/3, 4/3, 1/3]
 
         q1d, w1d = gauss_quadrature(3)
-        @test q1d ≈ [-sqrt(3/5), 0.0, sqrt(3/5)]
-        @test w1d ≈ [5/9, 8/9, 5/9]
+        @test q1d ≈ CeedScalar[-sqrt(3/5), 0.0, sqrt(3/5)]
+        @test w1d ≈ CeedScalar[5/9, 8/9, 5/9]
 
-        b1d = [1.0 0.0; 0.5 0.5; 0.0 1.0]
-        d1d = [-0.5 0.5; -0.5 0.5; -0.5 0.5]
-        q1d = [-1.0, 0.0, 1.0]
-        w1d = [1/3, 4/3, 1/3]
+        b1d = CeedScalar[1.0 0.0; 0.5 0.5; 0.0 1.0]
+        d1d = CeedScalar[-0.5 0.5; -0.5 0.5; -0.5 0.5]
+        q1d = CeedScalar[-1.0, 0.0, 1.0]
+        w1d = CeedScalar[1/3, 4/3, 1/3]
         q, p = size(b1d)
         d2d = zeros(CeedScalar, 2, q*q, p*p)
         d2d[1, :, :] = kron(b1d, d1d)
@@ -141,12 +147,12 @@ end
         @test getinterp1d(b2) == b1d
         @test getgrad(b2) == d2d
         @test getgrad1d(b2) == d1d
-        @test showstr(b2) == getoutput("b2.out")
+        @test checkoutput(showstr(b2), "b2.out")
 
         b3 = create_h1_basis(c, LINE, 1, p, q, b1d, reshape(d1d, 1, q, p), q1d, w1d)
         @test getqref(b3) == q1d
         @test getqweights(b3) == w1d
-        @test showstr(b3) == getoutput("b3.out")
+        @test checkoutput(showstr(b3), "b3.out")
 
         v = rand(CeedScalar, 2)
         vq = apply(b3, v)
