@@ -59,11 +59,11 @@ affiliations:
    index: 4
  - name: University of Illinois at Urbana-Champaign
    index: 5
-date: XXXX TODO write date XXXX
+date: 9 July 2021
 bibliography: paper.bib
 ---
 
-# Summary
+# Summary and statement of need
 
 Finite element methods are widely used to solve partial differential equations (PDE) in science and engineering, but their standard implementation [@dealII92;@libMeshPaper;@LoggMardalWells2012] relies on assembling sparse matrices.
 Sparse matrix multiplication and triangular operations perform a scalar multiply and add for each nonzero entry, just 2 floating point operations (flops) per scalar that must be loaded from memory [@williams2009roofline].
