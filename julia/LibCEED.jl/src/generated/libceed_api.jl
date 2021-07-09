@@ -62,6 +62,10 @@ function CeedGetVersion(major, minor, patch, release)
     ccall((:CeedGetVersion, libceed), Cint, (Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Bool}), major, minor, patch, release)
 end
 
+function CeedGetScalarType(scalar_type)
+    ccall((:CeedGetScalarType, libceed), Cint, (Ptr{CeedScalarType},), scalar_type)
+end
+
 function CeedGetPreferredMemType(ceed, type)
     ccall((:CeedGetPreferredMemType, libceed), Cint, (Ceed, Ptr{CeedMemType}), ceed, type)
 end

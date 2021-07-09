@@ -73,7 +73,6 @@ export @interior_qf,
     assemble_diagonal!,
     axpy!,
     ceedversion,
-    configure_ceed_scalar!,
     create_composite_operator,
     create_elem_restriction,
     create_elem_restriction_strided,
@@ -89,7 +88,9 @@ export @interior_qf,
     extract_array,
     extract_context,
     gauss_quadrature,
+    get_libceed_path,
     get_preferred_memtype,
+    get_scalar_type,
     getcompstride,
     getnumelements,
     getelementsize,
@@ -154,6 +155,17 @@ cuda_is_loaded = false
 function __init__()
     @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("Cuda.jl")
     set_globals()
+
+    scalar_type = get_scalar_type()
+    if scalar_type != CeedScalar
+        @set_preferences!("CeedScalar" => string(scalar_type))
+        @warn(
+            "libCEED is compiled with $scalar_type but LibCEED.jl is using $CeedScalar.\n\n" *
+            "Configuring LibCEED.jl to use $scalar_type.\n\n" *
+            "The Julia session must be restarted for changes to take effect."
+        )
+    end
+end
 
 """
     ceedversion()
@@ -230,6 +242,29 @@ function use_prebuilt_libceed!()
         "Using the prebuilt libCEED binary.\n" *
         "Restart the Julia session for changes to take effect."
     )
+end
+
+"""
+    get_libceed_path()
+
+Returns the path to the currently used libCEED library. A different libCEED library can be used by
+calling [`set_libceed_path!`](@ref) or by using a depot-wide Overrides.toml file.
+"""
+get_libceed_path() = C.libCEED_jll.libceed_path
+
+"""
+    get_scalar_type()
+"""
+function get_scalar_type()
+    type = Ref{C.CeedScalarType}()
+    C.CeedGetScalarType(type)
+    if type[] == C.CEED_SCALAR_FP32
+        return Float32
+    elseif type[] == C.CEED_SCALAR_FP64
+        return Float64
+    else
+        error("Unknown CeedScalar type $(type[])")
+    end
 end
 
 end # module

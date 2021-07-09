@@ -4,8 +4,6 @@ module C
 
 using CEnum, Libdl, Preferences, libCEED_jll
 
-export configure_ceed_scalar!
-
 const CeedScalar = @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
 const UINT_MAX = typemax(UInt32)
 const FILE = Cvoid
@@ -39,14 +37,6 @@ function __init__()
         unsafe_load(cglobal((:CEED_REQUEST_IMMEDIATE, libceed), Ptr{CeedRequest}))
     CEED_REQUEST_ORDERED[] =
         unsafe_load(cglobal((:CEED_REQUEST_ORDERED, libceed), Ptr{CeedRequest}))
-end
-
-function configure_ceed_scalar!(scalar_type::Union{Type{Float32},Type{Float64}})
-    if scalar_type == Float32
-        @set_preferences!("CeedScalar" => "Float32")
-    elseif scalar_type == Float64
-        @set_preferences!("CeedScalar" => "Float64")
-    end
 end
 
 end # module
