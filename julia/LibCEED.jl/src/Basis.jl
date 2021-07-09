@@ -79,10 +79,10 @@ function create_tensor_h1_basis(
     ncomp,
     p,
     q,
-    interp1d,
-    grad1d,
-    qref1d,
-    qweight1d,
+    interp1d::AbstractArray{CeedScalar},
+    grad1d::AbstractArray{CeedScalar},
+    qref1d::AbstractArray{CeedScalar},
+    qweight1d::AbstractArray{CeedScalar},
 )
     @assert size(interp1d) == (q, p)
     @assert size(grad1d) == (q, p)
@@ -135,10 +135,10 @@ function create_h1_basis(
     ncomp,
     nnodes,
     nqpts,
-    interp,
-    grad,
-    qref,
-    qweight,
+    interp::AbstractArray{CeedScalar},
+    grad::AbstractArray{CeedScalar},
+    qref::AbstractArray{CeedScalar},
+    qweight::AbstractArray{CeedScalar},
 )
     dim = getdimension(topo)
     @assert size(interp) == (nqpts, nnodes)
