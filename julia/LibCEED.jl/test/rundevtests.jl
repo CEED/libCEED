@@ -8,15 +8,15 @@ using Test, LibCEED, LinearAlgebra, StaticArrays
         n = 10
         c = Ceed()
 
-        v1 = rand(n)
-        v2 = rand(n)
-        v3 = rand(n)
+        v1 = rand(CeedScalar, n)
+        v2 = rand(CeedScalar, n)
+        v3 = rand(CeedScalar, n)
 
         cv1 = CeedVector(c, v1)
         cv2 = CeedVector(c, v2)
         cv3 = CeedVector(c, v3)
 
-        alpha = rand()
+        alpha = rand(CeedScalar)
 
         scale!(cv1, alpha)
         v1 .*= alpha
