@@ -277,7 +277,7 @@ int main(int argc, const char *argv[]) {
     printf("Volume error         : % .14g\n", vol-exact_vol);
     // LCOV_EXCL_STOP
   } else {
-    CeedScalar tol = (dim==1 ? 1E-14 : dim==2 ? 1E-7 : 1E-5);
+    CeedScalar tol = (dim==1 ? 100.*CEED_EPSILON : dim==2 ? 1E-5 : 1E-5);
     if (fabs(vol-exact_vol)>tol)
       // LCOV_EXCL_START
       printf("Volume error : % .1e\n", vol-exact_vol);

@@ -301,7 +301,7 @@ int main(int argc, const char *argv[]) {
     printf("Surface area error         : % .14g\n", sa-exact_sa);
     // LCOV_EXCL_STOP
   } else {
-    CeedScalar tol = (dim==1 ? 1E-12 : dim==2 ? 1E-1 : 1E-1);
+    CeedScalar tol = (dim==1 ? 10000.*CEED_EPSILON : dim==2 ? 1E-1 : 1E-1);
     if (fabs(sa-exact_sa)>tol)
       // LCOV_EXCL_START
       printf("Surface area error         : % .14g\n", sa-exact_sa);
