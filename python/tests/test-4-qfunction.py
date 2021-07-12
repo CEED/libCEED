@@ -119,7 +119,7 @@ def test_401(ceed_resource):
     qf_setup.add_output("qdata", 1, libceed.EVAL_NONE)
 
     qf_mass = ceed.QFunction(1, qfs.apply_mass,
-                             os.path.join(file_dir, "t400-qfunction.h:apply_mass"))
+                             os.path.join(file_dir, "test-qfunctions.h:apply_mass"))
     qf_mass.add_input("qdata", 1, libceed.EVAL_NONE)
     qf_mass.add_input("u", 1, libceed.EVAL_INTERP)
     qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
@@ -185,7 +185,7 @@ def test_402(ceed_resource, capsys):
     qf_setup.add_output("qdata", 1, libceed.EVAL_NONE)
 
     qf_mass = ceed.QFunction(1, qfs.apply_mass,
-                             os.path.join(file_dir, "t400-qfunction.h:apply_mass"))
+                             os.path.join(file_dir, "test-qfunctions.h:apply_mass"))
     qf_mass.add_input("qdata", 1, libceed.EVAL_NONE)
     qf_mass.add_input("u", 1, libceed.EVAL_INTERP)
     qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
@@ -193,14 +193,18 @@ def test_402(ceed_resource, capsys):
     print(qf_setup)
     print(qf_mass)
 
-    ctx_data = np.array([1., 2., 3., 4., 5.],
-                        dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP64:
+        ctx_data = np.array([1., 2., 3., 4., 5.],
+                            dtype=libceed.scalar_types[libceed.SCALAR_FP64])
+    # Make ctx twice as long in fp32, so size will be the same as fp64 output
+    else:
+        ctx_data = np.array([1., 2., 3., 4., 5., 1., 2., 3., 4., 5.],
+                            dtype=libceed.scalar_types[libceed.SCALAR_FP32])
     ctx = ceed.QFunctionContext()
     ctx.set_data(ctx_data)
     print(ctx)
 
     stdout, stderr, ref_stdout = check.output(capsys)
-# TODO: fix this for float or double
     assert not stderr
     assert stdout == ref_stdout
 
