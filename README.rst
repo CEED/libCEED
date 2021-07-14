@@ -466,8 +466,7 @@ If you utilize libCEED please cite::
      volume       = {6},
      number       = {63},
      pages        = {2945},
-     doi          = {10.21105/joss.02945},
-     url          = {https //doi.org/10.21105/joss.02945}
+     doi          = {10.21105/joss.02945}
    }
 
    @misc{libceed-user-manual,
@@ -490,8 +489,7 @@ If you utilize libCEED please cite::
      year         = 2021,
      publisher    = {Zenodo},
      version      = {0.9.0},
-     doi          = {10.5281/zenodo.5077489},
-     url          = {https://doi.org/10.5281/zenodo.5077489}
+     doi          = {10.5281/zenodo.5077489}
    }
 
 For libCEED's Python interface please cite::
@@ -503,8 +501,7 @@ For libCEED's Python interface please cite::
      pages     = {85 - 90},
      year      = {2020},
      editor    = {{M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe},
-     doi       = {10.25080/Majora-342d178e-00c},
-     url       = {https://doi.org/10.25080/Majora-342d178e-00c}
+     doi       = {10.25080/Majora-342d178e-00c}
    }
 
 The BiBTeX entries for these references can be found in the
