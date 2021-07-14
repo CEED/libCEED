@@ -546,12 +546,12 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
     //...(d2I1bar_dE2:dE)/2 = -1/3*(Cinv:dE)*dI1bar_dE - 2/3 J^(-2/3) *[tr(dE)Cinv - Cinv*dE*Cinv]
     CeedScalar d2I1bar_dE2_dE[6];
-    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
-    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
-    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
-    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
-    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
-    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
+    d2I1bar_dE2_dE[0] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
+    d2I1bar_dE2_dE[1] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
+    d2I1bar_dE2_dE[2] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
+    d2I1bar_dE2_dE[3] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
+    d2I1bar_dE2_dE[4] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
+    d2I1bar_dE2_dE[5] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
 
     //...(d2I2bar_dE2:dE)/2 = -2.0/3.0*(Cinv:dE)*dI2bar_dE + 2 J^(-4.0/3.0)*(tr(dE)*I3 - dE) + 4.0/3.0 J^(-4.0/3.0) *[cc*Cinv + I_2*Cinv*dE*Cinv]
     CeedScalar cc = I_1*tr_dE - C_contract_dE;
@@ -711,7 +711,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
       }
 
     const CeedScalar Jm1 = computeJM1(grad_u);
-    CeedScalar J = Jm1 + 1;
+    CeedScalar J = Jm1 + 1.;
     // compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
