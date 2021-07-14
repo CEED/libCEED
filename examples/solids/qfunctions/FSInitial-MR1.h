@@ -161,13 +161,13 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
 
   // Compute the Second Piola-Kirchhoff (S) (canceled 1/2 already in S with 2 in dI1bar_dE)
   // S = mu_1*(dI1bar_dE)/2 + mu_2*(dI2bar_dE)/2 + k1*(logJ)*C^{-1}
-  // dI1bar_dE/2 = J^{-2.0/3.0}*(I3 - 1/3*I_1*C^{-1})
-  dI1bar_dE[0] = pow(J,-2.0/3.0) * ( 1 - (1/3)* (*I_1) * Cinvwork[0] );
-  dI1bar_dE[1] = pow(J,-2.0/3.0) * ( 1 - (1/3)* (*I_1) * Cinvwork[1] );
-  dI1bar_dE[2] = pow(J,-2.0/3.0) * ( 1 - (1/3)* (*I_1) * Cinvwork[2] );
-  dI1bar_dE[3] = pow(J,-2.0/3.0) * (-(1/3)* (*I_1) * Cinvwork[3] );
-  dI1bar_dE[4] = pow(J,-2.0/3.0) * (-(1/3)* (*I_1) * Cinvwork[4] );
-  dI1bar_dE[5] = pow(J,-2.0/3.0) * (-(1/3)* (*I_1) * Cinvwork[5] );
+  // dI1bar_dE/2 = J^{-2.0/3.0}*(I3 - 1.0/3.0*I_1*C^{-1})
+  dI1bar_dE[0] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[0] );
+  dI1bar_dE[1] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[1] );
+  dI1bar_dE[2] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[2] );
+  dI1bar_dE[3] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[3] );
+  dI1bar_dE[4] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[4] );
+  dI1bar_dE[5] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[5] );
 
   // dI2bar_dE/2 = J^{-4.0/3.0}*(I_1*I3 - C - 2.0/3.0*I_2*C^{-1})
   dI2bar_dE[0] = pow(J,-4.0/3.0) * ( (*I_1) - C[0][0] - (2.0/3.0)* (*I_2) * Cinvwork[0] );
@@ -475,14 +475,14 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     // compute dS = mu_1*(d2I1bar_dE2:dE)/2 + mu_2*(d2I2bar_dE2:dE)/2 + k_1*[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]
     CeedScalar J = Jm1 + 1;
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
-    //...(d2I1bar_dE2:dE)/2 = -1/3*(Cinv:dE)*dI1bar_dE - 2.0/3.0 J^(-2.0/3.0) *[tr(dE)Cinv - Cinv*dE*Cinv]
+    //...(d2I1bar_dE2:dE)/2 = -1.0/3.0*(Cinv:dE)*dI1bar_dE - 2.0/3.0 J^(-2.0/3.0) *[tr(dE)Cinv - Cinv*dE*Cinv]
     CeedScalar d2I1bar_dE2_dE[6];
-    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
-    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
-    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
-    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
-    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
-    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
+    d2I1bar_dE2_dE[0] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
+    d2I1bar_dE2_dE[1] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
+    d2I1bar_dE2_dE[2] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
+    d2I1bar_dE2_dE[3] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
+    d2I1bar_dE2_dE[4] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
+    d2I1bar_dE2_dE[5] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
 
     //...(d2I2bar_dE2:dE)/2 = -2.0/3.0*(Cinv:dE)*dI2bar_dE + 2 J^(-4.0/3.0)*(tr(dE)*I3 - dE) + 4.0/3.0 J^(-4.0/3.0) *[cc*Cinv + I_2*Cinv*dE*Cinv]
     CeedScalar cc = I_1*tr_dE - C_contract_dE;
@@ -643,7 +643,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
       }
 
     const CeedScalar Jm1 = computeJM1(grad_u);
-    CeedScalar J = Jm1 + 1;
+    CeedScalar J = Jm1 + 1.;
     // compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
