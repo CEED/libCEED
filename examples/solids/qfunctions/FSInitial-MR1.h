@@ -546,22 +546,22 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
     //...(d2I1bar_dE2:dE)/2 = -1/3*(Cinv:dE)*dI1bar_dE - 2/3 J^(-2/3) *[tr(dE)Cinv - Cinv*dE*Cinv]
     CeedScalar d2I1bar_dE2_dE[6];
-    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
-    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
-    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
-    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
-    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
-    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2/3)*pow(J,-2/3)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
+    d2I1bar_dE2_dE[0] = -(1/3)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
+    d2I1bar_dE2_dE[1] = -(1/3)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
+    d2I1bar_dE2_dE[2] = -(1/3)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
+    d2I1bar_dE2_dE[3] = -(1/3)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
+    d2I1bar_dE2_dE[4] = -(1/3)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
+    d2I1bar_dE2_dE[5] = -(1/3)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
 
-    //...(d2I2bar_dE2:dE)/2 = -2/3*(Cinv:dE)*dI2bar_dE + 2 J^(-4/3)*(tr(dE)*I3 - dE) + 4/3 J^(-4/3) *[cc*Cinv + I_2*Cinv*dE*Cinv]
+    //...(d2I2bar_dE2:dE)/2 = -2.0/3.0*(Cinv:dE)*dI2bar_dE + 2 J^(-4.0/3.0)*(tr(dE)*I3 - dE) + 4.0/3.0 J^(-4.0/3.0) *[cc*Cinv + I_2*Cinv*dE*Cinv]
     CeedScalar cc = I_1*tr_dE - C_contract_dE;
     CeedScalar d2I2bar_dE2_dE[6];
-    d2I2bar_dE2_dE[0] = -(2/3)*Cinv_contract_dE*dI2bar_dE[0] + 2*pow(J,-4/3)*(tr_dE-dEwork[0]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][0] - I_2*Cinv_dE_Cinv[0][0]);
-    d2I2bar_dE2_dE[1] = -(2/3)*Cinv_contract_dE*dI2bar_dE[1] + 2*pow(J,-4/3)*(tr_dE-dEwork[1]) - (4/3)*pow(J,-4/3)*(cc*C_inv[1][1] - I_2*Cinv_dE_Cinv[1][1]);
-    d2I2bar_dE2_dE[2] = -(2/3)*Cinv_contract_dE*dI2bar_dE[2] + 2*pow(J,-4/3)*(tr_dE-dEwork[2]) - (4/3)*pow(J,4/3)*(cc*C_inv[2][2] - I_2*Cinv_dE_Cinv[2][2]);
-    d2I2bar_dE2_dE[3] = -(2/3)*Cinv_contract_dE*dI2bar_dE[3] + 2*pow(J,-4/3)*(-dEwork[3]) - (4/3)*pow(J,-4/3)*(cc*C_inv[1][2] - I_2*Cinv_dE_Cinv[1][2]);
-    d2I2bar_dE2_dE[4] = -(2/3)*Cinv_contract_dE*dI2bar_dE[4] + 2*pow(J,-4/3)*(-dEwork[4]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][2] - I_2*Cinv_dE_Cinv[0][2]);
-    d2I2bar_dE2_dE[5] = -(2/3)*Cinv_contract_dE*dI2bar_dE[5] + 2*pow(J,-4/3)*(-dEwork[5]) - (4/3)*pow(J,-4/3)*(cc*C_inv[0][1] - I_2*Cinv_dE_Cinv[0][1]);
+    d2I2bar_dE2_dE[0] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[0] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[0]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][0] - I_2*Cinv_dE_Cinv[0][0]);
+    d2I2bar_dE2_dE[1] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[1] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[1]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[1][1] - I_2*Cinv_dE_Cinv[1][1]);
+    d2I2bar_dE2_dE[2] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[2] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[2]) - (4.0/3.0)*pow(J,4.0/3.0)*(cc*C_inv[2][2] - I_2*Cinv_dE_Cinv[2][2]);
+    d2I2bar_dE2_dE[3] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[3] + 2*pow(J,-4.0/3.0)*(-dEwork[3]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[1][2] - I_2*Cinv_dE_Cinv[1][2]);
+    d2I2bar_dE2_dE[4] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[4] + 2*pow(J,-4.0/3.0)*(-dEwork[4]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][2] - I_2*Cinv_dE_Cinv[0][2]);
+    d2I2bar_dE2_dE[5] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[5] + 2*pow(J,-4.0/3.0)*(-dEwork[5]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][1] - I_2*Cinv_dE_Cinv[0][1]);
 
     // if you use logJ...[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]= bulk_term
     // if you use (J-1)...[(2*J^2-J)(C_inv:dE)*Cinv -2*J(J-1)*Cinv*dE*Cinv]= bulk_term
@@ -729,7 +729,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     //print out E when energy is negative/small
     MPI_Comm comm = PETSC_COMM_WORLD;
     if (energy[i] <= 0.0){
-	PetscPrintf(comm, "Energy %.12e \n", energy[i]);
+	    PetscPrintf(comm, "Energy %.12e \n", energy[i]);
     	PetscPrintf(comm, "E when energy is <= 0: %.12e, %.12e, %.12e\n"
                         "                         %.12e, %.12e, %.12e\n"
                         "                         %.12e, %.12e, %.12e\n",
