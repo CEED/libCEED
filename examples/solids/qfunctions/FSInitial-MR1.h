@@ -643,7 +643,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
       }
 
     const CeedScalar Jm1 = computeJM1(grad_u);
-    CeedScalar J = Jm1 + 1.;
+    CeedScalar J = Jm1 + 1;
     // compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
@@ -658,15 +658,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
     energy[i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(logJ)*(logJ)) * wdetJ;
-    //print out E when energy is negative/small
-    MPI_Comm comm = PETSC_COMM_WORLD;
-    if (energy[i] <= 0.0){
-	    PetscPrintf(comm, "Energy %.12e \n", energy[i]);
-    	PetscPrintf(comm, "E when energy is <= 0: %.12e, %.12e, %.12e\n"
-                        "                         %.12e, %.12e, %.12e\n"
-                        "                         %.12e, %.12e, %.12e\n",
-                        E2[0][0]/2, E2[0][1]/2, E2[0][2]/2, E2[1][0]/2, E2[1][1]/2, E2[1][2]/2, E2[2][0]/2, E2[2][1]/2, E2[2][2]/2);
-    }
+
   } // End of Quadrature Point Loop
 
   return 0;
