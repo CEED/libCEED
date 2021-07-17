@@ -47,7 +47,7 @@ compared to their corresponding assembled representations.
    uses a (block) CSR format.
 
 Furthermore, software packages that provide high-performance implementations have often
-been special-purpose and intrusive. libCEED is a new library that offers a purely
+been special-purpose and intrusive. libCEED :cite:`libceed-joss-paper` is a new library that offers a purely
 algebraic interface for matrix-free operator representation and supports run-time
 selection of implementations tuned for a variety of computational device types,
 including CPUs and GPUs. libCEED's purely algebraic interface can unobtrusively be
