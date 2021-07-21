@@ -520,6 +520,39 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
+<<<<<<< HEAD
+=======
+  case ELAS_FSInitial_MRc: //coupled version
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
+    /*
+    case ELAS_HYPER_FS_NH:
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
+    case ELAS_HYPER_FS_MR:
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
+    case ELAS_HYPER_FS_GP:
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
+    */
+>>>>>>> some minor changes
   }
   // -- Geometric data restriction
   CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,

@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   if ((app_ctx->problem_choice != ELAS_FSInitial_MR1) && (app_ctx->problem_choice != ELAS_FSInitial_MRc)) {
 =======
   if (app_ctx->problem_choice != ELAS_FSInitial_MR1) {
@@ -105,6 +106,10 @@ int main(int argc, char **argv) {
 =======
   if (app_ctx->problem_choice != ELAS_FSInitial_MR1) {
 >>>>>>> Mooney-Rivlin coupled model
+=======
+  if ((app_ctx->problem_choice != ELAS_FSInitial_MR1)
+      && (app_ctx->problem_choice != ELAS_FSInitial_MRc)) {
+>>>>>>> some minor changes
     // -- Set Poison's ratio, Young's Modulus
     ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
     ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);

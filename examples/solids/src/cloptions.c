@@ -403,12 +403,18 @@ PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
   PetscErrorCode ierr;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   if(app_ctx -> problem_choice == ELAS_FSInitial_MR1 || 
      app_ctx -> problem_choice == ELAS_FSInitial_MRc) {
 =======
   if(app_ctx -> problem_choice == ELAS_FSInitial_MR1) {
 >>>>>>> Mooney-Rivlin coupled model
        ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+=======
+  if(app_ctx -> problem_choice == ELAS_FSInitial_MR1 ||
+      app_ctx -> problem_choice == ELAS_FSInitial_MRc) {
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+>>>>>>> some minor changes
   } else {
     ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
 =======
