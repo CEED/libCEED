@@ -28,7 +28,7 @@
 #include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage  / Neo-Hookean 
 #include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage / Neo-Hookean 
 #include "../qfunctions/FSInitial-MR1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage / Mooney-Rivlin
-//#include "../qfunctions/FSInitial-MR.h"     // -- Initial config (old version) for Neo-Hookean and Mooney-Rivlin (and start of GP)
+#include "../qfunctions/FSInitial-MRc.h"     // -- Initial config (old version) for Neo-Hookean and Mooney-Rivlin (and start of GP)
 #include "../qfunctions/constantForce.h"     // Constant forcing function
 #include "../qfunctions/manufacturedForce.h" // Manufactured solution forcing
 #include "../qfunctions/manufacturedTrue.h"  // Manufactured true solution
@@ -42,7 +42,7 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-problemData problem_options[7] = {
+problemData problem_options[8] = {
   [ELAS_LINEAR] = {
     .q_data_size = 10, // For linear elasticity, 6 would be sufficient
     .setup_geo = SetupGeo,
@@ -139,6 +139,20 @@ problemData problem_options[7] = {
     .jacob_loc = ElasFSInitialMR1dF_loc,
     .energy_loc = ElasFSInitialMR1Energy_loc,
     .diagnostic_loc = ElasFSInitialMR1Diagnostic_loc,
+    .quad_mode = CEED_GAUSS
+  },
+  [ELAS_FSInitial_MRc] = { // coupled version
+    .q_data_size = 10,
+    .setup_geo = SetupGeo,
+    .apply = ElasFSInitialMRcF,
+    .jacob = ElasFSInitialMRcdF,
+    .energy = ElasFSInitialMRcEnergy,
+    .diagnostic = ElasFSInitialMRcDiagnostic,
+    .setup_geo_loc = SetupGeo_loc,
+    .apply_loc = ElasFSInitialMRcF_loc,
+    .jacob_loc = ElasFSInitialMRcdF_loc,
+    .energy_loc = ElasFSInitialMRcEnergy_loc,
+    .diagnostic_loc = ElasFSInitialMRcDiagnostic_loc,
     .quad_mode = CEED_GAUSS
   }
 };
@@ -521,6 +535,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
+    case ELAS_FSInitial_MRc: //coupled version
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
     /*
     case ELAS_HYPER_FS_NH:
     // ------ Storage: dXdx, Grad(u)
@@ -625,6 +646,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
                      &data[fine_level]->grad_u);
     break;
+  case ELAS_FSInitial_MRc:
+    CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
+                     &data[fine_level]->grad_u);
+    break;
     /*
     case ELAS_HYPER_FS_NH:
     CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
@@ -714,6 +739,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   case ELAS_FSInitial_MR1:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
+  case ELAS_FSInitial_MRc:
+    CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
+    break;
     /*
     case ELAS_HYPER_FS_NH:
     CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
@@ -774,6 +802,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
+  case ELAS_FSInitial_MRc:
+    CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
+    break;
     /*
     case ELAS_HYPER_FS_NH:
     CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
@@ -828,6 +860,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacob, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
   case ELAS_FSInitial_MR1:
+    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_MRc:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
     /*
@@ -888,6 +923,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
   case ELAS_FSInitial_MR1:
+    CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
+    break;
+  case ELAS_FSInitial_MRc:
     CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;

@@ -17,8 +17,8 @@
 /// @file
 /// Hyperelasticity, finite strain for solid mechanics example using PETSc
 
-#ifndef ELAS_FSInitialMR1_H
-#define ELAS_FSInitialMR1_H
+#ifndef ELAS_FSInitialMRc_H
+#define ELAS_FSInitialMRc_H
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -93,10 +93,9 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
-static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
+static inline int commonFSMRc(const CeedScalar mu_1, const CeedScalar mu_2, const CeedScalar d,
                              const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                             CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar dI1bar_dE[6],
-                             CeedScalar dI2bar_dE[6], CeedScalar *I_1,
+                             CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
                              CeedScalar *I_2, CeedScalar *Jm1) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
@@ -159,37 +158,21 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
   for (CeedInt m = 0; m < 6; m++)
     Cinvwork[m] = A[m] / (J2);
 
-  // Compute the Second Piola-Kirchhoff (S) (canceled 1/2 already in S with 2 in dI1bar_dE)
-  // S = mu_1*(dI1bar_dE)/2 + mu_2*(dI2bar_dE)/2 + k1*(logJ)*C^{-1}
-  // dI1bar_dE/2 = J^{-2.0/3.0}*(I3 - 1.0/3.0*I_1*C^{-1})
-  dI1bar_dE[0] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[0] );
-  dI1bar_dE[1] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[1] );
-  dI1bar_dE[2] = pow(J,-2.0/3.0) * ( 1 - (1.0/3.0)* (*I_1) * Cinvwork[2] );
-  dI1bar_dE[3] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[3] );
-  dI1bar_dE[4] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[4] );
-  dI1bar_dE[5] = pow(J,-2.0/3.0) * (-(1.0/3.0)* (*I_1) * Cinvwork[5] );
+  // Compute the Second Piola-Kirchhoff (S)
+  // S = (mu_1/2.)*2*I_3 + (mu_2/2.)*(2*I_1*I_3 - 2*Cwork) - d*Cinvwork + k_1*logJ*Cinvwork
+  // *1 for indices 0-2 for I_3
 
-  // dI2bar_dE/2 = J^{-4.0/3.0}*(I_1*I3 - C - 2.0/3.0*I_2*C^{-1})
-  dI2bar_dE[0] = pow(J,-4.0/3.0) * ( (*I_1) - C[0][0] - (2.0/3.0)* (*I_2) * Cinvwork[0] );
-  dI2bar_dE[1] = pow(J,-4.0/3.0) * ( (*I_1) - C[1][1] - (2.0/3.0)* (*I_2) * Cinvwork[1] );
-  dI2bar_dE[2] = pow(J,-4.0/3.0) * ( (*I_1) - C[2][2] - (2.0/3.0)* (*I_2) * Cinvwork[2] );
-  dI2bar_dE[3] = pow(J,-4.0/3.0) * (-C[1][2] - (2.0/3.0)* (*I_2) * Cinvwork[3] );
-  dI2bar_dE[4] = pow(J,-4.0/3.0) * (-C[0][2] - (2.0/3.0)* (*I_2) * Cinvwork[4] );
-  dI2bar_dE[5] = pow(J,-4.0/3.0) * (-C[0][1] - (2.0/3.0)* (*I_2) * Cinvwork[5] );
-
-
-  // compute S = mu_1*dI1bar_dE + mu_2*dI2bar_dE + k1*(logJ)*C^{-1}
-  // compute S = mu_1*dI1bar_dE + mu_2*dI2bar_dE + k1*J(J-1)*C^{-1}
   // if you want above S with logJ, set c1 = logJ
   // if you use S with (J-1) set c1 = J*Jm1
   const CeedScalar logJ = log1p_series_shifted(*Jm1);
   CeedScalar c1 = logJ;
-  Swork[0] = mu_1*dI1bar_dE[0] + mu_2*dI2bar_dE[0] + k_1*c1*Cinvwork[0];
-  Swork[1] = mu_1*dI1bar_dE[1] + mu_2*dI2bar_dE[1] + k_1*c1*Cinvwork[1];
-  Swork[2] = mu_1*dI1bar_dE[2] + mu_2*dI2bar_dE[2] + k_1*c1*Cinvwork[2];
-  Swork[3] = mu_1*dI1bar_dE[3] + mu_2*dI2bar_dE[3] + k_1*c1*Cinvwork[3];
-  Swork[4] = mu_1*dI1bar_dE[4] + mu_2*dI2bar_dE[4] + k_1*c1*Cinvwork[4];
-  Swork[5] = mu_1*dI1bar_dE[5] + mu_2*dI2bar_dE[5] + k_1*c1*Cinvwork[5];
+
+  Swork[0] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[0] + k_1*c1*Cinvwork[0];
+  Swork[1] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[1] + k_1*c1*Cinvwork[1];
+  Swork[2] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[2] + k_1*c1*Cinvwork[2];
+  Swork[3] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[3] + k_1*c1*Cinvwork[3];
+  Swork[4] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[4] + k_1*c1*Cinvwork[4];
+  Swork[5] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[5] + k_1*c1*Cinvwork[5];
 
   return 0;
 };
@@ -197,7 +180,7 @@ static inline int commonFSMR(const CeedScalar mu_1, const CeedScalar mu_2,
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialMRcF)(void *ctx, CeedInt Q,
                                   const CeedScalar *const *in,
                                   CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -216,6 +199,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar k_1 = context->k_1;
+  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
@@ -290,8 +274,8 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
                                         };
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cwork[6], Cinvwork[6], dI1bar_dE[6], dI2bar_dE[6], I_1, I_2, Jm1;
-    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cwork, Cinvwork, dI1bar_dE, dI2bar_dE, &I_1, &I_2, &Jm1);
+    CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
+    commonFSMRc(mu_1, mu_2, d, k_1, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
 
     // Second Piola-Kirchhoff (S)
     const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
@@ -325,7 +309,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialMRcdF)(void *ctx, CeedInt Q,
                                    const CeedScalar *const *in,
                                    CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -344,6 +328,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar k_1 = context->k_1;
+  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -412,8 +397,8 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
                                         };
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cwork[6], Cinvwork[6], dI1bar_dE[6], dI2bar_dE[6], I_1, I_2, Jm1;
-    commonFSMR(mu_1, mu_2, k_1, tempgradu, Swork, Cwork, Cinvwork, dI1bar_dE, dI2bar_dE, &I_1, &I_2, &Jm1);
+    CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
+    commonFSMRc(mu_1, mu_2, d, k_1, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
 
     // *INDENT-ON*
     // dE - Green-Lagrange strain tensor
@@ -472,51 +457,20 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
       }
 
     // *INDENT-OFF*
-    // compute dS = mu_1*(d2I1bar_dE2:dE)/2 + mu_2*(d2I2bar_dE2:dE)/2 + k_1*[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]
-    CeedScalar J = Jm1 + 1;
+    // compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + k_1*Cinv_contract_dE*Cinvwork - 2*k_1*logJ*Cinv_dE_Cinv;
+    // (2*I_3:dE)*I_3 - dE = 2*trace(dE)*I_3 - dE = 2trace(dE) - dE on the diagonal
+    // (2*I_3:dE)*I_3 - dE = -dE elsewhere
+    // CeedScalar J = Jm1 + 1;
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
-    //...(d2I1bar_dE2:dE)/2 = -1.0/3.0*(Cinv:dE)*dI1bar_dE - 2.0/3.0 J^(-2.0/3.0) *[tr(dE)Cinv - Cinv*dE*Cinv]
-    CeedScalar d2I1bar_dE2_dE[6];
-    d2I1bar_dE2_dE[0] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[0] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][0] - Cinv_dE_Cinv[0][0]);
-    d2I1bar_dE2_dE[1] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[1] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][1] - Cinv_dE_Cinv[1][1]);
-    d2I1bar_dE2_dE[2] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[2] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[2][2] - Cinv_dE_Cinv[2][2]);
-    d2I1bar_dE2_dE[3] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[3] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[1][2] - Cinv_dE_Cinv[1][2]);
-    d2I1bar_dE2_dE[4] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[4] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][2] - Cinv_dE_Cinv[0][2]);
-    d2I1bar_dE2_dE[5] = -(1.0/3.0)*Cinv_contract_dE*dI1bar_dE[5] -(2.0/3.0)*pow(J,-2.0/3.0)*(tr_dE*C_inv[0][1] - Cinv_dE_Cinv[0][1]);
-
-    //...(d2I2bar_dE2:dE)/2 = -2.0/3.0*(Cinv:dE)*dI2bar_dE + 2 J^(-4.0/3.0)*(tr(dE)*I3 - dE) + 4.0/3.0 J^(-4.0/3.0) *[cc*Cinv + I_2*Cinv*dE*Cinv]
-    CeedScalar cc = I_1*tr_dE - C_contract_dE;
-    CeedScalar d2I2bar_dE2_dE[6];
-    d2I2bar_dE2_dE[0] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[0] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[0]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][0] - I_2*Cinv_dE_Cinv[0][0]);
-    d2I2bar_dE2_dE[1] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[1] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[1]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[1][1] - I_2*Cinv_dE_Cinv[1][1]);
-    d2I2bar_dE2_dE[2] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[2] + 2*pow(J,-4.0/3.0)*(tr_dE-dEwork[2]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[2][2] - I_2*Cinv_dE_Cinv[2][2]);
-    d2I2bar_dE2_dE[3] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[3] + 2*pow(J,-4.0/3.0)*(-dEwork[3]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[1][2] - I_2*Cinv_dE_Cinv[1][2]);
-    d2I2bar_dE2_dE[4] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[4] + 2*pow(J,-4.0/3.0)*(-dEwork[4]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][2] - I_2*Cinv_dE_Cinv[0][2]);
-    d2I2bar_dE2_dE[5] = -(2.0/3.0)*Cinv_contract_dE*dI2bar_dE[5] + 2*pow(J,-4.0/3.0)*(-dEwork[5]) - (4.0/3.0)*pow(J,-4.0/3.0)*(cc*C_inv[0][1] - I_2*Cinv_dE_Cinv[0][1]);
-
-    // if you use logJ...[(C_inv:dE)*Cinv -2*(logJ)*Cinv*dE*Cinv]= bulk_term
-    // if you use (J-1)...[(2*J^2-J)(C_inv:dE)*Cinv -2*J(J-1)*Cinv*dE*Cinv]= bulk_term
-    // use cc1 = 1, cc2 = logJ when you use logJ case
-    // use cc1 = 2*J*J-J, cc2 = J*Jm1 when you use (J-1) case
     const CeedScalar logJ = log1p_series_shifted(Jm1);
-    CeedScalar cc1 = 1;
-    CeedScalar cc2 = logJ;
-    CeedScalar bulk_term[6];
-    bulk_term[0] = cc1*Cinv_contract_dE*C_inv[0][0] - 2*cc2*Cinv_dE_Cinv[0][0];
-    bulk_term[1] = cc1*Cinv_contract_dE*C_inv[1][1] - 2*cc2*Cinv_dE_Cinv[1][1];
-    bulk_term[2] = cc1*Cinv_contract_dE*C_inv[2][2] - 2*cc2*Cinv_dE_Cinv[2][2];
-    bulk_term[3] = cc1*Cinv_contract_dE*C_inv[1][2] - 2*cc2*Cinv_dE_Cinv[1][2];
-    bulk_term[4] = cc1*Cinv_contract_dE*C_inv[0][2] - 2*cc2*Cinv_dE_Cinv[0][2];
-    bulk_term[5] = cc1*Cinv_contract_dE*C_inv[0][1] - 2*cc2*Cinv_dE_Cinv[0][1];
-
     // dS...
     CeedScalar dSwork[6];
-    dSwork[0] = mu_1*d2I1bar_dE2_dE[0] + mu_2*d2I2bar_dE2_dE[0] + k_1*bulk_term[0];
-    dSwork[1] = mu_1*d2I1bar_dE2_dE[1] + mu_2*d2I2bar_dE2_dE[1] + k_1*bulk_term[1];
-    dSwork[2] = mu_1*d2I1bar_dE2_dE[2] + mu_2*d2I2bar_dE2_dE[2] + k_1*bulk_term[2];
-    dSwork[3] = mu_1*d2I1bar_dE2_dE[3] + mu_2*d2I2bar_dE2_dE[3] + k_1*bulk_term[3];
-    dSwork[4] = mu_1*d2I1bar_dE2_dE[4] + mu_2*d2I2bar_dE2_dE[4] + k_1*bulk_term[4];
-    dSwork[5] = mu_1*d2I1bar_dE2_dE[5] + mu_2*d2I2bar_dE2_dE[5] + k_1*bulk_term[5];
+    dSwork[0] = (mu_2)*(2*tr_dE - dE[0][0]) + 2*d*Cinv_dE_Cinv[0][0] + k_1*Cinv_contract_dE*Cinvwork[0] - 2*k_1*logJ*Cinv_dE_Cinv[0][0];
+    dSwork[1] = (mu_2)*(2*tr_dE - dE[1][1]) + 2*d*Cinv_dE_Cinv[1][1] + k_1*Cinv_contract_dE*Cinvwork[1] - 2*k_1*logJ*Cinv_dE_Cinv[1][1];
+    dSwork[2] = (mu_2)*(2*tr_dE - dE[2][2]) + 2*d*Cinv_dE_Cinv[2][2] + k_1*Cinv_contract_dE*Cinvwork[2] - 2*k_1*logJ*Cinv_dE_Cinv[2][2];
+    dSwork[3] = (mu_2)*(-dE[1][2]) + 2*d*Cinv_dE_Cinv[1][2] + k_1*Cinv_contract_dE*Cinvwork[3] - 2*k_1*logJ*Cinv_dE_Cinv[1][2];
+    dSwork[4] = (mu_2)*(-dE[0][2]) + 2*d*Cinv_dE_Cinv[0][2] + k_1*Cinv_contract_dE*Cinvwork[4] - 2*k_1*logJ*Cinv_dE_Cinv[0][2];
+    dSwork[5] = (mu_2)*(-dE[0][1]) + 2*d*Cinv_dE_Cinv[0][1] + k_1*Cinv_contract_dE*Cinvwork[5] - 2*k_1*logJ*Cinv_dE_Cinv[0][1];
 
 
      CeedScalar dS[3][3] = {{dSwork[0], dSwork[5], dSwork[4]},
@@ -553,7 +507,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialMRcEnergy)(void *ctx, CeedInt Q,
                                        const CeedScalar *const *in,
                                        CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -570,6 +524,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar k_1 = context->k_1;
+  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -643,7 +598,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
       }
 
     const CeedScalar Jm1 = computeJM1(grad_u);
-    CeedScalar J = Jm1 + 1;
+    // CeedScalar J = Jm1 + 1;
     // compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
@@ -651,14 +606,16 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
     const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
-    const CeedScalar I1_bar = pow(J,-2.0/3.0)*I_1;
-    const CeedScalar I2_bar = pow(J,-4.0/3.0)*I_2;
+    // const CeedScalar I1_bar = pow(J,-2.0/3.0)*I_1;
+    // const CeedScalar I2_bar = pow(J,-4.0/3.0)*I_2;
 
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
-    energy[i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(logJ)*(logJ)) * wdetJ;
-
+    energy[i] = ((k_1/2.)*pow(Jm1, 2.) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
+    // MPI_Comm comm = PETSC_COMM_WORLD;
+	  //   PetscPrintf(comm, "Energy %.12e \n", energy[i]);
+    
   } // End of Quadrature Point Loop
 
   return 0;
@@ -667,7 +624,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Nodal diagnostic quantities for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialMRcDiagnostic)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -684,6 +641,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar k_1 = context->k_1;
+  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -776,7 +734,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
           CC[j][k] += C[j][m] * C[m][k];
       }
 
-    CeedScalar J = Jm1 + 1;
+    // CeedScalar J = Jm1 + 1;
     // compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
@@ -784,12 +742,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
     const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
-    const CeedScalar I1_bar = pow(J, -2.0/3.0)*I_1;
-    const CeedScalar I2_bar = pow(J, -4.0/3.0)*I_2;
+    // const CeedScalar I1_bar = pow(J, -2.0/3.0)*I_1;
+    // const CeedScalar I2_bar = pow(J, -4.0/3.0)*I_2;
 
     // *INDENT-OFF*
     // Strain energy, change logJ to Jm1 for (J-1) case
-    diagnostic[7][i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(logJ)*(logJ));
+    diagnostic[7][i] = ((k_1/2.)*pow(Jm1, 2.) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
 
   } // End of Quadrature Point Loop
 
@@ -797,4 +755,4 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
 }
 // -----------------------------------------------------------------------------
 
-#endif // End of ELAS_FSInitialMR1_H
+#endif // End of ELAS_FSInitialMRc_H
