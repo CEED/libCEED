@@ -56,12 +56,12 @@
 #include "ex1-volume.h"
 
 // Auxiliary functions.
-int GetCartesianMeshSize(int dim, int degree, int prob_size, int num_xyz[3]);
-int BuildCartesianRestriction(Ceed ceed, int dim, int num_xyz[3], int degree,
+int GetCartesianMeshSize(int dim, int degree, int prob_size, int num_xyz[dim]);
+int BuildCartesianRestriction(Ceed ceed, int dim, int num_xyz[dim], int degree,
                               int num_comp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restr,
                               CeedElemRestriction *restr_i);
-int SetCartesianMeshCoords(int dim, int num_xyz[3], int mesh_degree,
+int SetCartesianMeshCoords(int dim, int num_xyz[dim], int mesh_degree,
                            CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(int dim, int mesh_size, CeedVector mesh_coords);
 
