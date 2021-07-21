@@ -168,11 +168,11 @@ static inline int commonFSMRc(const CeedScalar mu_1, const CeedScalar mu_2, cons
   CeedScalar c1 = logJ;
 
   Swork[0] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[0] + k_1*c1*Cinvwork[0];
-  Swork[1] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[1] + k_1*c1*Cinvwork[1];
-  Swork[2] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[2] + k_1*c1*Cinvwork[2];
-  Swork[3] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[3] + k_1*c1*Cinvwork[3];
-  Swork[4] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[4] + k_1*c1*Cinvwork[4];
-  Swork[5] = (mu_2/2.)*(-2*Cwork[0]) - d*Cinvwork[5] + k_1*c1*Cinvwork[5];
+  Swork[1] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[1]) - d*Cinvwork[1] + k_1*c1*Cinvwork[1];
+  Swork[2] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[2]) - d*Cinvwork[2] + k_1*c1*Cinvwork[2];
+  Swork[3] = (mu_2/2.)*(-2*Cwork[3]) - d*Cinvwork[3] + k_1*c1*Cinvwork[3];
+  Swork[4] = (mu_2/2.)*(-2*Cwork[4]) - d*Cinvwork[4] + k_1*c1*Cinvwork[4];
+  Swork[5] = (mu_2/2.)*(-2*Cwork[5]) - d*Cinvwork[5] + k_1*c1*Cinvwork[5];
 
   return 0;
 };
@@ -612,7 +612,7 @@ CEED_QFUNCTION(ElasFSInitialMRcEnergy)(void *ctx, CeedInt Q,
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
-    energy[i] = ((k_1/2.)*pow(Jm1, 2.) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
+    energy[i] = (0.5*k_1*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
     // MPI_Comm comm = PETSC_COMM_WORLD;
 	  //   PetscPrintf(comm, "Energy %.12e \n", energy[i]);
     
@@ -747,7 +747,7 @@ CEED_QFUNCTION(ElasFSInitialMRcDiagnostic)(void *ctx, CeedInt Q,
 
     // *INDENT-OFF*
     // Strain energy, change logJ to Jm1 for (J-1) case
-    diagnostic[7][i] = ((k_1/2.)*pow(Jm1, 2.) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
+    diagnostic[7][i] = (0.5*k_1*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
 
   } // End of Quadrature Point Loop
 
