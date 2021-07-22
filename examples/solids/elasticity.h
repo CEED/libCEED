@@ -96,7 +96,7 @@ static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
                                                   "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
-                                                  "Hyperelasticity finite strain Initial config coupled Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"
+                                                  "Hyperelasticity finite strain Initial config Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"
                                                  };
 
 // Forcing function options
