@@ -93,10 +93,11 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
-static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2, const CeedScalar d,
-                             const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                             CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
-                             CeedScalar *I_2, CeedScalar *Jm1) {
+static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
+                              const CeedScalar d,
+                              const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
+                              CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
+                              CeedScalar *I_2, CeedScalar *Jm1) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -166,7 +167,7 @@ static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2, cons
   // if you use S with (J-1) set c1 = J*Jm1
   const CeedScalar logJ = log1p_series_shifted(*Jm1);
   CeedScalar c1 = logJ;
-
+  // *INDENT-OFF*
   Swork[0] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[0] + k_1*c1*Cinvwork[0];
   Swork[1] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[1]) - d*Cinvwork[1] + k_1*c1*Cinvwork[1];
   Swork[2] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[2]) - d*Cinvwork[2] + k_1*c1*Cinvwork[2];
@@ -680,6 +681,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
+<<<<<<< HEAD
     energy[i] = (0.5*mu_1*(I1_bar - 3) + 0.5*mu_2*(I2_bar - 3) + 0.5*k_1*(logJ)*(logJ)) * wdetJ;
     //print out E when energy is negative/small
     MPI_Comm comm = PETSC_COMM_WORLD;
@@ -690,6 +692,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
                         "                         %.12e, %.12e, %.12e\n",
                         E2[0][0]/2, E2[0][1]/2, E2[0][2]/2, E2[1][0]/2, E2[1][1]/2, E2[1][2]/2, E2[2][0]/2, E2[2][1]/2, E2[2][2]/2);
     }
+=======
+    energy[i] = (0.5*k_1*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
+    // MPI_Comm comm = PETSC_COMM_WORLD;
+	  //   PetscPrintf(comm, "Energy %.12e \n", energy[i]);
+
+>>>>>>> some clean-up and update
   } // End of Quadrature Point Loop
 
   return 0;
