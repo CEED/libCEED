@@ -521,6 +521,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      &data[fine_level]->elem_restr_gradu_i);
     break;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   case ELAS_FSInitial_MRc: //coupled version
     // ------ Storage: dXdx, Grad(u)
@@ -553,6 +554,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     break;
     */
 >>>>>>> some minor changes
+=======
+>>>>>>> Mooney-Rivlin coupled model
   }
   // -- Geometric data restriction
   CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,
