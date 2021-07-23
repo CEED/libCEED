@@ -419,24 +419,6 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
          size=alt.condition(highlight, alt.value(2), alt.value(1)),
       )
       base.mark_point().add_selection(highlight) + base.mark_line()
-   
-.. dropdown:: Generalized Polynomial model
-
-
-   The Generalized Polynomial strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`bower2010applied`
-
-   .. math::
-       :label: generalized-polynomial-energy
-
-       \Phi(\mathbb{\bar I_1}, \mathbb{\bar I_2}, J) = \sum_{i + j = 1}^N C_{ij}(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^j + \sum_{i = 1}^N \frac{k_i}{2}(J -1)^{2i}
-
-   which we differentiate, using the derivaties defined in Mooney-Rivlin, as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
-
-   .. math::
-      :label: generalized-polynomial-stress
-
-      \bm S = \sum_{i + j = 1}^N 2C_{ij}\left( j(\mathbb{\bar I}_1 -3)^i(\mathbb{\bar I}_2 -3)^{j-1}J^{-4/3} \big(\mathbb I_1 \bm I_3 - \bm C - \frac 2 3 \mathbb I_2 \bm C^{-1} \big) + i(\mathbb{\bar I}_2 -3)^j(\mathbb{\bar I}_1 -3)^{i-1} J^{-2/3} \big(\bm I_3 - \frac 1 3 \mathbb I_1 \bm C^{-1} \big) \right) + \sum_{i = 1}^N k_i i(J -1)^{2i-1}J\bm C^{-1},
-
 
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
