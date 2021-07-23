@@ -315,4 +315,3 @@ for filename in glob.glob(os.path.join(
     destdir = os.path.dirname(os.path.relpath(filename, rootdir))
     mkdir_p(destdir)
     shutil.copy2(filename, destdir)
-    

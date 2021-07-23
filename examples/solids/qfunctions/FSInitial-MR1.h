@@ -463,8 +463,8 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar dSwork[6];
     for (CeedInt i=0; i<6; i++)
       dSwork[i] = lambda * Cinv_contract_dE * Cinvwork[i]
-        + 2 * (d - lambda*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
-        + 2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
+                  + 2 * (d - lambda*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
+                  + 2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
 
     // *INDENT-OFF*
     CeedScalar dS[3][3] = {{dSwork[0], dSwork[5], dSwork[4]},

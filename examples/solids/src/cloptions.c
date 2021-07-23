@@ -340,15 +340,18 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
 
   ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
                             phys_MR->mu_1, &phys_MR->mu_1, NULL); CHKERRQ(ierr);
-  if (phys_MR->mu_1 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires non-negative -mu_1 option (Pa)");
+  if (phys_MR->mu_1 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                   "Mooney-Rivlin model requires non-negative -mu_1 option (Pa)");
 
   ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL,
                             phys_MR->mu_2, &phys_MR->mu_2, NULL); CHKERRQ(ierr);
-  if (phys_MR->mu_2 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires non-negative -mu_2 option (Pa)");
+  if (phys_MR->mu_2 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                   "Mooney-Rivlin model requires non-negative -mu_2 option (Pa)");
 
   ierr = PetscOptionsScalar("-nu", "Poisson ratio", NULL,
                             nu, &nu, NULL); CHKERRQ(ierr);
-  if (nu < 0 || 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
+  if (nu < 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
   phys_MR->lambda = 2 * (phys_MR->mu_1 + phys_MR->mu_2) * nu / (1 - 2*nu);
 
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
