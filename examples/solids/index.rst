@@ -360,7 +360,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: mooney-rivlin-energy_coupled
 
-      \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{\lambda}{2}(\log J)^2 - \underbrace{\mu}_{\mu_1 + 2\mu_2} \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3).
+      \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{\lambda}{2}(\log J)^2 - (\mu_1 + 2\mu_2) \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3).
 
    We differentiate :math:`\Phi` as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
@@ -368,8 +368,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       :label: mooney-rivlin-stress_coupled
 
       \begin{aligned}
-      \bm S &=  \lambda \log J \bm{C}^{-1} - \mu \bm{C}^{-1} + \mu_1\bm I_3 + \mu_2(\mathbb{I_1} \bm I_3 - \bm C) \\
-      &= (\lambda \log J - \mu) \bm C^{-1} + (\mu_1 + \mu_2 \mathbb I_1) \bm I_3 - \mu_2 \bm C,
+      \bm S &=  \lambda \log J \bm{C}^{-1} - (\mu_1 + 2\mu_2) \bm{C}^{-1} + \mu_1\bm I_3 + \mu_2(\mathbb{I_1} \bm I_3 - \bm C) \\
+      &= (\lambda \log J - \mu_1 - 2\mu_2) \bm C^{-1} + (\mu_1 + \mu_2 \mathbb I_1) \bm I_3 - \mu_2 \bm C,
       \end{aligned}
 
    where we have used
@@ -498,11 +498,11 @@ where we have used
       :label: mooney-rivlin-dS_coupled
 
       \begin{aligned}
-      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} + 2(\mu - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
+      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} + 2(\mu_1 + 2\mu_2 - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
       &\quad + 2 \mu_2 \Big[ \trace (\diff\bm E) \bm I_3 - \diff\bm E\Big] .
       \end{aligned}
 
-    Note that the first line matches :math:numref:`eq-neo-hookean-incremental-stress`, so moving from Neo-Hookean to Mooney-Rivlin adds the second line.
+    Note that the first line matches :math:numref:`eq-neo-hookean-incremental-stress`; moving from Neo-Hookean to Mooney-Rivlin adds the second line.
 
 .. dropdown:: Cancellation vs symmetry
 
