@@ -47,8 +47,9 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
   PetscFunctionBeginUser;
 
   if (!*filename) {
-    PetscInt dim = 3;
-    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL,
+    PetscInt dim = 3, faces[3] = {3, 3, 3};
+    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &dim, NULL); CHKERRQ(ierr);
+    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
                                NULL, NULL, interpolate, dm); CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateFromFile(comm, filename, interpolate, dm); CHKERRQ(ierr);
