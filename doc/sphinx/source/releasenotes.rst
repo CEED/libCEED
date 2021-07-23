@@ -9,6 +9,10 @@ for each release of libCEED.
 Current ``main``_branch
 -----------------------
 
+Maintainability
+^^^^^^^^^^^^^^^
+* Refactored preconditioner support internally to facilitate future development
+
 
 .. _v0.9:
 
