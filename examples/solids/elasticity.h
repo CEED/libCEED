@@ -55,25 +55,6 @@ struct Physics_private_MR {
 #endif
 
 // -----------------------------------------------------------------------------
-// Generalized Polynomial context
-/*
-#ifndef PHYSICS_STRUCT_GP
-#define PHYSICS_STRUCT_GP
-typedef struct Physics_private_GP *Physics_GP;
-
-struct Physics_private_GP {
-  CeedScalar   nu;      // Poisson's ratio rm
-  CeedScalar   E;       // Young's Modulus rm
-  //material properties for GP
-  CeedScalar C_mat[6][6]; // 2D matrix
-  CeedScalar K[6]; // 1D array
-  CeedScalar N; // max value of the sum; usually 1 or 2
-};
-
-#endif
-*/
-
-// -----------------------------------------------------------------------------
 // Command Line Options
 // -----------------------------------------------------------------------------
 // Problem options

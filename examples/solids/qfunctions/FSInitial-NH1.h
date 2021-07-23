@@ -42,21 +42,6 @@ struct Physics_private {
 //  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
 //  applications of the Neo-Hookean model.
 // -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
-// Compute det F - 1 REMOVE THIS
-// -----------------------------------------------------------------------------
-#ifndef DETJM1
-#define DETJM1
-static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
-  return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
-         grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
-         grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
-         grad_u[0][0] + grad_u[1][1] + grad_u[2][2] +
-         grad_u[0][0]*grad_u[1][1] + grad_u[0][0]*grad_u[2][2] +
-         grad_u[1][1]*grad_u[2][2] - grad_u[0][1]*grad_u[1][0] -
-         grad_u[0][2]*grad_u[2][0] - grad_u[1][2]*grad_u[2][1];
-};
 #endif
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED

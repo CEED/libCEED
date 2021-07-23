@@ -767,17 +767,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   case ELAS_FSInitial_MR1:
     CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
-    /*
-    case ELAS_HYPER_FS_NH:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-    case ELAS_HYPER_FS_MR:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-    case ELAS_HYPER_FS_GP:
-    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
-    break;
-    */
   }
   CeedQFunctionAddOutput(qf_jacob, "deltadv", num_comp_u*dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qf_jacob, phys_ctx);
