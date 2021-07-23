@@ -309,8 +309,8 @@ For example, if we take the compressible Neo-Hookean model,
    :label: neo-hookean-energy
 
    \begin{aligned}
-   \Phi(\bm E) &= \frac{\lambda}{2}(\log J)^2 + \frac \mu 2 (\operatorname{trace} \bm C - 3) - \mu \log J \\
-     &= \frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm E - \mu \log J,
+   \Phi(\bm E) &= \frac{\lambda}{2}(\log J)^2 - \mu \log J + \frac \mu 2 (\operatorname{trace} \bm C - 3) \\
+     &= \frac{\lambda}{2}(\log J)^2 - \mu \log J + \mu \operatorname{trace} \bm E,
    \end{aligned}
 
 where :math:`J = \lvert \bm F \rvert = \sqrt{\lvert \bm C \rvert}` is the determinant of deformation (i.e., volume change) and :math:`\lambda` and :math:`\mu` are the Lamé parameters in the infinitesimal strain limit.
@@ -354,20 +354,22 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 
 .. dropdown:: Mooney-Rivlin model
 
-   The coupled Mooney-Rivlin model for strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`Holzapfel2002`
+   While the Neo-Hookean model depends on just two scalar invariants, :math:`\mathbb I_1 = \trace \bm C = 3 + 2\trace \bm E` and :math:`J`, Mooney-Rivlin models depend on the additional invariant, :math:`\mathbb I_2 = \frac 1 2 (\mathbb I_1^2 - \bm C \tcolon \bm C)`.
+   A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`Holzapfel2002`
    
    .. math::
       :label: mooney-rivlin-energy_coupled
 
-      \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{k_1}{2}(\log J)^2 - d \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3),
+      \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{\lambda}{2}(\log J)^2 - \underbrace{\mu}_{\mu_1 + 2\mu_2} \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3).
 
-   with :math:`d = \mu_1 + 2\mu_2`. We differentiate :math:`\Phi` as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
+   We differentiate :math:`\Phi` as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
    .. math::
       :label: mooney-rivlin-stress_coupled
 
       \begin{aligned}
-      \bm S &= \mu_1\bm I_3 + \mu_2(\mathbb{I_1} \bm I_3 - \bm C) - d \bm{C}^{-1} + k_1 \log J \bm{C}^{-1},
+      \bm S &=  \lambda \log J \bm{C}^{-1} - \mu \bm{C}^{-1} + \mu_1\bm I_3 + \mu_2(\mathbb{I_1} \bm I_3 - \bm C) \\
+      &= (\lambda \log J - \mu) \bm C^{-1} + (\mu_1 + \mu_2 \mathbb I_1) \bm I_3 - \mu_2 \bm C,
       \end{aligned}
 
    where we have used
@@ -376,26 +378,9 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       :label:
 
       \begin{aligned}
-      \frac{\partial \mathbb{I_1}}{\partial \bm E} = 2 \bm I_3 &, \quad & \frac{\partial \mathbb{I_2}}{\partial \bm E} = 2 \mathbb I_1 \bm I_3 - 2 \bm C, \quad \frac{\partial \log J}{\partial \bm E} = \bm{C}^{-1}.
+      \frac{\partial \mathbb{I_1}}{\partial \bm E} &= 2 \bm I_3, & \frac{\partial \mathbb{I_2}}{\partial \bm E} &= 2 \mathbb I_1 \bm I_3 - 2 \bm C, & \frac{\partial \log J}{\partial \bm E} &= \bm{C}^{-1}.
       \end{aligned}
 
-   For the Newton linearization we want the derivative of :math:numref:`mooney-rivlin-stress_coupled` which is
-
-   .. math::
-      :label: mooney-rivlin-dS_coupled
-
-      \diff\bm S = \frac{\mu_1}{2}\frac{\partial^2 \mathbb{I_1}}{\partial \bm E^2}\!:\! \diff \bm E + \frac{\mu_2}{2} \frac{\partial^2 \mathbb{I_2}}{\partial \bm E^2}\!:\! \diff \bm E + 2d \bm C^{-1} \diff \bm E \bm C^{-1} + k_1(\bm C^{-1}\!:\! \diff \bm E)\bm C^{-1} - 2k_1 \log J \bm C^{-1} \diff \bm E \bm C^{-1}
-
-   where 
-
-   .. math::
-
-      \begin{aligned}
-         & \frac{\partial^2 \mathbb{I_2}}{\partial \bm E^2}\!:\! \diff \bm E = 4\Big(\operatorname{trace}(\diff \bm E) \Big) \bm I_3 - 2\diff \bm E  \\
-         & \frac{\partial^2 \mathbb{I_1}}{\partial \bm E^2}\!:\! \diff \bm E = 0.
-      \end{aligned}
-   
-   
 .. dropdown:: Mooney-Rivlin strain energy comparison
 
    We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
@@ -522,6 +507,20 @@ where we have used
 
 .. note::
    In the small-strain limit, :math:`\bm C \to \bm I_3` and :math:`\log J \to 0`, thereby reducing :math:numref:`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model :math:numref:`eq-st-venant-kirchoff`.
+
+.. dropdown:: Newton linearization of Mooney-Rivlin
+
+   Similar to :math:numref:`eq-neo-hookean-incremental-stress`, we differentiate :math:numref:`mooney-rivlin-stress_coupled` using variational notation,
+
+   .. math::
+      :label: mooney-rivlin-dS_coupled
+
+      \begin{aligned}
+      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} + 2(\mu - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
+      &\quad + 2 \mu_2 \Big[ \trace (\diff\bm E) \bm I_3 - \diff\bm E\Big] .
+      \end{aligned}
+
+    Note that the first line matches :math:numref:`eq-neo-hookean-incremental-stress`, so moving from Neo-Hookean to Mooney-Rivlin adds the second line.
 
 .. dropdown:: Cancellation vs symmetry
 

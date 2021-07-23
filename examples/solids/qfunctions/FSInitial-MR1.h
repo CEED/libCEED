@@ -166,14 +166,11 @@ static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
   // if you want above S with logJ, set c1 = logJ
   // if you use S with (J-1) set c1 = J*Jm1
   const CeedScalar logJ = log1p_series_shifted(*Jm1);
-  CeedScalar c1 = logJ;
   // *INDENT-OFF*
-  Swork[0] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[0]) - d*Cinvwork[0] + k_1*c1*Cinvwork[0];
-  Swork[1] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[1]) - d*Cinvwork[1] + k_1*c1*Cinvwork[1];
-  Swork[2] = (mu_1/2.)*2 + (mu_2/2.)*(2*(*I_1) - 2*Cwork[2]) - d*Cinvwork[2] + k_1*c1*Cinvwork[2];
-  Swork[3] = (mu_2/2.)*(-2*Cwork[3]) - d*Cinvwork[3] + k_1*c1*Cinvwork[3];
-  Swork[4] = (mu_2/2.)*(-2*Cwork[4]) - d*Cinvwork[4] + k_1*c1*Cinvwork[4];
-  Swork[5] = (mu_2/2.)*(-2*Cwork[5]) - d*Cinvwork[5] + k_1*c1*Cinvwork[5];
+  for (CeedInt i=0; i<6; i++)
+    Swork[i] = (k_1 * logJ - d) * Cinvwork[i]
+      + (mu_1 + mu_2 * *I_1) * (i<3) // identity I_3
+      - mu_2 * Cwork[i];
 
   return 0;
 };
@@ -450,6 +447,8 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
 
     // -- C_inv*dE*C_inv
     CeedScalar Cinv_dE_Cinv[3][3];
+    // This product is symmetric and we only use the upper-triangular part
+    // below, but naively compute the whole thing here
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
         Cinv_dE_Cinv[j][k] = 0;
@@ -457,32 +456,28 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
           Cinv_dE_Cinv[j][k] += C_inv[j][m]*dE_Cinv[m][k];
       }
 
-    // *INDENT-OFF*
     // compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + k_1*Cinv_contract_dE*Cinvwork - 2*k_1*logJ*Cinv_dE_Cinv;
     // (2*I_3:dE)*I_3 - dE = 2*trace(dE)*I_3 - dE = 2trace(dE) - dE on the diagonal
     // (2*I_3:dE)*I_3 - dE = -dE elsewhere
     // CeedScalar J = Jm1 + 1;
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
     const CeedScalar logJ = log1p_series_shifted(Jm1);
-    // dS...
     CeedScalar dSwork[6];
-    dSwork[0] = (mu_2)*(2*tr_dE - dE[0][0]) + 2*d*Cinv_dE_Cinv[0][0] + k_1*Cinv_contract_dE*Cinvwork[0] - 2*k_1*logJ*Cinv_dE_Cinv[0][0];
-    dSwork[1] = (mu_2)*(2*tr_dE - dE[1][1]) + 2*d*Cinv_dE_Cinv[1][1] + k_1*Cinv_contract_dE*Cinvwork[1] - 2*k_1*logJ*Cinv_dE_Cinv[1][1];
-    dSwork[2] = (mu_2)*(2*tr_dE - dE[2][2]) + 2*d*Cinv_dE_Cinv[2][2] + k_1*Cinv_contract_dE*Cinvwork[2] - 2*k_1*logJ*Cinv_dE_Cinv[2][2];
-    dSwork[3] = (mu_2)*(-dE[1][2]) + 2*d*Cinv_dE_Cinv[1][2] + k_1*Cinv_contract_dE*Cinvwork[3] - 2*k_1*logJ*Cinv_dE_Cinv[1][2];
-    dSwork[4] = (mu_2)*(-dE[0][2]) + 2*d*Cinv_dE_Cinv[0][2] + k_1*Cinv_contract_dE*Cinvwork[4] - 2*k_1*logJ*Cinv_dE_Cinv[0][2];
-    dSwork[5] = (mu_2)*(-dE[0][1]) + 2*d*Cinv_dE_Cinv[0][1] + k_1*Cinv_contract_dE*Cinvwork[5] - 2*k_1*logJ*Cinv_dE_Cinv[0][1];
+    for (CeedInt i=0; i<6; i++)
+      dSwork[i] = k_1 * Cinv_contract_dE * Cinvwork[i]
+        + 2 * (d - k_1*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
+        + 2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
 
-
-     CeedScalar dS[3][3] = {{dSwork[0], dSwork[5], dSwork[4]},
-                            {dSwork[5], dSwork[1], dSwork[3]},
-                            {dSwork[4], dSwork[3], dSwork[2]}
-                           };
+    // *INDENT-OFF*
+    CeedScalar dS[3][3] = {{dSwork[0], dSwork[5], dSwork[4]},
+                           {dSwork[5], dSwork[1], dSwork[3]},
+                           {dSwork[4], dSwork[3], dSwork[2]}
+                          };
     // Second Piola-Kirchhoff (S)
-     const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
-                                 {Swork[5], Swork[1], Swork[3]},
-                                 {Swork[4], Swork[3], Swork[2]}
-                                };
+    const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
+                                {Swork[5], Swork[1], Swork[3]},
+                                {Swork[4], Swork[3], Swork[2]}
+                               };
     // *INDENT-ON*
     // dP = dPdF:dF = dF*S + F*dS
     CeedScalar dP[3][3];
