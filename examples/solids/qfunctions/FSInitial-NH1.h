@@ -42,7 +42,6 @@ struct Physics_private {
 //  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
 //  applications of the Neo-Hookean model.
 // -----------------------------------------------------------------------------
-#endif
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
 CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {

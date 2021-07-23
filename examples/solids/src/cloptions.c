@@ -324,12 +324,10 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
 PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
                                  Units units) {
   PetscErrorCode ierr;
-  PetscBool mu_1_Flag = PETSC_FALSE;
-  PetscBool mu_2_Flag = PETSC_FALSE;
-  PetscBool k_1_Flag = PETSC_FALSE;
-  phys_MR->mu_1 = 0;
-  phys_MR->mu_2 = 0;
-  phys_MR->k_1 = 0;
+  PetscReal nu = -1;
+  phys_MR->mu_1 = -1;
+  phys_MR->mu_2 = -1;
+  phys_MR->lambda = -1;
   units->meter     = 1;        // 1 meter in scaled length units
   units->second    = 1;        // 1 second in scaled time units
   units->kilogram  = 1;        // 1 kilogram in scaled mass units
@@ -341,16 +339,17 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
                            NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
-                            phys_MR->mu_1, &phys_MR->mu_1,
-                            &mu_1_Flag); CHKERRQ(ierr);
+                            phys_MR->mu_1, &phys_MR->mu_1, NULL); CHKERRQ(ierr);
+  if (phys_MR->mu_1 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires non-negative -mu_1 option (Pa)");
 
   ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL,
-                            phys_MR->mu_2, &phys_MR->mu_2,
-                            &mu_2_Flag); CHKERRQ(ierr);
+                            phys_MR->mu_2, &phys_MR->mu_2, NULL); CHKERRQ(ierr);
+  if (phys_MR->mu_2 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires non-negative -mu_2 option (Pa)");
 
-  ierr = PetscOptionsScalar("-K", "Material Property K_1", NULL, phys_MR->k_1,
-                            &phys_MR->k_1,
-                            &k_1_Flag); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-nu", "Poisson ratio", NULL,
+                            nu, &nu, NULL); CHKERRQ(ierr);
+  if (nu < 0 || 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
+  phys_MR->lambda = 2 * (phys_MR->mu_1 + phys_MR->mu_2) * nu / (1 - 2*nu);
 
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, units->meter, &units->meter, NULL);
@@ -369,22 +368,13 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
 
-  // Check for all required options to be set
-  if (!mu_1_Flag) {
-    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mu_1 option needed");
-  }
-  if (!mu_2_Flag) {
-    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-mu_2 option needed");
-  }
-  if (!k_1_Flag) {
-    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-K option needed");
-  }
-
   // Define derived units
   units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
 
-  // Scale E to Pa
-  phys_MR->k_1 *= units->Pascal;
+  // Scale material parameters based on units of Pa
+  phys_MR->mu_1 *= units->Pascal;
+  phys_MR->mu_2 *= units->Pascal;
+  phys_MR->lambda *= units->Pascal;
 
   PetscFunctionReturn(0);
 };

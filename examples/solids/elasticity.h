@@ -50,7 +50,7 @@ struct Physics_private_MR {
   //material properties for MR
   CeedScalar mu_1; //
   CeedScalar mu_2; //
-  CeedScalar k_1; //
+  CeedScalar lambda; //
 };
 #endif
 

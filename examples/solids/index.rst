@@ -381,6 +381,8 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       \frac{\partial \mathbb{I_1}}{\partial \bm E} &= 2 \bm I_3, & \frac{\partial \mathbb{I_2}}{\partial \bm E} &= 2 \mathbb I_1 \bm I_3 - 2 \bm C, & \frac{\partial \log J}{\partial \bm E} &= \bm{C}^{-1}.
       \end{aligned}
 
+   This is a common model for vulcanized rubber, with a shear modulus (defined for the small-strain limit) of :math:`\mu_1 + \mu_2` that should be significantly smaller than the first Lamé parameter :math:`\lambda`.
+
 .. dropdown:: Mooney-Rivlin strain energy comparison
 
    We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
@@ -392,17 +394,15 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
       import pandas as pd
       nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
       nh["model"] = "Neo-Hookean"
-      nh["parameters"] = "E=1.4754098, nu=0.47540983607"
-      print(nh)
+      nh["parameters"] = "E=2.8, nu=0.4"
 
-      # TODO: read MR-strain.csv and use correct parameters
       mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
       mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
-      mr["parameters"] = "mu_1=0.5, mu_2=0.0, K=10"
+      mr["parameters"] = "mu_1=1, mu_2=0, nu=.4"
 
       mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
       mr1["model"] = "Mooney-Rivlin"
-      mr1["parameters"] = "mu_1=0.25, mu_2=0.25, K=10"
+      mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
 
       df = pd.concat([nh, mr, mr1])
       highlight = alt.selection_single(
@@ -426,7 +426,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    .. math::
       :label: eq-st-venant-kirchoff
 
-      \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
+      \bm S = \lambda (\trace \bm E) \bm I_3 + 2 \mu \bm E,
  
    which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see :math:numref:`hyperelastic-cd`).
 
@@ -495,14 +495,16 @@ where we have used
    Similar to :math:numref:`eq-neo-hookean-incremental-stress`, we differentiate :math:numref:`mooney-rivlin-stress_coupled` using variational notation,
 
    .. math::
-      :label: mooney-rivlin-dS_coupled
+      :label: mooney-rivlin-dS-coupled
 
       \begin{aligned}
-      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} + 2(\mu_1 + 2\mu_2 - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
+      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} \\
+      &\quad + 2(\mu_1 + 2\mu_2 - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
       &\quad + 2 \mu_2 \Big[ \trace (\diff\bm E) \bm I_3 - \diff\bm E\Big] .
       \end{aligned}
 
-    Note that the first line matches :math:numref:`eq-neo-hookean-incremental-stress`; moving from Neo-Hookean to Mooney-Rivlin adds the second line.
+   Note that this agrees with :math:numref:`eq-neo-hookean-incremental-stress` if :math:`\mu_1 = \mu, \mu_2 = 0`.
+   Moving from Neo-Hookean to Mooney-Rivlin modifies the second term and adds the third.
 
 .. dropdown:: Cancellation vs symmetry
 

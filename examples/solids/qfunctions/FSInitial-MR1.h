@@ -34,7 +34,7 @@ struct Physics_private_MR {
   //material properties for MR
   CeedScalar mu_1; //
   CeedScalar mu_2; //
-  CeedScalar k_1; //
+  CeedScalar lambda; //
 };
 #endif
 
@@ -94,8 +94,7 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
-                              const CeedScalar d,
-                              const CeedScalar k_1, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
+                              const CeedScalar lambda, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
                               CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
                               CeedScalar *I_2, CeedScalar *Jm1) {
   // E - Green-Lagrange strain tensor
@@ -160,7 +159,7 @@ static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
     Cinvwork[m] = A[m] / (J2);
 
   // Compute the Second Piola-Kirchhoff (S)
-  // S = (mu_1/2.)*2*I_3 + (mu_2/2.)*(2*I_1*I_3 - 2*Cwork) - d*Cinvwork + k_1*logJ*Cinvwork
+  // S = (mu_1/2.)*2*I_3 + (mu_2/2.)*(2*I_1*I_3 - 2*Cwork) - d*Cinvwork + lambda*logJ*Cinvwork
   // *1 for indices 0-2 for I_3
 
   // if you want above S with logJ, set c1 = logJ
@@ -168,7 +167,7 @@ static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
   const CeedScalar logJ = log1p_series_shifted(*Jm1);
   // *INDENT-OFF*
   for (CeedInt i=0; i<6; i++)
-    Swork[i] = (k_1 * logJ - d) * Cinvwork[i]
+    Swork[i] = (lambda * logJ - mu_1 - 2*mu_2) * Cinvwork[i]
       + (mu_1 + mu_2 * *I_1) * (i<3) // identity I_3
       - mu_2 * Cwork[i];
 
@@ -196,8 +195,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
   const Physics_MR context = (Physics_MR)ctx;
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
-  const CeedScalar k_1 = context->k_1;
-  const CeedScalar d = mu_1 + 2*mu_2;
+  const CeedScalar lambda = context->lambda;
 
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
@@ -273,7 +271,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
 
     // Common components of finite strain calculations
     CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
-    commonFSMR1(mu_1, mu_2, d, k_1, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
+    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
 
     // Second Piola-Kirchhoff (S)
     const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
@@ -325,7 +323,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
   const Physics_MR context = (Physics_MR)ctx;
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
-  const CeedScalar k_1 = context->k_1;
+  const CeedScalar lambda = context->lambda;
   const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
@@ -396,7 +394,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
 
     // Common components of finite strain calculations
     CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
-    commonFSMR1(mu_1, mu_2, d, k_1, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
+    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
 
     // *INDENT-ON*
     // dE - Green-Lagrange strain tensor
@@ -456,7 +454,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
           Cinv_dE_Cinv[j][k] += C_inv[j][m]*dE_Cinv[m][k];
       }
 
-    // compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + k_1*Cinv_contract_dE*Cinvwork - 2*k_1*logJ*Cinv_dE_Cinv;
+    // compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + lambda*Cinv_contract_dE*Cinvwork - 2*lambda*logJ*Cinv_dE_Cinv;
     // (2*I_3:dE)*I_3 - dE = 2*trace(dE)*I_3 - dE = 2trace(dE) - dE on the diagonal
     // (2*I_3:dE)*I_3 - dE = -dE elsewhere
     // CeedScalar J = Jm1 + 1;
@@ -464,8 +462,8 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     CeedScalar dSwork[6];
     for (CeedInt i=0; i<6; i++)
-      dSwork[i] = k_1 * Cinv_contract_dE * Cinvwork[i]
-        + 2 * (d - k_1*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
+      dSwork[i] = lambda * Cinv_contract_dE * Cinvwork[i]
+        + 2 * (d - lambda*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
         + 2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
 
     // *INDENT-OFF*
@@ -519,7 +517,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
   const Physics_MR context = (Physics_MR)ctx;
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
-  const CeedScalar k_1 = context->k_1;
+  const CeedScalar lambda = context->lambda;
   const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
@@ -608,7 +606,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
-    energy[i] = (0.5*k_1*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
+    energy[i] = (0.5*lambda*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
     // MPI_Comm comm = PETSC_COMM_WORLD;
 	  //   PetscPrintf(comm, "Energy %.12e \n", energy[i]);
 
@@ -636,8 +634,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
   const Physics_MR context = (Physics_MR)ctx;
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
-  const CeedScalar k_1 = context->k_1;
-  const CeedScalar d = mu_1 + 2*mu_2;
+  const CeedScalar lambda = context->lambda;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -703,7 +700,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     const CeedScalar Jm1 = computeJM1(grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // change logJ to Jm1 for (J-1) case
-    diagnostic[3][i] = -k_1*logJ;
+    diagnostic[3][i] = -lambda*logJ;
 
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
@@ -743,7 +740,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
 
     // *INDENT-OFF*
     // Strain energy, change logJ to Jm1 for (J-1) case
-    diagnostic[7][i] = (0.5*k_1*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
+    diagnostic[7][i] = (0.5*lambda*logJ*logJ - (mu_1 + 2*mu_2)*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
 
   } // End of Quadrature Point Loop
 
