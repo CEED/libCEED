@@ -324,7 +324,6 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar lambda = context->lambda;
-  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -463,7 +462,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     CeedScalar dSwork[6];
     for (CeedInt i=0; i<6; i++)
       dSwork[i] = lambda * Cinv_contract_dE * Cinvwork[i]
-                  + 2 * (d - lambda*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
+                  + 2 * (mu_1 + 2*mu_2 - lambda*logJ) * Cinv_dE_Cinv[indj[i]][indk[i]]
                   + 2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
 
     // *INDENT-OFF*
@@ -518,7 +517,6 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
   const CeedScalar mu_1  = context->mu_1;
   const CeedScalar mu_2 = context->mu_2;
   const CeedScalar lambda = context->lambda;
-  const CeedScalar d = mu_1 + 2*mu_2;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -599,16 +597,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
     // trace(C^2)
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
-    const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
-    // const CeedScalar I1_bar = pow(J,-2.0/3.0)*I_1;
-    // const CeedScalar I2_bar = pow(J,-4.0/3.0)*I_2;
+    const CeedScalar I_2 = 0.5*(I_1*I_1 - tr_CC);
 
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
-    // Strain energy Phi(E) for Moony-Rivlin, change logJ to Jm1 for (J-1) case
-    energy[i] = (0.5*lambda*(logJ)*(logJ) - d*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
-    // MPI_Comm comm = PETSC_COMM_WORLD;
-	  //   PetscPrintf(comm, "Energy %.12e \n", energy[i]);
+    // Strain energy Phi(E) for Mooney-Rivlin, change logJ to Jm1 for (J-1) case
+    energy[i] = (0.5*lambda*(logJ)*(logJ) - (mu_1 + 2*mu_2)*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
 
   } // End of Quadrature Point Loop
 
@@ -735,8 +729,6 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
     const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
-    // const CeedScalar I1_bar = pow(J, -2.0/3.0)*I_1;
-    // const CeedScalar I2_bar = pow(J, -4.0/3.0)*I_2;
 
     // *INDENT-OFF*
     // Strain energy, change logJ to Jm1 for (J-1) case

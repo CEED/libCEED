@@ -350,7 +350,7 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
 
   ierr = PetscOptionsScalar("-nu", "Poisson ratio", NULL,
                             nu, &nu, NULL); CHKERRQ(ierr);
-  if (nu < 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+  if (nu < 0 || 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
                                 "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
   phys_MR->lambda = 2 * (phys_MR->mu_1 + phys_MR->mu_2) * nu / (1 - 2*nu);
 
