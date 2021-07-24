@@ -355,7 +355,7 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
 .. dropdown:: Mooney-Rivlin model
 
    While the Neo-Hookean model depends on just two scalar invariants, :math:`\mathbb I_1 = \trace \bm C = 3 + 2\trace \bm E` and :math:`J`, Mooney-Rivlin models depend on the additional invariant, :math:`\mathbb I_2 = \frac 1 2 (\mathbb I_1^2 - \bm C \tcolon \bm C)`.
-   A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`Holzapfel2002`
+   A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`holzapfel2000nonlinear`
    
    .. math::
       :label: mooney-rivlin-energy_coupled
