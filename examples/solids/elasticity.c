@@ -34,7 +34,8 @@
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
 //TESTARGS -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
-//TESTARGS(name="Mooney-Rivlin") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 3,3,3 -mu_1 0.5 -mu_2 0.0 -nu 0.4754 -problem FSInitial-MR1
+//TESTARGS(name="solids-MR1-1") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 3,3,3 -mu_1 1.0 -mu_2 0.0 -nu 0.4 -problem FSInitial-MR1
+//TESTARGS(name="solids-MR1-2") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 3,3,3 -mu_1 0.25 -mu_2 0.25 -nu 0.4 -problem FSInitial-MR1
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
