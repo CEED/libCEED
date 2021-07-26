@@ -42,7 +42,13 @@ elif [ ${1::7} == "fluids-" ]; then
       allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "solids-" ]; then
-    allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
+    numconfig=$(grep -F //TESTARGS examples/solids/${1:7}.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/solids/${1:7}.c)")
+      # get all test configurations
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/solids/${1:7}.c | cut -d\  -f2- )")
+    done
 elif [ ${1::2} == "ex" ]; then
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
