@@ -602,6 +602,37 @@ static int CeedOperatorMultigridLevel_Core(CeedOperator op_fine,
   return CEED_ERROR_SUCCESS;
 }
 
+CeedPragmaOptimizeOff
+static int CeedBuildMassLaplace(const CeedScalar *interp_1d,
+                                const CeedScalar *grad_1d,
+                                const CeedScalar *q_weight_1d, CeedInt P_1d,
+                                CeedInt Q_1d, CeedInt dim,
+                                CeedScalar *mass, CeedScalar *laplace) {
+
+  for (CeedInt i=0; i<P_1d; i++)
+    for (CeedInt j=0; j<P_1d; j++) {
+      CeedScalar sum = 0.0;
+      for (CeedInt k=0; k<Q_1d; k++)
+        sum += interp_1d[k*P_1d+i]*q_weight_1d[k]*interp_1d[k*P_1d+j];
+      mass[i+j*P_1d] = sum;
+    }
+  // -- Laplacian
+  for (CeedInt i=0; i<P_1d; i++)
+    for (CeedInt j=0; j<P_1d; j++) {
+      CeedScalar sum = 0.0;
+      for (CeedInt k=0; k<Q_1d; k++)
+        sum += grad_1d[k*P_1d+i]*q_weight_1d[k]*grad_1d[k*P_1d+j];
+      laplace[i+j*P_1d] = sum;
+    }
+  CeedScalar perturbation = dim>2 ? 1e-6 : 1e-4;
+  for (CeedInt i=0; i<P_1d; i++)
+    laplace[i+P_1d*i] += perturbation;
+  return CEED_ERROR_SUCCESS;
+}
+CeedPragmaOptimizeOn
+
+/// @}
+
 /// ----------------------------------------------------------------------------
 /// CeedOperator Public API
 /// ----------------------------------------------------------------------------
@@ -1253,16 +1284,244 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
 
   // Use backend version, if available
   if (op->CreateFDMElementInverse) {
-    ierr = op->CreateFDMElementInverse(op, fdm_inv, request); CeedChk(ierr);
+    return op->CreateFDMElementInverse(op, fdm_inv, request); CeedChk(ierr);
   } else {
-    // Fallback to reference Ceed
-    if (!op->op_fallback) {
-      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    // Check for valid fallback resource
+    const char *resource, *fallback_resource;
+    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
+    CeedChk(ierr);
+    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
+      // Fallback to reference Ceed
+      if (!op->op_fallback) {
+        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+      }
+      // Assemble
+      return CeedOperatorCreateFDMElementInverse(op->op_fallback, fdm_inv, request);
     }
-    // Assemble
-    ierr = op->op_fallback->CreateFDMElementInverse(op->op_fallback, fdm_inv,
-           request); CeedChk(ierr);
   }
+
+  // Interface implementation
+  Ceed ceed, ceed_parent;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+  ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceed_parent);
+  CeedChkBackend(ierr);
+  ceed_parent = ceed_parent ? ceed_parent : ceed;
+  CeedQFunction qf;
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
+
+  // Determine active input basis
+  bool interp = false, grad = false;
+  CeedBasis basis = NULL;
+  CeedElemRestriction rstr = NULL;
+  CeedOperatorField *op_fields;
+  CeedQFunctionField *qf_fields;
+  ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChkBackend(ierr);
+  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChkBackend(ierr);
+  CeedInt num_input_fields;
+  ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, NULL);
+  CeedChkBackend(ierr);
+  for (CeedInt i=0; i<num_input_fields; i++) {
+    CeedVector vec;
+    ierr = CeedOperatorFieldGetVector(op_fields[i], &vec); CeedChkBackend(ierr);
+    if (vec == CEED_VECTOR_ACTIVE) {
+      CeedEvalMode eval_mode;
+      ierr = CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode);
+      CeedChkBackend(ierr);
+      interp = interp || eval_mode == CEED_EVAL_INTERP;
+      grad = grad || eval_mode == CEED_EVAL_GRAD;
+      ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
+      ierr = CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr);
+      CeedChkBackend(ierr);
+    }
+  }
+  if (!basis)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No active field set");
+  // LCOV_EXCL_STOP
+  CeedInt P_1d, Q_1d, elem_size, num_qpts, dim, num_comp = 1, num_elem = 1,
+                                                l_size = 1;
+  ierr = CeedBasisGetNumNodes1D(basis, &P_1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &elem_size); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &num_qpts); CeedChkBackend(ierr);
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(rstr, &l_size); CeedChkBackend(ierr);
+
+  // Build and diagonalize 1D Mass and Laplacian
+  bool tensor_basis;
+  ierr = CeedBasisIsTensor(basis, &tensor_basis); CeedChkBackend(ierr);
+  if (!tensor_basis)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "FDMElementInverse only supported for tensor "
+                     "bases");
+  // LCOV_EXCL_STOP
+  CeedScalar *mass, *laplace, *x, *fdm_interp, *lambda;
+  ierr = CeedCalloc(P_1d*P_1d, &mass); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d*P_1d, &laplace); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d*P_1d, &x); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d*P_1d, &fdm_interp); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d, &lambda); CeedChkBackend(ierr);
+  // -- Build matrices
+  const CeedScalar *interp_1d, *grad_1d, *q_weight_1d;
+  ierr = CeedBasisGetInterp1D(basis, &interp_1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetGrad1D(basis, &grad_1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetQWeights(basis, &q_weight_1d); CeedChkBackend(ierr);
+  ierr = CeedBuildMassLaplace(interp_1d, grad_1d, q_weight_1d, P_1d, Q_1d, dim,
+                              mass, laplace); CeedChkBackend(ierr);
+
+  // -- Diagonalize
+  ierr = CeedSimultaneousDiagonalization(ceed, laplace, mass, x, lambda, P_1d);
+  CeedChkBackend(ierr);
+  ierr = CeedFree(&mass); CeedChkBackend(ierr);
+  ierr = CeedFree(&laplace); CeedChkBackend(ierr);
+  for (CeedInt i=0; i<P_1d; i++)
+    for (CeedInt j=0; j<P_1d; j++)
+      fdm_interp[i+j*P_1d] = x[j+i*P_1d];
+  ierr = CeedFree(&x); CeedChkBackend(ierr);
+
+  // Assemble QFunction
+  CeedVector assembled;
+  CeedElemRestriction rstr_qf;
+  ierr =  CeedOperatorLinearAssembleQFunction(op, &assembled, &rstr_qf,
+          request); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionDestroy(&rstr_qf); CeedChkBackend(ierr);
+  CeedScalar max_norm = 0;
+  ierr = CeedVectorNorm(assembled, CEED_NORM_MAX, &max_norm);
+  CeedChkBackend(ierr);
+
+  // Calculate element averages
+  CeedInt num_modes = (interp?1:0) + (grad?dim:0);
+  CeedScalar *elem_avg;
+  const CeedScalar *assembled_array, *q_weight_array;
+  CeedVector q_weight;
+  ierr = CeedVectorCreate(ceed_parent, num_qpts, &q_weight); CeedChkBackend(ierr);
+  ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
+                        CEED_VECTOR_NONE, q_weight); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
+  CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayRead(q_weight, CEED_MEM_HOST, &q_weight_array);
+  CeedChkBackend(ierr);
+  ierr = CeedCalloc(num_elem, &elem_avg); CeedChkBackend(ierr);
+  const CeedScalar qf_value_bound = max_norm*100*CEED_EPSILON;
+  for (CeedInt e=0; e<num_elem; e++) {
+    CeedInt count = 0;
+    CeedInt elem_offset = e*num_qpts*num_comp*num_comp*num_modes*num_modes;
+    for (CeedInt q=0; q<num_qpts; q++)
+      for (CeedInt i=0; i<num_comp*num_comp*num_modes*num_modes; i++)
+        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > qf_value_bound) {
+          elem_avg[e] += assembled_array[elem_offset + i*num_qpts + q] /
+                         q_weight_array[q];
+          count++;
+        }
+    if (count) {
+      elem_avg[e] /= count;
+    } else {
+      elem_avg[e] = 1.0;
+    }
+  }
+  ierr = CeedVectorRestoreArrayRead(assembled, &assembled_array);
+  CeedChkBackend(ierr);
+  ierr = CeedVectorDestroy(&assembled); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArrayRead(q_weight, &q_weight_array);
+  CeedChkBackend(ierr);
+  ierr = CeedVectorDestroy(&q_weight); CeedChkBackend(ierr);
+
+  // Build FDM diagonal
+  CeedVector q_data;
+  CeedScalar *q_data_array, *fdm_diagonal;
+  ierr = CeedCalloc(num_comp*elem_size, &fdm_diagonal); CeedChkBackend(ierr);
+  const CeedScalar fdm_diagonal_bound = elem_size*CEED_EPSILON;
+  for (CeedInt c=0; c<num_comp; c++)
+    for (CeedInt n=0; n<elem_size; n++) {
+      if (interp)
+        fdm_diagonal[c*elem_size + n] = 1.0;
+      if (grad)
+        for (CeedInt d=0; d<dim; d++) {
+          CeedInt i = (n / CeedIntPow(P_1d, d)) % P_1d;
+          fdm_diagonal[c*elem_size + n] += lambda[i];
+        }
+      if (fabs(fdm_diagonal[c*elem_size + n]) < fdm_diagonal_bound)
+        fdm_diagonal[c*elem_size + n] = fdm_diagonal_bound;
+    }
+  ierr = CeedVectorCreate(ceed_parent, num_elem*num_comp*elem_size, &q_data);
+  CeedChkBackend(ierr);
+  ierr = CeedVectorSetValue(q_data, 0.0);
+  CeedChkBackend(ierr);
+  ierr = CeedVectorGetArray(q_data, CEED_MEM_HOST, &q_data_array);
+  CeedChkBackend(ierr);
+  for (CeedInt e=0; e<num_elem; e++)
+    for (CeedInt c=0; c<num_comp; c++)
+      for (CeedInt n=0; n<elem_size; n++)
+        q_data_array[(e*num_comp+c)*elem_size+n] = 1. / (elem_avg[e] *
+            fdm_diagonal[c*elem_size + n]);
+  ierr = CeedFree(&elem_avg); CeedChkBackend(ierr);
+  ierr = CeedFree(&fdm_diagonal); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArray(q_data, &q_data_array); CeedChkBackend(ierr);
+
+  // Setup FDM operator
+  // -- Basis
+  CeedBasis fdm_basis;
+  CeedScalar *grad_dummy, *q_ref_dummy, *q_weight_dummy;
+  ierr = CeedCalloc(P_1d*P_1d, &grad_dummy); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d, &q_ref_dummy); CeedChkBackend(ierr);
+  ierr = CeedCalloc(P_1d, &q_weight_dummy); CeedChkBackend(ierr);
+  ierr = CeedBasisCreateTensorH1(ceed_parent, dim, num_comp, P_1d, P_1d,
+                                 fdm_interp, grad_dummy, q_ref_dummy,
+                                 q_weight_dummy, &fdm_basis); CeedChkBackend(ierr);
+  ierr = CeedFree(&fdm_interp); CeedChkBackend(ierr);
+  ierr = CeedFree(&grad_dummy); CeedChkBackend(ierr);
+  ierr = CeedFree(&q_ref_dummy); CeedChkBackend(ierr);
+  ierr = CeedFree(&q_weight_dummy); CeedChkBackend(ierr);
+  ierr = CeedFree(&lambda); CeedChkBackend(ierr);
+
+  // -- Restriction
+  CeedElemRestriction rstr_qd_i;
+  CeedInt strides[3] = {1, elem_size, elem_size*num_comp};
+  ierr = CeedElemRestrictionCreateStrided(ceed_parent, num_elem, elem_size,
+                                          num_comp, num_elem*num_comp*elem_size,
+                                          strides, &rstr_qd_i);
+  CeedChkBackend(ierr);
+  // -- QFunction
+  CeedQFunction qf_fdm;
+  ierr = CeedQFunctionCreateInteriorByName(ceed_parent, "Scale", &qf_fdm);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionAddInput(qf_fdm, "input", num_comp, CEED_EVAL_INTERP);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionAddInput(qf_fdm, "scale", num_comp, CEED_EVAL_NONE);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionAddOutput(qf_fdm, "output", num_comp, CEED_EVAL_INTERP);
+  CeedChkBackend(ierr);
+  // -- QFunction context
+  CeedInt *num_comp_data;
+  ierr = CeedCalloc(1, &num_comp_data); CeedChk(ierr);
+  num_comp_data[0] = num_comp;
+  CeedQFunctionContext ctx_fdm;
+  ierr = CeedQFunctionContextCreate(ceed, &ctx_fdm); CeedChkBackend(ierr);
+  ierr = CeedQFunctionContextSetData(ctx_fdm, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     sizeof(*num_comp_data), num_comp_data);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionSetContext(qf_fdm, ctx_fdm); CeedChkBackend(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctx_fdm); CeedChkBackend(ierr);
+  // -- Operator
+  ierr = CeedOperatorCreate(ceed_parent, qf_fdm, NULL, NULL, fdm_inv);
+  CeedChkBackend(ierr);
+  CeedOperatorSetField(*fdm_inv, "input", rstr, fdm_basis, CEED_VECTOR_ACTIVE);
+  CeedChkBackend(ierr);
+  CeedOperatorSetField(*fdm_inv, "scale", rstr_qd_i, CEED_BASIS_COLLOCATED,
+                       q_data); CeedChkBackend(ierr);
+  CeedOperatorSetField(*fdm_inv, "output", rstr, fdm_basis, CEED_VECTOR_ACTIVE);
+  CeedChkBackend(ierr);
+
+  // Cleanup
+  ierr = CeedVectorDestroy(&q_data); CeedChkBackend(ierr);
+  ierr = CeedBasisDestroy(&fdm_basis); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionDestroy(&rstr_qd_i); CeedChkBackend(ierr);
+  ierr = CeedQFunctionDestroy(&qf_fdm); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

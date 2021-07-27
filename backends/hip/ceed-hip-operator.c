@@ -1201,18 +1201,6 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op,
   }
 }
 
-//------------------------------------------------------------------------------
-// Create FDM element inverse not supported
-//------------------------------------------------------------------------------
-static int CeedOperatorCreateFDMElementInverse_Hip(CeedOperator op) {
-  // LCOV_EXCL_START
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-  return CeedError(ceed, CEED_ERROR_BACKEND,
-                   "Backend does not implement FDM inverse creation");
-  // LCOV_EXCL_STOP
-}
 
 //------------------------------------------------------------------------------
 // Create operator
@@ -1235,9 +1223,6 @@ int CeedOperatorCreate_Hip(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
                                 CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "CreateFDMElementInverse",
-                                CeedOperatorCreateFDMElementInverse_Hip);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Hip); CeedChkBackend(ierr);
