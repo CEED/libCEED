@@ -157,6 +157,7 @@ references:
     doi: 10.5281/zenodo.5077489
   - type: proceedings
     title: "High-performance operator evaluations with ease of use: libCEED's Python interface"
+    scope: "Please cite this paper when you use the Python interface."
     authors:
       - family-names: Barra
         given-names: Valeria
