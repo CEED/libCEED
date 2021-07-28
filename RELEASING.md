@@ -13,6 +13,7 @@ The version number must be updated in
 * `include/ceed/ceed.h`
 * `ceed.pc.template`
 * `Doxyfile`
+* `CITATION.cff`
 
 as well as `include/ceed/ceed.h` (`CEED_VERSION_MAJOR`, `CEED_VERSION_MINOR`).
 
