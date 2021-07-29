@@ -956,6 +956,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunction qf_true;
     CeedOperator op_true;
 
+    if (problem_choice != ELAS_LINEAR)
+      SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP, "No MMS for problem %s",
+               problemTypes[problem_choice]);
+
     // -- Solution vector
     CeedVectorCreate(ceed, U_loc_size, &(data[fine_level]->true_soln));
 
