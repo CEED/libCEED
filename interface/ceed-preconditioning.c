@@ -204,6 +204,8 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
   CeedElemRestriction rstr;
   ierr = CeedOperatorLinearAssembleQFunction(op,  &assembled_qf, &rstr, request);
   CeedChkBackend(ierr);
+  CeedInt layout[3];
+  ierr = CeedElemRestrictionGetELayout(rstr, &layout); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChkBackend(ierr);
   CeedScalar max_norm = 0;
   ierr = CeedVectorNorm(assembled_qf, CEED_NORM_MAX, &max_norm);
@@ -373,8 +375,8 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
               // Point Block Diagonal
               for (CeedInt c_in=0; c_in<num_comp; c_in++) {
                 const CeedScalar qf_value =
-                  assembled_qf_array[((((e*num_eval_mode_in+e_in)*num_comp+c_in)*
-                                       num_eval_mode_out+e_out)*num_comp+c_out)*num_qpts+q];
+                  assembled_qf_array[q*layout[0] + (((e_in*num_comp+c_in)*
+                                                     num_eval_mode_out+e_out)*num_comp+c_out)*layout[1] + e*layout[2]];
                 if (fabs(qf_value) > qf_value_bound)
                   for (CeedInt n=0; n<num_nodes; n++)
                     elem_diag_array[((e*num_comp+c_out)*num_comp+c_in)*num_nodes+n] +=
@@ -383,8 +385,8 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
             } else {
               // Diagonal Only
               const CeedScalar qf_value =
-                assembled_qf_array[((((e*num_eval_mode_in+e_in)*num_comp+c_out)*
-                                     num_eval_mode_out+e_out)*num_comp+c_out)*num_qpts+q];
+                assembled_qf_array[q*layout[0] + (((e_in*num_comp+c_out)*
+                                                   num_eval_mode_out+e_out)*num_comp+c_out)*layout[1] + e*layout[2]];
               if (fabs(qf_value) > qf_value_bound)
                 for (CeedInt n=0; n<num_nodes; n++)
                   elem_diag_array[(e*num_comp+c_out)*num_nodes+n] +=
@@ -1847,8 +1849,10 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   // Assemble QFunction
   CeedVector assembled;
   CeedElemRestriction rstr_qf;
-  ierr =  CeedOperatorLinearAssembleQFunction(op, &assembled, &rstr_qf,
-          request); CeedChkBackend(ierr);
+  ierr =  CeedOperatorLinearAssembleQFunction(op, &assembled, &rstr_qf, request);
+  CeedChkBackend(ierr);
+  CeedInt layout[3];
+  ierr = CeedElemRestrictionGetELayout(rstr_qf, &layout); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_qf); CeedChkBackend(ierr);
   CeedScalar max_norm = 0;
   ierr = CeedVectorNorm(assembled, CEED_NORM_MAX, &max_norm);
@@ -1870,11 +1874,11 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   const CeedScalar qf_value_bound = max_norm*100*CEED_EPSILON;
   for (CeedInt e=0; e<num_elem; e++) {
     CeedInt count = 0;
-    CeedInt elem_offset = e*num_qpts*num_comp*num_comp*num_modes*num_modes;
     for (CeedInt q=0; q<num_qpts; q++)
       for (CeedInt i=0; i<num_comp*num_comp*num_modes*num_modes; i++)
-        if (fabs(assembled_array[elem_offset + i*num_qpts + q]) > qf_value_bound) {
-          elem_avg[e] += assembled_array[elem_offset + i*num_qpts + q] /
+        if (fabs(assembled_array[q*layout[0] + i*layout[1] + e*layout[2]]) >
+            qf_value_bound) {
+          elem_avg[e] += assembled_array[q*layout[0] + i*layout[1] + e*layout[2]] /
                          q_weight_array[q];
           count++;
         }
