@@ -49,7 +49,7 @@ struct Physics_private_MR {
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
-static inline CeedScalar log1p_series_shifted(CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
   if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
@@ -79,7 +79,7 @@ static inline CeedScalar log1p_series_shifted(CeedScalar x) {
 // -----------------------------------------------------------------------------
 #ifndef DETJM1
 #define DETJM1
-static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
+CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
   return grad_u[0][0]*(grad_u[1][1]*grad_u[2][2]-grad_u[1][2]*grad_u[2][1]) +
          grad_u[0][1]*(grad_u[1][2]*grad_u[2][0]-grad_u[1][0]*grad_u[2][2]) +
          grad_u[0][2]*(grad_u[1][0]*grad_u[2][1]-grad_u[2][0]*grad_u[1][1]) +
@@ -93,10 +93,11 @@ static inline CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
-static inline int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu_2,
-                              const CeedScalar lambda, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                              CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
-                              CeedScalar *I_2, CeedScalar *Jm1) {
+CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
+                                      const CeedScalar mu_2,
+                                      const CeedScalar lambda, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
+                                      CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
+                                      CeedScalar *I_2, CeedScalar *Jm1) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
