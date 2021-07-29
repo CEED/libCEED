@@ -1002,15 +1002,17 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 
   // Backend version
   if (op->LinearAssembleQFunction) {
-    return op->LinearAssembleQFunction(op, assembled, rstr, request);
+    ierr = op->LinearAssembleQFunction(op, assembled, rstr, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Fallback to reference Ceed
     if (!op->op_fallback) {
       ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
     }
     // Assemble
-    return CeedOperatorLinearAssembleQFunction(op->op_fallback, assembled,
-           rstr, request);
+    ierr = CeedOperatorLinearAssembleQFunction(op->op_fallback, assembled,
+           rstr, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   }
 }
 
@@ -1038,10 +1040,12 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
 
   // Use backend version, if available
   if (op->LinearAssembleDiagonal) {
-    return op->LinearAssembleDiagonal(op, assembled, request);
+    ierr = op->LinearAssembleDiagonal(op, assembled, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else if (op->LinearAssembleAddDiagonal) {
     ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
-    return op->LinearAssembleAddDiagonal(op, assembled, request);
+    ierr = op->LinearAssembleAddDiagonal(op, assembled, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1054,13 +1058,17 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssembleDiagonal(op->op_fallback, assembled, request);
+      ierr = CeedOperatorLinearAssembleDiagonal(op->op_fallback, assembled, request);
+      CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
   // Default interface implementation
   ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
-  return CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
+  ierr = CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
+  CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1087,7 +1095,8 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 
   // Use backend version, if available
   if (op->LinearAssembleAddDiagonal) {
-    return op->LinearAssembleAddDiagonal(op, assembled, request);
+    ierr = op->LinearAssembleAddDiagonal(op, assembled, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1100,8 +1109,9 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssembleAddDiagonal(op->op_fallback, assembled,
-             request);
+      ierr = CeedOperatorLinearAssembleAddDiagonal(op->op_fallback, assembled,
+             request); CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
@@ -1109,10 +1119,13 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
   if (is_composite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
-           request, false);
+    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
+           request, false); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
-    return CeedOperatorAssembleAddDiagonalCore(op, assembled, request, false);
+    ierr = CeedOperatorAssembleAddDiagonalCore(op, assembled, request, false);
+    CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   }
 }
 
@@ -1146,11 +1159,14 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 
   // Use backend version, if available
   if (op->LinearAssemblePointBlockDiagonal) {
-    return op->LinearAssemblePointBlockDiagonal(op, assembled, request);
+    ierr = op->LinearAssemblePointBlockDiagonal(op, assembled, request);
+    CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else if (op->LinearAssembleAddPointBlockDiagonal) {
     ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
-    return CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled,
-           request);
+    ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled,
+           request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1163,14 +1179,17 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssemblePointBlockDiagonal(op->op_fallback,
-             assembled, request);
+      ierr = CeedOperatorLinearAssemblePointBlockDiagonal(op->op_fallback,
+             assembled, request); CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
   // Default interface implementation
   ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
-  return CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled, request);
+  ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled, request);
+  CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1203,7 +1222,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
   // Use backend version, if available
   if (op->LinearAssembleAddPointBlockDiagonal) {
-    return op->LinearAssembleAddPointBlockDiagonal(op, assembled, request);
+    ierr = op->LinearAssembleAddPointBlockDiagonal(op, assembled, request);
+    CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1216,8 +1237,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssembleAddPointBlockDiagonal(op->op_fallback,
-             assembled, request);
+      ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op->op_fallback,
+             assembled, request); CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
@@ -1225,10 +1247,13 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
   if (is_composite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
-           request, true);
+    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
+           request, true); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
-    return CeedOperatorAssembleAddDiagonalCore(op, assembled, request, true);
+    ierr = CeedOperatorAssembleAddDiagonalCore(op, assembled, request, true);
+    CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   }
 }
 
@@ -1263,7 +1288,8 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
 
   // Use backend version, if available
   if (op->LinearAssembleSymbolic) {
-    return op->LinearAssembleSymbolic(op, num_entries, rows, cols);
+    ierr = op->LinearAssembleSymbolic(op, num_entries, rows, cols); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1276,8 +1302,9 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssembleSymbolic(op->op_fallback, num_entries, rows,
-             cols);
+      ierr = CeedOperatorLinearAssembleSymbolic(op->op_fallback, num_entries, rows,
+             cols); CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
@@ -1350,7 +1377,8 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   // Use backend version, if available
   if (op->LinearAssemble) {
-    return op->LinearAssemble(op, values);
+    ierr = op->LinearAssemble(op, values); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1363,7 +1391,8 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorLinearAssemble(op->op_fallback, values);
+      ierr = CeedOperatorLinearAssemble(op->op_fallback, values); CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
@@ -1667,7 +1696,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
 
   // Use backend version, if available
   if (op->CreateFDMElementInverse) {
-    return op->CreateFDMElementInverse(op, fdm_inv, request); CeedChk(ierr);
+    ierr = op->CreateFDMElementInverse(op, fdm_inv, request); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
   } else {
     // Check for valid fallback resource
     const char *resource, *fallback_resource;
@@ -1680,7 +1710,9 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
         ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
       }
       // Assemble
-      return CeedOperatorCreateFDMElementInverse(op->op_fallback, fdm_inv, request);
+      ierr = CeedOperatorCreateFDMElementInverse(op->op_fallback, fdm_inv, request);
+      CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
     }
   }
 
