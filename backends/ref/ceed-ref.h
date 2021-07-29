@@ -91,6 +91,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Ref(CeedOperator op);
-
 #endif // _ceed_ref_h
