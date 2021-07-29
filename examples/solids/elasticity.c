@@ -934,6 +934,13 @@ int main(int argc, char **argv) {
     ierr = PetscFree(diagnostic_ctx); CHKERRQ(ierr);
   }
 
+  if(app_ctx->check_final_strain){ // need this to only do one loading increment before checking. 
+    CeedScalar energy;
+    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+                               U, &energy); CHKERRQ(ierr);
+    ierr = RegressionTests_solids(app_ctx, &energy); CHKERRQ(ierr);
+  }
+
   // ---------------------------------------------------------------------------
   // Free objects
   // ---------------------------------------------------------------------------

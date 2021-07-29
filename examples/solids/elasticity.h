@@ -156,6 +156,8 @@ struct AppCtx_private {
   PetscInt      bc_traction_faces[16];
   PetscScalar   bc_traction_vector[16][3];
   PetscScalar   forcing_vector[3];
+  PetscScalar   test_tol;
+  PetscBool     check_final_strain;
 };
 
 // Problem specific data
@@ -358,6 +360,9 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
 PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
                                    CeedOperator op_energy, Vec X,
                                    PetscReal *energy);
+
+// this function checks to see if the computed energy is close enough to reference file energy. 
+PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal *energy);
 
 // -----------------------------------------------------------------------------
 // Boundary Functions
