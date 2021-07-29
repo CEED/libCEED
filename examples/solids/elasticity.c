@@ -33,9 +33,9 @@
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
-//TESTARGS(name="solids-MR1-1") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 3,3,3 -mu_1 1.0 -mu_2 0.0 -nu 0.4 -problem FSInitial-MR1
-//TESTARGS(name="solids-MR1-2") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 3,3,3 -mu_1 0.25 -mu_2 0.25 -nu 0.4 -problem FSInitial-MR1
+//TESTARGS(name="solids-Linear-MMS") -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
+//TESTARGS(name="solids-NH1-1") -ceed {ceed_resource} -test -problem FSInitial-NH1 -E 2.8 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.124627916174e-01
+//TESTARGS(name="solids-MR1-1") -ceed {ceed_resource} -test -problem FSInitial-MR1 -mu_1 .5 -mu_2 .5 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.339138880207e-01
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
@@ -901,17 +901,16 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Compute energy
   // ---------------------------------------------------------------------------
+  PetscReal energy;
+  ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+                             U, &energy); CHKERRQ(ierr);
   if (!app_ctx->test_mode) {
-    // -- Compute L2 error
-    CeedScalar energy;
-    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
-                               U, &energy); CHKERRQ(ierr);
-
     // -- Output
     ierr = PetscPrintf(comm,
                        "    Strain Energy                      : %.12e\n",
                        energy); CHKERRQ(ierr);
   }
+  ierr = RegressionTests_solids(app_ctx, energy); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Output diagnostic quantities
@@ -932,13 +931,6 @@ int main(int argc, char **argv) {
 
     // -- Cleanup
     ierr = PetscFree(diagnostic_ctx); CHKERRQ(ierr);
-  }
-
-  if(app_ctx->check_final_strain){ // need this to only do one loading increment before checking. 
-    CeedScalar energy;
-    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
-                               U, &energy); CHKERRQ(ierr);
-    ierr = RegressionTests_solids(app_ctx, &energy); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------

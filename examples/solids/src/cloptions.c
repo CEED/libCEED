@@ -181,22 +181,16 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           NULL, app_ctx->test_mode, &(app_ctx->test_mode), NULL);
   CHKERRQ(ierr);
 
-  app_ctx->energy_viewer = NULL;
-  app_ctx->check_final_strain = PETSC_FALSE;
-  char energy_viewer_filename[PETSC_MAX_PATH_LEN] = "";
-  ierr = PetscOptionsString("-expect_final_strain_energy", "Check that final strain energy is close to reference.",
-                            NULL, energy_viewer_filename, energy_viewer_filename, 
-                            sizeof(energy_viewer_filename), &(app_ctx->check_final_strain)); CHKERRQ(ierr);
-  if(app_ctx->check_final_strain){
-    ierr = PetscViewerASCIIOpen(comm, energy_viewer_filename,
-                                &app_ctx->energy_viewer); CHKERRQ(ierr);
-  }
- 
+  app_ctx->expect_final_strain = -1.;
+  ierr = PetscOptionsReal("-expect_final_strain_energy",
+                          "Expect final strain energy close to this value.",
+                          NULL, app_ctx->expect_final_strain, &app_ctx->expect_final_strain, NULL);
+  CHKERRQ(ierr);
 
-  app_ctx->test_tol = 1E-11;
-  ierr = PetscOptionsScalar("-compare_final_state_atol",
-                            "Test absolute tolerance",
-                            NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL); CHKERRQ(ierr);
+  app_ctx->test_tol = 1e-8;
+  ierr = PetscOptionsReal("-expect_final_state_rtol",
+                          "Relative tolerance for final strain energy test",
+                          NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL); CHKERRQ(ierr);
 
   app_ctx->view_soln = PETSC_FALSE;
   ierr = PetscOptionsBool("-view_soln", "Write out solution vector for viewing",
@@ -211,6 +205,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   CHKERRQ(ierr);
 
   PetscBool set;
+  char energy_viewer_filename[PETSC_MAX_PATH_LEN] = "";
   ierr = PetscOptionsString("-strain_energy_monitor",
                             "Print out current strain energy at every load increment",
                             NULL, energy_viewer_filename,
@@ -229,12 +224,12 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set
-  if (!app_ctx->test_mode) {
-    if (!app_ctx->bc_clamp_count && (app_ctx->forcing_choice != FORCE_MMS)) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
-    }
-  } else {
-    app_ctx->forcing_choice = FORCE_MMS;
+  if (app_ctx->test_mode) {
+    if (app_ctx->forcing_choice == FORCE_NONE && !app_ctx->bc_clamp_count)
+      app_ctx->forcing_choice = FORCE_MMS;
+  }
+  if (!app_ctx->bc_clamp_count && app_ctx->forcing_choice != FORCE_MMS) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
   }
 
   // Provide default ceed resource if not specified
@@ -411,19 +406,19 @@ PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
 
 // test option change. could remove the loading step. Run only with one loading step and compare relatively to ref file
 // option: expect_final_strain_energy and check against the relative error to ref is within tolerance (10^-5) I.e. one Newton solve then check final energy
-PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal *energy){
-  
-  // ierr = PetscViewerASCIIRead(&app_ctx->energy_viewer, , , float); CHKERRQ(ierr); //get 1 increment's strain energy
-  PetscReal energy_ref = 0.1; // make this the value loaded in from reference file. 
-  
-  PetscReal error = fabs((energy - &energy_ref)/energy_ref)*100;
+PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy) {
 
-  if (error > app_ctx->test_tol) {
-    PetscErrorCode ierr;
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Test failed with relative error %g\n",
-                       (double)error); CHKERRQ(ierr);
+  if (app_ctx->expect_final_strain >= 0.) {
+    PetscReal energy_ref = app_ctx->expect_final_strain;
+    PetscReal error = PetscAbsReal(energy - energy_ref) / energy_ref;
+
+    if (error > app_ctx->test_tol) {
+      PetscErrorCode ierr;
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                         "Energy %e does not match expected energy %e: relative tolerance %e > %e\n",
+                         (double)energy, (double)energy_ref, (double)error, app_ctx->test_tol);
+      CHKERRQ(ierr);
+    }
   }
-
   PetscFunctionReturn(0);
 };
