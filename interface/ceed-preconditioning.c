@@ -32,11 +32,14 @@
 /// @{
 
 /**
-@brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
-       CeedOperator functionality
-@param op  CeedOperator to create fallback for
-@return An error code: 0 - success, otherwise - failure
-@ref Developer
+  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
+         CeedOperator functionality
+
+  @param op  CeedOperator to create fallback for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
@@ -87,13 +90,21 @@ int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
-   @brief Get correct basis pointer for CeedEvalMode
+  @brief Select correct basis matrix pointer based on CeedEvalMode
 
-   @ref Developer
+  @param[in] eval_mode   Current basis evaluation mode
+  @param[in] identity    Pointer to identity matrix
+  @param[in] interp      Pointer to interpolation matrix
+  @param[in] grad        Pointer to gradient matrix
+  @param[out] basis_ptr  Basis pointer to set
+
+  @return none
+
+  @ref Developer
 **/
-static inline void CeedOperatorGetBasisPointer(const CeedScalar **basis_ptr,
-    CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar *interp,
-    const CeedScalar *grad) {
+static inline void CeedOperatorGetBasisPointer(CeedEvalMode eval_mode,
+    const CeedScalar *identity, const CeedScalar *interp,
+    const CeedScalar *grad, const CeedScalar **basis_ptr) {
   switch (eval_mode) {
   case CEED_EVAL_NONE:
     *basis_ptr = identity;
@@ -112,12 +123,18 @@ static inline void CeedOperatorGetBasisPointer(const CeedScalar **basis_ptr,
 }
 
 /**
-   @brief Create point block restriction
+  @brief Create point block restriction for active operator field
 
-   @ref Developer
+  @param[in] rstr              Original CeedElemRestriction for active field
+  @param[out] pointblock_rstr  Address of the variable where the newly created
+                                 CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 static int CreatePointBlockRestriction(CeedElemRestriction rstr,
-                                       CeedElemRestriction *point_block_rstr) {
+                                       CeedElemRestriction *pointblock_rstr) {
   int ierr;
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(rstr, &ceed); CeedChkBackend(ierr);
@@ -127,7 +144,7 @@ static int CreatePointBlockRestriction(CeedElemRestriction rstr,
 
   // Expand offsets
   CeedInt num_elem, num_comp, elem_size, comp_stride, max = 1,
-                                                      *point_block_offsets;
+                                                      *pointblock_offsets;
   ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp);
   CeedChkBackend(ierr);
@@ -138,18 +155,18 @@ static int CreatePointBlockRestriction(CeedElemRestriction rstr,
   CeedInt shift = num_comp;
   if (comp_stride != 1)
     shift *= num_comp;
-  ierr = CeedCalloc(num_elem*elem_size, &point_block_offsets);
+  ierr = CeedCalloc(num_elem*elem_size, &pointblock_offsets);
   CeedChkBackend(ierr);
   for (CeedInt i = 0; i < num_elem*elem_size; i++) {
-    point_block_offsets[i] = offsets[i]*shift;
-    if (point_block_offsets[i] > max)
-      max = point_block_offsets[i];
+    pointblock_offsets[i] = offsets[i]*shift;
+    if (pointblock_offsets[i] > max)
+      max = pointblock_offsets[i];
   }
 
   // Create new restriction
   ierr = CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp*num_comp,
                                    1, max + num_comp*num_comp, CEED_MEM_HOST,
-                                   CEED_OWN_POINTER, point_block_offsets, point_block_rstr);
+                                   CEED_OWN_POINTER, pointblock_offsets, pointblock_rstr);
   CeedChkBackend(ierr);
 
   // Cleanup
@@ -159,14 +176,20 @@ static int CreatePointBlockRestriction(CeedElemRestriction rstr,
 }
 
 /**
-   @brief Assemble diagonal and sum into target vector for operator
+  @brief Core logic for assembling operator diagonal or point block diagonal
 
-   Users should generally use CeedOperatorLinearAssembleAddDiagonal()
+  @param[in] op             CeedOperator to assemble point block diagonal
+  @param[in] request        Address of CeedRequest for non-blocking completion, else
+                              CEED_REQUEST_IMMEDIATE
+  @param[in] is_pointblock  Boolean flag to assemble diagonal or point block diagonal
+  @param[out] assembled     CeedVector to store assembled diagonal
 
-   @ref Developer
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
-    CeedVector assembled, CeedRequest *request, const bool is_pointblock) {
+    CeedRequest *request, const bool is_pointblock, CeedVector assembled) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -282,7 +305,7 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
     }
   }
 
-  // Assemble point-block diagonal restriction, if needed
+  // Assemble point block diagonal restriction, if needed
   CeedElemRestriction diag_rstr = rstr_out;
   if (is_pointblock) {
     ierr = CreatePointBlockRestriction(rstr_out, &diag_rstr); CeedChkBackend(ierr);
@@ -333,15 +356,15 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
       const CeedScalar *bt = NULL;
       if (eval_mode_out[e_out] == CEED_EVAL_GRAD)
         d_out += 1;
-      CeedOperatorGetBasisPointer(&bt, eval_mode_out[e_out], identity, interp_out,
-                                  &grad_out[d_out*num_qpts*num_nodes]);
+      CeedOperatorGetBasisPointer(eval_mode_out[e_out], identity, interp_out,
+                                  &grad_out[d_out*num_qpts*num_nodes], &bt);
       CeedInt d_in = -1;
       for (CeedInt e_in=0; e_in<num_eval_mode_in; e_in++) {
         const CeedScalar *b = NULL;
         if (eval_mode_in[e_in] == CEED_EVAL_GRAD)
           d_in += 1;
-        CeedOperatorGetBasisPointer(&b, eval_mode_in[e_in], identity, interp_in,
-                                    &grad_in[d_in*num_qpts*num_nodes]);
+        CeedOperatorGetBasisPointer(eval_mode_in[e_in], identity, interp_in,
+                                    &grad_in[d_in*num_qpts*num_nodes], &b);
         // Each component
         for (CeedInt c_out=0; c_out<num_comp; c_out++)
           // Each qpoint/node pair
@@ -393,33 +416,46 @@ static inline int CeedOperatorAssembleAddDiagonalCore(CeedOperator op,
 }
 
 /**
-   @brief Assemble diagonal and sum into target vector for composite operator
+  @brief Core logic for assembling composite operator diagonal
 
-   Users should generally use CeedOperatorLinearAssembleAddDiagonal()
+  @param[in] op             CeedOperator to assemble point block diagonal
+  @param[in] request        Address of CeedRequest for non-blocking completion, else
+                            CEED_REQUEST_IMMEDIATE
+  @param[in] is_pointblock  Boolean flag to assemble diagonal or point block diagonal
+  @param[out] assembled     CeedVector to store assembled diagonal
 
-   @ref Developer
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore(
-  CeedOperator op, CeedVector assembled, CeedRequest *request,
-  const bool is_pointblock) {
+  CeedOperator op, CeedRequest *request, const bool is_pointblock,
+  CeedVector assembled) {
   int ierr;
   CeedInt num_sub;
   CeedOperator *suboperators;
   ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChkBackend(ierr);
   ierr = CeedOperatorGetSubList(op, &suboperators); CeedChkBackend(ierr);
   for (CeedInt i = 0; i < num_sub; i++) {
-    ierr = CeedOperatorAssembleAddDiagonalCore(suboperators[i], assembled,
-           request, is_pointblock); CeedChkBackend(ierr);
+    ierr = CeedOperatorAssembleAddDiagonalCore(suboperators[i], request,
+           is_pointblock, assembled); CeedChkBackend(ierr);
   }
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-   @brief Build nonzero pattern for non-composite operator.
+  @brief Build nonzero pattern for non-composite operator
 
-   Users should generally use CeedOperatorLinearAssembleSymbolic()
+  Users should generally use CeedOperatorLinearAssembleSymbolic()
 
-   @ref Developer
+  @param[in] op      CeedOperator to assemble nonzero pattern
+  @param[in] offset  Offset for number of entries
+  @param[out] rows   Row number for each entry
+  @param[out] cols   Column number for each entry
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
                                        CeedInt *rows, CeedInt *cols) {
@@ -497,11 +533,17 @@ int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
 }
 
 /**
-   @brief Assemble nonzero entries for non-composite operator
+  @brief Assemble nonzero entries for non-composite operator
 
-   Users should generally use CeedOperatorLinearAssemble()
+  Users should generally use CeedOperatorLinearAssemble()
 
-   @ref Developer
+  @param[in] op       CeedOperator to assemble
+  @param[out] offset  Offest for number of entries
+  @param[out] values  Values to assemble into matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                                CeedVector values) {
@@ -753,7 +795,14 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
 }
 
 /**
-   @ref Utility
+  @brief Count number of entries for assembled CeedOperator
+
+  @param[in] op            CeedOperator to assemble
+  @param[out] num_entries  Number of entries in assembled representation
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
 **/
 int CeedSingleOperatorAssemblyCountEntries(CeedOperator op,
     CeedInt *num_entries) {
@@ -1119,11 +1168,11 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
   if (is_composite) {
-    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
-           request, false); CeedChk(ierr);
+    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, request,
+           false, assembled); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    ierr = CeedOperatorAssembleAddDiagonalCore(op, assembled, request, false);
+    ierr = CeedOperatorAssembleAddDiagonalCore(op, request, false, assembled);
     CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
@@ -1247,11 +1296,11 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
   if (is_composite) {
-    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, assembled,
-           request, true); CeedChk(ierr);
+    ierr = CeedOperatorLinearAssembleAddDiagonalCompositeCore(op, request,
+           true, assembled); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    ierr = CeedOperatorAssembleAddDiagonalCore(op, assembled, request, true);
+    ierr = CeedOperatorAssembleAddDiagonalCore(op, request, true, assembled);
     CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
@@ -1272,14 +1321,14 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
    This will generally be slow unless your operator is low-order.
 
    @param[in]  op           CeedOperator to assemble
-   @param[out] num_entries  Number of entries in coordinate nonzero pattern.
-   @param[out] rows         Row number for each entry.
-   @param[out] cols         Column number for each entry.
+   @param[out] num_entries  Number of entries in coordinate nonzero pattern
+   @param[out] rows         Row number for each entry
+   @param[out] cols         Column number for each entry
 
    @ref User
 **/
-int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
-                                       CeedInt *num_entries, CeedInt **rows, CeedInt **cols) {
+int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedInt *num_entries,
+                                       CeedInt **rows, CeedInt **cols) {
   int ierr;
   CeedInt num_suboperators, single_entries;
   CeedOperator *sub_operators;
@@ -1308,8 +1357,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
     }
   }
 
-  // if neither backend nor fallback resource provides
-  // LinearAssembleSymbolic, continue with interface-level implementation
+  // Default interface implementation
 
   // count entries and allocate rows, cols arrays
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
@@ -1396,9 +1444,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
     }
   }
 
-  // if neither backend nor fallback resource provides
-  // LinearAssemble, continue with interface-level implementation
-
+  // Default interface implementation
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
 
