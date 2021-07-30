@@ -309,8 +309,8 @@ For example, if we take the compressible Neo-Hookean model,
    :label: neo-hookean-energy
 
    \begin{aligned}
-   \Phi(\bm E) &= \frac{\lambda}{2}(\log J)^2 + \frac \mu 2 (\operatorname{trace} \bm C - 3) - \mu \log J \\
-     &= \frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm E - \mu \log J,
+   \Phi(\bm E) &= \frac{\lambda}{2}(\log J)^2 - \mu \log J + \frac \mu 2 (\operatorname{trace} \bm C - 3) \\
+     &= \frac{\lambda}{2}(\log J)^2 - \mu \log J + \mu \operatorname{trace} \bm E,
    \end{aligned}
 
 where :math:`J = \lvert \bm F \rvert = \sqrt{\lvert \bm C \rvert}` is the determinant of deformation (i.e., volume change) and :math:`\lambda` and :math:`\mu` are the Lamé parameters in the infinitesimal strain limit.
@@ -352,13 +352,81 @@ Carrying through the differentiation :math:numref:`strain-energy-grad` for the m
    For example, if :math:`u_{i,j} \sim 10^{-8}`, then naive computation of :math:`\bm I_3 - \bm C^{-1}` and :math:`\log J` will have a relative accuracy of order :math:`10^{-8}` in double precision and no correct digits in single precision.
    When using the stable choices above, these quantities retain full :math:`\varepsilon_{\text{machine}}` relative accuracy.
 
+.. dropdown:: Mooney-Rivlin model
+
+   While the Neo-Hookean model depends on just two scalar invariants, :math:`\mathbb I_1 = \trace \bm C = 3 + 2\trace \bm E` and :math:`J`, Mooney-Rivlin models depend on the additional invariant, :math:`\mathbb I_2 = \frac 1 2 (\mathbb I_1^2 - \bm C \tcolon \bm C)`.
+   A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean :math:numref:`neo-hookean-energy`) is :cite:`holzapfel2000nonlinear`
+   
+   .. math::
+      :label: mooney-rivlin-energy_coupled
+
+      \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{\lambda}{2}(\log J)^2 - (\mu_1 + 2\mu_2) \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3).
+
+   We differentiate :math:`\Phi` as in the Neo-Hookean case :math:numref:`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
+
+   .. math::
+      :label: mooney-rivlin-stress_coupled
+
+      \begin{aligned}
+      \bm S &=  \lambda \log J \bm{C}^{-1} - (\mu_1 + 2\mu_2) \bm{C}^{-1} + \mu_1\bm I_3 + \mu_2(\mathbb{I_1} \bm I_3 - \bm C) \\
+      &= (\lambda \log J - \mu_1 - 2\mu_2) \bm C^{-1} + (\mu_1 + \mu_2 \mathbb I_1) \bm I_3 - \mu_2 \bm C,
+      \end{aligned}
+
+   where we have used
+
+   .. math::
+      :label:
+
+      \begin{aligned}
+      \frac{\partial \mathbb{I_1}}{\partial \bm E} &= 2 \bm I_3, & \frac{\partial \mathbb{I_2}}{\partial \bm E} &= 2 \mathbb I_1 \bm I_3 - 2 \bm C, & \frac{\partial \log J}{\partial \bm E} &= \bm{C}^{-1}.
+      \end{aligned}
+
+   This is a common model for vulcanized rubber, with a shear modulus (defined for the small-strain limit) of :math:`\mu_1 + \mu_2` that should be significantly smaller than the first Lamé parameter :math:`\lambda`.
+
+.. dropdown:: Mooney-Rivlin strain energy comparison
+
+   We apply traction to a block and plot integrated strain energy :math:`\Phi` as a function of the loading paramater.
+
+   .. altair-plot::
+      :hide-code:
+
+      import altair as alt
+      import pandas as pd
+      nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+      nh["model"] = "Neo-Hookean"
+      nh["parameters"] = "E=2.8, nu=0.4"
+
+      mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
+      mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
+      mr["parameters"] = "mu_1=1, mu_2=0, nu=.4"
+
+      mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
+      mr1["model"] = "Mooney-Rivlin"
+      mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
+
+      df = pd.concat([nh, mr, mr1])
+      highlight = alt.selection_single(
+         on = "mouseover",
+         nearest = True,
+         fields=["model", "parameters"],
+      )
+      base = alt.Chart(df).encode(
+         alt.X("increment"),
+         alt.Y("energy", scale=alt.Scale(type="sqrt")),
+         alt.Color("model"),
+         alt.Tooltip(("model", "parameters")),
+         opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
+         size=alt.condition(highlight, alt.value(2), alt.value(1)),
+      )
+      base.mark_point().add_selection(highlight) + base.mark_line()
+
 .. note::
    One can linearize :math:numref:`neo-hookean-stress` around :math:`\bm E = 0`, for which :math:`\bm C = \bm I_3 + 2 \bm E \to \bm I_3` and :math:`J \to 1 + \operatorname{trace} \bm E`, therefore :math:numref:`neo-hookean-stress` reduces to
  
    .. math::
       :label: eq-st-venant-kirchoff
 
-      \bm S = \lambda (\operatorname{trace} \bm E) \bm I_3 + 2 \mu \bm E,
+      \bm S = \lambda (\trace \bm E) \bm I_3 + 2 \mu \bm E,
  
    which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see :math:numref:`hyperelastic-cd`).
 
@@ -421,6 +489,22 @@ where we have used
 
 .. note::
    In the small-strain limit, :math:`\bm C \to \bm I_3` and :math:`\log J \to 0`, thereby reducing :math:numref:`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model :math:numref:`eq-st-venant-kirchoff`.
+
+.. dropdown:: Newton linearization of Mooney-Rivlin
+
+   Similar to :math:numref:`eq-neo-hookean-incremental-stress`, we differentiate :math:numref:`mooney-rivlin-stress_coupled` using variational notation,
+
+   .. math::
+      :label: mooney-rivlin-dS-coupled
+
+      \begin{aligned}
+      \diff\bm S &= \lambda (\bm C^{-1} \tcolon \diff\bm E) \bm C^{-1} \\
+      &\quad + 2(\mu_1 + 2\mu_2 - \lambda \log J) \bm C^{-1} \diff\bm E \bm C^{-1} \\
+      &\quad + 2 \mu_2 \Big[ \trace (\diff\bm E) \bm I_3 - \diff\bm E\Big] .
+      \end{aligned}
+
+   Note that this agrees with :math:numref:`eq-neo-hookean-incremental-stress` if :math:`\mu_1 = \mu, \mu_2 = 0`.
+   Moving from Neo-Hookean to Mooney-Rivlin modifies the second term and adds the third.
 
 .. dropdown:: Cancellation vs symmetry
 

@@ -23,10 +23,11 @@
 #include "../qfunctions/Linear.h"            // Linear elasticity
 #include "../qfunctions/SS-NH.h"             // Hyperelasticity small strain
 // Hyperelasticity finite strain
-#include "../qfunctions/FSInitial-NH1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage
-#include "../qfunctions/FSInitial-NH2.h"     // -- Initial config 2 w/ dXref_dxinit, Grad(u), Cinv, constant storage
-#include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage
-#include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage
+#include "../qfunctions/FSInitial-NH1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage  / Neo-Hookean 
+#include "../qfunctions/FSInitial-NH2.h"     // -- Initial config 2 w/ dXref_dxinit, Grad(u), Cinv, constant storage  / Neo-Hookean 
+#include "../qfunctions/FSCurrent-NH1.h"     // -- Current config 1 w/ dXref_dxinit, Grad(u) storage  / Neo-Hookean 
+#include "../qfunctions/FSCurrent-NH2.h"     // -- Current config 2 w/ dXref_dxcurr, tau, constant storage / Neo-Hookean 
+#include "../qfunctions/FSInitial-MR1.h"     // -- Initial config 1 w/ dXref_dxinit, Grad(u) storage / Mooney-Rivlin
 #include "../qfunctions/constantForce.h"     // Constant forcing function
 #include "../qfunctions/manufacturedForce.h" // Manufactured solution forcing
 #include "../qfunctions/manufacturedTrue.h"  // Manufactured true solution
@@ -40,7 +41,7 @@
 // Problem options
 // -----------------------------------------------------------------------------
 // Data specific to each problem option
-problemData problem_options[6] = {
+problemData problem_options[7] = {
   [ELAS_LINEAR] = {
     .q_data_size = 10, // For linear elasticity, 6 would be sufficient
     .setup_geo = SetupGeo,
@@ -123,6 +124,20 @@ problemData problem_options[6] = {
     .jacob_loc = ElasFSCurrentNH2dF_loc,
     .energy_loc = ElasFSCurrentNH2Energy_loc,
     .diagnostic_loc = ElasFSCurrentNH2Diagnostic_loc,
+    .quad_mode = CEED_GAUSS
+  },
+  [ELAS_FSInitial_MR1] = {
+    .q_data_size = 10,
+    .setup_geo = SetupGeo,
+    .apply = ElasFSInitialMR1F,
+    .jacob = ElasFSInitialMR1dF,
+    .energy = ElasFSInitialMR1Energy,
+    .diagnostic = ElasFSInitialMR1Diagnostic,
+    .setup_geo_loc = SetupGeo_loc,
+    .apply_loc = ElasFSInitialMR1F_loc,
+    .jacob_loc = ElasFSInitialMR1dF_loc,
+    .energy_loc = ElasFSInitialMR1Energy_loc,
+    .diagnostic_loc = ElasFSInitialMR1Diagnostic_loc,
     .quad_mode = CEED_GAUSS
   }
 };
@@ -498,6 +513,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_lam_log_J);
     break;
+  case ELAS_FSInitial_MR1:
+    // ------ Storage: dXdx, Grad(u)
+    CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q*Q, dim*num_comp_u,
+                                     dim*num_comp_u*num_elem*Q*Q*Q,
+                                     CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_gradu_i);
+    break;
   }
   // -- Geometric data restriction
   CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,
@@ -575,6 +597,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->tau);
     CeedVectorCreate(ceed, 1*num_elem*num_qpts, &data[fine_level]->lam_log_J);
     break;
+  case ELAS_FSInitial_MR1:
+    CeedVectorCreate(ceed, dim*num_comp_u*num_elem*num_qpts,
+                     &data[fine_level]->grad_u);
+    break;
   }
   // -- Operator action variables
   CeedVectorCreate(ceed, U_loc_size, &data[fine_level]->x_ceed);
@@ -647,6 +673,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddOutput(qf_apply, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_apply, "lam_log_J", 1, CEED_EVAL_NONE);
     break;
+  case ELAS_FSInitial_MR1:
+    CeedQFunctionAddOutput(qf_apply, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
+    break;
   }
   CeedQFunctionSetContext(qf_apply, phys_ctx);
 
@@ -692,6 +721,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
     break;
+  case ELAS_FSInitial_MR1:
+    CeedOperatorSetField(op_apply, "gradu", data[fine_level]->elem_restr_gradu_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
+    break;
   }
   // -- Save libCEED data
   data[fine_level]->qf_apply = qf_apply;
@@ -730,6 +763,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacob, "dXdx", num_comp_u*dim, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_jacob, "tau", num_comp_u*(dim+1)/2, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_jacob, "lam_log_J", 1, CEED_EVAL_NONE);
+    break;
+  case ELAS_FSInitial_MR1:
+    CeedQFunctionAddInput(qf_jacob, "gradu", num_comp_u*dim, CEED_EVAL_NONE);
     break;
   }
   CeedQFunctionAddOutput(qf_jacob, "deltadv", num_comp_u*dim, CEED_EVAL_GRAD);
@@ -776,6 +812,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedOperatorSetField(op_jacob, "lam_log_J",
                          data[fine_level]->elem_restr_lam_log_J,
                          CEED_BASIS_COLLOCATED, data[fine_level]->lam_log_J);
+    break;
+  case ELAS_FSInitial_MR1:
+    CeedOperatorSetField(op_jacob, "gradu", data[fine_level]->elem_restr_gradu_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->grad_u);
     break;
   }
   // -- Save libCEED data
@@ -915,6 +955,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedBasis basis_x_true;
     CeedQFunction qf_true;
     CeedOperator op_true;
+
+    if (problem_choice != ELAS_LINEAR)
+      SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_SUP, "No MMS for problem %s",
+               problemTypes[problem_choice]);
 
     // -- Solution vector
     CeedVectorCreate(ceed, U_loc_size, &(data[fine_level]->true_soln));
