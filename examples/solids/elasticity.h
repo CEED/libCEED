@@ -73,11 +73,11 @@ static const char *const problemTypes[] = {"Linear",
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity small strain, Neo-Hookean",
-                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
-                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
-                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
-                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
-                                                  "Hyperelasticity finite strain Initial config Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"
+                                                  "Hyperelasticity finite strain Initial configuration Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Initial configuration Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
+                                                  "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
+                                                  "Hyperelasticity finite strain Initial configuration Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"
                                                  };
 
 // Forcing function options

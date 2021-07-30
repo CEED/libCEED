@@ -53,7 +53,6 @@ int main(int argc, char **argv) {
     NULL;              // Contains physical constants - Neo Hookean
   Physics_MR     phys_MR =
     NULL;           // Contains physical constants - Mooney-Rivlin
-  //Physics_GP     phys_GP = NULL;           // Contains physical constants - Generalized Polynomial
   Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
   Units          units;                    // Contains units scaling
   // PETSc objects

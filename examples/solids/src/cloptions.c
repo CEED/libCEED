@@ -395,7 +395,7 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
 PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
                                       Physics phys, Physics_MR phys_MR, Units units) {
   PetscErrorCode ierr;
-  if(app_ctx -> problem_choice == ELAS_FSInitial_MR1) {
+  if (app_ctx -> problem_choice == ELAS_FSInitial_MR1) {
     ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
   } else {
     ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);

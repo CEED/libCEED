@@ -32,9 +32,9 @@ typedef struct Physics_private_MR *Physics_MR;
 
 struct Physics_private_MR {
   //material properties for MR
-  CeedScalar mu_1; //
-  CeedScalar mu_2; //
-  CeedScalar lambda; //
+  CeedScalar mu_1;
+  CeedScalar mu_2;
+  CeedScalar lambda;
 };
 #endif
 
@@ -127,7 +127,7 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
   Cwork[4] = C[0][2];
   Cwork[5] = C[0][1];
   // *INDENT-ON*
-  // compute CC = C*C = C^2
+  // Compute CC = C*C = C^2
   CeedScalar CC[3][3];
   for (CeedInt j = 0; j < 3; j++)
     for (CeedInt k = 0; k < 3; k++) {
@@ -136,10 +136,10 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
         CC[j][k] += C[j][m] * C[m][k];
     }
 
-  // compute invariants
+  // Compute invariants
   // I_1 = trace(C)
   (*I_1) = C[0][0] + C[1][1] + C[2][2];
-  // trace(C^2)
+  // Trace(C^2)
   CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
   // I_2 = 0.5(I_1^2 - trace(C^2))
   (*I_2) = 0.5*(pow((*I_1), 2) - tr_CC);
@@ -452,7 +452,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
           Cinv_dE_Cinv[j][k] += C_inv[j][m]*dE_Cinv[m][k];
       }
 
-    // compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + lambda*Cinv_contract_dE*Cinvwork - 2*lambda*logJ*Cinv_dE_Cinv;
+    // Compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + lambda*Cinv_contract_dE*Cinvwork - 2*lambda*logJ*Cinv_dE_Cinv;
     // (2*I_3:dE)*I_3 - dE = 2*trace(dE)*I_3 - dE = 2trace(dE) - dE on the diagonal
     // (2*I_3:dE)*I_3 - dE = -dE elsewhere
     // CeedScalar J = Jm1 + 1;
@@ -579,7 +579,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
                                 {E2[0][2], E2[1][2], 1 + E2[2][2]}
                                };
     // *INDENT-ON*
-    // compute CC = C*C = C^2
+    // Compute CC = C*C = C^2
     CeedScalar CC[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
@@ -590,10 +590,10 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
 
     const CeedScalar Jm1 = computeJM1(grad_u);
     // CeedScalar J = Jm1 + 1;
-    // compute invariants
+    // Compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
-    // trace(C^2)
+    // Trace(C^2)
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
     const CeedScalar I_2 = 0.5*(I_1*I_1 - tr_CC);
@@ -692,7 +692,6 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     // Pressure
     const CeedScalar Jm1 = computeJM1(grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
-    // change logJ to Jm1 for (J-1) case
     diagnostic[3][i] = -lambda*logJ;
 
     // Stress tensor invariants
@@ -711,7 +710,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
                                 {E2[0][2], E2[1][2], 1 + E2[2][2]}
                                };
     // *INDENT-ON*
-    // compute CC = C*C = C^2
+    // Compute CC = C*C = C^2
     CeedScalar CC[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
@@ -721,10 +720,10 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
       }
 
     // CeedScalar J = Jm1 + 1;
-    // compute invariants
+    // Compute invariants
     // I_1 = trace(C)
     const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
-    // trace(C^2)
+    // Trace(C^2)
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
     const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
