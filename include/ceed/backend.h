@@ -34,7 +34,7 @@
 
 /**
   @ingroup Ceed
-  This macro provides the ablitiy to disable optimization flags for functions that
+  This macro provides the ability to disable optimization flags for functions that
   are sensitive to floting point optimizations.
 **/
 #ifndef CeedPragmaOptimizeOff
