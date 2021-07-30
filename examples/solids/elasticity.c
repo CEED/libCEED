@@ -49,10 +49,8 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         app_ctx;                  // Contains problem options
-  Physics        phys =
-    NULL;              // Contains physical constants - Neo Hookean
-  Physics_MR     phys_MR =
-    NULL;           // Contains physical constants - Mooney-Rivlin
+  Physics        phys = NULL;              // Physical constants for Neo-Hookean
+  Physics_MR     phys_MR = NULL;           // Physical constants for Mooney-Rivlin
   Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
   Units          units;                    // Contains units scaling
   // PETSc objects
