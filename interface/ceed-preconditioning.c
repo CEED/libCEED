@@ -969,6 +969,22 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Build 1D mass matrix and Laplacian with perturbation
+
+  @param[in] interp_1d    Interpolation matrix in one dimension
+  @param[in] grad_1d      Gradient matrix in one dimension
+  @param[in] q_weight_1d  Quadrature weights in one dimension
+  @param[in] P_1d         Number of basis nodes in one dimension
+  @param[in] Q_1d         Number of quadrature points in one dimension
+  @param[in] dim          Dimension of basis
+  @param[out] mass        Assembled mass matrix in one dimension
+  @param[out] laplace     Assembled perturbed Laplacian in one dimension
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 CeedPragmaOptimizeOff
 static int CeedBuildMassLaplace(const CeedScalar *interp_1d,
                                 const CeedScalar *grad_1d,
