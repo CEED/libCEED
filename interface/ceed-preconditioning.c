@@ -538,7 +538,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
 static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                                       CeedVector values) {
   int ierr;
-  Ceed ceed = op->ceed;;
+  Ceed ceed = op->ceed;
   if (op->composite)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
