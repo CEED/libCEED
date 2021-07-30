@@ -160,11 +160,9 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
     Cinvwork[m] = A[m] / (J2);
 
   // Compute the Second Piola-Kirchhoff (S)
-  // S = (mu_1/2.)*2*I_3 + (mu_2/2.)*(2*I_1*I_3 - 2*Cwork) - d*Cinvwork + lambda*logJ*Cinvwork
+  // S = (lambda*logJ - mu_1 -2*mu_2)*Cinvwork +(mu_1+mu_2*I_1)*I3-mu_2*Cwork
   // *1 for indices 0-2 for I_3
 
-  // if you want above S with logJ, set c1 = logJ
-  // if you use S with (J-1) set c1 = J*Jm1
   const CeedScalar logJ = log1p_series_shifted(*Jm1);
   // *INDENT-OFF*
   for (CeedInt i=0; i<6; i++)
@@ -203,8 +201,8 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
   //  C     : right Cauchy-Green tensor
   //  C_inv  : inverse of C
   //  F     : deformation gradient
-  //  S     : 2nd Piola-Kirchhoff (in current config)
-  //  P     : 1st Piola-Kirchhoff (in referential config)
+  //  S     : 2nd Piola-Kirchhoff
+  //  P     : 1st Piola-Kirchhoff
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -602,7 +600,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q,
 
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
-    // Strain energy Phi(E) for Mooney-Rivlin, change logJ to Jm1 for (J-1) case
+    // Strain energy Phi(E) for Mooney-Rivlin
     energy[i] = (0.5*lambda*(logJ)*(logJ) - (mu_1 + 2*mu_2)*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3))* wdetJ;
 
   } // End of Quadrature Point Loop
@@ -732,7 +730,7 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q,
     const CeedScalar I_2 = 0.5*(pow(I_1, 2) - tr_CC);
 
     // *INDENT-OFF*
-    // Strain energy, change logJ to Jm1 for (J-1) case
+    // Strain energy
     diagnostic[7][i] = (0.5*lambda*logJ*logJ - (mu_1 + 2*mu_2)*logJ + (mu_1/2.)*(I_1 - 3) + (mu_2/2.)*(I_2 - 3));
 
   } // End of Quadrature Point Loop
