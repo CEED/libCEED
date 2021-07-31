@@ -1,5 +1,5 @@
 cff-version: 1.1.0
-title: "libCEED: the CEED Library"
+title: "libCEED: Efficient Extensible Discretization"
 version: 0.9.0
 date-released: 2021-07-07
 license:  BSD-2-Clause
