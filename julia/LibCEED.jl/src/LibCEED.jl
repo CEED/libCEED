@@ -148,7 +148,7 @@ include("Request.jl")
 include("Operator.jl")
 include("Misc.jl")
 
-cuda_is_loaded = false
+const minimum_libceed_version = v"0.8.0"
 
 function __init__()
     libceed_version = ceedversion()
