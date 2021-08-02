@@ -34,7 +34,7 @@
 
 /**
   @ingroup Ceed
-  This macro provides the ablitiy to disable optimization flags for functions that
+  This macro provides the ability to disable optimization flags for functions that
   are sensitive to floting point optimizations.
 **/
 #ifndef CeedPragmaOptimizeOff
@@ -115,6 +115,10 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *obj_name);
+CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
+CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
+                                      CeedBasis *active_basis);
+CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
     const char **resource);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
