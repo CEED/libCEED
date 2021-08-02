@@ -11,7 +11,7 @@ Current ``main``_branch
 
 Maintainability
 ^^^^^^^^^^^^^^^
-* Refactored preconditioner support internally to facilitate future development
+* Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.
 
 
 .. _v0.9:
