@@ -1,4 +1,4 @@
-libCEED: the CEED Library
+libCEED: Efficient Extensible Discretization
 ============================================
 
 .. image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
@@ -33,12 +33,13 @@ libCEED: the CEED Library
    :alt: Binder
    :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
-Code for Efficient Extensible Discretization
+Summary and Purpose
 --------------------------------------------
 
-This repository contains an initial low-level API library for the efficient
-high-order discretization methods developed by the ECP co-design
-`Center for Efficient Exascale Discretizations (CEED) <http://ceed.exascaleproject.org>`_.
+libCEED provides fast algebra for element-based discretizations, designed for
+performance portability, run-time flexibility, and clean embedding in higher
+level libraries and applications. It offers a C99 interface as well as bindings
+for Fortran, Python, Julia, and Rust.
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
 explained in the `user manual <https://libceed.readthedocs.io/en/latest/>`_ and
