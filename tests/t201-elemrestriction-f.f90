@@ -35,8 +35,8 @@
       strides=[1,2,2]
       call ceedelemrestrictioncreatestrided(ceed,ne,2,1,2*ne,strides,r,err)
 
-      call ceedvectorcreate(ceed,2*ne,y,err);
-      call ceedvectorsetvalue(y,0.d0,err);
+      call ceedvectorcreate(ceed,2*ne,y,err)
+      call ceedvectorsetvalue(y,0.d0,err)
       call ceedelemrestrictionapply(r,ceed_notranspose,x,y,&
      & ceed_request_immediate,err)
 
