@@ -28,13 +28,13 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
   CeedElemRestrictionGetELayout(r, &layout);
-  for (CeedInt i=0; i<2; i++)      // Node
-    for (CeedInt j=0; j<1; j++)    // Component
+  for (CeedInt i=0; i<2; i++)            // Node
+    for (CeedInt j=0; j<1; j++)          // Component
       for (CeedInt k=0; k<num_elem; k++) // Element
         if (yy[i*layout[0] + j*layout[1] + k*layout[2]] !=
             a[i*strides[0] + j*strides[1] + k*strides[2]])
           // LCOV_EXCL_START
-          printf("Error in restricted array y[%d][%d][%d] = %f",
+          printf("Error in restricted array y[%d][%d][%d] = %f\n",
                  i, j, k, (double)yy[i*strides[0] + j*strides[1] + j*strides[2]]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);

@@ -36,6 +36,7 @@ with open(os.path.abspath("include/ceed/ceed.h")) as f:
     header = '\n'.join(lines)
     header = header.split("static inline CeedInt CeedIntPow", 1)[0]
     header += '\nextern int CeedVectorGetState(CeedVector, uint64_t*);'
+    header += '\nextern int CeedElemRestrictionGetELayout(CeedElemRestriction, CeedInt *layout);'
     # Note: cffi cannot handle vargs
     header = re.sub("va_list", "const char *", header)
 ffibuilder.cdef(header)

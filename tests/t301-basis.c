@@ -2,23 +2,31 @@
 /// Test QR Factorization
 /// \test Test QR Factorization
 #include <ceed.h>
+#include <ceed/backend.h>
+#include <math.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedScalar qr[12] = {1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0};
-  CeedScalar tau[3];
+  CeedScalar A[12]    = {1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0};
+  CeedScalar qr[12]   = {1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0};
+  CeedScalar A_qr[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  CeedScalar tau[4];
 
   CeedInit(argv[1], &ceed);
 
   CeedQRFactorization(ceed, qr, tau, 4, 3);
-  for (int i=0; i<12; i++) {
-    if (qr[i] <= 1E-14 && qr[i] >= -1E-14) qr[i] = 0;
-    fprintf(stdout, "%12.8f\n", qr[i]);
-  }
-  for (int i=0; i<3; i++) {
-    if (tau[i] <= 1E-14 && tau[i] >= -1E-14) tau[i] = 0;
-    fprintf(stdout, "%12.8f\n", tau[i]);
-  }
+  for (CeedInt i=0; i<3; i++)
+    for (CeedInt j=i; j<3; j++)
+      A_qr[i*3+j] = qr[i*3+j];
+  CeedHouseholderApplyQ(A_qr, qr, tau, CEED_NOTRANSPOSE, 4, 3, 3, 3, 1);
+
+  for (CeedInt i=0; i<12; i++)
+    if (fabs(A_qr[i] - A[i]) > 10*CEED_EPSILON)
+      // LCOV_EXCL_START
+      printf("Error in QR factorization A_qr[%d] = %f != A[%d] = %f\n",
+             i, A_qr[i], i, A[i]);
+  // LCOV_EXCL_STOP
+
   CeedDestroy(&ceed);
   return 0;
 }
