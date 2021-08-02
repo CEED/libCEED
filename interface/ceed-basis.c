@@ -551,10 +551,9 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp,
       c1 = c2;
     }
   }
-  //  // Pass to CeedBasisCreateTensorH1
+  // Pass to CeedBasisCreateTensorH1
   ierr = CeedBasisCreateTensorH1(ceed, dim, num_comp, P, Q, interp_1d, grad_1d,
-                                 q_ref_1d,
-                                 q_weight_1d, basis); CeedChk(ierr);
+                                 q_ref_1d, q_weight_1d, basis); CeedChk(ierr);
 cleanup:
   ierr2 = CeedFree(&interp_1d); CeedChk(ierr2);
   ierr2 = CeedFree(&grad_1d); CeedChk(ierr2);

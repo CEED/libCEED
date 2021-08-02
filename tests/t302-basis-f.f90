@@ -4,8 +4,12 @@
       include 'ceed/fortran.h'
 
       integer ceed,err,i,j
-      integer b
-      real*8 collograd1d(16), collograd1d2(36)
+      integer b,p
+      parameter(p=4)
+      real*8 collograd1d(36),x2(6)
+      real*8 grad1d(16),qref(6)
+      integer*8 gradoffset,qoffset
+      real*8 sum
 
       character arg*32
 
@@ -14,52 +18,65 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
 
 !     Already collocated, GetCollocatedGrad will return grad1d
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss_lobatto,b,&
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,p,ceed_gauss_lobatto,b,&
      & err)
       call ceedbasisgetcollocatedgrad(b,collograd1d,err)
-      do i=1,16
-        if (abs(collograd1d(i))<1.0D-14) then
-          collograd1d(i) = 0
-        endif
-      enddo
-      do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
-     &   'collograd[',i,']:',(collograd1d(j+4*i),j=1,4)
-      call flush(6)
+      call ceedbasisgetgrad1d(b,grad1d,gradoffset,err)
+      do i=0,p-1
+        do j=1,p
+          if (abs(collograd1d(j+p*i)-grad1d(j+p*i+gradoffset))>1.0D-13) then
+! LCOV_EXCL_START
+            write(*,*) 'Error in collocated gradient ',collograd1d(j+p*i),' != ',&
+     &       grad1d(j+p*i+gradoffset)
+! LCOV_EXCL_STOP
+          endif
+        enddo
       enddo
       call ceedbasisdestroy(b,err)
 
 !     Q = P, not already collocated
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss,b,err)
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,p,ceed_gauss,b,err)
       call ceedbasisgetcollocatedgrad(b,collograd1d,err)
-      do i=1,16
-        if (abs(collograd1d(i))<1.0D-14) then
+
+      call ceedbasisgetqref(b,qref,qoffset,err)
+      do i=1,p
+        x2(i)=qref(i+qoffset)*qref(i+qoffset)
+      enddo
+
+      do i=0,p-1
+        sum=0
+        do j=1,p
+            sum=sum+collograd1d(j+p*i)*x2(j)
+        enddo
+        if (abs(sum-2*qref(i+1+qoffset))>1.0D-13) then
 ! LCOV_EXCL_START
-          collograd1d(i) = 0
+            write(*,*) 'Error in collocated gradient ',sum,' != ',&
+            &       2*qref(i+1+qoffset)
 ! LCOV_EXCL_STOP
         endif
-      enddo
-      do i=0,3
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
-     &   'collograd[',i,']:',(collograd1d(j+4*i),j=1,4)
-      call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
 
 !     Q = P + 2, not already collocated
-      call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,6,ceed_gauss,b,err)
-      call ceedbasisgetcollocatedgrad(b,collograd1d2,err)
-      do i=1,36
-        if (abs(collograd1d2(i))<1.0D-14) then
+      call ceedbasiscreatetensorh1lagrange(ceed,1,1,p,p+2,ceed_gauss,b,err)
+      call ceedbasisgetcollocatedgrad(b,collograd1d,err)
+
+      call ceedbasisgetqref(b,qref,qoffset,err)
+      do i=1,p+2
+        x2(i)=qref(i+qoffset)*qref(i+qoffset)
+      enddo
+
+      do i=0,p+1
+        sum=0
+        do j=1,p+2
+            sum=sum+collograd1d(j+(p+2)*i)*x2(j)
+        enddo
+        if (abs(sum-2*qref(i+1+qoffset))>1.0D-13) then
 ! LCOV_EXCL_START
-          collograd1d2(i) = 0
+            write(*,*) 'Error in collocated gradient ',sum,' != ',&
+     &       2*qref(i+1+qoffset)
 ! LCOV_EXCL_STOP
         endif
-      enddo
-      do i=0,5
-        write(*,'(A,I1,A,F12.8,F12.8,F12.8,F12.8,F12.8,F12.8)')&
-     &   'collograd[',i,']:',(collograd1d2(j+6*i),j=1,6)
-      call flush(6)
       enddo
       call ceedbasisdestroy(b,err)
 
