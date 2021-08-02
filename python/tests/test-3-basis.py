@@ -71,34 +71,32 @@ def test_300(ceed_resource, capsys):
 # -------------------------------------------------------------------------------
 
 
-def test_301(ceed_resource, capsys):
+def test_301(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
+    m = 4
+    n = 3
+    a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
     qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
     tau = np.empty(3, dtype="float64")
 
-    qr, tau = ceed.qr_factorization(qr, tau, 4, 3)
+    qr, tau = ceed.qr_factorization(qr, tau, m, n)
+    np_qr, np_tau = np.linalg.qr(a.reshape(m, n), mode="raw")
 
-    for i in range(len(qr)):
-        if qr[i] <= TOL and qr[i] >= -TOL:
-            qr[i] = 0
-        print("%12.8f" % qr[i])
+    for i in range(n):
+        assert tau[i] == np_tau[i]
 
-    for i in range(len(tau)):
-        if tau[i] <= TOL and tau[i] >= -TOL:
-            tau[i] = 0
-        print("%12.8f" % tau[i])
-
-    stdout, stderr, ref_stdout = check.output(capsys)
-    assert not stderr
-    assert stdout == ref_stdout
+    qr = qr.reshape(m, n)
+    for i in range(m):
+        for j in range(n):
+            assert round(qr[i, j] - np_qr[j, i], 10) == 0
 
 # -------------------------------------------------------------------------------
 # Test Symmetric Schur Decomposition
 # -------------------------------------------------------------------------------
 
 
-def test_304(ceed_resource, capsys):
+def test_304(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     A = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
@@ -120,7 +118,7 @@ def test_304(ceed_resource, capsys):
 # -------------------------------------------------------------------------------
 
 
-def test_305(ceed_resource, capsys):
+def test_305(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     M = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
