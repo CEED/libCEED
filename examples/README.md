@@ -21,24 +21,25 @@ are located in the subdirectories `mfem/`, `petsc/`, and
 
 Here we provide a short summary:
 
-```{eval-rst}
-+-------------------------+----------------------------------------------------------------+
-| User code               | BPs                                                            |
-+-------------------------+----------------------------------------------------------------+
-|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
-| ``mfem``                | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
-+-------------------------+----------------------------------------------------------------+
-|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
-|                         | - BP2 (vector mass operator), with :math:`Q=P+1`               |
-|                         | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
-| ``petsc``               | - BP4 (vector Laplace operator), with :math:`Q=P+1`            |
-|                         | - BP5 (collocated scalar Laplace operator), with :math:`Q=P`   |
-|                         | - BP6 (collocated vector Laplace operator), with :math:`Q=P`   |
-+-------------------------+----------------------------------------------------------------+
-|                         | - BP1 (scalar mass operator), with :math:`Q=P+1`               |
-| ``nek5000``             | - BP3 (scalar Laplace operator), with :math:`Q=P+1`            |
-+-------------------------+----------------------------------------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Supported BPs
+* - `mfem`
+  - * BP1 (scalar mass operator) with $Q=P+1$
+    * BP3 (scalar Laplace operator) with $Q=P+1$
+* - `petsc`
+  - * BP1 (scalar mass operator) with $Q=P+1$
+    * BP2 (vector mass operator) with $Q=P+1$
+    * BP3 (scalar Laplace operator) with $Q=P+1$
+    * BP4 (vector Laplace operator) with $Q=P+1$
+    * BP5 (collocated scalar Laplace operator) with $Q=P$
+    * BP6 (collocated vector Laplace operator) with $Q=P$
+* - `nek5000`
+  - * BP1 (scalar mass operator) with $Q=P+1$
+    * BP3 (scalar Laplace operator) with $Q=P+1$
+:::
 
 These are all **T-vector**-to-**T-vector** and include parallel scatter, element
 scatter, element evaluation kernel, element gather, and parallel gather (with the

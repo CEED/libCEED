@@ -25,34 +25,29 @@ and run with:
 
 The elasticity min-app is controlled via command-line options, the following of which are mandatory.
 
-```{eval-rst}
-.. list-table:: Mandatory Runtime Options
-   :header-rows: 1
+:::{list-table} Mandatory Runtime Options
+:header-rows: 1
+:widths: 3 7
 
-   * - Option
-     - Description
-
-   * - :code:`-mesh [filename]`
-     - Path to mesh file in any format supported by PETSc.
-
-   * - :code:`-degree [int]`
-     - Polynomial degree of the finite element basis
-
-   * - :code:`-E [real]`
-     - `Young's modulus <https://en.wikipedia.org/wiki/Young%27s_modulus>`_, :math:`E > 0`
-
-   * - :code:`-nu [real]`
-     - `Poisson's ratio <https://en.wikipedia.org/wiki/Poisson%27s_ratio>`_, :math:`\nu < 0.5`
-
-   * - :code:`-bc_clamp [int list]`
-     - List of face sets on which to displace by :code:`-bc_clamp_[facenumber]_translate [x,y,z]` and/or :code:`bc_clamp_[facenumber]_rotate [rx,ry,rz,c_0,c_1]`
-
-```
-
-Note: The default for a clamped face is zero displacement. All displacement is with respect to the initial configuration.
-
-> - - {code}`-bc_traction [int list]`
->   - List of face sets on which to set traction boundary conditions with the traction vector {code}`-bc_traction_[facenumber] [tx,ty,tz]`
+* - Option
+  - Description
+* - `-mesh [filename]`
+  - Path to mesh file in any format supported by PETSc.
+* - `-degree [int]`
+  - Polynomial degree of the finite element basis
+* - `-E [real]`
+  - [Young's modulus](https://en.wikipedia.org/wiki/Young%27s_modulus), $E > 0$
+* - `-nu [real]`
+  - [Poisson's ratio](https://en.wikipedia.org/wiki/Poisson%27s_ratio), $\nu < 0.5$
+* - `-bc_clamp [int list]`
+  - List of face sets on which to displace by `-bc_clamp_[facenumber]_translate [x,y,z]`
+    and/or `bc_clamp_[facenumber]_rotate [rx,ry,rz,c_0,c_1]`. Note: The default
+    for a clamped face is zero displacement. All displacement is with respect to
+    the initial configuration.
+* - `-bc_traction [int list]`
+  - List of face sets on which to set traction boundary conditions with the
+    traction vector `-bc_traction_[facenumber] [tx,ty,tz]`
+:::
 
 :::{note}
 This solver can use any mesh format that PETSc's `DMPlex` can read (Exodus, Gmsh, Med, etc.).
@@ -89,74 +84,73 @@ On each boundary node, the rotation magnitude is computed: {code}`theta = (c_0 +
 
 The command line options just shown are the minimum requirements to run the mini-app, but additional options may also be set as follows
 
-```{eval-rst}
-.. list-table:: Additional Runtime Options
-   :header-rows: 1
+:::{list-table} Additional Runtime Options
+:header-rows: 1
 
-   * - Option
-     - Description
-     - Default value
+* - Option
+  - Description
+  - Default value
 
-   * - :code:`-ceed`
-     - CEED resource specifier
-     - :code:`/cpu/self`
+* - `-ceed`
+  - CEED resource specifier
+  - `/cpu/self`
 
-   * - :code:`-qextra`
-     - Number of extra quadrature points
-     - :code:`0`
+* - `-qextra`
+  - Number of extra quadrature points
+  - `0`
 
-   * - :code:`-test`
-     - Run in test mode
-     -
+* - `-test`
+  - Run in test mode
+  -
 
-   * - :code:`-problem`
-     - Problem to solve (:code:`Linear`, :code:`SS-NH`, :code:`FSInitial-NH1`, etc.)
-     - :code:`Linear`
+* - `-problem`
+  - Problem to solve (`Linear`, `SS-NH`, `FSInitial-NH1`, etc.)
+  - `Linear`
 
-   * - :code:`-forcing`
-     -  Forcing term option (:code:`none`, :code:`constant`, or :code:`mms`)
-     - :code:`none`
+* - `-forcing`
+  -  Forcing term option (`none`, `constant`, or `mms`)
+  - `none`
 
-   * - :code:`-forcing_vec`
-     -  Forcing vector
-     - :code:`0,-1,0`
+* - `-forcing_vec`
+  -  Forcing vector
+  - `0,-1,0`
 
-   * - :code:`-multigrid`
-     - Multigrid coarsening to use (:code:`logarithmic`, :code:`uniform` or :code:`none`)
-     - :code:`logarithmic`
+* - `-multigrid`
+  - Multigrid coarsening to use (`logarithmic`, `uniform` or `none`)
+  - `logarithmic`
 
-   * - :code:`-nu_smoother [real]`
-     - Poisson's ratio for multigrid smoothers, :math:`\nu < 0.5`
-     -
+* - `-nu_smoother [real]`
+  - Poisson's ratio for multigrid smoothers, $\nu < 0.5$
+  -
 
-   * - :code:`-num_steps`
-     - Number of load increments for continuation method
-     - :code:`1` if :code:`Linear` else :code:`10`
+* - `-num_steps`
+  - Number of load increments for continuation method
+  - `1` if `Linear` else `10`
 
-   * - :code:`-view_soln`
-     - Output solution at each load increment for viewing
-     -
+* - `-view_soln`
+  - Output solution at each load increment for viewing
+  -
 
-   * - :code:`-view_final_soln`
-     - Output solution at final load increment for viewing
-     -
+* - `-view_final_soln`
+  - Output solution at final load increment for viewing
+  -
 
-   * - :code:`-snes_view`
-     - View PETSc :code:`SNES` nonlinear solver configuration
-     -
+* - `-snes_view`
+  - View PETSc `SNES` nonlinear solver configuration
+  -
 
-   * - :code:`-log_view`
-     - View PETSc performance log
-     -
+* - `-log_view`
+  - View PETSc performance log
+  -
 
-   * - :code:`-output_dir`
-     - Output directory
-     - :code:`.`
+* - `-output_dir`
+  - Output directory
+  - `.`
 
-   * - :code:`-help`
-     - View comprehensive information about run-time options
-     -
-```
+* - `-help`
+  - View comprehensive information about run-time options
+  -
+:::
 
 To verify the convergence of the linear elasticity formulation on a given mesh with the method of manufactured solutions, run:
 
@@ -184,45 +178,43 @@ Many related solvers can be implemented by composing PETSc command-line options.
 Quantities such as the Young's modulus vary over many orders of magnitude, and thus can lead to poorly scaled equations.
 One can nondimensionalize the model by choosing an alternate system of units, such that displacements and residuals are of reasonable scales.
 
-```{eval-rst}
-.. list-table:: (Non)dimensionalization options
-   :header-rows: 1
+:::{list-table} (Non)dimensionalization options
+:header-rows: 1
 
-   * - Option
-     - Description
-     - Default value
+* - Option
+  - Description
+  - Default value
 
-   * - :code:`-units_meter`
-     - 1 meter in scaled length units
-     - :code:`1`
+* - :code:`-units_meter`
+  - 1 meter in scaled length units
+  - :code:`1`
 
-   * - :code:`-units_second`
-     - 1 second in scaled time units
-     - :code:`1`
+* - :code:`-units_second`
+  - 1 second in scaled time units
+  - :code:`1`
 
-   * - :code:`-units_kilogram`
-     - 1 kilogram in scaled mass units
-     - :code:`1`
-```
+* - :code:`-units_kilogram`
+  - 1 kilogram in scaled mass units
+  - :code:`1`
+:::
 
 For example, consider a problem involving metals subject to gravity.
 
-```{eval-rst}
-.. list-table:: Characteristic units for metals
-   :header-rows: 1
+:::{list-table} Characteristic units for metals
+:header-rows: 1
 
-   * - Quantity
-     - Typical value in SI units
+* - Quantity
+  - Typical value in SI units
 
-   * - Displacement, :math:`\bm u`
-     - :math:`1 \,\mathrm{cm} = 10^{-2} \,\mathrm m`
+* - Displacement, $\bm u$
+  - $1 \,\mathrm{cm} = 10^{-2} \,\mathrm m$
 
-   * - Young's modulus, :math:`E`
-     - :math:`10^{11} \,\mathrm{Pa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}`
+* - Young's modulus, $E$
+  - $10^{11} \,\mathrm{Pa} = 10^{11} \,\mathrm{kg}\, \mathrm{m}^{-1}\, \mathrm s^{-2}$
 
-   * - Body force (gravity) on volume, :math:`\int \rho \bm g`
-     - :math:`5 \cdot 10^4 \,\mathrm{kg}\, \mathrm m^{-2} \, \mathrm s^{-2} \cdot (\text{volume} \, \mathrm m^3)`
-```
+* - Body force (gravity) on volume, $\int \rho \bm g$
+  - $5 \cdot 10^4 \,\mathrm{kg}\, \mathrm m^{-2} \, \mathrm s^{-2} \cdot (\text{volume} \, \mathrm m^3)$
+:::
 
 One can choose units of displacement independently (e.g., {code}`-units_meter 100` to measure displacement in centimeters), but $E$ and $\int \rho \bm g$ have the same dependence on mass and time, so cannot both be made of order 1.
 This reflects the fact that both quantities are not equally significant for a given displacement size; the relative significance of gravity increases as the domain size grows.
@@ -233,8 +225,7 @@ Diagnostic quantities for viewing are provided when the command line options for
 The diagnostic quantities include displacement in the $x$ direction, displacement in the $y$ direction, displacement in the $z$ direction, pressure, $\operatorname{trace} \bm{E}$, $\operatorname{trace} \bm{E}^2$, $\lvert J \rvert$, and strain energy density.
 The table below summarizes the formulations of each of these quantities for each problem type.
 
-```{eval-rst}
-.. list-table:: Diagnostic quantities
+:::{list-table} Diagnostic quantities
    :header-rows: 1
 
    * - Quantity
@@ -243,30 +234,30 @@ The table below summarizes the formulations of each of these quantities for each
      - Hyperelasticity, Finite Strain
 
    * - Pressure
-     - :math:`\lambda \operatorname{trace} \bm{\epsilon}`
-     - :math:`\lambda \log \operatorname{trace} \bm{\epsilon}`
-     - :math:`\lambda \log J`
+     - $\lambda \operatorname{trace} \bm{\epsilon}$
+     - $\lambda \log \operatorname{trace} \bm{\epsilon}$
+     - $\lambda \log J$
 
    * - Volumetric Strain
-     - :math:`\operatorname{trace} \bm{\epsilon}`
-     - :math:`\operatorname{trace} \bm{\epsilon}`
-     - :math:`\operatorname{trace} \bm{E}`
+     - $\operatorname{trace} \bm{\epsilon}$
+     - $\operatorname{trace} \bm{\epsilon}$
+     - $\operatorname{trace} \bm{E}$
 
-   * - :math:`\operatorname{trace} \bm{E}^2`
-     - :math:`\operatorname{trace} \bm{\epsilon}^2`
-     - :math:`\operatorname{trace} \bm{\epsilon}^2`
-     - :math:`\operatorname{trace} \bm{E}^2`
+   * - $\operatorname{trace} \bm{E}^2$
+     - $\operatorname{trace} \bm{\epsilon}^2$
+     - $\operatorname{trace} \bm{\epsilon}^2$
+     - $\operatorname{trace} \bm{E}^2$
 
-   * - :math:`\lvert J \rvert`
-     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
-     - :math:`1 + \operatorname{trace} \bm{\epsilon}`
-     - :math:`\lvert J \rvert`
+   * - $\lvert J \rvert$
+     - $1 + \operatorname{trace} \bm{\epsilon}$
+     - $1 + \operatorname{trace} \bm{\epsilon}$
+     - $\lvert J \rvert$
 
    * - Strain Energy Density
-     - :math:`\frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon}`
-     - :math:`\lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm{\epsilon} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}`
-     - :math:`\frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm{E} - \mu \log J`
-```
+     - $\frac{\lambda}{2} (\operatorname{trace} \bm{\epsilon})^2 + \mu \bm{\epsilon} : \bm{\epsilon}$
+     - $\lambda (1 + \operatorname{trace} \bm{\epsilon}) (\log(1 + \operatorname{trace} \bm{\epsilon} ) - 1) + \mu \bm{\epsilon} : \bm{\epsilon}$
+     - $\frac{\lambda}{2}(\log J)^2 + \mu \operatorname{trace} \bm{E} - \mu \log J$
+:::
 
 [cubit]: https://cubit.sandia.gov/
 [this repository]: https://github.com/jeremylt/ceedSampleMeshes

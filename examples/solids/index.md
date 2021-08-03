@@ -348,39 +348,38 @@ This is a common model for vulcanized rubber, with a shear modulus (defined for 
 :::{dropdown} Mooney-Rivlin strain energy comparison
 We apply traction to a block and plot integrated strain energy $\Phi$ as a function of the loading paramater.
 
-```{eval-rst}
-.. altair-plot::
-   :hide-code:
+```{altair-plot}
+:hide-code:
 
-   import altair as alt
-   import pandas as pd
-   nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
-   nh["model"] = "Neo-Hookean"
-   nh["parameters"] = "E=2.8, nu=0.4"
+import altair as alt
+import pandas as pd
+nh = pd.read_csv("source/examples/solids/output/NH-strain.csv")
+nh["model"] = "Neo-Hookean"
+nh["parameters"] = "E=2.8, nu=0.4"
 
-   mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
-   mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
-   mr["parameters"] = "mu_1=1, mu_2=0, nu=.4"
+mr = pd.read_csv("source/examples/solids/output/MR-strain.csv")
+mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
+mr["parameters"] = "mu_1=1, mu_2=0, nu=.4"
 
-   mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
-   mr1["model"] = "Mooney-Rivlin"
-   mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
+mr1 = pd.read_csv("source/examples/solids/output/MR-strain1.csv")
+mr1["model"] = "Mooney-Rivlin"
+mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
 
-   df = pd.concat([nh, mr, mr1])
-   highlight = alt.selection_single(
-      on = "mouseover",
-      nearest = True,
-      fields=["model", "parameters"],
-   )
-   base = alt.Chart(df).encode(
-      alt.X("increment"),
-      alt.Y("energy", scale=alt.Scale(type="sqrt")),
-      alt.Color("model"),
-      alt.Tooltip(("model", "parameters")),
-      opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
-      size=alt.condition(highlight, alt.value(2), alt.value(1)),
-   )
-   base.mark_point().add_selection(highlight) + base.mark_line()
+df = pd.concat([nh, mr, mr1])
+highlight = alt.selection_single(
+   on = "mouseover",
+   nearest = True,
+   fields=["model", "parameters"],
+)
+base = alt.Chart(df).encode(
+   alt.X("increment"),
+   alt.Y("energy", scale=alt.Scale(type="sqrt")),
+   alt.Color("model"),
+   alt.Tooltip(("model", "parameters")),
+   opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
+   size=alt.condition(highlight, alt.value(2), alt.value(1)),
+)
+base.mark_point().add_selection(highlight) + base.mark_line()
 ```
 :::
 
@@ -739,38 +738,38 @@ which is more numerically stable for small strain, and thus preferred for comput
 
 We have implemented four storage variants for the Jacobian in our finite strain hyperelasticity. In each case, some variables are computed during residual evaluation and used during Jacobian application.
 
-```{eval-rst}
-.. list-table:: Four algorithms for Jacobian action in finite strain hyperelasticity problem
-   :header-rows: 1
+:::{list-table} Four algorithms for Jacobian action in finite strain hyperelasticity problem
+:header-rows: 1
+:widths: auto
 
-   * - Option :code:`-problem`
-     - Static storage
-     - Computed storage
-     - # scalars
-     - Equations
+* - Option `-problem`
+  - Static storage
+  - Computed storage
+  - \# scalars
+  - Equations
 
 
-   * - :code:`FSInitial-NH1`
-     - :math:`\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_X \bm u`
-     - 19
-     - :math:numref:`eq-diff-P` :math:numref:`eq-neo-hookean-incremental-stress`
+* - `FSInitial-NH1`
+  - $\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X$
+  - $\nabla_X \bm u$
+  - 19
+  - {eq}`eq-diff-P` {eq}`eq-neo-hookean-incremental-stress`
 
-   * - :code:`FSInitial-NH2`
-     - :math:`\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_X \bm u, \bm C^{-1}, \lambda \log J`
-     - 26
-     - :math:numref:`eq-diff-P` :math:numref:`eq-neo-hookean-incremental-stress`
+* - `FSInitial-NH2`
+  - $\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X$
+  - $\nabla_X \bm u, \bm C^{-1}, \lambda \log J$
+  - 26
+  - {eq}`eq-diff-P` {eq}`eq-neo-hookean-incremental-stress`
 
-   * - :code:`FSCurrent-NH1`
-     - :math:`\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_X \bm u`
-     - 19
-     - :math:numref:`jacobian-weak-form-current` :math:numref:`nabla_xdu`
+* - `FSCurrent-NH1`
+  - $\nabla_{X} \hat X, \operatorname{det}\nabla_{\hat X} X$
+  - $\nabla_X \bm u$
+  - 19
+  - {eq}`jacobian-weak-form-current` {eq}`nabla_xdu`
 
-   * - :code:`FSCurrent-NH2`
-     - :math:`\operatorname{det}\nabla_{\hat X} X`
-     - :math:`\nabla_x \hat X, \bm \tau, \lambda \log J`
-     - 17
-     - :math:numref:`jacobian-weak-form-current` :math:numref:`jacobian-weak-form-current2`
-```
+* - `FSCurrent-NH2`
+  - $\operatorname{det}\nabla_{\hat X} X$
+  - $\nabla_x \hat X, \bm \tau, \lambda \log J$
+  - 17
+  - {eq}`jacobian-weak-form-current` {eq}`jacobian-weak-form-current2`
+:::

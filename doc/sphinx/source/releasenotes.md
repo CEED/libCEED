@@ -220,72 +220,52 @@ computes the surface area of a given mesh was added to this release.
 
 Backends available in this release:
 
-```{eval-rst}
-+----------------------------+-----------------------------------------------------+
-| CEED resource (``-ceed``)  | Backend                                             |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref/serial``   | Serial reference implementation                     |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref/blocked``  | Blocked reference implementation                    |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref/memcheck`` | Memcheck backend, undefined value checks            |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/opt/serial``   | Serial optimized C implementation                   |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/opt/blocked``  | Blocked optimized C implementation                  |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/avx/serial``   | Serial AVX implementation                           |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/avx/blocked``  | Blocked AVX implementation                          |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                       |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                      |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/occa``              | Serial OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/occa``              | CUDA OCCA kernels                                   |
-+----------------------------+-----------------------------------------------------+
-| ``/omp/occa``              | OpenMP OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/ocl/occa``              | OpenCL OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                         |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/reg``          | Pure CUDA kernels using one thread per element      |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory     |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation   |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/magma``             | CUDA MAGMA kernels                                  |
-+----------------------------+-----------------------------------------------------+
-```
+| CEED resource (`-ceed`)  | Backend                                             |
+|--------------------------|-----------------------------------------------------|
+| `/cpu/self/ref/serial`   | Serial reference implementation                     |
+| `/cpu/self/ref/blocked`  | Blocked reference implementation                    |
+| `/cpu/self/ref/memcheck` | Memcheck backend, undefined value checks            |
+| `/cpu/self/opt/serial`   | Serial optimized C implementation                   |
+| `/cpu/self/opt/blocked`  | Blocked optimized C implementation                  |
+| `/cpu/self/avx/serial`   | Serial AVX implementation                           |
+| `/cpu/self/avx/blocked`  | Blocked AVX implementation                          |
+| `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                       |
+| `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                      |
+| `/cpu/occa`              | Serial OCCA kernels                                 |
+| `/gpu/occa`              | CUDA OCCA kernels                                   |
+| `/omp/occa`              | OpenMP OCCA kernels                                 |
+| `/ocl/occa`              | OpenCL OCCA kernels                                 |
+| `/gpu/cuda/ref`          | Reference pure CUDA kernels                         |
+| `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element      |
+| `/gpu/cuda/shared`       | Optimized pure CUDA kernels using shared memory     |
+| `/gpu/cuda/gen`          | Optimized pure CUDA kernels using code generation   |
+| `/gpu/magma`             | CUDA MAGMA kernels                                  |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+--------------------------------------------+
-| User code               | Example                                    |
-+-------------------------+--------------------------------------------+
-|                         | - ex1 (volume)                             |
-| ``ceed``                | - ex2 (surface)                            |
-+-------------------------+--------------------------------------------+
-|                         | - BP1 (scalar mass operator)               |
-| ``mfem``                | - BP3 (scalar Laplace operator)            |
-+-------------------------+--------------------------------------------+
-|                         | - BP1 (scalar mass operator)               |
-|                         | - BP2 (vector mass operator)               |
-|                         | - BP3 (scalar Laplace operator)            |
-| ``petsc``               | - BP4 (vector Laplace operator)            |
-|                         | - BP5 (collocated scalar Laplace operator) |
-|                         | - BP6 (collocated vector Laplace operator) |
-|                         | - Navier-Stokes                            |
-+-------------------------+--------------------------------------------+
-|                         | - BP1 (scalar mass operator)               |
-| ``nek5000``             | - BP3 (scalar Laplace operator)            |
-+-------------------------+--------------------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Example
+* - `ceed`
+  - * ex1 (volume)
+    * ex2 (surface)
+* - `mfem`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `petsc`
+  - * BP1 (scalar mass operator)
+    * BP2 (vector mass operator)
+    * BP3 (scalar Laplace operator)
+    * BP4 (vector Laplace operator)
+    * BP5 (collocated scalar Laplace operator)
+    * BP6 (collocated vector Laplace operator)
+    * Navier-Stokes
+* - `nek5000`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+:::
 
 (v0-4)=
 
@@ -322,59 +302,43 @@ parallelization and meshing concerns.
 
 Backends available in this release:
 
-```{eval-rst}
-+----------------------------+-----------------------------------------------------+
-| CEED resource (``-ceed``)  | Backend                                             |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref/serial``   | Serial reference implementation                     |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref/blocked``  | Blocked reference implementation                    |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/tmpl``         | Backend template, defaults to ``/cpu/self/blocked`` |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/avx/serial``   | Serial AVX implementation                           |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/avx/blocked``  | Blocked AVX implementation                          |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                       |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                      |
-+----------------------------+-----------------------------------------------------+
-| ``/cpu/occa``              | Serial OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/occa``              | CUDA OCCA kernels                                   |
-+----------------------------+-----------------------------------------------------+
-| ``/omp/occa``              | OpenMP OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/ocl/occa``              | OpenCL OCCA kernels                                 |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                         |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/cuda/reg``          | Pure CUDA kernels using one thread per element      |
-+----------------------------+-----------------------------------------------------+
-| ``/gpu/magma``             | CUDA MAGMA kernels                                  |
-+----------------------------+-----------------------------------------------------+
-```
+| CEED resource (`-ceed`)  | Backend                                             |
+|--------------------------|-----------------------------------------------------|
+| `/cpu/self/ref/serial`   | Serial reference implementation                     |
+| `/cpu/self/ref/blocked`  | Blocked reference implementation                    |
+| `/cpu/self/tmpl`         | Backend template, defaults to `/cpu/self/blocked`   |
+| `/cpu/self/avx/serial`   | Serial AVX implementation                           |
+| `/cpu/self/avx/blocked`  | Blocked AVX implementation                          |
+| `/cpu/self/xsmm/serial`  | Serial LIBXSMM implementation                       |
+| `/cpu/self/xsmm/blocked` | Blocked LIBXSMM implementation                      |
+| `/cpu/occa`              | Serial OCCA kernels                                 |
+| `/gpu/occa`              | CUDA OCCA kernels                                   |
+| `/omp/occa`              | OpenMP OCCA kernels                                 |
+| `/ocl/occa`              | OpenCL OCCA kernels                                 |
+| `/gpu/cuda/ref`          | Reference pure CUDA kernels                         |
+| `/gpu/cuda/reg`          | Pure CUDA kernels using one thread per element      |
+| `/gpu/magma`             | CUDA MAGMA kernels                                  |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+---------------------------------+
-| User code               | Example                         |
-+-------------------------+---------------------------------+
-| ``ceed``                | ex1 (volume)                    |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``mfem``                | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``petsc``               | - BP3 (scalar Laplace operator) |
-|                         | - Navier-Stokes                 |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``nek5000``             | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Example
+* - `ceed`
+  - * ex1 (volume)
+* - `mfem`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `petsc`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+    * Navier-Stokes
+* - `nek5000`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+:::
 
 (v0-3)=
 
@@ -400,46 +364,36 @@ than the more common derivation in terms of Lagrange polynomials on the quadratu
 
 Backends available in this release:
 
-```{eval-rst}
-+---------------------------+-----------------------------------------------------+
-| CEED resource (``-ceed``) | Backend                                             |
-+---------------------------+-----------------------------------------------------+
-| ``/cpu/self/blocked``     | Blocked reference implementation                    |
-+---------------------------+-----------------------------------------------------+
-| ``/cpu/self/ref``         | Serial reference implementation                     |
-+---------------------------+-----------------------------------------------------+
-| ``/cpu/self/tmpl``        | Backend template, defaults to ``/cpu/self/blocked`` |
-+---------------------------+-----------------------------------------------------+
-| ``/cpu/occa``             | Serial OCCA kernels                                 |
-+---------------------------+-----------------------------------------------------+
-| ``/gpu/occa``             | CUDA OCCA kernels                                   |
-+---------------------------+-----------------------------------------------------+
-| ``/omp/occa``             | OpenMP OCCA kernels                                 |
-+---------------------------+-----------------------------------------------------+
-| ``/ocl/occa``             | OpenCL OCCA kernels                                 |
-+---------------------------+-----------------------------------------------------+
-| ``/gpu/magma``            | CUDA MAGMA kernels                                  |
-+---------------------------+-----------------------------------------------------+
-```
+| CEED resource (`-ceed`) | Backend                                             |
+|-------------------------|-----------------------------------------------------|
+| `/cpu/self/blocked`     | Blocked reference implementation                    |
+| `/cpu/self/ref`         | Serial reference implementation                     |
+| `/cpu/self/tmpl`        | Backend template, defaults to `/cpu/self/blocked`   |
+| `/cpu/occa`             | Serial OCCA kernels                                 |
+| `/gpu/occa`             | CUDA OCCA kernels                                   |
+| `/omp/occa`             | OpenMP OCCA kernels                                 |
+| `/ocl/occa`             | OpenCL OCCA kernels                                 |
+| `/gpu/magma`            | CUDA MAGMA kernels                                  |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+---------------------------------+
-| User code               | Example                         |
-+-------------------------+---------------------------------+
-| ``ceed``                | ex1 (volume)                    |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``mfem``                | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``petsc``               | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``nek5000``             | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Example
+* - `ceed`
+  - * ex1 (volume)
+* - `mfem`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `petsc`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `nek5000`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+:::
 
 (v0-21)=
 
@@ -459,40 +413,32 @@ provided to support them.
 
 Backends available in this release:
 
-```{eval-rst}
-+---------------------------+---------------------------------+
-| CEED resource (``-ceed``) | Backend                         |
-+---------------------------+---------------------------------+
-| ``/cpu/self``             | Serial reference implementation |
-+---------------------------+---------------------------------+
-| ``/cpu/occa``             | Serial OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/gpu/occa``             | CUDA OCCA kernels               |
-+---------------------------+---------------------------------+
-| ``/omp/occa``             | OpenMP OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/ocl/occa``             | OpenCL OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/gpu/magma``            | CUDA MAGMA kernels              |
-+---------------------------+---------------------------------+
-```
+| CEED resource (`-ceed`) | Backend                         |
+|-------------------------|---------------------------------|
+| `/cpu/self`             | Serial reference implementation |
+| `/cpu/occa`             | Serial OCCA kernels             |
+| `/gpu/occa`             | CUDA OCCA kernels               |
+| `/omp/occa`             | OpenMP OCCA kernels             |
+| `/ocl/occa`             | OpenCL OCCA kernels             |
+| `/gpu/magma`            | CUDA MAGMA kernels              |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+---------------------------------+
-| User code               | Example                         |
-+-------------------------+---------------------------------+
-| ``ceed``                | ex1 (volume)                    |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``mfem``                | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-| ``petsc``               | BP1 (scalar mass operator)      |
-+-------------------------+---------------------------------+
-| ``nek5000``             | BP1 (scalar mass operator)      |
-+-------------------------+---------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Example
+* - `ceed`
+  - * ex1 (volume)
+* - `mfem`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `petsc`
+  - * BP1 (scalar mass operator)
+* - `nek5000`
+  - * BP1 (scalar mass operator)
+:::
 
 (v0-2)=
 
@@ -510,38 +456,31 @@ of the Laplace operator) was also added to this release.
 
 Backends available in this release:
 
-```{eval-rst}
-+---------------------------+---------------------------------+
-| CEED resource (``-ceed``) | Backend                         |
-+---------------------------+---------------------------------+
-| ``/cpu/self``             | Serial reference implementation |
-+---------------------------+---------------------------------+
-| ``/cpu/occa``             | Serial OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/gpu/occa``             | CUDA OCCA kernels               |
-+---------------------------+---------------------------------+
-| ``/omp/occa``             | OpenMP OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/ocl/occa``             | OpenCL OCCA kernels             |
-+---------------------------+---------------------------------+
-```
+| CEED resource (`-ceed`) | Backend                         |
+|-------------------------|---------------------------------|
+| `/cpu/self`             | Serial reference implementation |
+| `/cpu/occa`             | Serial OCCA kernels             |
+| `/gpu/occa`             | CUDA OCCA kernels               |
+| `/omp/occa`             | OpenMP OCCA kernels             |
+| `/ocl/occa`             | OpenCL OCCA kernels             |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+---------------------------------+
-| User code               | Example                         |
-+-------------------------+---------------------------------+
-| ``ceed``                | ex1 (volume)                    |
-+-------------------------+---------------------------------+
-|                         | - BP1 (scalar mass operator)    |
-| ``mfem``                | - BP3 (scalar Laplace operator) |
-+-------------------------+---------------------------------+
-| ``petsc``               | BP1 (scalar mass operator)      |
-+-------------------------+---------------------------------+
-| ``nek5000``             | BP1 (scalar mass operator)      |
-+-------------------------+---------------------------------+
-```
+:::{list-table}
+:header-rows: 1
+:widths: auto
+* - User code
+  - Example
+* - `ceed`
+  - * ex1 (volume)
+* - `mfem`
+  - * BP1 (scalar mass operator)
+    * BP3 (scalar Laplace operator)
+* - `petsc`
+  - * BP1 (scalar mass operator)
+* - `nek5000`
+  - * BP1 (scalar mass operator)
+:::
 
 (v0-1)=
 
@@ -565,30 +504,18 @@ dependencies) to apply the Laplace operator, `ex1`; an `mfem` example to perform
 
 Backends available in this release:
 
-```{eval-rst}
-+---------------------------+---------------------------------+
-| CEED resource (``-ceed``) | Backend                         |
-+---------------------------+---------------------------------+
-| ``/cpu/self``             | Serial reference implementation |
-+---------------------------+---------------------------------+
-| ``/cpu/occa``             | Serial OCCA kernels             |
-+---------------------------+---------------------------------+
-| ``/gpu/occa``             | CUDA OCCA kernels               |
-+---------------------------+---------------------------------+
-| ``/omp/occa``             | OpenMP OCCA kernels             |
-+---------------------------+---------------------------------+
-```
+| CEED resource (`-ceed`) | Backend                         |
+|-------------------------|---------------------------------|
+| `/cpu/self`             | Serial reference implementation |
+| `/cpu/occa`             | Serial OCCA kernels             |
+| `/gpu/occa`             | CUDA OCCA kernels               |
+| `/omp/occa`             | OpenMP OCCA kernels             |
 
 Examples available in this release:
 
-```{eval-rst}
-+-------------------------+-----------------------------------+
-| User code               | Example                           |
-+-------------------------+-----------------------------------+
-| ``ceed``                | ex1 (scalar Laplace operator)     |
-+-------------------------+-----------------------------------+
-| ``mfem``                | BP1 (scalar mass operator)        |
-+-------------------------+-----------------------------------+
-| ``petsc``               | BP1 (scalar mass operator)        |
-+-------------------------+-----------------------------------+
+| User code             | Example                           |
+|-----------------------|-----------------------------------|
+| `ceed`                | ex1 (scalar Laplace operator)     |
+| `mfem`                | BP1 (scalar mass operator)        |
+| `petsc`               | BP1 (scalar mass operator)        |
 ```
