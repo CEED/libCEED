@@ -60,7 +60,7 @@ $$
 \int_\Omega \nabla v \cdot \nabla u \, dV - \int_{\partial \Omega} v \nabla u \cdot \hat{\bm n}\, dS = 0 .
 $$
 
-Since we have chosen $u$ such that $\nabla u \cdot \hat{\bm n} = 1$, the boundary integrand is $v 1 \equiv v$. Hence, similar to {math:numref}`volume-sum`, we can evaluate the surface integral by applying the volumetric Laplacian as follows
+Since we have chosen $u$ such that $\nabla u \cdot \hat{\bm n} = 1$, the boundary integrand is $v 1 \equiv v$. Hence, similar to {eq}`volume-sum`, we can evaluate the surface integral by applying the volumetric Laplacian as follows
 
 $$
 \int_\Omega \nabla v \cdot \nabla u \, dV \approx \sum_e \int_{\partial \Omega_e} v(x) 1 \, dS .

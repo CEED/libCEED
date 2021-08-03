@@ -18,7 +18,7 @@ $$
 $$ (eq-ns)
 
 where $\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\bm{I}_3)$ is the Cauchy (symmetric) stress tensor, with $\mu$ the dynamic viscosity coefficient, and $\lambda = - 2/3$ the Stokes hypothesis constant.
-In equations {math:numref}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $g$ the gravitational acceleration constant, $\bm{\hat{k}}$ the unit vector in the $z$ direction, $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
+In equations {eq}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $g$ the gravitational acceleration constant, $\bm{\hat{k}}$ the unit vector in the $z$ direction, $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
 
 $$
 P = \left( {c_p}/{c_v} -1\right) \left( E - {\bm{U}\cdot\bm{U}}/{(2 \rho)} - \rho g z \right) \, ,
@@ -26,7 +26,7 @@ $$ (eq-state)
 
 where $c_p$ is the specific heat at constant pressure and $c_v$ is the specific heat at constant volume (that define $\gamma = c_p / c_v$, the specific heat ratio).
 
-The system {math:numref}`eq-ns` can be rewritten in vector form
+The system {eq}`eq-ns` can be rewritten in vector form
 
 $$
 \frac{\partial \bm{q}}{\partial t} + \nabla \cdot \bm{F}(\bm{q}) -S(\bm{q}) = 0 \, ,
@@ -110,8 +110,8 @@ For the time discretization, we use two types of time stepping schemes.
   $$
   
   in terms of $\bm z_N$ from prior state and $\alpha > 0$, both of which depend on the specific time integration scheme (backward difference formulas, generalized alpha, implicit Runge-Kutta, etc.).
-  Each nonlinear system {math:numref}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
-  In determining how difficult a given problem is to solve, we consider the Jacobian of {math:numref}`eq-ts-implicit-ns`,
+  Each nonlinear system {eq}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
+  In determining how difficult a given problem is to solve, we consider the Jacobian of {eq}`eq-ts-implicit-ns`,
   
   $$
   \frac{\partial \bm f}{\partial \bm q_N} = \frac{\partial \bm g}{\partial \bm q_N} + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
@@ -121,7 +121,7 @@ For the time discretization, we use two types of time stepping schemes.
   In contrast, the first term dominates for large time steps, with a condition number that grows with the diameter of the domain and polynomial degree of the approximation space.
   Both terms are significant for time-accurate simulation and the setup costs of strong preconditioners must be balanced with the convergence rate of Krylov methods using weak preconditioners.
 
-To obtain a finite element discretization, we first multiply the strong form {math:numref}`eq-vector-ns` by a test function $\bm v \in H^1(\Omega)$ and integrate,
+To obtain a finite element discretization, we first multiply the strong form {eq}`eq-vector-ns` by a test function $\bm v \in H^1(\Omega)$ and integrate,
 
 $$
 \int_{\Omega} \bm v \cdot \left(\frac{\partial \bm{q}_N}{\partial t} + \nabla \cdot \bm{F}(\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV = 0 \, , \; \forall \bm v \in \mathcal{V}_p\,,
@@ -146,14 +146,14 @@ where $\bm{F}(\bm q_N) \cdot \widehat{\bm{n}}$ is typically replaced with a boun
 The notation $\nabla \bm v \!:\! \bm F$ represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., $\bm v \cdot \bm S$ contracts over fields while $\bm F \cdot \widehat{\bm n}$ contracts over spatial dimensions.
 :::
 
-We solve {math:numref}`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
+We solve {eq}`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
 
 Galerkin methods produce oscillations for transport-dominated problems (any time the cell Péclet number is larger than 1), and those tend to blow up for nonlinear problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes, in which case stabilization is necessary.
 Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive review of stabilization and shock-capturing methods for continuous finite element discretization of compressible flows.
 
 - **SUPG** (streamline-upwind/Petrov-Galerkin)
 
-  In this method, the weighted residual of the strong form {math:numref}`eq-vector-ns` is added to the Galerkin formulation {math:numref}`eq-weak-vector-ns`.
+  In this method, the weighted residual of the strong form {eq}`eq-vector-ns` is added to the Galerkin formulation {eq}`eq-weak-vector-ns`.
   The weak form for this method is given as
   
   $$
@@ -171,7 +171,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
 
 - **SU** (streamline-upwind)
 
-  This method is a simplified version of *SUPG* {math:numref}`eq-weak-vector-ns-supg` which is developed for debugging/comparison purposes. The weak form for this method is
+  This method is a simplified version of *SUPG* {eq}`eq-weak-vector-ns-supg` which is developed for debugging/comparison purposes. The weak form for this method is
   
   $$
   \begin{aligned}
@@ -185,7 +185,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   
   This stabilization technique can be selected using the option `-stab su`.
 
-In both {math:numref}`eq-weak-vector-ns-su` and {math:numref}`eq-weak-vector-ns-supg`, $\bm{P} \,$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
+In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\bm{P} \,$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
 It is defined as
 
 $$
@@ -201,7 +201,7 @@ Currently, this demo provides three types of problems/physical models that can b
 
 ## Advection
 
-A simplified version of system {math:numref}`eq-ns`, only accounting for the transport of total energy, is given by
+A simplified version of system {eq}`eq-ns`, only accounting for the transport of total energy, is given by
 
 $$
 \frac{\partial E}{\partial t} + \nabla \cdot (\bm{u} E ) = 0 \, ,
@@ -212,7 +212,7 @@ with $\bm{u}$ the vector velocity field. In this particular test case, a blob of
 - **Rotation**
 
   In this case, a uniform circular velocity field transports the blob of total energy.
-  We have solved {math:numref}`eq-advection` applying zero energy density $E$, and no-flux for $\bm{u}$ on the boundaries.
+  We have solved {eq}`eq-advection` applying zero energy density $E$, and no-flux for $\bm{u}$ on the boundaries.
   
   The $3D$ version of this test case can be run with:
   
@@ -230,14 +230,14 @@ with $\bm{u}$ the vector velocity field. In this particular test case, a blob of
 
   In this case, a background wind with a constant rectilinear velocity field, enters the domain and transports the blob of total energy out of the domain.
   
-  For the inflow boundary conditions, a prescribed $E_{wind}$ is applied weakly on the inflow boundaries such that the weak form boundary integral in {math:numref}`eq-weak-vector-ns` is defined as
+  For the inflow boundary conditions, a prescribed $E_{wind}$ is applied weakly on the inflow boundaries such that the weak form boundary integral in {eq}`eq-weak-vector-ns` is defined as
   
   $$
   \int_{\partial \Omega_{inflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{inflow}} \bm v \, E_{wind} \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
   $$
   
   For the outflow boundary conditions, we have used the current values of $E$, following {cite}`papanastasiou1992outflow` which extends the validity of the weak form of the governing equations to the outflow instead of replacing them with unknown essential or natural boundary conditions.
-  The weak form boundary integral in {math:numref}`eq-weak-vector-ns` for outflow boundary conditions is defined as
+  The weak form boundary integral in {eq}`eq-weak-vector-ns` for outflow boundary conditions is defined as
   
   $$
   \int_{\partial \Omega_{outflow}} \bm v \cdot \bm{F}(\bm q_N) \cdot \widehat{\bm{n}} \,dS = \int_{\partial \Omega_{outflow}} \bm v \, E \, \bm u \cdot \widehat{\bm{n}} \,dS  \, ,
@@ -259,7 +259,7 @@ with $\bm{u}$ the vector velocity field. In this particular test case, a blob of
 
 ## Isentropic Vortex
 
-Three-dimensional Euler equations, which are simplified version of system {math:numref}`eq-ns` and account only for the convective fluxes, are given by
+Three-dimensional Euler equations, which are simplified version of system {eq}`eq-ns` and account only for the convective fluxes, are given by
 
 $$
 \begin{aligned}
@@ -288,7 +288,7 @@ This problem can be run with:
 
 ## Density Current
 
-For this test problem (from {cite}`straka1993numerical`), we solve the full Navier-Stokes equations {math:numref}`eq-ns`, for which a cold air bubble (of radius $r_c$) drops by convection in a neutrally stratified atmosphere.
+For this test problem (from {cite}`straka1993numerical`), we solve the full Navier-Stokes equations {eq}`eq-ns`, for which a cold air bubble (of radius $r_c$) drops by convection in a neutrally stratified atmosphere.
 Its initial condition is defined in terms of the Exner pressure, $\pi(\bm{x},t)$, and potential temperature, $\theta(\bm{x},t)$, that relate to the state variables via
 
 $$

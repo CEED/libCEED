@@ -38,8 +38,8 @@ v(\bm x) &= \sum_{i=1}^n v_i \, \phi_i(\bm x) .
 $$ (eq-nodal-values)
 
 The coefficients $\{u_j\}$ and $\{v_i\}$ are the nodal values of $u$
-and $v$, respectively. Inserting the expressions {math:numref}`eq-nodal-values`
-into {math:numref}`eq-general-weak-form`, we obtain the inner-products
+and $v$, respectively. Inserting the expressions {eq}`eq-nodal-values`
+into {eq}`eq-general-weak-form`, we obtain the inner-products
 
 $$
 \langle v,u \rangle = \bm v^T M \bm u , \qquad  \langle v,f\rangle =  \bm v^T \bm b \,.
@@ -72,7 +72,7 @@ $$
 \begin{aligned} a(v,u) &:= \int_{\Omega}\nabla v \, \cdot \, \nabla u \, dV ,\\ \langle v,f \rangle &:= \int_{\Omega} \, v \, f \, dV . \end{aligned}
 $$
 
-After substituting the same formulations provided in {math:numref}`eq-nodal-values`,
+After substituting the same formulations provided in {eq}`eq-nodal-values`,
 we obtain
 
 $$

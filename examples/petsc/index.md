@@ -32,7 +32,7 @@ $$
 \left| J \right| = \left\|col_1\left(\frac{\partial \bar{\bm{x}}}{\partial \bm{X}}\right)\right\| \left\|col_2 \left(\frac{\partial \bar{\bm{x}}}{\partial \bm{X}}\right) \right\|
 $$ (eq-jacobian-cube)
 
-We note that in equation {math:numref}`eq-coordinate-transforms-cube`, the right-most Jacobian matrix ${\partial\bar{\bm{x}}}/{\partial \bm{X}}_{(3\times2)}$ is provided by the library, while ${\partial{\bm{x}}}/{\partial \bar{ \bm{x}}}_{(2\times3)}$ is provided by the user as
+We note that in equation {eq}`eq-coordinate-transforms-cube`, the right-most Jacobian matrix ${\partial\bar{\bm{x}}}/{\partial \bm{X}}_{(3\times2)}$ is provided by the library, while ${\partial{\bm{x}}}/{\partial \bar{ \bm{x}}}_{(2\times3)}$ is provided by the user as
 
 $$
 \left[ col_1\left(\frac{\partial\bar{\bm{x}}}{\partial \bm{X}}\right) / \left\| col_1\left(\frac{\partial\bar{\bm{x}}}{\partial \bm{X}}\right)\right\| , col_2\left(\frac{\partial\bar{\bm{x}}}{\partial \bm{X}}\right) / \left\| col_2\left(\frac{\partial\bar{\bm{x}}}{\partial \bm{X}}\right)\right\| \right]^T_{(2\times 3)}.
@@ -77,7 +77,7 @@ In the case of a linear element the two nodes, $p_0$ and $p_1$, marked by red cr
 Two quadrature points, $q_0$ and $q_1$, marked by blue dots, with physical coordinates denoted by $\bm x(\bm X)$, are mapped to their corresponding radial projections on the circle, which have coordinates $\overset{\circ}{\bm{x}}(\bm x)$.
 :::
 
-We note that in equation {math:numref}`eq-coordinate-transforms-sphere`, the right-most Jacobian matrix ${\partial\bm{x}}/{\partial \bm{X}}_{(3\times2)}$ is provided by the library, while ${\partial \overset{\circ}{\bm{x}}}/{\partial \bm{x}}_{(3\times3)}$ is provided by the user with analytical derivatives.
+We note that in equation {eq}`eq-coordinate-transforms-sphere`, the right-most Jacobian matrix ${\partial\bm{x}}/{\partial \bm{X}}_{(3\times2)}$ is provided by the library, while ${\partial \overset{\circ}{\bm{x}}}/{\partial \bm{x}}_{(3\times3)}$ is provided by the user with analytical derivatives.
 In particular, for a sphere of radius 1, we have
 
 $$
@@ -101,8 +101,8 @@ A generalization of these BPs to the surface of the cubed-sphere are available i
 
 ### Bakeoff problems on the cubed-sphere
 
-For the $L^2$ projection problems, BP1-BP2, that use the mass operator, the coordinate transformations and the corresponding Jacobian determinant, equation {math:numref}`eq-jacobian-sphere`, are the same as in the {ref}`example-petsc-area-sphere` example.
-For the Poisson's problem, BP3-BP6, on the cubed-sphere, in addition to equation {math:numref}`eq-jacobian-sphere`, the pseudo-inverse of $\partial \overset{\circ}{\bm{x}} / \partial \bm{X}$ is used to derive the contravariant metric tensor (please see figure {numref}`fig-sphere-coords` for a reference of the notation used).
+For the $L^2$ projection problems, BP1-BP2, that use the mass operator, the coordinate transformations and the corresponding Jacobian determinant, equation {eq}`eq-jacobian-sphere`, are the same as in the {ref}`example-petsc-area-sphere` example.
+For the Poisson's problem, BP3-BP6, on the cubed-sphere, in addition to equation {eq}`eq-jacobian-sphere`, the pseudo-inverse of $\partial \overset{\circ}{\bm{x}} / \partial \bm{X}$ is used to derive the contravariant metric tensor (please see figure {numref}`fig-sphere-coords` for a reference of the notation used).
 We begin by expressing the Moore-Penrose (left) pseudo-inverse:
 
 $$
@@ -130,7 +130,7 @@ $$
 $$
 
 where we have dropped the transpose due to symmetry.
-This allows us to simplify {math:numref}`eq-weak-laplace-sphere` as
+This allows us to simplify {eq}`eq-weak-laplace-sphere` as
 
 $$
 \int_{\Omega} \frac{\partial v}{\partial \overset\circ{\bm x}} \left( \frac{\partial u}{\partial \overset\circ{\bm x}} \right)^T \, dS     = \int_{\Omega} \frac{\partial v}{\partial \bm X} \underbrace{\left(\frac{\partial \overset{\circ}{\bm{x}}}{\partial \bm{X}}^T \frac{\partial\overset{\circ}{\bm{x}}}{\partial \bm{X}} \right)^{-1}}_{\bm g_{(2\times 2)}}  \left(\frac{\partial u}{\partial \bm X} \right)^T \, dS ,
@@ -143,7 +143,7 @@ which is the form implemented in `qfunctions/bps/bp3sphere.h`.
 ## Multigrid
 
 This example is located in the subdirectory {file}`examples/petsc`.
-It investigates $p$-multigrid for the Poisson problem, equation {math:numref}`eq-variable-coeff-poisson`, using an unstructured high-order finite element discretization.
+It investigates $p$-multigrid for the Poisson problem, equation {eq}`eq-variable-coeff-poisson`, using an unstructured high-order finite element discretization.
 All of the operators associated with the geometric multigrid are implemented in libCEED.
 
 $$

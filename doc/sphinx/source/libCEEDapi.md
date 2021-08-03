@@ -36,7 +36,7 @@ $$ (residual)
 
 for all $\bm v$ in the corresponding homogeneous space $V_0$, where $\bm f_0$
 and $\bm f_1$ contain all possible sources in the problem. We notice here that
-$\bm f_0$ represents all terms in {math:numref}`residual` which multiply the (possibly vector-valued) test
+$\bm f_0$ represents all terms in {eq}`residual` which multiply the (possibly vector-valued) test
 function $\bm v$ and $\bm f_1$ all terms which multiply its gradient $\nabla \bm v$.
 For an n-component problems in $d$ dimensions, $\bm f_0 \in \mathbb{R}^n$ and
 $\bm f_1 \in \mathbb{R}^{nd}$.
@@ -53,9 +53,9 @@ In the code, the function that represents the weak form at quadrature
 points is called the {ref}`CeedQFunction`. In the {ref}`Examples` provided with the
 library (in the {file}`examples/` directory), we store the term $\bm f_0$ directly
 into `v`, and the term $\bm f_1$ directly into `dv` (which stands for
-$\nabla \bm v$). If equation {math:numref}`residual` only presents a term of the
+$\nabla \bm v$). If equation {eq}`residual` only presents a term of the
 type $\bm f_0$, the {ref}`CeedQFunction` will only have one output argument,
-namely `v`. If equation {math:numref}`residual` also presents a term of the type
+namely `v`. If equation {eq}`residual` also presents a term of the type
 $\bm f_1$, then the {ref}`CeedQFunction` will have two output arguments, namely,
 `v` and `dv`.
 :::

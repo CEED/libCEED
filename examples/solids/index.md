@@ -48,7 +48,7 @@ $$
 $$ (lin-elas)
 
 where $\bm{\sigma}$ and $\bm{g}$ are stress and forcing functions, respectively.
-We multiply {math:numref}`lin-elas` by a test function $\bm v$ and integrate the divergence term by parts to arrive at the weak form: find $\bm u \in \mathcal V \subset H^1(\Omega)$ such that
+We multiply {eq}`lin-elas` by a test function $\bm v$ and integrate the divergence term by parts to arrive at the weak form: find $\bm u \in \mathcal V \subset H^1(\Omega)$ such that
 
 $$
 \int_{\Omega}{ \nabla \bm{v} \tcolon \bm{\sigma}} \, dV
@@ -79,7 +79,7 @@ Q \bm \sigma(\bm \epsilon) Q^T = \bm \sigma(Q \bm \epsilon Q^T),
 $$ (elastic-invariance)
 
 which means that we can change our reference frame before or after computing $\bm \sigma$, and get the same result either way.
-Constitutive relations in which $\bm \sigma$ is uniquely determined by $\bm \epsilon$ while satisfying the invariance property {math:numref}`elastic-invariance` are known as Cauchy elastic materials.
+Constitutive relations in which $\bm \sigma$ is uniquely determined by $\bm \epsilon$ while satisfying the invariance property {eq}`elastic-invariance` are known as Cauchy elastic materials.
 Here, we define a strain energy density functional $\Phi(\bm \epsilon) \in \mathbb R$ and obtain the strain energy from its gradient,
 
 $$
@@ -140,7 +140,7 @@ Note that the incompressible limit $\nu \to \frac 1 2$ causes $\lambda \to \inft
 
 ## Hyperelasticity at Small Strain
 
-The strong and weak forms given above, in {math:numref}`lin-elas` and {math:numref}`lin-elas-weak`, are valid for Neo-Hookean hyperelasticity at small strain.
+The strong and weak forms given above, in {eq}`lin-elas` and {eq}`lin-elas-weak`, are valid for Neo-Hookean hyperelasticity at small strain.
 However, the strain energy density differs and is given by
 
 $$
@@ -153,11 +153,11 @@ $$
 \bm{\sigma} = \lambda \log(1 + \operatorname{trace} \bm\epsilon) \bm{I}_3 + 2\mu \bm{\epsilon}
 $$ (eq-neo-hookean-small-strain)
 
-where $\bm{\epsilon}$ is defined as in {math:numref}`small-strain`.
+where $\bm{\epsilon}$ is defined as in {eq}`small-strain`.
 
 ### Newton linearization
 
-Due to nonlinearity in the constitutive law, we require a Newton linearization of {math:numref}`eq-neo-hookean-small-strain`.
+Due to nonlinearity in the constitutive law, we require a Newton linearization of {eq}`eq-neo-hookean-small-strain`.
 To derive the Newton linearization, we begin by expressing the derivative,
 
 $$
@@ -190,7 +190,7 @@ $$
 
 where volumetric strain is given by $\epsilon_v = \sum_i \epsilon_{ii}$.
 
-Equation {math:numref}`derss` can be written in Voigt matrix notation as follows:
+Equation {eq}`derss` can be written in Voigt matrix notation as follows:
 
 $$
 \begin{pmatrix}
@@ -263,7 +263,7 @@ $$
 $$ (eq-green-lagrange-strain)
 
 the latter of which converges to the linear strain tensor $\bm \epsilon$ in the small-deformation limit.
-The constitutive models considered, appropriate for large deformations, express $\bm S$ as a function of $\bm E$, similar to the linear case, shown in equation  {math:numref}`linear-stress-strain`, which  expresses the relationship between $\bm\sigma$ and $\bm\epsilon$.
+The constitutive models considered, appropriate for large deformations, express $\bm S$ as a function of $\bm E$, similar to the linear case, shown in equation  {eq}`linear-stress-strain`, which  expresses the relationship between $\bm\sigma$ and $\bm\epsilon$.
 
 Recall that the strain energy density functional can only depend upon invariants.
 We will assume without loss of generality that $\bm E$ is diagonal and take its set of eigenvalues as the invariants.
@@ -281,28 +281,28 @@ $$ (neo-hookean-energy)
 
 where $J = \lvert \bm F \rvert = \sqrt{\lvert \bm C \rvert}$ is the determinant of deformation (i.e., volume change) and $\lambda$ and $\mu$ are the Lamé parameters in the infinitesimal strain limit.
 
-To evaluate {math:numref}`strain-energy-grad`, we make use of
+To evaluate {eq}`strain-energy-grad`, we make use of
 
 $$
 \frac{\partial J}{\partial \bm E} = \frac{\partial \sqrt{\lvert \bm C \rvert}}{\partial \bm E} = \lvert \bm C \rvert^{-1/2} \lvert \bm C \rvert \bm C^{-1} = J \bm C^{-1},
 $$
 
 where the factor of $\frac 1 2$ has been absorbed due to $\bm C = \bm I_3 + 2 \bm E.$
-Carrying through the differentiation {math:numref}`strain-energy-grad` for the model {math:numref}`neo-hookean-energy`, we arrive at
+Carrying through the differentiation {eq}`strain-energy-grad` for the model {eq}`neo-hookean-energy`, we arrive at
 
 $$
 \bm S = \lambda \log J \bm C^{-1} + \mu (\bm I_3 - \bm C^{-1}).
 $$ (neo-hookean-stress)
 
 :::{tip}
-An equivalent form of {math:numref}`neo-hookean-stress` is
+An equivalent form of {eq}`neo-hookean-stress` is
 
 $$
 \bm S = \lambda \log J \bm C^{-1} + 2 \mu \bm C^{-1} \bm E,
 $$ (neo-hookean-stress-stable)
 
 which is more numerically stable for small $\bm E$, and thus preferred for computation.
-Note that the product $\bm C^{-1} \bm E$ is also symmetric, and that $\bm E$ should be computed using {math:numref}`eq-green-lagrange-strain`.
+Note that the product $\bm C^{-1} \bm E$ is also symmetric, and that $\bm E$ should be computed using {eq}`eq-green-lagrange-strain`.
 
 Similarly, it is preferable to compute $\log J$ using `log1p`, especially in case of nearly incompressible materials.
 To sketch this idea, suppose we have the $2\times 2$ non-symmetric matrix $\bm{F} = \left( \begin{smallmatrix} 1 + u_{0,0} & u_{0,1} \\ u_{1,0} & 1 + u_{1,1} \end{smallmatrix} \right)$.
@@ -319,13 +319,13 @@ When using the stable choices above, these quantities retain full $\varepsilon_{
 
 :::{dropdown} Mooney-Rivlin model
 While the Neo-Hookean model depends on just two scalar invariants, $\mathbb I_1 = \trace \bm C = 3 + 2\trace \bm E$ and $J$, Mooney-Rivlin models depend on the additional invariant, $\mathbb I_2 = \frac 1 2 (\mathbb I_1^2 - \bm C \tcolon \bm C)$.
-A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean {math:numref}`neo-hookean-energy`) is {cite}`holzapfel2000nonlinear`
+A coupled Mooney-Rivlin strain energy density (cf. Neo-Hookean {eq}`neo-hookean-energy`) is {cite}`holzapfel2000nonlinear`
 
 $$
 \Phi(\mathbb{I_1}, \mathbb{I_2}, J) = \frac{\lambda}{2}(\log J)^2 - (\mu_1 + 2\mu_2) \log J + \frac{\mu_1}{2}(\mathbb{I_1} - 3) + \frac{\mu_2}{2}(\mathbb{I_2} - 3).
 $$ (mooney-rivlin-energy_coupled)
 
-We differentiate $\Phi$ as in the Neo-Hookean case {math:numref}`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
+We differentiate $\Phi$ as in the Neo-Hookean case {eq}`neo-hookean-stress` to yield the second Piola-Kirchoff tensor,
 
 $$
 \begin{aligned}
@@ -384,22 +384,22 @@ base.mark_point().add_selection(highlight) + base.mark_line()
 :::
 
 :::{note}
-One can linearize {math:numref}`neo-hookean-stress` around $\bm E = 0$, for which $\bm C = \bm I_3 + 2 \bm E \to \bm I_3$ and $J \to 1 + \operatorname{trace} \bm E$, therefore {math:numref}`neo-hookean-stress` reduces to
+One can linearize {eq}`neo-hookean-stress` around $\bm E = 0$, for which $\bm C = \bm I_3 + 2 \bm E \to \bm I_3$ and $J \to 1 + \operatorname{trace} \bm E$, therefore {eq}`neo-hookean-stress` reduces to
 
 $$
 \bm S = \lambda (\trace \bm E) \bm I_3 + 2 \mu \bm E,
 $$ (eq-st-venant-kirchoff)
 
-which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see {math:numref}`hyperelastic-cd`).
+which is the St. Venant-Kirchoff model (constitutive linearization without geometric linearization; see {eq}`hyperelastic-cd`).
 
 This model can be used for geometrically nonlinear mechanics (e.g., snap-through of thin structures), but is inappropriate for large strain.
 
-Alternatively, one can drop geometric nonlinearities, $\bm E \to \bm \epsilon$ and $\bm C \to \bm I_3$, while retaining the nonlinear dependence on $J \to 1 + \operatorname{trace} \bm \epsilon$, thereby yielding {math:numref}`eq-neo-hookean-small-strain` (see {math:numref}`hyperelastic-cd`).
+Alternatively, one can drop geometric nonlinearities, $\bm E \to \bm \epsilon$ and $\bm C \to \bm I_3$, while retaining the nonlinear dependence on $J \to 1 + \operatorname{trace} \bm \epsilon$, thereby yielding {eq}`eq-neo-hookean-small-strain` (see {eq}`hyperelastic-cd`).
 :::
 
 ### Weak form
 
-We multiply {math:numref}`sblFinS` by a test function $\bm v$ and integrate by parts to obtain the weak form for finite-strain hyperelasticity:
+We multiply {eq}`sblFinS` by a test function $\bm v$ and integrate by parts to obtain the weak form for finite-strain hyperelasticity:
 find $\bm u \in \mathcal V \subset H^1(\Omega_0)$ such that
 
 $$
@@ -411,12 +411,12 @@ $$ (hyperelastic-weak-form-initial)
 
 where $\bm{P} \cdot \hat{\bm{N}}|_{\partial\Omega}$ is replaced by any prescribed force/traction boundary condition written in terms of the initial configuration.
 This equation contains material/constitutive nonlinearities in defining $\bm S(\bm E)$, as well as geometric nonlinearities through $\bm P = \bm F\, \bm S$, $\bm E(\bm F)$, and the body force $\bm g$, which must be pulled back from the current configuration to the initial configuration.
-Discretization of {math:numref}`hyperelastic-weak-form-initial` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
+Discretization of {eq}`hyperelastic-weak-form-initial` produces a finite-dimensional system of nonlinear algebraic equations, which we solve using Newton-Raphson methods.
 One attractive feature of Galerkin discretization is that we can arrive at the same linear system by discretizing the Newton linearization of the continuous form; that is, discretization and differentiation (Newton linearization) commute.
 
 ### Newton linearization
 
-To derive a Newton linearization of {math:numref}`hyperelastic-weak-form-initial`, we begin by expressing the derivative of {math:numref}`1st2nd` in incremental form,
+To derive a Newton linearization of {eq}`hyperelastic-weak-form-initial`, we begin by expressing the derivative of {eq}`1st2nd` in incremental form,
 
 $$
 \diff \bm P = \frac{\partial \bm P}{\partial \bm F} \!:\! \diff \bm F = \diff \bm F\, \bm S + \bm F \underbrace{\frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E}_{\diff \bm S}
@@ -429,8 +429,8 @@ $$
 $$
 
 and $\diff\bm F = \nabla_X\diff\bm u$.
-The quantity ${\partial \bm S} / {\partial \bm E}$ is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor $\mathsf C$ of {math:numref}`linear-elasticity-tensor`.
-We now evaluate $\diff \bm S$ for the Neo-Hookean model {math:numref}`neo-hookean-stress`,
+The quantity ${\partial \bm S} / {\partial \bm E}$ is known as the incremental elasticity tensor, and is analogous to the linear elasticity tensor $\mathsf C$ of {eq}`linear-elasticity-tensor`.
+We now evaluate $\diff \bm S$ for the Neo-Hookean model {eq}`neo-hookean-stress`,
 
 $$
 \diff\bm S = \frac{\partial \bm S}{\partial \bm E} \!:\! \diff \bm E
@@ -445,11 +445,11 @@ $$
 $$
 
 :::{note}
-In the small-strain limit, $\bm C \to \bm I_3$ and $\log J \to 0$, thereby reducing {math:numref}`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model {math:numref}`eq-st-venant-kirchoff`.
+In the small-strain limit, $\bm C \to \bm I_3$ and $\log J \to 0$, thereby reducing {eq}`eq-neo-hookean-incremental-stress` to the St. Venant-Kirchoff model {eq}`eq-st-venant-kirchoff`.
 :::
 
 :::{dropdown} Newton linearization of Mooney-Rivlin
-Similar to {math:numref}`eq-neo-hookean-incremental-stress`, we differentiate {math:numref}`mooney-rivlin-stress_coupled` using variational notation,
+Similar to {eq}`eq-neo-hookean-incremental-stress`, we differentiate {eq}`mooney-rivlin-stress_coupled` using variational notation,
 
 $$
 \begin{aligned}
@@ -459,12 +459,12 @@ $$
 \end{aligned}
 $$ (mooney-rivlin-dS-coupled)
 
-Note that this agrees with {math:numref}`eq-neo-hookean-incremental-stress` if $\mu_1 = \mu, \mu_2 = 0$.
+Note that this agrees with {eq}`eq-neo-hookean-incremental-stress` if $\mu_1 = \mu, \mu_2 = 0$.
 Moving from Neo-Hookean to Mooney-Rivlin modifies the second term and adds the third.
 :::
 
 :::{dropdown} Cancellation vs symmetry
-Some cancellation is possible (at the expense of symmetry) if we substitute {math:numref}`eq-neo-hookean-incremental-stress` into {math:numref}`eq-diff-P`,
+Some cancellation is possible (at the expense of symmetry) if we substitute {eq}`eq-neo-hookean-incremental-stress` into {eq}`eq-diff-P`,
 
 $$
 \begin{aligned}
@@ -483,11 +483,11 @@ $$
 \begin{aligned} \bm C^{-1} \!:\! \diff \bm E = \bm C_{IJ}^{-1} \diff \bm E_{IJ} &= \frac 1 2 \bm F_{Ik}^{-1} \bm F_{Jk}^{-1} (\bm F_{\ell I} \diff \bm F_{\ell J} + \diff \bm F_{\ell I} \bm F_{\ell J}) \\ &= \frac 1 2 \Big( \delta_{\ell k} \bm F_{Jk}^{-1} \diff \bm F_{\ell J} + \delta_{\ell k} \bm F_{Ik}^{-1} \diff \bm F_{\ell I} \Big) \\ &= \bm F_{Ik}^{-1} \diff \bm F_{kI} = \bm F^{-T} \!:\! \diff \bm F. \end{aligned}
 $$
 
-We prefer to compute with {math:numref}`eq-neo-hookean-incremental-stress` because {math:numref}`eq-diff-P-dF` is more expensive, requiring access to (non-symmetric) $\bm F^{-1}$ in addition to (symmetric) $\bm C^{-1} = \bm F^{-1} \bm F^{-T}$, having fewer symmetries to exploit in contractions, and being less numerically stable.
+We prefer to compute with {eq}`eq-neo-hookean-incremental-stress` because {eq}`eq-diff-P-dF` is more expensive, requiring access to (non-symmetric) $\bm F^{-1}$ in addition to (symmetric) $\bm C^{-1} = \bm F^{-1} \bm F^{-T}$, having fewer symmetries to exploit in contractions, and being less numerically stable.
 :::
 
 :::{dropdown} $\diff\bm S$ in index notation
-It is sometimes useful to express {math:numref}`eq-neo-hookean-incremental-stress` in index notation,
+It is sometimes useful to express {eq}`eq-neo-hookean-incremental-stress` in index notation,
 
 $$
 \begin{aligned}
@@ -502,23 +502,23 @@ It is generally not desirable to store $\mathsf C$, but rather to use the earlie
 That is, given the linearization point $\bm F$ and solution increment $\diff \bm F = \nabla_X (\diff \bm u)$ (which we are solving for in the Newton step), we compute $\diff \bm P$ via
 
 1. recover $\bm C^{-1}$ and $\log J$ (either stored at quadrature points or recomputed),
-2. proceed with $3\times 3$ matrix products as in {math:numref}`eq-neo-hookean-incremental-stress` or the second line of {math:numref}`eq-neo-hookean-incremental-stress-index` to compute $\diff \bm S$ while avoiding computation or storage of higher order tensors, and
-3. conclude by {math:numref}`eq-diff-P`, where $\bm S$ is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
+2. proceed with $3\times 3$ matrix products as in {eq}`eq-neo-hookean-incremental-stress` or the second line of {eq}`eq-neo-hookean-incremental-stress-index` to compute $\diff \bm S$ while avoiding computation or storage of higher order tensors, and
+3. conclude by {eq}`eq-diff-P`, where $\bm S$ is either stored or recomputed from its definition exactly as in the nonlinear residual evaluation.
 :::
 
-Note that the Newton linearization of {math:numref}`hyperelastic-weak-form-initial` may be written as a weak form for linear operators: find $\diff\bm u \in \mathcal V_0$ such that
+Note that the Newton linearization of {eq}`hyperelastic-weak-form-initial` may be written as a weak form for linear operators: find $\diff\bm u \in \mathcal V_0$ such that
 
 $$
 \int_{\Omega_0} \nabla_X \bm v \!:\! \diff\bm P dV = \text{rhs}, \quad \forall \bm v \in \mathcal V_0,
 $$
 
-where $\diff \bm P$ is defined by {math:numref}`eq-diff-P` and {math:numref}`eq-neo-hookean-incremental-stress`, and $\mathcal V_0$ is the homogeneous space corresponding to $\mathcal V$.
+where $\diff \bm P$ is defined by {eq}`eq-diff-P` and {eq}`eq-neo-hookean-incremental-stress`, and $\mathcal V_0$ is the homogeneous space corresponding to $\mathcal V$.
 
 :::{note}
 The decision of whether to recompute or store functions of the current state $\bm F$ depends on a roofline analysis {cite}`williams2009roofline,brown2010` of the computation and the cost of the constitutive model.
 For low-order elements where flops tend to be in surplus relative to memory bandwidth, recomputation is likely to be preferable, where as the opposite may be true for high-order elements.
 Similarly, analysis with a simple constitutive model may see better performance while storing little or nothing while an expensive model such as Arruda-Boyce {cite}`arruda1993largestretch`, which contains many special functions, may be faster when using more storage to avoid recomputation.
-In the case where complete linearization is preferred, note the symmetry $\mathsf C_{IJKL} = \mathsf C_{KLIJ}$ evident in {math:numref}`eq-neo-hookean-incremental-stress-index`, thus $\mathsf C$ can be stored as a symmetric $6\times 6$ matrix, which has 21 unique entries.
+In the case where complete linearization is preferred, note the symmetry $\mathsf C_{IJKL} = \mathsf C_{KLIJ}$ evident in {eq}`eq-neo-hookean-incremental-stress-index`, thus $\mathsf C$ can be stored as a symmetric $6\times 6$ matrix, which has 21 unique entries.
 Along with 6 entries for $\bm S$, this totals 27 entries of overhead compared to computing everything from $\bm F$.
 This compares with 13 entries of overhead for direct storage of $\{ \bm S, \bm C^{-1}, \log J \}$, which is sufficient for the Neo-Hookean model to avoid all but matrix products.
 :::
@@ -535,7 +535,7 @@ This may feel convenient in that the computational domain is clearly independent
 3. The required storage and numerical representation can be smaller in the current configuration.
 
 Most of the benefit in case 3 can be attained solely by moving the Jacobian representation to the current configuration {cite}`davydov2020matrix`, though residual evaluation may also be slightly faster in current configuration.
-There are multiple commuting paths from the nonlinear weak form in initial configuration {math:numref}`hyperelastic-weak-form-initial` to the Jacobian weak form in current configuration {math:numref}`jacobian-weak-form-current`.
+There are multiple commuting paths from the nonlinear weak form in initial configuration {eq}`hyperelastic-weak-form-initial` to the Jacobian weak form in current configuration {eq}`jacobian-weak-form-current`.
 One may push forward to the current configuration and then linearize or linearize in initial configuration and then push forward, as summarized below.
 
 $$
@@ -555,7 +555,7 @@ We will follow both paths for consistency and because both intermediate represen
 
 ### Push forward, then linearize
 
-The first term of {math:numref}`hyperelastic-weak-form-initial` can be rewritten in terms of the symmetric Kirchhoff stress tensor
+The first term of {eq}`hyperelastic-weak-form-initial` can be rewritten in terms of the symmetric Kirchhoff stress tensor
 $\bm{\tau}=J\bm{\sigma}=\bm{P}\bm{F}^T = \bm F \bm S \bm F^T$ as
 
 $$
@@ -573,13 +573,13 @@ $$ (hyperelastic-weak-form-current)
 
 #### Linearize in current configuration
 
-To derive a Newton linearization of {math:numref}`hyperelastic-weak-form-current`, first we define
+To derive a Newton linearization of {eq}`hyperelastic-weak-form-current`, first we define
 
 $$
 \nabla_x \diff \bm{u} = \nabla_X \diff \bm{u} \  \bm{F}^{-1} = \diff \bm{F} \bm{F}^{-1}
 $$ (nabla_xdu)
 
-and $\bm{\tau}$ for Neo-Hookean materials as the push forward of {math:numref}`neo-hookean-stress`
+and $\bm{\tau}$ for Neo-Hookean materials as the push forward of {eq}`neo-hookean-stress`
 
 $$
 \bm{\tau} = \bm{F}\bm{S}\bm{F}^T = \mu (\bm{b} - \bm I_3) + \lambda \log J \bm{I}_3,
@@ -592,14 +592,14 @@ $$
 \diff \ (\nabla_x \bm{v} \tcolon \bm{\tau}) = \diff \ (\nabla_x \bm{v})\tcolon \bm{\tau} + \nabla_x \bm{v} \tcolon \diff \bm{\tau} .
 $$ (hyperelastic-linearization-current1)
 
-The first term of {math:numref}`hyperelastic-linearization-current1` can be written as
+The first term of {eq}`hyperelastic-linearization-current1` can be written as
 
 $$
 \begin{aligned} \diff \ (\nabla_x \bm{v})\tcolon \bm{\tau} &= \diff \ (\nabla_X \bm{v} \bm{F}^{-1})\tcolon \bm{\tau} = \Big(\underbrace{\nabla_X (\diff \bm{v})}_{0}\bm{F}^{-1} +  \nabla_X \bm{v}\diff \bm{F}^{-1}\Big)\tcolon \bm{\tau}\\   &= \Big(-\nabla_X \bm{v} \bm{F}^{-1}\diff\bm{F}\bm{F}^{-1}\Big)\tcolon \bm{\tau}=\Big(-\nabla_x \bm{v} \diff\bm{F}\bm{F}^{-1}\Big)\tcolon \bm{\tau}\\   &= \Big(-\nabla_x \bm{v} \nabla_x \diff\bm{u} \Big)\tcolon \bm{\tau}= -\nabla_x \bm{v}\tcolon\bm{\tau}(\nabla_x \diff\bm{u})^T \,, \end{aligned}
 $$
 
-where we have used $\diff \bm{F}^{-1}=-\bm{F}^{-1} \diff \bm{F} \bm{F}^{-1}$ and {math:numref}`nabla_xdu`.
-Using this and {math:numref}`hyperelastic-linearization-current1` in {math:numref}`hyperelastic-weak-form-current` yields the weak form in the current configuration
+where we have used $\diff \bm{F}^{-1}=-\bm{F}^{-1} \diff \bm{F} \bm{F}^{-1}$ and {eq}`nabla_xdu`.
+Using this and {eq}`hyperelastic-linearization-current1` in {eq}`hyperelastic-weak-form-current` yields the weak form in the current configuration
 
 $$
 \int_{\Omega_0} \nabla_x \bm v \tcolon \Big(\diff\bm\tau - \bm\tau (\nabla_x \diff\bm u)^T \Big) = \text{rhs}.
@@ -628,7 +628,7 @@ $$
 \begin{aligned} \diff\ (\log J) &= \frac{\partial \log J}{\partial \bm{b}}\tcolon \diff \bm{b} = \frac{\partial J}{J\partial \bm{b}}\tcolon \diff \bm{b}=\frac{1}{2}\bm{b}^{-1}\tcolon \diff \bm{b} \\ &= \frac 1 2 \bm b^{-1} \tcolon \Big(\nabla_x \diff\bm u \ \bm b + \bm b (\nabla_x \diff\bm u)^T \Big) \\ &= \trace (\nabla_x \diff\bm u) \\ &= \trace \diff\bm\epsilon . \end{aligned}
 $$
 
-Substituting into {math:numref}`tau-neo-hookean` gives
+Substituting into {eq}`tau-neo-hookean` gives
 
 $$
 \begin{aligned}
@@ -675,7 +675,7 @@ $$
 $$
 
 :::{dropdown} Representation of $\bm F \diff\bm S \bm F^T$ for Neo-Hookean materials
-Now we push {math:numref}`eq-neo-hookean-incremental-stress` forward via
+Now we push {eq}`eq-neo-hookean-incremental-stress` forward via
 
 $$
 \begin{aligned}
@@ -715,23 +715,23 @@ $$
 \int_{\Omega_0} \nabla_x \bm v \!:\! \Big( (\nabla_x \diff\bm u) \bm\tau + \lambda \operatorname{trace}(\diff\bm\epsilon)\bm I_3 + 2(\mu - \lambda\log J)\diff \bm\epsilon \Big) dV = \text{rhs},
 $$ (jacobian-weak-form-current2)
 
-which equivalent to Algorithm 2 of {cite}`davydov2020matrix` and requires only derivatives with respect to the current configuration. Note that {math:numref}`cur_simp_Jac` and {math:numref}`jacobian-weak-form-current2` have recovered the same representation
+which equivalent to Algorithm 2 of {cite}`davydov2020matrix` and requires only derivatives with respect to the current configuration. Note that {eq}`cur_simp_Jac` and {eq}`jacobian-weak-form-current2` have recovered the same representation
 using different algebraic manipulations.
 
 :::{tip}
-We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain {math:numref}`eq-green-lagrange-strain`) as
+We define a second order *Green-Euler* strain tensor (cf. Green-Lagrange strain {eq}`eq-green-lagrange-strain`) as
 
 $$
 \bm e = \frac 1 2 \Big(\bm{b} - \bm{I}_3 \Big) = \frac 1 2 \Big( \nabla_X \bm{u} + (\nabla_X \bm{u})^T + \nabla_X \bm{u} \, (\nabla_X \bm{u})^T \Big).
 $$ (green-euler-strain)
 
-Then, the Kirchhoff stress tensor {math:numref}`tau-neo-hookean` can be written as
+Then, the Kirchhoff stress tensor {eq}`tau-neo-hookean` can be written as
 
 $$
 \bm \tau = \lambda \log J \bm I_{3} + 2\mu \bm e,
 $$ (tau-neo-hookean-stable)
 
-which is more numerically stable for small strain, and thus preferred for computation. Note that the $\log J$ is computed via `log1p` {math:numref}`log1p`, as we discussed in the previous tip.
+which is more numerically stable for small strain, and thus preferred for computation. Note that the $\log J$ is computed via `log1p` {eq}`log1p`, as we discussed in the previous tip.
 :::
 
 ### Jacobian representation
