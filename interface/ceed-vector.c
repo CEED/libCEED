@@ -789,9 +789,11 @@ int CeedVectorDestroy(CeedVector *vec) {
                      "lock is in use");
 
   if ((*vec)->num_readers > 0)
+    // LCOV_EXCL_START
     return CeedError((*vec)->ceed, CEED_ERROR_ACCESS,
                      "Cannot destroy CeedVector, a process has "
                      "read access");
+  // LCOV_EXCL_STOP
 
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);

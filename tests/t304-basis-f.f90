@@ -38,8 +38,10 @@
       do i=0,3
         do j=1,4
           if (abs(a(i*4+j) - qlambdaqt(i*4+j))>1.0D-14) then
+! LCOV_EXCL_START
             write(*,'(A,I1,A,I1,A,F12.8,A,F12.8)') 'Error: [', &
      &      i,',',j-1,'] ',a(i*4+j),'!=',qlambdaqt(i*4+j)
+! LCOV_EXCL_STOP
           endif
         enddo
       enddo

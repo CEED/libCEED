@@ -49,8 +49,10 @@
             val=0.0
           endif
           if (abs(m(i*4+j) - val)>1.0D-13) then
+! LCOV_EXCL_START
             write(*,'(A,I1,A,I1,A,F12.8,A,F12.8)') 'Error: [', &
      &      i,',',j,'] ',m(i*4+j),'!=',val
+! LCOV_EXCL_STOP
           endif
         enddo
       enddo
@@ -82,8 +84,10 @@
             val=0.0
           endif
           if (abs(k(i*4+j) - val)>1.0D-13) then
+! LCOV_EXCL_START
             write(*,'(A,I1,A,I1,A,F12.8,A,F12.8)') 'Error: [', &
      &      i,',',j,'] ',k(i*4+j),'!=',val
+! LCOV_EXCL_STOP
           endif
         enddo
       enddo
