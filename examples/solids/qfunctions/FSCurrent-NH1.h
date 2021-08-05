@@ -89,34 +89,34 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // Common computations between Ftau and dFtau
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
-                                     const CeedScalar mu, const CeedScalar grad_u[3][3],
+                                     const CeedScalar mu, const CeedScalar Grad_u[3][3],
                                      CeedScalar F_inv[3][3], CeedScalar tau_work[6],
                                      CeedScalar *llnj) {
 
 
-  // Compute The Deformation Gradient : F = I3 + grad_u
+  // Compute The Deformation Gradient : F = I3 + Grad_u
   // *INDENT-OFF*
-  CeedScalar F[3][3] =  {{grad_u[0][0] + 1,
-                          grad_u[0][1],
-                          grad_u[0][2]},
-                         {grad_u[1][0],
-                          grad_u[1][1] + 1,
-                          grad_u[1][2]},
-                         {grad_u[2][0],
-                          grad_u[2][1],
-                          grad_u[2][2] + 1}
+  CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
+                          Grad_u[0][1],
+                          Grad_u[0][2]},
+                         {Grad_u[1][0],
+                          Grad_u[1][1] + 1,
+                          Grad_u[1][2]},
+                         {Grad_u[2][0],
+                          Grad_u[2][1],
+                          Grad_u[2][2] + 1}
                         };
 
   // *INDENT-ON*
-  //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
+  //b - I3 = (Grad_u + Grad_u^T + Grad_u*Grad_u^T)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
   CeedScalar bMI3[6];
   for (CeedInt m = 0; m < 6; m++) {
-    bMI3[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+    bMI3[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
     for (CeedInt n = 0; n < 3; n++)
-      bMI3[m] += grad_u[indj[m]][n] * grad_u[indk[m]][n];
+      bMI3[m] += Grad_u[indj[m]][n] * Grad_u[indk[m]][n];
   }
-  const CeedScalar Jm1 = computeJM1(grad_u);
+  const CeedScalar Jm1 = computeJM1(Grad_u);
   const CeedScalar logJ = log1p_series_shifted(Jm1);
 
   // *INDENT-OFF*
@@ -173,7 +173,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
-  CeedScalar (*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  CeedScalar (*Grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -192,7 +192,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
   //  F     : deformation gradient
   //  tau   : Kirchhoff stress (in current config)
   // Formulation:
-  //  F =  I3 + grad_ue
+  //  F =  I3 + Grad_u
   //  J = det(F)
   //  b = F*F(^T)
   //  tau = mu*(b - I3) + lambda*log(J)*I3;
@@ -229,33 +229,33 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
                                           };
 
     // *INDENT-ON*
-    // Compute grad_u
+    // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        grad_u[j][k][i] = 0;
+        Grad_u[j][k][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          grad_u[j][k][i] += du[j][m] * dXdx_initial[m][k];
+          Grad_u[j][k][i] += du[j][m] * dXdx_initial[m][k];
       }
 
     // *INDENT-OFF*
-    const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
-                                          grad_u[0][1][i],
-                                          grad_u[0][2][i]},
-                                         {grad_u[1][0][i],
-                                          grad_u[1][1][i],
-                                          grad_u[1][2][i]},
-                                         {grad_u[2][0][i],
-                                          grad_u[2][1][i],
-                                          grad_u[2][2][i]}
+    const CeedScalar tempGradu[3][3] =  {{Grad_u[0][0][i],
+                                          Grad_u[0][1][i],
+                                          Grad_u[0][2][i]},
+                                         {Grad_u[1][0][i],
+                                          Grad_u[1][1][i],
+                                          Grad_u[1][2][i]},
+                                         {Grad_u[2][0][i],
+                                          Grad_u[2][1][i],
+                                          Grad_u[2][2][i]}
                                         };
     // *INDENT-ON*
 
     // Common components of finite strain calculations
     CeedScalar F_inv[3][3], tau_work[6], llnj;
 
-    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, &llnj);
+    commonFtau(lambda, mu, tempGradu, F_inv, tau_work, &llnj);
     // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
@@ -295,7 +295,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // F is used for hyperelasticity (non-linear)
-  const CeedScalar (*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar (*Grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -344,28 +344,28 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
                                           };
     // *INDENT-ON*
 
-    // Compute graddeltau
+    // Compute Grad_du
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to deltadu = graddelta
-    // This is dF
-    CeedScalar graddeltau[3][3];
+    // This is dF = Grad_du
+    CeedScalar Grad_du[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        graddeltau[j][k] = 0;
+        Grad_du[j][k] = 0;
         for (CeedInt m =0 ; m < 3; m++)
-          graddeltau[j][k] += dXdx_initial[m][k] * deltadu[j][m];
+          Grad_du[j][k] += dXdx_initial[m][k] * deltadu[j][m];
       }
 
     // *INDENT-OFF*
-    const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
-                                          grad_u[0][1][i],
-                                          grad_u[0][2][i]},
-                                         {grad_u[1][0][i],
-                                          grad_u[1][1][i],
-                                          grad_u[1][2][i]},
-                                         {grad_u[2][0][i],
-                                          grad_u[2][1][i],
-                                          grad_u[2][2][i]}
+    const CeedScalar tempGradu[3][3] =  {{Grad_u[0][0][i],
+                                          Grad_u[0][1][i],
+                                          Grad_u[0][2][i]},
+                                         {Grad_u[1][0][i],
+                                          Grad_u[1][1][i],
+                                          Grad_u[1][2][i]},
+                                         {Grad_u[2][0][i],
+                                          Grad_u[2][1][i],
+                                          Grad_u[2][2][i]}
                                         };
     // *INDENT-ON*
 
@@ -373,61 +373,54 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     CeedScalar F_inv[3][3], tau_work[6], llnj;
 
     // Common components of finite strain calculations (cur. config.)
-    commonFtau(lambda, mu, tempgradu, F_inv, tau_work, &llnj);
+    commonFtau(lambda, mu, tempGradu, F_inv, tau_work, &llnj);
     // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
                                   {tau_work[4], tau_work[3], tau_work[2]}
                                  };
 
-    // dcF = \nabla_x (du) where c:current
-    // -- dcF = graddeltau * F_inv
-    CeedScalar dcF[3][3];
+    // Compute grad_du = \nabla_x (deltau) = deltau * dX/dx
+    CeedScalar grad_du[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
-        dcF[j][k] = 0;
+        grad_du[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dcF[j][k] += graddeltau[j][m]*F_inv[m][k];
+          grad_du[j][k] += deltadu[j][m]*F_inv[m][k];
       }
 
-    CeedScalar dcF_tau[3][3];
+    // Compute grad_du_tau = grad_du*tau
+    CeedScalar grad_du_tau[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
-        dcF_tau[j][k] = 0;
+        grad_du_tau[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dcF_tau[j][k] += dcF[j][m]*tau[m][k];
+          grad_du_tau[j][k] += grad_du[j][m]*tau[m][k];
       }
 
-    // c1 = 2(mu-lambda*logJ)
-    const CeedScalar c1 =  2*(mu-llnj);
-    // epsilon
-    const CeedScalar epsilon[3][3] = {{(dcF[0][0] + dcF[0][0])/2.,
-                                       (dcF[0][1] + dcF[1][0])/2.,
-                                       (dcF[0][2] + dcF[2][0])/2.},
-                                      {(dcF[1][0] + dcF[0][1])/2.,
-                                       (dcF[1][1] + dcF[1][1])/2.,
-                                       (dcF[1][2] + dcF[2][1])/2.},
-                                      {(dcF[2][0] + dcF[0][2])/2.,
-                                       (dcF[2][1] + dcF[1][2])/2.,
-                                       (dcF[2][2] + dcF[2][2])/2.}
-                                     };
-
-    CeedScalar tr_eps =  epsilon[0][0] + epsilon[1][1] + epsilon[2][2];
-
-    dcF_tau[0][0] += lambda*tr_eps;
-    dcF_tau[1][1] += lambda*tr_eps;
-    dcF_tau[2][2] += lambda*tr_eps;
-
-    CeedScalar ds[3][3] = {{dcF_tau[0][0] + c1*epsilon[0][0],
-                            dcF_tau[0][1] + c1*epsilon[0][1],
-                            dcF_tau[0][2] + c1*epsilon[0][2]},
-                           {dcF_tau[1][0] + c1*epsilon[1][0],
-                            dcF_tau[1][1] + c1*epsilon[1][1],
-                            dcF_tau[1][2] + c1*epsilon[1][2]},
-                           {dcF_tau[2][0] + c1*epsilon[2][0],
-                            dcF_tau[2][1] + c1*epsilon[2][1],
-                            dcF_tau[2][2] + c1*epsilon[2][2]}
-                          };
+    // Compute depsilon = (grad_du + grad_du^T)/2
+    const CeedScalar depsilon[3][3] = {{(grad_du[0][0] + grad_du[0][0])/2.,
+                                        (grad_du[0][1] + grad_du[1][0])/2.,
+                                        (grad_du[0][2] + grad_du[2][0])/2.},
+                                       {(grad_du[1][0] + grad_du[0][1])/2.,
+                                        (grad_du[1][1] + grad_du[1][1])/2.,
+                                        (grad_du[1][2] + grad_du[2][1])/2.},
+                                       {(grad_du[2][0] + grad_du[0][2])/2.,
+                                        (grad_du[2][1] + grad_du[1][2])/2.,
+                                        (grad_du[2][2] + grad_du[2][2])/2.}
+                                      };
+    // Compute trace(depsilon)
+    CeedScalar tr_deps =  depsilon[0][0] + depsilon[1][1] + depsilon[2][2];
+    // Compute grad_du*tau + trace(depsilon)I3
+    grad_du_tau[0][0] += lambda*tr_deps;
+    grad_du_tau[1][1] += lambda*tr_deps;
+    grad_du_tau[2][2] += lambda*tr_deps;
+    // Compute dp = grad_du*tau + trace(depsilon)I3 +2(mu-lambda*logJ)depsilon
+    CeedScalar dp[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        dp[j][k] = grad_du_tau[j][k] + 2*(mu - llnj)*depsilon[j][k];
+      }
 
     // x is current config coordinate system
     // dXdx = dX/dx = dX/dx_initial * F^{-1}
@@ -445,7 +438,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m] * ds[j][m] * wdetJ;
+          deltadvdX[k][j][i] += dXdx[k][m] * dp[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -506,25 +499,25 @@ CEED_QFUNCTION(ElasFSCurrentNH1Energy)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    // Compute grad_u
+    // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
-    CeedScalar grad_u[3][3];
+    CeedScalar Grad_u[3][3];
     for (int j = 0; j < 3; j++)     // Component
       for (int k = 0; k < 3; k++) { // Derivative
-        grad_u[j][k] = 0;
+        Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++)
-          grad_u[j][k] += dXdx[m][k] * du[j][m];
+          Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar E2work[6];
     for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+      E2work[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += grad_u[n][indj[m]]*grad_u[n][indk[m]];
+        E2work[m] += Grad_u[n][indj[m]]*Grad_u[n][indk[m]];
     }
     // *INDENT-OFF*
     CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
@@ -534,7 +527,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1Energy)(void *ctx, CeedInt Q,
     // *INDENT-ON*
 
     // Strain energy Phi(E) for compressible Neo-Hookean
-    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar Jm1 = computeJM1(Grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     energy[i] = (lambda*logJ*logJ/2. - mu*logJ +
                  mu*(E2[0][0] + E2[1][1] + E2[2][2])/2.) * wdetJ;
@@ -596,25 +589,25 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    // Compute grad_u
+    // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
-    // Apply dXdx to du = grad_u
-    CeedScalar grad_u[3][3];
+    // Apply dXdx to du = Grad_u
+    CeedScalar Grad_u[3][3];
     for (int j = 0; j < 3; j++)     // Component
       for (int k = 0; k < 3; k++) { // Derivative
-        grad_u[j][k] = 0;
+        Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++)
-          grad_u[j][k] += dXdx[m][k] * du[j][m];
+          Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar E2work[6];
     for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+      E2work[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += grad_u[n][indj[m]]*grad_u[n][indk[m]];
+        E2work[m] += Grad_u[n][indj[m]]*Grad_u[n][indk[m]];
     }
     // *INDENT-OFF*
     CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
@@ -629,7 +622,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q,
     diagnostic[2][i] = u[2][i];
 
     // Pressure
-    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar Jm1 = computeJM1(Grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     diagnostic[3][i] = -lambda*logJ;
 

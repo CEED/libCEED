@@ -160,39 +160,39 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // X is natural coordinate sys OR Reference system
     // x_initial is initial config coordinate system
-    // Gradu =du/dx_initial= du/dX * dX/dx_initial
-    CeedScalar Gradu[3][3];
+    // Grad_u =du/dx_initial= du/dX * dX/dx_initial
+    CeedScalar Grad_u[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        Gradu[j][k] = 0;
+        Grad_u[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          Gradu[j][k] += du[j][m] * dXdx_initial[m][k];
+          Grad_u[j][k] += du[j][m] * dXdx_initial[m][k];
       }
 
     // Compute The Deformation Gradient : F = I3 + Gradu
     // *INDENT-OFF*
-    CeedScalar F[3][3] =  {{Gradu[0][0] + 1,
-                            Gradu[0][1],
-                            Gradu[0][2]},
-                           {Gradu[1][0],
-                            Gradu[1][1] + 1,
-                            Gradu[1][2]},
-                           {Gradu[2][0],
-                            Gradu[2][1],
-                            Gradu[2][2] + 1}
+    CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
+                            Grad_u[0][1],
+                            Grad_u[0][2]},
+                           {Grad_u[1][0],
+                            Grad_u[1][1] + 1,
+                            Grad_u[1][2]},
+                           {Grad_u[2][0],
+                            Grad_u[2][1],
+                            Grad_u[2][2] + 1}
                           };
 
     // *INDENT-ON*
-    //b - I3 = (grad_u + grad_u^T + grad_u*grad_u^T)
+    //b - I3 = (Grad_u + Grad_u^T + Grad_u*Grad_u^T)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar bMI3[6];
     for (CeedInt m = 0; m < 6; m++) {
-      bMI3[m] = Gradu[indj[m]][indk[m]] + Gradu[indk[m]][indj[m]];
+      bMI3[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        bMI3[m] += Gradu[indj[m]][n] * Gradu[indk[m]][n];
+        bMI3[m] += Grad_u[indj[m]][n] * Grad_u[indk[m]][n];
     }
 
-    const CeedScalar Jm1 = computeJM1(Gradu);
+    const CeedScalar Jm1 = computeJM1(Grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
 
     // store lam_log_J = lambda*log(J)
@@ -314,13 +314,13 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
     const CeedScalar wdetJ      =      q_data[0][i];
     // *INDENT-ON*
 
-    // Compute dcF = \nabla_x (deltau) = deltau * dX/dx
-    CeedScalar dcF[3][3];
+    // Compute grad_du = \nabla_x (deltau) = deltau * dX/dx
+    CeedScalar grad_du[3][3];
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
-        dcF[j][k] = 0;
+        grad_du[j][k] = 0;
         for (CeedInt m =0 ; m < 3; m++)
-          dcF[j][k] += deltadu[j][m] * dXdx[m][k][i];
+          grad_du[j][k] += deltadu[j][m] * dXdx[m][k][i];
       }
 
     // *INDENT-OFF*
@@ -329,52 +329,45 @@ CEED_QFUNCTION(ElasFSCurrentNH2dF)(void *ctx, CeedInt Q,
                                       {tau[4][i], tau[3][i], tau[2][i]}
                                      };
 
-
-    CeedScalar dcF_tau[3][3];
+    // Compute grad_du_tau = grad_du*tau
+    CeedScalar grad_du_tau[3][3];
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++) {
-        dcF_tau[j][k] = 0;
+        grad_du_tau[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dcF_tau[j][k] += dcF[j][m]*temptau[m][k];
+          grad_du_tau[j][k] += grad_du[j][m]*temptau[m][k];
       }
 
-    // Cc1 = 2(mu-lambda*logJ)
-    // epsilon
-    const CeedScalar epsilon[3][3] = {{(dcF[0][0] + dcF[0][0])/2.,
-                                       (dcF[0][1] + dcF[1][0])/2.,
-                                       (dcF[0][2] + dcF[2][0])/2.},
-                                      {(dcF[1][0] + dcF[0][1])/2.,
-                                       (dcF[1][1] + dcF[1][1])/2.,
-                                       (dcF[1][2] + dcF[2][1])/2.},
-                                      {(dcF[2][0] + dcF[0][2])/2.,
-                                       (dcF[2][1] + dcF[1][2])/2.,
-                                       (dcF[2][2] + dcF[2][2])/2.}
-                                     };
-
-    CeedScalar tr_eps =  epsilon[0][0] + epsilon[1][1] + epsilon[2][2];
-
-    dcF_tau[0][0] += lambda*tr_eps;
-    dcF_tau[1][1] += lambda*tr_eps;
-    dcF_tau[2][2] += lambda*tr_eps;
-
-    CeedScalar ds[3][3] = {{dcF_tau[0][0] + 2*(mu - lam_log_J[0][i])*epsilon[0][0],
-                            dcF_tau[0][1] + 2*(mu - lam_log_J[0][i])*epsilon[0][1],
-                            dcF_tau[0][2] + 2*(mu - lam_log_J[0][i])*epsilon[0][2]},
-                           {dcF_tau[1][0] + 2*(mu - lam_log_J[0][i])*epsilon[1][0],
-                            dcF_tau[1][1] + 2*(mu - lam_log_J[0][i])*epsilon[1][1],
-                            dcF_tau[1][2] + 2*(mu - lam_log_J[0][i])*epsilon[1][2]},
-                           {dcF_tau[2][0] + 2*(mu - lam_log_J[0][i])*epsilon[2][0],
-                            dcF_tau[2][1] + 2*(mu - lam_log_J[0][i])*epsilon[2][1],
-                            dcF_tau[2][2] + 2*(mu - lam_log_J[0][i])*epsilon[2][2]}
-                          };
-
+    // Compute depsilon = (grad_du + grad_du^T)/2
+    const CeedScalar depsilon[3][3] = {{(grad_du[0][0] + grad_du[0][0])/2.,
+                                        (grad_du[0][1] + grad_du[1][0])/2.,
+                                        (grad_du[0][2] + grad_du[2][0])/2.},
+                                       {(grad_du[1][0] + grad_du[0][1])/2.,
+                                        (grad_du[1][1] + grad_du[1][1])/2.,
+                                        (grad_du[1][2] + grad_du[2][1])/2.},
+                                       {(grad_du[2][0] + grad_du[0][2])/2.,
+                                        (grad_du[2][1] + grad_du[1][2])/2.,
+                                        (grad_du[2][2] + grad_du[2][2])/2.}
+                                      };
+    // Compute trace(depsilon)
+    CeedScalar tr_deps =  depsilon[0][0] + depsilon[1][1] + depsilon[2][2];
+    // Compute grad_du*tau + trace(depsilon)I3
+    grad_du_tau[0][0] += lambda*tr_deps;
+    grad_du_tau[1][1] += lambda*tr_deps;
+    grad_du_tau[2][2] += lambda*tr_deps;
+    // Compute dp = grad_du*tau + trace(depsilon)I3 +2(mu-lambda*logJ)depsilon
+    CeedScalar dp[3][3];
+    for (CeedInt j = 0; j < 3; j++)
+      for (CeedInt k = 0; k < 3; k++) {
+        dp[j][k] = grad_du_tau[j][k] + 2*(mu - lam_log_J[0][i])*depsilon[j][k];
+      }
 
     // Apply dXdx^T and weight
     for (CeedInt j = 0; j < 3; j++)     // Component
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          deltadvdX[k][j][i] += dXdx[k][m][i] * ds[j][m] * wdetJ;
+          deltadvdX[k][j][i] += dXdx[k][m][i] * dp[j][m] * wdetJ;
       }
 
   } // End of Quadrature Point Loop
@@ -435,25 +428,25 @@ CEED_QFUNCTION(ElasFSCurrentNH2Energy)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    // Compute grad_u
+    // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
-    CeedScalar grad_u[3][3];
+    CeedScalar Grad_u[3][3];
     for (int j = 0; j < 3; j++)     // Component
       for (int k = 0; k < 3; k++) { // Derivative
-        grad_u[j][k] = 0;
+        Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++)
-          grad_u[j][k] += dXdx[m][k] * du[j][m];
+          Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar E2work[6];
     for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+      E2work[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += grad_u[n][indj[m]]*grad_u[n][indk[m]];
+        E2work[m] += Grad_u[n][indj[m]]*Grad_u[n][indk[m]];
     }
     // *INDENT-OFF*
     CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
@@ -461,7 +454,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2Energy)(void *ctx, CeedInt Q,
                            {E2work[4], E2work[3], E2work[2]}
                           };
     // *INDENT-ON*
-    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar Jm1 = computeJM1(Grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
 
     // Strain energy Phi(E) for compressible Neo-Hookean
@@ -525,25 +518,25 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    // Compute grad_u
+    // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
-    CeedScalar grad_u[3][3];
+    CeedScalar Grad_u[3][3];
     for (int j = 0; j < 3; j++)     // Component
       for (int k = 0; k < 3; k++) { // Derivative
-        grad_u[j][k] = 0;
+        Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++)
-          grad_u[j][k] += dXdx[m][k] * du[j][m];
+          Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
 
     // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
     CeedScalar E2work[6];
     for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
+      E2work[m] = Grad_u[indj[m]][indk[m]] + Grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += grad_u[n][indj[m]]*grad_u[n][indk[m]];
+        E2work[m] += Grad_u[n][indj[m]]*Grad_u[n][indk[m]];
     }
     // *INDENT-OFF*
     CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
@@ -558,7 +551,7 @@ CEED_QFUNCTION(ElasFSCurrentNH2Diagnostic)(void *ctx, CeedInt Q,
     diagnostic[2][i] = u[2][i];
 
     // Pressure
-    const CeedScalar Jm1 = computeJM1(grad_u);
+    const CeedScalar Jm1 = computeJM1(Grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     diagnostic[3][i] = -lambda*logJ;
 

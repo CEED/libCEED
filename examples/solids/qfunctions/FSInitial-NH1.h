@@ -90,7 +90,7 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
                                    const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                                   CeedScalar Cinvwork[6], CeedScalar *Jm1, CeedScalar *llnj) {
+                                   CeedScalar Cinvwork[6], CeedScalar *logJ) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -107,7 +107,7 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
                         };
   // *INDENT-ON*
   // J-1
-  *Jm1 = computeJM1(grad_u);
+  const CeedScalar Jm1 = computeJM1(grad_u);
 
   // C : right Cauchy-Green tensor
   // C = I + 2E
@@ -127,7 +127,7 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
                      C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
                     };
   for (CeedInt m = 0; m < 6; m++)
-    Cinvwork[m] = A[m] / ((*Jm1 + 1.)*(*Jm1 + 1.));
+    Cinvwork[m] = A[m] / ((Jm1 + 1.)*(Jm1 + 1.));
 
   // *INDENT-OFF*
   const CeedScalar C_inv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
@@ -137,10 +137,9 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
 
   // Compute the Second Piola-Kirchhoff (S)
-  const CeedScalar logJ = log1p_series_shifted(*Jm1);
-  (*llnj) = lambda*logJ;
+  *logJ = log1p_series_shifted(Jm1);
   for (CeedInt m = 0; m < 6; m++) {
-    Swork[m] = (*llnj)*Cinvwork[m];
+    Swork[m] = (lambda*(*logJ))*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
       Swork[m] += mu*C_inv[indj[m]][n]*E2[n][indk[m]];
   }
@@ -243,7 +242,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj, Jm1;
+    CeedScalar Swork[6], Cinvwork[6], logJ;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
                                           grad_u[0][1][i],
@@ -256,7 +255,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
                                           grad_u[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &Jm1, &llnj);
+    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &logJ);
 
     // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
@@ -372,7 +371,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], llnj, Jm1;
+    CeedScalar Swork[6], Cinvwork[6], logJ;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
                                           grad_u[0][1][i],
@@ -385,7 +384,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
                                           grad_u[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &Jm1, &llnj);
+    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &logJ);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -444,11 +443,10 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
           deltaS[j][k] += C_inv[j][m]*deltaECinv[m][k];
       }
     // -- deltaS = lambda(C_inv:deltaE)C_inv - 2(lambda*log(J)-mu)*(intermediate)
-    const CeedScalar llnj_m = llnj - mu;
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
         deltaS[j][k] = lambda*Cinv_contract_E*C_inv[j][k] -
-                       2.*llnj_m*deltaS[j][k];
+                       2.*(lambda*logJ-mu)*deltaS[j][k];
 
     // deltaP = dPdF:deltaF = deltaF*S + F*deltaS
     CeedScalar deltaP[3][3];
