@@ -1091,6 +1091,75 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   CeedCall(ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, *basis));
   return CEED_ERROR_SUCCESS;
 }
+/**
+  @brief Create a basis for H(div) discretizations
+
+  @param ceed        A Ceed object where the CeedBasis will be created
+  @param topo        Topology of element, e.g. hypercube, simplex, ect
+  @param num_nodes   Total number of nodes
+  @param num_qpts    Total number of quadrature points
+  @param interp      Row-major (dim*num_qpts * num_nodes*dim) matrix expressing the values of
+                       nodal basis functions at quadrature points
+  @param div        Row-major (num_qpts * num_nodes*dim) matrix expressing
+                       divergence of nodal basis functions at quadrature points
+  @param q_ref       Array of length num_qpts holding the locations of quadrature
+                       points on the reference element [-1, 1]
+  @param q_weight    Array of length num_qpts holding the quadrature weights on the
+                       reference element
+  @param[out] basis  Address of the variable where the newly created
+                       CeedBasis will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
+                        CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                        const CeedScalar *div, const CeedScalar *q_ref,
+                        const CeedScalar *q_weight, CeedBasis *basis) {
+  int ierr;
+  CeedInt Q = num_qpts, P = num_nodes, dim = 0;
+  ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
+  CeedInt dof = dim*P; // dof per element!
+  if (!ceed->BasisCreateHdiv) {
+    Ceed delegate;
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
+
+    if (!delegate)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support BasisCreateHdiv");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedBasisCreateHdiv(delegate, topo, num_comp, num_nodes,
+                               num_qpts, interp, div, q_ref,
+                               q_weight, basis); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
+
+  ierr = CeedCalloc(1,basis); CeedChk(ierr);
+
+  (*basis)->ceed = ceed;
+  ierr = CeedReference(ceed); CeedChk(ierr);
+  (*basis)->ref_count = 1;
+  (*basis)->tensor_basis = 0;
+  (*basis)->dim = dim;
+  (*basis)->topo = topo;
+  (*basis)->num_comp = num_comp;
+  (*basis)->P = P;
+  (*basis)->Q = Q;
+  ierr = CeedMalloc(Q*dim,&(*basis)->q_ref_1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q,&(*basis)->q_weight_1d); CeedChk(ierr);
+  memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
+  memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
+  ierr = CeedMalloc(dim*Q*dof, &(*basis)->interp); CeedChk(ierr);
+  ierr = CeedMalloc(Q*dof, &(*basis)->div); CeedChk(ierr);
+  memcpy((*basis)->interp, interp, dim*Q*dof*sizeof(interp[0]));
+  memcpy((*basis)->div, div, Q*dof*sizeof(div[0]));
+  ierr = ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref,
+                               q_weight, *basis); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
 
 /**
   @brief Create a non tensor-product basis for \f$H(\mathrm{div})\f$ discretizations
@@ -1289,6 +1358,46 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     if (basis->div) {
       CeedCall(CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P, basis->div, stream));
     }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a CeedBasisHdiv
+
+  @param basis   CeedBasisHdiv to view
+  @param stream  Stream to view to, e.g., stdout
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisHdivView(CeedBasis basis, FILE *stream) {
+  int ierr;
+
+  if (basis->tensor_basis) {
+    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P_1d,
+            basis->Q_1d);
+    ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d,
+                          basis->q_weight_1d, stream); CeedChk(ierr);
+    ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
+                          basis->interp_1d, stream); CeedChk(ierr);
+    ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
+                          basis->grad_1d, stream); CeedChk(ierr);
+  } else {
+    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P,
+            basis->Q);
+    ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
+                          basis->q_ref_1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->q_weight_1d,
+                          stream); CeedChk(ierr);
+    ierr = CeedScalarView("interp", "\t% 12.8f", basis->dim*basis->Q, basis->dim*basis->P,
+                          basis->interp, stream); CeedChk(ierr);
+    ierr = CeedScalarView("div", "\t% 12.8f", basis->Q, basis->dim*basis->P,
+                          basis->div, stream); CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
 }
