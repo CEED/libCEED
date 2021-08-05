@@ -30,6 +30,39 @@
 #define CEED_MAX_BACKEND_PRIORITY UINT_MAX
 #define CEED_COMPOSITE_MAX 16
 
+/**
+  @ingroup Ceed
+  This macro provides the ability to disable optimization flags for functions that
+  are sensitive to floting point optimizations.
+**/
+#ifndef CeedPragmaOptimizeOff
+#  if defined(__clang__)
+#    define CeedPragmaOptimizeOff _Pragma("clang optimize off")
+#  elif defined(__GNUC__)
+#    define CeedPragmaOptimizeOff _Pragma("GCC push_options") _Pragma("GCC optimize 0")
+#  elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+#    define CeedPragmaOptimizeOff _Pragma("optimize('', off)")
+#  else
+#    define CeedPragmaOptimizeOff
+#  endif
+#endif
+
+/**
+  @ingroup Ceed
+  This macro restores previously set optimization flags after CeedPragmaOptimizeOff.
+**/
+#ifndef CeedPragmaOptimizeOn
+#  if defined(__clang__)
+#    define CeedPragmaOptimizeOn _Pragma("clang optimize on")
+#  elif defined(__GNUC__)
+#    define CeedPragmaOptimizeOn _Pragma("GCC pop_options")
+#  elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+#    define CeedPragmaOptimizeOff _Pragma("optimize('', on)")
+#  else
+#    define CeedPragmaOptimizeOn
+#  endif
+#endif
+
 /// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & macros
 #ifndef CEED_DEBUG_COLOR
 #define CEED_DEBUG_COLOR 0
@@ -80,6 +113,10 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *obj_name);
+CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
+CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
+                                      CeedBasis *active_basis);
+CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
     const char **resource);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,

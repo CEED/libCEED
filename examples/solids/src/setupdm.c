@@ -47,8 +47,10 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
   PetscFunctionBeginUser;
 
   if (!*filename) {
-    PetscInt dim = 3;
-    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL,
+    PetscInt dim = 3, faces[3] = {3, 3, 3};
+    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
+                                   faces, &dim, NULL); CHKERRQ(ierr);
+    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
                                NULL, NULL, interpolate, dm); CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateFromFile(comm, filename, interpolate, dm); CHKERRQ(ierr);
@@ -158,32 +160,34 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
 
   // Add Dirichlet (Essential) boundary
   if (boundary) {
-    if (app_ctx->test_mode) {
-      // -- Test mode - box mesh
-      PetscBool has_label;
-      PetscInt marker_ids[1] = {1};
-      DMHasLabel(dm, "marker", &has_label);
-      if (!has_label) {
-        ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
+    if (app_ctx->forcing_choice == FORCE_MMS) {
+      if (app_ctx->test_mode) {
+        // -- Test mode - box mesh
+        PetscBool has_label;
+        PetscInt marker_ids[1] = {1};
+        ierr = DMHasLabel(dm, "marker", &has_label); CHKERRQ(ierr);
+        if (!has_label) {
+          ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
+        }
+        DMLabel label;
+        ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "marker", 1, marker_ids,
+                             0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
+        CHKERRQ(ierr);
+      } else {
+        // -- ExodusII mesh with MMS
+        ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
+        ierr = ISGetSize(face_set_is,&num_face_sets); CHKERRQ(ierr);
+        ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
+        DMLabel label;
+        ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
+                             num_face_sets, face_set_ids, 0, 0, NULL,
+                             (void(*)(void))BCMMS, NULL, NULL, NULL);
+        CHKERRQ(ierr);
+        ierr = ISRestoreIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
+        ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
       }
-      DMLabel label;
-      ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "marker", 1, marker_ids,
-                           0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
-      CHKERRQ(ierr);
-    } else if (app_ctx->forcing_choice == FORCE_MMS) {
-      // -- ExodusII mesh with MMS
-      ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
-      ierr = ISGetSize(face_set_is,&num_face_sets); CHKERRQ(ierr);
-      ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
-                           num_face_sets, face_set_ids, 0, 0, NULL,
-                           (void(*)(void))BCMMS, NULL, NULL, NULL);
-      CHKERRQ(ierr);
-      ierr = ISRestoreIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
-      ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
     } else {
       // -- ExodusII mesh with user specified BCs
       // -- Clamp BCs

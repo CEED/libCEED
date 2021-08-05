@@ -190,7 +190,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int,
 /// Use nonstandard ternary to convince the compiler/clang-tidy that this
 /// function never returns zero.
 #  define CeedError(ceed, ecode, ...)                                     \
-  (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode))
+  (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
 #else
 #  define CeedError(ceed, ecode, ...)                                     \
   CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
@@ -215,7 +215,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 /// libCEED library version numbering
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 8
+#define CEED_VERSION_MINOR 9
 #define CEED_VERSION_PATCH 0
 #define CEED_VERSION_RELEASE false
 

@@ -41,6 +41,18 @@ struct Physics_private {
   CeedScalar   E;       // Young's Modulus
 };
 #endif
+// Mooney-Rivlin context
+#ifndef PHYSICS_STRUCT_MR
+#define PHYSICS_STRUCT_MR
+typedef struct Physics_private_MR *Physics_MR;
+
+struct Physics_private_MR {
+  //material properties for MR
+  CeedScalar mu_1; //
+  CeedScalar mu_2; //
+  CeedScalar lambda; //
+};
+#endif
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -48,7 +60,7 @@ struct Physics_private {
 // Problem options
 typedef enum {
   ELAS_LINEAR = 0, ELAS_SS_NH = 1, ELAS_FSInitial_NH1 = 2, ELAS_FSInitial_NH2 = 3,
-  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5
+  ELAS_FSCurrent_NH1 = 4, ELAS_FSCurrent_NH2 = 5, ELAS_FSInitial_MR1 = 6
 } problemType;
 static const char *const problemTypes[] = {"Linear",
                                            "SS-NH",
@@ -56,14 +68,16 @@ static const char *const problemTypes[] = {"Linear",
                                            "FSInitial-NH2",
                                            "FSCurrent-NH1",
                                            "FSCurrent-NH2",
+                                           "FSInitial-MR1",
                                            "problemType","ELAS_",0
                                           };
 static const char *const problemTypesForDisp[] = {"Linear elasticity",
                                                   "Hyperelasticity small strain, Neo-Hookean",
-                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
-                                                  "Hyperelasticity finite strain Initial config Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
-                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
-                                                  "Hyperelasticity finite strain Current config Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
+                                                  "Hyperelasticity finite strain Initial configuration Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Initial configuration Neo-Hookean w/ dXref_dxinit, Grad(u), C_inv, constant storage",
+                                                  "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
+                                                  "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
+                                                  "Hyperelasticity finite strain Initial configuration Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"
                                                  };
 
 // Forcing function options
@@ -123,6 +137,7 @@ struct AppCtx_private {
   PetscBool     test_mode;
   PetscBool     view_soln;
   PetscBool     view_final_soln;
+  PetscViewer   energy_viewer;
   problemType   problem_choice;
   forcingType   forcing_choice;
   multigridType multigrid_choice;
@@ -141,6 +156,8 @@ struct AppCtx_private {
   PetscInt      bc_traction_faces[16];
   PetscScalar   bc_traction_vector[16][3];
   PetscScalar   forcing_vector[3];
+  PetscReal     test_tol;
+  PetscReal     expect_final_strain;
 };
 
 // Problem specific data
@@ -155,7 +172,7 @@ typedef struct {
 // *INDENT-ON*
 
 // Data specific to each problem option
-extern problemData problem_options[6];
+extern problemData problem_options[7];
 
 // Forcing function data
 typedef struct {
@@ -229,8 +246,9 @@ static inline CeedMemType MemTypeP2C(PetscMemType mem_type) {
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
-// Process physics options
-PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units);
+// Process physics options; fix this to be problem specific
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
+                                      Physics phys, Physics_MR phys_MR, Units units);
 
 // -----------------------------------------------------------------------------
 // Setup DM
@@ -342,6 +360,9 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
 PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
                                    CeedOperator op_energy, Vec X,
                                    PetscReal *energy);
+
+// this function checks to see if the computed energy is close enough to reference file energy.
+PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
 // -----------------------------------------------------------------------------
 // Boundary Functions

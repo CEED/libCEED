@@ -18,6 +18,12 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(x, type);
+  }
   CeedVectorReciprocal(x);
 
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);

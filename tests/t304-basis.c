@@ -2,34 +2,50 @@
 /// Test Symmetric Schur Decomposition
 /// \test Test Symmetric Schur Decomposition
 #include <ceed.h>
+#include <ceed/backend.h>
+#include <math.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedScalar A[16] = {0.2, 0.0745355993, -0.0745355993, 0.0333333333,
-                      0.0745355993, 1., 0.1666666667, -0.0745355993,
-                      -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                      0.0333333333, -0.0745355993, 0.0745355993, 0.2
-                     };
-  CeedScalar lambda[4];
+  CeedInt P = 4;
+  CeedScalar M[16], Q[16], lambda[4], Q_lambda_Qt[16];
+  CeedBasis basis;
 
   CeedInit(argv[1], &ceed);
 
-  CeedSymmetricSchurDecomposition(ceed, A, lambda, 4);
-  fprintf(stdout, "Q:\n");
-  for (int i=0; i<4; i++) {
-    for (int j=0; j<4; j++) {
-      if (A[j+4*i] <= 100.*CEED_EPSILON
-          && A[j+4*i] >= -100.*CEED_EPSILON) A[j+4*i] = 0;
-      fprintf(stdout, "%12.8f\t", A[j+4*i]);
+  // Create mass matrix
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, P, P, CEED_GAUSS, &basis);
+  const CeedScalar *interp, *quad_weights;
+  CeedBasisGetInterp(basis, &interp);
+  CeedBasisGetQWeights(basis, &quad_weights);
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += interp[P*k+i]*quad_weights[k]*interp[P*k+j];
+      M[P*i+j] = sum;
+      Q[P*i+j] = sum;
     }
-    fprintf(stdout, "\n");
-  }
-  fprintf(stdout, "lambda:\n");
-  for (int i=0; i<4; i++) {
-    if (lambda[i] <= 100.*CEED_EPSILON
-        && lambda[i] >= -100.*CEED_EPSILON) lambda[i] = 0;
-    fprintf(stdout, "%12.8f\n", lambda[i]);
-  }
+
+  CeedSymmetricSchurDecomposition(ceed, Q, lambda, P);
+
+  // Check diagonalization of M
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++) {
+      CeedScalar sum = 0;
+      for (int k=0; k<P; k++)
+        sum += Q[P*i+k]*lambda[k]*Q[P*j+k];
+      Q_lambda_Qt[P*i+j] = sum;
+    }
+  for (int i=0; i<P; i++)
+    for (int j=0; j<P; j++)
+      if (fabs(M[P*i+j] - Q_lambda_Qt[P*i+j]) > 1E-14)
+        // LCOV_EXCL_START
+        printf("Error in diagonalization [%d, %d]: %f != %f\n",
+               i, j, M[P*i+j], Q_lambda_Qt[P*i+j]);
+  // LCOV_EXCL_STOP
+
+  CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);
   return 0;
 }

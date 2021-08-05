@@ -1,4 +1,4 @@
-libCEED: the CEED Library
+libCEED: Efficient Extensible Discretization
 ============================================
 
 .. image:: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
@@ -25,16 +25,21 @@ libCEED: the CEED Library
    :alt: Read the Docs
    :target: https://libceed.readthedocs.io/en/latest/?badge=latest
 
+.. image:: https://joss.theoj.org/papers/10.21105/joss.02945/status.svg
+   :alt: JOSS
+   :target: https://doi.org/10.21105/joss.02945
+
 .. image:: http://mybinder.org/badge_logo.svg
    :alt: Binder
    :target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
 
-Code for Efficient Extensible Discretization
+Summary and Purpose
 --------------------------------------------
 
-This repository contains an initial low-level API library for the efficient
-high-order discretization methods developed by the ECP co-design
-`Center for Efficient Exascale Discretizations (CEED) <http://ceed.exascaleproject.org>`_.
+libCEED provides fast algebra for element-based discretizations, designed for
+performance portability, run-time flexibility, and clean embedding in higher
+level libraries and applications. It offers a C99 interface as well as bindings
+for Fortran, Python, Julia, and Rust.
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
 explained in the `user manual <https://libceed.readthedocs.io/en/latest/>`_ and
@@ -450,6 +455,18 @@ How to Cite
 
 If you utilize libCEED please cite::
 
+   @article{libceed-joss-paper,
+     author       = {Jed Brown and Ahmad Abdelfattah and Valeria Barra and Natalie Beams and Jean Sylvain Camier and Veselin Dobrev and Yohann Dudouit and Leila Ghaffari and Tzanio Kolev and David Medina and Will Pazner and Thilina Ratnayaka and Jeremy Thompson and Stan Tomov},
+     title        = {{libCEED}: Fast algebra for high-order element-based discretizations},
+     journal      = {Journal of Open Source Software},
+     year         = {2021},
+     publisher    = {The Open Journal},
+     volume       = {6},
+     number       = {63},
+     pages        = {2945},
+     doi          = {10.21105/joss.02945}
+   }
+
    @misc{libceed-user-manual,
      author       = {Abdelfattah, Ahmad and
                      Barra, Valeria and
@@ -462,16 +479,15 @@ If you utilize libCEED please cite::
                      Kolev, Tzanio and
                      Medina, David and
                      Pazner, Will and
-                     Rathnayake, Thilina and
+                     Ratnayaka, Thilina and
                      Thompson, Jeremy L and
                      Tomov, Stanimire},
-     title        = {libCEED User Manual},
-     month        = mar,
+     title        = {{libCEED} User Manual},
+     month        = jul,
      year         = 2021,
      publisher    = {Zenodo},
-     version      = {0.8},
-     doi          = {10.5281/zenodo.4895340},
-     url          = {https://doi.org/10.5281/zenodo.4895340}
+     version      = {0.9.0},
+     doi          = {10.5281/zenodo.5077489}
    }
 
 For libCEED's Python interface please cite::
@@ -483,8 +499,7 @@ For libCEED's Python interface please cite::
      pages     = {85 - 90},
      year      = {2020},
      editor    = {{M}eghann {A}garwal and {C}hris {C}alloway and {D}illon {N}iederhut and {D}avid {S}hupe},
-     doi       = {10.25080/Majora-342d178e-00c},
-     url       = {https://doi.org/10.25080/Majora-342d178e-00c}
+     doi       = {10.25080/Majora-342d178e-00c}
    }
 
 The BiBTeX entries for these references can be found in the

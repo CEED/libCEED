@@ -16,6 +16,12 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     a[i] = i * (i % 2 ? 1 : -1);
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(x, type);
+  }
 
   CeedScalar norm;
   CeedVectorNorm(x, CEED_NORM_1, &norm);

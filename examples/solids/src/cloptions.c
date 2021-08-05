@@ -88,7 +88,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   if ((app_ctx->problem_choice == ELAS_FSInitial_NH1 ||
        app_ctx->problem_choice == ELAS_FSInitial_NH2 ||
        app_ctx->problem_choice == ELAS_FSCurrent_NH1 ||
-       app_ctx->problem_choice == ELAS_FSCurrent_NH2) &&
+       app_ctx->problem_choice == ELAS_FSCurrent_NH2 ||
+       app_ctx->problem_choice == ELAS_FSInitial_MR1) &&
       app_ctx->forcing_choice == FORCE_CONST)
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
             "Cannot use constant forcing and finite strain formulation. "
@@ -180,6 +181,17 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           NULL, app_ctx->test_mode, &(app_ctx->test_mode), NULL);
   CHKERRQ(ierr);
 
+  app_ctx->expect_final_strain = -1.;
+  ierr = PetscOptionsReal("-expect_final_strain_energy",
+                          "Expect final strain energy close to this value.",
+                          NULL, app_ctx->expect_final_strain, &app_ctx->expect_final_strain, NULL);
+  CHKERRQ(ierr);
+
+  app_ctx->test_tol = 1e-8;
+  ierr = PetscOptionsReal("-expect_final_state_rtol",
+                          "Relative tolerance for final strain energy test",
+                          NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL); CHKERRQ(ierr);
+
   app_ctx->view_soln = PETSC_FALSE;
   ierr = PetscOptionsBool("-view_soln", "Write out solution vector for viewing",
                           NULL, app_ctx->view_soln, &(app_ctx->view_soln), NULL);
@@ -190,15 +202,34 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           "Write out final solution vector for viewing",
                           NULL, app_ctx->view_final_soln, &(app_ctx->view_final_soln),
                           NULL); CHKERRQ(ierr);
+  CHKERRQ(ierr);
+
+  PetscBool set;
+  char energy_viewer_filename[PETSC_MAX_PATH_LEN] = "";
+  ierr = PetscOptionsString("-strain_energy_monitor",
+                            "Print out current strain energy at every load increment",
+                            NULL, energy_viewer_filename,
+                            energy_viewer_filename, sizeof(energy_viewer_filename),
+                            &set); CHKERRQ(ierr);
+  if (set) {
+    ierr = PetscViewerASCIIOpen(comm, energy_viewer_filename,
+                                &app_ctx->energy_viewer); CHKERRQ(ierr);
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "increment,energy\n");
+    CHKERRQ(ierr);
+    // Initial configuration is base energy state; this may not be true if we extend in the future to
+    // initially loaded configurations (because a truly at-rest initial state may not be realizable).
+    ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.);
+    CHKERRQ(ierr);
+  }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
 
   // Check for all required values set
-  if (!app_ctx->test_mode) {
-    if (!app_ctx->bc_clamp_count && (app_ctx->forcing_choice != FORCE_MMS)) {
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
-    }
-  } else {
-    app_ctx->forcing_choice = FORCE_MMS;
+  if (app_ctx->test_mode) {
+    if (app_ctx->forcing_choice == FORCE_NONE && !app_ctx->bc_clamp_count)
+      app_ctx->forcing_choice = FORCE_MMS;
+  }
+  if (!app_ctx->bc_clamp_count && app_ctx->forcing_choice != FORCE_MMS) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-boundary options needed");
   }
 
   // Provide default ceed resource if not specified
@@ -296,5 +327,98 @@ PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
   // Scale E to Pa
   phys->E *= units->Pascal;
 
+  PetscFunctionReturn(0);
+};
+
+// Process physics options - Mooney-Rivlin
+PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
+                                 Units units) {
+  PetscErrorCode ierr;
+  PetscReal nu = -1;
+  phys_MR->mu_1 = -1;
+  phys_MR->mu_2 = -1;
+  phys_MR->lambda = -1;
+  units->meter     = 1;        // 1 meter in scaled length units
+  units->second    = 1;        // 1 second in scaled time units
+  units->kilogram  = 1;        // 1 kilogram in scaled mass units
+
+  PetscFunctionBeginUser;
+
+  ierr = PetscOptionsBegin(comm, NULL,
+                           "Elasticity / Hyperelasticity in PETSc with libCEED",
+                           NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
+                            phys_MR->mu_1, &phys_MR->mu_1, NULL); CHKERRQ(ierr);
+  if (phys_MR->mu_1 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                   "Mooney-Rivlin model requires non-negative -mu_1 option (Pa)");
+
+  ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL,
+                            phys_MR->mu_2, &phys_MR->mu_2, NULL); CHKERRQ(ierr);
+  if (phys_MR->mu_2 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                   "Mooney-Rivlin model requires non-negative -mu_2 option (Pa)");
+
+  ierr = PetscOptionsScalar("-nu", "Poisson ratio", NULL,
+                            nu, &nu, NULL); CHKERRQ(ierr);
+  if (nu < 0 || 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+                                     "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
+  phys_MR->lambda = 2 * (phys_MR->mu_1 + phys_MR->mu_2) * nu / (1 - 2*nu);
+
+  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
+                            NULL, units->meter, &units->meter, NULL);
+  CHKERRQ(ierr);
+  units->meter = fabs(units->meter);
+
+  ierr = PetscOptionsScalar("-units_second", "1 second in scaled time units",
+                            NULL, units->second, &units->second, NULL);
+  CHKERRQ(ierr);
+  units->second = fabs(units->second);
+
+  ierr = PetscOptionsScalar("-units_kilogram", "1 kilogram in scaled mass units",
+                            NULL, units->kilogram, &units->kilogram, NULL);
+  CHKERRQ(ierr);
+  units->kilogram = fabs(units->kilogram);
+
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+
+  // Define derived units
+  units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
+
+  // Scale material parameters based on units of Pa
+  phys_MR->mu_1 *= units->Pascal;
+  phys_MR->mu_2 *= units->Pascal;
+  phys_MR->lambda *= units->Pascal;
+
+  PetscFunctionReturn(0);
+};
+
+PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
+                                      Physics phys, Physics_MR phys_MR, Units units) {
+  PetscErrorCode ierr;
+  if (app_ctx -> problem_choice == ELAS_FSInitial_MR1) {
+    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
+  } else {
+    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+};
+
+// test option change. could remove the loading step. Run only with one loading step and compare relatively to ref file
+// option: expect_final_strain_energy and check against the relative error to ref is within tolerance (10^-5) I.e. one Newton solve then check final energy
+PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy) {
+
+  if (app_ctx->expect_final_strain >= 0.) {
+    PetscReal energy_ref = app_ctx->expect_final_strain;
+    PetscReal error = PetscAbsReal(energy - energy_ref) / energy_ref;
+
+    if (error > app_ctx->test_tol) {
+      PetscErrorCode ierr;
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                         "Energy %e does not match expected energy %e: relative tolerance %e > %e\n",
+                         (double)energy, (double)energy_ref, (double)error, app_ctx->test_tol);
+      CHKERRQ(ierr);
+    }
+  }
   PetscFunctionReturn(0);
 };

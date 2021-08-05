@@ -1815,7 +1815,7 @@ def test_552(ceed_resource):
     p_mult_fine.set_value(1.0)
     b_c_to_f = ceed.BasisTensorH1Lagrange(
         1, ncomp, p_coarse, p_fine, libceed.GAUSS_LOBATTO)
-    interp_C_to_F = b_c_to_f.get_interp1d()
+    interp_C_to_F = b_c_to_f.get_interp_1d()
     [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create_tensor_h1(p_mult_fine,
                                                                                         ru_coarse, bu_coarse, interp_C_to_F)
 
@@ -1945,7 +1945,7 @@ def test_553(ceed_resource):
     p_mult_fine.set_value(1.0)
     b_c_to_f = ceed.BasisTensorH1Lagrange(
         1, ncomp, p_coarse, p_fine, libceed.GAUSS_LOBATTO)
-    interp_C_to_F = b_c_to_f.get_interp1d()
+    interp_C_to_F = b_c_to_f.get_interp_1d()
     [op_mass_coarse, op_prolong, op_restrict] = op_mass_fine.multigrid_create_h1(p_mult_fine,
                                                                                  ru_coarse, bu_coarse, interp_C_to_F)
 

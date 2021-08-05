@@ -51,8 +51,6 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedQFunctionContextCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Ref); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

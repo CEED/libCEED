@@ -5,7 +5,7 @@ authors = [
     "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
 ]
 name = "libceed"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2018"
 license = "BSD-2-Clause"
 repository = "https://github.com/CEED/libCEED"
@@ -17,7 +17,7 @@ keywords = ["libceed", "exascale", "high-order"]
 categories = ["science"]
 
 [dependencies]
-libceed-sys = { version = "0.8", path = "../libceed-sys" }
+libceed-sys = { version = "0.9", path = "../libceed-sys" }
 
 [dev-dependencies]
 version-sync = "0.9.2"

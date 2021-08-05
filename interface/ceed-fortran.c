@@ -63,7 +63,7 @@ typedef int fortran_charlen_t;
 #define FIX_STRING(stringname)                                          \
   char Splice(stringname, _c)[1024];                                    \
   if (Splice(stringname, _len) > 1023)                                  \
-    CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
+    *err = CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
   strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len)); \
   Splice(stringname, _c)[Splice(stringname, _len)] = 0;                 \
 
@@ -552,6 +552,15 @@ void fCeedQRFactorization(int *ceed, CeedScalar *mat, CeedScalar *tau, int *m,
   *err = CeedQRFactorization(Ceed_dict[*ceed], mat, tau, *m, *n);
 }
 
+#define fCeedHouseholderApplyQ \
+    FORTRAN_NAME(ceedhouseholderapplyq, CEEDHOUSEHOLDERAPPLYQ)
+void fCeedHouseholderApplyQ(CeedScalar *A, CeedScalar *Q, CeedScalar *tau,
+                            int *t_mode,
+                            int *m, int *n, int *k, int *row, int *col, int *err) {
+  *err = CeedHouseholderApplyQ(A, Q, tau, (CeedTransposeMode)*t_mode, *m, *n, *k,
+                               *row, *col);
+}
+
 #define fCeedSymmetricSchurDecomposition \
     FORTRAN_NAME(ceedsymmetricschurdecomposition, CEEDSYMMETRICSCHURDECOMPOSITION)
 void fCeedSymmetricSchurDecomposition(int *ceed, CeedScalar *mat,
@@ -605,6 +614,26 @@ void fCeedBasisGetInterp1D(int *basis, CeedScalar *interp_1d, int64_t *offset,
   CeedBasis basis_ = CeedBasis_dict[*basis];
   *err = CeedBasisGetInterp1D(basis_, &interp1d_);
   *offset = interp1d_ - interp_1d;
+}
+
+#define fCeedBasisGetGrad1D \
+    FORTRAN_NAME(ceedbasisgetgrad1d, CEEDBASISGETGRAD1D)
+void fCeedBasisGetGrad1D(int *basis, CeedScalar *grad_1d, int64_t *offset,
+                         int *err) {
+  const CeedScalar *grad1d_;
+  CeedBasis basis_ = CeedBasis_dict[*basis];
+  *err = CeedBasisGetGrad1D(basis_, &grad1d_);
+  *offset = grad1d_ - grad_1d;
+}
+
+#define fCeedBasisGetQRef \
+    FORTRAN_NAME(ceedbasisgetqref, CEEDBASISGETQREF)
+void fCeedBasisGetQRef(int *basis, CeedScalar *q_ref, int64_t *offset,
+                       int *err) {
+  const CeedScalar *qref_;
+  CeedBasis basis_ = CeedBasis_dict[*basis];
+  *err = CeedBasisGetQRef(basis_, &qref_);
+  *offset = qref_ - q_ref;
 }
 
 #define fCeedBasisDestroy FORTRAN_NAME(ceedbasisdestroy,CEEDBASISDESTROY)

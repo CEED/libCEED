@@ -33,7 +33,9 @@
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
+//TESTARGS(name="solids-Linear-MMS") -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
+//TESTARGS(name="solids-NH1-1") -ceed {ceed_resource} -test -problem FSInitial-NH1 -E 2.8 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.124627916174e-01
+//TESTARGS(name="solids-MR1-1") -ceed {ceed_resource} -test -problem FSInitial-MR1 -mu_1 .5 -mu_2 .5 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.339138880207e-01
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
@@ -47,7 +49,8 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         app_ctx;                  // Contains problem options
-  Physics        phys;                     // Contains physical constants
+  Physics        phys = NULL;              // Physical constants for Neo-Hookean
+  Physics_MR     phys_MR = NULL;           // Physical constants for Mooney-Rivlin
   Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
   Units          units;                    // Contains units scaling
   // PETSc objects
@@ -76,7 +79,6 @@ int main(int argc, char **argv) {
   PetscInt       num_levels = 1, fine_level = 0;
   PetscInt       *U_g_size, *U_l_size, *U_loc_size;
   PetscInt       snes_its = 0, ksp_its = 0;
-  // Timing
   double         start_time, elapsed_time, min_time, max_time;
 
   ierr = PetscInitialize(&argc, &argv, NULL, help);
@@ -93,16 +95,24 @@ int main(int argc, char **argv) {
   num_levels = app_ctx->num_levels;
   fine_level = num_levels - 1;
 
-  // -- Set Poison's ratio, Young's Modulus
-  ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-  ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
-  if (fabs(app_ctx->nu_smoother) > 1E-14) {
-    ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
-    ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
-    phys_smoother->nu = app_ctx->nu_smoother;
+  if (app_ctx->problem_choice != ELAS_FSInitial_MR1) {
+    // -- Set Poison's ratio, Young's Modulus
+    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+    ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
+    CHKERRQ(ierr);
+    if (fabs(app_ctx->nu_smoother) > 1E-14) {
+      ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
+      ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
+      phys_smoother->nu = app_ctx->nu_smoother;
+    }
+  } else {
+    // -- Set Mooney-Rivlin parameters
+    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
+    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
+    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
+    CHKERRQ(ierr);
   }
-
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
@@ -115,8 +125,37 @@ int main(int argc, char **argv) {
 
   // Wrap context in libCEED objects
   CeedQFunctionContextCreate(ceed, &ctx_phys);
-  CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof(*phys), phys);
+  switch (app_ctx->problem_choice) {
+  case ELAS_LINEAR:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_SS_NH:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_NH1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_NH2:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSCurrent_NH1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSCurrent_NH2:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys), phys);
+    break;
+  case ELAS_FSInitial_MR1:
+    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
+                                sizeof(*phys_MR), phys_MR);
+    break;
+  }
+
   if (phys_smoother) {
     CeedQFunctionContextCreate(ceed, &ctx_phys_smoother);
     CeedQFunctionContextSetData(ctx_phys_smoother, CEED_MEM_HOST, CEED_USE_POINTER,
@@ -705,6 +744,21 @@ int main(int argc, char **argv) {
     ierr = SNESGetConvergedReason(snes, &reason); CHKERRQ(ierr);
     if (reason < 0)
       break;
+    if (app_ctx->energy_viewer) {
+      // -- Log strain energy for current load increment
+      CeedScalar energy;
+      ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+                                 U, &energy); CHKERRQ(ierr);
+
+      if (!app_ctx->test_mode) {
+        // -- Output
+        ierr = PetscPrintf(comm,
+                           "    Strain Energy                      : %.12e\n",
+                           energy); CHKERRQ(ierr);
+      }
+      ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", load_increment,
+                                    energy); CHKERRQ(ierr);
+    }
   }
 
   // Timing
@@ -844,17 +898,16 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Compute energy
   // ---------------------------------------------------------------------------
+  PetscReal energy;
+  ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
+                             U, &energy); CHKERRQ(ierr);
   if (!app_ctx->test_mode) {
-    // -- Compute L2 error
-    CeedScalar energy;
-    ierr = ComputeStrainEnergy(dm_energy, res_ctx, ceed_data[fine_level]->op_energy,
-                               U, &energy); CHKERRQ(ierr);
-
     // -- Output
     ierr = PetscPrintf(comm,
                        "    Strain Energy                      : %.12e\n",
                        energy); CHKERRQ(ierr);
   }
+  ierr = RegressionTests_solids(app_ctx, energy); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Output diagnostic quantities
@@ -904,6 +957,8 @@ int main(int argc, char **argv) {
     ierr = CeedDataDestroy(level, ceed_data[level]); CHKERRQ(ierr);
   }
 
+  ierr = PetscViewerDestroy(&app_ctx->energy_viewer); CHKERRQ(ierr);
+
   // Arrays
   ierr = PetscFree(U_g); CHKERRQ(ierr);
   ierr = PetscFree(U_loc); CHKERRQ(ierr);
@@ -944,6 +999,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(jacob_coarse_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys); CHKERRQ(ierr);
+  ierr = PetscFree(phys_MR); CHKERRQ(ierr);
   ierr = PetscFree(phys_smoother); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
 

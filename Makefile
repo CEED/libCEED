@@ -90,7 +90,7 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(subst oneAPI,icc,$(patsubst %gcc,gcc,$(patsubst gcc%,gcc,$(firstword $(filter gcc% %gcc clang icc oneAPI XL,$(shell $(CC) --version))))))
+CC_VENDOR := $(subst oneAPI,icc,$(firstword $(filter gcc clang icc oneAPI XL,$(subst -, ,$(shell $(CC) --version)))))
 FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
 
 # Default extra flags by vendor
@@ -540,7 +540,7 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
-$(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h examples/solids/src/*.c examples/solids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@

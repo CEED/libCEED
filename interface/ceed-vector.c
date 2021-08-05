@@ -601,8 +601,10 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   // LCOV_EXCL_STOP
 
   // Backend implementation
-  if (y->AXPY)
-    return y->AXPY(y, alpha, x);
+  if (y->AXPY) {
+    ierr = y->AXPY(y, alpha, x); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Default implementation
   ierr = CeedVectorGetArray(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
@@ -656,8 +658,10 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   // LCOV_EXCL_STOP
 
   // Backend implementation
-  if (w->PointwiseMult)
-    return w->PointwiseMult(w, x, y);
+  if (w->PointwiseMult) {
+    ierr = w->PointwiseMult(w, x, y); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Default implementation
   ierr = CeedVectorGetArray(w, CEED_MEM_HOST, &w_array); CeedChk(ierr);
@@ -785,9 +789,11 @@ int CeedVectorDestroy(CeedVector *vec) {
                      "lock is in use");
 
   if ((*vec)->num_readers > 0)
+    // LCOV_EXCL_START
     return CeedError((*vec)->ceed, CEED_ERROR_ACCESS,
                      "Cannot destroy CeedVector, a process has "
                      "read access");
+  // LCOV_EXCL_STOP
 
   if ((*vec)->Destroy) {
     ierr = (*vec)->Destroy(*vec); CeedChk(ierr);
