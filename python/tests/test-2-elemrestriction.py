@@ -33,7 +33,7 @@ def test_200(ceed_resource):
     num_elem = 3
 
     x = ceed.Vector(num_elem + 1)
-    a = np.arange(10, 10 + num_elem + 1, dtype="float64",
+    a = np.arange(10, 10 + num_elem + 1,
                   dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     x.set_array(a, cmode=libceed.USE_POINTER)
 
