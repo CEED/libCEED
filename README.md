@@ -1,44 +1,13 @@
 # libCEED: Efficient Extensible Discretization
 
-```{image} https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
-:alt: GitHub Actions
-:target: https://github.com/CEED/libCEED/actions
-```
-
-```{image} https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
-:alt: GitLab-CI
-:target: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
-```
-
-```{image} https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
-:alt: Azure Pipelines
-:target: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
-```
-
-```{image} https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
-:alt: Code Coverage
-:target: https://codecov.io/gh/CEED/libCEED/
-```
-
-```{image} https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
-:alt: License
-:target: https://opensource.org/licenses/BSD-2-Clause
-```
-
-```{image} https://readthedocs.org/projects/libceed/badge/?version=latest
-:alt: Read the Docs
-:target: https://libceed.readthedocs.io/en/latest/?badge=latest
-```
-
-```{image} https://joss.theoj.org/papers/10.21105/joss.02945/status.svg
-:alt: JOSS
-:target: https://doi.org/10.21105/joss.02945
-```
-
-```{image} http://mybinder.org/badge_logo.svg
-:alt: Binder
-:target: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
-```
+[![GitHub Actions][github-badge]][github-link]
+[![GitLab-CI][gitlab-badge]][gitlab-link]
+[![Azure Pipelines][azure-badge]][azure-link]
+[![Code coverage][codecov-badge]][codecov-link]
+[![BSD-2-Clause][license-badge]][license-link]
+[![Documentation][doc-badge]][doc-link]
+[![JOSS paper][joss-badge]][joss-link]
+[![Binder][binder-badge]][binder-link]
 
 ## Summary and Purpose
 
@@ -187,73 +156,46 @@ make prove
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
-```{eval-rst}
-+----------------------------+---------------------------------------------------+-----------------------+
 | CEED resource              | Backend                                           | Deterministic Capable |
-+----------------------------+---------------------------------------------------+-----------------------+
-| CPU Native Backends                                                                                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/ref/serial``   | Serial reference implementation                   | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/ref/blocked``  | Blocked reference implementation                  | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/opt/serial``   | Serial optimized C implementation                 | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/opt/blocked``  | Blocked optimized C implementation                | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/avx/serial``   | Serial AVX implementation                         | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/avx/blocked``  | Blocked AVX implementation                        | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| CPU Valgrind Backends                                                                                  |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/memcheck/*``   | Memcheck backends, undefined value checks         | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| CPU LIBXSMM Backends                                                                                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/xsmm/serial``  | Serial LIBXSMM implementation                     | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/xsmm/blocked`` | Blocked LIBXSMM implementation                    | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| CUDA Native Backends                                                                                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/ref``          | Reference pure CUDA kernels                       | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/shared``       | Optimized pure CUDA kernels using shared memory   | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/gen``          | Optimized pure CUDA kernels using code generation | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| HIP Native Backends                                                                                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/ref``           | Reference pure HIP kernels                        | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/shared``        | Optimized pure HIP kernels using shared memory    | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/gen``           | Optimized pure HIP kernels using code generation  | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| MAGMA Backends                                                                                         |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/magma``        | CUDA MAGMA kernels                                | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/magma/det``    | CUDA MAGMA kernels                                | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/magma``         | HIP MAGMA kernels                                 | No                    |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/magma/det``     | HIP MAGMA kernels                                 | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| OCCA Backends                                                                                          |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/*/occa``                | Selects backend based on available OCCA modes     | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/self/occa``         | OCCA backend with serial CPU kernels              | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/cpu/openmp/occa``       | OCCA backend with OpenMP kernels                  | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/cuda/occa``         | OCCA backend with CUDA kernels                    | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-| ``/gpu/hip/occa``          | OCCA backend with HIP kernels                     | Yes                   |
-+----------------------------+---------------------------------------------------+-----------------------+
-```
+| :---                       | :---                                              | :---:                 |
+||
+| **CPU Native**             |
+| `/cpu/self/ref/serial`     | Serial reference implementation                   | Yes                   |
+| `/cpu/self/ref/blocked`    | Blocked reference implementation                  | Yes                   |
+| `/cpu/self/opt/serial`     | Serial optimized C implementation                 | Yes                   |
+| `/cpu/self/opt/blocked`    | Blocked optimized C implementation                | Yes                   |
+| `/cpu/self/avx/serial`     | Serial AVX implementation                         | Yes                   |
+| `/cpu/self/avx/blocked`    | Blocked AVX implementation                        | Yes                   |
+||
+| **CPU Valgrind**           |
+| `/cpu/self/memcheck/*`     | Memcheck backends, undefined value checks         | Yes                   |
+||
+| **CPU LIBXSMM**            |
+| `/cpu/self/xsmm/serial`    | Serial LIBXSMM implementation                     | Yes                   |
+| `/cpu/self/xsmm/blocked`   | Blocked LIBXSMM implementation                    | Yes                   |
+||
+| **CUDA Native**            |
+| `/gpu/cuda/ref`            | Reference pure CUDA kernels                       | Yes                   |
+| `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory   | Yes                   |
+| `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation | No                    |
+||
+| **HIP Native**             |
+| `/gpu/hip/ref`             | Reference pure HIP kernels                        | Yes                   |
+| `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory    | Yes                   |
+| `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation  | No                    |
+||
+| **MAGMA**                  |
+| `/gpu/cuda/magma`          | CUDA MAGMA kernels                                | No                    |
+| `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                | Yes                   |
+| `/gpu/hip/magma`           | HIP MAGMA kernels                                 | No                    |
+| `/gpu/hip/magma/det`       | HIP MAGMA kernels                                 | Yes                   |
+||
+| **OCCA**                   |
+| `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
+| `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
+| `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
+| `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
+| `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
 with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
@@ -547,3 +489,20 @@ otherwise stated in the file:
 > Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights reserved.
 
 See files LICENSE and NOTICE for details.
+
+[github-badge]: https://github.com/CEED/libCEED/workflows/C/Fortran/badge.svg
+[github-link]: https://github.com/CEED/libCEED/actions
+[gitlab-badge]: https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
+[gitlab-link]: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
+[azure-badge]: https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
+[azure-link]: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
+[codecov-badge]: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
+[codecov-link]: https://codecov.io/gh/CEED/libCEED/
+[license-badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+[license-link]: https://opensource.org/licenses/BSD-2-Clause
+[doc-badge]: https://readthedocs.org/projects/libceed/badge/?version=latest
+[doc-link]: https://libceed.readthedocs.io/en/latest/?badge=latest
+[joss-badge]: https://joss.theoj.org/papers/10.21105/joss.02945/status.svg
+[joss-link]: https://doi.org/10.21105/joss.02945
+[binder-badge]: http://mybinder.org/badge_logo.svg
+[binder-link]: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
