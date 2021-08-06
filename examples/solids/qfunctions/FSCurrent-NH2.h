@@ -86,6 +86,31 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is nonsymetric, returns array of 9
+// -----------------------------------------------------------------------------
+#ifndef MatinvNonSym
+#define MatinvNonSym
+CEED_QFUNCTION_HELPER int computeMatinvNonSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[9]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[9] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2], /* *NOPAD* */
+                     A[0][1]*A[2][0] - A[0][0]*A[2][1], /* *NOPAD* */
+                     A[1][0]*A[2][1] - A[1][1]*A[2][0], /* *NOPAD* */
+                     A[1][2]*A[2][0] - A[1][0]*A[2][2]  /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 9; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+
+// -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
@@ -171,16 +196,16 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
 
     // Compute The Deformation Gradient : F = I3 + Gradu
     // *INDENT-OFF*
-    CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
-                            Grad_u[0][1],
-                            Grad_u[0][2]},
-                           {Grad_u[1][0],
-                            Grad_u[1][1] + 1,
-                            Grad_u[1][2]},
-                           {Grad_u[2][0],
-                            Grad_u[2][1],
-                            Grad_u[2][2] + 1}
-                          };
+    const CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
+                                  Grad_u[0][1],
+                                  Grad_u[0][2]},
+                                 {Grad_u[1][0],
+                                  Grad_u[1][1] + 1,
+                                  Grad_u[1][2]},
+                                 {Grad_u[2][0],
+                                  Grad_u[2][1],
+                                  Grad_u[2][2] + 1}
+                                };
 
     // *INDENT-ON*
     //b - I3 = (Grad_u + Grad_u^T + Grad_u*Grad_u^T)
@@ -206,23 +231,10 @@ CEED_QFUNCTION(ElasFSCurrentNH2F)(void *ctx, CeedInt Q,
     tau[4][i] = mu*bMI3[4];
     tau[5][i] = mu*bMI3[5];
 
-    // *INDENT-OFF*
     //Computer F^{-1}
-    const CeedScalar B[9] = {F[1][1]*F[2][2] - F[1][2]*F[2][1], /* *NOPAD* */
-                             F[0][0]*F[2][2] - F[0][2]*F[2][0], /* *NOPAD* */
-                             F[0][0]*F[1][1] - F[0][1]*F[1][0], /* *NOPAD* */
-                             F[0][2]*F[1][0] - F[0][0]*F[1][2], /* *NOPAD* */
-                             F[0][1]*F[1][2] - F[0][2]*F[1][1], /* *NOPAD* */
-                             F[0][2]*F[2][1] - F[0][1]*F[2][2], /* *NOPAD* */
-                             F[0][1]*F[2][0] - F[0][0]*F[2][1], /* *NOPAD* */
-                             F[1][0]*F[2][1] - F[1][1]*F[2][0], /* *NOPAD* */
-                             F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
-                            };
-    // *INDENT-ON*
+    const CeedScalar detF = Jm1 + 1.;
     CeedScalar Finvwork[9];
-    for (CeedInt m = 0; m < 9; m++)
-      Finvwork[m] = B[m] / (Jm1 + 1.);
-
+    computeMatinvNonSym(F, detF, Finvwork);
     CeedScalar Finv[3][3];
     Finv[0][0] = Finvwork[0];
     Finv[0][1] = Finvwork[5];

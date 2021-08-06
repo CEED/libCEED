@@ -86,6 +86,28 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is symetric, returns array of 6
+// -----------------------------------------------------------------------------
+#ifndef MatinvSym
+#define MatinvSym
+CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[6]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[6] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2] /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 6; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+
+// -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
@@ -119,15 +141,8 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
 
   // Compute C^(-1) : C-Inverse
-  CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
-                     C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
-                     C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
-                     C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
-                     C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
-                     C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
-                    };
-  for (CeedInt m = 0; m < 6; m++)
-    Cinvwork[m] = A[m] / ((Jm1 + 1.)*(Jm1 + 1.));
+  const CeedScalar detC = (Jm1 + 1.)*(Jm1 + 1.);
+  computeMatinvSym(C, detC, Cinvwork);
 
   // *INDENT-OFF*
   const CeedScalar C_inv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},

@@ -86,6 +86,28 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is symetric, returns array of 6
+// -----------------------------------------------------------------------------
+#ifndef MatinvSym
+#define MatinvSym
+CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[6]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[6] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2] /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 6; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+
+// -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q,
@@ -222,22 +244,18 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q,
                                };
 
     // Compute C^(-1) : C-Inverse
-    const CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
-                             C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
-                             C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
-                             C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
-                             C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
-                             C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
-                            };
+    const CeedScalar detC = (Jm1 + 1.)*(Jm1 + 1.);
+    CeedScalar Cinvwork[6];
+    computeMatinvSym(C, detC, Cinvwork);
 
     // *INDENT-ON*
     // store C_inv
-    C_inv[0][i] = A[0] / ((Jm1 + 1.)*(Jm1 + 1.));
-    C_inv[1][i] = A[1] / ((Jm1 + 1.)*(Jm1 + 1.));
-    C_inv[2][i] = A[2] / ((Jm1 + 1.)*(Jm1 + 1.));
-    C_inv[3][i] = A[3] / ((Jm1 + 1.)*(Jm1 + 1.));
-    C_inv[4][i] = A[4] / ((Jm1 + 1.)*(Jm1 + 1.));
-    C_inv[5][i] = A[5] / ((Jm1 + 1.)*(Jm1 + 1.));
+    C_inv[0][i] = Cinvwork[0];
+    C_inv[1][i] = Cinvwork[1];
+    C_inv[2][i] = Cinvwork[2];
+    C_inv[3][i] = Cinvwork[3];
+    C_inv[4][i] = Cinvwork[4];
+    C_inv[5][i] = Cinvwork[5];
 
     // *INDENT-OFF*
     const CeedScalar tempCinv[3][3] = {{C_inv[0][i], C_inv[5][i], C_inv[4][i]},

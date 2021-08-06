@@ -86,26 +86,51 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is nonsymetric, returns array of 9
+// -----------------------------------------------------------------------------
+#ifndef MatinvNonSym
+#define MatinvNonSym
+CEED_QFUNCTION_HELPER int computeMatinvNonSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[9]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[9] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2], /* *NOPAD* */
+                     A[0][1]*A[2][0] - A[0][0]*A[2][1], /* *NOPAD* */
+                     A[1][0]*A[2][1] - A[1][1]*A[2][0], /* *NOPAD* */
+                     A[1][2]*A[2][0] - A[1][0]*A[2][2]  /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 9; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+
+// -----------------------------------------------------------------------------
 // Common computations between Ftau and dFtau
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
                                      const CeedScalar mu, const CeedScalar Grad_u[3][3],
-                                     CeedScalar F_inv[3][3], CeedScalar tau_work[6],
+                                     CeedScalar Finv[3][3], CeedScalar tau_work[6],
                                      CeedScalar *llnj) {
 
 
   // Compute The Deformation Gradient : F = I3 + Grad_u
   // *INDENT-OFF*
-  CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
-                          Grad_u[0][1],
-                          Grad_u[0][2]},
-                         {Grad_u[1][0],
-                          Grad_u[1][1] + 1,
-                          Grad_u[1][2]},
-                         {Grad_u[2][0],
-                          Grad_u[2][1],
-                          Grad_u[2][2] + 1}
-                        };
+  const CeedScalar F[3][3] =  {{Grad_u[0][0] + 1,
+                                Grad_u[0][1],
+                                Grad_u[0][2]},
+                               {Grad_u[1][0],
+                                Grad_u[1][1] + 1,
+                                Grad_u[1][2]},
+                               {Grad_u[2][0],
+                                Grad_u[2][1],
+                                Grad_u[2][2] + 1}
+                              };
 
   // *INDENT-ON*
   //b - I3 = (Grad_u + Grad_u^T + Grad_u*Grad_u^T)
@@ -119,32 +144,20 @@ CEED_QFUNCTION_HELPER int commonFtau(const CeedScalar lambda,
   const CeedScalar Jm1 = computeJM1(Grad_u);
   const CeedScalar logJ = log1p_series_shifted(Jm1);
 
-  // *INDENT-OFF*
   //Computer F^(-1)
-  CeedScalar B[9] = {F[1][1]*F[2][2] - F[1][2]*F[2][1], /* *NOPAD* */
-                     F[0][0]*F[2][2] - F[0][2]*F[2][0], /* *NOPAD* */
-                     F[0][0]*F[1][1] - F[0][1]*F[1][0], /* *NOPAD* */
-                     F[0][2]*F[1][0] - F[0][0]*F[1][2], /* *NOPAD* */
-                     F[0][1]*F[1][2] - F[0][2]*F[1][1], /* *NOPAD* */
-                     F[0][2]*F[2][1] - F[0][1]*F[2][2], /* *NOPAD* */
-                     F[0][1]*F[2][0] - F[0][0]*F[2][1], /* *NOPAD* */
-                     F[1][0]*F[2][1] - F[1][1]*F[2][0], /* *NOPAD* */
-                     F[1][2]*F[2][0] - F[1][0]*F[2][2] /* *NOPAD* */
-                    };
-  // *INDENT-ON*
-  CeedScalar F_invwork[9];
-  for (CeedInt m = 0; m < 9; m++)
-    F_invwork[m] = B[m] / (Jm1 + 1.);
+  const CeedScalar detF = Jm1 + 1.;
+  CeedScalar Finvwork[9];
+  computeMatinvNonSym(F, detF, Finvwork);
 
-  F_inv[0][0] = F_invwork[0];
-  F_inv[0][1] = F_invwork[5];
-  F_inv[0][2] = F_invwork[4];
-  F_inv[1][0] = F_invwork[8];
-  F_inv[1][1] = F_invwork[1];
-  F_inv[1][2] = F_invwork[3];
-  F_inv[2][0] = F_invwork[7];
-  F_inv[2][1] = F_invwork[6];
-  F_inv[2][2] = F_invwork[2];
+  Finv[0][0] = Finvwork[0];
+  Finv[0][1] = Finvwork[5];
+  Finv[0][2] = Finvwork[4];
+  Finv[1][0] = Finvwork[8];
+  Finv[1][1] = Finvwork[1];
+  Finv[1][2] = Finvwork[3];
+  Finv[2][0] = Finvwork[7];
+  Finv[2][1] = Finvwork[6];
+  Finv[2][2] = Finvwork[2];
 
   // Compute the Kirchhoff stress (tau) tau = mu*(b - I3) + lambda*log(J)*I3
   *llnj = lambda*logJ;
@@ -253,9 +266,9 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar F_inv[3][3], tau_work[6], llnj;
+    CeedScalar Finv[3][3], tau_work[6], llnj;
 
-    commonFtau(lambda, mu, tempGradu, F_inv, tau_work, &llnj);
+    commonFtau(lambda, mu, tempGradu, Finv, tau_work, &llnj);
     // *INDENT-OFF*
     const CeedScalar tau[3][3] = {{tau_work[0], tau_work[5], tau_work[4]},
                                   {tau_work[5], tau_work[1], tau_work[3]},
@@ -269,7 +282,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q,
       for (CeedInt k = 0; k < 3; k++) { // Derivative
         dXdx[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++)
-          dXdx[j][k] += dXdx_initial[j][m] * F_inv[m][k];
+          dXdx[j][k] += dXdx_initial[j][m] * Finv[m][k];
       }
 
     // Apply dXdx^T and weight to intermediate stress

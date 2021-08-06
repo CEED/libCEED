@@ -91,6 +91,27 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is symetric, returns array of 6
+// -----------------------------------------------------------------------------
+#ifndef MatinvSym
+#define MatinvSym
+CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[6]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[6] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2] /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 6; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+// -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
@@ -132,18 +153,9 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
   // J-1
   const CeedScalar Jm1 = computeJM1(grad_u);
   // J = Jm1 + 1
-  CeedScalar J = Jm1 + 1.;
-  CeedScalar J2 = J*J;
   // Compute C^(-1) : C-Inverse
-  CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
-                     C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
-                     C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
-                     C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
-                     C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
-                     C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
-                    };
-  for (CeedInt m = 0; m < 6; m++)
-    Cinvwork[m] = A[m] / (J2);
+  const CeedScalar detC = (Jm1 + 1.)*(Jm1 + 1.);
+  computeMatinvSym(C, detC, Cinvwork);
 
   // Compute the Second Piola-Kirchhoff (S)
   // S = (lambda*logJ - mu_1 -2*mu_2)*Cinvwork +(mu_1+mu_2*I_1)*I3-mu_2*Cwork
