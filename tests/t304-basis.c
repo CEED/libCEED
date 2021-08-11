@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     }
   for (int i=0; i<P; i++)
     for (int j=0; j<P; j++)
-      if (fabs(M[P*i+j] - Q_lambda_Qt[P*i+j]) > 1E-14)
+      if (fabs(M[P*i+j] - Q_lambda_Qt[P*i+j]) > 100.*CEED_EPSILON)
         // LCOV_EXCL_START
         printf("Error in diagonalization [%d, %d]: %f != %f\n",
                i, j, M[P*i+j], Q_lambda_Qt[P*i+j]);

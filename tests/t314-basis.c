@@ -17,7 +17,7 @@ static CeedScalar GetTolerance(CeedScalarType scalar_type, int dim) {
     if (dim == 3)
       tol = 0.05;
     else
-      tol = 1.e-4;
+      tol = 1.e-3;
   } else {
     tol = 1.e-11;
   }

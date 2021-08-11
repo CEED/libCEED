@@ -87,12 +87,12 @@ def test_301(ceed_resource):
     np_qr, np_tau = np.linalg.qr(a.reshape(m, n), mode="raw")
 
     for i in range(n):
-        assert tau[i] == np_tau[i]
+        assert abs(tau[i] - np_tau[i]) < TOL
 
     qr = qr.reshape(m, n)
     for i in range(m):
         for j in range(n):
-            assert round(qr[i, j] - np_qr[j, i], 10) == 0
+            assert abs(qr[i, j] - np_qr[j, i]) < TOL
 
 # -------------------------------------------------------------------------------
 # Test Symmetric Schur Decomposition
@@ -115,7 +115,7 @@ def test_304(ceed_resource):
     lam = np.diag(lam)
 
     Q_lambda_Qt = np.matmul(np.matmul(Q, lam), Q.T)
-    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < 1E-14
+    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < TOL 
 
 # -------------------------------------------------------------------------------
 # Test Simultaneous Diagonalization
@@ -144,10 +144,10 @@ def test_305(ceed_resource):
     K = K.reshape(4, 4)
 
     Xt_M_X = np.matmul(X.T, np.matmul(M, X))
-    assert np.max(Xt_M_X - np.identity(4)) < 1E-14
+    assert np.max(Xt_M_X - np.identity(4)) < TOL 
 
     Xt_K_X = np.matmul(X.T, np.matmul(K, X))
-    assert np.max(Xt_K_X - lam) < 1E-14
+    assert np.max(Xt_K_X - lam) < TOL 
 
 # -------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis
