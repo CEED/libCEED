@@ -1317,7 +1317,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
+    tau[i] = i == n - 2 ? 2 : 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
     for (CeedInt j=i+1; j<n-1; j++)
       v[j] /= v[i];
 
