@@ -78,7 +78,7 @@ def test_301(ceed_resource):
     m = 4
     n = 3
     a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
-                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
                   dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
     tau = np.empty(3, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
@@ -106,7 +106,7 @@ def test_304(ceed_resource):
                   0.0745355993, 1., 0.1666666667, -0.0745355993,
                   -0.0745355993, 0.1666666667, 1., 0.0745355993,
                   0.0333333333, -0.0745355993, 0.0745355993, 0.2],
-                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
 
     Q = A.copy()
 
@@ -115,7 +115,7 @@ def test_304(ceed_resource):
     lam = np.diag(lam)
 
     Q_lambda_Qt = np.matmul(np.matmul(Q, lam), Q.T)
-    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < TOL 
+    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < TOL
 
 # -------------------------------------------------------------------------------
 # Test Simultaneous Diagonalization
@@ -144,10 +144,10 @@ def test_305(ceed_resource):
     K = K.reshape(4, 4)
 
     Xt_M_X = np.matmul(X.T, np.matmul(M, X))
-    assert np.max(Xt_M_X - np.identity(4)) < TOL 
+    assert np.max(Xt_M_X - np.identity(4)) < TOL
 
     Xt_K_X = np.matmul(X.T, np.matmul(K, X))
-    assert np.max(Xt_K_X - lam) < TOL 
+    assert np.max(Xt_K_X - lam) < TOL
 
 # -------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis
