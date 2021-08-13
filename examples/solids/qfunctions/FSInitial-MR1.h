@@ -91,13 +91,33 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute matrix^(-1), where matrix is symetric, returns array of 6
+// -----------------------------------------------------------------------------
+#ifndef MatinvSym
+#define MatinvSym
+CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3],
+    const CeedScalar detA, CeedScalar Ainv[6]) {
+  // Compute A^(-1) : A-Inverse
+  CeedScalar B[6] = {A[1][1]*A[2][2] - A[1][2]*A[2][1], /* *NOPAD* */
+                     A[0][0]*A[2][2] - A[0][2]*A[2][0], /* *NOPAD* */
+                     A[0][0]*A[1][1] - A[0][1]*A[1][0], /* *NOPAD* */
+                     A[0][2]*A[1][0] - A[0][0]*A[1][2], /* *NOPAD* */
+                     A[0][1]*A[1][2] - A[0][2]*A[1][1], /* *NOPAD* */
+                     A[0][2]*A[2][1] - A[0][1]*A[2][2] /* *NOPAD* */
+                    };
+  for (CeedInt m = 0; m < 6; m++)
+    Ainv[m] = B[m] / (detA);
+
+  return 0;
+};
+#endif
+// -----------------------------------------------------------------------------
 // Common computations between FS and dFS
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
                                       const CeedScalar mu_2,
                                       const CeedScalar lambda, const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                                      CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *I_1,
-                                      CeedScalar *I_2, CeedScalar *Jm1) {
+                                      CeedScalar Cwork[6], CeedScalar Cinvwork[6], CeedScalar *logJ) {
   // E - Green-Lagrange strain tensor
   //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -127,47 +147,25 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1,
   Cwork[4] = C[0][2];
   Cwork[5] = C[0][1];
   // *INDENT-ON*
-  // Compute CC = C*C = C^2
-  CeedScalar CC[3][3];
-  for (CeedInt j = 0; j < 3; j++)
-    for (CeedInt k = 0; k < 3; k++) {
-      CC[j][k] = 0;
-      for (CeedInt m = 0; m < 3; m++)
-        CC[j][k] += C[j][m] * C[m][k];
-    }
-
   // Compute invariants
   // I_1 = trace(C)
-  (*I_1) = C[0][0] + C[1][1] + C[2][2];
-  // Trace(C^2)
-  CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
-  // I_2 = 0.5(I_1^2 - trace(C^2))
-  (*I_2) = 0.5*(pow((*I_1), 2) - tr_CC);
+  const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
   // J-1
-  (*Jm1) = computeJM1(grad_u);
+  const CeedScalar Jm1 = computeJM1(grad_u);
   // J = Jm1 + 1
-  CeedScalar J = *Jm1 + 1;
-  CeedScalar J2 = J*J;
   // Compute C^(-1) : C-Inverse
-  CeedScalar A[6] = {C[1][1]*C[2][2] - C[1][2]*C[2][1], /* *NOPAD* */
-                     C[0][0]*C[2][2] - C[0][2]*C[2][0], /* *NOPAD* */
-                     C[0][0]*C[1][1] - C[0][1]*C[1][0], /* *NOPAD* */
-                     C[0][2]*C[1][0] - C[0][0]*C[1][2], /* *NOPAD* */
-                     C[0][1]*C[1][2] - C[0][2]*C[1][1], /* *NOPAD* */
-                     C[0][2]*C[2][1] - C[0][1]*C[2][2] /* *NOPAD* */
-                    };
-  for (CeedInt m = 0; m < 6; m++)
-    Cinvwork[m] = A[m] / (J2);
+  const CeedScalar detC = (Jm1 + 1.)*(Jm1 + 1.);
+  computeMatinvSym(C, detC, Cinvwork);
 
   // Compute the Second Piola-Kirchhoff (S)
   // S = (lambda*logJ - mu_1 -2*mu_2)*Cinvwork +(mu_1+mu_2*I_1)*I3-mu_2*Cwork
   // *1 for indices 0-2 for I_3
 
-  const CeedScalar logJ = log1p_series_shifted(*Jm1);
+  *logJ = log1p_series_shifted(Jm1);
   // *INDENT-OFF*
   for (CeedInt i=0; i<6; i++)
-    Swork[i] = (lambda * logJ - mu_1 - 2*mu_2) * Cinvwork[i]
-      + (mu_1 + mu_2 * *I_1) * (i<3) // identity I_3
+    Swork[i] = (lambda * *logJ - mu_1 - 2*mu_2) * Cinvwork[i]
+      + (mu_1 + mu_2 * I_1) * (i<3) // identity I_3
       - mu_2 * Cwork[i];
 
   return 0;
@@ -269,8 +267,8 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
                                         };
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
-    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
+    CeedScalar Swork[6], Cwork[6], Cinvwork[6], logJ;
+    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &logJ);
 
     // Second Piola-Kirchhoff (S)
     const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
@@ -391,8 +389,8 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
                                         };
 
     // Common components of finite strain calculations
-    CeedScalar Swork[6], Cwork[6], Cinvwork[6], I_1, I_2, Jm1;
-    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &I_1, &I_2, &Jm1);
+    CeedScalar Swork[6], Cwork[6], Cinvwork[6], logJ;
+    commonFSMR1(mu_1, mu_2, lambda, tempgradu, Swork, Cwork, Cinvwork, &logJ);
 
     // *INDENT-ON*
     // dE - Green-Lagrange strain tensor
@@ -457,7 +455,6 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     // (2*I_3:dE)*I_3 - dE = -dE elsewhere
     // CeedScalar J = Jm1 + 1;
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
-    const CeedScalar logJ = log1p_series_shifted(Jm1);
     CeedScalar dSwork[6];
     for (CeedInt i=0; i<6; i++)
       dSwork[i] = lambda * Cinv_contract_dE * Cinvwork[i]
