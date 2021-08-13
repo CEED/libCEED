@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 fn test_readme_deps() {
     let path = std::env::current_dir().unwrap();
     version_sync::assert_markdown_deps_updated!(if path.ends_with("rust/libceed") {
-        "../../README.rst"
+        "../../README.md"
     } else {
-        "README.rst"
+        "README.md"
     });
 }
 
