@@ -30,7 +30,6 @@ class Vector():
     def __init__(self, ceed, size):
         # CeedVector object
         self._pointer = ffi.new("CeedVector *")
-        self._owned_externally = False
         # Reference to Ceed
         self._ceed = ceed
 
@@ -42,10 +41,8 @@ class Vector():
     # Destructor
     def __del__(self):
         # libCEED call
-        if not self._owned_externally:
-            print(f'deleting {self._pointer}')
-            err_code = lib.CeedVectorDestroy(self._pointer)
-            self._ceed._check_error(err_code)
+        err_code = lib.CeedVectorDestroy(self._pointer)
+        self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -341,8 +338,6 @@ class Vector():
                                                        b'dltensor',
                                                        None
                                                        )
-        self._owned_externally = True
-        print('value:', dl_tensor, 'with type', type(dl_tensor))
         
         return dl_tensor
     
