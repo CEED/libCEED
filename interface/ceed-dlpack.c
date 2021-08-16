@@ -42,7 +42,7 @@ DLDeviceType GetDLDeviceType(Ceed ceed, CeedMemType mem_type)
   }
   else {
     if (starts_with(backend, "/gpu/cuda")) {
-      return kDLCUDA;
+      return kDLGPU;
     } else if (starts_with(backend, "/gpu/hip") || starts_with(backend, "/gpu/occa")) {
       return kDLROCM;
     } else {
@@ -52,25 +52,20 @@ DLDeviceType GetDLDeviceType(Ceed ceed, CeedMemType mem_type)
 }
 
 // DLDevice is two ints, so cheaper to copy than to dereference
-int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
+int CheckValidDeviceType(DLContext device, Ceed ceed, CeedMemType *memtype)
 {
   const char *backend;
   int ierr;
   ierr = CeedGetResource(ceed, &backend); CeedChk(ierr);
   switch (device.device_type) {
+  case kDLCPUPinned:
   case kDLCPU:
     *memtype = CEED_MEM_HOST;
     return CEED_MEM_HOST;
 
-  case kDLCUDAManaged:
-  case kDLCUDAHost:
-  case kDLCUDA:
+  case kDLGPU:
     if (starts_with(backend, "/gpu/cuda") || starts_with(backend, "/gpu/occa")) {
-      if (device.device_type == kDLCUDA || device.device_type == kDLCUDAManaged) {
-	*memtype = CEED_MEM_DEVICE;
-      } else {
-	*memtype = CEED_MEM_HOST;
-      }
+      *memtype = CEED_MEM_DEVICE;
       return CEED_ERROR_SUCCESS;
     } else {
       return CeedError(ceed, CEED_ERROR_BACKEND,
@@ -96,14 +91,9 @@ int CheckValidDeviceType(DLDevice device, Ceed ceed, CeedMemType *memtype)
     return CeedError(ceed, CEED_ERROR_BACKEND,
 		     "CeedVectorTakeFromDLPack is currently not supported "
 		     "for Verilog memory");
-  case kDLROCMHost:
   case kDLROCM:
     if (starts_with(backend, "/gpu/hip") || starts_with(backend, "/gpu/occa")) {
-      if (device.device_type == kDLROCM) {
-	*memtype = CEED_MEM_DEVICE;
-      } else {
-	*memtype = CEED_MEM_HOST;
-      }
+      *memtype = CEED_MEM_HOST;
       return CEED_ERROR_SUCCESS;
     } else {
       return CeedError(ceed, CEED_ERROR_BACKEND,
@@ -151,12 +141,8 @@ const char* DLDtypeName(DLTensor *tensor)
     return "DLUInt";
   case kDLFloat:
     return "DLFloat";
-  case kDLOpaqueHandle:
-    return "DLOpaqueHandle";
   case kDLBfloat:
     return "DLBfloat";
-  case kDLComplex:
-    return "DLComplex";
   default:
     return "Unknown";
   }
@@ -171,7 +157,7 @@ int CeedVectorTakeFromDLPack(Ceed ceed,
   int ierr;
   CeedMemType dl_mem_type;
   
-  ierr = CheckValidDeviceType(dl_tensor->dl_tensor.device, ceed,
+  ierr = CheckValidDeviceType(dl_tensor->dl_tensor.ctx, ceed,
 			      &dl_mem_type); CeedChk(ierr);
   if (DLDtypeSize(&dl_tensor->dl_tensor) != sizeof(CeedScalar)) {
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
@@ -192,8 +178,8 @@ void CeedDLPackDeleter(struct DLManagedTensor *self)
 {
   CeedVector vec = (CeedVector)self->manager_ctx;
   CeedScalar *array = (CeedScalar*)(self->dl_tensor.data + self->dl_tensor.byte_offset);
-  CeedVectorSetArray(vec, (self->dl_tensor.device.device_type == kDLCPU) ?
-		     CEED_MEM_HOST : CEED_MEM_DEVICE, CEED_USE_POINTER, &array);
+  CeedVectorSetArray(vec, (self->dl_tensor.ctx.device_type == kDLCPU) ?
+		     CEED_MEM_HOST : CEED_MEM_DEVICE, CEED_USE_POINTER, array);
   CeedFree(&(self->dl_tensor.shape));
   CeedFree(&(self->dl_tensor.data));
   //CeedVectorDestroy(&vec);
@@ -215,10 +201,9 @@ int CeedVectorToDLPack(Ceed ceed,
   ierr = CeedVectorTakeArray(vec, dl_mem_type, &array); CeedChk(ierr);
   tensor->dl_tensor.data = (void *)array;
   tensor->dl_tensor.byte_offset = 0;
-  tensor->dl_tensor.dtype.code = sizeof(CeedScalar) <= 8 ? kDLFloat : kDLComplex;
+  tensor->dl_tensor.dtype.code = kDLFloat;
   tensor->dl_tensor.dtype.bits = 8 * sizeof(CeedScalar);
   tensor->dl_tensor.dtype.lanes = 1;
-
   tensor->dl_tensor.ndim = 1;
   ierr = CeedMalloc(1, &(tensor->dl_tensor.shape)); CeedChk(ierr);
   tensor->dl_tensor.shape[0] = veclen;
@@ -231,6 +216,52 @@ int CeedVectorToDLPack(Ceed ceed,
 		     "Backend %s does not currently have DLPack support",
 		     backend);
   }
-  tensor->dl_tensor.device.device_type = devtype;
+  tensor->dl_tensor.ctx.device_type = devtype;
+  tensor->dl_tensor.ctx.device_id = 0;
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedPrintDLManagedTensor(DLManagedTensor *dl_tensor)
+{
+  char shape[23 * dl_tensor->dl_tensor.ndim + 3]; /* space for tuple of comma-separated values and null terminator, assuming the dimensions might be enormous and take up to 20 digits (which fits a whole int64_t regardless of value) */
+  char strides[23 * dl_tensor->dl_tensor.ndim + 3];
+  int stride_offset, shape_offset;
+  stride_offset = shape_offset = 0;
+  shape_offset = snprintf(shape, 2, "[");
+  if (dl_tensor->dl_tensor.strides) {
+    stride_offset = snprintf(strides, 2, "[");
+  } else {
+    stride_offset = snprintf(strides, sizeof("NULL"), "NULL");
+  }
+  for (int i=0; i < dl_tensor->dl_tensor.ndim - 1; ++i) {
+    shape_offset += snprintf(shape + shape_offset, 23, "%ld, ", dl_tensor->dl_tensor.shape[i]);
+    if (dl_tensor->dl_tensor.strides) {
+      stride_offset += snprintf(strides + stride_offset, 23, "%ld, ", dl_tensor->dl_tensor.strides[i]);
+    }
+  }
+  if (dl_tensor->dl_tensor.strides) {
+    snprintf(strides + stride_offset, 22, "%ld]",
+	     dl_tensor->dl_tensor.strides[dl_tensor->dl_tensor.ndim-1]);
+  }
+  snprintf(shape + shape_offset, 22, "%ld]",
+	   dl_tensor->dl_tensor.shape[dl_tensor->dl_tensor.ndim-1]);
+  
+  printf("struct DLManagedTensor {\n\tDLTensor dl_tensor == {\n"
+	 "\t\tvoid* data == %p;\n\t\tDLContext ctx == {\n"
+	 "\t\t\tDLDeviceType device_type == %d;\n\t\t\tint device_id == %d;\n"
+	 "\t\t};\n\t\tint ndim == %d;\n\t\tDLDataType dtype == {\n"
+	 "\t\t\tuint8_t code == %u;\n\t\t\tuint8_t bits == %u;\n"
+	 "\t\t\tuint16_t lanes == %u;\n\t\t};\n\t\tint64_t *shape == %s;\n"
+	 "\t\tint64_t *strides == %s\n\t\tuint64_t byte_offset == %lu;\n"
+	 "\t};\n\t void * manager_ctx == %p;\n"
+	 "\tvoid (*deleter)(struct DLManagedTensor * self) == %p\n"
+	 "};\n",
+	 dl_tensor->dl_tensor.data, dl_tensor->dl_tensor.ctx.device_type,
+	 dl_tensor->dl_tensor.ctx.device_id, dl_tensor->dl_tensor.ndim,
+	 dl_tensor->dl_tensor.dtype.code, dl_tensor->dl_tensor.dtype.bits,
+	 dl_tensor->dl_tensor.dtype.lanes, shape, strides,
+	 dl_tensor->dl_tensor.byte_offset,
+	 dl_tensor->manager_ctx,
+	 dl_tensor->deleter);
   return CEED_ERROR_SUCCESS;
 }

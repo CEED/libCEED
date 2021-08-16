@@ -30,7 +30,7 @@ class Vector():
     def __init__(self, ceed, size):
         # CeedVector object
         self._pointer = ffi.new("CeedVector *")
-
+        self._owned_externally = False
         # Reference to Ceed
         self._ceed = ceed
 
@@ -42,8 +42,10 @@ class Vector():
     # Destructor
     def __del__(self):
         # libCEED call
-        err_code = lib.CeedVectorDestroy(self._pointer)
-        self._ceed._check_error(err_code)
+        if not self._owned_externally:
+            print(f'deleting {self._pointer}')
+            err_code = lib.CeedVectorDestroy(self._pointer)
+            self._ceed._check_error(err_code)
 
     # Representation
     def __repr__(self):
@@ -322,6 +324,7 @@ class Vector():
         ierr = lib.CeedVectorToDLPack(self._ceed._pointer[0],
                                       self._pointer[0], mem_type,
                                       dl_tensor)
+        ierr = lib.CeedPrintDLManagedTensor(dl_tensor)
         self._ceed._check_error(ierr)
         if return_capsule:
             def get_capsule_type():
@@ -335,9 +338,10 @@ class Vector():
             ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object#ctypes.c_void_p
             # causes segfault --- why??
             dl_tensor = ctypes.pythonapi.PyCapsule_New(dl_tensor,
-                                                      b'dltensor'
+                                                       b'dltensor',
+                                                       None
                                                        )
-            
+        self._owned_externally = True
         print('value:', dl_tensor, 'with type', type(dl_tensor))
         
         return dl_tensor
