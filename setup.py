@@ -15,7 +15,7 @@
 # testbed platforms, in support of the nation"s exascale computing imperative.
 # pylint: disable=no-name-in-module,import-error,unused-variable
 import os
-from setuptools import setup
+from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from Cython.Build import cythonize
 
@@ -116,7 +116,9 @@ setup(name="libceed",
       extras_require={
           'cuda': ['numba']
       },
-      ext_modules=cythonize('python/ceed_dlpack.pyx')
+      ext_modules=cythonize(Extension('ceed_dlpack', ['python/ceed_dlpack.pyx'],
+                            include_dirs=[os.getcwd() + '/include/',
+                                          os.getcwd() + '/include/ceed/']))
       )
 
 # ------------------------------------------------------------------------------

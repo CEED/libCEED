@@ -19,33 +19,18 @@ cdef extern from "stdlib.h" nogil:
    void* malloc(size_t size)
 
 
-cdef struct DLDataType:
-    uint8_t code
-    uint8_t bits
-    uint16_t lanes
+cdef extern from "dlpack.h":
+   struct DLManagedTensor:
+      pass
 
-ctypedef struct DLContext:
-    int device_type
-    int device_id
 
-cdef enum DLDataTypeCode:
-    kDLInt = <unsigned int>0
-    kDLUInt = <unsigned int>1
-    kDLFloat = <unsigned int>2
 
-cdef struct DLTensor:
-    void* data
-    DLContext ctx
-    int ndim
-    DLDataType dtype
-    int64_t* shape
-    int64_t* strides
-    uint64_t byte_offset
 
-cdef struct DLManagedTensor:
-    DLTensor dl_tensor
-    void* manager_ctx
-    void (*manager_deleter)(DLManagedTensor*) nogil
+
+
+
+
+  
 
 
 

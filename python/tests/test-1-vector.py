@@ -332,8 +332,8 @@ def test_125(ceed_resource):
     n = 10
     x = ceed.Vector(n)
     x.set_value(5.0)
-    #dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
-    #                                       return_capsule=False)
+    dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
+                                           return_capsule=False)
     #assert 0
     #x.view_dlpack(dl_tensor)
     dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
