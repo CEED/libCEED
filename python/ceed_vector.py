@@ -315,12 +315,7 @@ class Vector():
         # libCEED call
         err_code = lib.CeedVectorSyncArray(self._pointer[0], memtype)
         self._ceed._check_error(err_code)
-
-
-    def view_dlpack(self, dl_tensor):
-        if not isinstance(dl_tensor, ffi.CData):
-            dl_tensor = ffi.cast("DLManagedTensor *", dl_tensor)
-        self._ceed._check_error(lib.CeedPrintDLManagedTensor(dl_tensor))
+        
 
     def to_dlpack(self, mem_type, return_capsule=False):
         # return a PyCapsule if return_capsule is True
