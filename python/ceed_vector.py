@@ -20,6 +20,7 @@ import numpy as np
 import contextlib
 from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
 import ctypes
+from .ceed_dlpack import DLPackPointerToCapsule, CapsuleToDLPackPointerValue
 # ------------------------------------------------------------------------------
 
 
@@ -315,42 +316,28 @@ class Vector():
         err_code = lib.CeedVectorSyncArray(self._pointer[0], memtype)
         self._ceed._check_error(err_code)
 
+
+    def view_dlpack(self, dl_tensor):
+        if not isinstance(dl_tensor, ffi.CData):
+            dl_tensor = ffi.cast("DLManagedTensor *", dl_tensor)
+        self._ceed._check_error(lib.CeedPrintDLManagedTensor(dl_tensor))
+
     def to_dlpack(self, mem_type, return_capsule=False):
         # return a PyCapsule if return_capsule is True
-        dl_tensor = ffi.new("DLManagedTensor *")
+        dl_tensor = ffi.new("DLManagedTensor *", CapsuleToDLPackPointerValue(dl_tensor))
         ierr = lib.CeedVectorToDLPack(self._ceed._pointer[0],
                                       self._pointer[0], mem_type,
                                       dl_tensor)
-        ierr = lib.CeedPrintDLManagedTensor(dl_tensor)
         self._ceed._check_error(ierr)
         if return_capsule:
-            def get_capsule_type():
-                class PyTypeObject(ctypes.Structure):
-                    pass  # don't need to define the full structure
-                capsuletype = PyTypeObject.in_dll(ctypes.pythonapi, "PyCapsule_Type")
-                capsuletypepointer = ctypes.pointer(capsuletype)
-                return ctypes.py_object.from_address(ctypes.addressof(capsuletypepointer)).value
-            PyCapsule_Destructor = ctypes.CFUNCTYPE(None, ctypes.py_object)
-            ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.py_object, ctypes.c_char_p]#, ctypes.c_void_p]
-            ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object#ctypes.c_void_p
-            # causes segfault --- why??
-            dl_tensor = ctypes.pythonapi.PyCapsule_New(dl_tensor,
-                                                       b'dltensor',
-                                                       None
-                                                       )
+            return DLPackPointerToCapsule(dl_tensor[0])
         
         return dl_tensor
     
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
-        #ctypes.pythonapi.PyCapsule_GetPointer.restype = DLManagedTensorHandle
-        #ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_capsule]
         if not isinstance(dl_tensor, ffi.CData):
-            ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_void_p
-            ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
-            dl_tensor = ctypes.pythonapi.PyCapsule_GetPointer(dl_tensor,
-                                                              ctypes.create_string_buffer("dltensor".encode()))
-            dl_tensor = ffi.cast("DLManagedTensor *", dl_tensor)
-        
+            dl_tensor = ffi.cast("DLManagedTensor *", CapsuleToDLPackPointerValue(dl_tensor))
+        print('taking from dlpack')
         ierr = lib.CeedVectorTakeFromDLPack(self._ceed._pointer[0],
                                             self._pointer[0],
                                             dl_tensor,#,#ctypes.cast(dl_tensor, DLManagedTensorHandle),

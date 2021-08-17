@@ -17,6 +17,7 @@
 import os
 from setuptools import setup
 from setuptools.command.build_ext import build_ext
+from Cython.Build import cythonize
 
 # ------------------------------------------------------------------------------
 # Setup
@@ -115,6 +116,7 @@ setup(name="libceed",
       extras_require={
           'cuda': ['numba']
       },
+      ext_modules=cythonize('python/ceed_dlpack.pyx')
       )
 
 # ------------------------------------------------------------------------------
