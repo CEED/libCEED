@@ -356,10 +356,10 @@ def test_126(ceed_resource):
     a = 5.3 * jnp.ones(n)
     x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
     check_values(ceed, x, 5.3)
-    y = jnp.asarray(x.get_array())
+    y = 2 * jnp.asarray(x.get_array())
     z = ceed.Vector(n)
     z.from_dlpack(jax.dlpack.to_dlpack(y))
-    check_values(ceed, z, 5.3)
+    check_values(ceed, z, 10.6)
 
 
 @pytest.mark.xfail
