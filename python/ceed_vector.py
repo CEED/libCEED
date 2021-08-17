@@ -337,7 +337,6 @@ class Vector():
     def from_dlpack(self, dl_tensor, copy_mode=USE_POINTER):
         if not isinstance(dl_tensor, ffi.CData):
             dl_tensor = ffi.cast("DLManagedTensor *", CapsuleToDLPackPointerValue(dl_tensor))
-        print('taking from dlpack')
         ierr = lib.CeedVectorTakeFromDLPack(self._ceed._pointer[0],
                                             self._pointer[0],
                                             dl_tensor,#,#ctypes.cast(dl_tensor, DLManagedTensorHandle),

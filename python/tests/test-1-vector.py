@@ -332,19 +332,34 @@ def test_125(ceed_resource):
     n = 10
     x = ceed.Vector(n)
     x.set_value(5.0)
-    dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
-                                           return_capsule=False)
+    #dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
+    #                                       return_capsule=False)
     #assert 0
     #x.view_dlpack(dl_tensor)
-    dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
-                                           return_capsule=True)
+    #dl_tensor = x.to_dlpack(mem_type=libceed.MEM_HOST,
+    #                                       return_capsule=True)
     
-    print('dl_tensor is', dl_tensor)
-    y = jax.dlpack.from_dlpack(dl_tensor)
+    #print('dl_tensor is', dl_tensor)
+    y = jax.numpy.asarray(x.get_array())#jax.dlpack.from_dlpack(dl_tensor)
     #assert 0
     assert jnp.allclose(y, 5.0)
     del y
 
+def test_126(ceed_resource):
+    from jax import numpy as jnp
+    import jax.dlpack
+    ceed = libceed.Ceed(ceed_resource)
+    import jax
+    jax.config.update('jax_enable_x64', True) # to prevent dtype incompatibility
+    n = 10
+    x = ceed.Vector(n)
+    a = 5.3 * jnp.ones(n)
+    x.from_dlpack(jax.dlpack.to_dlpack(a, take_ownership=False))
+    check_values(ceed, x, 5.3)
+    y = jnp.asarray(x.get_array())
+    z = ceed.Vector(n)
+    z.from_dlpack(jax.dlpack.to_dlpack(y))
+    check_values(ceed, z, 5.3)
 
 
 @pytest.mark.xfail
