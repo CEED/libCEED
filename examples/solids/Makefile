@@ -79,11 +79,11 @@ $(PETSc.pc):
 pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
 
 # E = 2 * mu + (1 + nu)
-output/NH-strain.csv: args = -problem FSInitial-NH1 -E 2.8 -nu 0.4
-output/MR-strain.csv: args = -problem FSInitial-MR1 -mu_1 1 -mu_2 0.0 -nu .4
-output/MR-strain1.csv: args = -problem FSInitial-MR1 -mu_1 .5 -mu_2 0.5 -nu .4
+tests-output/NH-strain.csv: args = -problem FSInitial-NH1 -E 2.8 -nu 0.4
+tests-output/MR-strain.csv: args = -problem FSInitial-MR1 -mu_1 1 -mu_2 0.0 -nu .4
+tests-output/MR-strain1.csv: args = -problem FSInitial-MR1 -mu_1 .5 -mu_2 0.5 -nu .4
 
-output/%.csv: elasticity
+tests-output/%.csv: elasticity
 	./$<  $(args) -degree 2 -dm_plex_box_faces 3,3,3 -num_steps 15 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-1 -snes_converged_reason -snes_linesearch_atol 1e-30 -strain_energy_monitor $@
 
 -include $(src.o:%.o=%.d)
