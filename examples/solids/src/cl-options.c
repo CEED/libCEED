@@ -1,23 +1,7 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
-//
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
-//
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
-
 /// @file
 /// Command line option processing for solid mechanics example using PETSc
 
-#include "../elasticity.h"
+#include "../include/cl-options.h"
 
 // -----------------------------------------------------------------------------
 // Process command line options
@@ -64,6 +48,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           NULL, problemTypes, (PetscEnum)app_ctx->problem_choice,
                           (PetscEnum *)&app_ctx->problem_choice, NULL);
   CHKERRQ(ierr);
+  app_ctx->name = problemTypes[app_ctx->problem_choice];
+  app_ctx->name_for_disp = problemTypesForDisp[app_ctx->problem_choice];
 
   app_ctx->num_increments = app_ctx->problem_choice == ELAS_LINEAR ? 1 : 10;
   ierr = PetscOptionsInt("-num_steps", "Number of pseudo-time steps",
@@ -170,11 +156,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
                           (PetscEnum *)&app_ctx->multigrid_choice, NULL);
   CHKERRQ(ierr);
 
-  app_ctx->nu_smoother = 0.;
-  ierr = PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother",
-                            NULL, app_ctx->nu_smoother, &app_ctx->nu_smoother, NULL);
-  CHKERRQ(ierr);
-
   app_ctx->test_mode = PETSC_FALSE;
   ierr = PetscOptionsBool("-test",
                           "Testing mode (do not print unless error is large)",
@@ -190,7 +171,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   app_ctx->test_tol = 1e-8;
   ierr = PetscOptionsReal("-expect_final_state_rtol",
                           "Relative tolerance for final strain energy test",
-                          NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL); CHKERRQ(ierr);
+                          NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL);
+  CHKERRQ(ierr);
 
   app_ctx->view_soln = PETSC_FALSE;
   ierr = PetscOptionsBool("-view_soln", "Write out solution vector for viewing",
@@ -270,155 +252,5 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
     break;
   }
 
-  PetscFunctionReturn(0);
-};
-
-// Process physics options
-PetscErrorCode ProcessPhysics(MPI_Comm comm, Physics phys, Units units) {
-  PetscErrorCode ierr;
-  PetscBool nu_flag = PETSC_FALSE;
-  PetscBool Young_flag = PETSC_FALSE;
-  phys->nu = 0;
-  phys->E = 0;
-  units->meter     = 1;        // 1 meter in scaled length units
-  units->second    = 1;        // 1 second in scaled time units
-  units->kilogram  = 1;        // 1 kilogram in scaled mass units
-
-  PetscFunctionBeginUser;
-
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Elasticity / Hyperelasticity in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
-
-  ierr = PetscOptionsScalar("-nu", "Poisson's ratio", NULL, phys->nu, &phys->nu,
-                            &nu_flag); CHKERRQ(ierr);
-
-  ierr = PetscOptionsScalar("-E", "Young's Modulus", NULL, phys->E, &phys->E,
-                            &Young_flag); CHKERRQ(ierr);
-
-  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
-                            NULL, units->meter, &units->meter, NULL);
-  CHKERRQ(ierr);
-  units->meter = fabs(units->meter);
-
-  ierr = PetscOptionsScalar("-units_second", "1 second in scaled time units",
-                            NULL, units->second, &units->second, NULL);
-  CHKERRQ(ierr);
-  units->second = fabs(units->second);
-
-  ierr = PetscOptionsScalar("-units_kilogram", "1 kilogram in scaled mass units",
-                            NULL, units->kilogram, &units->kilogram, NULL);
-  CHKERRQ(ierr);
-  units->kilogram = fabs(units->kilogram);
-
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
-
-  // Check for all required options to be set
-  if (!nu_flag) {
-    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-nu option needed");
-  }
-  if (!Young_flag) {
-    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "-E option needed");
-  }
-
-  // Define derived units
-  units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
-
-  // Scale E to Pa
-  phys->E *= units->Pascal;
-
-  PetscFunctionReturn(0);
-};
-
-// Process physics options - Mooney-Rivlin
-PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys_MR,
-                                 Units units) {
-  PetscErrorCode ierr;
-  PetscReal nu = -1;
-  phys_MR->mu_1 = -1;
-  phys_MR->mu_2 = -1;
-  phys_MR->lambda = -1;
-  units->meter     = 1;        // 1 meter in scaled length units
-  units->second    = 1;        // 1 second in scaled time units
-  units->kilogram  = 1;        // 1 kilogram in scaled mass units
-
-  PetscFunctionBeginUser;
-
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Elasticity / Hyperelasticity in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
-
-  ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
-                            phys_MR->mu_1, &phys_MR->mu_1, NULL); CHKERRQ(ierr);
-  if (phys_MR->mu_1 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                                   "Mooney-Rivlin model requires non-negative -mu_1 option (Pa)");
-
-  ierr = PetscOptionsScalar("-mu_2", "Material Property mu_2", NULL,
-                            phys_MR->mu_2, &phys_MR->mu_2, NULL); CHKERRQ(ierr);
-  if (phys_MR->mu_2 < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                                   "Mooney-Rivlin model requires non-negative -mu_2 option (Pa)");
-
-  ierr = PetscOptionsScalar("-nu", "Poisson ratio", NULL,
-                            nu, &nu, NULL); CHKERRQ(ierr);
-  if (nu < 0 || 0.5 <= nu) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                                     "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
-  phys_MR->lambda = 2 * (phys_MR->mu_1 + phys_MR->mu_2) * nu / (1 - 2*nu);
-
-  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
-                            NULL, units->meter, &units->meter, NULL);
-  CHKERRQ(ierr);
-  units->meter = fabs(units->meter);
-
-  ierr = PetscOptionsScalar("-units_second", "1 second in scaled time units",
-                            NULL, units->second, &units->second, NULL);
-  CHKERRQ(ierr);
-  units->second = fabs(units->second);
-
-  ierr = PetscOptionsScalar("-units_kilogram", "1 kilogram in scaled mass units",
-                            NULL, units->kilogram, &units->kilogram, NULL);
-  CHKERRQ(ierr);
-  units->kilogram = fabs(units->kilogram);
-
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
-
-  // Define derived units
-  units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));
-
-  // Scale material parameters based on units of Pa
-  phys_MR->mu_1 *= units->Pascal;
-  phys_MR->mu_2 *= units->Pascal;
-  phys_MR->lambda *= units->Pascal;
-
-  PetscFunctionReturn(0);
-};
-
-PetscErrorCode ProcessPhysics_General(MPI_Comm comm, AppCtx app_ctx,
-                                      Physics phys, Physics_MR phys_MR, Units units) {
-  PetscErrorCode ierr;
-  if (app_ctx -> problem_choice == ELAS_FSInitial_MR1) {
-    ierr = ProcessPhysics_MR(comm, phys_MR, units); CHKERRQ(ierr);
-  } else {
-    ierr = ProcessPhysics(comm, phys, units); CHKERRQ(ierr);
-  }
-
-  PetscFunctionReturn(0);
-};
-
-// test option change. could remove the loading step. Run only with one loading step and compare relatively to ref file
-// option: expect_final_strain_energy and check against the relative error to ref is within tolerance (10^-5) I.e. one Newton solve then check final energy
-PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy) {
-
-  if (app_ctx->expect_final_strain >= 0.) {
-    PetscReal energy_ref = app_ctx->expect_final_strain;
-    PetscReal error = PetscAbsReal(energy - energy_ref) / energy_ref;
-
-    if (error > app_ctx->test_tol) {
-      PetscErrorCode ierr;
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-                         "Energy %e does not match expected energy %e: relative tolerance %e > %e\n",
-                         (double)energy, (double)energy_ref, (double)error, app_ctx->test_tol);
-      CHKERRQ(ierr);
-    }
-  }
   PetscFunctionReturn(0);
 };

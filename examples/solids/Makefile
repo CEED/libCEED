@@ -36,8 +36,9 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
 OBJDIR := build
 SRCDIR := src
+PROBLEMDIR := problems
 
-src.c := elasticity.c $(sort $(wildcard $(SRCDIR)/*.c))
+src.c := elasticity.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: elasticity
