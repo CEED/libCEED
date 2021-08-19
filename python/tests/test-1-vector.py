@@ -22,7 +22,7 @@ import libceed
 import numpy as np
 import check
 
-TOL = libceed.lib.CEED_EPSILON * 256
+TOL = libceed.EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utility

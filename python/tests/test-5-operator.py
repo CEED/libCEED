@@ -23,7 +23,7 @@ import numpy as np
 import check
 import buildmats as bm
 
-TOL = libceed.lib.CEED_EPSILON * 256
+TOL = libceed.EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utility

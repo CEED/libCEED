@@ -24,7 +24,7 @@ import numpy as np
 import buildmats as bm
 import check
 
-TOL = libceed.lib.CEED_EPSILON * 256
+TOL = libceed.EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utilities
@@ -62,9 +62,13 @@ def test_300(ceed_resource, capsys):
     print(b)
     del b
 
-    stdout, stderr, ref_stdout = check.output(capsys)
-# TODO: fix this for float or double
+    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP32:
+        stdout, stderr, ref_stdout = check.output(capsys, suffix='_fp32.out')
+    else:
+        stdout, stderr, ref_stdout = check.output(capsys)
     assert not stderr
+    print(stdout)
+    print(ref_stdout)
     assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
