@@ -145,8 +145,7 @@ def test_501(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -236,8 +235,7 @@ def test_502(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -333,8 +331,7 @@ def test_503(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -498,8 +495,7 @@ def test_505(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -642,10 +638,8 @@ def test_510(ceed_resource):
     rui = ceed.StridedElemRestriction(nelem, q, 1, nqpts, strides)
 
     # Bases
-    qref = np.empty(
-        dim * q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q, dtype=ceed.scalar_type())
+    qweight = np.empty(q, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -711,8 +705,7 @@ def test_511(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs,
-                       dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ndofs):
         x_array[i] = (1. / (nx * 2)) * (i % (nx * 2 + 1))
         x_array[i + ndofs] = (1. / (ny * 2)) * (i / (nx * 2 + 1))
@@ -752,10 +745,8 @@ def test_511(ceed_resource):
     rui = ceed.StridedElemRestriction(nelem, q, 1, nqpts, strides)
 
     # Bases
-    qref = np.empty(
-        dim * q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q, dtype=ceed.scalar_type())
+    qweight = np.empty(q, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -868,10 +859,8 @@ def test_520(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet,
-                    dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q_tet, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -1001,8 +990,7 @@ def test_521(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs,
-                       dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ny * 2 + 1):
         for j in range(nx * 2 + 1):
             x_array[i + j * (ny * 2 + 1)] = i / (2 * ny)
@@ -1047,10 +1035,8 @@ def test_521(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet,
-                    dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q_tet, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -1216,10 +1202,8 @@ def test_523(ceed_resource, capsys):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet,
-                    dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q_tet, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -1349,8 +1333,7 @@ def test_524(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs,
-                       dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ny * 2 + 1):
         for j in range(nx * 2 + 1):
             x_array[i + j * (ny * 2 + 1)] = i / (2 * ny)
@@ -1395,10 +1378,8 @@ def test_524(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet,
-                    dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        q_tet, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
 
@@ -1597,8 +1578,7 @@ def test_550(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -1734,8 +1714,7 @@ def test_552(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -1873,8 +1852,7 @@ def test_553(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(
-        nx, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)

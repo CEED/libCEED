@@ -45,8 +45,7 @@ def test_100(ceed_resource):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array_read() as b:
@@ -63,8 +62,7 @@ def test_101(ceed_resource):
     n = 10
     x = ceed.Vector(n)
     value = 1
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as b:
@@ -111,8 +109,7 @@ def test_103(ceed_resource):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as x_array:
@@ -133,7 +130,7 @@ def test_104(ceed_resource):
     n = 10
 
     x = ceed.Vector(n)
-    a = np.zeros(n, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    a = np.zeros(n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as b:
@@ -159,8 +156,7 @@ def test_105(ceed_resource):
         x = ceed.Vector(n)
         y = ceed.Vector(n)
 
-        a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-            libceed.lib.CEED_SCALAR_TYPE])
+        a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
         x.set_array(a, cmode=libceed.USE_POINTER)
 
         arr = x.get_array_read(memtype=libceed.MEM_DEVICE)
@@ -182,8 +178,7 @@ def test_107(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     print(x)
@@ -203,8 +198,7 @@ def test_108(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(
-        0, n, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(0, n, dtype=ceed.scalar_type())
     for i in range(n):
         if (i % 2 == 0):
             a[i] *= -1
@@ -233,8 +227,7 @@ def test_119(ceed_resource):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
     x.reciprocal()
 
@@ -254,8 +247,7 @@ def test_121(ceed_resource, capsys):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.COPY_VALUES)
     y.set_array(a, cmode=libceed.COPY_VALUES)
 
@@ -276,8 +268,7 @@ def test_122(ceed_resource, capsys):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(
-        0, n, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(0, n, dtype=ceed.scalar_type())
     w.set_array(a, cmode=libceed.COPY_VALUES)
     x.set_array(a, cmode=libceed.COPY_VALUES)
     y.set_array(a, cmode=libceed.COPY_VALUES)
@@ -313,8 +304,7 @@ def test_123(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype=libceed.scalar_types[
-        libceed.lib.CEED_SCALAR_TYPE])
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.COPY_VALUES)
 
     x.scale(-0.5)

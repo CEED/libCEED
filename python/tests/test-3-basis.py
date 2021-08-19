@@ -82,10 +82,10 @@ def test_301(ceed_resource):
     m = 4
     n = 3
     a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
-                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=ceed.scalar_type())
     qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
-                  dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    tau = np.empty(3, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                  dtype=ceed.scalar_type())
+    tau = np.empty(3, dtype=ceed.scalar_type())
 
     qr, tau = ceed.qr_factorization(qr, tau, m, n)
     np_qr, np_tau = np.linalg.qr(a.reshape(m, n), mode="raw")
@@ -110,7 +110,7 @@ def test_304(ceed_resource):
                   0.0745355993, 1., 0.1666666667, -0.0745355993,
                   -0.0745355993, 0.1666666667, 1., 0.0745355993,
                   0.0333333333, -0.0745355993, 0.0745355993, 0.2],
-                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=ceed.scalar_type())
 
     Q = A.copy()
 
@@ -133,12 +133,12 @@ def test_305(ceed_resource):
                   0.0745355993, 1., 0.1666666667, -0.0745355993,
                   -0.0745355993, 0.1666666667, 1., 0.0745355993,
                   0.0333333333, -0.0745355993, 0.0745355993, 0.2],
-                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=ceed.scalar_type())
     K = np.array([3.0333333333, -3.4148928136, 0.4982261470, -0.1166666667,
                   -3.4148928136, 5.8333333333, -2.9166666667, 0.4982261470,
                   0.4982261470, -2.9166666667, 5.8333333333, -3.4148928136,
                   -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333],
-                 dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                 dtype=ceed.scalar_type())
 
     X, lam = ceed.simultaneous_diagonalization(K, M, 4)
     X = X.reshape(4, 4)
@@ -181,10 +181,8 @@ def test_313(ceed_resource):
         Q = 10
         Qdim = Q**dim
         Xdim = 2**dim
-        x = np.empty(Xdim * dim,
-                     dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-        uq = np.empty(
-            Qdim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+        x = np.empty(Xdim * dim, dtype=ceed.scalar_type())
+        uq = np.empty(Qdim, dtype=ceed.scalar_type())
 
         for d in range(dim):
             for i in range(Xdim):
@@ -206,8 +204,7 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Qdim):
-                xx = np.empty(
-                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 uq[i] = eval(dim, xx)
@@ -225,8 +222,7 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq, Uq.array_read() as u:
             for i in range(Qdim):
-                xx = np.empty(
-                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 fx = eval(dim, xx)
@@ -246,10 +242,8 @@ def test_314(ceed_resource):
         Qdim = Q**dim
         Xdim = 2**dim
         sum1 = sum2 = 0
-        x = np.empty(Xdim * dim,
-                     dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-        u = np.empty(
-            Pdim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+        x = np.empty(Xdim * dim, dtype=ceed.scalar_type())
+        u = np.empty(Pdim, dtype=ceed.scalar_type())
 
         for d in range(dim):
             for i in range(Xdim):
@@ -274,8 +268,7 @@ def test_314(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Pdim):
-                xx = np.empty(
-                    dim, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Pdim + i]
                 u[i] = eval(dim, xx)
@@ -306,12 +299,9 @@ def test_320(ceed_resource):
 
     P, Q, dim = 6, 4, 2
 
-    in_array = np.empty(
-        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qref = np.empty(
-        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
@@ -332,13 +322,10 @@ def test_322(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    in_array = np.empty(
-        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qref = np.empty(
-        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                   0., 0.5, 0.5, 1.], dtype=ceed.scalar_type())
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])
@@ -377,15 +364,12 @@ def test_323(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xq = np.array([0.2, 0.6, 1. / 3., 0.2, 0.2, 0.2,
-                   1. / 3., 0.6], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                   1. / 3., 0.6], dtype=ceed.scalar_type())
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    in_array = np.empty(
-        P, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qref = np.empty(
-        dim * Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    qweight = np.empty(
-        Q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+                   0., 0.5, 0.5, 1.], dtype=ceed.scalar_type())
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
     interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
         libceed.lib.CEED_SCALAR_TYPE])

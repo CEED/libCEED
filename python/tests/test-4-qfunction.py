@@ -66,12 +66,9 @@ def test_400(ceed_resource):
 
     q = 8
 
-    w_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    u_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    v_true = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    w_array = np.zeros(q, dtype=ceed.scalar_type())
+    u_array = np.zeros(q, dtype=ceed.scalar_type())
+    v_true = np.zeros(q, dtype=ceed.scalar_type())
     for i in range(q):
         x = 2. * i / (q - 1) - 1
         w_array[i] = 1 - x * x
@@ -124,20 +121,16 @@ def test_401(ceed_resource):
     qf_mass.add_input("u", 1, libceed.EVAL_INTERP)
     qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
 
-    ctx_data = np.array([1., 2., 3., 4., 5.],
-                        dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    ctx_data = np.array([1., 2., 3., 4., 5.], dtype=ceed.scalar_type())
     ctx = ceed.QFunctionContext()
     ctx.set_data(ctx_data)
     qf_mass.set_context(ctx)
 
     q = 8
 
-    w_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    u_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    v_true = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    w_array = np.zeros(q, dtype=ceed.scalar_type())
+    u_array = np.zeros(q, dtype=ceed.scalar_type())
+    v_true = np.zeros(q, dtype=ceed.scalar_type())
     for i in range(q):
         x = 2. * i / (q - 1) - 1
         w_array[i] = 1 - x * x
@@ -194,12 +187,11 @@ def test_402(ceed_resource, capsys):
     print(qf_mass)
 
     if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP64:
-        ctx_data = np.array([1., 2., 3., 4., 5.],
-                            dtype=libceed.scalar_types[libceed.SCALAR_FP64])
+        ctx_data = np.array([1., 2., 3., 4., 5.], dtype="float64")
     # Make ctx twice as long in fp32, so size will be the same as fp64 output
     else:
         ctx_data = np.array([1., 2., 3., 4., 5., 1., 2., 3., 4., 5.],
-                            dtype=libceed.scalar_types[libceed.SCALAR_FP32])
+                            dtype="float32")
     ctx = ceed.QFunctionContext()
     ctx.set_data(ctx_data)
     print(ctx)
@@ -221,14 +213,10 @@ def test_410(ceed_resource):
 
     q = 8
 
-    j_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    w_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    u_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
-    v_true = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    j_array = np.zeros(q, dtype=ceed.scalar_type())
+    w_array = np.zeros(q, dtype=ceed.scalar_type())
+    u_array = np.zeros(q, dtype=ceed.scalar_type())
+    v_true = np.zeros(q, dtype=ceed.scalar_type())
     for i in range(q):
         x = 2. * i / (q - 1) - 1
         j_array[i] = 1
@@ -271,8 +259,7 @@ def test_411(ceed_resource):
 
     q = 8
 
-    u_array = np.zeros(
-        q, dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    u_array = np.zeros(q, dtype=ceed.scalar_type())
     for i in range(q):
         u_array[i] = i * i
 
@@ -302,8 +289,7 @@ def test_412(ceed_resource):
 
     q = 8
 
-    u_array = np.zeros(q * size,
-                       dtype=libceed.scalar_types[libceed.lib.CEED_SCALAR_TYPE])
+    u_array = np.zeros(q * size, dtype=ceed.scalar_type())
     for i in range(q * size):
         u_array[i] = i * i
 

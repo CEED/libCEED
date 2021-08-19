@@ -111,6 +111,15 @@ class Ceed():
 
         return memtype[0]
 
+    # Convenience function to get CeedScalar type
+    def scalar_type(self):
+        """Return dtype string for CeedScalar.
+
+           Returns:
+             np_dtype: String naming numpy data type corresponding to CeedScalar"""
+
+        return scalar_types[lib.CEED_SCALAR_TYPE]
+
     # --- Basis utility functions ---
 
     # Gauss quadrature
