@@ -139,9 +139,13 @@ int main(int argc, char **argv) {
     sum_2 += hv[2*i+1];
   }
   if (fabs(sum_1-1.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 1.0\n", sum_1);
+  // LCOV_EXCL_STOP
   if (fabs(sum_2-2.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 2.0\n", sum_2);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &hv);
 
   // 'Large' operator
@@ -155,9 +159,13 @@ int main(int argc, char **argv) {
     sum_2 += hv[2*i+1];
   }
   if (fabs(sum_1-1.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 1.0\n", sum_1);
+  // LCOV_EXCL_STOP
   if (fabs(sum_2-2.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 2.0\n", sum_2);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &hv);
 
   CeedQFunctionDestroy(&qf_setup);

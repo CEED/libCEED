@@ -224,7 +224,9 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_dofs; i++)
     sum += hv[i];
   if (fabs(sum-1.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 1.0\n", sum);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Apply Add
@@ -237,7 +239,9 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_dofs; i++)
     sum += hv[i];
   if (fabs(sum-1.)>1000.*CEED_EPSILON)
+    // LCOV_EXCL_START
     printf("Computed Area: %f != True Area: 1.0\n", sum);
+  // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Cleanup
