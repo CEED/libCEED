@@ -99,6 +99,8 @@ def run(test, backends):
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
                 elif 'Can only provide to HOST memory' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
+                elif 'Test not implemented in single precision' in proc.stderr:
+                    case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
                 if test[:4] in 't006 t007'.split():
@@ -132,7 +134,18 @@ def run(test, backends):
                                                          fromfile=ref_stdout,
                                                          tofile='New'))
                     if diff:
-                        case.add_failure_info('stdout', output=''.join(diff))
+                        # t300 and t320 have secondary output files for single precision; check these too
+                        ref_stdout_fp32 = os.path.join('tests/output', test + '-fp32.out')
+                        if os.path.isfile(ref_stdout_fp32):
+                            with open(ref_stdout_fp32) as ref:
+                                diff_fp32 = list(difflib.unified_diff(ref.readlines(),
+                                                             proc.stdout.splitlines(keepends=True),
+                                                             fromfile=ref_stdout_fp32,
+                                                             tofile='New'))
+                            if diff_fp32:
+                                case.add_failure_info('stdout', output=''.join(diff))
+                        else:
+                            case.add_failure_info('stdout', output=''.join(diff))
                 elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
             testcases.append(case)
