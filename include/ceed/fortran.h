@@ -35,7 +35,7 @@
 !-----------------------------------------------------------------------
 
       integer ceed_scalar_fp32
-      parameter(ceed_scalar_fp32   = 0)
+      parameter(ceed_scalar_fp32 = 0)
 
       integer ceed_scalar_fp64
       parameter(ceed_scalar_fp64 = 1)
