@@ -2,7 +2,7 @@ import inspect
 import os
 
 
-def output(capsys):
+def output(capsys, suffix='.out'):
     stdout, stderr = capsys.readouterr()
 
     caller = inspect.stack()[1]
@@ -11,7 +11,7 @@ def output(capsys):
         caller_dirname,
         'output',
         caller.function +
-        '.out')
+        suffix)
     with open(output_file) as output_file:
         ref_stdout = output_file.read()
 
