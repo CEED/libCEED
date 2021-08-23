@@ -51,6 +51,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   problem->apply_vol_ifunction     = IFunction_DC;
   problem->apply_vol_ifunction_loc = IFunction_DC_loc;
   problem->bc                      = Exact_DC;
+  problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
   problem->bc_func                 = BC_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_DENSITY_CURRENT;
@@ -240,6 +241,27 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->g        = g;
   user->phys->dc_ctx->Rd       = Rd;
   user->phys->dc_ctx->stabilization = stab;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx,
+    Physics phys) {
+  PetscFunctionBeginUser;
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
+  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
+  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
+  CeedQFunctionContextCreate(ceed, &ceed_data->dc_context);
+  CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*phys->dc_ctx), phys->dc_ctx);
+  if (ceed_data->qf_rhs_vol)
+    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
+  if (ceed_data->qf_ifunction_vol)
+    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->dc_context);
 
   PetscFunctionReturn(0);
 }
