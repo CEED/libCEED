@@ -157,7 +157,7 @@ pub fn cartesian_mesh_coords(
             for d in 0..dim {
                 let d_1d = r_nodes % num_d[d];
                 coords[gs_nodes + scalar_size * d] =
-                    ((d_1d / (p - 1)) as f64 + nodes[d_1d % (p - 1)]) / num_xyz[d] as f64;
+                    ((d_1d / (p - 1)) as Scalar + nodes[d_1d % (p - 1)]) / num_xyz[d] as Scalar;
                 r_nodes /= num_d[d];
             }
         }

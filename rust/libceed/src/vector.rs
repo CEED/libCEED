@@ -146,7 +146,7 @@ impl<'a> Vector<'a> {
     /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.]).unwrap();
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_slice(ceed: &'a crate::Ceed, v: &[f64]) -> crate::Result<Self> {
+    pub fn from_slice(ceed: &'a crate::Ceed, v: &[crate::Scalar]) -> crate::Result<Self> {
         let mut x = Self::create(ceed, v.len())?;
         x.set_slice(v)?;
         Ok(x)
@@ -166,13 +166,13 @@ impl<'a> Vector<'a> {
     ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// ```
-    pub fn from_array(ceed: &'a crate::Ceed, v: &mut [f64]) -> crate::Result<Self> {
+    pub fn from_array(ceed: &'a crate::Ceed, v: &mut [crate::Scalar]) -> crate::Result<Self> {
         let x = Self::create(ceed, v.len())?;
         let (host, user_pointer) = (
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
         );
-        let v = v.as_ptr() as *mut f64;
+        let v = v.as_ptr() as *mut crate::Scalar;
         let ierr = unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) };
         ceed.check_error(ierr)?;
         Ok(x)
@@ -225,7 +225,7 @@ impl<'a> Vector<'a> {
     ///     assert_eq!(*v, val, "Value not set correctly");
     /// });
     /// ```
-    pub fn set_value(&mut self, value: f64) -> crate::Result<i32> {
+    pub fn set_value(&mut self, value: crate::Scalar) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
         self.ceed.check_error(ierr)
     }
@@ -243,17 +243,22 @@ impl<'a> Vector<'a> {
     /// vec.set_slice(&[10., 11., 12., 13.]).unwrap();
     ///
     /// vec.view().iter().enumerate().for_each(|(i, v)| {
-    ///     assert_eq!(*v, 10. + i as f64, "Slice not set correctly");
+    ///     assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
     /// });
     /// ```
-    pub fn set_slice(&mut self, slice: &[f64]) -> crate::Result<i32> {
+    pub fn set_slice(&mut self, slice: &[crate::Scalar]) -> crate::Result<i32> {
         assert_eq!(self.length(), slice.len());
         let (host, copy_mode) = (
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
         );
         let ierr = unsafe {
-            bind_ceed::CeedVectorSetArray(self.ptr, host, copy_mode, slice.as_ptr() as *mut f64)
+            bind_ceed::CeedVectorSetArray(
+                self.ptr,
+                host,
+                copy_mode,
+                slice.as_ptr() as *mut crate::Scalar,
+            )
         };
         self.ceed.check_error(ierr)
     }
@@ -341,8 +346,8 @@ impl<'a> Vector<'a> {
     /// let l2_norm = vec.norm(NormType::Two).unwrap();
     /// assert!((l2_norm - 5.477) < 1e-3, "Incorrect L2 norm");
     /// ```
-    pub fn norm(&self, ntype: crate::NormType) -> crate::Result<f64> {
-        let mut res: f64 = 0.0;
+    pub fn norm(&self, ntype: crate::NormType) -> crate::Result<crate::Scalar> {
+        let mut res: crate::Scalar = 0.0;
         let ierr = unsafe {
             bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res)
         };
@@ -363,11 +368,11 @@ impl<'a> Vector<'a> {
     ///
     /// vec = vec.scale(-1.0).unwrap();
     /// vec.view().iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, -(i as f64), "Value not set correctly");
+    ///     assert_eq!(v, -(i as Scalar), "Value not set correctly");
     /// });
     /// ```
     #[allow(unused_mut)]
-    pub fn scale(mut self, alpha: f64) -> crate::Result<Self> {
+    pub fn scale(mut self, alpha: crate::Scalar) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) };
         self.ceed.check_error(ierr)?;
         Ok(self)
@@ -388,11 +393,11 @@ impl<'a> Vector<'a> {
     ///
     /// y = y.axpy(-0.5, &x).unwrap();
     /// y.view().iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as f64) / 2.0, "Value not set correctly");
+    ///     assert_eq!(v, (i as Scalar) / 2.0, "Value not set correctly");
     /// });
     /// ```
     #[allow(unused_mut)]
-    pub fn axpy(mut self, alpha: f64, x: &crate::Vector) -> crate::Result<Self> {
+    pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
         self.ceed.check_error(ierr)?;
         Ok(self)
@@ -414,7 +419,7 @@ impl<'a> Vector<'a> {
     ///
     /// w = w.pointwise_mult(&x, &y).unwrap();
     /// w.view().iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// ```
     #[allow(unused_mut)]
@@ -438,7 +443,7 @@ impl<'a> Vector<'a> {
     ///
     /// w = w.pointwise_scale(&x).unwrap();
     /// w.view().iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// ```
     #[allow(unused_mut)]
@@ -457,7 +462,7 @@ impl<'a> Vector<'a> {
     ///
     /// w = w.pointwise_square().unwrap();
     /// w.view().iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as f64).powf(2.0), "Value not set correctly");
+    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// ```
     #[allow(unused_mut)]
@@ -477,7 +482,7 @@ impl<'a> Vector<'a> {
 #[derive(Debug)]
 pub struct VectorView<'a> {
     vec: &'a Vector<'a>,
-    array: *const f64,
+    array: *const crate::Scalar,
 }
 
 impl<'a> VectorView<'a> {
@@ -509,8 +514,8 @@ impl<'a> Drop for VectorView<'a> {
 
 // Data access
 impl<'a> Deref for VectorView<'a> {
-    type Target = [f64];
-    fn deref(&self) -> &[f64] {
+    type Target = [crate::Scalar];
+    fn deref(&self) -> &[crate::Scalar] {
         unsafe { std::slice::from_raw_parts(self.array, self.vec.len()) }
     }
 }
@@ -529,7 +534,7 @@ impl<'a> fmt::Display for VectorView<'a> {
 #[derive(Debug)]
 pub struct VectorViewMut<'a> {
     vec: &'a Vector<'a>,
-    array: *mut f64,
+    array: *mut crate::Scalar,
 }
 
 impl<'a> VectorViewMut<'a> {
@@ -561,15 +566,15 @@ impl<'a> Drop for VectorViewMut<'a> {
 
 // Data access
 impl<'a> Deref for VectorViewMut<'a> {
-    type Target = [f64];
-    fn deref(&self) -> &[f64] {
+    type Target = [crate::Scalar];
+    fn deref(&self) -> &[crate::Scalar] {
         unsafe { std::slice::from_raw_parts(self.array, self.vec.len()) }
     }
 }
 
 // Mutable data access
 impl<'a> DerefMut for VectorViewMut<'a> {
-    fn deref_mut(&mut self) -> &mut [f64] {
+    fn deref_mut(&mut self) -> &mut [crate::Scalar] {
         unsafe { std::slice::from_raw_parts_mut(self.array, self.vec.len()) }
     }
 }

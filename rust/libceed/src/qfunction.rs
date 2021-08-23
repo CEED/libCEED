@@ -21,8 +21,8 @@ use std::pin::Pin;
 
 use crate::prelude::*;
 
-pub type QFunctionInputs<'a> = [&'a [f64]; MAX_QFUNCTION_FIELDS];
-pub type QFunctionOutputs<'a> = [&'a mut [f64]; MAX_QFUNCTION_FIELDS];
+pub type QFunctionInputs<'a> = [&'a [crate::Scalar]; MAX_QFUNCTION_FIELDS];
+pub type QFunctionOutputs<'a> = [&'a mut [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 
 // -----------------------------------------------------------------------------
 // CeedQFunction option
@@ -196,8 +196,10 @@ impl<'a> QFunctionCore<'a> {
 // -----------------------------------------------------------------------------
 // User QFunction Closure
 // -----------------------------------------------------------------------------
-pub type QFunctionUserClosure =
-    dyn FnMut([&[f64]; MAX_QFUNCTION_FIELDS], [&mut [f64]; MAX_QFUNCTION_FIELDS]) -> i32;
+pub type QFunctionUserClosure = dyn FnMut(
+    [&[crate::Scalar]; MAX_QFUNCTION_FIELDS],
+    [&mut [crate::Scalar]; MAX_QFUNCTION_FIELDS],
+) -> i32;
 
 macro_rules! mut_max_fields {
     ($e:expr) => {
@@ -217,12 +219,13 @@ unsafe extern "C" fn trampoline(
     // Inputs
     let inputs_slice: &[*const bind_ceed::CeedScalar] =
         std::slice::from_raw_parts(inputs, MAX_QFUNCTION_FIELDS);
-    let mut inputs_array: [&[f64]; MAX_QFUNCTION_FIELDS] = [&[0.0]; MAX_QFUNCTION_FIELDS];
+    let mut inputs_array: [&[crate::Scalar]; MAX_QFUNCTION_FIELDS] = [&[0.0]; MAX_QFUNCTION_FIELDS];
     inputs_slice
         .iter()
         .enumerate()
         .map(|(i, &x)| {
-            std::slice::from_raw_parts(x, trampoline_data.input_sizes[i] * q as usize) as &[f64]
+            std::slice::from_raw_parts(x, trampoline_data.input_sizes[i] * q as usize)
+                as &[crate::Scalar]
         })
         .zip(inputs_array.iter_mut())
         .for_each(|(x, a)| *a = x);
@@ -230,13 +233,14 @@ unsafe extern "C" fn trampoline(
     // Outputs
     let outputs_slice: &[*mut bind_ceed::CeedScalar] =
         std::slice::from_raw_parts(outputs, MAX_QFUNCTION_FIELDS);
-    let mut outputs_array: [&mut [f64]; MAX_QFUNCTION_FIELDS] = mut_max_fields!(&mut [0.0]);
+    let mut outputs_array: [&mut [crate::Scalar]; MAX_QFUNCTION_FIELDS] =
+        mut_max_fields!(&mut [0.0]);
     outputs_slice
         .iter()
         .enumerate()
         .map(|(i, &x)| {
             std::slice::from_raw_parts_mut(x, trampoline_data.output_sizes[i] * q as usize)
-                as &mut [f64]
+                as &mut [crate::Scalar]
         })
         .zip(outputs_array.iter_mut())
         .for_each(|(x, a)| *a = x);
@@ -344,7 +348,7 @@ impl<'a> QFunction<'a> {
     /// let mut v = [0.; Q];
     ///
     /// for i in 0..Q {
-    ///     let x = 2. * (i as f64) / ((Q as f64) - 1.) - 1.;
+    ///     let x = 2. * (i as Scalar) / ((Q as Scalar) - 1.) - 1.;
     ///     u[i] = 2. + 3. * x + 5. * x * x;
     ///     w[i] = 1. - x * x;
     ///     v[i] = u[i] * w[i];
@@ -507,7 +511,7 @@ impl<'a> QFunctionByName<'a> {
     /// let mut v = [0.; Q];
     ///
     /// for i in 0..Q {
-    ///     let x = 2. * (i as f64) / ((Q as f64) - 1.) - 1.;
+    ///     let x = 2. * (i as Scalar) / ((Q as Scalar) - 1.) - 1.;
     ///     j[i] = 1.;
     ///     w[i] = 1. - x * x;
     ///     u[i] = 2. + 3. * x + 5. * x * x;

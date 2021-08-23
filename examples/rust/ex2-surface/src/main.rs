@@ -333,7 +333,7 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
     op_diff.apply(&u, &mut v)?;
 
     // Compute the mesh surface area
-    let area: f64 = v.view().iter().map(|v| (*v).abs()).sum();
+    let area: Scalar = v.view().iter().map(|v| (*v).abs()).sum();
 
     // Output results
     if !quiet {
@@ -342,7 +342,7 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
         println!("Surface area error          : {:.12e}", area - exact_area);
     }
     let tolerance = match dim {
-        1 => 1E-12,
+        1 => 10000.0 * libceed::EPSILON,
         _ => 1E-1,
     };
     let error = (area - exact_area).abs();

@@ -19,12 +19,13 @@ use libceed::prelude::*;
 // ----------------------------------------------------------------------------
 // Transform mesh coordinates
 // ----------------------------------------------------------------------------
-pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -> f64 {
+pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -> Scalar {
     // Transform coordinates
     mesh_coords.view_mut().iter_mut().for_each(|coord| {
         // map [0,1] to [0,1] varying the mesh density
         *coord = 0.5
-            + 1.0 / (3.0_f64).sqrt() * ((2.0 / 3.0) * std::f64::consts::PI * (*coord - 0.5)).sin()
+            + 1.0 / (3.0 as Scalar).sqrt()
+                * ((2.0 / 3.0) * std::f64::consts::PI as Scalar * (*coord - 0.5)).sin()
     });
 
     // Exact surface area of transformed region
