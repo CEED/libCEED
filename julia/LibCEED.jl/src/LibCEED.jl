@@ -252,16 +252,24 @@ get_libceed_path() = C.libCEED_jll.libceed_path
 
 """
     get_scalar_type()
+
+Return the type of `CeedScalar` used by the libCEED library (either `Float32` or `Float64`).
 """
 function get_scalar_type()
-    type = Ref{C.CeedScalarType}()
-    C.CeedGetScalarType(type)
-    if type[] == C.CEED_SCALAR_FP32
-        return Float32
-    elseif type[] == C.CEED_SCALAR_FP64
+    # If CeedGetScalarType is not provided by the libCEED shared library, default for Float64
+    sym = LibCEED.C.dlsym(LibCEED.C.libceed_handle, :CeedGetScalarType; throw_error=false)
+    if sym === nothing
         return Float64
     else
-        error("Unknown CeedScalar type $(type[])")
+        type = Ref{C.CeedScalarType}()
+        C.CeedGetScalarType(type)
+        if type[] == C.CEED_SCALAR_FP32
+            return Float32
+        elseif type[] == C.CEED_SCALAR_FP64
+            return Float64
+        else
+            error("Unknown CeedScalar type $(type[])")
+        end
     end
 end
 
