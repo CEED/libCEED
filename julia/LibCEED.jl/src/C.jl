@@ -4,7 +4,8 @@ module C
 
 using CEnum, Libdl, Preferences, libCEED_jll
 
-const CeedScalar = @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
+const CeedScalar =
+    @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
 const UINT_MAX = typemax(UInt32)
 const FILE = Cvoid
 const va_list = Cvoid

@@ -157,11 +157,13 @@ function __init__()
     scalar_type = get_scalar_type()
     if scalar_type != CeedScalar
         @set_preferences!("CeedScalar" => string(scalar_type))
-        @warn(
-            "libCEED is compiled with $scalar_type but LibCEED.jl is using $CeedScalar.\n\n" *
-            "Configuring LibCEED.jl to use $scalar_type.\n\n" *
-            "The Julia session must be restarted for changes to take effect."
-        )
+        @warn("""
+              libCEED is compiled with $scalar_type but LibCEED.jl is using $CeedScalar.
+
+              Configuring LibCEED.jl to use $scalar_type.
+
+              The Julia session must be restarted for changes to take effect.
+              """)
     end
 end
 
@@ -203,10 +205,10 @@ documentation for more information.
 """
 function set_libceed_path!(path::AbstractString)
     set_preferences!(C.libCEED_jll, "libceed_path" => path; force=true)
-    @info(
-        "Setting the libCEED library path to $path.\n" *
-        "Restart the Julia session for changes to take effect."
-    )
+    @info("""
+           Setting the libCEED library path to $path.
+           Restart the Julia session for changes to take effect.
+           """)
 end
 
 """
@@ -219,10 +221,10 @@ for more information.
 """
 function unset_libceed_path!()
     delete_preferences!(Preferences.get_uuid(C.libCEED_jll), "libceed_path"; force=true)
-    @info(
-        "Deleting preference for libCEED library path.\n" *
-        "Restart the Julia session for changes to take effect."
-    )
+    @info("""
+          Using the prebuilt libCEED binary.
+          Restart the Julia session for changes to take effect.
+          """)
 end
 
 """
@@ -236,10 +238,10 @@ documentation for more information. If a depot-wide Overrides.toml file is prese
 """
 function use_prebuilt_libceed!()
     set_preferences!(C.libCEED_jll, "libceed_path" => nothing; force=true)
-    @info(
-        "Using the prebuilt libCEED binary.\n" *
-        "Restart the Julia session for changes to take effect."
-    )
+    @info("""
+          Deleting preference for libCEED library path.
+          Restart the Julia session for changes to take effect.
+          """)
 end
 
 """

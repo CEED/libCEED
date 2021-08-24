@@ -1,6 +1,6 @@
 # Julia wrapper for header: ceed.h
 # Automatically generated using Clang.jl
-
+#! format: off
 
 function CeedRegistryGetList(n, resources, array)
     ccall((:CeedRegistryGetList, libceed), Cint, (Ptr{Csize_t}, Ptr{Ptr{Cstring}}, Ptr{Ptr{CeedInt}}), n, resources, array)
