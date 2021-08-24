@@ -1,7 +1,7 @@
 using JuliaFormatter, CSTParser, Tokenize
 
 for name in names(JuliaFormatter, all=true)
-    if name != :include && name != :eval
+    if name != :include && name != :eval && name != Base.Docs.META
         @eval import JuliaFormatter: $name
     end
 end
