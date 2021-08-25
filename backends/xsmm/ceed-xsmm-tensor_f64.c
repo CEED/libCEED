@@ -27,15 +27,15 @@
 //------------------------------------------------------------------------------
 static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
                                       CeedInt A, CeedInt B, CeedInt C,
-                                      CeedInt J, const CeedScalar *restrict t,
+                                      CeedInt J, const double *restrict t,
                                       CeedTransposeMode t_mode,
                                       const CeedInt add,
-                                      const CeedScalar *restrict u,
-                                      CeedScalar *restrict v) {
-  CeedScalar alpha = 1.0, beta = 1.0;
+                                      const double *restrict u,
+                                      double *restrict v) {
+  double alpha = 1.0, beta = 1.0;
   char trans_u = 'N', trans_t = 'N';
-  if ((t_mode == CEED_TRANSPOSE && C != 1)
-      || (t_mode == CEED_NOTRANSPOSE && C == 1))
+  if ((t_mode == CEED_TRANSPOSE && C != 1) ||
+      (t_mode == CEED_NOTRANSPOSE && C == 1))
     trans_t = 'T';
 
   if (!add)
@@ -54,11 +54,11 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract,
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
                                         CeedInt B, CeedInt C, CeedInt J,
-                                        const CeedScalar *restrict t,
+                                        const double *restrict t,
                                         CeedTransposeMode t_mode,
                                         const CeedInt add,
-                                        const CeedScalar *restrict u,
-                                        CeedScalar *restrict v) {
+                                        const double *restrict u,
+                                        double *restrict v) {
   int ierr;
   CeedTensorContract_Xsmm *impl;
   ierr = CeedTensorContractGetData(contract, &impl); CeedChkBackend(ierr);
@@ -66,8 +66,8 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
   // Get kernel
   libxsmm_dmmfunction kernel;
   CeedHashIJKLMKey key = {B, C, J, t_mode, add};
-  khint_t k = kh_get(m32, impl->lookup, key);
-  CeedHashGetValue(impl->lookup, k, kernel);
+  khint_t k = kh_get(f64, impl->lookup_f64, key);
+  CeedHashGetValue(impl->lookup_f64, k, kernel);
 
   // Run kernel or fallback to default implementation
   if (C != 1)
@@ -89,8 +89,8 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
 
   ierr = CeedTensorContractGetData(contract, &impl); CeedChkBackend(ierr);
   // Free kernels
-  kh_foreach_value(impl->lookup, kernel, libxsmm_release_kernel(&kernel));
-  kh_destroy(m32, impl->lookup);
+  kh_foreach_value(impl->lookup_f64, kernel, libxsmm_release_kernel(&kernel));
+  kh_destroy(f64, impl->lookup_f64);
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -98,8 +98,8 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
 //------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
-int CeedTensorContractCreate_Xsmm(CeedBasis basis,
-                                  CeedTensorContract contract) {
+int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis,
+                                      CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
   ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChkBackend(ierr);
@@ -107,7 +107,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
   ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
 
   // Setup kernels hash table
-  impl->lookup = kh_init(m32);
+  impl->lookup_f64 = kh_init(f64);
 
   // Set up pointers to kernels
   ierr = CeedBasisIsTensor(basis, &impl->is_tensor); CeedChkBackend(ierr);
@@ -128,10 +128,10 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
               // Add key, kernel pair to hash table
               CeedHashIJKLMKey key = {B, C, J, t_mode, add};
               int new_item;
-              khint_t k = kh_put(m32, impl->lookup, key, &new_item);
+              khint_t k = kh_put(f64, impl->lookup_f64, key, &new_item);
               if (new_item) {
                 // Build kernel
-                CeedScalar alpha = 1.0, beta = 1.0;
+                double alpha = 1.0, beta = 1.0;
                 if (!add) beta = 0.0;
                 libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
                                                C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
@@ -140,7 +140,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                   return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
                 // LCOV_EXCL_STOP
                 // Add kernel to hash table
-                kh_value(impl->lookup, k) = kernel;
+                kh_value(impl->lookup_f64, k) = kernel;
               }
             }
   } else {
@@ -160,10 +160,10 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
             // Add key, kernel pair to hash table
             CeedHashIJKLMKey key = {B, C, J, t_mode, add};
             int new_item;
-            khint_t k = kh_put(m32, impl->lookup, key, &new_item);
+            khint_t k = kh_put(f64, impl->lookup_f64, key, &new_item);
             if (new_item) {
               // Build kernel
-              CeedScalar alpha = 1.0, beta = 1.0;
+              double alpha = 1.0, beta = 1.0;
               if (!add) beta = 0.0;
               libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(
                                              C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
@@ -172,7 +172,7 @@ int CeedTensorContractCreate_Xsmm(CeedBasis basis,
                 return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
               // LCOV_EXCL_STOP
               // Add kernel to hash table
-              kh_value(impl->lookup, k) = kernel;
+              kh_value(impl->lookup_f64, k) = kernel;
             }
           }
         }

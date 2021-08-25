@@ -40,8 +40,15 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   CeedInit("/cpu/self/opt/blocked", &ceed_ref);
   ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Xsmm); CeedChkBackend(ierr);
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
+    ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
+                                  CeedTensorContractCreate_f64_Xsmm);
+    CeedChkBackend(ierr);
+  } else {
+    ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
+                                  CeedTensorContractCreate_f32_Xsmm);
+    CeedChkBackend(ierr);
+  }
 
   return CEED_ERROR_SUCCESS;
 }
