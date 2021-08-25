@@ -82,7 +82,7 @@ else
             @test_throws Exception norm(v, 3)
             @test witharray_read(sum, v) == sum(v1)
             reciprocal!(v)
-            @test @witharray(a = v, mtype = MEM_HOST, all(a .== CeedScalar(1.0)./ v1))
+            @test @witharray(a = v, mtype = MEM_HOST, all(a .== CeedScalar(1.0)./v1))
 
             witharray(x -> x .= 1.0, v)
             @test @witharray(a = v, all(a .== 1.0))
