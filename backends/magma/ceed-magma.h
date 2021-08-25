@@ -218,6 +218,14 @@ CEED_INTERN {
     double beta,  double *dC, magma_int_t lddc,
     magma_queue_t queue );
 
+  int magma_sgemm_nontensor(
+    magma_trans_t transA, magma_trans_t transB,
+    magma_int_t m, magma_int_t n, magma_int_t k,
+    float alpha, const float *dA, magma_int_t ldda,
+    const float *dB, magma_int_t lddb,
+    float beta,  float *dC, magma_int_t lddc,
+    magma_queue_t queue );
+
   magma_int_t
   magma_isdevptr(const void *A);
 

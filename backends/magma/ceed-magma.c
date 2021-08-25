@@ -92,10 +92,8 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
                                 CeedElemRestrictionCreateBlocked_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Magma); CeedChkBackend(ierr);
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                  CeedBasisCreateH1_Magma); CeedChkBackend(ierr);
-  }
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
+                                CeedBasisCreateH1_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Magma); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
