@@ -2,8 +2,10 @@
 
 module C
 
-using Libdl, libCEED_jll
+using Libdl, libCEED_jll, Preferences
 
+const CeedScalar =
+    @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
 const UINT_MAX = typemax(Cuint)
 include(joinpath(@__DIR__, "generated", "libceed_bindings.jl"))
 
