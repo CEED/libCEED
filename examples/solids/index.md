@@ -357,15 +357,15 @@ def source_path(rel):
     import os
     return os.path.join(os.path.dirname(os.environ["DOCUTILSCONFIG"]), rel)
 
-nh = pd.read_csv(source_path("examples/solids/output/NH-strain.csv"))
+nh = pd.read_csv(source_path("examples/solids/tests-output/NH-strain.csv"))
 nh["model"] = "Neo-Hookean"
 nh["parameters"] = "E=2.8, nu=0.4"
 
-mr = pd.read_csv(source_path("examples/solids/output/MR-strain.csv"))
+mr = pd.read_csv(source_path("examples/solids/tests-output/MR-strain.csv"))
 mr["model"] = "Mooney-Rivlin; Neo-Hookean equivalent"
 mr["parameters"] = "mu_1=1, mu_2=0, nu=.4"
 
-mr1 = pd.read_csv(source_path("examples/solids/output/MR-strain1.csv"))
+mr1 = pd.read_csv(source_path("examples/solids/tests-output/MR-strain1.csv"))
 mr1["model"] = "Mooney-Rivlin"
 mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
 
