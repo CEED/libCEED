@@ -1,0 +1,11 @@
+# A bug in Julia 1.6.0's Pkg causes Preferences to be dropped during `Pkg.test()`, so we work around
+# it by explicitly creating a `test/Project.toml` which will correctly communicate any preferences
+# through to the child Julia process.  X-ref: https://github.com/JuliaLang/Pkg.jl/issues/2500
+# See also test/Project.toml in FFTW.jl.
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Preferences = "21216c6a-2e73-6563-6e65-726566657250"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+libCEED_jll = "762fde13-7596-547b-826d-8223c52d51c1"
