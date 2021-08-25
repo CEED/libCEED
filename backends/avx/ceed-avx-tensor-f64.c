@@ -307,7 +307,8 @@ static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
 //------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
-int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
+int CeedTensorContractCreate_f64_Avx(CeedBasis basis,
+                                     CeedTensorContract contract) {
   int ierr;
   Ceed ceed;
   ierr = CeedTensorContractGetCeed(contract, &ceed); CeedChkBackend(ierr);
