@@ -62,14 +62,11 @@ def test_300(ceed_resource, capsys):
     print(b)
     del b
 
-    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP32:
-        stdout, stderr, ref_stdout = check.output(capsys, suffix='_fp32.out')
-    else:
+    # Only run this test in double precision
+    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP64:
         stdout, stderr, ref_stdout = check.output(capsys)
-    assert not stderr
-    print(stdout)
-    print(ref_stdout)
-    assert stdout == ref_stdout
+        assert not stderr
+        assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
 # Test QR factorization

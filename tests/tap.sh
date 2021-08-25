@@ -165,6 +165,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to pass tests t300 and t320 for single precision
+    if grep -F -q -e 'Test not implemented in single precision' ${output}.err \
+            && [[ "$1" = "t300"* || "$1" = "t320"* ]] ; then
+        printf "ok $i0 PASS - not implemented $1 $backend\n"
+        printf "ok $i1 PASS - not implemented $1 $backend stdout\n"
+        printf "ok $i2 PASS - not implemented $1 $backend stderr\n"
+        continue
+    fi
+
     # grep to pass test t303 on error
     if grep -F -q -e 'vectors incompatible' ${output}.err \
             && [[ "$1" = "t303"* ]] ; then
@@ -211,11 +220,6 @@ for ((i=0;i<${#backends[@]};++i)); do
     if [ -f tests/output/$1.out ]; then
         if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
             printf "ok $i1 $1 $backend stdout\n"
-        # t300 and 320 have secondary output files needed when CeedScalar is FP32
-        elif [ -f tests/output/$1-fp32.out ]; then
-            if diff -u tests/output/$1-fp32.out ${output}.out > ${output}.diff; then
-                printf "ok $i1 $1 $backend stdout\n"
-            fi
         else            
             printf "not ok $i1 $1 $backend stdout\n"
             while read line; do
