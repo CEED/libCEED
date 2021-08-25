@@ -166,9 +166,9 @@ int main(int argc, char **argv) {
   ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
   CHKERRQ(ierr);
 
-  // -- Set up contex for QFunctions
-  ierr = SetupContextForProblems(ceed, ceed_data, app_ctx, setup_ctx,
-                                 phys_ctx); CHKERRQ(ierr);
+  // -- Set up context for QFunctions
+  ierr = problem->setup_ctx(ceed, ceed_data, app_ctx, setup_ctx, phys_ctx);
+  CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Set up ICs

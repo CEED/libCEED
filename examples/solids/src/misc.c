@@ -1,23 +1,8 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
-//
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
-//
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
-
 /// @file
 /// Helper functions for solid mechanics example using PETSc
 
-#include "../elasticity.h"
+#include "../include/misc.h"
+#include "../include/utils.h"
 
 // -----------------------------------------------------------------------------
 // Create libCEED operator context
@@ -43,8 +28,8 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx app_ctx, DM dm, Vec V,
   jacobian_ctx->y_ceed = ceed_data->y_ceed;
 
   // libCEED operator
-  jacobian_ctx->op = ceed_data->op_jacob;
-  jacobian_ctx->qf = ceed_data->qf_jacob;
+  jacobian_ctx->op = ceed_data->op_jacobian;
+  jacobian_ctx->qf = ceed_data->qf_jacobian;
 
   // Ceed
   jacobian_ctx->ceed = ceed;
@@ -253,5 +238,28 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU,
   ierr = VecDestroy(&Y_loc); CHKERRQ(ierr);
   CeedVectorDestroy(&y_ceed);
 
+  PetscFunctionReturn(0);
+};
+
+// -----------------------------------------------------------------------------
+// Regression testing
+// -----------------------------------------------------------------------------
+// test option change. could remove the loading step. Run only with one loading step and compare relatively to ref file
+// option: expect_final_strain_energy and check against the relative error to ref is within tolerance (10^-5) I.e. one Newton solve then check final energy
+PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy) {
+  PetscFunctionBegin;
+
+  if (app_ctx->expect_final_strain >= 0.) {
+    PetscReal energy_ref = app_ctx->expect_final_strain;
+    PetscReal error = PetscAbsReal(energy - energy_ref) / energy_ref;
+
+    if (error > app_ctx->test_tol) {
+      PetscErrorCode ierr;
+      ierr = PetscPrintf(PETSC_COMM_WORLD,
+                         "Energy %e does not match expected energy %e: relative tolerance %e > %e\n",
+                         (double)energy, (double)energy_ref, (double)error, app_ctx->test_tol);
+      CHKERRQ(ierr);
+    }
+  }
   PetscFunctionReturn(0);
 };

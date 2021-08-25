@@ -291,6 +291,7 @@ typedef struct {
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
+  PetscErrorCode    (*setup_ctx)(Ceed, CeedData, AppCtx, SetupContext, Physics);
   PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
   PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
 } ProblemData;
@@ -311,6 +312,19 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
 
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                                      void *ctx);
+
+// Set up context for each problem
+extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
+    CeedData ceed_data, AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
+extern PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
+extern PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
+extern PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 
 // Boundary condition function for each problem
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
@@ -366,10 +380,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
-
-// Set up contex for QFunctions
-PetscErrorCode SetupContextForProblems(Ceed ceed, CeedData ceed_data,
-                                       AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions

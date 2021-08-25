@@ -54,6 +54,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   problem->apply_sur               = Advection2d_Sur;
   problem->apply_sur_loc           = Advection2d_Sur_loc;
   problem->bc                      = Exact_Advection2d;
+  problem->setup_ctx               = SetupContext_ADVECTION2D;
   problem->bc_func                 = BC_ADVECTION2D;
   problem->non_zero_time           = PETSC_TRUE;
   problem->print_info              = PRINT_ADVECTION2D;
@@ -187,6 +188,29 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   user->phys->advection_ctx->implicit      = implicit;
   user->phys->advection_ctx->strong_form   = strong_form;
   user->phys->advection_ctx->stabilization = stab;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
+                                        AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+  PetscFunctionBeginUser;
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
+  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
+  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
+  CeedQFunctionContextCreate(ceed, &ceed_data->advection_context);
+  CeedQFunctionContextSetData(ceed_data->advection_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*phys->advection_ctx), phys->advection_ctx);
+  if (ceed_data->qf_rhs_vol)
+    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->advection_context);
+  if (ceed_data->qf_ifunction_vol)
+    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
+                            ceed_data->advection_context);
+  if (ceed_data->qf_apply_sur)
+    CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->advection_context);
 
   PetscFunctionReturn(0);
 }

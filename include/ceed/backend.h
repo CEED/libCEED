@@ -147,7 +147,7 @@ CEED_EXTERN int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
     const CeedInt **offsets);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr,
     bool *is_strided);
-CEED_EXTERN int CeedElemRestrictionHasBackendStrides( CeedElemRestriction rstr,
+CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr,
     bool *has_backend_strides);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
     CeedInt (*layout)[3]);

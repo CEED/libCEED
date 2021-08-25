@@ -540,7 +540,10 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
-$(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h examples/solids/src/*.c examples/solids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
+    examples/solids/problems/*.c examples/solids/src/*.c \
+    examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
+    $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@

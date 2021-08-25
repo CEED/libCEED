@@ -18,7 +18,6 @@ CUDA/GPU support, specific compiler flags, etc.) then you should compile your
 own version of the libCEED library, and configure LibCEED.jl to use this binary
 as described in the [Configuring LibCEED.jl](@ref) section.
 
-
 !!! warning "The pre-built libCEED binaries do not support CUDA backends"
     The pre-built binaries automatically installed by LibCEED.jl (through the
     [libCEED_jll](https://juliahub.com/ui/Packages/libCEED_jll/LB2fn) package)
@@ -43,8 +42,9 @@ julia> set_libceed_path!("/path/to/libceed.so")
 [ Info: Restart the Julia session for changes to take effect.
 ```
 
-See [Preferences.jl](https://github.com/JuliaPackaging/Preferences.jl) for more
-information.
+See the [library configuration documentation](LibCEED.md) for more details. For
+information on Julia's preferences system, see
+[Preferences.jl](https://github.com/JuliaPackaging/Preferences.jl).
 
 ### Features of the high-level interface for libCEED
 
@@ -111,6 +111,13 @@ is replaced with the following equivalent Julia code
 The macro version can provide better performance if a closure is required, and
 allow for convenient reshaping of the vector into equivalently sized matrices
 or tensors.
+
+### Library configuration
+```@contents
+Pages = [
+  "LibCEED.md",
+]
+```
 
 ### Ceed objects
 ```@contents

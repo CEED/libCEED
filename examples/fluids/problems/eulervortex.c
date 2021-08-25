@@ -54,6 +54,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   problem->apply_sur               = Euler_Sur;
   problem->apply_sur_loc           = Euler_Sur_loc;
   problem->bc                      = Exact_Euler;
+  problem->setup_ctx               = SetupContext_EULER_VORTEX;
   problem->bc_func                 = BC_EULER_VORTEX;
   problem->non_zero_time           = PETSC_TRUE;
   problem->print_info              = PRINT_EULER_VORTEX;
@@ -163,6 +164,26 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   user->phys->euler_ctx->mean_velocity[0] = mean_velocity[0];
   user->phys->euler_ctx->mean_velocity[1] = mean_velocity[1];
   user->phys->euler_ctx->mean_velocity[2] = mean_velocity[2];
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+  PetscFunctionBeginUser;
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
+  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*setup_ctx), setup_ctx);
+  CeedQFunctionContextCreate(ceed, &ceed_data->euler_context);
+  CeedQFunctionContextSetData(ceed_data->euler_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*phys->euler_ctx), phys->euler_ctx);
+  if (ceed_data->qf_ics)
+    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->euler_context);
+  if (ceed_data->qf_apply_sur)
+    CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->euler_context);
 
   PetscFunctionReturn(0);
 }

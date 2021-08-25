@@ -132,7 +132,6 @@ export @interior_qf,
     setvoigt,
     syncarray!,
     takearray!,
-    unset_libceed_path!,
     use_prebuilt_libceed!,
     witharray,
     witharray_read
@@ -150,7 +149,17 @@ include("Request.jl")
 include("Operator.jl")
 include("Misc.jl")
 
+const minimum_libceed_version = v"0.8.0"
+
 function __init__()
+    libceed_version = ceedversion()
+    if minimum_libceed_version > libceed_version
+        @warn("""
+              Incompatible libCEED version.
+              LibCEED.jl requires libCEED version at least $minimum_libceed_version.
+              The version of the libCEED library is $libceed_version."
+              """)
+    end
     @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("Cuda.jl")
     set_globals()
 
@@ -159,9 +168,7 @@ function __init__()
         @set_preferences!("CeedScalar" => string(scalar_type))
         @warn("""
               libCEED is compiled with $scalar_type but LibCEED.jl is using $CeedScalar.
-
               Configuring LibCEED.jl to use $scalar_type.
-
               The Julia session must be restarted for changes to take effect.
               """)
     end
@@ -197,52 +204,59 @@ end
 
 """
     set_libceed_path!(path::AbstractString)
+    set_libceed_path!(:prebuilt)
+    set_libceed_path!(:default)
 
 Sets the path of the libCEED dynamic library. `path` should be the absolute path to the library
-file. This function sets the library path as a _preference_ associated with the currently active
-environment. Changes will take effect after restarting the Julia session. See the Preferences.jl
-documentation for more information.
+file.
+
+`set_libceed_path!(:prebuilt)` indicates to LibCEED.jl to use the prebuilt version of the libCEED
+library (bundled with libCEED\\_jll).
+
+`set_libceed_path!(:default)` indicates to LibCEED.jl to use the default library. This usually has
+the same effect as `set_libceed_path!(:prebuilt)`, unless a different path has been specified in the
+depot-wide preferences or using
+[Overrides.toml](https://pkgdocs.julialang.org/dev/artifacts/#Overriding-artifact-locations).
+
+This function sets the library path as a _preference_ associated with the currently active
+environment. Changes will take effect after restarting the Julia session. See the [Preferences.jl
+documentation](https://github.com/JuliaPackaging/Preferences.jl) for more information.
 """
 function set_libceed_path!(path::AbstractString)
     set_preferences!(C.libCEED_jll, "libceed_path" => path; force=true)
     @info("""
-           Setting the libCEED library path to $path.
-           Restart the Julia session for changes to take effect.
-           """)
-end
-
-"""
-    unset_libceed_path!()
-
-Unsets the path of the libCEED dynamic library (i.e. undoes a call to [`set_libceed_path!`](@ref)).
-This function deletes the library path preference associated with the currently active environment.
-Changes will take effect after restarting the Julia session. See the Preferences.jl documentation
-for more information.
-"""
-function unset_libceed_path!()
-    delete_preferences!(Preferences.get_uuid(C.libCEED_jll), "libceed_path"; force=true)
-    @info("""
-          Using the prebuilt libCEED binary.
+          Setting the libCEED library path to $path.
           Restart the Julia session for changes to take effect.
           """)
+end
+
+function set_libceed_path!(sym::Symbol)
+    if sym == :prebuilt
+        set_preferences!(C.libCEED_jll, "libceed_path" => nothing; force=true)
+        @info("""
+              Using the prebuilt libCEED binary.
+              Restart the Julia session for changes to take effect.
+              """)
+    elseif sym == :default
+        delete_preferences!(Preferences.get_uuid(C.libCEED_jll), "libceed_path"; force=true)
+        @info("""
+              Deleting preference for libCEED library path.
+              Restart the Julia session for changes to take effect.
+              """)
+    else
+        error("set_libceed_path(::Symbol) must be called with :prebuilt or :default.")
+    end
 end
 
 """
     use_prebuilt_libceed!()
 
-Indicates that the prebuilt version of the libCEED library (bundled with libCEED_jll) should be
-used. This function *clears* the library path preference associated with the currently active
-environment. Changes will take effect after restarting the Julia session. See the Preferences.jl
-documentation for more information. If a depot-wide Overrides.toml file is present (e.g. in
-~/.julia/artifacts, a different libCEED library may still be used).
+Indicates that the prebuilt version of the libCEED library (bundled with libCEED\\_jll) should be
+used.
+
+Equivalent to `set_libceed_path!(:prebuilt)`.
 """
-function use_prebuilt_libceed!()
-    set_preferences!(C.libCEED_jll, "libceed_path" => nothing; force=true)
-    @info("""
-          Deleting preference for libCEED library path.
-          Restart the Julia session for changes to take effect.
-          """)
-end
+use_prebuilt_libceed!() = set_libceed_path!(:prebuilt)
 
 """
     get_libceed_path()
@@ -254,7 +268,6 @@ get_libceed_path() = C.libCEED_jll.libceed_path
 
 """
     get_scalar_type()
-
 Return the type of `CeedScalar` used by the libCEED library (either `Float32` or `Float64`).
 """
 function get_scalar_type()

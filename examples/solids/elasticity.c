@@ -49,9 +49,7 @@ int main(int argc, char **argv) {
   MPI_Comm       comm;
   // Context structs
   AppCtx         app_ctx;                  // Contains problem options
-  Physics        phys = NULL;              // Physical constants for Neo-Hookean
-  Physics_MR     phys_MR = NULL;           // Physical constants for Mooney-Rivlin
-  Physics        phys_smoother = NULL;     // Separate context if nu_smoother set
+  ProblemFunctions problem_functions;      // Setup functions for each problem
   Units          units;                    // Contains units scaling
   // PETSc objects
   PetscLogStage  stage_dm_setup, stage_libceed_setup,
@@ -92,27 +90,11 @@ int main(int argc, char **argv) {
   // -- Set mesh file, polynomial degree, problem type
   ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
   ierr = ProcessCommandLineOptions(comm, app_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &problem_functions); CHKERRQ(ierr);
+  ierr = RegisterProblems(problem_functions); CHKERRQ(ierr);
   num_levels = app_ctx->num_levels;
   fine_level = num_levels - 1;
 
-  if (app_ctx->problem_choice != ELAS_FSInitial_MR1) {
-    // -- Set Poison's ratio, Young's Modulus
-    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = PetscMalloc1(1, &phys); CHKERRQ(ierr);
-    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
-    CHKERRQ(ierr);
-    if (fabs(app_ctx->nu_smoother) > 1E-14) {
-      ierr = PetscMalloc1(1, &phys_smoother); CHKERRQ(ierr);
-      ierr = PetscMemcpy(phys_smoother, phys, sizeof(*phys)); CHKERRQ(ierr);
-      phys_smoother->nu = app_ctx->nu_smoother;
-    }
-  } else {
-    // -- Set Mooney-Rivlin parameters
-    ierr = PetscMalloc1(1, &phys_MR); CHKERRQ(ierr);
-    ierr = PetscMalloc1(1, &units); CHKERRQ(ierr);
-    ierr = ProcessPhysics_General(comm, app_ctx, phys, phys_MR, units);
-    CHKERRQ(ierr);
-  }
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
@@ -122,44 +104,25 @@ int main(int argc, char **argv) {
   // Check preferred MemType
   CeedMemType mem_type_backend;
   CeedGetPreferredMemType(ceed, &mem_type_backend);
-
-  // Wrap context in libCEED objects
-  CeedQFunctionContextCreate(ceed, &ctx_phys);
-  switch (app_ctx->problem_choice) {
-  case ELAS_LINEAR:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_SS_NH:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_NH1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_NH2:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSCurrent_NH1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSCurrent_NH2:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys), phys);
-    break;
-  case ELAS_FSInitial_MR1:
-    CeedQFunctionContextSetData(ctx_phys, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys_MR), phys_MR);
-    break;
-  }
-
-  if (phys_smoother) {
-    CeedQFunctionContextCreate(ceed, &ctx_phys_smoother);
-    CeedQFunctionContextSetData(ctx_phys_smoother, CEED_MEM_HOST, CEED_USE_POINTER,
-                                sizeof(*phys_smoother), phys_smoother);
+  // Setup physics context and wrap in libCEED object
+  {
+    PetscErrorCode (*SetupPhysics)(MPI_Comm, Ceed, Units *, CeedQFunctionContext *);
+    ierr = PetscFunctionListFind(problem_functions->setupPhysics, app_ctx->name,
+                                 &SetupPhysics); CHKERRQ(ierr);
+    if (!SetupPhysics)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Physics setup for '%s' not found",
+               app_ctx->name);
+    ierr = (*SetupPhysics)(comm, ceed, &units, &ctx_phys); CHKERRQ(ierr);
+    PetscErrorCode (*SetupSmootherPhysics)(MPI_Comm, Ceed, CeedQFunctionContext,
+                                           CeedQFunctionContext *);
+    ierr = PetscFunctionListFind(problem_functions->setupSmootherPhysics,
+                                 app_ctx->name, &SetupSmootherPhysics);
+    CHKERRQ(ierr);
+    if (!SetupSmootherPhysics)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Smoother physics setup for '%s' not found",
+               app_ctx->name);
+    ierr = (*SetupSmootherPhysics)(comm, ceed, ctx_phys, &ctx_phys_smoother);
+    CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------
@@ -311,10 +274,21 @@ int main(int argc, char **argv) {
   // ---- Setup residual, Jacobian evaluator and geometric information
   ierr = PetscCalloc1(1, &ceed_data[fine_level]); CHKERRQ(ierr);
   {
-    ierr = SetupLibceedFineLevel(level_dms[fine_level], dm_energy, dm_diagnostic,
-                                 ceed, app_ctx, ctx_phys, ceed_data, fine_level,
-                                 num_comp_u, U_g_size[fine_level], U_loc_size[fine_level],
-                                 force_ceed, neumann_ceed);
+    PetscErrorCode (*SetupLibceedFineLevel)(DM, DM, DM, Ceed, AppCtx,
+                                            CeedQFunctionContext, PetscInt,
+                                            PetscInt, PetscInt, PetscInt,
+                                            CeedVector, CeedVector, CeedData *);
+    ierr = PetscFunctionListFind(problem_functions->setupLibceedFineLevel,
+                                 app_ctx->name, &SetupLibceedFineLevel);
+    CHKERRQ(ierr);
+    if (!SetupLibceedFineLevel)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Fine grid setup for '%s' not found",
+               app_ctx->name);
+    ierr = (*SetupLibceedFineLevel)(level_dms[fine_level], dm_energy, dm_diagnostic,
+                                    ceed, app_ctx, ctx_phys, fine_level,
+                                    num_comp_u, U_g_size[fine_level],
+                                    U_loc_size[fine_level],
+                                    force_ceed, neumann_ceed, ceed_data);
     CHKERRQ(ierr);
   }
   // ---- Setup coarse Jacobian evaluator and prolongation/restriction
@@ -338,9 +312,18 @@ int main(int argc, char **argv) {
                        CEED_USE_POINTER, (CeedScalar *)m);
 
     // Note: use high order ceed, if specified and degree > 4
-    ierr = SetupLibceedLevel(level_dms[level], ceed, app_ctx,
-                             ceed_data, level, num_comp_u, U_g_size[level],
-                             U_loc_size[level], ceed_data[level+1]->x_ceed);
+    PetscErrorCode (*SetupLibceedLevel)(DM, Ceed, AppCtx, PetscInt,
+                                        PetscInt, PetscInt, PetscInt, CeedVector, CeedData *);
+    if (!SetupLibceedLevel)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
+               app_ctx->name);
+    ierr = PetscFunctionListFind(problem_functions->setupLibceedLevel,
+                                 app_ctx->name, &SetupLibceedLevel);
+    CHKERRQ(ierr);
+    ierr = (*SetupLibceedLevel)(level_dms[level], ceed, app_ctx,
+                                level, num_comp_u, U_g_size[level],
+                                U_loc_size[level], ceed_data[level+1]->x_ceed,
+                                ceed_data);
     CHKERRQ(ierr);
 
     // Restore PETSc vector
@@ -419,11 +402,12 @@ int main(int argc, char **argv) {
                        "  Multigrid:\n"
                        "    Type                               : %s\n"
                        "    Number of Levels                   : %d\n",
-                       problemTypesForDisp[app_ctx->problem_choice],
+                       app_ctx->name_for_disp,
                        forcing_types_for_disp[app_ctx->forcing_choice],
                        app_ctx->mesh_file[0] ? app_ctx->mesh_file : "Box Mesh",
                        app_ctx->degree + 1, app_ctx->degree + 1,
-                       U_g_size[fine_level]/num_comp_u, U_l_size[fine_level]/num_comp_u, num_comp_u,
+                       U_g_size[fine_level]/num_comp_u, U_l_size[fine_level]/num_comp_u,
+                       num_comp_u,
                        (app_ctx->degree == 1 &&
                         app_ctx->multigrid_choice != MULTIGRID_NONE) ?
                        "Algebraic multigrid" :
@@ -492,8 +476,8 @@ int main(int argc, char **argv) {
   ierr = PetscCalloc1(1, &res_ctx); CHKERRQ(ierr);
   ierr = PetscMemcpy(res_ctx, jacob_ctx[fine_level],
                      sizeof(*jacob_ctx[fine_level])); CHKERRQ(ierr);
-  res_ctx->op = ceed_data[fine_level]->op_apply;
-  res_ctx->qf = ceed_data[fine_level]->qf_apply;
+  res_ctx->op = ceed_data[fine_level]->op_residual;
+  res_ctx->qf = ceed_data[fine_level]->qf_residual;
   if (app_ctx->bc_traction_count > 0)
     res_ctx->neumann_bcs = neumann_bcs;
   else
@@ -993,14 +977,20 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm_diagnostic); CHKERRQ(ierr);
   ierr = PetscFree(level_dms); CHKERRQ(ierr);
 
+  // -- Function list
+  ierr = PetscFunctionListDestroy(&problem_functions->setupPhysics);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListDestroy(&problem_functions->setupLibceedFineLevel);
+  CHKERRQ(ierr);
+  ierr = PetscFunctionListDestroy(&problem_functions->setupLibceedLevel);
+  CHKERRQ(ierr);
+
   // Structs
   ierr = PetscFree(res_ctx); CHKERRQ(ierr);
   ierr = PetscFree(form_jacob_ctx); CHKERRQ(ierr);
   ierr = PetscFree(jacob_coarse_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys); CHKERRQ(ierr);
-  ierr = PetscFree(phys_MR); CHKERRQ(ierr);
-  ierr = PetscFree(phys_smoother); CHKERRQ(ierr);
+  ierr = PetscFree(problem_functions); CHKERRQ(ierr);
   ierr = PetscFree(units); CHKERRQ(ierr);
 
   return PetscFinalize();

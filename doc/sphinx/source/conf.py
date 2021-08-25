@@ -22,7 +22,6 @@
 # sys.path.insert(0, os.path.abspath('.'))
 import glob
 import shutil
-import sphinx_rtd_theme
 import sys
 import breathe
 import os
@@ -42,9 +41,8 @@ extensions = [
     'altair.sphinxext.altairplot',
     'breathe',
     'hoverxref.extension',
-    'recommonmark',
-    'sphinx_markdown_tables',
     'sphinx_panels',
+    'myst_parser',
     'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
@@ -66,14 +64,6 @@ numfig = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
-
-# The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown'}
 
 # The master toctree document.
 master_doc = 'index'
@@ -110,7 +100,14 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['examples/README.rst']
+exclude_patterns = [
+    'examples/README.md',
+    'examples/ceed/README.md',
+    'examples/fluids/README.md',
+    'examples/nek/README.md',
+    'examples/petsc/README.md',
+    'examples/solid/README.md',
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -122,6 +119,17 @@ todo_include_todos = True
 bibtex_bibfiles = [
     'references.bib',
 ]
+
+myst_enable_extensions = [
+    'deflist',
+    'dollarmath',
+    'html_image',
+    'linkify',
+    'colon_fence',
+]
+
+myst_heading_anchors = 2
+myst_url_schemes = ["http", "https", "mailto"]
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -139,7 +147,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["css"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -305,10 +313,11 @@ try:
 except FileNotFoundError:
     pass
 for filename in glob.glob(os.path.join(
-        rootdir, 'examples/**/*.rst'), recursive=True):
+        rootdir, 'examples/**/*.md'), recursive=True):
     destdir = os.path.dirname(os.path.relpath(filename, rootdir))
     mkdir_p(destdir)
     shutil.copy2(filename, destdir)
+shutil.copy2(os.path.join(rootdir, 'README.md'), '.')
 
 for filename in glob.glob(os.path.join(
         rootdir, 'examples/**/*.csv'), recursive=True):

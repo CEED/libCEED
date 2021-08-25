@@ -2,16 +2,10 @@
 
 module C
 
-using CEnum, Libdl, Preferences, libCEED_jll
+using Libdl, libCEED_jll
 
-const CeedScalar =
-    @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
-const UINT_MAX = typemax(UInt32)
-const FILE = Cvoid
-const va_list = Cvoid
-
-include(joinpath(@__DIR__, "generated", "libceed_common.jl"))
-include(joinpath(@__DIR__, "generated", "libceed_api.jl"))
+const UINT_MAX = typemax(Cuint)
+include(joinpath(@__DIR__, "generated", "libceed_bindings.jl"))
 
 const CEED_STRIDES_BACKEND = Ref{Ptr{CeedInt}}()
 const CEED_BASIS_COLLOCATED = Ref{CeedBasis}()

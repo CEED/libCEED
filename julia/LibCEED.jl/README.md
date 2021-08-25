@@ -27,7 +27,7 @@ By default, LibCEED.jl will use the pre-built libCEED binaries provided by the
 [libCEED_jll](https://juliahub.com/ui/Packages/libCEED_jll/LB2fn) package. If
 you wish to use a different libCEED binary (e.g. one built from source),
 LibCEED.jl can be configured using Julia's _preferences_ mechanism. Note that
-this preference will be set for the currently active Julia environemnt, and can
+this preference will be set for the currently active Julia environment, and can
 be different between different environments. The Julia session must be restarted
 for changes to take effect.
 
