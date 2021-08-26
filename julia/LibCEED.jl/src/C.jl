@@ -3,6 +3,7 @@
 module C
 
 using Libdl, libCEED_jll, Preferences
+using libCEED_jll: libceed, libceed_handle
 
 const CeedScalar =
     @load_preference("CeedScalar", "Float64") == "Float64" ? Float64 : Float32
@@ -19,7 +20,6 @@ const CEED_REQUEST_IMMEDIATE = Ref{CeedRequest}()
 const CEED_REQUEST_ORDERED = Ref{CeedRequest}()
 
 function __init__()
-    global libceed_handle = dlopen(libceed)
     # some global variables
     CEED_STRIDES_BACKEND[] = cglobal((:CEED_STRIDES_BACKEND, libceed))
     CEED_BASIS_COLLOCATED[] =
