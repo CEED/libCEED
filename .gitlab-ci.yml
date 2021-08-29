@@ -8,6 +8,7 @@ noether-rocm:
   interruptible: true
   image: jedbrown/rocm:latest
   script:
+    - rm -f .SUCCESS
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
@@ -61,10 +62,10 @@ noether-rocm:
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
 # Report status
-    - echo "SUCCESS" > .job_status
+    - touch .SUCCESS
   after_script:
     - |
-      if [ $(cat .job_status) == "SUCCESS" ]; then
+      if [ -f .SUCCESS ]; then
         lcov --directory . --capture --output-file coverage.info;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
@@ -87,8 +88,10 @@ lv-cuda:
   before_script:
 # Compilers
     - . /opt/rh/gcc-toolset-10/enable
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran CUDA_DIR=/usr/local/cuda
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):4)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
+    - export CUDA_DIR=/usr/local/cuda-11.4
+    - export CUDA_VISIBLE_DEVICES=GPU-c4529365-8229-f689-b43d-ccd7f1677079 # our RTX 2080 Super via nvidia-smi -L
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=1 && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -98,21 +101,22 @@ lv-cuda:
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
-  script:
-    - nice make -k -j$NPROC_GPU -l$NPROC_GPU
-    - echo "-------------- core tests ----------"
-    - export PETSC_DIR= PETSC_ARCH=
-    - nice make -k -j$NPROC_GPU junit BACKENDS="$BACKENDS_GPU" realsearch=%
-# Libraries for examples
-# -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
-    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc"
+  script:
+    - rm -f .SUCCESS
+    - nice make -k -j$NPROC_CPU -l$NPROC_CPU
+    - echo "-------------- quick CPU tests to get everything built (no junit) --------------"
+    - nice make -k -j$NPROC_CPU -l$NPROC_CPU test BACKENDS=/cpu/self/avx/blocked realsearch=%
+    - echo "-------------- CUDA tests without PETSc (makes *.junit) --------------"
+    - nice make -k -j$NPROC_GPU junit PETSC_DIR= BACKENDS="$BACKENDS_GPU" realsearch=%
+    - echo "-------------- CUDA tests with PETSc (makes *.junit) --------------"
+# skip fluids and solids due to CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES on RTX 2080 Super
+    - nice make -k -j$NPROC_GPU junit BACKENDS="$BACKENDS_GPU" search="petsc"
 # Report status
-    - echo "SUCCESS" > .job_status
+    - touch .SUCCESS
   after_script:
     - |
-      if [ $(cat .job_status) == "SUCCESS" ]; then
+      if [ -f .SUCCESS ]; then
         lcov --directory . --capture --output-file coverage.info;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;

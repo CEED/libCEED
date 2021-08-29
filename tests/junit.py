@@ -14,6 +14,10 @@ def parse_testargs(file):
         return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
                     for line in open(file).readlines()
                     if line.startswith('C_TESTARGS')], [])
+    elif os.path.splitext(file)[1] in ['.f90']:
+        return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
+                    if line.startswith('! TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
@@ -29,12 +33,16 @@ def get_source(test):
         return os.path.join('examples', 'solids', test[7:] + '.c')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
+    elif test.endswith('-f'):
+        return os.path.join('tests', test + '.f90')
+    else:
+        return os.path.join('tests', test + '.c')
 
-def get_testargs(test):
-    source = get_source(test)
-    if source is None:
-        return [[['{ceed_resource}'], ['']]]
-    return parse_testargs(source)
+def get_testargs(source):
+    args = parse_testargs(source)
+    if not args:
+        return [(['{ceed_resource}'], [''])]
+    return args
 
 def check_required_failure(case, stderr, required):
     if required in stderr:
@@ -59,7 +67,8 @@ def run(test, backends):
     import subprocess
     import time
     import difflib
-    allargs = get_testargs(test)
+    source = get_source(test)
+    allargs = get_testargs(source)
 
     testcases = []
     my_env = os.environ.copy()
@@ -86,6 +95,7 @@ def run(test, backends):
                 proc.stderr = proc.stderr.decode('utf-8')
 
                 case = TestCase('{} {} {}'.format(test, *name, ceed_resource),
+                                classname=os.path.dirname(source),
                                 elapsed_sec=time.time()-start,
                                 timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                                 stdout=proc.stdout,

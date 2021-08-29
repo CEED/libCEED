@@ -169,17 +169,12 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
 //------------------------------------------------------------------------------
 __device__ void weight1d(const CeedInt nelem, const CeedScalar *qweight1d,
                          CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-    w1d[i] = qweight1d[i];
-
-  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
-       e < nelem;
-       e += blockDim.x * gridDim.x)
-    for (int i = 0; i < BASIS_Q1D; ++i) {
-      const int ind = e*BASIS_Q1D + i; // sequential
-      w[ind] = w1d[i];
-    }
+  const int i = threadIdx.x;
+  if (i < BASIS_Q1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < nelem)
+      w[elem*BASIS_Q1D + i] = qweight1d[i];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -187,18 +182,16 @@ __device__ void weight1d(const CeedInt nelem, const CeedScalar *qweight1d,
 //------------------------------------------------------------------------------
 __device__ void weight2d(const CeedInt nelem, const CeedScalar *qweight1d,
                          CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-    w1d[i] = qweight1d[i];
 
-  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
-       e < nelem;
-       e += blockDim.x * gridDim.x)
-    for (int i = 0; i < BASIS_Q1D; ++i)
-      for (int j = 0; j < BASIS_Q1D; ++j) {
-        const int ind = e*BASIS_Q1D*BASIS_Q1D + i + j*BASIS_Q1D; // sequential
-        w[ind] = w1d[i]*w1d[j];
-      }
+  const int i = threadIdx.x;
+  const int j = threadIdx.y;
+  if (i < BASIS_Q1D && j < BASIS_Q1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < nelem) {
+      const size_t ind = (elem * BASIS_Q1D + j) * BASIS_Q1D + i;
+      w[ind] = qweight1d[i] * qweight1d[j];
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -206,20 +199,17 @@ __device__ void weight2d(const CeedInt nelem, const CeedScalar *qweight1d,
 //------------------------------------------------------------------------------
 __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
                          CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q1D];
-  for (int i = 0; i < BASIS_Q1D; ++i)
-    w1d[i] = qweight1d[i];
-
-  for (int e = blockIdx.x * blockDim.x + threadIdx.x;
-       e < nelem;
-       e += blockDim.x * gridDim.x)
-    for (int i = 0; i < BASIS_Q1D; ++i)
-      for (int j = 0; j < BASIS_Q1D; ++j)
-        for (int k = 0; k < BASIS_Q1D; ++k) {
-          const int ind = e*BASIS_Q1D*BASIS_Q1D*BASIS_Q1D + i + j*BASIS_Q1D +
-                          k*BASIS_Q1D*BASIS_Q1D; // sequential
-          w[ind] = w1d[i]*w1d[j]*w1d[k];
-        }
+  const int i = threadIdx.x;
+  const int j = threadIdx.y;
+  if (i < BASIS_Q1D && j < BASIS_Q1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < nelem) {
+      for (int k=0; k<BASIS_Q1D; k++) {
+        const size_t ind = ((elem * BASIS_Q1D + k) * BASIS_Q1D + j) * BASIS_Q1D + i;
+        w[ind] = qweight1d[i] * qweight1d[j] * qweight1d[k];
+      }
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -368,6 +358,9 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     ierr = cudaMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Cu(ceed,ierr);
   }
+  CeedInt Q1d, dim;
+  ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
 
   // Basis action
   switch (emode) {
@@ -375,9 +368,6 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
     void *interpargs[] = {(void *) &nelem, (void *) &transpose,
                           &data->d_interp1d, &d_u, &d_v
                          };
-    CeedInt Q1d, dim;
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
-    ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
     CeedInt blocksize = CeedIntPow(Q1d, dim);
     blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
 
@@ -395,13 +385,10 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt nelem,
   } break;
   case CEED_EVAL_WEIGHT: {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
-    const int blocksize = 32;
-    int gridsize = nelem/blocksize;
-    if (blocksize * gridsize < nelem)
-      gridsize += 1;
-
-    ierr = CeedRunKernelCuda(ceed, data->weight, gridsize, blocksize,
-                             weightargs); CeedChkBackend(ierr);
+    const int gridsize = nelem;
+    ierr = CeedRunKernelDimCuda(ceed, data->weight, gridsize,
+                                Q1d, dim >= 2 ? Q1d : 1, 1,
+                                weightargs); CeedChkBackend(ierr);
   } break;
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points

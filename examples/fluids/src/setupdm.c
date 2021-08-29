@@ -24,12 +24,14 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
                                    SetupContext setup_ctx, DM *dm) {
   DM               dist_mesh = NULL;
   PetscPartitioner part;
-  PetscInt         dim = problem->dim;
+  PetscInt         dim = problem->dim, faces[3] = {3, 3, 3};
   const PetscReal  scale[3] = {setup_ctx->lx, setup_ctx->ly, setup_ctx->lz};
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
 
-  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, NULL, NULL, scale,
+  ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
+                                 faces, &dim, NULL); CHKERRQ(ierr);
+  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, scale,
                              NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
 
   // Distribute DM in parallel

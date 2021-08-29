@@ -907,7 +907,7 @@ int main(int argc, char **argv) {
     ierr = KSPGetConvergedReason(ksp, &reason); CHKERRQ(ierr);
     ierr = KSPGetIterationNumber(ksp, &its); CHKERRQ(ierr);
     ierr = KSPGetResidualNorm(ksp, &rnorm); CHKERRQ(ierr);
-    if (!test_mode || reason < 0 || rnorm > 1e-9) {
+    if (!test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"

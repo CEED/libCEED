@@ -9,7 +9,6 @@ int main(int argc, char **argv) {
   CeedVector x, y;
   CeedInt num_elem = 8;
   CeedInt elem_size = 2;
-  CeedInt num_blk = 2;
   CeedInt blk_size = 5;
   CeedInt ind[elem_size*num_elem];
   CeedScalar a[num_elem + 1];
