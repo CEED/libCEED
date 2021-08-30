@@ -25,9 +25,6 @@
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP64
 typedef double CeedScalar;
 
-/// Data alignment of 64 bits
-#define CEED_ALIGN 64
-
 /// Machine epsilon
 #define CEED_EPSILON 1e-16
 

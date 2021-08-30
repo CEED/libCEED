@@ -26,9 +26,6 @@
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP32
 typedef float CeedScalar;
 
-/// Data alignment of 32 bits
-#define CEED_ALIGN 32
-
 /// Machine epsilon
 #define CEED_EPSILON 6e-08
 

@@ -38,13 +38,11 @@ with open(os.path.abspath("include/ceed/ceed.h")) as f:
         if re.search("ceed-f32.h", line) is not None:
             insert_index = lines.index(line) + 1
             extra_lines = ['typedef float CeedScalar;']
-            extra_lines.append('#define CEED_ALIGN 32')
             extra_lines.append('static const int CEED_SCALAR_TYPE;')
             extra_lines.append('static const double CEED_EPSILON;')
         elif re.search("ceed-f64.h", line) is not None:
             insert_index = lines.index(line) + 1
             extra_lines = ['typedef double CeedScalar;']
-            extra_lines.append('#define CEED_ALIGN 64')
             extra_lines.append('static const int CEED_SCALAR_TYPE;')
             extra_lines.append('static const double CEED_EPSILON;')
     lines[insert_index: insert_index] = extra_lines
