@@ -10,6 +10,7 @@ double precision.  Users wishing to set {code}`CeedScalar` to single precision s
 ```
 
 to include {code}`ceed-f32.h` instead, then recompile the library.
+Tests can be run using `make test FC=` because the Fortran tests do not support single precision at this time.
 
 ## Language-specific notes
 

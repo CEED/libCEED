@@ -91,7 +91,7 @@ AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
 CC_VENDOR := $(subst oneAPI,icc,$(firstword $(filter gcc clang icc oneAPI XL,$(subst -, ,$(shell $(CC) --version)))))
-FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
+FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
 MARCHFLAG.gcc           := -march=native
@@ -190,13 +190,13 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
+tests.f   := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
-examples.f := $(sort $(wildcard examples/ceed/*.f))
+examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # MFEM Examples

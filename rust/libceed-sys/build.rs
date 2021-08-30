@@ -25,6 +25,7 @@ fn main() {
                 "LIBDIR={}",
                 out_dir.join("build").join("lib").to_string_lossy()
             ))
+            .arg("FC=") // Don't try to find Fortran (unused library build/install)
             .env("MAKEFLAGS", makeflags)
             .current_dir("c-src");
         if statik {
