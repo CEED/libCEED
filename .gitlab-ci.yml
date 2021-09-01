@@ -79,6 +79,64 @@ noether-rocm:
       junit: build/*.junit
       performance: performance.json
 
+noether-float:
+  stage: test
+  tags:
+    - rocm 
+  interruptible: true
+  image: jedbrown/rocm:latest
+  script:
+# Compilers
+    - export COVERAGE=1 CC=gcc CXX=g++ FC= HIPCC=hipcc
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- HIPCC ---------------" && $HIPCC --version
+    - echo "-------------- GCOV ----------------" && gcov --version
+# Libraries for backends
+# -- MAGMA from dev branch
+    - echo "-------------- MAGMA ---------------"
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+# -- LIBXSMM v1.16.1
+    - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+    - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
+# libCEED
+# First change to single precision
+    - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/ceed.h 
+# Build libCEED
+    - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+    - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
+    - make -j$NPROC_CPU
+# -- libCEED only tests
+    - echo "-------------- core tests ----------"
+    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
+# Report status
+    - echo "SUCCESS" > .job_status
+  after_script:
+    - |
+      if [ $(cat .job_status) == "SUCCESS" ]; then
+        lcov --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
+    - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/ceed.h 
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+      performance: performance.json
+
 lv-cuda:
   stage: test
   tags:
