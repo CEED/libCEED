@@ -5,7 +5,7 @@ using Base: RefValue
 
 # import low-level C interface
 include("C.jl")
-import .C
+using .C
 
 export @interior_qf,
     @witharray,
@@ -90,6 +90,7 @@ export @interior_qf,
     gauss_quadrature,
     get_libceed_path,
     get_preferred_memtype,
+    get_scalar_type,
     getcompstride,
     getnumelements,
     getelementsize,
@@ -159,6 +160,7 @@ function __init__()
               The version of the libCEED library is $libceed_version."
               """)
     end
+    configure_scalar_type(C.libceed_handle)
     @require CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba" include("Cuda.jl")
     set_globals()
 end
@@ -212,11 +214,15 @@ environment. Changes will take effect after restarting the Julia session. See th
 documentation](https://github.com/JuliaPackaging/Preferences.jl) for more information.
 """
 function set_libceed_path!(path::AbstractString)
+    handle = C.dlopen(path)
     set_preferences!(C.libCEED_jll, "libceed_path" => path; force=true)
     @info("""
-          Setting the libCEED library path to $path.
-          Restart the Julia session for changes to take effect.
-          """)
+            Setting the libCEED library path to $path.
+            Restart the Julia session for changes to take effect.
+            """)
+    configure_scalar_type(handle)
+    (handle != C.libceed_handle) && C.dlclose(handle)
+    return
 end
 
 function set_libceed_path!(sym::Symbol)
@@ -254,5 +260,41 @@ Returns the path to the currently used libCEED library. A different libCEED libr
 calling [`set_libceed_path!`](@ref) or by using a depot-wide Overrides.toml file.
 """
 get_libceed_path() = C.libCEED_jll.libceed_path
+
+"""
+    get_scalar_type()
+Return the type of `CeedScalar` used by the libCEED library (either `Float32` or `Float64`).
+"""
+get_scalar_type() = get_scalar_type(LibCEED.C.libceed_handle)
+
+function get_scalar_type(handle::Ptr{Nothing})
+    # If CeedGetScalarType is not provided by the libCEED shared library, default for Float64
+    sym = LibCEED.C.dlsym(handle, :CeedGetScalarType; throw_error=false)
+    if sym === nothing
+        return Float64
+    else
+        scalar_type = Ref{C.CeedScalarType}()
+        ccall(sym, Cint, (Ptr{C.CeedScalarType},), scalar_type)
+        if scalar_type[] == C.CEED_SCALAR_FP32
+            return Float32
+        elseif scalar_type[] == C.CEED_SCALAR_FP64
+            return Float64
+        else
+            error("Unknown CeedScalar type $(scalar_type[])")
+        end
+    end
+end
+
+function configure_scalar_type(handle::Ptr{Nothing})
+    scalar_type = get_scalar_type(handle)
+    if scalar_type != CeedScalar
+        @set_preferences!("CeedScalar" => string(scalar_type))
+        @warn("""
+              libCEED is compiled with $scalar_type but LibCEED.jl is using $CeedScalar.
+              Configuring LibCEED.jl to use $scalar_type.
+              The Julia session must be restarted for changes to take effect.
+              """)
+    end
+end
 
 end # module

@@ -371,9 +371,9 @@ impl<'a> Operator<'a> {
     /// op_mass.apply(&u, &mut v).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v.view().iter().sum();
+    /// let sum: Scalar = v.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```
@@ -461,9 +461,9 @@ impl<'a> Operator<'a> {
     /// op_mass.apply_add(&u, &mut v).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v.view().iter().sum();
+    /// let sum: Scalar = v.view().iter().sum();
     /// assert!(
-    ///     (sum - (2.0 + ndofs as f64)).abs() < 1e-15,
+    ///     (sum - (2.0 + ndofs as Scalar)).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed and added"
     /// );
     /// ```
@@ -645,7 +645,7 @@ impl<'a> Operator<'a> {
     ///     .zip(true_diag.view().iter())
     ///     .for_each(|(computed, actual)| {
     ///         assert!(
-    ///             (*computed - *actual).abs() < 1e-15,
+    ///             (*computed - *actual).abs() < 10.0 * libceed::EPSILON,
     ///             "Diagonal entry incorrect"
     ///         );
     ///     });
@@ -767,7 +767,7 @@ impl<'a> Operator<'a> {
     ///     .zip(true_diag.view().iter())
     ///     .for_each(|(computed, actual)| {
     ///         assert!(
-    ///             (*computed - *actual).abs() < 1e-15,
+    ///             (*computed - *actual).abs() < 10.0 * libceed::EPSILON,
     ///             "Diagonal entry incorrect"
     ///         );
     ///     });
@@ -924,7 +924,7 @@ impl<'a> Operator<'a> {
     ///     .zip(true_diag.view().iter())
     ///     .for_each(|(computed, actual)| {
     ///         assert!(
-    ///             (*computed - *actual).abs() < 1e-15,
+    ///             (*computed - *actual).abs() < 10.0 * libceed::EPSILON,
     ///             "Diagonal entry incorrect"
     ///         );
     ///     });
@@ -1084,7 +1084,7 @@ impl<'a> Operator<'a> {
     ///     .zip(true_diag.view().iter())
     ///     .for_each(|(computed, actual)| {
     ///         assert!(
-    ///             (*computed - 1.0 - *actual).abs() < 1e-15,
+    ///             (*computed - 1.0 - *actual).abs() < 10.0 * libceed::EPSILON,
     ///             "Diagonal entry incorrect"
     ///         );
     ///     });
@@ -1117,8 +1117,8 @@ impl<'a> Operator<'a> {
     ///
     /// // Vectors
     /// let x_array = (0..ne + 1)
-    ///     .map(|i| 2.0 * i as f64 / ne as f64 - 1.0)
-    ///     .collect::<Vec<f64>>();
+    ///     .map(|i| 2.0 * i as Scalar / ne as Scalar - 1.0)
+    ///     .collect::<Vec<Scalar>>();
     /// let x = ceed.vector_from_slice(&x_array).unwrap();
     /// let mut qdata = ceed.vector(ne * q).unwrap();
     /// qdata.set_value(0.0);
@@ -1222,9 +1222,9 @@ impl<'a> Operator<'a> {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 50.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1235,9 +1235,9 @@ impl<'a> Operator<'a> {
     /// op_mass_fine.apply(&u_fine, &mut v_fine).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_fine.view().iter().sum();
+    /// let sum: Scalar = v_fine.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 50.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1245,9 +1245,9 @@ impl<'a> Operator<'a> {
     /// op_restrict.apply(&v_fine, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 50.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```
@@ -1298,8 +1298,8 @@ impl<'a> Operator<'a> {
     ///
     /// // Vectors
     /// let x_array = (0..ne + 1)
-    ///     .map(|i| 2.0 * i as f64 / ne as f64 - 1.0)
-    ///     .collect::<Vec<f64>>();
+    ///     .map(|i| 2.0 * i as Scalar / ne as Scalar - 1.0)
+    ///     .collect::<Vec<Scalar>>();
     /// let x = ceed.vector_from_slice(&x_array).unwrap();
     /// let mut qdata = ceed.vector(ne * q).unwrap();
     /// qdata.set_value(0.0);
@@ -1394,7 +1394,7 @@ impl<'a> Operator<'a> {
     ///     .unwrap();
     ///
     /// // Multigrid setup
-    /// let mut interp_c_to_f: Vec<f64> = vec![0.; p_coarse * p_fine];
+    /// let mut interp_c_to_f: Vec<Scalar> = vec![0.; p_coarse * p_fine];
     /// {
     ///     let mut coarse = ceed.vector(p_coarse).unwrap();
     ///     let mut fine = ceed.vector(p_fine).unwrap();
@@ -1431,9 +1431,9 @@ impl<'a> Operator<'a> {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1444,9 +1444,9 @@ impl<'a> Operator<'a> {
     /// op_mass_fine.apply(&u_fine, &mut v_fine).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_fine.view().iter().sum();
+    /// let sum: Scalar = v_fine.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1454,9 +1454,9 @@ impl<'a> Operator<'a> {
     /// op_restrict.apply(&v_fine, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```
@@ -1465,7 +1465,7 @@ impl<'a> Operator<'a> {
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
-        interpCtoF: &Vec<f64>,
+        interpCtoF: &Vec<Scalar>,
     ) -> crate::Result<(Operator, Operator, Operator)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
@@ -1509,8 +1509,8 @@ impl<'a> Operator<'a> {
     ///
     /// // Vectors
     /// let x_array = (0..ne + 1)
-    ///     .map(|i| 2.0 * i as f64 / ne as f64 - 1.0)
-    ///     .collect::<Vec<f64>>();
+    ///     .map(|i| 2.0 * i as Scalar / ne as Scalar - 1.0)
+    ///     .collect::<Vec<Scalar>>();
     /// let x = ceed.vector_from_slice(&x_array).unwrap();
     /// let mut qdata = ceed.vector(ne * q).unwrap();
     /// qdata.set_value(0.0);
@@ -1605,7 +1605,7 @@ impl<'a> Operator<'a> {
     ///     .unwrap();
     ///
     /// // Multigrid setup
-    /// let mut interp_c_to_f: Vec<f64> = vec![0.; p_coarse * p_fine];
+    /// let mut interp_c_to_f: Vec<Scalar> = vec![0.; p_coarse * p_fine];
     /// {
     ///     let mut coarse = ceed.vector(p_coarse).unwrap();
     ///     let mut fine = ceed.vector(p_fine).unwrap();
@@ -1642,9 +1642,9 @@ impl<'a> Operator<'a> {
     /// op_mass_coarse.apply(&u_coarse, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1655,9 +1655,9 @@ impl<'a> Operator<'a> {
     /// op_mass_fine.apply(&u_fine, &mut v_fine).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_fine.view().iter().sum();
+    /// let sum: Scalar = v_fine.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1665,9 +1665,9 @@ impl<'a> Operator<'a> {
     /// op_restrict.apply(&v_fine, &mut v_coarse).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v_coarse.view().iter().sum();
+    /// let sum: Scalar = v_coarse.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```
@@ -1676,7 +1676,7 @@ impl<'a> Operator<'a> {
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
-        interpCtoF: &[f64],
+        interpCtoF: &[Scalar],
     ) -> crate::Result<(Operator, Operator, Operator)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
@@ -1830,9 +1830,9 @@ impl<'a> CompositeOperator<'a> {
     /// op_composite.apply(&u, &mut v).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v.view().iter().sum();
+    /// let sum: Scalar = v.view().iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 1e-15,
+    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```
@@ -1955,9 +1955,9 @@ impl<'a> CompositeOperator<'a> {
     /// op_composite.apply_add(&u, &mut v).unwrap();
     ///
     /// // Check
-    /// let sum: f64 = v.view().iter().sum();
+    /// let sum: Scalar = v.view().iter().sum();
     /// assert!(
-    ///     (sum - (2.0 + ndofs as f64)).abs() < 1e-15,
+    ///     (sum - (2.0 + ndofs as Scalar)).abs() < 10.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// ```

@@ -10,6 +10,7 @@ libCEEDapi
 examples/index
 ffi
 api/index
+precision
 libCEEDdev
 Contributing <CONTRIBUTING>
 Code of Conduct <CODE_OF_CONDUCT>

@@ -194,9 +194,9 @@ template<int P, int Q>
 static __device__ __inline__ void
 magma_interp_generic_device( 
     const int dim, const int ncomp, const int pre_org, const int post_org, const int tmp_size, 
-    const double *dT, magma_trans_t transT,
-    const double *dU, double *dV, 
-    double* shared_data )
+    const CeedScalar *dT, magma_trans_t transT,
+    const CeedScalar *dU, CeedScalar *dV, 
+    CeedScalar* shared_data )
 {
 #define B    (P)
 #define J    (Q)
@@ -214,12 +214,12 @@ magma_interp_generic_device(
 
     const magma_int_t add = (transT == MagmaTrans);
     
-    double* sT    = (double*)shared_data;
-    double* sTmp1 = sT + B * J;
-    double* sTmp2 = sTmp1 + tmp_size; 
-    double rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
-    double rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
-    double *sU, *sV; 
+    CeedScalar* sT    = (CeedScalar*)shared_data;
+    CeedScalar* sTmp1 = sT + B * J;
+    CeedScalar* sTmp2 = sTmp1 + tmp_size; 
+    CeedScalar rU[P]  = { MAGMA_D_ZERO };    // each thread has an entire row of U
+    CeedScalar rV[Q]  = { MAGMA_D_ZERO };    // each thread computes an entire row of V
+    CeedScalar *sU, *sV; 
 
     // read T in shared memory
     dread_T_gm2sm<B, J>(tx, transT, dT, sT );    
@@ -295,7 +295,7 @@ magma_interp_generic_device(
     // no need for sV in the last iteration, just use sU and write directly into dV
     sU = (d % 2 == 0) ? sTmp1 : sTmp2;
     //sV = (d % 2 == 0) ? sTmp2 : sTmp1; 
-    double beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
+    CeedScalar beta = (add == 1) ? MAGMA_D_ONE : MAGMA_D_ZERO; 
         
     sU += slice_id * C * B;
     dV += slice_id * C * J;

@@ -26,6 +26,14 @@ MEM_DEVICE = lib.CEED_MEM_DEVICE
 mem_types = {MEM_HOST: "host",
              MEM_DEVICE: "device"}
 
+# CeedScalarType
+SCALAR_FP32 = lib.CEED_SCALAR_FP32
+SCALAR_FP64 = lib.CEED_SCALAR_FP64
+scalar_types = {SCALAR_FP32: "float32",
+                SCALAR_FP64: "float64"}
+# Machine eps corresponding to CeedScalar
+EPSILON = lib.CEED_EPSILON
+
 # CeedCopyMode
 COPY_VALUES = lib.CEED_COPY_VALUES
 USE_POINTER = lib.CEED_USE_POINTER

@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
   for (CeedInt i=0; i<n; i++)
-    if (fabs(b[i] - 1./(10+i)) > 1e-15)
+    if (fabs(b[i] - 1./(10+i)) > 10.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("Error reading array b[%d] = %f",i,(double)b[i]);
+      printf("Error reading array b[%d] = %f",i,(CeedScalar)b[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, &b);
 

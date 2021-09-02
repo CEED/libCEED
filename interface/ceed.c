@@ -1182,4 +1182,10 @@ int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   return 0;
 }
 
+int CeedGetScalarType(CeedScalarType *scalar_type) {
+  *scalar_type = CEED_SCALAR_TYPE;
+  return 0;
+}
+
+
 /// @}

@@ -42,9 +42,19 @@ class libceed_build_ext(build_ext):
 
     def make_libceed_so(self):
         import subprocess
-        subprocess.check_call(['make', '-j', '-B'])
-        subprocess.check_call(
-            ['make', 'install', 'prefix=' + os.path.join(self.build_lib, 'libceed')])
+        if hasattr(os, 'sched_getaffinity'):
+            # number of available logical cores
+            nproc = len(os.sched_getaffinity(0))
+        else:
+            nproc = os.cpu_count()
+        subprocess.check_call([
+            'make',
+            '-j{}'.format(nproc),
+            '--always-make',
+            'install',
+            'prefix=' + os.path.join(self.build_lib, 'libceed'),
+            'FC=',  # Don't try to find Fortran (unused library build/install)
+        ])
 
 
 description = """

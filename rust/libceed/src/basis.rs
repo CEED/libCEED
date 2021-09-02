@@ -103,10 +103,10 @@ impl<'a> Basis<'a> {
         ncomp: usize,
         P1d: usize,
         Q1d: usize,
-        interp1d: &[f64],
-        grad1d: &[f64],
-        qref1d: &[f64],
-        qweight1d: &[f64],
+        interp1d: &[crate::Scalar],
+        grad1d: &[crate::Scalar],
+        qref1d: &[crate::Scalar],
+        qweight1d: &[crate::Scalar],
     ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
         let (dim, ncomp, P1d, Q1d) = (
@@ -162,10 +162,10 @@ impl<'a> Basis<'a> {
         ncomp: usize,
         nnodes: usize,
         nqpts: usize,
-        interp: &[f64],
-        grad: &[f64],
-        qref: &[f64],
-        qweight: &[f64],
+        interp: &[crate::Scalar],
+        grad: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
     ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
         let (topo, ncomp, nnodes, nqpts) = (
@@ -253,7 +253,10 @@ impl<'a> Basis<'a> {
     ///     .zip(x_qpts.view().iter())
     ///     .for_each(|(v, x)| {
     ///         let true_value = x * x * x + 1.;
-    ///         assert_eq!(*v, true_value, "Incorrect basis application");
+    ///         assert!(
+    ///             (*v - true_value).abs() < 10.0 * libceed::EPSILON,
+    ///             "Incorrect basis application"
+    ///         );
     ///     });
     /// ```
     pub fn apply(

@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
   CeedBasis b;
   CeedVector U, V;
   CeedInt Q = 8, P = 2, num_comp = 1, dim = 3,
-          len = pow((double)(Q), dim);
+          len = pow((CeedScalar)(Q), dim);
 
   CeedInit(argv[1], &ceed);
 

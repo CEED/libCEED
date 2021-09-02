@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 from abc import ABC
-from .ceed_constants import TRANSPOSE, NOTRANSPOSE
+from .ceed_constants import TRANSPOSE, NOTRANSPOSE, scalar_types
 
 # ------------------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ class BasisTensorH1(Basis):
             ffi.sizeof("CeedScalar") *
             length)
         # return read only Numpy array
-        ret = np.frombuffer(buff, dtype="float64")
+        ret = np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         ret.flags['WRITEABLE'] = False
         return ret
 

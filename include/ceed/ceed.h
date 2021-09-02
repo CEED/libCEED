@@ -123,9 +123,19 @@
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
-/// Scalar (floating point) type
+
+/// Scalar (floating point) types
+///
 /// @ingroup Ceed
-typedef double CeedScalar;
+typedef enum {
+  /// Single precision
+  CEED_SCALAR_FP32,
+  /// Double precision
+  CEED_SCALAR_FP64
+} CeedScalarType;
+/// Base scalar type for the library to use: change which header is 
+/// included to change the precision.
+#include "ceed-f64.h"
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
@@ -236,6 +246,8 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
                                bool *release);
+
+CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
 /// Ceed Errors
 ///
@@ -596,6 +608,8 @@ CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
     CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
     void *data);
+CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
+    size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);

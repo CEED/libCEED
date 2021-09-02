@@ -26,7 +26,7 @@
 extern "C" void
 magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                      const magma_int_t esize, const magma_int_t nelem,
-                     magma_int_t *offsets, const double *du, double *dv,
+                     magma_int_t *offsets, const CeedScalar *du, CeedScalar *dv,
                      magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
@@ -42,7 +42,7 @@ magma_readDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                       const magma_int_t nelem, const int *strides,
-                      const double *du, double *dv,
+                      const CeedScalar *du, CeedScalar *dv,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
@@ -58,14 +58,22 @@ magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
 extern "C" void
 magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
                       const magma_int_t esize, const magma_int_t nelem,
-                      magma_int_t *offsets, const double *du, double *dv,
+                      magma_int_t *offsets, const CeedScalar *du, CeedScalar *dv,
                       magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    hipLaunchKernelGGL(magma_writeDofsOffset_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
-      esize, nelem, offsets, du, dv);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_s, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
+        esize, nelem, offsets, (float*)du, (float*)dv);
+    }
+    else {
+      hipLaunchKernelGGL(magma_writeDofsOffset_kernel_d, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, compstride,
+        esize, nelem, offsets, (double*)du, (double*)dv);
+    }
 }
 
 // WriteDofs from device memory, strided description for L-vector
@@ -74,12 +82,21 @@ magma_writeDofsOffset(const magma_int_t NCOMP, const magma_int_t compstride,
 extern "C" void
 magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
                        const magma_int_t nelem, const int *strides,
-                       const double *du, double *dv,
+                       const CeedScalar *du, CeedScalar *dv,
                        magma_queue_t queue)
 {
     magma_int_t grid    = nelem;
     magma_int_t threads = 256;
 
-    hipLaunchKernelGGL(magma_writeDofsStrided_kernel, dim3(grid), dim3(threads), 0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem, 
-      strides, du, dv);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_s, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem,
+        strides, (float*)du, (float*)dv);
+    }
+    else {
+      hipLaunchKernelGGL(magma_writeDofsStrided_kernel_d, dim3(grid), dim3(threads),
+	0, magma_queue_get_hip_stream(queue), NCOMP, esize, nelem,
+        strides, (double *)du, (double*)dv); 
+    }
+
 }

@@ -30,7 +30,6 @@
 #define CEED_MAX_BACKEND_PRIORITY UINT_MAX
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
-#define CEED_EPSILON 1E-16
 
 /**
   @ingroup Ceed
@@ -231,8 +230,6 @@ CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext cxt,
     Ceed *ceed);
 CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx,
     uint64_t *state);
-CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
-    size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,

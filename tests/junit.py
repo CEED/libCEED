@@ -109,6 +109,8 @@ def run(test, backends):
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
                 elif 'Can only provide to HOST memory' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
+                elif 'Test not implemented in single precision' in proc.stderr:
+                    case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
                 if test[:4] in 't006 t007'.split():

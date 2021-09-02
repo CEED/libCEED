@@ -36,8 +36,8 @@ pub mod prelude {
             self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, TransposeMode, CEED_STRIDES_BACKEND,
-        MAX_QFUNCTION_FIELDS,
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
+        CEED_STRIDES_BACKEND, EPSILON, MAX_QFUNCTION_FIELDS,
     };
     pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
@@ -55,11 +55,17 @@ pub mod qfunction;
 pub mod vector;
 
 // -----------------------------------------------------------------------------
+// Typedef for scalar
+// -----------------------------------------------------------------------------
+pub type Scalar = bind_ceed::CeedScalar;
+
+// -----------------------------------------------------------------------------
 // Constants for library
 // -----------------------------------------------------------------------------
 const MAX_BUFFER_LENGTH: u64 = 4096;
 pub const MAX_QFUNCTION_FIELDS: usize = 16;
 pub const CEED_STRIDES_BACKEND: [i32; 3] = [0; 3];
+pub const EPSILON: crate::Scalar = bind_ceed::CEED_EPSILON as crate::Scalar;
 
 // -----------------------------------------------------------------------------
 // Enums for libCEED
@@ -330,7 +336,7 @@ impl Ceed {
     /// let vec = ceed.vector_from_slice(&[1., 2., 3.]).unwrap();
     /// assert_eq!(vec.length(), 3);
     /// ```
-    pub fn vector_from_slice(&self, slice: &[f64]) -> Result<Vector> {
+    pub fn vector_from_slice(&self, slice: &[crate::Scalar]) -> Result<Vector> {
         Vector::from_slice(self, slice)
     }
 
@@ -466,10 +472,10 @@ impl Ceed {
         ncomp: usize,
         P1d: usize,
         Q1d: usize,
-        interp1d: &[f64],
-        grad1d: &[f64],
-        qref1d: &[f64],
-        qweight1d: &[f64],
+        interp1d: &[crate::Scalar],
+        grad1d: &[crate::Scalar],
+        qref1d: &[crate::Scalar],
+        qweight1d: &[crate::Scalar],
     ) -> Result<Basis> {
         Basis::create_tensor_H1(
             self, dim, ncomp, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d,
@@ -626,10 +632,10 @@ impl Ceed {
         ncomp: usize,
         nnodes: usize,
         nqpts: usize,
-        interp: &[f64],
-        grad: &[f64],
-        qref: &[f64],
-        qweight: &[f64],
+        interp: &[crate::Scalar],
+        grad: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
     ) -> Result<Basis> {
         Basis::create_H1(
             self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
@@ -784,7 +790,7 @@ mod tests {
         op_mass.apply(&u, &mut v)?;
 
         // Check
-        let sum: f64 = v.view().iter().sum();
+        let sum: Scalar = v.view().iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"

@@ -4,6 +4,7 @@
 Scalar (floating point) type. Equivalent to `Float64`.
 """
 const CeedScalar = C.CeedScalar
+
 """
     CeedInt
 

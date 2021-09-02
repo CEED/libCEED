@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 import contextlib
-from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2
+from .ceed_constants import MEM_HOST, USE_POINTER, COPY_VALUES, NORM_2, scalar_types
 
 # ------------------------------------------------------------------------------
 
@@ -130,7 +130,7 @@ class Vector():
                 ffi.sizeof("CeedScalar") *
                 length_pointer[0])
             # return Numpy array
-            return np.frombuffer(buff, dtype="float64")
+            return np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         else:
             # CUDA array interface
             # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
@@ -175,7 +175,7 @@ class Vector():
                 ffi.sizeof("CeedScalar") *
                 length_pointer[0])
             # return read only Numpy array
-            ret = np.frombuffer(buff, dtype="float64")
+            ret = np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
             ret.flags['WRITEABLE'] = False
             return ret
         else:

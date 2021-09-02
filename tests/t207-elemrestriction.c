@@ -48,12 +48,12 @@ int main(int argc, char **argv) {
     if (yy[2*i] != i*mult)
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
-             2*i, (double)yy[2*i], i*mult);
+             2*i, (CeedScalar)yy[2*i], i*mult);
     // LCOV_EXCL_STOP
     if (yy[2*i+1] != (10+i)*mult)
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f != %f\n",
-             2*i+1, (double)yy[2*i+1], (10.+i)*mult);
+             2*i+1, (CeedScalar)yy[2*i+1], (10.+i)*mult);
     // LCOV_EXCL_STOP
   }
 

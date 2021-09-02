@@ -23,7 +23,7 @@ import numpy as np
 import check
 import buildmats as bm
 
-TOL = np.finfo(float).eps * 256
+TOL = libceed.EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utility
@@ -145,7 +145,7 @@ def test_501(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -235,7 +235,7 @@ def test_502(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -311,8 +311,8 @@ def test_502(ceed_resource):
         for i in range(nu):
             total_1 = total_1 + v_array[2 * i]
             total_2 = total_2 + v_array[2 * i + 1]
-        assert abs(total_1 - 1.0) < 1E-13
-        assert abs(total_2 - 2.0) < 1E-13
+        assert abs(total_1 - 1.0) < TOL
+        assert abs(total_2 - 2.0) < TOL
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with passive
@@ -331,7 +331,7 @@ def test_503(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -402,7 +402,7 @@ def test_503(ceed_resource):
         total = 0.0
         for i in range(nu):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 1.0) < TOL
 
 # -------------------------------------------------------------------------------
 # Test viewing of mass matrix operator
@@ -495,7 +495,7 @@ def test_505(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -578,7 +578,7 @@ def test_505(ceed_resource):
         total = -nu
         for i in range(nu):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-10
+        assert abs(total - 1.0) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator
@@ -638,9 +638,10 @@ def test_510(ceed_resource):
     rui = ceed.StridedElemRestriction(nelem, q, 1, nqpts, strides)
 
     # Bases
-    qref = np.empty(dim * q, dtype="float64")
-    qweight = np.empty(q, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q, dtype=ceed.scalar_type())
+    qweight = np.empty(q, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx = ceed.BasisH1(libceed.TRIANGLE, dim, p, q, interp, grad, qref, qweight)
     bu = ceed.BasisH1(libceed.TRIANGLE, 1, p, q, interp, grad, qref, qweight)
@@ -704,7 +705,7 @@ def test_511(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs)
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ndofs):
         x_array[i] = (1. / (nx * 2)) * (i % (nx * 2 + 1))
         x_array[i + ndofs] = (1. / (ny * 2)) * (i / (nx * 2 + 1))
@@ -744,9 +745,10 @@ def test_511(ceed_resource):
     rui = ceed.StridedElemRestriction(nelem, q, 1, nqpts, strides)
 
     # Bases
-    qref = np.empty(dim * q, dtype="float64")
-    qweight = np.empty(q, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q, dtype=ceed.scalar_type())
+    qweight = np.empty(q, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx = ceed.BasisH1(libceed.TRIANGLE, dim, p, q, interp, grad, qref, qweight)
     bu = ceed.BasisH1(libceed.TRIANGLE, 1, p, q, interp, grad, qref, qweight)
@@ -792,7 +794,7 @@ def test_511(ceed_resource):
         total = 0.0
         for i in range(ndofs):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-10
+        assert abs(total - 1.0) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for composite mass matrix operator
@@ -857,9 +859,10 @@ def test_520(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet, dtype="float64")
-    qweight = np.empty(q_tet, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx_tet = ceed.BasisH1(libceed.TRIANGLE, dim, p_tet, q_hex, interp, grad, qref,
                           qweight)
@@ -987,7 +990,7 @@ def test_521(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs)
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ny * 2 + 1):
         for j in range(nx * 2 + 1):
             x_array[i + j * (ny * 2 + 1)] = i / (2 * ny)
@@ -1032,9 +1035,10 @@ def test_521(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet, dtype="float64")
-    qweight = np.empty(q_tet, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx_tet = ceed.BasisH1(libceed.TRIANGLE, dim, p_tet, q_hex, interp, grad, qref,
                           qweight)
@@ -1143,7 +1147,7 @@ def test_521(ceed_resource):
         total = 0.0
         for i in range(ndofs):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-10
+        assert abs(total - 1.0) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test viewing of composite mass matrix operator
@@ -1198,9 +1202,10 @@ def test_523(ceed_resource, capsys):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet, dtype="float64")
-    qweight = np.empty(q_tet, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx_tet = ceed.BasisH1(libceed.TRIANGLE, dim, p_tet, q_hex, interp, grad, qref,
                           qweight)
@@ -1328,7 +1333,7 @@ def test_524(ceed_resource):
 
     # Vectors
     x = ceed.Vector(dim * ndofs)
-    x_array = np.zeros(dim * ndofs)
+    x_array = np.zeros(dim * ndofs, dtype=ceed.scalar_type())
     for i in range(ny * 2 + 1):
         for j in range(nx * 2 + 1):
             x_array[i + j * (ny * 2 + 1)] = i / (2 * ny)
@@ -1373,9 +1378,10 @@ def test_524(ceed_resource):
                                           strides)
 
     # Bases
-    qref = np.empty(dim * q_tet, dtype="float64")
-    qweight = np.empty(q_tet, dtype="float64")
-    interp, grad = bm.buildmats(qref, qweight)
+    qref = np.empty(dim * q_tet, dtype=ceed.scalar_type())
+    qweight = np.empty(q_tet, dtype=ceed.scalar_type())
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     bx_tet = ceed.BasisH1(libceed.TRIANGLE, dim, p_tet, q_hex, interp, grad, qref,
                           qweight)
@@ -1485,7 +1491,7 @@ def test_524(ceed_resource):
         total = 0.0
         for i in range(ndofs):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-10
+        assert abs(total - 1.0) < 10. * TOL
 
     # ApplyAdd mass matrix
     v.set_value(1.)
@@ -1496,7 +1502,7 @@ def test_524(ceed_resource):
         total = -ndofs
         for i in range(ndofs):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-10
+        assert abs(total - 1.0) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test assembly of mass matrix operator diagonal
@@ -1572,7 +1578,7 @@ def test_550(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -1663,7 +1669,7 @@ def test_550(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < 10. * TOL
 
     # Prolong coarse u
     op_prolong.apply(u_coarse, u_fine)
@@ -1676,7 +1682,7 @@ def test_550(ceed_resource):
         total = 0.0
         for i in range(nu_fine * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < 10. * TOL
 
     # Restrict state to coarse grid
     op_restrict.apply(v_fine, v_coarse)
@@ -1686,7 +1692,7 @@ def test_550(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with
@@ -1708,7 +1714,7 @@ def test_552(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -1801,7 +1807,7 @@ def test_552(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < TOL
 
     # Prolong coarse u
     op_prolong.apply(u_coarse, u_fine)
@@ -1814,7 +1820,7 @@ def test_552(ceed_resource):
         total = 0.0
         for i in range(nu_fine * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < TOL
 
     # Restrict state to coarse grid
     op_restrict.apply(v_fine, v_coarse)
@@ -1824,7 +1830,7 @@ def test_552(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 2.0) < 1E-13
+        assert abs(total - 2.0) < TOL
 
 # -------------------------------------------------------------------------------
 # Test creation, action, and destruction for mass matrix operator with
@@ -1846,7 +1852,7 @@ def test_553(ceed_resource):
 
     # Vectors
     x = ceed.Vector(nx)
-    x_array = np.zeros(nx)
+    x_array = np.zeros(nx, dtype=ceed.scalar_type())
     for i in range(nx):
         x_array[i] = i / (nx - 1.0)
     x.set_array(x_array, cmode=libceed.USE_POINTER)
@@ -1930,7 +1936,7 @@ def test_553(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 1.0) < TOL
 
     # Prolong coarse u
     op_prolong.apply(u_coarse, u_fine)
@@ -1943,7 +1949,7 @@ def test_553(ceed_resource):
         total = 0.0
         for i in range(nu_fine * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 1.0) < TOL
 
     # Restrict state to coarse grid
     op_restrict.apply(v_fine, v_coarse)
@@ -1953,6 +1959,6 @@ def test_553(ceed_resource):
         total = 0.0
         for i in range(nu_coarse * ncomp):
             total = total + v_array[i]
-        assert abs(total - 1.0) < 1E-13
+        assert abs(total - 1.0) < TOL
 
 # -------------------------------------------------------------------------------

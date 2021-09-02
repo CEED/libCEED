@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   const CeedScalar *vv;
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<num_dofs; i++)
-    if (fabs(vv[i]) > 1e-14)
+    if (fabs(vv[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
   // LCOV_EXCL_STOP
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(v, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<num_dofs; i++)
-    if (fabs(vv[i]) > 1e-14)
+    if (fabs(vv[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("Error: Linearized operator computed v[i] = %f != 0.0\n", vv[i]);
   // LCOV_EXCL_STOP

@@ -378,18 +378,30 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
   CeedChkBackend(ierr);
   switch (type) {
   case CEED_NORM_1: {
-    ierr = cublasDasum(handle, length, d_array, 1, norm);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      ierr = cublasSasum(handle, length, (float *) d_array, 1, (float *) norm);
+    } else {
+      ierr = cublasDasum(handle, length, (double *) d_array, 1, (double *) norm);
+    }
     CeedChk_Cublas(ceed, ierr);
     break;
   }
   case CEED_NORM_2: {
-    ierr = cublasDnrm2(handle, length, d_array, 1, norm);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      ierr = cublasSnrm2(handle, length, (float *) d_array, 1, (float *) norm);
+    } else {
+      ierr = cublasDnrm2(handle, length, (double *) d_array, 1, (double *) norm);
+    }
     CeedChk_Cublas(ceed, ierr);
     break;
   }
   case CEED_NORM_MAX: {
     CeedInt indx;
-    ierr = cublasIdamax(handle, length, d_array, 1, &indx);
+    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+      ierr = cublasIsamax(handle, length, (float *) d_array, 1, &indx);
+    } else {
+      ierr = cublasIdamax(handle, length, (double *) d_array, 1, &indx);
+    }
     CeedChk_Cublas(ceed, ierr);
     CeedScalar normNoAbs;
     ierr = cudaMemcpy(&normNoAbs, data->d_array+indx-1, sizeof(CeedScalar),
@@ -653,7 +665,7 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
                                 CeedVectorTakeArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
-                                CeedVectorSetValue_Cuda); CeedChkBackend(ierr);
+                                (int (*)())(CeedVectorSetValue_Cuda)); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
                                 CeedVectorGetArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
@@ -667,9 +679,9 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",
                                 CeedVectorReciprocal_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "AXPY",
-                                CeedVectorAXPY_Cuda); CeedChkBackend(ierr);
+                                (int (*)())(CeedVectorAXPY_Cuda)); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Scale",
-                                CeedVectorScale_Cuda); CeedChkBackend(ierr);
+                                (int (*)())(CeedVectorScale_Cuda)); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult",
                                 CeedVectorPointwiseMult_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",

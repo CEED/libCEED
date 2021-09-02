@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   CeedHouseholderApplyQ(A_qr, qr, tau, CEED_NOTRANSPOSE, 4, 3, 3, 3, 1);
 
   for (CeedInt i=0; i<12; i++)
-    if (fabs(A_qr[i] - A[i]) > 10*CEED_EPSILON)
+    if (fabs(A_qr[i] - A[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("Error in QR factorization A_qr[%d] = %f != A[%d] = %f\n",
              i, A_qr[i], i, A[i]);

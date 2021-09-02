@@ -9,7 +9,8 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis b;
   CeedVector U, V;
-  int i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((double)(Q_1d), dim) + 0.4);
+  int i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((CeedScalar)(Q_1d),
+                                   dim) + 0.4);
   CeedScalar u[len];
   const CeedScalar *v;
 
@@ -29,7 +30,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
   for (i = 0; i < len; i++)
-    if (fabs(v[i] - 1.) > 1E-15)
+    if (fabs(v[i] - 1.) > 10.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("v[%d] = %f != 1.\n", i, v[i]);
   // LCOV_EXCL_STOP

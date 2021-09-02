@@ -24,7 +24,7 @@ import numpy as np
 import buildmats as bm
 import check
 
-TOL = np.finfo(float).eps * 256
+TOL = libceed.EPSILON * 256
 
 # -------------------------------------------------------------------------------
 # Utilities
@@ -62,9 +62,11 @@ def test_300(ceed_resource, capsys):
     print(b)
     del b
 
-    stdout, stderr, ref_stdout = check.output(capsys)
-    assert not stderr
-    assert stdout == ref_stdout
+    # Only run this test in double precision
+    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP64:
+        stdout, stderr, ref_stdout = check.output(capsys)
+        assert not stderr
+        assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
 # Test QR factorization
@@ -76,20 +78,22 @@ def test_301(ceed_resource):
 
     m = 4
     n = 3
-    a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
-    qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0], dtype="float64")
-    tau = np.empty(3, dtype="float64")
+    a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
+                 dtype=ceed.scalar_type())
+    qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
+                  dtype=ceed.scalar_type())
+    tau = np.empty(3, dtype=ceed.scalar_type())
 
     qr, tau = ceed.qr_factorization(qr, tau, m, n)
     np_qr, np_tau = np.linalg.qr(a.reshape(m, n), mode="raw")
 
     for i in range(n):
-        assert tau[i] == np_tau[i]
+        assert abs(tau[i] - np_tau[i]) < TOL
 
     qr = qr.reshape(m, n)
     for i in range(m):
         for j in range(n):
-            assert round(qr[i, j] - np_qr[j, i], 10) == 0
+            assert abs(qr[i, j] - np_qr[j, i]) < TOL
 
 # -------------------------------------------------------------------------------
 # Test Symmetric Schur Decomposition
@@ -102,7 +106,8 @@ def test_304(ceed_resource):
     A = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
                   0.0745355993, 1., 0.1666666667, -0.0745355993,
                   -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                  0.0333333333, -0.0745355993, 0.0745355993, 0.2], dtype="float64")
+                  0.0333333333, -0.0745355993, 0.0745355993, 0.2],
+                 dtype=ceed.scalar_type())
 
     Q = A.copy()
 
@@ -111,7 +116,7 @@ def test_304(ceed_resource):
     lam = np.diag(lam)
 
     Q_lambda_Qt = np.matmul(np.matmul(Q, lam), Q.T)
-    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < 1E-14
+    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < TOL
 
 # -------------------------------------------------------------------------------
 # Test Simultaneous Diagonalization
@@ -124,11 +129,13 @@ def test_305(ceed_resource):
     M = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
                   0.0745355993, 1., 0.1666666667, -0.0745355993,
                   -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                  0.0333333333, -0.0745355993, 0.0745355993, 0.2], dtype="float64")
+                  0.0333333333, -0.0745355993, 0.0745355993, 0.2],
+                 dtype=ceed.scalar_type())
     K = np.array([3.0333333333, -3.4148928136, 0.4982261470, -0.1166666667,
                   -3.4148928136, 5.8333333333, -2.9166666667, 0.4982261470,
                   0.4982261470, -2.9166666667, 5.8333333333, -3.4148928136,
-                  -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333], dtype="float64")
+                  -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333],
+                 dtype=ceed.scalar_type())
 
     X, lam = ceed.simultaneous_diagonalization(K, M, 4)
     X = X.reshape(4, 4)
@@ -138,10 +145,10 @@ def test_305(ceed_resource):
     K = K.reshape(4, 4)
 
     Xt_M_X = np.matmul(X.T, np.matmul(M, X))
-    assert np.max(Xt_M_X - np.identity(4)) < 1E-14
+    assert np.max(Xt_M_X - np.identity(4)) < TOL
 
     Xt_K_X = np.matmul(X.T, np.matmul(K, X))
-    assert np.max(Xt_K_X - lam) < 1E-14
+    assert np.max(Xt_K_X - lam) < TOL
 
 # -------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis
@@ -171,8 +178,8 @@ def test_313(ceed_resource):
         Q = 10
         Qdim = Q**dim
         Xdim = 2**dim
-        x = np.empty(Xdim * dim, dtype="float64")
-        uq = np.empty(Qdim, dtype="float64")
+        x = np.empty(Xdim * dim, dtype=ceed.scalar_type())
+        uq = np.empty(Qdim, dtype=ceed.scalar_type())
 
         for d in range(dim):
             for i in range(Xdim):
@@ -194,7 +201,7 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Qdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 uq[i] = eval(dim, xx)
@@ -212,7 +219,7 @@ def test_313(ceed_resource):
 
         with Xq.array_read() as xq, Uq.array_read() as u:
             for i in range(Qdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Qdim + i]
                 fx = eval(dim, xx)
@@ -232,8 +239,8 @@ def test_314(ceed_resource):
         Qdim = Q**dim
         Xdim = 2**dim
         sum1 = sum2 = 0
-        x = np.empty(Xdim * dim, dtype="float64")
-        u = np.empty(Pdim, dtype="float64")
+        x = np.empty(Xdim * dim, dtype=ceed.scalar_type())
+        u = np.empty(Pdim, dtype=ceed.scalar_type())
 
         for d in range(dim):
             for i in range(Xdim):
@@ -258,7 +265,7 @@ def test_314(ceed_resource):
 
         with Xq.array_read() as xq:
             for i in range(Pdim):
-                xx = np.empty(dim, dtype="float64")
+                xx = np.empty(dim, dtype=ceed.scalar_type())
                 for d in range(dim):
                     xx[d] = xq[d * Pdim + i]
                 u[i] = eval(dim, xx)
@@ -277,7 +284,7 @@ def test_314(ceed_resource):
             for i in range(dim * Qdim):
                 sum2 += uq[i]
 
-        assert math.fabs(sum1 - sum2) < 1E-10
+        assert math.fabs(sum1 - sum2) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test creation and destruction of a 2D Simplex non-tensor H1 basis
@@ -289,11 +296,12 @@ def test_320(ceed_resource):
 
     P, Q, dim = 6, 4, 2
 
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -311,12 +319,13 @@ def test_322(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype="float64")
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+                   0., 0.5, 0.5, 1.], dtype=ceed.scalar_type())
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -339,7 +348,7 @@ def test_322(ceed_resource):
         sum = 0
         for i in range(Q):
             sum += out_array[i] * weights_array[i]
-        assert math.fabs(sum - 17. / 24.) < 1E-10
+        assert math.fabs(sum - 17. / 24.) < 10. * TOL
 
 # -------------------------------------------------------------------------------
 # Test grad with a 2D Simplex non-tensor H1 basis
@@ -352,14 +361,15 @@ def test_323(ceed_resource):
     P, Q, dim = 6, 4, 2
 
     xq = np.array([0.2, 0.6, 1. / 3., 0.2, 0.2, 0.2,
-                   1. / 3., 0.6], dtype="float64")
+                   1. / 3., 0.6], dtype=ceed.scalar_type())
     xr = np.array([0., 0.5, 1., 0., 0.5, 0., 0., 0.,
-                   0., 0.5, 0.5, 1.], dtype="float64")
-    in_array = np.empty(P, dtype="float64")
-    qref = np.empty(dim * Q, dtype="float64")
-    qweight = np.empty(Q, dtype="float64")
+                   0., 0.5, 0.5, 1.], dtype=ceed.scalar_type())
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
 
-    interp, grad = bm.buildmats(qref, qweight)
+    interp, grad = bm.buildmats(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
 
     b = ceed.BasisH1(libceed.TRIANGLE, 1, P, Q, interp, grad, qref, qweight)
 
@@ -378,9 +388,9 @@ def test_323(ceed_resource):
     with out_vec.array_read() as out_array:
         for i in range(Q):
             value = dfeval(xq[0 * Q + i], xq[1 * Q + i])
-            assert math.fabs(out_array[0 * Q + i] - value) < 1E-10
+            assert math.fabs(out_array[0 * Q + i] - value) < 10. * TOL
 
             value = dfeval(xq[1 * Q + i], xq[0 * Q + i])
-            assert math.fabs(out_array[1 * Q + i] - value) < 1E-10
+            assert math.fabs(out_array[1 * Q + i] - value) < 10. * TOL
 
 # -------------------------------------------------------------------------------

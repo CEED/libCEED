@@ -1,10 +1,10 @@
 import numpy as np
 
 
-def buildmats(qref, qweight):
+def buildmats(qref, qweight, mat_dtype="float64"):
     P, Q, dim = 6, 4, 2
-    interp = np.empty(P * Q, dtype="float64")
-    grad = np.empty(dim * P * Q, dtype="float64")
+    interp = np.empty(P * Q, dtype=mat_dtype)
+    grad = np.empty(dim * P * Q, dtype=mat_dtype)
 
     qref[0] = 0.2
     qref[1] = 0.6

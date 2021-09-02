@@ -3,5 +3,9 @@ library_name = "libceed"
 output_file_path = "../src/generated/libceed_bindings.jl"
 prologue_file_path = "prologue.jl"
 printer_blacklist = [
-   "CEED_Q_VLA"
+   "CEED_Q_VLA",
+   "CEED_ALIGN",
+   "CEED_SCALAR_TYPE",
+   "CEED_EPSILON",
+   "CeedScalar",
 ]

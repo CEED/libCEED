@@ -291,7 +291,7 @@ impl<'a> ElemRestriction<'a> {
     /// y.view().iter().enumerate().for_each(|(i, arr)| {
     ///     assert_eq!(
     ///         *arr,
-    ///         ((i + 1) / 2) as f64,
+    ///         ((i + 1) / 2) as Scalar,
     ///         "Incorrect value in restricted vector"
     ///     );
     /// });

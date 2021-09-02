@@ -720,9 +720,9 @@ extern "C" __launch_bounds__(INTERP_BLKSIZE) __global__ void interp(
                                   const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
 
-  HIP_DYNAMIC_SHARED( double, slice)
+  HIP_DYNAMIC_SHARED( CeedScalar, slice)
   // load interp1d into shared memory
-  __shared__ double s_B[P1D*Q1D];
+  __shared__ CeedScalar s_B[P1D*Q1D];
   loadMatrix(d_interp1d, s_B); 
   __syncthreads();
 
@@ -743,11 +743,11 @@ extern "C" __launch_bounds__(GRAD_BLKSIZE) __global__ void grad(const CeedInt ne
                                 CeedScalar *d_interp1d, CeedScalar *d_grad1d,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  HIP_DYNAMIC_SHARED( double, slice)
+  HIP_DYNAMIC_SHARED( CeedScalar, slice)
   // load interp1d and grad1d into shared memory
-  __shared__ double s_B[P1D*Q1D];
+  __shared__ CeedScalar s_B[P1D*Q1D];
   loadMatrix(d_interp1d, s_B); 
-  __shared__ double s_G[P1D*Q1D];
+  __shared__ CeedScalar s_G[P1D*Q1D];
   loadMatrix(d_grad1d, s_G); 
   __syncthreads();
 

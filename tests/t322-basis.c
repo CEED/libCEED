@@ -5,7 +5,7 @@
 #include <math.h>
 #include "t320-basis.h"
 
-double feval(double x1, double x2) {
+CeedScalar feval(CeedScalar x1, CeedScalar x2) {
   return x1*x1 + x2*x2 + x1*x2 + 1;
 }
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   sum = 0;
   for (int i=0; i<Q; i++)
     sum += out[i]*weights[i];
-  if (fabs(sum - 17./24.) > 1E-10)
+  if (fabs(sum - 17./24.) > 100.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("%f != %f\n", sum, 17./24.);
   // LCOV_EXCL_STOP

@@ -5,7 +5,10 @@ using CEnum
 
 const CeedInt = Int32
 
-const CeedScalar = Cdouble
+@cenum CeedScalarType::UInt32 begin
+    CEED_SCALAR_FP32 = 0
+    CEED_SCALAR_FP64 = 1
+end
 
 mutable struct Ceed_private end
 
@@ -89,6 +92,10 @@ end
 
 function CeedGetVersion(major, minor, patch, release)
     ccall((:CeedGetVersion, libceed), Cint, (Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Bool}), major, minor, patch, release)
+end
+
+function CeedGetScalarType(scalar_type)
+    ccall((:CeedGetScalarType, libceed), Cint, (Ptr{CeedScalarType},), scalar_type)
 end
 
 @cenum CeedErrorType::Int32 begin
@@ -468,6 +475,10 @@ function CeedQFunctionContextRestoreData(ctx, data)
     ccall((:CeedQFunctionContextRestoreData, libceed), Cint, (CeedQFunctionContext, Ptr{Cvoid}), ctx, data)
 end
 
+function CeedQFunctionContextGetContextSize(ctx, ctx_size)
+    ccall((:CeedQFunctionContextGetContextSize, libceed), Cint, (CeedQFunctionContext, Ptr{Csize_t}), ctx, ctx_size)
+end
+
 function CeedQFunctionContextView(ctx, stream)
     ccall((:CeedQFunctionContextView, libceed), Cint, (CeedQFunctionContext, Ptr{Libc.FILE}), ctx, stream)
 end
@@ -648,6 +659,18 @@ end
 
 function CeedSetObjectDelegate(ceed, delegate, obj_name)
     ccall((:CeedSetObjectDelegate, libceed), Cint, (Ceed, Ceed, Ptr{Cchar}), ceed, delegate, obj_name)
+end
+
+function CeedOperatorCheckReady(op)
+    ccall((:CeedOperatorCheckReady, libceed), Cint, (CeedOperator,), op)
+end
+
+function CeedOperatorGetActiveBasis(op, active_basis)
+    ccall((:CeedOperatorGetActiveBasis, libceed), Cint, (CeedOperator, Ptr{CeedBasis}), op, active_basis)
+end
+
+function CeedOperatorGetActiveElemRestriction(op, active_rstr)
+    ccall((:CeedOperatorGetActiveElemRestriction, libceed), Cint, (CeedOperator, Ptr{CeedElemRestriction}), op, active_rstr)
 end
 
 function CeedGetOperatorFallbackResource(ceed, resource)
@@ -894,10 +917,6 @@ function CeedQFunctionContextGetState(ctx, state)
     ccall((:CeedQFunctionContextGetState, libceed), Cint, (CeedQFunctionContext, Ptr{UInt64}), ctx, state)
 end
 
-function CeedQFunctionContextGetContextSize(ctx, ctx_size)
-    ccall((:CeedQFunctionContextGetContextSize, libceed), Cint, (CeedQFunctionContext, Ptr{Csize_t}), ctx, ctx_size)
-end
-
 function CeedQFunctionContextGetBackendData(ctx, data)
     ccall((:CeedQFunctionContextGetBackendData, libceed), Cint, (CeedQFunctionContext, Ptr{Cvoid}), ctx, data)
 end
@@ -1002,11 +1021,7 @@ const CEED_MAX_RESOURCE_LEN = 1024
 
 const CEED_MAX_BACKEND_PRIORITY = UINT_MAX
 
-const CEED_ALIGN = 64
-
 const CEED_COMPOSITE_MAX = 16
-
-const CEED_EPSILON = 1.0e-16
 
 # Skipping MacroDefinition: CeedPragmaOptimizeOff _Pragma ( "clang optimize off" )
 

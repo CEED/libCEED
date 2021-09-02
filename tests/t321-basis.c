@@ -5,7 +5,7 @@
 #include <math.h>
 #include "t320-basis.h"
 
-double feval(double x1, double x2) {
+CeedScalar feval(CeedScalar x1, CeedScalar x2) {
   return x1*x1 + x2*x2 + x1*x2 + 1;
 }
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int i=0; i<Q; i++) {
     value = feval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[i] - value) > 1E-10)
+    if (fabs(out[i] - value) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], value);
     // LCOV_EXCL_STOP

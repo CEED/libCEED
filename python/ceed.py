@@ -111,6 +111,15 @@ class Ceed():
 
         return memtype[0]
 
+    # Convenience function to get CeedScalar type
+    def scalar_type(self):
+        """Return dtype string for CeedScalar.
+
+           Returns:
+             np_dtype: String naming numpy data type corresponding to CeedScalar"""
+
+        return scalar_types[lib.CEED_SCALAR_TYPE]
+
     # --- Basis utility functions ---
 
     # Gauss quadrature
@@ -126,8 +135,8 @@ class Ceed():
                                     and array of length Q to hold the weights"""
 
         # Setup arguments
-        qref1d = np.empty(q, dtype="float64")
-        qweight1d = np.empty(q, dtype="float64")
+        qref1d = np.empty(q, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
+        qweight1d = np.empty(q, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
 
         qref1d_pointer = ffi.new("CeedScalar *")
         qref1d_pointer = ffi.cast(
@@ -158,13 +167,13 @@ class Ceed():
                                     and array of length Q to hold the weights"""
 
         # Setup arguments
-        qref1d = np.empty(q, dtype="float64")
+        qref1d = np.empty(q, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         qref1d_pointer = ffi.new("CeedScalar *")
         qref1d_pointer = ffi.cast(
             "CeedScalar *",
             qref1d.__array_interface__['data'][0])
 
-        qweight1d = np.empty(q, dtype="float64")
+        qweight1d = np.empty(q, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         qweight1d_pointer = ffi.new("CeedScalar *")
         qweight1d_pointer = ffi.cast(
             "CeedScalar *",
@@ -225,7 +234,7 @@ class Ceed():
             "CeedScalar *",
             mat.__array_interface__['data'][0])
 
-        lbda = np.empty(n, dtype="float64")
+        lbda = np.empty(n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         l_pointer = ffi.new("CeedScalar *")
         l_pointer = ffi.cast(
             "CeedScalar *",
@@ -265,13 +274,13 @@ class Ceed():
             "CeedScalar *",
             matB.__array_interface__['data'][0])
 
-        lbda = np.empty(n, dtype="float64")
+        lbda = np.empty(n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         l_pointer = ffi.new("CeedScalar *")
         l_pointer = ffi.cast(
             "CeedScalar *",
             lbda.__array_interface__['data'][0])
 
-        x = np.empty(n * n, dtype="float64")
+        x = np.empty(n * n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
         x_pointer = ffi.new("CeedScalar *")
         x_pointer = ffi.cast("CeedScalar *", x.__array_interface__['data'][0])
 

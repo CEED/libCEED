@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     if (10+(i+1)/2 != yy[i])
       // LCOV_EXCL_START
       printf("Error in restricted array y[%d] = %f",
-             i, (double)yy[i]);
+             i, (CeedScalar)yy[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);
 

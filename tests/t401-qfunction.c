@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++)
-    if (fabs(ctxData[4] * v[i] - vv[i]) > 1.e-14)
+    if (fabs(ctxData[4] * v[i] - vv[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
   // LCOV_EXCL_STOP

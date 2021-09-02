@@ -20,6 +20,12 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
+  // Test skipped if using single precision
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "Test not implemented in single precision");
+  }
+
   // DoF Coordinates
   for (CeedInt i=0; i<2; i++)
     for (CeedInt j=0; j<2; j++) {

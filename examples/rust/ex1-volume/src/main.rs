@@ -248,7 +248,7 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: f64 = v.view().iter().sum();
+    let volume: Scalar = v.view().iter().sum();
 
     // Output results
     if !quiet {
@@ -260,8 +260,7 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
         );
     }
     let tolerance = match dim {
-        1 => 1E-14,
-        2 => 1E-7,
+        1 => 100.0 * libceed::EPSILON,
         _ => 1E-5,
     };
     let error = (volume - exact_volume).abs();

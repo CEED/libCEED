@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     for (int j=0; j<num_comp*num_dofs; j++)
       if (fabs(assembled[j*num_dofs*num_comp+i] - assembled_true[j*num_dofs*num_comp
                +i]) >
-          1e-14)
+          100.*CEED_EPSILON)
         // LCOV_EXCL_START
         printf("[%d,%d] Error in assembly: %f != %f\n", i, j,
                assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);

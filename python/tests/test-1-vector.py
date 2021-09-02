@@ -22,6 +22,8 @@ import libceed
 import numpy as np
 import check
 
+TOL = libceed.EPSILON * 256
+
 # -------------------------------------------------------------------------------
 # Utility
 # -------------------------------------------------------------------------------
@@ -43,7 +45,7 @@ def test_100(ceed_resource):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array_read() as b:
@@ -60,7 +62,7 @@ def test_101(ceed_resource):
     n = 10
     x = ceed.Vector(n)
     value = 1
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as b:
@@ -107,7 +109,7 @@ def test_103(ceed_resource):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as x_array:
@@ -128,13 +130,16 @@ def test_104(ceed_resource):
     n = 10
 
     x = ceed.Vector(n)
-    a = np.zeros(n, dtype="float64")
+    a = np.zeros(n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     with x.array() as b:
         b[3] = -3.14
 
-    assert a[3] == -3.14
+    if libceed.lib.CEED_SCALAR_TYPE == libceed.SCALAR_FP32:
+        assert a[3] == np.float32(-3.14)
+    else:
+        assert a[3] == -3.14
 
 # -------------------------------------------------------------------------------
 # Test creation, setting, reading, restoring, and destroying of a vector using
@@ -151,7 +156,7 @@ def test_105(ceed_resource):
         x = ceed.Vector(n)
         y = ceed.Vector(n)
 
-        a = np.arange(10, 10 + n, dtype="float64")
+        a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
         x.set_array(a, cmode=libceed.USE_POINTER)
 
         arr = x.get_array_read(memtype=libceed.MEM_DEVICE)
@@ -173,7 +178,7 @@ def test_107(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     print(x)
@@ -193,7 +198,7 @@ def test_108(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(0, n, dtype="float64")
+    a = np.arange(0, n, dtype=ceed.scalar_type())
     for i in range(n):
         if (i % 2 == 0):
             a[i] *= -1
@@ -201,15 +206,15 @@ def test_108(ceed_resource, capsys):
 
     norm = x.norm(normtype=libceed.NORM_1)
 
-    assert abs(norm - 45.) < 1e-14
+    assert abs(norm - 45.) < TOL
 
     norm = x.norm()
 
-    assert abs(norm - np.sqrt(285.)) < 1e-14
+    assert abs(norm - np.sqrt(285.)) < TOL
 
     norm = x.norm(normtype=libceed.NORM_MAX)
 
-    assert abs(norm - 9.) < 1e-14
+    assert abs(norm - 9.) < TOL
 
 # -------------------------------------------------------------------------------
 # Test taking the reciprocal of a vector
@@ -222,13 +227,13 @@ def test_119(ceed_resource):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
     x.reciprocal()
 
     with x.array_read() as b:
         for i in range(n):
-            assert abs(b[i] - 1. / (10 + i)) < 1e-15
+            assert abs(b[i] - 1. / (10 + i)) < TOL
 
 # -------------------------------------------------------------------------------
 # Test AXPY
@@ -242,7 +247,7 @@ def test_121(ceed_resource, capsys):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.COPY_VALUES)
     y.set_array(a, cmode=libceed.COPY_VALUES)
 
@@ -263,7 +268,7 @@ def test_122(ceed_resource, capsys):
     x = ceed.Vector(n)
     y = ceed.Vector(n)
 
-    a = np.arange(0, n, dtype="float64")
+    a = np.arange(0, n, dtype=ceed.scalar_type())
     w.set_array(a, cmode=libceed.COPY_VALUES)
     x.set_array(a, cmode=libceed.COPY_VALUES)
     y.set_array(a, cmode=libceed.COPY_VALUES)
@@ -299,7 +304,7 @@ def test_123(ceed_resource, capsys):
     n = 10
     x = ceed.Vector(n)
 
-    a = np.arange(10, 10 + n, dtype="float64")
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.COPY_VALUES)
 
     x.scale(-0.5)

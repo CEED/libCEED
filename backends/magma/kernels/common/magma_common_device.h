@@ -265,7 +265,7 @@ template<int B, int J>
 __device__ __inline__ void
 dread_T_gm2sm(
         const int tx, const magma_trans_t transT, 
-        const double* dT, double *sT ) 
+        const CeedScalar* dT, CeedScalar *sT ) 
 {
     if ( transT == MagmaNoTrans ) {
         // T is B x J
@@ -293,7 +293,7 @@ template<int B>
 __device__ __inline__ void
 dread_U_gsm2reg( 
         const int C, const int tx_, 
-        const double* U, double rU[B] ) 
+        const CeedScalar* U, CeedScalar rU[B] ) 
 {
     for(int i = 0; i < B; i++){
         rU[i] = U[i * C + tx_];
@@ -306,7 +306,7 @@ dread_U_gsm2reg(
 template<int J>
 __device__ __inline__ void
 dread_V_gsm2reg( 
-        const int C, const int tx_, const double* V, double rV[J] ) 
+        const int C, const int tx_, const CeedScalar* V, CeedScalar rV[J] ) 
 {
     for(int i = 0; i < J; i++){
         rV[i] = V[i * C + tx_];
@@ -320,7 +320,7 @@ template<int J>
 __device__ __noinline__ void
 dwrite_V_reg2gsm( 
         const int C, const int tx_, 
-        double rV[J], double* V ) 
+        CeedScalar rV[J], CeedScalar* V ) 
 {
     for(int i = 0; i < J; i++){
         V[i * C + tx_] = rV[i];
@@ -332,10 +332,10 @@ dwrite_V_reg2gsm(
 template<int B, int J>
 __device__ __inline__ void
 dgemm_slice( 
-        double alpha, double *sT, 
-        double rU[B], double beta, double rV[J] ) 
+        CeedScalar alpha, CeedScalar *sT, 
+        CeedScalar rU[B], CeedScalar beta, CeedScalar rV[J] ) 
 {
-    double rTmp;
+    CeedScalar rTmp;
     for(int j = 0; j < J; j++) {
         rTmp = MAGMA_D_ZERO;
         for(int b = 0; b < B; b++){
@@ -349,10 +349,10 @@ dgemm_slice(
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int B, int J>
 __device__  __inline__ void
-dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT, double *sT, 
-                   const double alpha, const double beta,
-                   const double *dU,   double *dV, 
-                         double rU[B], double rV[J])
+dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT, CeedScalar *sT, 
+                   const CeedScalar alpha, const CeedScalar beta,
+                   const CeedScalar *dU,   CeedScalar *dV, 
+                         CeedScalar rU[B], CeedScalar rV[J])
 {
     const int tx_      = tx % C;
     const int slice_id = tx / C;
@@ -363,7 +363,7 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
 
     // read V if beta is non-zero  
     if ( beta != MAGMA_D_ZERO ) {
-        dread_V_gsm2reg<J>(C, tx_, (const double*)dV, rV); 
+        dread_V_gsm2reg<J>(C, tx_, (const CeedScalar*)dV, rV); 
     }
 
     // read U
