@@ -86,6 +86,10 @@ and
 are purely implicit -- one just indexes the same array using the
 appropriate convention.
 
+## `restrict` semantics
+
+QFunction arguments can be assumed to have `restrict` semantics. That is, each input and output array must reside in distinct memory without overlap.
+
 ## Internal Layouts
 
 Ceed backends are free to use any **E-vector** and **Q-vector** data layout, to include never fully forming these vectors, so long as the backend passes the `t5**` series tests and all examples.
