@@ -64,7 +64,7 @@ typedef struct {
 // Load matrices for basis actions
 //------------------------------------------------------------------------------
 template <int P, int Q>
-inline __device__ void loadMatrix(BackendData& data, const CeedScalar* d_B, CeedScalar* B) {
+inline __device__ void loadMatrix(BackendData &data, const CeedScalar *__restrict__ d_B, CeedScalar *B) {
   for (CeedInt i = data.tid; i < P*Q; i += blockDim.x*blockDim.y*blockDim.z)
     B[i] = d_B[i];
 }
@@ -77,7 +77,7 @@ inline __device__ void loadMatrix(BackendData& data, const CeedScalar* d_B, Ceed
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void readDofsOffset1d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsOffset1d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d) {
     const CeedInt node = data.tidx;
     const CeedInt ind = indices[node + elem * P1d];
@@ -90,7 +90,7 @@ inline __device__ void readDofsOffset1d(BackendData& data, const CeedInt nnodes,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided1d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsStrided1d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d) {
     const CeedInt node = data.tidx;
     const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -103,7 +103,7 @@ inline __device__ void readDofsStrided1d(BackendData& data, const CeedInt elem, 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void writeDofsOffset1d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsOffset1d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d) {
     const CeedInt node = data.tidx;
     const CeedInt ind = indices[node + elem * P1d];
@@ -116,7 +116,7 @@ inline __device__ void writeDofsOffset1d(BackendData& data, const CeedInt nnodes
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided1d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsStrided1d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d) {
     const CeedInt node = data.tidx;
     const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -129,7 +129,7 @@ inline __device__ void writeDofsStrided1d(BackendData& data, const CeedInt elem,
 // 1D tensor contraction x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractX1d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractX1d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx] = *U;
   __syncthreads();
   *V = 0.0;
@@ -143,7 +143,7 @@ inline __device__ void ContractX1d(BackendData& data, const CeedScalar *U, const
 // 1D transpose tensor contraction x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeX1d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeX1d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx] = *U;
   __syncthreads();
   *V = 0.0;
@@ -157,7 +157,7 @@ inline __device__ void ContractTransposeX1d(BackendData& data, const CeedScalar 
 // 1D interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interp1d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interp1d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NCOMP; comp++)
     ContractX1d<NCOMP, P1d, Q1d>(data, r_U + comp, c_B, r_V + comp);
 }
@@ -166,7 +166,7 @@ inline __device__ void interp1d(BackendData& data, const CeedScalar *__restrict_
 // 1D interpolate transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interpTranspose1d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interpTranspose1d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   for (CeedInt comp=0; comp<NCOMP; comp++)
     ContractTransposeX1d<NCOMP, P1d, Q1d>(data, r_U + comp, c_B, r_V + comp);
 }
@@ -175,7 +175,7 @@ inline __device__ void interpTranspose1d(BackendData& data, const CeedScalar *__
 // 1D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void grad1d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void grad1d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NCOMP; comp++)
     ContractX1d<NCOMP, P1d, Q1d>(data, r_U + comp, c_G, r_V + comp);
 }
@@ -184,7 +184,7 @@ inline __device__ void grad1d(BackendData& data, const CeedScalar *__restrict__ 
 // 1D derivatives transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradTranspose1d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void gradTranspose1d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NCOMP; comp++)
     ContractTransposeX1d<NCOMP, P1d, Q1d>(data, r_U + comp, c_G, r_V + comp);
 }
@@ -197,7 +197,7 @@ inline __device__ void gradTranspose1d(BackendData& data, const CeedScalar *__re
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void readDofsOffset2d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsOffset2d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d && data.tidy < P1d) {
     const CeedInt node = data.tidx + data.tidy*P1d;
     const CeedInt ind = indices[node + elem * P1d*P1d];
@@ -210,7 +210,7 @@ inline __device__ void readDofsOffset2d(BackendData& data, const CeedInt nnodes,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided2d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsStrided2d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d && data.tidy < P1d) {
     const CeedInt node = data.tidx + data.tidy*P1d;
     const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -223,7 +223,7 @@ inline __device__ void readDofsStrided2d(BackendData& data, const CeedInt elem, 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void writeDofsOffset2d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsOffset2d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d && data.tidy < P1d) {
     const CeedInt node = data.tidx + data.tidy*P1d;
     const CeedInt ind = indices[node + elem * P1d*P1d];
@@ -236,7 +236,7 @@ inline __device__ void writeDofsOffset2d(BackendData& data, const CeedInt nnodes
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided2d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsStrided2d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d && data.tidy < P1d) {
     const CeedInt node = data.tidx + data.tidy*P1d;
     const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -249,7 +249,7 @@ inline __device__ void writeDofsStrided2d(BackendData& data, const CeedInt elem,
 // 2D tensor contraction x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractX2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractX2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   *V = 0.0;
@@ -263,7 +263,7 @@ inline __device__ void ContractX2d(BackendData& data, const CeedScalar *U, const
 // 2D tensor contract y
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractY2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractY2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   *V = 0.0;
@@ -277,7 +277,7 @@ inline __device__ void ContractY2d(BackendData& data, const CeedScalar *U, const
 // 2D transpose tensor contract y
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractYTranspose2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractYTranspose2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   *V = 0.0;
@@ -291,7 +291,7 @@ inline __device__ void ContractYTranspose2d(BackendData& data, const CeedScalar 
 // 2D transpose tensor contract x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractXTranspose2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractXTranspose2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   *V = 0.0;
@@ -305,7 +305,7 @@ inline __device__ void ContractXTranspose2d(BackendData& data, const CeedScalar 
 // 2D transpose tensor contract and add x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractXTransposeAdd2d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractXTransposeAdd2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   data.slice[data.tidx+data.tidy*T1d] = *U;
   __syncthreads();
   if (data.tidx < P1d && data.tidy < P1d)
@@ -318,7 +318,7 @@ inline __device__ void ContractXTransposeAdd2d(BackendData& data, const CeedScal
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interp2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interp2d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
     ContractX2d<NCOMP, P1d, Q1d>(data, r_U + comp, c_B, r_t);
@@ -330,7 +330,7 @@ inline __device__ void interp2d(BackendData& data, const CeedScalar *__restrict_
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interpTranspose2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interpTranspose2d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
     ContractYTranspose2d<NCOMP, P1d, Q1d>(data, r_U + comp, c_B, r_t);
@@ -342,7 +342,7 @@ inline __device__ void interpTranspose2d(BackendData& data, const CeedScalar *__
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void grad2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void grad2d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
     ContractX2d<NCOMP, P1d, Q1d>(data, r_U + comp, c_G, r_t);
@@ -356,7 +356,7 @@ inline __device__ void grad2d(BackendData& data, const CeedScalar *__restrict__ 
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradTranspose2d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void gradTranspose2d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t[1];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
     ContractYTranspose2d<NCOMP, P1d, Q1d>(data, r_U + comp + 0*NCOMP, c_B, r_t);
@@ -374,7 +374,7 @@ inline __device__ void gradTranspose2d(BackendData& data, const CeedScalar *__re
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void readDofsOffset3d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsOffset3d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
@@ -388,7 +388,7 @@ inline __device__ void readDofsOffset3d(BackendData& data, const CeedInt nnodes,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided3d(BackendData& data, const CeedInt elem, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readDofsStrided3d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
@@ -402,7 +402,7 @@ inline __device__ void readDofsStrided3d(BackendData& data, const CeedInt elem, 
 // E-vector -> Q-vector, offests provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int Q1d>
-inline __device__ void readSliceQuadsOffset3d(BackendData& data, const CeedInt nquads, const CeedInt elem, const CeedInt q, const CeedInt* indices, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readSliceQuadsOffset3d(BackendData &data, const CeedInt nquads, const CeedInt elem, const CeedInt q, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < Q1d && data.tidy < Q1d) {
     const CeedInt node = data.tidx + data.tidy*Q1d + q*Q1d*Q1d;
     const CeedInt ind = indices[node + elem * Q1d*Q1d*Q1d];;
@@ -415,7 +415,7 @@ inline __device__ void readSliceQuadsOffset3d(BackendData& data, const CeedInt n
 // E-vector -> Q-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int Q1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readSliceQuadsStrided3d(BackendData& data, const CeedInt elem, const CeedInt q, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readSliceQuadsStrided3d(BackendData &data, const CeedInt elem, const CeedInt q, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < Q1d && data.tidy < Q1d) {
     const CeedInt node = data.tidx + data.tidy*Q1d + q*Q1d*Q1d;
     const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -428,7 +428,7 @@ inline __device__ void readSliceQuadsStrided3d(BackendData& data, const CeedInt 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NCOMP, int COMPSTRIDE, int P1d>
-inline __device__ void writeDofsOffset3d(BackendData& data, const CeedInt nnodes, const CeedInt elem, const CeedInt* indices, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsOffset3d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
@@ -442,7 +442,7 @@ inline __device__ void writeDofsOffset3d(BackendData& data, const CeedInt nnodes
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided3d(BackendData& data, const CeedInt elem, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeDofsStrided3d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.tidx < P1d && data.tidy < P1d)
     for (CeedInt z = 0; z < P1d; ++z) {
       const CeedInt node = data.tidx + data.tidy*P1d + z*P1d*P1d;
@@ -456,7 +456,7 @@ inline __device__ void writeDofsStrided3d(BackendData& data, const CeedInt elem,
 // 3D tensor contract x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractX3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P1d];
   for (CeedInt i = 0; i < P1d; ++i)
     r_B[i] = B[i + data.tidx*P1d];
@@ -476,7 +476,7 @@ inline __device__ void ContractX3d(BackendData& data, const CeedScalar *U, const
 // 3D tensor contract y
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractY3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P1d];
   for (CeedInt i = 0; i < P1d; ++i)
     r_B[i] = B[i + data.tidy*P1d];
@@ -496,7 +496,7 @@ inline __device__ void ContractY3d(BackendData& data, const CeedScalar *U, const
 // 3D tensor contract z
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractZ3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < Q1d; ++k) {
     V[k] = 0.0;
     if (data.tidx < Q1d && data.tidy < Q1d)
@@ -509,7 +509,7 @@ inline __device__ void ContractZ3d(BackendData& data, const CeedScalar *U, const
 // 3D transpose tensor contract z
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeZ3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < P1d; ++k) {
     V[k] = 0.0;
     if (data.tidx < Q1d && data.tidy < Q1d)
@@ -522,7 +522,7 @@ inline __device__ void ContractTransposeZ3d(BackendData& data, const CeedScalar 
 // 3D transpose tensor contract y
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeY3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q1d];
   for (CeedInt i = 0; i < Q1d; ++i)
     r_B[i] = B[data.tidy + i*P1d];
@@ -542,7 +542,7 @@ inline __device__ void ContractTransposeY3d(BackendData& data, const CeedScalar 
 // 3D transpose tensor contract add y
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeAddY3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeAddY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q1d];
   for (CeedInt i = 0; i < Q1d; ++i)
     r_B[i] = B[data.tidy + i*P1d];
@@ -561,7 +561,7 @@ inline __device__ void ContractTransposeAddY3d(BackendData& data, const CeedScal
 // 3D transpose tensor contract x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeX3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q1d];
   for (CeedInt i = 0; i < Q1d; ++i)
     r_B[i] = B[data.tidx + i*P1d];
@@ -581,7 +581,7 @@ inline __device__ void ContractTransposeX3d(BackendData& data, const CeedScalar 
 // 3D transpose tensor contract add x
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void ContractTransposeAddX3d(BackendData& data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractTransposeAddX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q1d];
   for (CeedInt i = 0; i < Q1d; ++i)
     r_B[i] = B[data.tidx + i*P1d];
@@ -600,7 +600,7 @@ inline __device__ void ContractTransposeAddX3d(BackendData& data, const CeedScal
 // 3D interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interp3d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interp3d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[T1d];
   CeedScalar r_t2[T1d];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
@@ -614,7 +614,7 @@ inline __device__ void interp3d(BackendData& data, const CeedScalar *__restrict_
 // 3D interpolate transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void interpTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void interpTranspose3d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[T1d];
   CeedScalar r_t2[T1d];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
@@ -628,7 +628,7 @@ inline __device__ void interpTranspose3d(BackendData& data, const CeedScalar *__
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void grad3d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void grad3d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[T1d];
   CeedScalar r_t2[T1d];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
@@ -648,7 +648,7 @@ inline __device__ void grad3d(BackendData& data, const CeedScalar *__restrict__ 
 // 3D derivatives transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int P1d, int Q1d>
-inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void gradTranspose3d(BackendData &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   CeedScalar r_t1[T1d];
   CeedScalar r_t2[T1d];
   for (CeedInt comp = 0; comp < NCOMP; comp++) {
@@ -668,7 +668,7 @@ inline __device__ void gradTranspose3d(BackendData& data, const CeedScalar *__re
 // 3D collocated derivatives computation
 //------------------------------------------------------------------------------
 template <int NCOMP, int Q1d>
-inline __device__ void gradCollo3d(BackendData& data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void gradCollo3d(BackendData &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   if (data.tidx < Q1d && data.tidy < Q1d) {
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
       data.slice[data.tidx + data.tidy*T1d] = r_U[q + comp*Q1d];
@@ -694,7 +694,7 @@ inline __device__ void gradCollo3d(BackendData& data, const CeedInt q, const Cee
 // 3D collocated derivatives transpose
 //------------------------------------------------------------------------------
 template <int NCOMP, int Q1d>
-inline __device__ void gradColloTranspose3d(BackendData& data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+inline __device__ void gradColloTranspose3d(BackendData &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   if (data.tidx < Q1d && data.tidy < Q1d) {
     for (CeedInt comp = 0; comp < NCOMP; ++comp) {
       // X derivative
@@ -720,7 +720,7 @@ inline __device__ void gradColloTranspose3d(BackendData& data, const CeedInt q, 
 // 1D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q1d>
-inline __device__ void weight1d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
+inline __device__ void weight1d(BackendData &data, const CeedScalar *__restrict__ qweight1d, CeedScalar *w) {
   *w = (data.tidx < Q1d) ? qweight1d[data.tidx] : 0.0;
 }
 
@@ -728,7 +728,7 @@ inline __device__ void weight1d(BackendData& data, const CeedScalar *qweight1d, 
 // 2D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q1d>
-inline __device__ void weight2d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
+inline __device__ void weight2d(BackendData &data, const CeedScalar *__restrict__ qweight1d, CeedScalar *w) {
   *w = (data.tidx < Q1d && data.tidy < Q1d) ?
         qweight1d[data.tidx]*qweight1d[data.tidy] : 0.0;
 }
@@ -737,7 +737,7 @@ inline __device__ void weight2d(BackendData& data, const CeedScalar *qweight1d, 
 // 3D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q1d>
-inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, CeedScalar *w) {
+inline __device__ void weight3d(BackendData &data, const CeedScalar *__restrict__ qweight1d, CeedScalar *w) {
   const bool quad = (data.tidx < Q1d && data.tidy < Q1d);
   const CeedScalar pw = quad ? qweight1d[data.tidx]*qweight1d[data.tidy] : 0.0;
   for (CeedInt z = 0; z < Q1d; ++z)
