@@ -105,13 +105,37 @@ int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
   return CEED_ERROR_SUCCESS;
 }
 
+// Run kernel with block size selected automatically based on the kernel (which
+// may use enough registers to require a smaller block size than the hardware is
+// capable).
+int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t points,
+                               void **args) {
+  int min_grid_size, max_block_size;
+  CeedChk_Cu(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size,
+             &max_block_size, kernel, NULL, 0, 0x10000));
+  CeedChkBackend(CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(points,
+                                   max_block_size), max_block_size, args));
+  return 0;
+}
+
 //------------------------------------------------------------------------------
 // Run CUDA kernel
 //------------------------------------------------------------------------------
 int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
                       const int blockSize, void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
-                                  1, 0, NULL, args, NULL));
+  CUresult result = cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
+                                   1, 0, NULL, args, NULL);
+  if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
+    int max_threads_per_block, shared_size_bytes, num_regs;
+    cuFuncGetAttribute(&max_threads_per_block,
+                       CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
+    cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
+                       kernel);
+    cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
+                     max_threads_per_block, blockSize, 1, 1, shared_size_bytes, num_regs);
+  } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
 }
 

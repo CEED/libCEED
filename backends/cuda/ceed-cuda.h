@@ -188,6 +188,9 @@ CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
                                   const int gridSize,
                                   const int blockSize, void **args);
 
+CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel,
+    size_t size, void **args);
+
 CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int gridSize,
                                      const int blockSizeX, const int blockSizeY,
