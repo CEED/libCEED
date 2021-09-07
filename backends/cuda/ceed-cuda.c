@@ -186,14 +186,11 @@ int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
     ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
     currentDeviceID = deviceID;
   }
-  struct cudaDeviceProp deviceProp;
-  ierr = cudaGetDeviceProperties(&deviceProp, currentDeviceID);
-  CeedChk_Cu(ceed,ierr);
-
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
   data->deviceId = currentDeviceID;
-  data->optblocksize = deviceProp.maxThreadsPerBlock;
+  ierr = cudaGetDeviceProperties(&data->deviceProp, currentDeviceID);
+  CeedChk_Cu(ceed,ierr);
   return CEED_ERROR_SUCCESS;
 }
 

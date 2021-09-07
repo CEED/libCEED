@@ -169,9 +169,9 @@ typedef struct {
 } CeedOperator_Cuda;
 
 typedef struct {
-  int optblocksize;
   int deviceId;
   cublasHandle_t cublasHandle;
+  struct cudaDeviceProp deviceProp;
 } Ceed_Cuda;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
