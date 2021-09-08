@@ -169,9 +169,9 @@ typedef struct {
 } CeedOperator_Cuda;
 
 typedef struct {
-  int optblocksize;
   int deviceId;
   cublasHandle_t cublasHandle;
+  struct cudaDeviceProp deviceProp;
 } Ceed_Cuda;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
@@ -187,6 +187,9 @@ CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
 CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
                                   const int gridSize,
                                   const int blockSize, void **args);
+
+CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel,
+    size_t size, void **args);
 
 CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int gridSize,

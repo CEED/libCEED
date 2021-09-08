@@ -41,7 +41,6 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChkBackend(ierr);
-  const int blocksize = ceed_Cuda->optblocksize;
 
   // Read vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
@@ -63,8 +62,8 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
 
   // Run kernel
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
-  ierr = CeedRunKernelCuda(ceed, data->qFunction, CeedDivUpInt(Q, blocksize),
-                           blocksize, args); CeedChkBackend(ierr);
+  ierr = CeedRunKernelAutoblockCuda(ceed, data->qFunction, Q, args);
+  CeedChkBackend(ierr);
 
   // Restore vectors
   for (CeedInt i = 0; i < numinputfields; i++) {

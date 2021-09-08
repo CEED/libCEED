@@ -32,6 +32,81 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
+static int Waste(int threads_per_sm, int warp_size, int threads_per_elem,
+                 int elems_per_block) {
+  int useful_threads_per_block = threads_per_elem * elems_per_block;
+  // round up to nearest multiple of warp_size
+  int block_size = ((useful_threads_per_block + warp_size - 1) / warp_size) *
+                   warp_size;
+  int blocks_per_sm = threads_per_sm / block_size;
+  return threads_per_sm - useful_threads_per_block * blocks_per_sm;
+}
+
+// Choose the least wasteful block size constrained by blocks_per_sm of
+// max_threads_per_block.
+//
+// The x and y part of block[] contains per-element sizes (specified on input)
+// while the z part is number of elements.
+//
+// Problem setting: we'd like to make occupancy high with relatively few
+// inactive threads. CUDA (cuOccupancyMaxPotentialBlockSize) can tell us how
+// many threads can run.
+//
+// Note that full occupancy sometimes can't be achieved by one thread block. For
+// example, an SM might support 1536 threads in total, but only 1024 within a
+// single thread block. So cuOccupancyMaxPotentialBlockSize may suggest a block
+// size of 768 so that two blocks can run, versus one block of 1024 will prevent
+// a second block from running. The cuda-gen kernels are pretty heavy with lots
+// of instruction-level parallelism (ILP) so we'll generally be okay with
+// relatvely low occupancy and smaller thread blocks, but we solve a reasonably
+// general problem here. Empirically, we find that blocks bigger than about 256
+// have higher latency and worse load balancing when the number of elements is
+// modest.
+//
+// cuda-gen can't choose block sizes arbitrarily; they need to be a multiple of
+// the number of quadrature points (or number of basis functions). They also
+// have a lot of __syncthreads(), which is another point against excessively
+// large thread blocks. Suppose I have elements with 7x7x7 quadrature points.
+// This will loop over the last dimension, so we have 7*7=49 threads per
+// element. Suppose we have two elements = 2*49=98 useful threads. CUDA
+// schedules in units of full warps (32 threads), so 128 CUDA hardware threads
+// are effectively committed to that block. Now suppose
+// cuOccupancyMaxPotentialBlockSize returned 352. We can schedule 2 blocks of
+// size 98 (196 useful threads using 256 hardware threads), but not a third
+// block (which would need a total of 384 hardware threads).
+//
+// If instead, we had packed 3 elements, we'd have 3*49=147 useful threads
+// occupying 160 slots, and could schedule two blocks. Alternatively, we could
+// pack a single block of 7 elements (2*49=343 useful threads) into the 354
+// slots. The latter has the least "waste", but __syncthreads()
+// over-synchronizes and it might not pay off relative to smaller blocks.
+static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
+                              int max_threads_per_block, int warp_size, int block[3], int *grid) {
+  const int threads_per_sm = blocks_per_sm * max_threads_per_block;
+  const int threads_per_elem = block[0] * block[1];
+  int elems_per_block = 1;
+  int waste = Waste(threads_per_sm, warp_size, threads_per_elem, 1);
+  for (int i=2;
+       i <= CeedIntMin(max_threads_per_block / threads_per_elem, nelem);
+       i++) {
+    int i_waste = Waste(threads_per_sm, warp_size, threads_per_elem, i);
+    // We want to minimize waste, but smaller kernels have lower latency and
+    // less __syncthreads() overhead so when a larger block size has the same
+    // waste as a smaller one, go ahead and prefer the smaller block.
+    if (i_waste < waste || (i_waste == waste && threads_per_elem * i <= 128)) {
+      elems_per_block = i;
+      waste = i_waste;
+    }
+  }
+  block[2] = elems_per_block;
+  *grid = (nelem + elems_per_block - 1) / elems_per_block;
+  return CEED_ERROR_SUCCESS;
+}
+
+// callback for cuOccupancyMaxPotentialBlockSize, providing the amount of
+// dynamic shared memory required for a thread block of size threads.
+static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar); }
+
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
@@ -40,6 +115,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+  Ceed_Cuda *cuda_data;
+  ierr = CeedGetData(ceed, &cuda_data); CeedChkBackend(ierr);
   CeedOperator_Cuda_gen *data;
   ierr = CeedOperatorGetData(op, &data); CeedChkBackend(ierr);
   CeedQFunction qf;
@@ -122,28 +199,16 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   const CeedInt Q1d = data->Q1d;
   const CeedInt P1d = data->maxP1d;
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
-  if (dim==1) {
-    const CeedInt elemsPerBlock = 32;
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
-                                           ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, thread1d, 1,
-                                      elemsPerBlock, sharedMem, opargs);
-  } else if (dim==2) {
-    const CeedInt elemsPerBlock = thread1d<4? 16 : 2;
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
-                                           ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, thread1d, thread1d,
-                                      elemsPerBlock, sharedMem, opargs);
-  } else if (dim==3) {
-    const CeedInt elemsPerBlock = thread1d<6? 4 : (thread1d<8? 2 : 1);
-    CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
-                                           ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, thread1d, thread1d,
-                                      elemsPerBlock, sharedMem, opargs);
-  }
+  int max_threads_per_block, min_grid_size;
+  CeedChk_Cu(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size,
+             &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
+  int block[3] = {thread1d, dim < 2 ? 1 : thread1d, -1,}, grid;
+  CeedChkBackend(BlockGridCalculate(nelem,
+                                    min_grid_size/ cuda_data->deviceProp.multiProcessorCount, max_threads_per_block,
+                                    cuda_data->deviceProp.warpSize, block, &grid));
+  CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
+  ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, block[0], block[1],
+                                    block[2], shared_mem, opargs);
   CeedChkBackend(ierr);
 
   // Restore input arrays
