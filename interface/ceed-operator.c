@@ -574,84 +574,6 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
-/**
-  @brief Get the CeedOperatorFields of a CeedOperator
-
-  @param op                  CeedOperator
-  @param[out] input_fields   Variable to store input_fields
-  @param[out] output_fields  Variable to store output_fields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
-                          CeedOperatorField **input_fields,
-                          CeedInt *num_output_fields,
-                          CeedOperatorField **output_fields) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  if (num_input_fields) *num_input_fields = op->qf->num_input_fields;
-  if (input_fields) *input_fields = op->input_fields;
-  if (num_output_fields) *num_output_fields = op->qf->num_output_fields;
-  if (output_fields) *output_fields = op->output_fields;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedElemRestriction of a CeedOperatorField
-
-  @param op_field   CeedOperatorField
-  @param[out] rstr  Variable to store CeedElemRestriction
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
-                                        CeedElemRestriction *rstr) {
-  *rstr = op_field->elem_restr;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedBasis of a CeedOperatorField
-
-  @param op_field    CeedOperatorField
-  @param[out] basis  Variable to store CeedBasis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
-  *basis = op_field->basis;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedVector of a CeedOperatorField
-
-  @param op_field  CeedOperatorField
-  @param[out] vec  Variable to store CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
-  *vec = op_field->vec;
-  return CEED_ERROR_SUCCESS;
-}
-
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -905,6 +827,80 @@ found:
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
   memcpy(tmp, field_name, len+1);
   (*op_field)->field_name = tmp;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedOperatorFields of a CeedOperator
+
+  @param op                  CeedOperator
+  @param[out] input_fields   Variable to store input_fields
+  @param[out] output_fields  Variable to store output_fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
+                          CeedOperatorField **input_fields,
+                          CeedInt *num_output_fields,
+                          CeedOperatorField **output_fields) {
+  if (op->composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  if (num_input_fields) *num_input_fields = op->qf->num_input_fields;
+  if (input_fields) *input_fields = op->input_fields;
+  if (num_output_fields) *num_output_fields = op->qf->num_output_fields;
+  if (output_fields) *output_fields = op->output_fields;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedElemRestriction of a CeedOperatorField
+
+  @param op_field   CeedOperatorField
+  @param[out] rstr  Variable to store CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
+                                        CeedElemRestriction *rstr) {
+  *rstr = op_field->elem_restr;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedBasis of a CeedOperatorField
+
+  @param op_field    CeedOperatorField
+  @param[out] basis  Variable to store CeedBasis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
+  *basis = op_field->basis;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedVector of a CeedOperatorField
+
+  @param op_field  CeedOperatorField
+  @param[out] vec  Variable to store CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
+  *vec = op_field->vec;
   return CEED_ERROR_SUCCESS;
 }
 

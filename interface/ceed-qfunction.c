@@ -359,74 +359,6 @@ int CeedQFunctionReference(CeedQFunction qf) {
   return CEED_ERROR_SUCCESS;
 }
 
-/**
-  @brief Get the CeedQFunctionFields of a CeedQFunction
-
-  @param qf                  CeedQFunction
-  @param[out] input_fields   Variable to store input_fields
-  @param[out] output_fields  Variable to store output_fields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
-                           CeedQFunctionField **input_fields,
-                           CeedInt *num_output_fields,
-                           CeedQFunctionField **output_fields) {
-  if (num_input_fields) *num_input_fields = qf->num_input_fields;
-  if (input_fields) *input_fields = qf->input_fields;
-  if (num_output_fields) *num_output_fields = qf->num_output_fields;
-  if (output_fields) *output_fields = qf->output_fields;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the name of a CeedQFunctionField
-
-  @param qf_field         CeedQFunctionField
-  @param[out] field_name  Variable to store the field name
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
-  *field_name = (char *)qf_field->field_name;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the number of components of a CeedQFunctionField
-
-  @param qf_field   CeedQFunctionField
-  @param[out] size  Variable to store the size of the field
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size) {
-  *size = qf_field->size;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedEvalMode of a CeedQFunctionField
-
-  @param qf_field        CeedQFunctionField
-  @param[out] eval_mode  Variable to store the field evaluation mode
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field,
-                                  CeedEvalMode *eval_mode) {
-  *eval_mode = qf_field->eval_mode;
-  return CEED_ERROR_SUCCESS;
-}
-
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -682,6 +614,74 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
                                    field_name, size, eval_mode);
   CeedChk(ierr);
   qf->num_output_fields++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedQFunctionFields of a CeedQFunction
+
+  @param qf                  CeedQFunction
+  @param[out] input_fields   Variable to store input_fields
+  @param[out] output_fields  Variable to store output_fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
+                           CeedQFunctionField **input_fields,
+                           CeedInt *num_output_fields,
+                           CeedQFunctionField **output_fields) {
+  if (num_input_fields) *num_input_fields = qf->num_input_fields;
+  if (input_fields) *input_fields = qf->input_fields;
+  if (num_output_fields) *num_output_fields = qf->num_output_fields;
+  if (output_fields) *output_fields = qf->output_fields;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the name of a CeedQFunctionField
+
+  @param qf_field         CeedQFunctionField
+  @param[out] field_name  Variable to store the field name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
+  *field_name = (char *)qf_field->field_name;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of components of a CeedQFunctionField
+
+  @param qf_field   CeedQFunctionField
+  @param[out] size  Variable to store the size of the field
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size) {
+  *size = qf_field->size;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedEvalMode of a CeedQFunctionField
+
+  @param qf_field        CeedQFunctionField
+  @param[out] eval_mode  Variable to store the field evaluation mode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field,
+                                  CeedEvalMode *eval_mode) {
+  *eval_mode = qf_field->eval_mode;
   return CEED_ERROR_SUCCESS;
 }
 
