@@ -217,7 +217,9 @@ CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);
 CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
+                                       CeedInt *num_input_fields,
                                        CeedQFunctionField **input_fields,
+                                       CeedInt *num_output_fields,
                                        CeedQFunctionField **output_fields);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field,
     char **field_name);
@@ -253,7 +255,9 @@ CEED_EXTERN int CeedOperatorReference(CeedOperator op);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op,
+                                      CeedInt *num_input_fields,
                                       CeedOperatorField **input_fields,
+                                      CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
 CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
     CeedElemRestriction *rstr);

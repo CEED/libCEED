@@ -38,11 +38,15 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
   CeedOperatorField *op_fields;
   CeedQFunctionField *qf_fields;
   if (inOrOut) {
-    ierr = CeedOperatorGetFields(op, NULL, &op_fields); CeedChkBackend(ierr);
-    ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields); CeedChkBackend(ierr);
+    ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &op_fields);
+    CeedChkBackend(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields);
+    CeedChkBackend(ierr);
   } else {
-    ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChkBackend(ierr);
-    ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChkBackend(ierr);
+    ierr = CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL);
+    CeedChkBackend(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL);
+    CeedChkBackend(ierr);
   }
 
   // Loop over fields
@@ -112,13 +116,13 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   CeedInt Q, num_input_fields, num_output_fields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedQFunctionIsIdentity(qf, &impl->is_identity_qf); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChkBackend(ierr);
   CeedOperatorField *op_input_fields, *op_output_fields;
-  ierr = CeedOperatorGetFields(op, &op_input_fields, &op_output_fields);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_input_fields,
+                               &num_output_fields, &op_output_fields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
-  ierr = CeedQFunctionGetFields(qf, &qf_input_fields, &qf_output_fields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL,
+                                &qf_output_fields);
   CeedChkBackend(ierr);
 
   // Allocate
@@ -152,7 +156,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   if (impl->is_identity_qf) {
     CeedEvalMode in_mode, out_mode;
     CeedQFunctionField *in_fields, *out_fields;
-    ierr = CeedQFunctionGetFields(qf, &in_fields, &out_fields);
+    ierr = CeedQFunctionGetFields(qf, NULL, &in_fields, NULL, &out_fields);
     CeedChkBackend(ierr);
     ierr = CeedQFunctionFieldGetEvalMode(in_fields[0], &in_mode);
     CeedChkBackend(ierr);
@@ -411,13 +415,13 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec,
   CeedInt Q, num_elem, num_input_fields, num_output_fields, size;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChkBackend(ierr);
-  ierr= CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChkBackend(ierr);
   CeedOperatorField *op_input_fields, *op_output_fields;
-  ierr = CeedOperatorGetFields(op, &op_input_fields, &op_output_fields);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_input_fields,
+                               &num_output_fields, &op_output_fields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
-  ierr = CeedQFunctionGetFields(qf, &qf_input_fields, &qf_output_fields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL,
+                                &qf_output_fields);
   CeedChkBackend(ierr);
   CeedEvalMode eval_mode;
   CeedVector vec;
@@ -524,13 +528,13 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
   CeedInt Q, num_elem, num_input_fields, num_output_fields, size;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChkBackend(ierr);
-  ierr= CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChkBackend(ierr);
   CeedOperatorField *op_input_fields, *op_output_fields;
-  ierr = CeedOperatorGetFields(op, &op_input_fields, &op_output_fields);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_input_fields,
+                               &num_output_fields, &op_output_fields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
-  ierr = CeedQFunctionGetFields(qf, &qf_input_fields, &qf_output_fields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL,
+                                &qf_output_fields);
   CeedChkBackend(ierr);
   CeedVector vec;
   CeedInt num_active_in = 0, num_active_out = 0;

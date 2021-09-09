@@ -41,7 +41,7 @@ namespace ceed {
       ierr = CeedQFunctionGetNumArgs(qf, &_inputCount, &_outputCount);
       CeedOccaValidChk(_isValid, ierr);
 
-      ierr = CeedQFunctionGetFields(qf, &ceedInputFields, &ceedOutputFields);
+      ierr = CeedQFunctionGetFields(qf, NULL, &ceedInputFields, NULL, &ceedOutputFields);
       CeedOccaValidChk(_isValid, ierr);
 
       _isValid = true;

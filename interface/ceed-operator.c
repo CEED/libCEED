@@ -586,7 +586,9 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
   @ref Backend
 **/
 
-int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **input_fields,
+int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
+                          CeedOperatorField **input_fields,
+                          CeedInt *num_output_fields,
                           CeedOperatorField **output_fields) {
   if (op->composite)
     // LCOV_EXCL_START
@@ -594,7 +596,9 @@ int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **input_fields,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
 
+  if (num_input_fields) *num_input_fields = op->qf->num_input_fields;
   if (input_fields) *input_fields = op->input_fields;
+  if (num_output_fields) *num_output_fields = op->qf->num_output_fields;
   if (output_fields) *output_fields = op->output_fields;
   return CEED_ERROR_SUCCESS;
 }

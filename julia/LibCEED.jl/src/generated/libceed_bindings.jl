@@ -893,8 +893,8 @@ function CeedQFunctionReference(qf)
     ccall((:CeedQFunctionReference, libceed), Cint, (CeedQFunction,), qf)
 end
 
-function CeedQFunctionGetFields(qf, input_fields, output_fields)
-    ccall((:CeedQFunctionGetFields, libceed), Cint, (CeedQFunction, Ptr{Ptr{CeedQFunctionField}}, Ptr{Ptr{CeedQFunctionField}}), qf, input_fields, output_fields)
+function CeedQFunctionGetFields(qf, num_input_fields, input_fields, num_output_fields, output_fields)
+    ccall((:CeedQFunctionGetFields, libceed), Cint, (CeedQFunction, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}), qf, num_input_fields, input_fields, num_output_fields, output_fields)
 end
 
 function CeedQFunctionFieldGetName(qf_field, field_name)

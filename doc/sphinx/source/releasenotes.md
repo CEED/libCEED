@@ -7,6 +7,10 @@ for each release of libCEED.
 
 ## Current `main` branch
 
+### Interface changes
+
+- Update {c:func} `CeedQFunctionGetFields` and {c:func} `CeedOperatorGetFields` to include number of fields.
+
 ### Maintainability
 
 - Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.

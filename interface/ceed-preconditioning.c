@@ -211,8 +211,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   // Determine active input basis
   CeedOperatorField *op_fields;
   CeedQFunctionField *qf_fields;
-  ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   CeedInt num_eval_mode_in = 0, num_comp, dim = 1;
   CeedEvalMode *eval_mode_in = NULL;
   CeedBasis basis_in = NULL;
@@ -256,8 +256,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   }
 
   // Determine active output basis
-  ierr = CeedOperatorGetFields(op, NULL, &op_fields); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &op_fields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields); CeedChk(ierr);
   CeedInt num_eval_mode_out = 0;
   CeedEvalMode *eval_mode_out = NULL;
   CeedBasis basis_out = NULL;
@@ -548,9 +548,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   // Assemble QFunction
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedInt num_input_fields, num_output_fields;
-  ierr= CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChk(ierr);
   CeedVector assembled_qf;
   CeedElemRestriction rstr_q;
   ierr = CeedOperatorLinearAssembleQFunction(
@@ -559,13 +556,15 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   CeedInt qf_length;
   ierr = CeedVectorGetLength(assembled_qf, &qf_length); CeedChk(ierr);
 
+  CeedInt num_input_fields, num_output_fields;
   CeedOperatorField *input_fields;
   CeedOperatorField *output_fields;
-  ierr = CeedOperatorGetFields(op, &input_fields, &output_fields); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &input_fields,
+                               &num_output_fields, &output_fields); CeedChk(ierr);
 
   // Determine active input basis
   CeedQFunctionField *qf_fields;
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   CeedInt num_eval_mode_in = 0, dim = 1;
   CeedEvalMode *eval_mode_in = NULL;
   CeedBasis basis_in = NULL;
@@ -605,7 +604,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   }
 
   // Determine active output basis
-  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields); CeedChk(ierr);
   CeedInt num_eval_mode_out = 0;
   CeedEvalMode *eval_mode_out = NULL;
   CeedBasis basis_out = NULL;
@@ -1782,10 +1781,10 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   CeedElemRestriction rstr = NULL;
   CeedOperatorField *op_fields;
   CeedQFunctionField *qf_fields;
-  ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
   CeedInt num_input_fields;
-  ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, NULL); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_fields, NULL, NULL);
+  CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<num_input_fields; i++) {
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(op_fields[i], &vec); CeedChk(ierr);

@@ -370,9 +370,13 @@ int CeedQFunctionReference(CeedQFunction qf) {
 
   @ref Backend
 **/
-int CeedQFunctionGetFields(CeedQFunction qf, CeedQFunctionField **input_fields,
+int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
+                           CeedQFunctionField **input_fields,
+                           CeedInt *num_output_fields,
                            CeedQFunctionField **output_fields) {
+  if (num_input_fields) *num_input_fields = qf->num_input_fields;
   if (input_fields) *input_fields = qf->input_fields;
+  if (num_output_fields) *num_output_fields = qf->num_output_fields;
   if (output_fields) *output_fields = qf->output_fields;
   return CEED_ERROR_SUCCESS;
 }
