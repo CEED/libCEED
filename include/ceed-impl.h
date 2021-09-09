@@ -240,9 +240,9 @@ struct CeedQFunction_private {
   CeedQFunctionUser function;
   const char *source_path;
   const char *qf_name;
-  bool identity;
-  bool fortran_status;
-  CeedInt operators_set;
+  bool is_identity;
+  bool is_fortran;
+  bool is_immutable;
   CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
@@ -322,9 +322,10 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
-  bool interface_setup;
-  bool backend_setup;
-  bool composite;
+  bool is_immutable;
+  bool is_interface_setup;
+  bool is_backend_setup;
+  bool is_composite;
   bool has_restriction;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;

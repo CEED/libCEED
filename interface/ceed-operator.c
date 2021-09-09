@@ -146,11 +146,11 @@ int CeedOperatorCheckReady(CeedOperator op) {
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
 
-  if (op->interface_setup)
+  if (op->is_interface_setup)
     return CEED_ERROR_SUCCESS;
 
   CeedQFunction qf = op->qf;
-  if (op->composite) {
+  if (op->is_composite) {
     if (!op->num_suboperators)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
@@ -178,18 +178,18 @@ int CeedOperatorCheckReady(CeedOperator op) {
   }
 
   // Flag as immutable and ready
-  op->interface_setup = true;
+  op->is_interface_setup = true;
   if (op->qf && op->qf != CEED_QFUNCTION_NONE)
     // LCOV_EXCL_START
-    op->qf->operators_set++;
+    op->qf->is_immutable = true;
   // LCOV_EXCL_STOP
   if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
     // LCOV_EXCL_START
-    op->dqf->operators_set++;
+    op->dqf->is_immutable = true;
   // LCOV_EXCL_STOP
   if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
     // LCOV_EXCL_START
-    op->dqfT->operators_set++;
+    op->dqfT->is_immutable = true;
   // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
@@ -363,7 +363,7 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 **/
 
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -385,7 +385,7 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
 **/
 
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -407,7 +407,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
 **/
 
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operators");
@@ -429,7 +429,7 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 **/
 
 int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
-  *is_setup_done = op->backend_setup;
+  *is_setup_done = op->is_backend_setup;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -445,7 +445,7 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 **/
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -467,7 +467,7 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 **/
 
 int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
-  *is_composite = op->composite;
+  *is_composite = op->is_composite;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -483,7 +483,7 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 **/
 
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
-  if (!op->composite)
+  if (!op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
@@ -504,7 +504,7 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 **/
 
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
-  if (!op->composite)
+  if (!op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
@@ -570,7 +570,7 @@ int CeedOperatorReference(CeedOperator op) {
 **/
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
-  op->backend_setup = true;
+  op->is_backend_setup = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -670,7 +670,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
-  (*op)->composite = true;
+  (*op)->is_composite = true;
   ierr = CeedCalloc(16, &(*op)->sub_operators); CeedChk(ierr);
 
   if (ceed->CompositeOperatorCreate) {
@@ -731,10 +731,15 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
 int CeedOperatorSetField(CeedOperator op, const char *field_name,
                          CeedElemRestriction r, CeedBasis b, CeedVector v) {
   int ierr;
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "Cannot add field to composite operator.");
+  // LCOV_EXCL_STOP
+  if (op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
   if (!r)
     // LCOV_EXCL_START
@@ -833,6 +838,9 @@ found:
 /**
   @brief Get the CeedOperatorFields of a CeedOperator
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param op                  CeedOperator
   @param[out] input_fields   Variable to store input_fields
   @param[out] output_fields  Variable to store output_fields
@@ -845,11 +853,14 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
                           CeedOperatorField **input_fields,
                           CeedInt *num_output_fields,
                           CeedOperatorField **output_fields) {
-  if (op->composite)
+  int ierr;
+
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
   // LCOV_EXCL_STOP
+  ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
   if (num_input_fields) *num_input_fields = op->qf->num_input_fields;
   if (input_fields) *input_fields = op->input_fields;
@@ -933,7 +944,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
                                 CeedOperator sub_op) {
   int ierr;
 
-  if (!composite_op->composite)
+  if (!composite_op->is_composite)
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_MINOR,
                      "CeedOperator is not a composite operator");
@@ -943,6 +954,11 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_UNSUPPORTED,
                      "Cannot add additional sub_operators");
+  // LCOV_EXCL_STOP
+  if (composite_op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(composite_op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
@@ -966,7 +982,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
 **/
 
 int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -975,6 +991,11 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Number of quadrature points already defined");
+  // LCOV_EXCL_STOP
+  if (op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
 
   op->num_qpts = num_qpts;
@@ -994,7 +1015,7 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
 int CeedOperatorView(CeedOperator op, FILE *stream) {
   int ierr;
 
-  if (op->composite) {
+  if (op->is_composite) {
     fprintf(stream, "Composite CeedOperator\n");
 
     for (CeedInt i=0; i<op->num_suboperators; i++) {
@@ -1015,6 +1036,9 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
   This computes the action of the operator on the specified (active) input,
   yielding its (active) output.  All inputs and outputs must be specified using
   CeedOperatorSetField().
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op        CeedOperator to apply
   @param[in] in    CeedVector containing input state or @ref CEED_VECTOR_NONE if
@@ -1052,7 +1076,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
       // Apply
       ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
     }
-  } else if (op->composite) {
+  } else if (op->is_composite) {
     // Composite Operator
     if (op->ApplyComposite) {
       ierr = op->ApplyComposite(op, in, out, request); CeedChk(ierr);
@@ -1111,7 +1135,7 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
   if (op->num_elem)  {
     // Standard Operator
     ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
-  } else if (op->composite) {
+  } else if (op->is_composite) {
     // Composite Operator
     if (op->ApplyAddComposite) {
       ierr = op->ApplyAddComposite(op, in, out, request); CeedChk(ierr);
@@ -1183,20 +1207,8 @@ int CeedOperatorDestroy(CeedOperator *op) {
     if ((*op)->sub_operators[i]) {
       ierr = CeedOperatorDestroy(&(*op)->sub_operators[i]); CeedChk(ierr);
     }
-  if ((*op)->qf)
-    // LCOV_EXCL_START
-    (*op)->qf->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
-  if ((*op)->dqf && (*op)->dqf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    (*op)->dqf->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
-  if ((*op)->dqfT && (*op)->dqfT != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    (*op)->dqfT->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
 
   // Destroy fallback

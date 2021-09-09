@@ -165,7 +165,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field,
   @ref Backend
 **/
 int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status) {
-  qf->fortran_status = status;
+  qf->is_fortran = status;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -287,7 +287,7 @@ int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 **/
 int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   int ierr;
-  if (qf->fortran_status) {
+  if (qf->is_fortran) {
     CeedFortranContext fortran_ctx = NULL;
     ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fortran_ctx);
     CeedChk(ierr);
@@ -311,7 +311,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   @ref Backend
 **/
 int CeedQFunctionIsIdentity(CeedQFunction qf, bool *is_identity) {
-  *is_identity = qf->identity;
+  *is_identity = qf->is_identity;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -415,7 +415,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   ierr = CeedReference(ceed); CeedChk(ierr);
   (*qf)->ref_count = 1;
   (*qf)->vec_length = vec_length;
-  (*qf)->identity = 0;
+  (*qf)->is_identity = false;
   (*qf)->function = f;
   size_t slen = strlen(source) + 1;
   ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
@@ -509,7 +509,7 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
   ierr = CeedQFunctionAddInput(*qf, "input", size, in_mode); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(*qf, "output", size, out_mode); CeedChk(ierr);
 
-  (*qf)->identity = 1;
+  (*qf)->is_identity = true;
   CeedInt *size_data;
   ierr = CeedCalloc(1, &size_data); CeedChk(ierr);
   size_data[0] = size;
@@ -565,10 +565,10 @@ int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
 int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name,
                           CeedInt size,
                           CeedEvalMode eval_mode) {
-  if (qf->operators_set)
+  if (qf->is_immutable)
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_MAJOR,
-                     "QFunction cannot be changed when in use by an operator");
+                     "QFunction cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
   if ((eval_mode == CEED_EVAL_WEIGHT) && (size != 1))
     // LCOV_EXCL_START
@@ -599,10 +599,10 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name,
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
                            CeedInt size, CeedEvalMode eval_mode) {
-  if (qf->operators_set)
+  if (qf->is_immutable)
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_MAJOR,
-                     "QFunction cannot be changed when in use by an operator");
+                     "QFunction cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
   if (eval_mode == CEED_EVAL_WEIGHT)
     // LCOV_EXCL_START
@@ -620,6 +620,9 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
 /**
   @brief Get the CeedQFunctionFields of a CeedQFunction
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedQFunction as immutable.
+
   @param qf                  CeedQFunction
   @param[out] input_fields   Variable to store input_fields
   @param[out] output_fields  Variable to store output_fields
@@ -632,6 +635,7 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
                            CeedQFunctionField **input_fields,
                            CeedInt *num_output_fields,
                            CeedQFunctionField **output_fields) {
+  qf->is_immutable = true;
   if (num_input_fields) *num_input_fields = qf->num_input_fields;
   if (input_fields) *input_fields = qf->input_fields;
   if (num_output_fields) *num_output_fields = qf->num_output_fields;
@@ -737,6 +741,9 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
 /**
   @brief Apply the action of a CeedQFunction
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedQFunction as immutable.
+
   @param qf      CeedQFunction
   @param Q       Number of quadrature points
   @param[in] u   Array of input CeedVectors
@@ -760,6 +767,7 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
                      "Number of quadrature points %d must be a "
                      "multiple of %d", Q, qf->vec_length);
   // LCOV_EXCL_STOP
+  qf->is_immutable = true;
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
