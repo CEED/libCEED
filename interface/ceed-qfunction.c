@@ -629,7 +629,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
                            CeedQFunctionField **input_fields,
@@ -651,7 +651,7 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
   *field_name = (char *)qf_field->field_name;
@@ -666,7 +666,7 @@ int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size) {
   *size = qf_field->size;
@@ -681,7 +681,7 @@ int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field,
                                   CeedEvalMode *eval_mode) {

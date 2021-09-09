@@ -36,6 +36,9 @@
 /// @section User User Functions
 ///    These functions are intended to be used by general users of libCEED
 ///    and can generally be found in "ceed.h".
+/// @section Advanced Advanced Functions
+///    These functions are intended to be used by advanced users of libCEED
+///    and can generally be found in "ceed.h".
 /// @section Backend Backend Developer Functions
 ///    These functions are intended to be used by backend developers of
 ///    libCEED and can generally be found in "ceed-backend.h".

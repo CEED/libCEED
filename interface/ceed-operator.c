@@ -847,7 +847,7 @@ found:
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
                           CeedOperatorField **input_fields,
@@ -877,7 +877,7 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
   *field_name = (char *)op_field->field_name;
@@ -892,7 +892,7 @@ int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
                                         CeedElemRestriction *rstr) {
@@ -908,7 +908,7 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
   *basis = op_field->basis;
@@ -923,7 +923,7 @@ int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
   *vec = op_field->vec;
@@ -978,7 +978,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 
 int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
