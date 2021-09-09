@@ -859,6 +859,21 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
 }
 
 /**
+  @brief Get the name of a CeedOperatorField
+
+  @param op_field         CeedOperatorField
+  @param[out] field_name  Variable to store the field name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
+  *field_name = (char *)op_field->field_name;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the CeedElemRestriction of a CeedOperatorField
 
   @param op_field   CeedOperatorField

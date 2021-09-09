@@ -681,6 +681,8 @@ CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,
                                      CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
 
+CEED_EXTERN int CeedOperatorFieldGetName(CeedOperatorField op_field,
+    char **field_name);
 CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField op_field,
