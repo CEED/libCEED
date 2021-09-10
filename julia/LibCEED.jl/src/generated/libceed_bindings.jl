@@ -30,9 +30,17 @@ mutable struct CeedBasis_private end
 
 const CeedBasis = Ptr{CeedBasis_private}
 
+mutable struct CeedQFunctionField_private end
+
+const CeedQFunctionField = Ptr{CeedQFunctionField_private}
+
 mutable struct CeedQFunction_private end
 
 const CeedQFunction = Ptr{CeedQFunction_private}
+
+mutable struct CeedOperatorField_private end
+
+const CeedOperatorField = Ptr{CeedOperatorField_private}
 
 mutable struct CeedQFunctionContext_private end
 
@@ -435,6 +443,10 @@ function CeedQFunctionAddOutput(qf, field_name, size, eval_mode)
     ccall((:CeedQFunctionAddOutput, libceed), Cint, (CeedQFunction, Ptr{Cchar}, CeedInt, CeedEvalMode), qf, field_name, size, eval_mode)
 end
 
+function CeedQFunctionGetFields(qf, num_input_fields, input_fields, num_output_fields, output_fields)
+    ccall((:CeedQFunctionGetFields, libceed), Cint, (CeedQFunction, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}), qf, num_input_fields, input_fields, num_output_fields, output_fields)
+end
+
 function CeedQFunctionSetContext(qf, ctx)
     ccall((:CeedQFunctionSetContext, libceed), Cint, (CeedQFunction, CeedQFunctionContext), qf, ctx)
 end
@@ -449,6 +461,18 @@ end
 
 function CeedQFunctionDestroy(qf)
     ccall((:CeedQFunctionDestroy, libceed), Cint, (Ptr{CeedQFunction},), qf)
+end
+
+function CeedQFunctionFieldGetName(qf_field, field_name)
+    ccall((:CeedQFunctionFieldGetName, libceed), Cint, (CeedQFunctionField, Ptr{Ptr{Cchar}}), qf_field, field_name)
+end
+
+function CeedQFunctionFieldGetSize(qf_field, size)
+    ccall((:CeedQFunctionFieldGetSize, libceed), Cint, (CeedQFunctionField, Ptr{CeedInt}), qf_field, size)
+end
+
+function CeedQFunctionFieldGetEvalMode(qf_field, eval_mode)
+    ccall((:CeedQFunctionFieldGetEvalMode, libceed), Cint, (CeedQFunctionField, Ptr{CeedEvalMode}), qf_field, eval_mode)
 end
 
 function CeedQFunctionContextCreate(ceed, ctx)
@@ -501,6 +525,10 @@ end
 
 function CeedOperatorSetField(op, field_name, r, b, v)
     ccall((:CeedOperatorSetField, libceed), Cint, (CeedOperator, Ptr{Cchar}, CeedElemRestriction, CeedBasis, CeedVector), op, field_name, r, b, v)
+end
+
+function CeedOperatorGetFields(op, num_input_fields, input_fields, num_output_fields, output_fields)
+    ccall((:CeedOperatorGetFields, libceed), Cint, (CeedOperator, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}), op, num_input_fields, input_fields, num_output_fields, output_fields)
 end
 
 function CeedCompositeOperatorAddSub(composite_op, sub_op)
@@ -571,6 +599,22 @@ function CeedOperatorDestroy(op)
     ccall((:CeedOperatorDestroy, libceed), Cint, (Ptr{CeedOperator},), op)
 end
 
+function CeedOperatorFieldGetName(op_field, field_name)
+    ccall((:CeedOperatorFieldGetName, libceed), Cint, (CeedOperatorField, Ptr{Ptr{Cchar}}), op_field, field_name)
+end
+
+function CeedOperatorFieldGetElemRestriction(op_field, rstr)
+    ccall((:CeedOperatorFieldGetElemRestriction, libceed), Cint, (CeedOperatorField, Ptr{CeedElemRestriction}), op_field, rstr)
+end
+
+function CeedOperatorFieldGetBasis(op_field, basis)
+    ccall((:CeedOperatorFieldGetBasis, libceed), Cint, (CeedOperatorField, Ptr{CeedBasis}), op_field, basis)
+end
+
+function CeedOperatorFieldGetVector(op_field, vec)
+    ccall((:CeedOperatorFieldGetVector, libceed), Cint, (CeedOperatorField, Ptr{CeedVector}), op_field, vec)
+end
+
 function CeedIntPow(base, power)
     ccall((:CeedIntPow, libceed), CeedInt, (CeedInt, CeedInt), base, power)
 end
@@ -624,14 +668,6 @@ end
 function CeedFree(p)
     ccall((:CeedFree, libceed), Cint, (Ptr{Cvoid},), p)
 end
-
-mutable struct CeedQFunctionField_private end
-
-const CeedQFunctionField = Ptr{CeedQFunctionField_private}
-
-mutable struct CeedOperatorField_private end
-
-const CeedOperatorField = Ptr{CeedOperatorField_private}
 
 function CeedRegister(prefix, init, priority)
     ccall((:CeedRegister, libceed), Cint, (Ptr{Cchar}, Ptr{Cvoid}, Cuint), prefix, init, priority)
@@ -893,22 +929,6 @@ function CeedQFunctionReference(qf)
     ccall((:CeedQFunctionReference, libceed), Cint, (CeedQFunction,), qf)
 end
 
-function CeedQFunctionGetFields(qf, num_input_fields, input_fields, num_output_fields, output_fields)
-    ccall((:CeedQFunctionGetFields, libceed), Cint, (CeedQFunction, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}, Ptr{CeedInt}, Ptr{Ptr{CeedQFunctionField}}), qf, num_input_fields, input_fields, num_output_fields, output_fields)
-end
-
-function CeedQFunctionFieldGetName(qf_field, field_name)
-    ccall((:CeedQFunctionFieldGetName, libceed), Cint, (CeedQFunctionField, Ptr{Ptr{Cchar}}), qf_field, field_name)
-end
-
-function CeedQFunctionFieldGetSize(qf_field, size)
-    ccall((:CeedQFunctionFieldGetSize, libceed), Cint, (CeedQFunctionField, Ptr{CeedInt}), qf_field, size)
-end
-
-function CeedQFunctionFieldGetEvalMode(qf_field, eval_mode)
-    ccall((:CeedQFunctionFieldGetEvalMode, libceed), Cint, (CeedQFunctionField, Ptr{CeedEvalMode}), qf_field, eval_mode)
-end
-
 function CeedQFunctionContextGetCeed(cxt, ceed)
     ccall((:CeedQFunctionContextGetCeed, libceed), Cint, (CeedQFunctionContext, Ptr{Ceed}), cxt, ceed)
 end
@@ -979,22 +999,6 @@ end
 
 function CeedOperatorSetSetupDone(op)
     ccall((:CeedOperatorSetSetupDone, libceed), Cint, (CeedOperator,), op)
-end
-
-function CeedOperatorGetFields(op, input_fields, output_fields)
-    ccall((:CeedOperatorGetFields, libceed), Cint, (CeedOperator, Ptr{Ptr{CeedOperatorField}}, Ptr{Ptr{CeedOperatorField}}), op, input_fields, output_fields)
-end
-
-function CeedOperatorFieldGetElemRestriction(op_field, rstr)
-    ccall((:CeedOperatorFieldGetElemRestriction, libceed), Cint, (CeedOperatorField, Ptr{CeedElemRestriction}), op_field, rstr)
-end
-
-function CeedOperatorFieldGetBasis(op_field, basis)
-    ccall((:CeedOperatorFieldGetBasis, libceed), Cint, (CeedOperatorField, Ptr{CeedBasis}), op_field, basis)
-end
-
-function CeedOperatorFieldGetVector(op_field, vec)
-    ccall((:CeedOperatorFieldGetVector, libceed), Cint, (CeedOperatorField, Ptr{CeedVector}), op_field, vec)
 end
 
 function CeedMatrixMultiply(ceed, mat_A, mat_B, mat_C, m, n, kk)
