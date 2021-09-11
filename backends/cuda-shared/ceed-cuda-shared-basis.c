@@ -962,20 +962,38 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedBasis_Cuda_shared *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
+  // Create double versions of basis data
+  double *interp1d_dbl = (double*)(malloc(Q1d*P1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d * P1d; i++) {
+    interp1d_dbl[i] = (double) interp1d[i];
+  }
+  double *grad1d_dbl = (double*)(malloc(Q1d*P1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d * P1d; i++) {
+    grad1d_dbl[i] = (double) grad1d[i];
+  }
+  double *qweight1d_dbl = (double*)(malloc(Q1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d; i++) {
+    qweight1d_dbl[i] = (double) qweight1d[i];
+  }
+
   // Copy basis data to GPU
-  const CeedInt qBytes = Q1d * sizeof(CeedScalar);
+  const CeedInt qBytes = Q1d * sizeof(double);
   ierr = cudaMalloc((void **)&data->d_qweight1d, qBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(data->d_qweight1d, qweight1d, qBytes,
+  ierr = cudaMemcpy(data->d_qweight1d, qweight1d_dbl, qBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   const CeedInt iBytes = qBytes * P1d;
   ierr = cudaMalloc((void **)&data->d_interp1d, iBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(data->d_interp1d, interp1d, iBytes,
+  ierr = cudaMemcpy(data->d_interp1d, interp1d_dbl, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   ierr = cudaMalloc((void **)&data->d_grad1d, iBytes); CeedChk_Cu(ceed, ierr);
-  ierr = cudaMemcpy(data->d_grad1d, grad1d, iBytes,
+  ierr = cudaMemcpy(data->d_grad1d, grad1d_dbl, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+ 
+  free(interp1d_dbl);
+  free(grad1d_dbl);
+  free(qweight1d_dbl);
 
   // Compute collocated gradient and copy to GPU
   data->d_collograd1d = NULL;
@@ -983,11 +1001,17 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
     CeedScalar *collograd1d;
     ierr = CeedMalloc(Q1d*Q1d, &collograd1d); CeedChkBackend(ierr);
     ierr = CeedBasisGetCollocatedGrad(basis, collograd1d); CeedChkBackend(ierr);
+    // Again, create double version to copy to GPU
+    double *collograd1d_dbl = (double*)(malloc(Q1d*Q1d*sizeof(double)));
+    for (CeedInt i = 0; i < Q1d * Q1d; i++) {
+      collograd1d_dbl[i] = (double) collograd1d[i];
+    }
     ierr = cudaMalloc((void **)&data->d_collograd1d, qBytes * Q1d);
     CeedChk_Cu(ceed, ierr);
-    ierr = cudaMemcpy(data->d_collograd1d, collograd1d, qBytes * Q1d,
+    ierr = cudaMemcpy(data->d_collograd1d, collograd1d_dbl, qBytes * Q1d,
                       cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
     ierr = CeedFree(&collograd1d); CeedChkBackend(ierr);
+    free(collograd1d_dbl);
   }
 
   // Compile basis kernels

@@ -23,6 +23,7 @@
 #include "../cuda/ceed-cuda.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;
+typedef struct { const double *in[16]; double *out[16]; } CudaFields_double;
 typedef struct { CeedInt *in[16]; CeedInt *out[16]; } CudaFieldsInt;
 
 typedef struct {
@@ -33,9 +34,9 @@ typedef struct {
   CUfunction op;
   CudaFieldsInt indices;
   CudaFields fields;
-  CudaFields B;
-  CudaFields G;
-  CeedScalar *W;
+  CudaFields_double B;
+  CudaFields_double G;
+  double *W;
 } CeedOperator_Cuda_gen;
 
 typedef struct {

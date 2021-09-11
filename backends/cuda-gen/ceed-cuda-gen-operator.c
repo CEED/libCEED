@@ -109,7 +109,7 @@ static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
 
 // callback for cuOccupancyMaxPotentialBlockSize, providing the amount of
 // dynamic shared memory required for a thread block of size threads.
-static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar); }
+static size_t dynamicSMemSize(int threads) { return threads * sizeof(double); }
 
 //------------------------------------------------------------------------------
 // Apply and add to output
@@ -211,7 +211,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
                                     min_grid_size/ cuda_data->deviceProp.multiProcessorCount, max_threads_per_block,
                                     cuda_data->deviceProp.maxThreadsDim[2],
                                     cuda_data->deviceProp.warpSize, block, &grid));
-  CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
+  CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(double);
   ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, block[0], block[1],
                                     block[2], shared_mem, opargs);
   CeedChkBackend(ierr);

@@ -101,7 +101,7 @@ static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
   // Append typedef and save source string
   // FIXME: the magic number 16 should be defined somewhere...
   char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda_gen;";
+    "typedef struct { const double* inputs[16]; double* outputs[16]; } Fields_Cuda_gen;";
   ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
                     &data->qFunctionSource); CeedChkBackend(ierr);
   memcpy(data->qFunctionSource, fields_string, strlen(fields_string));
