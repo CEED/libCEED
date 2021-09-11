@@ -46,6 +46,9 @@ namespace ceed {
       Operator();
       virtual ~Operator();
 
+      static Operator* getOperator(CeedOperator op,
+                                   const bool assertValid = true);
+
       static Operator* from(CeedOperator op);
 
       bool isApplyingIdentityFunction();
