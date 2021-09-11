@@ -575,8 +575,8 @@ CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
  @ingroup CeedQFunction
 **/
 typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
-                                 const CeedScalar *const *in,
-                                 CeedScalar *const *out);
+                                 const float *const *in,
+                                 float *const *out);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     CeedQFunctionUser f, const char *source, CeedQFunction *qf);

@@ -27,12 +27,12 @@ typedef struct {
   CUfunction interp;
   CUfunction grad;
   CUfunction weight;
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_collograd1d;
-  CeedScalar *d_qweight1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
+  float *d_interp1d;
+  float *d_grad1d;
+  float *d_collograd1d;
+  float *d_qweight1d;
+  float *c_B;
+  float *c_G;
 } CeedBasis_Cuda_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
