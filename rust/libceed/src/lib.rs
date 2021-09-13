@@ -31,9 +31,10 @@ pub mod prelude {
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
-        operator::{self, CompositeOperator, Operator},
+        operator::{self, CompositeOperator, Operator, OperatorField},
         qfunction::{
-            self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
+            self, QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt,
+            QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
@@ -41,7 +42,7 @@ pub mod prelude {
     };
     pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
-    pub(crate) use std::ffi::CString;
+    pub(crate) use std::ffi::{CStr, CString};
     pub(crate) use std::fmt;
     pub(crate) use std::marker::PhantomData;
 }

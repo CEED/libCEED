@@ -21,6 +21,260 @@
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
+// CeedOperator Field context wrapper
+// -----------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct OperatorField<'a> {
+    pub(crate) ptr: bind_ceed::CeedOperatorField,
+    _lifeline: PhantomData<&'a ()>,
+}
+
+// -----------------------------------------------------------------------------
+// Implementations
+// -----------------------------------------------------------------------------
+impl<'a> OperatorField<'a> {
+    /// Get the name of an OperatorField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let inputs = op.inputs()?;
+    ///
+    /// assert_eq!(inputs[0].name(), "dx", "Incorrect input name");
+    /// assert_eq!(inputs[1].name(), "weights", "Incorrect input name");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn name(&self) -> &str {
+        let mut name_ptr: *mut std::os::raw::c_char = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedOperatorFieldGetName(self.ptr, &mut name_ptr);
+        }
+        unsafe { CStr::from_ptr(name_ptr) }.to_str().unwrap()
+    }
+
+    /// Get the ElemRestriction of an OperatorField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let inputs = op.inputs()?;
+    ///
+    /// assert!(
+    ///     inputs[0].elem_restriction().is_some(),
+    ///     "Incorrect field ElemRestriction"
+    /// );
+    /// if let ElemRestrictionOpt::Some(r) = inputs[0].elem_restriction() {
+    ///     assert_eq!(
+    ///         r.num_elements(),
+    ///         ne,
+    ///         "Incorrect field ElemRestriction number of elements"
+    ///     );
+    /// }
+    ///
+    /// assert!(
+    ///     inputs[1].elem_restriction().is_none(),
+    ///     "Incorrect field ElemRestriction"
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn elem_restriction(&self) -> ElemRestrictionOpt {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedOperatorFieldGetElemRestriction(self.ptr, &mut ptr);
+        }
+        if ptr == unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE } {
+            ElemRestrictionOpt::None
+        } else {
+            let slice = unsafe {
+                std::slice::from_raw_parts(
+                    &ptr as *const bind_ceed::CeedElemRestriction as *const crate::ElemRestriction,
+                    1 as usize,
+                )
+            };
+            ElemRestrictionOpt::Some(&slice[0])
+        }
+    }
+
+    /// Get the Basis of an OperatorField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let inputs = op.inputs()?;
+    ///
+    /// assert!(inputs[0].basis().is_some(), "Incorrect field Basis");
+    /// if let BasisOpt::Some(b) = inputs[0].basis() {
+    ///     assert_eq!(
+    ///         b.num_quadrature_points(),
+    ///         q,
+    ///         "Incorrect field Basis number of quadrature points"
+    ///     );
+    /// }
+    /// assert!(inputs[1].basis().is_some(), "Incorrect field Basis");
+    /// if let BasisOpt::Some(b) = inputs[0].basis() {
+    ///     assert_eq!(
+    ///         b.num_quadrature_points(),
+    ///         q,
+    ///         "Incorrect field Basis number of quadrature points"
+    ///     );
+    /// }
+    ///
+    /// let outputs = op.outputs()?;
+    ///
+    /// assert!(outputs[0].basis().is_collocated(), "Incorrect field Basis");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn basis(&self) -> BasisOpt {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedOperatorFieldGetBasis(self.ptr, &mut ptr);
+        }
+        if ptr == unsafe { bind_ceed::CEED_BASIS_COLLOCATED } {
+            BasisOpt::Collocated
+        } else {
+            let slice = unsafe {
+                std::slice::from_raw_parts(
+                    &ptr as *const bind_ceed::CeedBasis as *const crate::Basis,
+                    1 as usize,
+                )
+            };
+            BasisOpt::Some(&slice[0])
+        }
+    }
+
+    /// Get the Vector of an OperatorField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let inputs = op.inputs()?;
+    ///
+    /// assert!(inputs[0].vector().is_active(), "Incorrect field Vector");
+    /// assert!(inputs[1].vector().is_none(), "Incorrect field Vector");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn vector(&self) -> VectorOpt {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedOperatorFieldGetVector(self.ptr, &mut ptr);
+        }
+        if ptr == unsafe { bind_ceed::CEED_VECTOR_ACTIVE } {
+            VectorOpt::Active
+        } else if ptr == unsafe { bind_ceed::CEED_VECTOR_NONE } {
+            VectorOpt::None
+        } else {
+            let slice = unsafe {
+                std::slice::from_raw_parts(
+                    &ptr as *const bind_ceed::CeedVector as *const crate::Vector,
+                    1 as usize,
+                )
+            };
+            VectorOpt::Some(&slice[0])
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
 // CeedOperator context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
@@ -494,6 +748,124 @@ impl<'a> Operator<'a> {
         };
         self.op_core.check_error(ierr)?;
         Ok(self)
+    }
+
+    /// Get a slice of Operator inputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let inputs = op.inputs()?;
+    ///
+    /// assert_eq!(inputs.len(), 2, "Incorrect inputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn inputs(&self) -> crate::Result<&[crate::OperatorField]> {
+        // Get array of raw C pointers for inputs
+        let mut num_inputs = 0;
+        let mut inputs_ptr = std::ptr::null_mut();
+        let ierr = unsafe {
+            bind_ceed::CeedOperatorGetFields(
+                self.op_core.ptr,
+                &mut num_inputs,
+                &mut inputs_ptr,
+                std::ptr::null_mut() as *mut bind_ceed::CeedInt,
+                std::ptr::null_mut() as *mut *mut bind_ceed::CeedOperatorField,
+            )
+        };
+        self.op_core.check_error(ierr)?;
+        // Convert raw C pointers to fixed length slice
+        let inputs_slice = unsafe {
+            std::slice::from_raw_parts(
+                inputs_ptr as *const crate::OperatorField,
+                num_inputs as usize,
+            )
+        };
+        Ok(inputs_slice)
+    }
+
+    /// Get a slice of Operator outputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let outputs = op.outputs()?;
+    ///
+    /// assert_eq!(outputs.len(), 1, "Incorrect outputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn outputs(&self) -> crate::Result<&[crate::OperatorField]> {
+        // Get array of raw C pointers for outputs
+        let mut num_outputs = 0;
+        let mut outputs_ptr = std::ptr::null_mut();
+        let ierr = unsafe {
+            bind_ceed::CeedOperatorGetFields(
+                self.op_core.ptr,
+                std::ptr::null_mut() as *mut bind_ceed::CeedInt,
+                std::ptr::null_mut() as *mut *mut bind_ceed::CeedOperatorField,
+                &mut num_outputs,
+                &mut outputs_ptr,
+            )
+        };
+        self.op_core.check_error(ierr)?;
+        // Convert raw C pointers to fixed length slice
+        let outputs_slice = unsafe {
+            std::slice::from_raw_parts(
+                outputs_ptr as *const crate::OperatorField,
+                num_outputs as usize,
+            )
+        };
+        Ok(outputs_slice)
     }
 
     /// Get the number of elements associated with an Operator

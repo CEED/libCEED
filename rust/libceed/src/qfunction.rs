@@ -25,6 +25,100 @@ pub type QFunctionInputs<'a> = [&'a [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 pub type QFunctionOutputs<'a> = [&'a mut [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 
 // -----------------------------------------------------------------------------
+// CeedQFunction Field context wrapper
+// -----------------------------------------------------------------------------
+#[derive(Debug)]
+pub struct QFunctionField<'a> {
+    ptr: bind_ceed::CeedQFunctionField,
+    _lifeline: PhantomData<&'a ()>,
+}
+
+// -----------------------------------------------------------------------------
+// Implementations
+// -----------------------------------------------------------------------------
+impl<'a> QFunctionField<'a> {
+    /// Get the name of a QFunctionField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// const Q: usize = 8;
+    /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
+    ///
+    /// let inputs = qf.inputs()?;
+    ///
+    /// assert_eq!(inputs[0].name(), "dx", "Incorrect input name");
+    /// assert_eq!(inputs[1].name(), "weights", "Incorrect input name");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn name(&self) -> &str {
+        let mut name_ptr: *mut std::os::raw::c_char = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedQFunctionFieldGetName(self.ptr, &mut name_ptr);
+        }
+        unsafe { CStr::from_ptr(name_ptr) }.to_str().unwrap()
+    }
+
+    /// Get the size of a QFunctionField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// const Q: usize = 8;
+    /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
+    ///
+    /// let inputs = qf.inputs()?;
+    ///
+    /// assert_eq!(inputs[0].size(), 4, "Incorrect input size");
+    /// assert_eq!(inputs[1].size(), 1, "Incorrect input size");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn size(&self) -> usize {
+        let mut size = 0;
+        unsafe {
+            bind_ceed::CeedQFunctionFieldGetSize(self.ptr, &mut size);
+        }
+        usize::try_from(size).unwrap()
+    }
+
+    /// Get the evaluation mode of a QFunctionField
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// const Q: usize = 8;
+    /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
+    ///
+    /// let inputs = qf.inputs()?;
+    ///
+    /// assert_eq!(
+    ///     inputs[0].eval_mode(),
+    ///     EvalMode::Grad,
+    ///     "Incorrect input evaluation mode"
+    /// );
+    /// assert_eq!(
+    ///     inputs[1].eval_mode(),
+    ///     EvalMode::Weight,
+    ///     "Incorrect input evaluation mode"
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn eval_mode(&self) -> crate::EvalMode {
+        let mut mode = 0;
+        unsafe {
+            bind_ceed::CeedQFunctionFieldGetEvalMode(self.ptr, &mut mode);
+        }
+        crate::EvalMode::from_u32(mode as u32)
+    }
+}
+
+// -----------------------------------------------------------------------------
 // CeedQFunction option
 // -----------------------------------------------------------------------------
 pub enum QFunctionOpt<'a> {
@@ -377,6 +471,54 @@ impl<'a> QFunctionCore<'a> {
         };
         self.check_error(ierr)
     }
+
+    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        // Get array of raw C pointers for inputs
+        let mut num_inputs = 0;
+        let mut inputs_ptr = std::ptr::null_mut();
+        let ierr = unsafe {
+            bind_ceed::CeedQFunctionGetFields(
+                self.ptr,
+                &mut num_inputs,
+                &mut inputs_ptr,
+                std::ptr::null_mut() as *mut bind_ceed::CeedInt,
+                std::ptr::null_mut() as *mut *mut bind_ceed::CeedQFunctionField,
+            )
+        };
+        self.check_error(ierr)?;
+        // Convert raw C pointers to fixed length slice
+        let inputs_slice = unsafe {
+            std::slice::from_raw_parts(
+                inputs_ptr as *const crate::QFunctionField,
+                num_inputs as usize,
+            )
+        };
+        Ok(inputs_slice)
+    }
+
+    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        // Get array of raw C pointers for outputs
+        let mut num_outputs = 0;
+        let mut outputs_ptr = std::ptr::null_mut();
+        let ierr = unsafe {
+            bind_ceed::CeedQFunctionGetFields(
+                self.ptr,
+                std::ptr::null_mut() as *mut bind_ceed::CeedInt,
+                std::ptr::null_mut() as *mut *mut bind_ceed::CeedQFunctionField,
+                &mut num_outputs,
+                &mut outputs_ptr,
+            )
+        };
+        self.check_error(ierr)?;
+        // Convert raw C pointers to fixed length slice
+        let outputs_slice = unsafe {
+            std::slice::from_raw_parts(
+                outputs_ptr as *const crate::QFunctionField,
+                num_outputs as usize,
+            )
+        };
+        Ok(outputs_slice)
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -667,6 +809,67 @@ impl<'a> QFunction<'a> {
         self.qf_core.check_error(ierr)?;
         Ok(self)
     }
+
+    /// Get a slice of QFunction inputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let mut qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?;
+    ///
+    /// let inputs = qf.inputs()?;
+    ///
+    /// assert_eq!(inputs.len(), 2, "Incorrect inputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        self.qf_core.inputs()
+    }
+
+    /// Get a slice of QFunction outputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let mut qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .output("v", 1, EvalMode::Interp)?;
+    ///
+    /// let outputs = qf.outputs()?;
+    ///
+    /// assert_eq!(outputs.len(), 1, "Incorrect outputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        self.qf_core.outputs()
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -752,6 +955,44 @@ impl<'a> QFunctionByName<'a> {
     /// ```
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {
         self.qf_core.apply(Q, u, v)
+    }
+
+    /// Get a slice of QFunction inputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// const Q: usize = 8;
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// let inputs = qf.inputs()?;
+    ///
+    /// assert_eq!(inputs.len(), 2, "Incorrect inputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        self.qf_core.inputs()
+    }
+
+    /// Get a slice of QFunction outputs
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// const Q: usize = 8;
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// let outputs = qf.outputs()?;
+    ///
+    /// assert_eq!(outputs.len(), 1, "Incorrect outputs array");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+        self.qf_core.outputs()
     }
 }
 
