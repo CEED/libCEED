@@ -178,21 +178,6 @@ int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status) {
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedQFunction
-
-  @param qf              CeedQFunction
-  @param[out] ceed       Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
-  *ceed = qf->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the vector length of a CeedQFunction
 
   @param qf               CeedQFunction
@@ -735,6 +720,21 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
     ierr = CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream);
     CeedChk(ierr);
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the Ceed associated with a CeedQFunction
+
+  @param qf              CeedQFunction
+  @param[out] ceed       Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
+  *ceed = qf->ceed;
   return CEED_ERROR_SUCCESS;
 }
 

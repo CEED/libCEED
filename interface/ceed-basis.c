@@ -240,21 +240,6 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 }
 
 /**
-  @brief Get Ceed associated with a CeedBasis
-
-  @param basis      CeedBasis
-  @param[out] ceed  Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
-  *ceed = basis->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get tensor status for given CeedBasis
 
   @param basis           CeedBasis
@@ -796,6 +781,21 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode,
 }
 
 /**
+  @brief Get Ceed associated with a CeedBasis
+
+  @param basis      CeedBasis
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
+  *ceed = basis->ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get dimension for given CeedBasis
 
   @param basis     CeedBasis
@@ -803,7 +803,7 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
   *dim = basis->dim;
@@ -818,7 +818,7 @@ int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
   *topo = basis->topo;
@@ -833,7 +833,7 @@ int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp) {
   *num_comp = basis->num_comp;
@@ -863,7 +863,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
   if (!basis->tensor_basis)
@@ -899,7 +899,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
   if (!basis->tensor_basis)
@@ -921,7 +921,7 @@ int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref) {
   *q_ref = basis->q_ref_1d;
@@ -937,7 +937,7 @@ int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weight) {
   *q_weight = basis->q_weight_1d;
@@ -952,7 +952,7 @@ int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weight) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   if (!basis->interp && basis->tensor_basis) {
@@ -1006,7 +1006,7 @@ int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   if (!basis->grad && basis->tensor_basis) {
@@ -1046,7 +1046,7 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
   if (!basis->tensor_basis)

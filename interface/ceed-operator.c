@@ -336,66 +336,6 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedOperator
-
-  @param op         CeedOperator
-  @param[out] ceed  Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
-  *ceed = op->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the number of elements associated with a CeedOperator
-
-  @param op             CeedOperator
-  @param[out] num_elem  Variable to store number of elements
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
-  if (op->is_composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *num_elem = op->num_elem;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the number of quadrature points associated with a CeedOperator
-
-  @param op             CeedOperator
-  @param[out] num_qpts  Variable to store vector number of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
-  if (op->is_composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *num_qpts = op->num_qpts;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the number of arguments associated with a CeedOperator
 
   @param op             CeedOperator
@@ -1027,6 +967,63 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
     fprintf(stream, "CeedOperator\n");
     ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the Ceed associated with a CeedOperator
+
+  @param op         CeedOperator
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
+  *ceed = op->ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of elements associated with a CeedOperator
+
+  @param op             CeedOperator
+  @param[out] num_elem  Variable to store number of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
+  if (op->is_composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *num_elem = op->num_elem;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of quadrature points associated with a CeedOperator
+
+  @param op             CeedOperator
+  @param[out] num_qpts  Variable to store vector number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
+  if (op->is_composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *num_qpts = op->num_qpts;
   return CEED_ERROR_SUCCESS;
 }
 

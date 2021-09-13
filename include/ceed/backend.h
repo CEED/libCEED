@@ -124,15 +124,12 @@ CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
 
-CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorAddReference(CeedVector vec);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
 
-CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr,
-    Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
     CeedInt (*strides)[3]);
 CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr,
@@ -158,7 +155,6 @@ CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
                                       const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n,
                                       CeedInt k, CeedInt row, CeedInt col);
-CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
@@ -192,7 +188,6 @@ CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt,
                                       CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);
-CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
     CeedInt *vec_length);
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
@@ -220,10 +215,6 @@ CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
-CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
-CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
-CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
-    CeedInt *num_qpts);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
