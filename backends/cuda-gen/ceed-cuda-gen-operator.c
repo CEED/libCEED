@@ -81,7 +81,8 @@ static int Waste(int threads_per_sm, int warp_size, int threads_per_elem,
 // slots. The latter has the least "waste", but __syncthreads()
 // over-synchronizes and it might not pay off relative to smaller blocks.
 static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
-                              int max_threads_per_block, int warp_size, int block[3], int *grid) {
+                              int max_threads_per_block, int max_threads_z,
+                              int warp_size, int block[3], int *grid) {
   const int threads_per_sm = blocks_per_sm * max_threads_per_block;
   const int threads_per_elem = block[0] * block[1];
   int elems_per_block = 1;
@@ -98,7 +99,10 @@ static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
       waste = i_waste;
     }
   }
-  block[2] = elems_per_block;
+  // In low-order elements, threads_per_elem may be sufficiently low to give
+  // an elems_per_block greater than allowable for the device, so we must check
+  // before setting the z-dimension size of the block.
+  block[2] = CeedIntMin(elems_per_block, max_threads_z);
   *grid = (nelem + elems_per_block - 1) / elems_per_block;
   return CEED_ERROR_SUCCESS;
 }
@@ -205,6 +209,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   int block[3] = {thread1d, dim < 2 ? 1 : thread1d, -1,}, grid;
   CeedChkBackend(BlockGridCalculate(nelem,
                                     min_grid_size/ cuda_data->deviceProp.multiProcessorCount, max_threads_per_block,
+                                    cuda_data->deviceProp.maxThreadsDim[2],
                                     cuda_data->deviceProp.warpSize, block, &grid));
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
   ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, block[0], block[1],
