@@ -23,17 +23,17 @@ pub(crate) fn transform_mesh_coordinates(
     dim: usize,
     mesh_size: usize,
     mesh_coords: &mut Vector,
-) -> Scalar {
+) -> Result<Scalar> {
     // Transform coordinates
     if dim == 1 {
-        mesh_coords.view_mut().iter_mut().for_each(|coord| {
+        mesh_coords.view_mut()?.iter_mut().for_each(|coord| {
             // map [0,1] to [0,1] varying the mesh density
             *coord = 0.5
                 + 1.0 / (3.0 as Scalar).sqrt()
                     * ((2.0 / 3.0) * std::f64::consts::PI as Scalar * (*coord - 0.5)).sin()
         });
     } else {
-        let mut coords = mesh_coords.view_mut();
+        let mut coords = mesh_coords.view_mut()?;
         let num_nodes = mesh_size / dim;
         for i in 0..num_nodes {
             // map (x,y) from [0,1]x[0,1] to the quarter annulus with polar
@@ -50,7 +50,7 @@ pub(crate) fn transform_mesh_coordinates(
         1 => 1.0,
         _ => 3.0 / 4.0 * std::f64::consts::PI as Scalar,
     };
-    exact_volume
+    Ok(exact_volume)
 }
 
 // ----------------------------------------------------------------------------

@@ -693,7 +693,7 @@ impl<'a> QFunction<'a> {
     ///     vv = output.remove(0);
     /// }
     ///
-    /// vv.view()
+    /// vv.view()?
     ///     .iter()
     ///     .zip(v.iter())
     ///     .for_each(|(computed, actual)| {
@@ -941,7 +941,7 @@ impl<'a> QFunctionByName<'a> {
     ///     vv = output.remove(0);
     /// }
     ///
-    /// vv.view()
+    /// vv.view()?
     ///     .iter()
     ///     .zip(v.iter())
     ///     .for_each(|(computed, actual)| {

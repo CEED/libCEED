@@ -150,8 +150,8 @@ pub fn cartesian_mesh_coords(
     // Coordinates for mesh
     let mut mesh_coords = ceed.vector(mesh_size)?;
     {
-        let mut coords = mesh_coords.view_mut();
-        let nodes = nodes_full.view();
+        let mut coords = mesh_coords.view_mut()?;
+        let nodes = nodes_full.view()?;
         for gs_nodes in 0..scalar_size {
             let mut r_nodes = gs_nodes;
             for d in 0..dim {

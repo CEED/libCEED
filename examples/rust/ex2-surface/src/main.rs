@@ -138,7 +138,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
-    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords);
+    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords)?;
 
     // QFunction that builds the quadrature data for the diff operator
     // -- QFunction from user closure
@@ -324,8 +324,8 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
     let mut v = ceed.vector(solution_size)?;
 
     // Initialize u with sum of node coordinates
-    let coords = mesh_coords.view();
-    u.view_mut().iter_mut().enumerate().for_each(|(i, u)| {
+    let coords = mesh_coords.view()?;
+    u.view_mut()?.iter_mut().enumerate().for_each(|(i, u)| {
         *u = (0..dim).map(|d| coords[i + d * solution_size]).sum();
     });
 
@@ -333,7 +333,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
     op_diff.apply(&u, &mut v)?;
 
     // Compute the mesh surface area
-    let area: Scalar = v.view().iter().map(|v| (*v).abs()).sum();
+    let area: Scalar = v.view()?.iter().map(|v| (*v).abs()).sum();
 
     // Output results
     if !quiet {

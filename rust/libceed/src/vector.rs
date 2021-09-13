@@ -328,7 +328,7 @@ impl<'a> Vector<'a> {
     /// let val = 42.0;
     /// vec.set_value(val)?;
     ///
-    /// vec.view().iter().for_each(|v| {
+    /// vec.view()?.iter().for_each(|v| {
     ///     assert_eq!(*v, val, "Value not set correctly");
     /// });
     /// # Ok(())
@@ -352,7 +352,7 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector(4)?;
     /// vec.set_slice(&[10., 11., 12., 13.])?;
     ///
-    /// vec.view().iter().enumerate().for_each(|(i, v)| {
+    /// vec.view()?.iter().enumerate().for_each(|(i, v)| {
     ///     assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
     /// });
     /// # Ok(())
@@ -392,7 +392,7 @@ impl<'a> Vector<'a> {
     /// vec.set_value(val);
     /// vec.sync(MemType::Host)?;
     ///
-    /// vec.view().iter().for_each(|v| {
+    /// vec.view()?.iter().for_each(|v| {
     ///     assert_eq!(*v, val, "Value not set correctly");
     /// });
     /// # Ok(())
@@ -412,16 +412,16 @@ impl<'a> Vector<'a> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
-    /// let v = vec.view();
+    /// let v = vec.view()?;
     /// assert_eq!(v[0..2], [10., 11.]);
     ///
     /// // It is valid to have multiple immutable views
-    /// let w = vec.view();
+    /// let w = vec.view()?;
     /// assert_eq!(v[1..], w[1..]);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn view(&self) -> VectorView {
+    pub fn view(&self) -> crate::Result<VectorView> {
         VectorView::new(self)
     }
 
@@ -434,16 +434,16 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
     /// {
-    ///     let mut v = vec.view_mut();
+    ///     let mut v = vec.view_mut()?;
     ///     v[2] = 9.;
     /// }
     ///
-    /// let w = vec.view();
+    /// let w = vec.view()?;
     /// assert_eq!(w[2], 9., "View did not mutate data");
     /// # Ok(())
     /// # }
     /// ```
-    pub fn view_mut(&mut self) -> VectorViewMut {
+    pub fn view_mut(&mut self) -> crate::Result<VectorViewMut> {
         VectorViewMut::new(self)
     }
 
@@ -492,7 +492,7 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// vec = vec.scale(-1.0)?;
-    /// vec.view().iter().enumerate().for_each(|(i, &v)| {
+    /// vec.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, -(i as Scalar), "Value not set correctly");
     /// });
     /// # Ok(())
@@ -520,7 +520,7 @@ impl<'a> Vector<'a> {
     /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// y = y.axpy(-0.5, &x)?;
-    /// y.view().iter().enumerate().for_each(|(i, &v)| {
+    /// y.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar) / 2.0, "Value not set correctly");
     /// });
     /// # Ok(())
@@ -549,7 +549,7 @@ impl<'a> Vector<'a> {
     /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_mult(&x, &y)?;
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// # Ok(())
@@ -576,7 +576,7 @@ impl<'a> Vector<'a> {
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_scale(&x)?;
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// # Ok(())
@@ -598,7 +598,7 @@ impl<'a> Vector<'a> {
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_square()?;
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
     /// # Ok(())
@@ -626,19 +626,20 @@ pub struct VectorView<'a> {
 
 impl<'a> VectorView<'a> {
     /// Construct a VectorView from a Vector reference
-    fn new(vec: &'a Vector) -> Self {
+    fn new(vec: &'a Vector) -> Result<Self> {
         let mut array = std::ptr::null();
-        unsafe {
+        let ierr = unsafe {
             bind_ceed::CeedVectorGetArrayRead(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut array,
-            );
-        }
-        Self {
+            )
+        };
+        vec.check_error(ierr)?;
+        Ok(Self {
             vec: vec,
             array: array,
-        }
+        })
     }
 }
 
@@ -678,19 +679,20 @@ pub struct VectorViewMut<'a> {
 
 impl<'a> VectorViewMut<'a> {
     /// Construct a VectorViewMut from a Vector reference
-    fn new(vec: &'a mut Vector) -> Self {
+    fn new(vec: &'a mut Vector) -> Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        unsafe {
+        let ierr = unsafe {
             bind_ceed::CeedVectorGetArray(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut ptr,
-            );
-        }
-        Self {
+            )
+        };
+        vec.check_error(ierr)?;
+        Ok(Self {
             vec: vec,
             array: ptr,
-        }
+        })
     }
 }
 

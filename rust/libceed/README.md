@@ -31,7 +31,7 @@ extern crate libceed;
 fn main() -> libceed::Result<()> {
     let ceed = libceed::Ceed::init("/cpu/self/ref");
     let xc = ceed.vector_from_slice(&[0., 0.5, 1.0])?;
-    let xs = xc.view();
+    let xs = xc.view()?;
     assert_eq!(xs[..], [0., 0.5, 1.0]);
     Ok(())
 }

@@ -299,7 +299,7 @@ impl<'a> Basis<'a> {
     /// let mut u_arr = [0.; Q];
     /// u_arr
     ///     .iter_mut()
-    ///     .zip(x_nodes.view().iter())
+    ///     .zip(x_nodes.view()?.iter())
     ///     .for_each(|(u, x)| *u = x * x * x + 1.);
     /// let u = ceed.vector_from_slice(&u_arr)?;
     ///
@@ -309,9 +309,9 @@ impl<'a> Basis<'a> {
     /// bu.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v)?;
     ///
     /// // Verify results
-    /// v.view()
+    /// v.view()?
     ///     .iter()
-    ///     .zip(x_qpts.view().iter())
+    ///     .zip(x_qpts.view()?.iter())
     ///     .for_each(|(v, x)| {
     ///         let true_value = x * x * x + 1.;
     ///         assert!(

@@ -851,7 +851,7 @@ mod tests {
         op_mass.apply(&u, &mut v)?;
 
         // Check
-        let sum: Scalar = v.view().iter().sum();
+        let sum: Scalar = v.view()?.iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"

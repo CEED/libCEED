@@ -124,7 +124,7 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
-    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
+    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords)?;
 
     // QFunction that builds the quadrature data for the mass operator
     // -- QFunction from user closure
@@ -248,7 +248,7 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: Scalar = v.view().iter().sum();
+    let volume: Scalar = v.view()?.iter().sum();
 
     // Output results
     if !quiet {

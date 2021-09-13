@@ -364,7 +364,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.apply(TransposeMode::NoTranspose, &x, &mut y)?;
     ///
-    /// y.view().iter().enumerate().for_each(|(i, arr)| {
+    /// y.view()?.iter().enumerate().for_each(|(i, arr)| {
     ///     assert_eq!(
     ///         *arr,
     ///         ((i + 1) / 2) as Scalar,
@@ -535,7 +535,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.multiplicity(&mut mult)?;
     ///
-    /// mult.view().iter().enumerate().for_each(|(i, arr)| {
+    /// mult.view()?.iter().enumerate().for_each(|(i, arr)| {
     ///     assert_eq!(
     ///         if (i == 0 || i == nelem) { 1. } else { 2. },
     ///         *arr,
