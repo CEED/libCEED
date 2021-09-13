@@ -42,7 +42,7 @@ namespace ceed {
       ierr = CeedQFunctionGetData(qf, &qFunction);
       CeedOccaFromChk(ierr);
 
-      return qfunction;
+      return qFunction;
     }
 
     QFunction* QFunction::from(CeedQFunction qf) {
