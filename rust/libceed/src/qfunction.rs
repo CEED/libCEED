@@ -27,7 +27,6 @@ pub type QFunctionOutputs<'a> = [&'a mut [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 // -----------------------------------------------------------------------------
 // CeedQFunction option
 // -----------------------------------------------------------------------------
-#[derive(Clone, Copy)]
 pub enum QFunctionOpt<'a> {
     SomeQFunction(&'a QFunction<'a>),
     SomeQFunctionByName(&'a QFunctionByName<'a>),
@@ -64,6 +63,7 @@ impl<'a> QFunctionOpt<'a> {
 // -----------------------------------------------------------------------------
 // CeedQFunction context wrapper
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
 pub(crate) struct QFunctionCore<'a> {
     ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedQFunction,
@@ -83,6 +83,7 @@ pub struct QFunction<'a> {
     trampoline_data: Pin<Box<QFunctionTrampolineData>>,
 }
 
+#[derive(Debug)]
 pub struct QFunctionByName<'a> {
     qf_core: QFunctionCore<'a>,
 }
@@ -128,6 +129,7 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
+/// # fn main() -> Result<(), libceed::CeedError> {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
 ///     // Iterate over quadrature points
@@ -140,16 +142,14 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
 /// };
 ///
 /// let qf = ceed
-///     .q_function_interior(1, Box::new(user_f))
-///     .unwrap()
-///     .input("u", 1, EvalMode::Interp)
-///     .unwrap()
-///     .input("weights", 1, EvalMode::Weight)
-///     .unwrap()
-///     .output("v", 1, EvalMode::Interp)
-///     .unwrap();
+///     .q_function_interior(1, Box::new(user_f))?
+///     .input("u", 1, EvalMode::Interp)?
+///     .input("weights", 1, EvalMode::Weight)?
+///     .output("v", 1, EvalMode::Interp)?;
 ///
 /// println!("{}", qf);
+/// # Ok(())
+/// # }
 /// ```
 impl<'a> fmt::Display for QFunction<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -161,9 +161,12 @@ impl<'a> fmt::Display for QFunction<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
+/// # fn main() -> Result<(), libceed::CeedError> {
 /// # let ceed = libceed::Ceed::default_init();
-/// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
+/// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
 /// println!("{}", qf);
+/// # Ok(())
+/// # }
 /// ```
 impl<'a> fmt::Display for QFunctionByName<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -321,6 +324,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -333,14 +337,10 @@ impl<'a> QFunction<'a> {
     /// };
     ///
     /// let qf = ceed
-    ///     .q_function_interior(1, Box::new(user_f))
-    ///     .unwrap()
-    ///     .input("u", 1, EvalMode::Interp)
-    ///     .unwrap()
-    ///     .input("weights", 1, EvalMode::Weight)
-    ///     .unwrap()
-    ///     .output("v", 1, EvalMode::Interp)
-    ///     .unwrap();
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?
+    ///     .output("v", 1, EvalMode::Interp)?;
     ///
     /// const Q: usize = 8;
     /// let mut w = [0.; Q];
@@ -354,14 +354,14 @@ impl<'a> QFunction<'a> {
     ///     v[i] = u[i] * w[i];
     /// }
     ///
-    /// let uu = ceed.vector_from_slice(&u).unwrap();
-    /// let ww = ceed.vector_from_slice(&w).unwrap();
-    /// let mut vv = ceed.vector(Q).unwrap();
+    /// let uu = ceed.vector_from_slice(&u)?;
+    /// let ww = ceed.vector_from_slice(&w)?;
+    /// let mut vv = ceed.vector(Q)?;
     /// vv.set_value(0.0);
     /// {
     ///     let input = vec![uu, ww];
     ///     let mut output = vec![vv];
-    ///     qf.apply(Q, &input, &output).unwrap();
+    ///     qf.apply(Q, &input, &output)?;
     ///     vv = output.remove(0);
     /// }
     ///
@@ -374,6 +374,8 @@ impl<'a> QFunction<'a> {
     ///             "Incorrect value in QFunction application"
     ///         );
     ///     });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {
         self.qf_core.apply(Q, u, v)
@@ -390,6 +392,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -401,10 +404,12 @@ impl<'a> QFunction<'a> {
     ///     0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f))?;
     ///
-    /// qf = qf.input("u", 1, EvalMode::Interp).unwrap();
-    /// qf = qf.input("weights", 1, EvalMode::Weight).unwrap();
+    /// qf = qf.input("u", 1, EvalMode::Interp)?;
+    /// qf = qf.input("weights", 1, EvalMode::Weight)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn input(
         mut self,
@@ -438,6 +443,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -449,9 +455,11 @@ impl<'a> QFunction<'a> {
     ///     0
     /// };
     ///
-    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
+    /// let mut qf = ceed.q_function_interior(1, Box::new(user_f))?;
     ///
-    /// qf.output("v", 1, EvalMode::Interp).unwrap();
+    /// qf.output("v", 1, EvalMode::Interp)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn output(
         mut self,
@@ -500,10 +508,11 @@ impl<'a> QFunctionByName<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
-    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
-    /// let qf_mass = ceed.q_function_interior_by_name("MassApply").unwrap();
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply")?;
     ///
     /// let mut j = [0.; Q];
     /// let mut w = [0.; Q];
@@ -518,25 +527,25 @@ impl<'a> QFunctionByName<'a> {
     ///     v[i] = w[i] * u[i];
     /// }
     ///
-    /// let jj = ceed.vector_from_slice(&j).unwrap();
-    /// let ww = ceed.vector_from_slice(&w).unwrap();
-    /// let uu = ceed.vector_from_slice(&u).unwrap();
-    /// let mut vv = ceed.vector(Q).unwrap();
+    /// let jj = ceed.vector_from_slice(&j)?;
+    /// let ww = ceed.vector_from_slice(&w)?;
+    /// let uu = ceed.vector_from_slice(&u)?;
+    /// let mut vv = ceed.vector(Q)?;
     /// vv.set_value(0.0);
-    /// let mut qdata = ceed.vector(Q).unwrap();
+    /// let mut qdata = ceed.vector(Q)?;
     /// qdata.set_value(0.0);
     ///
     /// {
     ///     let mut input = vec![jj, ww];
     ///     let mut output = vec![qdata];
-    ///     qf_build.apply(Q, &input, &output).unwrap();
+    ///     qf_build.apply(Q, &input, &output)?;
     ///     qdata = output.remove(0);
     /// }
     ///
     /// {
     ///     let mut input = vec![qdata, uu];
     ///     let mut output = vec![vv];
-    ///     qf_mass.apply(Q, &input, &output).unwrap();
+    ///     qf_mass.apply(Q, &input, &output)?;
     ///     vv = output.remove(0);
     /// }
     ///
@@ -549,6 +558,8 @@ impl<'a> QFunctionByName<'a> {
     ///             "Incorrect value in QFunction application"
     ///         );
     ///     });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {
         self.qf_core.apply(Q, u, v)

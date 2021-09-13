@@ -22,7 +22,7 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 // CeedElemRestriction option
 // -----------------------------------------------------------------------------
-#[derive(Clone, Copy)]
+#[derive(Debug)]
 pub enum ElemRestrictionOpt<'a> {
     Some(&'a ElemRestriction<'a>),
     None,
@@ -48,6 +48,7 @@ impl<'a> ElemRestrictionOpt<'a> {
 // -----------------------------------------------------------------------------
 // CeedElemRestriction context wrapper
 // -----------------------------------------------------------------------------
+#[derive(Debug)]
 pub struct ElemRestriction<'a> {
     ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
@@ -74,6 +75,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -81,10 +83,10 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     /// println!("{}", r);
+    /// # Ok(())
+    /// # }
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -175,6 +177,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -182,13 +185,13 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
-    /// let lvector = r.create_lvector().unwrap();
+    /// let lvector = r.create_lvector()?;
     ///
     /// assert_eq!(lvector.length(), nelem + 1, "Incorrect Lvector size");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn create_lvector(&self) -> crate::Result<Vector> {
         let mut ptr_lvector = std::ptr::null_mut();
@@ -203,6 +206,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -210,13 +214,13 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
-    /// let evector = r.create_evector().unwrap();
+    /// let evector = r.create_evector()?;
     ///
     /// assert_eq!(evector.length(), nelem * 2, "Incorrect Evector size");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn create_evector(&self) -> crate::Result<Vector> {
         let mut ptr_evector = std::ptr::null_mut();
@@ -231,6 +235,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -238,14 +243,14 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
-    /// let (lvector, evector) = r.create_vectors().unwrap();
+    /// let (lvector, evector) = r.create_vectors()?;
     ///
     /// assert_eq!(lvector.length(), nelem + 1, "Incorrect Lvector size");
     /// assert_eq!(evector.length(), nelem * 2, "Incorrect Evector size");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn create_vectors(&self) -> crate::Result<(Vector, Vector)> {
         let mut ptr_lvector = std::ptr::null_mut();
@@ -271,6 +276,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -278,15 +284,13 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
-    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.]).unwrap();
-    /// let mut y = ceed.vector(nelem * 2).unwrap();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3.])?;
+    /// let mut y = ceed.vector(nelem * 2)?;
     /// y.set_value(0.0);
     ///
-    /// r.apply(TransposeMode::NoTranspose, &x, &mut y).unwrap();
+    /// r.apply(TransposeMode::NoTranspose, &x, &mut y)?;
     ///
     /// y.view().iter().enumerate().for_each(|(i, arr)| {
     ///     assert_eq!(
@@ -295,6 +299,8 @@ impl<'a> ElemRestriction<'a> {
     ///         "Incorrect value in restricted vector"
     ///     );
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn apply(&self, tmode: TransposeMode, u: &Vector, ru: &mut Vector) -> crate::Result<i32> {
         let tmode = tmode as bind_ceed::CeedTransposeMode;
@@ -314,6 +320,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let compstride = 1;
@@ -322,12 +329,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, compstride, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, compstride, nelem + 1, MemType::Host, &ind)?;
     ///
     /// let c = r.comp_stride();
     /// assert_eq!(c, compstride, "Incorrect component stride");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn comp_stride(&self) -> usize {
         let mut compstride = 0;
@@ -339,6 +346,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -346,12 +354,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
     /// let n = r.num_elements();
     /// assert_eq!(n, nelem, "Incorrect number of elements");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn num_elements(&self) -> usize {
         let mut numelem = 0;
@@ -363,6 +371,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let elem_size = 2;
@@ -371,12 +380,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, elem_size, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, elem_size, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
     /// let e = r.elem_size();
     /// assert_eq!(e, elem_size, "Incorrect element size");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn elem_size(&self) -> usize {
         let mut elemsize = 0;
@@ -388,6 +397,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -395,12 +405,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
     /// let lsize = r.lvector_size();
     /// assert_eq!(lsize, nelem + 1);
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn lvector_size(&self) -> usize {
         let mut lsize = 0;
@@ -412,6 +422,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let ncomp = 42;
@@ -420,12 +431,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 42, 1, ncomp * (nelem + 1), MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 42, 1, ncomp * (nelem + 1), MemType::Host, &ind)?;
     ///
     /// let n = r.num_components();
     /// assert_eq!(n, ncomp, "Incorrect number of components");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn num_components(&self) -> usize {
         let mut ncomp = 0;
@@ -437,6 +448,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -444,14 +456,12 @@ impl<'a> ElemRestriction<'a> {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
     ///
-    /// let mut mult = ceed.vector(nelem + 1).unwrap();
+    /// let mut mult = ceed.vector(nelem + 1)?;
     /// mult.set_value(0.0);
     ///
-    /// r.multiplicity(&mut mult).unwrap();
+    /// r.multiplicity(&mut mult)?;
     ///
     /// mult.view().iter().enumerate().for_each(|(i, arr)| {
     ///     assert_eq!(
@@ -460,6 +470,8 @@ impl<'a> ElemRestriction<'a> {
     ///         "Incorrect multiplicity array"
     ///     );
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn multiplicity(&self, mult: &mut Vector) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };
