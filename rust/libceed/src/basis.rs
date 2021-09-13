@@ -286,14 +286,14 @@ impl<'a> Basis<'a> {
     ///     EvalMode::Interp,
     ///     &x_corners,
     ///     &mut x_nodes,
-    /// );
+    /// )?;
     /// bu.apply(
     ///     1,
     ///     TransposeMode::NoTranspose,
     ///     EvalMode::Interp,
     ///     &x_nodes,
     ///     &mut x_qpts,
-    /// );
+    /// )?;
     ///
     /// // Create function x^3 + 1 on Gauss Lobatto points
     /// let mut u_arr = [0.; Q];
