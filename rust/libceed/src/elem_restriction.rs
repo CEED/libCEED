@@ -43,6 +43,62 @@ impl<'a> ElemRestrictionOpt<'a> {
             Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
         }
     }
+
+    /// Check if an ElemRestrictionOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
+    /// for i in 0..nelem {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
+    /// let r_opt = ElemRestrictionOpt::from(&r);
+    /// assert!(r_opt.is_some(), "Incorrect ElemRestrictionOpt");
+    ///
+    /// let r_opt = ElemRestrictionOpt::None;
+    /// assert!(!r_opt.is_some(), "Incorrect ElemRestrictionOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::Some(_) => true,
+            Self::None => false,
+        }
+    }
+
+    /// Check if an ElemRestrictionOpt is None
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
+    /// for i in 0..nelem {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
+    /// let r_opt = ElemRestrictionOpt::from(&r);
+    /// assert!(!r_opt.is_none(), "Incorrect ElemRestrictionOpt");
+    ///
+    /// let r_opt = ElemRestrictionOpt::None;
+    /// assert!(r_opt.is_none(), "Incorrect ElemRestrictionOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_none(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::None => true,
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

@@ -50,6 +50,84 @@ impl<'a> VectorOpt<'a> {
             Self::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
         }
     }
+
+    /// Check if a VectorOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(vec_opt.is_some(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(!vec_opt.is_some(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(!vec_opt.is_some(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::Some(_) => true,
+            Self::Active => false,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a VectorOpt is Active
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(!vec_opt.is_active(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(vec_opt.is_active(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(!vec_opt.is_active(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_active(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::Active => true,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a VectorOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(!vec_opt.is_none(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(!vec_opt.is_none(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(vec_opt.is_none(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_none(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::Active => false,
+            Self::None => true,
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

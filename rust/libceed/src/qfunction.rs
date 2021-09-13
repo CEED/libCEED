@@ -58,6 +58,179 @@ impl<'a> QFunctionOpt<'a> {
             Self::None => unsafe { bind_ceed::CEED_QFUNCTION_NONE },
         }
     }
+
+    /// Check if a QFunctionOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?
+    ///     .output("v", 1, EvalMode::Interp)?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(qf_opt.is_some(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(qf_opt.is_some(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf_opt = QFunctionOpt::None;
+    /// assert!(!qf_opt.is_some(), "Incorrect QFunctionOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::SomeQFunction(_) => true,
+            Self::SomeQFunctionByName(_) => true,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a QFunctionOpt is SomeQFunction
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?
+    ///     .output("v", 1, EvalMode::Interp)?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(qf_opt.is_some_q_function(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(!qf_opt.is_some_q_function(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf_opt = QFunctionOpt::None;
+    /// assert!(!qf_opt.is_some_q_function(), "Incorrect QFunctionOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some_q_function(&self) -> bool {
+        match self {
+            Self::SomeQFunction(_) => true,
+            Self::SomeQFunctionByName(_) => false,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a QFunctionOpt is SomeQFunctionByName
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?
+    ///     .output("v", 1, EvalMode::Interp)?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(
+    ///     !qf_opt.is_some_q_function_by_name(),
+    ///     "Incorrect QFunctionOpt"
+    /// );
+    ///
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(
+    ///     qf_opt.is_some_q_function_by_name(),
+    ///     "Incorrect QFunctionOpt"
+    /// );
+    ///
+    /// let qf_opt = QFunctionOpt::None;
+    /// assert!(
+    ///     !qf_opt.is_some_q_function_by_name(),
+    ///     "Incorrect QFunctionOpt"
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some_q_function_by_name(&self) -> bool {
+        match self {
+            Self::SomeQFunction(_) => false,
+            Self::SomeQFunctionByName(_) => true,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a QFunctionOpt is None
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
+    ///     // Iterate over quadrature points
+    ///     v.iter_mut()
+    ///         .zip(u.iter().zip(weights.iter()))
+    ///         .for_each(|(v, (u, w))| *v = u * w);
+    ///
+    ///     // Return clean error code
+    ///     0
+    /// };
+    ///
+    /// let qf = ceed
+    ///     .q_function_interior(1, Box::new(user_f))?
+    ///     .input("u", 1, EvalMode::Interp)?
+    ///     .input("weights", 1, EvalMode::Weight)?
+    ///     .output("v", 1, EvalMode::Interp)?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(!qf_opt.is_none(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let qf_opt = QFunctionOpt::from(&qf);
+    /// assert!(!qf_opt.is_none(), "Incorrect QFunctionOpt");
+    ///
+    /// let qf_opt = QFunctionOpt::None;
+    /// assert!(qf_opt.is_none(), "Incorrect QFunctionOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_none(&self) -> bool {
+        match self {
+            Self::SomeQFunction(_) => false,
+            Self::SomeQFunctionByName(_) => false,
+            Self::None => true,
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------

@@ -42,6 +42,50 @@ impl<'a> BasisOpt<'a> {
             Self::Collocated => unsafe { bind_ceed::CEED_BASIS_COLLOCATED },
         }
     }
+
+    /// Check if a BasisOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
+    /// let b_opt = BasisOpt::from(&b);
+    /// assert!(b_opt.is_some(), "Incorrect BasisOpt");
+    ///
+    /// let b_opt = BasisOpt::Collocated;
+    /// assert!(!b_opt.is_some(), "Incorrect BasisOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::Some(_) => true,
+            Self::Collocated => false,
+        }
+    }
+
+    /// Check if a BasisOpt is Collocated
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
+    /// let b_opt = BasisOpt::from(&b);
+    /// assert!(!b_opt.is_collocated(), "Incorrect BasisOpt");
+    ///
+    /// let b_opt = BasisOpt::Collocated;
+    /// assert!(b_opt.is_collocated(), "Incorrect BasisOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_collocated(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::Collocated => true,
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
