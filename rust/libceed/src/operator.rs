@@ -496,6 +496,83 @@ impl<'a> Operator<'a> {
         Ok(self)
     }
 
+    /// Get the number of elements associated with an Operator
+    ///
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator field
+    /// op = op.field("dx", &r, &b, VectorOpt::Active)?;
+    ///
+    /// // Check number of elements
+    /// assert_eq!(op.num_elements(), ne, "Incorrect number of elements");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn num_elements(&self) -> usize {
+        let mut nelem = 0;
+        unsafe { bind_ceed::CeedOperatorGetNumElements(self.op_core.ptr, &mut nelem) };
+        usize::try_from(nelem).unwrap()
+    }
+
+    /// Get the number of quadrature points associated with each element of
+    ///   an Operator
+    ///
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator field
+    /// op = op.field("dx", &r, &b, VectorOpt::Active)?;
+    ///
+    /// // Check number of quadrature points
+    /// assert_eq!(
+    ///     op.num_quadrature_points(),
+    ///     q,
+    ///     "Incorrect number of quadrature points"
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn num_quadrature_points(&self) -> usize {
+        let mut Q = 0;
+        unsafe { bind_ceed::CeedOperatorGetNumQuadraturePoints(self.op_core.ptr, &mut Q) };
+        usize::try_from(Q).unwrap()
+    }
+
     /// Assemble the diagonal of a square linear Operator
     ///
     /// This overwrites a Vector with the diagonal of a linear Operator.
