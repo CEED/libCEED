@@ -38,12 +38,12 @@ mod transform;
 // Example 1
 // ----------------------------------------------------------------------------
 #[cfg(not(tarpaulin_include))]
-fn main() -> Result<(), libceed::CeedError> {
+fn main() -> libceed::Result<()> {
     let options = opt::Opt::from_args();
     example_1(options)
 }
 
-fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
+fn example_1(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
         ceed_spec,

@@ -41,7 +41,7 @@ impl<'a> QFunctionField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
@@ -65,7 +65,7 @@ impl<'a> QFunctionField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
@@ -89,7 +89,7 @@ impl<'a> QFunctionField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf = ceed.q_function_interior_by_name("Mass2DBuild")?;
@@ -157,7 +157,7 @@ impl<'a> QFunctionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -198,7 +198,7 @@ impl<'a> QFunctionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -239,7 +239,7 @@ impl<'a> QFunctionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -289,7 +289,7 @@ impl<'a> QFunctionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -396,7 +396,7 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
-/// # fn main() -> Result<(), libceed::CeedError> {
+/// # fn main() -> Result<()> {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
 ///     // Iterate over quadrature points
@@ -428,7 +428,7 @@ impl<'a> fmt::Display for QFunction<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
-/// # fn main() -> Result<(), libceed::CeedError> {
+/// # fn main() -> Result<()> {
 /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
 /// println!("{}", qf);
@@ -652,7 +652,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -720,7 +720,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -771,7 +771,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -814,7 +814,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -845,7 +845,7 @@ impl<'a> QFunction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -900,7 +900,7 @@ impl<'a> QFunctionByName<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild")?;
@@ -961,7 +961,7 @@ impl<'a> QFunctionByName<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
@@ -980,7 +980,7 @@ impl<'a> QFunctionByName<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;

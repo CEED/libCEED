@@ -37,7 +37,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -81,7 +81,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -149,7 +149,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -221,7 +221,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -325,7 +325,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
-/// # fn main() -> Result<(), libceed::CeedError> {
+/// # fn main() -> Result<()> {
 /// # let ceed = libceed::Ceed::default_init();
 /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
 ///
@@ -364,7 +364,7 @@ impl<'a> fmt::Display for Operator<'a> {
 ///
 /// ```
 /// # use libceed::prelude::*;
-/// # fn main() -> Result<(), libceed::CeedError> {
+/// # fn main() -> Result<()> {
 /// # let ceed = libceed::Ceed::default_init();
 ///
 /// // Sub operator field arguments
@@ -549,7 +549,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -624,7 +624,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -705,7 +705,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
@@ -754,7 +754,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -813,7 +813,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     ///
@@ -873,7 +873,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
@@ -910,7 +910,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     /// let mut op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
@@ -957,7 +957,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -1063,7 +1063,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -1174,7 +1174,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -1312,7 +1312,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -1443,7 +1443,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
@@ -1603,7 +1603,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
@@ -1794,7 +1794,7 @@ impl<'a> Operator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 15;
     /// let p_coarse = 3;
@@ -2000,7 +2000,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -2097,7 +2097,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ne = 4;
     /// let p = 3;
@@ -2193,7 +2193,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<(), libceed::CeedError> {
+    /// # fn main() -> Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut op = ceed.composite_operator()?;
     ///

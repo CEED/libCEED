@@ -28,7 +28,7 @@ libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
 ```rust
 extern crate libceed;
 
-fn main() -> Result<(), libceed::CeedError> {
+fn main() -> libceed::Result<()> {
     let ceed = libceed::Ceed::init("/cpu/self/ref");
     let xc = ceed.vector_from_slice(&[0., 0.5, 1.0])?;
     let xs = xc.view();
