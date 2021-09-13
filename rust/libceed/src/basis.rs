@@ -93,8 +93,8 @@ impl<'a> BasisOpt<'a> {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Basis<'a> {
-    ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedBasis,
+    _lifeline: PhantomData<&'a ()>,
 }
 
 // -----------------------------------------------------------------------------
@@ -176,7 +176,10 @@ impl<'a> Basis<'a> {
             )
         };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
     pub fn create_tensor_H1_Lagrange(
@@ -199,7 +202,10 @@ impl<'a> Basis<'a> {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(ceed.ptr, dim, ncomp, P, Q, qmode, &mut ptr)
         };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
     pub fn create_H1(
@@ -235,7 +241,20 @@ impl<'a> Basis<'a> {
             )
         };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedBasisGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa
@@ -318,7 +337,7 @@ impl<'a> Basis<'a> {
         );
         let ierr =
             unsafe { bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Returns the dimension for given CeedBasis

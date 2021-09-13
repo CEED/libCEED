@@ -135,8 +135,8 @@ impl<'a> VectorOpt<'a> {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Vector<'a> {
-    ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedVector,
+    _lifeline: PhantomData<&'a ()>,
 }
 impl From<&'_ Vector<'_>> for bind_ceed::CeedVector {
     fn from(vec: &Vector) -> Self {
@@ -205,14 +205,17 @@ impl<'a> Vector<'a> {
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
-    pub(crate) fn from_raw(
-        ceed: &'a crate::Ceed,
-        ptr: bind_ceed::CeedVector,
-    ) -> crate::Result<Self> {
-        Ok(Self { ceed, ptr })
+    pub(crate) fn from_raw(ptr: bind_ceed::CeedVector) -> crate::Result<Self> {
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
     /// Create a Vector from a slice
@@ -263,6 +266,16 @@ impl<'a> Vector<'a> {
         let ierr = unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) };
         ceed.check_error(ierr)?;
         Ok(x)
+    }
+
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedVectorGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
     }
 
     /// Returns the length of a CeedVector
@@ -323,7 +336,7 @@ impl<'a> Vector<'a> {
     /// ```
     pub fn set_value(&mut self, value: crate::Scalar) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Set values from a slice of the same length
@@ -359,7 +372,7 @@ impl<'a> Vector<'a> {
                 slice.as_ptr() as *mut crate::Scalar,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Sync the CeedVector to a specified memtype
@@ -388,7 +401,7 @@ impl<'a> Vector<'a> {
     pub fn sync(&self, mtype: crate::MemType) -> crate::Result<i32> {
         let ierr =
             unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Create an immutable view
@@ -462,7 +475,7 @@ impl<'a> Vector<'a> {
         let ierr = unsafe {
             bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res)
         };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(res)
     }
 
@@ -488,7 +501,7 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn scale(mut self, alpha: crate::Scalar) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -516,7 +529,7 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -545,7 +558,7 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn pointwise_mult(mut self, x: &crate::Vector, y: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -572,7 +585,7 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn pointwise_scale(mut self, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -594,7 +607,7 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn pointwise_square(mut self) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, self.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 }

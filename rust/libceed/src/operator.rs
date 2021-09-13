@@ -25,8 +25,8 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub(crate) struct OperatorCore<'a> {
-    pub(crate) ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedOperator,
+    _lifeline: PhantomData<&'a ()>,
 }
 
 #[derive(Debug)]
@@ -163,6 +163,16 @@ impl<'a> fmt::Display for CompositeOperator<'a> {
 // Core functionality
 // -----------------------------------------------------------------------------
 impl<'a> OperatorCore<'a> {
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedOperatorGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
+    }
+
     // Common implementations
     pub fn apply(&self, input: &Vector, output: &mut Vector) -> crate::Result<i32> {
         let ierr = unsafe {
@@ -173,7 +183,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     pub fn apply_add(&self, input: &Vector, output: &mut Vector) -> crate::Result<i32> {
@@ -185,7 +195,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
@@ -196,7 +206,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
@@ -207,7 +217,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     pub fn linear_assemble_point_block_diagonal(
@@ -221,7 +231,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     pub fn linear_assemble_add_point_block_diagonal(
@@ -235,7 +245,7 @@ impl<'a> OperatorCore<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 }
 
@@ -262,13 +272,19 @@ impl<'a> Operator<'a> {
         };
         ceed.check_error(ierr)?;
         Ok(Self {
-            op_core: OperatorCore { ceed, ptr },
+            op_core: OperatorCore {
+                ptr,
+                _lifeline: PhantomData,
+            },
         })
     }
 
-    fn from_raw(ceed: &'a crate::Ceed, ptr: bind_ceed::CeedOperator) -> crate::Result<Self> {
+    fn from_raw(ptr: bind_ceed::CeedOperator) -> crate::Result<Self> {
         Ok(Self {
-            op_core: OperatorCore { ceed, ptr },
+            op_core: OperatorCore {
+                ptr,
+                _lifeline: PhantomData,
+            },
         })
     }
 
@@ -476,7 +492,7 @@ impl<'a> Operator<'a> {
                 v.into().to_raw(),
             )
         };
-        self.op_core.ceed.check_error(ierr)?;
+        self.op_core.check_error(ierr)?;
         Ok(self)
     }
 
@@ -1121,10 +1137,10 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         };
-        self.op_core.ceed.check_error(ierr)?;
-        let op_coarse = Operator::from_raw(self.op_core.ceed, ptr_coarse)?;
-        let op_prolong = Operator::from_raw(self.op_core.ceed, ptr_prolong)?;
-        let op_restrict = Operator::from_raw(self.op_core.ceed, ptr_restrict)?;
+        self.op_core.check_error(ierr)?;
+        let op_coarse = Operator::from_raw(ptr_coarse)?;
+        let op_prolong = Operator::from_raw(ptr_prolong)?;
+        let op_restrict = Operator::from_raw(ptr_restrict)?;
         Ok((op_coarse, op_prolong, op_restrict))
     }
 
@@ -1312,10 +1328,10 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         };
-        self.op_core.ceed.check_error(ierr)?;
-        let op_coarse = Operator::from_raw(self.op_core.ceed, ptr_coarse)?;
-        let op_prolong = Operator::from_raw(self.op_core.ceed, ptr_prolong)?;
-        let op_restrict = Operator::from_raw(self.op_core.ceed, ptr_restrict)?;
+        self.op_core.check_error(ierr)?;
+        let op_coarse = Operator::from_raw(ptr_coarse)?;
+        let op_prolong = Operator::from_raw(ptr_prolong)?;
+        let op_restrict = Operator::from_raw(ptr_restrict)?;
         Ok((op_coarse, op_prolong, op_restrict))
     }
 
@@ -1503,10 +1519,10 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         };
-        self.op_core.ceed.check_error(ierr)?;
-        let op_coarse = Operator::from_raw(self.op_core.ceed, ptr_coarse)?;
-        let op_prolong = Operator::from_raw(self.op_core.ceed, ptr_prolong)?;
-        let op_restrict = Operator::from_raw(self.op_core.ceed, ptr_restrict)?;
+        self.op_core.check_error(ierr)?;
+        let op_coarse = Operator::from_raw(ptr_coarse)?;
+        let op_prolong = Operator::from_raw(ptr_prolong)?;
+        let op_restrict = Operator::from_raw(ptr_restrict)?;
         Ok((op_coarse, op_prolong, op_restrict))
     }
 }
@@ -1521,7 +1537,10 @@ impl<'a> CompositeOperator<'a> {
         let ierr = unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
         ceed.check_error(ierr)?;
         Ok(Self {
-            op_core: OperatorCore { ceed, ptr },
+            op_core: OperatorCore {
+                ptr,
+                _lifeline: PhantomData,
+            },
         })
     }
 
@@ -1743,7 +1762,7 @@ impl<'a> CompositeOperator<'a> {
     pub fn sub_operator(mut self, subop: &Operator) -> crate::Result<Self> {
         let ierr =
             unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
-        self.op_core.ceed.check_error(ierr)?;
+        self.op_core.check_error(ierr)?;
         Ok(self)
     }
 

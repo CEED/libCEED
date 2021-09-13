@@ -43,6 +43,7 @@ pub mod prelude {
     pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::CString;
     pub(crate) use std::fmt;
+    pub(crate) use std::marker::PhantomData;
 }
 
 // -----------------------------------------------------------------------------
@@ -160,6 +161,29 @@ impl fmt::Display for CeedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message)
     }
+}
+
+// -----------------------------------------------------------------------------
+// Internal error checker
+// -----------------------------------------------------------------------------
+#[doc(hidden)]
+pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
+    // Return early if code is clean
+    if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        return Ok(ierr);
+    }
+    // Retrieve error message
+    let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
+    let c_str = unsafe {
+        bind_ceed::CeedGetErrorMessage(ceed_ptr, &mut ptr);
+        std::ffi::CStr::from_ptr(ptr)
+    };
+    let message = c_str.to_string_lossy().to_string();
+    // Panic if negative code, otherwise return error
+    if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        panic!("{}", message);
+    }
+    Err(CeedError { message })
 }
 
 // -----------------------------------------------------------------------------

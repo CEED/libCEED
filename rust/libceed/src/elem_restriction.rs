@@ -106,8 +106,8 @@ impl<'a> ElemRestrictionOpt<'a> {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct ElemRestriction<'a> {
-    ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedElemRestriction,
+    _lifeline: PhantomData<&'a ()>,
 }
 
 // -----------------------------------------------------------------------------
@@ -196,7 +196,10 @@ impl<'a> ElemRestriction<'a> {
             )
         };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
     pub fn create_strided(
@@ -226,7 +229,20 @@ impl<'a> ElemRestriction<'a> {
             )
         };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedElemRestrictionGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
     }
 
     /// Create an Lvector for an ElemRestriction
@@ -254,8 +270,8 @@ impl<'a> ElemRestriction<'a> {
         let null = std::ptr::null_mut() as *mut _;
         let ierr =
             unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, null) };
-        self.ceed.check_error(ierr)?;
-        Vector::from_raw(self.ceed, ptr_lvector)
+        self.check_error(ierr)?;
+        Vector::from_raw(ptr_lvector)
     }
 
     /// Create an Evector for an ElemRestriction
@@ -283,8 +299,8 @@ impl<'a> ElemRestriction<'a> {
         let null = std::ptr::null_mut() as *mut _;
         let ierr =
             unsafe { bind_ceed::CeedElemRestrictionCreateVector(self.ptr, null, &mut ptr_evector) };
-        self.ceed.check_error(ierr)?;
-        Vector::from_raw(self.ceed, ptr_evector)
+        self.check_error(ierr)?;
+        Vector::from_raw(ptr_evector)
     }
 
     /// Create Vectors for an ElemRestriction
@@ -314,9 +330,9 @@ impl<'a> ElemRestriction<'a> {
         let ierr = unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
         };
-        self.ceed.check_error(ierr)?;
-        let lvector = Vector::from_raw(self.ceed, ptr_lvector)?;
-        let evector = Vector::from_raw(self.ceed, ptr_evector)?;
+        self.check_error(ierr)?;
+        let lvector = Vector::from_raw(ptr_lvector)?;
+        let evector = Vector::from_raw(ptr_evector)?;
         Ok((lvector, evector))
     }
 
@@ -369,7 +385,7 @@ impl<'a> ElemRestriction<'a> {
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Returns the Lvector component stride
@@ -531,7 +547,7 @@ impl<'a> ElemRestriction<'a> {
     /// ```
     pub fn multiplicity(&self, mult: &mut Vector) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedElemRestrictionGetMultiplicity(self.ptr, mult.ptr) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 }
 

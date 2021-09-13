@@ -238,8 +238,8 @@ impl<'a> QFunctionOpt<'a> {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub(crate) struct QFunctionCore<'a> {
-    ceed: &'a crate::Ceed,
     ptr: bind_ceed::CeedQFunction,
+    _lifeline: PhantomData<&'a ()>,
 }
 
 struct QFunctionTrampolineData {
@@ -351,6 +351,16 @@ impl<'a> fmt::Display for QFunctionByName<'a> {
 // Core functionality
 // -----------------------------------------------------------------------------
 impl<'a> QFunctionCore<'a> {
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedQFunctionGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
+    }
+
     // Common implementation
     pub fn apply(&self, Q: usize, u: &[Vector], v: &[Vector]) -> crate::Result<i32> {
         let mut u_c = [std::ptr::null_mut(); MAX_QFUNCTION_FIELDS];
@@ -365,7 +375,7 @@ impl<'a> QFunctionCore<'a> {
         let ierr = unsafe {
             bind_ceed::CeedQFunctionApply(self.ptr, Q, u_c.as_mut_ptr(), v_c.as_mut_ptr())
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 }
 
@@ -483,7 +493,10 @@ impl<'a> QFunction<'a> {
         ierr = unsafe { bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr) };
         ceed.check_error(ierr)?;
         Ok(Self {
-            qf_core: QFunctionCore { ceed, ptr },
+            qf_core: QFunctionCore {
+                ptr,
+                _lifeline: PhantomData,
+            },
             qf_ctx_ptr,
             trampoline_data,
         })
@@ -601,7 +614,7 @@ impl<'a> QFunction<'a> {
         let ierr = unsafe {
             bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode)
         };
-        self.qf_core.ceed.check_error(ierr)?;
+        self.qf_core.check_error(ierr)?;
         Ok(self)
     }
 
@@ -651,7 +664,7 @@ impl<'a> QFunction<'a> {
         let ierr = unsafe {
             bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode)
         };
-        self.qf_core.ceed.check_error(ierr)?;
+        self.qf_core.check_error(ierr)?;
         Ok(self)
     }
 }
@@ -669,7 +682,10 @@ impl<'a> QFunctionByName<'a> {
         };
         ceed.check_error(ierr)?;
         Ok(Self {
-            qf_core: QFunctionCore { ceed, ptr },
+            qf_core: QFunctionCore {
+                ptr,
+                _lifeline: PhantomData,
+            },
         })
     }
 
