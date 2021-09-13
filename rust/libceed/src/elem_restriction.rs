@@ -48,7 +48,7 @@ impl<'a> ElemRestrictionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -76,7 +76,7 @@ impl<'a> ElemRestrictionOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -131,7 +131,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -249,7 +249,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -278,7 +278,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -307,7 +307,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -348,7 +348,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -392,7 +392,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let compstride = 1;
@@ -418,7 +418,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -443,7 +443,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let elem_size = 2;
@@ -469,7 +469,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -494,7 +494,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let ncomp = 42;
@@ -520,7 +520,7 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];

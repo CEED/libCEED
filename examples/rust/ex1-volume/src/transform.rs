@@ -23,7 +23,7 @@ pub(crate) fn transform_mesh_coordinates(
     dim: usize,
     mesh_size: usize,
     mesh_coords: &mut Vector,
-) -> Result<Scalar> {
+) -> libceed::Result<Scalar> {
     // Transform coordinates
     if dim == 1 {
         mesh_coords.view_mut()?.iter_mut().for_each(|coord| {

@@ -55,7 +55,7 @@ impl<'a> VectorOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// let vec_opt = VectorOpt::from(&vec);
@@ -81,7 +81,7 @@ impl<'a> VectorOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// let vec_opt = VectorOpt::from(&vec);
@@ -107,7 +107,7 @@ impl<'a> VectorOpt<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// let vec_opt = VectorOpt::from(&vec);
@@ -166,7 +166,7 @@ impl<'a> fmt::Display for Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// assert_eq!(
@@ -226,7 +226,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
@@ -247,7 +247,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut rust_vec = vec![1., 2., 3.];
     /// let vec = libceed::vector::Vector::from_array(&ceed, &mut rust_vec)?;
@@ -282,7 +282,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10)?;
     ///
@@ -301,7 +301,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10)?;
     /// assert_eq!(vec.len(), 10, "Incorrect length");
@@ -320,7 +320,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
     /// let mut vec = ceed.vector(len)?;
@@ -347,7 +347,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector(4)?;
     /// vec.set_slice(&[10., 11., 12., 13.])?;
@@ -383,7 +383,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
     /// let mut vec = ceed.vector(len)?;
@@ -408,7 +408,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
@@ -429,7 +429,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
@@ -455,7 +455,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.])?;
     ///
@@ -487,7 +487,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
@@ -514,7 +514,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -542,7 +542,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -570,7 +570,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -593,7 +593,7 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
@@ -626,7 +626,7 @@ pub struct VectorView<'a> {
 
 impl<'a> VectorView<'a> {
     /// Construct a VectorView from a Vector reference
-    fn new(vec: &'a Vector) -> Result<Self> {
+    fn new(vec: &'a Vector) -> crate::Result<Self> {
         let mut array = std::ptr::null();
         let ierr = unsafe {
             bind_ceed::CeedVectorGetArrayRead(
@@ -679,7 +679,7 @@ pub struct VectorViewMut<'a> {
 
 impl<'a> VectorViewMut<'a> {
     /// Construct a VectorViewMut from a Vector reference
-    fn new(vec: &'a mut Vector) -> Result<Self> {
+    fn new(vec: &'a mut Vector) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe {
             bind_ceed::CeedVectorGetArray(

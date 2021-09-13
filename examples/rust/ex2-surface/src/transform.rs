@@ -19,7 +19,10 @@ use libceed::prelude::*;
 // ----------------------------------------------------------------------------
 // Transform mesh coordinates
 // ----------------------------------------------------------------------------
-pub(crate) fn transform_mesh_coordinates(dim: usize, mesh_coords: &mut Vector) -> Result<Scalar> {
+pub(crate) fn transform_mesh_coordinates(
+    dim: usize,
+    mesh_coords: &mut Vector,
+) -> libceed::Result<Scalar> {
     // Transform coordinates
     mesh_coords.view_mut()?.iter_mut().for_each(|coord| {
         // map [0,1] to [0,1] varying the mesh density

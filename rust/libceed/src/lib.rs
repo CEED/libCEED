@@ -355,7 +355,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector(10)?;
     /// # Ok(())
@@ -373,7 +373,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3);
@@ -408,7 +408,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -458,7 +458,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides: [i32; 3] = [1, 2, 2];
@@ -498,7 +498,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp1d  = [ 0.62994317,  0.47255875, -0.14950343,  0.04700152,
     ///                  -0.07069480,  0.97297619,  0.13253993, -0.03482132,
@@ -545,7 +545,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)?;
     /// # Ok(())
@@ -581,7 +581,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
     ///     0.12000000,
@@ -703,7 +703,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -732,7 +732,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     /// # Ok(())
@@ -755,7 +755,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
     /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
@@ -775,7 +775,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
-    /// # fn main() -> Result<()> {
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let op = ceed.composite_operator()?;
     /// # Ok(())
