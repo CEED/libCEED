@@ -348,7 +348,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
     let error = (area - exact_area).abs();
     if error > tolerance {
         println!("Volume error too large: {:.12e}", error);
-        return Err(libceed::CeedError {
+        return Err(libceed::Error {
             message: format!(
                 "Volume error too large - expected: {:.12e}, actual: {:.12e}",
                 tolerance, error

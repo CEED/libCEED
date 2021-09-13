@@ -37,7 +37,7 @@ pub mod prelude {
             QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, Result, Scalar, TransposeMode,
+        ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
         CEED_STRIDES_BACKEND, EPSILON, MAX_QFUNCTION_FIELDS,
     };
     pub(crate) use libceed_sys::bind_ceed;
@@ -151,14 +151,14 @@ impl EvalMode {
 // -----------------------------------------------------------------------------
 // Ceed error
 // -----------------------------------------------------------------------------
-pub type Result<T> = std::result::Result<T, CeedError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-pub struct CeedError {
+pub struct Error {
     pub message: String,
 }
 
-impl fmt::Display for CeedError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message)
     }
@@ -184,13 +184,13 @@ pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
     if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
         panic!("{}", message);
     }
-    Err(CeedError { message })
+    Err(Error { message })
 }
 
 // -----------------------------------------------------------------------------
 // Ceed error handler
 // -----------------------------------------------------------------------------
-pub enum CeedErrorHandler {
+pub enum ErrorHandler {
     ErrorAbort,
     ErrorExit,
     ErrorReturn,
@@ -257,7 +257,7 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
-        Ceed::init_with_error_handler(resource, CeedErrorHandler::ErrorStore)
+        Ceed::init_with_error_handler(resource, ErrorHandler::ErrorStore)
     }
 
     /// Returns a Ceed context initialized with the specified resource
@@ -269,10 +269,10 @@ impl Ceed {
     /// ```
     /// let ceed = libceed::Ceed::init_with_error_handler(
     ///     "/cpu/self/ref/serial",
-    ///     libceed::CeedErrorHandler::ErrorAbort,
+    ///     libceed::ErrorHandler::ErrorAbort,
     /// );
     /// ```
-    pub fn init_with_error_handler(resource: &str, handler: CeedErrorHandler) -> Self {
+    pub fn init_with_error_handler(resource: &str, handler: ErrorHandler) -> Self {
         REGISTER.call_once(|| unsafe {
             bind_ceed::CeedRegisterAll();
             bind_ceed::CeedQFunctionRegisterAll();
@@ -283,10 +283,10 @@ impl Ceed {
 
         // Get error handler pointer
         let eh = match handler {
-            CeedErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
-            CeedErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
-            CeedErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
-            CeedErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
+            ErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
+            ErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
+            ErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
+            ErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
         };
 
         // Call to libCEED
@@ -327,7 +327,7 @@ impl Ceed {
         if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
             panic!("{}", message);
         }
-        Err(CeedError { message })
+        Err(Error { message })
     }
 
     /// Returns full resource name for a Ceed context
