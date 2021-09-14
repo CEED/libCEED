@@ -200,20 +200,6 @@ CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
     const int gridSize, const int blockSizeX, const int blockSizeY,
     const int blockSizeZ, const int sharedMemSize, void **args);
 
-CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
-                                      const int gridSize,
-                                      const int blockSizeX,
-                                      const int blockSizeY,
-                                      const int blockSizeZ,
-                                      const int sharedMemSize, void **args);
-
-CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
-                                      const int gridSize,
-                                      const int blockSizeX, const int blockSizeY,
-                                      const int blockSizeZ,
-                                      const int sharedMemSize,
-                                      void **args);
-
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
 
 CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
