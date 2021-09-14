@@ -149,15 +149,14 @@ include("Request.jl")
 include("Operator.jl")
 include("Misc.jl")
 
-const minimum_libceed_version = v"0.8.0"
+const minimum_libceed_version = v"0.10.0"
 
 function __init__()
-    libceed_version = ceedversion()
-    if minimum_libceed_version > libceed_version
+    if !ceedversion_ge(minimum_libceed_version)
         @warn("""
               Incompatible libCEED version.
               LibCEED.jl requires libCEED version at least $minimum_libceed_version.
-              The version of the libCEED library is $libceed_version."
+              The version of the libCEED library is $(ceedversion())."
               """)
     end
     configure_scalar_type(C.libceed_handle)
@@ -192,6 +191,14 @@ function isrelease()
     C.CeedGetVersion(major, minor, patch, release)
     return release[]
 end
+
+"""
+    ceedversion_ge(version::VersionNumber)
+
+Returns true if the libCEED library is at least as current as the specified `version`. Returns
+`true` whenever libCEED is not a release build.
+"""
+ceedversion_ge(version::VersionNumber) = !isrelease() || (ceedversion() >= version)
 
 """
     set_libceed_path!(path::AbstractString)

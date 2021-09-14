@@ -27,7 +27,7 @@ use crate::prelude::*;
 // -----------------------------------------------------------------------------
 // CeedVector option
 // -----------------------------------------------------------------------------
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum VectorOpt<'a> {
     Some(&'a Vector<'a>),
     Active,
@@ -36,8 +36,8 @@ pub enum VectorOpt<'a> {
 /// Construct a VectorOpt reference from a Vector reference
 impl<'a> From<&'a Vector<'_>> for VectorOpt<'a> {
     fn from(vec: &'a Vector) -> Self {
-        debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE });
         debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_ACTIVE });
+        debug_assert!(vec.ptr != unsafe { bind_ceed::CEED_VECTOR_NONE });
         Self::Some(vec)
     }
 }
@@ -46,8 +46,86 @@ impl<'a> VectorOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
         match self {
             Self::Some(vec) => vec.ptr,
-            Self::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
             Self::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
+            Self::None => unsafe { bind_ceed::CEED_VECTOR_NONE },
+        }
+    }
+
+    /// Check if a VectorOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(vec_opt.is_some(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(!vec_opt.is_some(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(!vec_opt.is_some(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::Some(_) => true,
+            Self::Active => false,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a VectorOpt is Active
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(!vec_opt.is_active(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(vec_opt.is_active(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(!vec_opt.is_active(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_active(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::Active => true,
+            Self::None => false,
+        }
+    }
+
+    /// Check if a VectorOpt is Some
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec_opt = VectorOpt::from(&vec);
+    /// assert!(!vec_opt.is_none(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::Active;
+    /// assert!(!vec_opt.is_none(), "Incorrect VectorOpt");
+    ///
+    /// let vec_opt = VectorOpt::None;
+    /// assert!(vec_opt.is_none(), "Incorrect VectorOpt");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_none(&self) -> bool {
+        match self {
+            Self::Some(_) => false,
+            Self::Active => false,
+            Self::None => true,
         }
     }
 }
@@ -57,8 +135,8 @@ impl<'a> VectorOpt<'a> {
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Vector<'a> {
-    ceed: &'a crate::Ceed,
     pub(crate) ptr: bind_ceed::CeedVector,
+    _lifeline: PhantomData<&'a ()>,
 }
 impl From<&'_ Vector<'_>> for bind_ceed::CeedVector {
     fn from(vec: &Vector) -> Self {
@@ -88,8 +166,9 @@ impl<'a> fmt::Display for Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.]).unwrap();
+    /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// assert_eq!(
     ///     vec.to_string(),
     ///     "CeedVector length 3
@@ -97,7 +176,9 @@ impl<'a> fmt::Display for Vector<'a> {
     ///     2.00000000
     ///     3.00000000
     /// "
-    /// )
+    /// );
+    /// # Ok(())
+    /// # }
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut ptr = std::ptr::null_mut();
@@ -124,14 +205,17 @@ impl<'a> Vector<'a> {
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         ceed.check_error(ierr)?;
-        Ok(Self { ceed, ptr })
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
-    pub(crate) fn from_raw(
-        ceed: &'a crate::Ceed,
-        ptr: bind_ceed::CeedVector,
-    ) -> crate::Result<Self> {
-        Ok(Self { ceed, ptr })
+    pub(crate) fn from_raw(ptr: bind_ceed::CeedVector) -> crate::Result<Self> {
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
     }
 
     /// Create a Vector from a slice
@@ -142,9 +226,12 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.]).unwrap();
+    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn from_slice(ceed: &'a crate::Ceed, v: &[crate::Scalar]) -> crate::Result<Self> {
         let mut x = Self::create(ceed, v.len())?;
@@ -160,11 +247,14 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut rust_vec = vec![1., 2., 3.];
-    /// let vec = libceed::vector::Vector::from_array(&ceed, &mut rust_vec).unwrap();
+    /// let vec = libceed::vector::Vector::from_array(&ceed, &mut rust_vec)?;
     ///
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn from_array(ceed: &'a crate::Ceed, v: &mut [crate::Scalar]) -> crate::Result<Self> {
         let x = Self::create(ceed, v.len())?;
@@ -178,15 +268,28 @@ impl<'a> Vector<'a> {
         Ok(x)
     }
 
+    // Error handling
+    #[doc(hidden)]
+    fn check_error(&self, ierr: i32) -> crate::Result<i32> {
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            bind_ceed::CeedVectorGetCeed(self.ptr, &mut ptr);
+        }
+        crate::check_error(ptr, ierr)
+    }
+
     /// Returns the length of a CeedVector
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector(10).unwrap();
+    /// let vec = ceed.vector(10)?;
     ///
     /// let n = vec.length();
     /// assert_eq!(n, 10, "Incorrect length");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn length(&self) -> usize {
         let mut n = 0;
@@ -198,9 +301,12 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector(10).unwrap();
+    /// let vec = ceed.vector(10)?;
     /// assert_eq!(vec.len(), 10, "Incorrect length");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn len(&self) -> usize {
         self.length()
@@ -214,20 +320,23 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
-    /// let mut vec = ceed.vector(len).unwrap();
+    /// let mut vec = ceed.vector(len)?;
     ///
     /// let val = 42.0;
-    /// vec.set_value(val).unwrap();
+    /// vec.set_value(val)?;
     ///
-    /// vec.view().iter().for_each(|v| {
+    /// vec.view()?.iter().for_each(|v| {
     ///     assert_eq!(*v, val, "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn set_value(&mut self, value: crate::Scalar) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Set values from a slice of the same length
@@ -238,13 +347,16 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut vec = ceed.vector(4).unwrap();
-    /// vec.set_slice(&[10., 11., 12., 13.]).unwrap();
+    /// let mut vec = ceed.vector(4)?;
+    /// vec.set_slice(&[10., 11., 12., 13.])?;
     ///
-    /// vec.view().iter().enumerate().for_each(|(i, v)| {
+    /// vec.view()?.iter().enumerate().for_each(|(i, v)| {
     ///     assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn set_slice(&mut self, slice: &[crate::Scalar]) -> crate::Result<i32> {
         assert_eq!(self.length(), slice.len());
@@ -260,7 +372,7 @@ impl<'a> Vector<'a> {
                 slice.as_ptr() as *mut crate::Scalar,
             )
         };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Sync the CeedVector to a specified memtype
@@ -271,39 +383,45 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
-    /// let mut vec = ceed.vector(len).unwrap();
+    /// let mut vec = ceed.vector(len)?;
     ///
     /// let val = 42.0;
     /// vec.set_value(val);
-    /// vec.sync(MemType::Host).unwrap();
+    /// vec.sync(MemType::Host)?;
     ///
-    /// vec.view().iter().for_each(|v| {
+    /// vec.view()?.iter().for_each(|v| {
     ///     assert_eq!(*v, val, "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn sync(&self, mtype: crate::MemType) -> crate::Result<i32> {
         let ierr =
             unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
-        self.ceed.check_error(ierr)
+        self.check_error(ierr)
     }
 
     /// Create an immutable view
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.]).unwrap();
+    /// let vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
-    /// let v = vec.view();
+    /// let v = vec.view()?;
     /// assert_eq!(v[0..2], [10., 11.]);
     ///
     /// // It is valid to have multiple immutable views
-    /// let w = vec.view();
+    /// let w = vec.view()?;
     /// assert_eq!(v[1..], w[1..]);
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn view(&self) -> VectorView {
+    pub fn view(&self) -> crate::Result<VectorView> {
         VectorView::new(self)
     }
 
@@ -311,18 +429,21 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.]).unwrap();
+    /// let mut vec = ceed.vector_from_slice(&[10., 11., 12., 13.])?;
     ///
     /// {
-    ///     let mut v = vec.view_mut();
+    ///     let mut v = vec.view_mut()?;
     ///     v[2] = 9.;
     /// }
     ///
-    /// let w = vec.view();
+    /// let w = vec.view()?;
     /// assert_eq!(w[2], 9., "View did not mutate data");
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn view_mut(&mut self) -> VectorViewMut {
+    pub fn view_mut(&mut self) -> crate::Result<VectorViewMut> {
         VectorViewMut::new(self)
     }
 
@@ -334,24 +455,27 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.]).unwrap();
+    /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.])?;
     ///
-    /// let max_norm = vec.norm(NormType::Max).unwrap();
+    /// let max_norm = vec.norm(NormType::Max)?;
     /// assert_eq!(max_norm, 4.0, "Incorrect Max norm");
     ///
-    /// let l1_norm = vec.norm(NormType::One).unwrap();
+    /// let l1_norm = vec.norm(NormType::One)?;
     /// assert_eq!(l1_norm, 10., "Incorrect L1 norm");
     ///
-    /// let l2_norm = vec.norm(NormType::Two).unwrap();
+    /// let l2_norm = vec.norm(NormType::Two)?;
     /// assert!((l2_norm - 5.477) < 1e-3, "Incorrect L2 norm");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn norm(&self, ntype: crate::NormType) -> crate::Result<crate::Scalar> {
         let mut res: crate::Scalar = 0.0;
         let ierr = unsafe {
             bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res)
         };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(res)
     }
 
@@ -363,18 +487,21 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// vec = vec.scale(-1.0).unwrap();
-    /// vec.view().iter().enumerate().for_each(|(i, &v)| {
+    /// vec = vec.scale(-1.0)?;
+    /// vec.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, -(i as Scalar), "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     #[allow(unused_mut)]
     pub fn scale(mut self, alpha: crate::Scalar) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -387,19 +514,22 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
-    /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// y = y.axpy(-0.5, &x).unwrap();
-    /// y.view().iter().enumerate().for_each(|(i, &v)| {
+    /// y = y.axpy(-0.5, &x)?;
+    /// y.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar) / 2.0, "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     #[allow(unused_mut)]
     pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -412,20 +542,23 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
-    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
-    /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// w = w.pointwise_mult(&x, &y).unwrap();
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w = w.pointwise_mult(&x, &y)?;
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_mult(mut self, x: &crate::Vector, y: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -437,19 +570,22 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
-    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// w = w.pointwise_scale(&x).unwrap();
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w = w.pointwise_scale(&x)?;
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_scale(mut self, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 
@@ -457,18 +593,21 @@ impl<'a> Vector<'a> {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.]).unwrap();
+    /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// w = w.pointwise_square().unwrap();
-    /// w.view().iter().enumerate().for_each(|(i, &v)| {
+    /// w = w.pointwise_square()?;
+    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
     ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
     /// });
+    /// # Ok(())
+    /// # }
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_square(mut self) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, self.ptr) };
-        self.ceed.check_error(ierr)?;
+        self.check_error(ierr)?;
         Ok(self)
     }
 }
@@ -487,19 +626,20 @@ pub struct VectorView<'a> {
 
 impl<'a> VectorView<'a> {
     /// Construct a VectorView from a Vector reference
-    fn new(vec: &'a Vector) -> Self {
+    fn new(vec: &'a Vector) -> crate::Result<Self> {
         let mut array = std::ptr::null();
-        unsafe {
+        let ierr = unsafe {
             bind_ceed::CeedVectorGetArrayRead(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut array,
-            );
-        }
-        Self {
+            )
+        };
+        vec.check_error(ierr)?;
+        Ok(Self {
             vec: vec,
             array: array,
-        }
+        })
     }
 }
 
@@ -539,19 +679,20 @@ pub struct VectorViewMut<'a> {
 
 impl<'a> VectorViewMut<'a> {
     /// Construct a VectorViewMut from a Vector reference
-    fn new(vec: &'a mut Vector) -> Self {
+    fn new(vec: &'a mut Vector) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        unsafe {
+        let ierr = unsafe {
             bind_ceed::CeedVectorGetArray(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut ptr,
-            );
-        }
-        Self {
+            )
+        };
+        vec.check_error(ierr)?;
+        Ok(Self {
             vec: vec,
             array: ptr,
-        }
+        })
     }
 }
 

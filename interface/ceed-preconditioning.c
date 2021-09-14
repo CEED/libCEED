@@ -71,8 +71,8 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = CeedCalloc(1, &op_ref); CeedChk(ierr);
   memcpy(op_ref, op, sizeof(*op_ref));
   op_ref->data = NULL;
-  op_ref->interface_setup = false;
-  op_ref->backend_setup = false;
+  op_ref->is_interface_setup = false;
+  op_ref->is_backend_setup = false;
   op_ref->ceed = ceed_ref;
   ierr = ceed_ref->OperatorCreate(op_ref); CeedChk(ierr);
   op->op_fallback = op_ref;
@@ -211,8 +211,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   // Determine active input basis
   CeedOperatorField *op_fields;
   CeedQFunctionField *qf_fields;
-  ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   CeedInt num_eval_mode_in = 0, num_comp, dim = 1;
   CeedEvalMode *eval_mode_in = NULL;
   CeedBasis basis_in = NULL;
@@ -256,8 +256,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   }
 
   // Determine active output basis
-  ierr = CeedOperatorGetFields(op, NULL, &op_fields); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &op_fields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields); CeedChk(ierr);
   CeedInt num_eval_mode_out = 0;
   CeedEvalMode *eval_mode_out = NULL;
   CeedBasis basis_out = NULL;
@@ -451,7 +451,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
     CeedInt *rows, CeedInt *cols) {
   int ierr;
   Ceed ceed = op->ceed;
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "Composite operator not supported");
@@ -539,7 +539,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                                       CeedVector values) {
   int ierr;
   Ceed ceed = op->ceed;
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "Composite operator not supported");
@@ -548,9 +548,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   // Assemble QFunction
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
-  CeedInt num_input_fields, num_output_fields;
-  ierr= CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChk(ierr);
   CeedVector assembled_qf;
   CeedElemRestriction rstr_q;
   ierr = CeedOperatorLinearAssembleQFunction(
@@ -559,13 +556,15 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   CeedInt qf_length;
   ierr = CeedVectorGetLength(assembled_qf, &qf_length); CeedChk(ierr);
 
+  CeedInt num_input_fields, num_output_fields;
   CeedOperatorField *input_fields;
   CeedOperatorField *output_fields;
-  ierr = CeedOperatorGetFields(op, &input_fields, &output_fields); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &input_fields,
+                               &num_output_fields, &output_fields); CeedChk(ierr);
 
   // Determine active input basis
   CeedQFunctionField *qf_fields;
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   CeedInt num_eval_mode_in = 0, dim = 1;
   CeedEvalMode *eval_mode_in = NULL;
   CeedBasis basis_in = NULL;
@@ -605,7 +604,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   }
 
   // Determine active output basis
-  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields); CeedChk(ierr);
   CeedInt num_eval_mode_out = 0;
   CeedEvalMode *eval_mode_out = NULL;
   CeedBasis basis_out = NULL;
@@ -800,7 +799,7 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op,
   CeedElemRestriction rstr;
   CeedInt num_elem, elem_size, num_comp;
 
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
                      "Composite operator not supported");
@@ -1037,6 +1036,9 @@ CeedPragmaOptimizeOn
     consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting
     on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param op              CeedOperator to assemble CeedQFunction
   @param[out] assembled  CeedVector to store assembled CeedQFunction at
                            quadrature points
@@ -1078,6 +1080,9 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 
   Note: Currently only non-composite CeedOperators with a single field and
           composite CeedOperators with single field sub-operators are supported.
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op              CeedOperator to assemble CeedQFunction
   @param[out] assembled  CeedVector to store assembled CeedOperator diagonal
@@ -1133,6 +1138,9 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
 
   Note: Currently only non-composite CeedOperators with a single field and
           composite CeedOperators with single field sub-operators are supported.
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op              CeedOperator to assemble CeedQFunction
   @param[out] assembled  CeedVector to store assembled CeedOperator diagonal
@@ -1192,6 +1200,9 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 
   Note: Currently only non-composite CeedOperators with a single field and
           composite CeedOperators with single field sub-operators are supported.
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op              CeedOperator to assemble CeedQFunction
   @param[out] assembled  CeedVector to store assembled CeedOperator point block
@@ -1255,6 +1266,9 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 
   Note: Currently only non-composite CeedOperators with a single field and
           composite CeedOperators with single field sub-operators are supported.
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op              CeedOperator to assemble CeedQFunction
   @param[out] assembled  CeedVector to store assembled CeedOperator point block
@@ -1325,6 +1339,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
    ordering.
 
    This will generally be slow unless your operator is low-order.
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
    @param[in]  op           CeedOperator to assemble
    @param[out] num_entries  Number of entries in coordinate nonzero pattern
@@ -1418,6 +1435,9 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedInt *num_entries,
 
    This will generally be slow unless your operator is low-order.
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
    @param[in]  op      CeedOperator to assemble
    @param[out] values  Values to assemble into matrix
 
@@ -1478,6 +1498,9 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
            for a CeedOperator, creating the prolongation basis from the
            fine and coarse grid interpolation
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param[in] op_fine       Fine grid operator
   @param[in] p_mult_fine   L-vector multiplicity in parallel gather/scatter
   @param[in] rstr_coarse   Coarse grid restriction
@@ -1496,6 +1519,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
                                      CeedOperator *op_coarse, CeedOperator *op_prolong,
                                      CeedOperator *op_restrict) {
   int ierr;
+  ierr = CeedOperatorCheckReady(op_fine); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op_fine, &ceed); CeedChk(ierr);
 
@@ -1585,6 +1609,9 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
   @brief Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a tensor basis for the active basis
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param[in] op_fine        Fine grid operator
   @param[in] p_mult_fine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstr_coarse    Coarse grid restriction
@@ -1603,6 +1630,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine,
     const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
     CeedOperator *op_prolong, CeedOperator *op_restrict) {
   int ierr;
+  ierr = CeedOperatorCheckReady(op_fine); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op_fine, &ceed); CeedChk(ierr);
 
@@ -1652,6 +1680,9 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine,
   @brief Create a multigrid coarse operator and level transfer operators
            for a CeedOperator with a non-tensor basis for the active vector
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param[in] op_fine        Fine grid operator
   @param[in] p_mult_fine    L-vector multiplicity in parallel gather/scatter
   @param[in] rstr_coarse    Coarse grid restriction
@@ -1674,6 +1705,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
                                        CeedOperator *op_prolong,
                                        CeedOperator *op_restrict) {
   int ierr;
+  ierr = CeedOperatorCheckReady(op_fine); CeedChk(ierr);
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op_fine, &ceed); CeedChk(ierr);
 
@@ -1731,6 +1763,9 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
       V^T S^hat V. The CeedOperator must be linear and non-composite. The
     associated CeedQFunction must therefore also be linear.
 
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
   @param op            CeedOperator to create element inverses
   @param[out] fdm_inv  CeedOperator to apply the action of a FDM based inverse
                          for each element
@@ -1782,10 +1817,10 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   CeedElemRestriction rstr = NULL;
   CeedOperatorField *op_fields;
   CeedQFunctionField *qf_fields;
-  ierr = CeedOperatorGetFields(op, &op_fields, NULL); CeedChk(ierr);
-  ierr = CeedQFunctionGetFields(qf, &qf_fields, NULL); CeedChk(ierr);
   CeedInt num_input_fields;
-  ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, NULL); CeedChk(ierr);
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_fields, NULL, NULL);
+  CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
   for (CeedInt i=0; i<num_input_fields; i++) {
     CeedVector vec;
     ierr = CeedOperatorFieldGetVector(op_fields[i], &vec); CeedChk(ierr);

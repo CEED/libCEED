@@ -68,21 +68,6 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets,
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedElemRestriction
-
-  @param rstr       CeedElemRestriction
-  @param[out] ceed  Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
-  *ceed = rstr->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
 
   @brief Get the strides of a strided CeedElemRestriction
 
@@ -739,6 +724,21 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
+  @brief Get the Ceed associated with a CeedElemRestriction
+
+  @param rstr       CeedElemRestriction
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
+  *ceed = rstr->ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the L-vector component stride
 
   @param rstr              CeedElemRestriction
@@ -746,7 +746,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
                                      CeedInt *comp_stride) {
@@ -762,7 +762,7 @@ int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
                                       CeedInt *num_elem) {
@@ -778,7 +778,7 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
                                       CeedInt *elem_size) {
@@ -794,7 +794,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
                                       CeedInt *l_size) {
@@ -811,7 +811,7 @@ int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
                                         CeedInt *num_comp) {
@@ -827,7 +827,7 @@ int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
                                     CeedInt *num_block) {
@@ -843,7 +843,7 @@ int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
                                     CeedInt *blk_size) {

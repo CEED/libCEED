@@ -48,21 +48,6 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedVector
-
-  @param vec        CeedVector to retrieve state
-  @param[out] ceed  Variable to store ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
-  *ceed = vec->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the state of a CeedVector
 
   @param vec         CeedVector to retrieve state
@@ -751,6 +736,21 @@ int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
     fprintf(stream, fmt, x[i]);
 
   ierr = CeedVectorRestoreArrayRead(vec, &x); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the Ceed associated with a CeedVector
+
+  @param vec        CeedVector to retrieve state
+  @param[out] ceed  Variable to store ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
+  *ceed = vec->ceed;
   return CEED_ERROR_SUCCESS;
 }
 

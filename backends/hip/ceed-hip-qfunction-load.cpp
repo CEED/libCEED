@@ -59,10 +59,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   
   // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  ierr = CeedQFunctionGetFields(qf, &numinputfields, &qfinputfields, &numoutputfields, &qfoutputfields);
   CeedChkBackend(ierr);
 
   // Build strings for final kernel

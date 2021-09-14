@@ -31,9 +31,10 @@ pub mod prelude {
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
-        operator::{self, CompositeOperator, Operator},
+        operator::{self, CompositeOperator, Operator, OperatorField},
         qfunction::{
-            self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
+            self, QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt,
+            QFunctionOutputs,
         },
         vector::{self, Vector, VectorOpt},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
@@ -41,8 +42,9 @@ pub mod prelude {
     };
     pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
-    pub(crate) use std::ffi::CString;
+    pub(crate) use std::ffi::{CStr, CString};
     pub(crate) use std::fmt;
+    pub(crate) use std::marker::PhantomData;
 }
 
 // -----------------------------------------------------------------------------
@@ -122,7 +124,7 @@ pub enum ElemTopology {
     Hex = bind_ceed::CeedElemTopology_CEED_HEX as isize,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// Basis evaluation mode
 pub enum EvalMode {
     None = bind_ceed::CeedEvalMode_CEED_EVAL_NONE as isize,
@@ -132,27 +134,63 @@ pub enum EvalMode {
     Curl = bind_ceed::CeedEvalMode_CEED_EVAL_CURL as isize,
     Weight = bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT as isize,
 }
+impl EvalMode {
+    pub(crate) fn from_u32(value: u32) -> EvalMode {
+        match value {
+            bind_ceed::CeedEvalMode_CEED_EVAL_NONE => EvalMode::None,
+            bind_ceed::CeedEvalMode_CEED_EVAL_INTERP => EvalMode::Interp,
+            bind_ceed::CeedEvalMode_CEED_EVAL_GRAD => EvalMode::Grad,
+            bind_ceed::CeedEvalMode_CEED_EVAL_DIV => EvalMode::Div,
+            bind_ceed::CeedEvalMode_CEED_EVAL_CURL => EvalMode::Curl,
+            bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT => EvalMode::Weight,
+            _ => panic!("Unknown value: {}", value),
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // Ceed error
 // -----------------------------------------------------------------------------
-type Result<T> = std::result::Result<T, CeedError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-pub struct CeedError {
+pub struct Error {
     pub message: String,
 }
 
-impl fmt::Display for CeedError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message)
     }
 }
 
 // -----------------------------------------------------------------------------
+// Internal error checker
+// -----------------------------------------------------------------------------
+#[doc(hidden)]
+pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
+    // Return early if code is clean
+    if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        return Ok(ierr);
+    }
+    // Retrieve error message
+    let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
+    let c_str = unsafe {
+        bind_ceed::CeedGetErrorMessage(ceed_ptr, &mut ptr);
+        std::ffi::CStr::from_ptr(ptr)
+    };
+    let message = c_str.to_string_lossy().to_string();
+    // Panic if negative code, otherwise return error
+    if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        panic!("{}", message);
+    }
+    Err(Error { message })
+}
+
+// -----------------------------------------------------------------------------
 // Ceed error handler
 // -----------------------------------------------------------------------------
-pub enum CeedErrorHandler {
+pub enum ErrorHandler {
     ErrorAbort,
     ErrorExit,
     ErrorReturn,
@@ -219,7 +257,7 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
-        Ceed::init_with_error_handler(resource, CeedErrorHandler::ErrorStore)
+        Ceed::init_with_error_handler(resource, ErrorHandler::ErrorStore)
     }
 
     /// Returns a Ceed context initialized with the specified resource
@@ -231,10 +269,10 @@ impl Ceed {
     /// ```
     /// let ceed = libceed::Ceed::init_with_error_handler(
     ///     "/cpu/self/ref/serial",
-    ///     libceed::CeedErrorHandler::ErrorAbort,
+    ///     libceed::ErrorHandler::ErrorAbort,
     /// );
     /// ```
-    pub fn init_with_error_handler(resource: &str, handler: CeedErrorHandler) -> Self {
+    pub fn init_with_error_handler(resource: &str, handler: ErrorHandler) -> Self {
         REGISTER.call_once(|| unsafe {
             bind_ceed::CeedRegisterAll();
             bind_ceed::CeedQFunctionRegisterAll();
@@ -245,10 +283,10 @@ impl Ceed {
 
         // Get error handler pointer
         let eh = match handler {
-            CeedErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
-            CeedErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
-            CeedErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
-            CeedErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
+            ErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
+            ErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
+            ErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
+            ErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
         };
 
         // Call to libCEED
@@ -289,7 +327,7 @@ impl Ceed {
         if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
             panic!("{}", message);
         }
-        Err(CeedError { message })
+        Err(Error { message })
     }
 
     /// Returns full resource name for a Ceed context
@@ -317,8 +355,11 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector(10).unwrap();
+    /// let vec = ceed.vector(10)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn vector(&self, n: usize) -> Result<Vector> {
         Vector::create(self, n)
@@ -332,9 +373,12 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector_from_slice(&[1., 2., 3.]).unwrap();
+    /// let vec = ceed.vector_from_slice(&[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3);
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn vector_from_slice(&self, slice: &[crate::Scalar]) -> Result<Vector> {
         Vector::from_slice(self, slice)
@@ -364,6 +408,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -371,9 +416,9 @@ impl Ceed {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn elem_restriction(
         &self,
@@ -413,12 +458,13 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides: [i32; 3] = [1, 2, 2];
-    /// let r = ceed
-    ///     .strided_elem_restriction(nelem, 2, 1, nelem * 2, strides)
-    ///     .unwrap();
+    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn strided_elem_restriction(
         &self,
@@ -452,6 +498,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp1d  = [ 0.62994317,  0.47255875, -0.14950343,  0.04700152,
     ///                  -0.07069480,  0.97297619,  0.13253993, -0.03482132,
@@ -464,7 +511,9 @@ impl Ceed {
     /// let qref1d    = [-0.86113631, -0.33998104,  0.33998104,  0.86113631];
     /// let qweight1d = [ 0.34785485,  0.65214515,  0.65214515,  0.34785485];
     /// let b = ceed.
-    /// basis_tensor_H1(2, 1, 4, 4, &interp1d, &grad1d, &qref1d, &qweight1d).unwrap();
+    /// basis_tensor_H1(2, 1, 4, 4, &interp1d, &grad1d, &qref1d, &qweight1d)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn basis_tensor_H1(
         &self,
@@ -496,10 +545,11 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let b = ceed
-    ///     .basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)
-    ///     .unwrap();
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn basis_tensor_H1_Lagrange(
         &self,
@@ -531,6 +581,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
     ///     0.12000000,
@@ -613,18 +664,18 @@ impl Ceed {
     ///     0.60000000,
     /// ];
     /// let qweight = [0.26041667, 0.26041667, -0.28125000, 0.26041667];
-    /// let b = ceed
-    ///     .basis_H1(
-    ///         ElemTopology::Triangle,
-    ///         1,
-    ///         6,
-    ///         4,
-    ///         &interp,
-    ///         &grad,
-    ///         &qref,
-    ///         &qweight,
-    ///     )
-    ///     .unwrap();
+    /// let b = ceed.basis_H1(
+    ///     ElemTopology::Triangle,
+    ///     1,
+    ///     6,
+    ///     4,
+    ///     &interp,
+    ///     &grad,
+    ///     &qref,
+    ///     &qweight,
+    /// )?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn basis_H1(
         &self,
@@ -652,6 +703,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -663,7 +715,9 @@ impl Ceed {
     ///     0
     /// };
     ///
-    /// let qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
+    /// let qf = ceed.q_function_interior(1, Box::new(user_f))?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn q_function_interior(
         &self,
@@ -678,8 +732,11 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn q_function_interior_by_name(&self, name: &str) -> Result<QFunctionByName> {
         QFunctionByName::create(self, name)
@@ -698,11 +755,12 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
-    /// let op = ceed
-    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)
-    ///     .unwrap();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn operator<'b>(
         &self,
@@ -717,8 +775,11 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let op = ceed.composite_operator().unwrap();
+    /// let op = ceed.composite_operator()?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn composite_operator(&self) -> Result<CompositeOperator> {
         CompositeOperator::create(self)
@@ -732,7 +793,7 @@ impl Ceed {
 mod tests {
     use super::*;
 
-    fn ceed_t501() -> Result<i32> {
+    fn ceed_t501() -> Result<()> {
         let resource = "/cpu/self/ref/blocked";
         let ceed = Ceed::init(resource);
         let nelem = 4;
@@ -790,12 +851,12 @@ mod tests {
         op_mass.apply(&u, &mut v)?;
 
         // Check
-        let sum: Scalar = v.view().iter().sum();
+        let sum: Scalar = v.view()?.iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"
         );
-        Ok(0)
+        Ok(())
     }
 
     #[test]

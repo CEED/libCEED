@@ -129,13 +129,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
   CeedInt nelem, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumElements(op, &nelem); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
+                               &numoutputfields, &opoutputfields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
   CeedVector vec, outvecs[16] = {};
