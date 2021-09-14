@@ -314,12 +314,12 @@ int main(int argc, char **argv) {
     // Note: use high order ceed, if specified and degree > 4
     PetscErrorCode (*SetupLibceedLevel)(DM, Ceed, AppCtx, PetscInt,
                                         PetscInt, PetscInt, PetscInt, CeedVector, CeedData *);
-    if (!SetupLibceedLevel)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
-               app_ctx->name);
     ierr = PetscFunctionListFind(problem_functions->setupLibceedLevel,
                                  app_ctx->name, &SetupLibceedLevel);
     CHKERRQ(ierr);
+    if (!SetupLibceedLevel)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
+               app_ctx->name);
     ierr = (*SetupLibceedLevel)(level_dms[level], ceed, app_ctx,
                                 level, num_comp_u, U_g_size[level],
                                 U_loc_size[level], ceed_data[level+1]->x_ceed,
