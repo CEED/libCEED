@@ -10,7 +10,7 @@ for each release of libCEED.
 ### Interface changes
 
 - Update {c:func} `CeedQFunctionGetFields` and {c:func} `CeedOperatorGetFields` to include number of fields.
-- QFunction and Operator field objects, `CeedQFunctionField` and `CeedOperatorField`, and associated getters, {c:func}`CeedQFunctionGetFields`; {c:func}`CeedQFunctionFieldGetName`; {c:func}`CeedQFunctionFieldGetSize`; {c:func}`CeedQFunctionFieldGetEvalMode`; {c:func}`CeedOperatorGetFields`; {c:func}`CeedOperatorFieldGetElemRestriction`; {c:func}`CeedOperatorFieldGetBasis`; and {c:func}`CeedOperatorFieldGetVector`, promoted to the public API.
+- Promote to the public API: QFunction and Operator field objects, `CeedQFunctionField` and `CeedOperatorField`, and associated getters, {c:func}`CeedQFunctionGetFields`; {c:func}`CeedQFunctionFieldGetName`; {c:func}`CeedQFunctionFieldGetSize`; {c:func}`CeedQFunctionFieldGetEvalMode`; {c:func}`CeedOperatorGetFields`; {c:func}`CeedOperatorFieldGetElemRestriction`; {c:func}`CeedOperatorFieldGetBasis`; and {c:func}`CeedOperatorFieldGetVector`.
 - Clarify and document conditions where `CeedQFunction` and `CeedOperator` become immutable and no further fields or suboperators can be added.
 
 ### New features
