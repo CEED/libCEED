@@ -519,10 +519,11 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
 }
 
 //------------------------------------------------------------------------------
-// Assemble Linear QFunction
+// Core code for assembling linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
-    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
+    bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
+    CeedRequest *request) {
   int ierr;
   CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
@@ -610,15 +611,18 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
                      "and outputs");
   // LCOV_EXCL_STOP
 
-  // Create output restriction
-  CeedInt strides[3] = {1, numelements*Q, Q}; /* *NOPAD* */
-  ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
-                                          numactivein*numactiveout,
-                                          numactivein*numactiveout*numelements*Q,
-                                          strides, rstr); CeedChkBackend(ierr);
-  // Create assembled vector
-  ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
-                          assembled); CeedChkBackend(ierr);
+  // Build objects if needed
+  if (build_objects) {
+    // Create output restriction
+    CeedInt strides[3] = {1, numelements*Q, Q}; /* *NOPAD* */
+    ierr = CeedElemRestrictionCreateStrided(ceedparent, numelements, Q,
+                                            numactivein*numactiveout,
+                                            numactivein*numactiveout*numelements*Q,
+                                            strides, rstr); CeedChkBackend(ierr);
+    // Create assembled vector
+    ierr = CeedVectorCreate(ceedparent, numelements*Q*numactivein*numactiveout,
+                            assembled); CeedChkBackend(ierr);
+  }
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChkBackend(ierr);
   ierr = CeedVectorGetArray(*assembled, CEED_MEM_DEVICE, &a);
   CeedChkBackend(ierr);
@@ -682,6 +686,24 @@ static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
   ierr = CeedFree(&activein); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Assemble Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Cuda(op, true, assembled, rstr,
+         request);
+}
+
+//------------------------------------------------------------------------------
+// Update Assembled Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunctionUpdate_Cuda(CeedOperator op,
+    CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Cuda(op, false, &assembled,
+         &rstr, request);
 }
 
 //------------------------------------------------------------------------------
@@ -1082,8 +1104,8 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   // Assemble QFunction
   CeedVector assembledqf;
   CeedElemRestriction rstr;
-  ierr = CeedOperatorLinearAssembleQFunction(op,  &assembledqf, &rstr, request);
-  CeedChkBackend(ierr);
+  ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembledqf,
+         &rstr, request); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChkBackend(ierr);
   CeedScalar maxnorm = 0;
   ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm);
@@ -1220,6 +1242,10 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Cuda);
   CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "LinearAssembleQFunctionUpdate",
+                                CeedOperatorLinearAssembleQFunctionUpdate_Cuda);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
                                 CeedOperatorLinearAssembleAddDiagonal_Cuda);
   CeedChkBackend(ierr);
@@ -1241,6 +1267,7 @@ int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
                                 CeedOperatorLinearAssembleAddDiagonal_Cuda);
   CeedChkBackend(ierr);

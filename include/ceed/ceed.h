@@ -657,6 +657,8 @@ CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op,
     CeedOperator sub_op);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op,

@@ -552,10 +552,11 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector in_vec,
 }
 
 //------------------------------------------------------------------------------
-// Assemble Linear QFunction
+// Core code for linear QFunction assembly
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
-    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op,
+    bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
+    CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -649,15 +650,18 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
                           &lvec); CeedChkBackend(ierr);
   ierr = CeedVectorGetArray(lvec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
 
-  // Create output restriction
+  // Build objects if needed
   CeedInt strides[3] = {1, Q, num_active_in *num_active_out*Q};
-  ierr = CeedElemRestrictionCreateStrided(ceed, num_elem, Q,
-                                          num_active_in*num_active_out,
-                                          num_active_in*num_active_out*num_elem*Q,
-                                          strides, rstr); CeedChkBackend(ierr);
-  // Create assembled vector
-  ierr = CeedVectorCreate(ceed, num_elem*Q*num_active_in*num_active_out,
-                          assembled); CeedChkBackend(ierr);
+  if (build_objects) {
+    // Create output restriction
+    ierr = CeedElemRestrictionCreateStrided(ceed, num_elem, Q,
+                                            num_active_in*num_active_out,
+                                            num_active_in*num_active_out*num_elem*Q,
+                                            strides, rstr); CeedChkBackend(ierr);
+    // Create assembled vector
+    ierr = CeedVectorCreate(ceed, num_elem*Q*num_active_in*num_active_out,
+                            assembled); CeedChkBackend(ierr);
+  }
 
   // Loop through elements
   for (CeedInt e=0; e<num_blks*blk_size; e+=blk_size) {
@@ -733,6 +737,24 @@ static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
+// Assemble Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op,
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Opt(op, true, assembled, rstr,
+         request);
+}
+
+//------------------------------------------------------------------------------
+// Update Assembled Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunctionUpdate_Opt(CeedOperator op,
+    CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Opt(op, false, &assembled,
+         &rstr, request);
+}
+
+//------------------------------------------------------------------------------
 // Operator Destroy
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Opt(CeedOperator op) {
@@ -790,6 +812,10 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Opt);
+  CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "LinearAssembleQFunctionUpdate",
+                                CeedOperatorLinearAssembleQFunctionUpdate_Opt);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Opt); CeedChkBackend(ierr);

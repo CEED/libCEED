@@ -794,6 +794,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunction),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunctionUpdate),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemblePointBlockDiagonal),

@@ -516,10 +516,11 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec,
 }
 
 //------------------------------------------------------------------------------
-// Assemble Linear QFunction
+// Core code for assembling linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
-    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
+    bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
+    CeedRequest *request) {
   int ierr;
   CeedOperator_Ref *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
@@ -607,15 +608,19 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
                      "and outputs");
   // LCOV_EXCL_STOP
 
-  // Create output restriction
-  CeedInt strides[3] = {1, Q, num_active_in*num_active_out*Q}; /* *NOPAD* */
-  ierr = CeedElemRestrictionCreateStrided(ceed_parent, num_elem, Q,
-                                          num_active_in*num_active_out,
-                                          num_active_in*num_active_out*num_elem*Q,
-                                          strides, rstr); CeedChkBackend(ierr);
-  // Create assembled vector
-  ierr = CeedVectorCreate(ceed_parent, num_elem*Q*num_active_in*num_active_out,
-                          assembled); CeedChkBackend(ierr);
+  // Build objects if needed
+  if (build_objects) {
+    // Create output restriction
+    CeedInt strides[3] = {1, Q, num_active_in*num_active_out*Q}; /* *NOPAD* */
+    ierr = CeedElemRestrictionCreateStrided(ceed_parent, num_elem, Q,
+                                            num_active_in*num_active_out,
+                                            num_active_in*num_active_out*num_elem*Q,
+                                            strides, rstr); CeedChkBackend(ierr);
+    // Create assembled vector
+    ierr = CeedVectorCreate(ceed_parent, num_elem*Q*num_active_in*num_active_out,
+                            assembled); CeedChkBackend(ierr);
+  }
+  // Clear output vector
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChkBackend(ierr);
   ierr = CeedVectorGetArray(*assembled, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
 
@@ -684,6 +689,24 @@ static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
+// Assemble Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op,
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Ref(op, true, assembled, rstr,
+         request);
+}
+
+//------------------------------------------------------------------------------
+// Update Assembled Linear QFunction
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleQFunctionUpdate_Ref(CeedOperator op,
+    CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
+  return CeedOperatorLinearAssembleQFunctionCore_Ref(op, false, &assembled,
+         &rstr, request);
+}
+
+//------------------------------------------------------------------------------
 // Operator Destroy
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Ref(CeedOperator op) {
@@ -730,6 +753,10 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
                                 CeedOperatorLinearAssembleQFunction_Ref);
+  CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Operator", op,
+                                "LinearAssembleQFunctionUpdate",
+                                CeedOperatorLinearAssembleQFunctionUpdate_Ref);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Ref); CeedChkBackend(ierr);
