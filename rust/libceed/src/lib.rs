@@ -845,7 +845,8 @@ mod tests {
             .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
             .field("u", &ru, &bu, VectorOpt::Active)?
             .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
-            .field("v", &ru, &bu, VectorOpt::Active)?;
+            .field("v", &ru, &bu, VectorOpt::Active)?
+            .check()?;
 
         v.set_value(0.0)?;
         op_mass.apply(&u, &mut v)?;

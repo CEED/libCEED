@@ -199,7 +199,8 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
-        )?;
+        )?
+        .check()?;
 
     // Compute the quadrature data for the mass operator
     let elem_qpts = num_qpts.pow(dim as u32);
@@ -236,7 +237,8 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
         .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
         .field("u", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
-        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?;
+        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .check()?;
 
     // Solution vectors
     let u = ceed.vector_from_slice(&vec![1.0; solution_size])?;
