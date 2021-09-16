@@ -133,68 +133,6 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
 }
 
 /**
-  @brief Check if a CeedOperator is ready to be used.
-
-  @param[in] op  CeedOperator to check
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorCheckReady(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-
-  if (op->is_interface_setup)
-    return CEED_ERROR_SUCCESS;
-
-  CeedQFunction qf = op->qf;
-  if (op->is_composite) {
-    if (!op->num_suboperators)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->num_fields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->num_fields < qf->num_input_fields + qf->num_output_fields)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->has_restriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                       "At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->num_qpts == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                       "At least one non-collocated basis is required "
-                       "or the number of quadrature points must be set");
-    // LCOV_EXCL_STOP
-  }
-
-  // Flag as immutable and ready
-  op->is_interface_setup = true;
-  if (op->qf && op->qf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->qf->is_immutable = true;
-  // LCOV_EXCL_STOP
-  if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->dqf->is_immutable = true;
-  // LCOV_EXCL_STOP
-  if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->dqfT->is_immutable = true;
-  // LCOV_EXCL_STOP
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief View a field of a CeedOperator
 
   @param[in] field         Operator field to view
@@ -908,6 +846,71 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
 }
 
 /**
+  @brief Check if a CeedOperator is ready to be used.
+
+  @param[in] op  CeedOperator to check
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorCheckReady(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+
+  if (op->is_interface_setup)
+    return CEED_ERROR_SUCCESS;
+
+  CeedQFunction qf = op->qf;
+  if (op->is_composite) {
+    if (!op->num_suboperators)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
+    // LCOV_EXCL_STOP
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+    }
+  } else {
+    if (op->num_fields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->num_fields < qf->num_input_fields + qf->num_output_fields)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (!op->has_restriction)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->num_qpts == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one non-collocated basis is required "
+                       "or the number of quadrature points must be set");
+    // LCOV_EXCL_STOP
+  }
+
+  // Flag as immutable and ready
+  op->is_interface_setup = true;
+  if (op->qf && op->qf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->qf->is_immutable = true;
+  // LCOV_EXCL_STOP
+  if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqf->is_immutable = true;
+  // LCOV_EXCL_STOP
+  if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqfT->is_immutable = true;
+  // LCOV_EXCL_STOP
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the number of quadrature points associated with a CeedOperator.
            This should be used when creating a CeedOperator where every
            field has a collocated basis. This function cannot be used for
@@ -920,7 +923,6 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
 
   @ref Advanced
 **/
-
 int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
   if (op->is_composite)
     // LCOV_EXCL_START

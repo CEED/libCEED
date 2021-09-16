@@ -107,7 +107,6 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *obj_name);
-CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
                                       CeedBasis *active_basis);
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
