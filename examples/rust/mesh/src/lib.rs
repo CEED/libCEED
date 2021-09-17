@@ -134,9 +134,7 @@ pub fn cartesian_mesh_coords(
     }
 
     // Lobatto points
-    let lobatto_basis = ceed
-        .basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto)
-        .unwrap();
+    let lobatto_basis = ceed.basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto)?;
     let nodes_corners = ceed.vector_from_slice(&[0.0, 1.0])?;
     let mut nodes_full = ceed.vector(p)?;
     lobatto_basis.apply(

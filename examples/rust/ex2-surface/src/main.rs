@@ -92,12 +92,10 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh = ceed
-        .basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
-    let basis_solution = ceed
-        .basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
+    let basis_mesh =
+        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_solution =
+        ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)?;
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
