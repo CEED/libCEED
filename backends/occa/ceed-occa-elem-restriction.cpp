@@ -181,21 +181,12 @@ namespace ceed {
     }
 
     void ElemRestriction::setupKernelBuilders() {
-      ::occa::json kernelProps;
-      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-
-      kernelProps["defines/COMPONENT_COUNT"] = ceedComponentCount;
-      kernelProps["defines/ELEMENT_SIZE"]    = ceedElementSize;
-      kernelProps["defines/TILE_SIZE"]       = 64;
-      kernelProps["defines/USES_INDICES"]    = usesIndices();
-
-      applyKernelBuilder = ::occa::kernelBuilder::fromString(
-        occa_elem_restriction_source, "applyRestriction", kernelProps
+      applyKernelBuilder = ::occa::kernelBuilder(
+        occa_elem_restriction_source, "applyRestriction"
       );
 
-      applyTransposeKernelBuilder = ::occa::kernelBuilder::fromString(
-        occa_elem_restriction_source, "applyRestrictionTranspose", kernelProps
+      applyTransposeKernelBuilder = ::occa::kernelBuilder(
+        occa_elem_restriction_source, "applyRestrictionTranspose"
       );
     }
 
@@ -306,6 +297,13 @@ namespace ceed {
       const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
       ::occa::json kernelProps;
+      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+
+      kernelProps["defines/COMPONENT_COUNT"] = ceedComponentCount;
+      kernelProps["defines/ELEMENT_SIZE"]    = ceedElementSize;
+      kernelProps["defines/TILE_SIZE"]       = 64;
+      kernelProps["defines/USES_INDICES"]    = usesIndices();
       kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;
       kernelProps["defines/NOT_STRIDED"]     = StrideType::NOT_STRIDED;
       kernelProps["defines/BACKEND_STRIDES"] = StrideType::BACKEND_STRIDES;
@@ -318,9 +316,8 @@ namespace ceed {
       kernelProps["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
 
       if (rIsTransposed) {
-        ::occa::kernel applyTranspose = applyTransposeKernelBuilder.build(
-          getDevice(),
-          kernelProps
+        ::occa::kernel applyTranspose = applyTransposeKernelBuilder.getOrBuildKernel(
+          ::occa::scope({}, kernelProps)
         );
 
         applyTranspose(ceedElementCount,
@@ -330,9 +327,8 @@ namespace ceed {
                        u.getConstKernelArg(),
                        v.getKernelArg());
       } else {
-        ::occa::kernel apply = applyKernelBuilder.build(
-          getDevice(),
-          kernelProps
+        ::occa::kernel apply = applyKernelBuilder.getOrBuildKernel(
+          scope
         );
 
         apply(ceedElementCount,

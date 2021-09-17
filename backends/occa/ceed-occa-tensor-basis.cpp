@@ -90,21 +90,14 @@ namespace ceed {
         kernelSource += cpuKernelSources[dim - 1];
       }
 
-      ::occa::json kernelProps;
-      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-      kernelProps["defines/Q1D"] = Q1D;
-      kernelProps["defines/P1D"] = P1D;
-      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
-
-      interpKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "interp", kernelProps
+      interpKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "interp"
       );
-      gradKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "grad"  , kernelProps
+      gradKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "grad"
       );
-      weightKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "weight", kernelProps
+      weightKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "weight"
       );
     }
 
@@ -234,21 +227,30 @@ namespace ceed {
     ::occa::kernel TensorBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                    const bool transpose) {
       ::occa::json kernelProps;
+      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+      kernelProps["defines/Q1D"] = Q1D;
+      kernelProps["defines/P1D"] = P1D;
+      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
       kernelProps["defines/TRANSPOSE"] = transpose;
 
-      return kernelBuilder.build(getDevice(), kernelProps);
+      return kernelBuilder.getOrBuildKernel(::occa::scope({}, kernelProps));
     }
 
     ::occa::kernel TensorBasis::buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                    const bool transpose,
                                                    const int elementsPerBlock) {
-
       ::occa::json kernelProps;
+      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+      kernelProps["defines/Q1D"] = Q1D;
+      kernelProps["defines/P1D"] = P1D;
+      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
       kernelProps["defines/TRANSPOSE"]          = transpose;
       kernelProps["defines/MAX_PQ"]             = Q1D > P1D ? Q1D : P1D;
       kernelProps["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlock;
 
-      return kernelBuilder.build(getDevice(), kernelProps);
+      return kernelBuilder.getOrBuildKernel(::occa::scope({}, kernelProps));
     }
 
     int TensorBasis::apply(const CeedInt elementCount,

@@ -62,23 +62,14 @@ namespace ceed {
         kernelSource += occa_simplex_basis_cpu_kernel_source;
       }
 
-      ::occa::json kernelProps;
-      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-      kernelProps["defines/DIM"] = dim;
-      kernelProps["defines/Q"] = Q;
-      kernelProps["defines/P"] = P;
-      kernelProps["defines/MAX_PQ"] = P > Q ? P : Q;
-      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
-
-      interpKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "interp", kernelProps
+      interpKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "interp"
       );
-      gradKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "grad"  , kernelProps
+      gradKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "grad" 
       );
-      weightKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "weight", kernelProps
+      weightKernelBuilder = ::occa::kernelBuilder(
+        kernelSource, "weight"
       );
     }
 
@@ -164,18 +155,32 @@ namespace ceed {
     ::occa::kernel SimplexBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                     const bool transpose) {
       ::occa::json kernelProps;
+      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+      kernelProps["defines/DIM"] = dim;
+      kernelProps["defines/Q"] = Q;
+      kernelProps["defines/P"] = P;
+      kernelProps["defines/MAX_PQ"] = P > Q ? P : Q;
+      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
       kernelProps["defines/TRANSPOSE"] = transpose;
 
-      return kernelBuilder.build(getDevice(), kernelProps);
+      return kernelBuilder.getOrBuildKernel(::occa::scope({}, kernelProps));
     }
 
     ::occa::kernel SimplexBasis::buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
                                                     const bool transpose) {
       ::occa::json kernelProps;
+      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+      kernelProps["defines/DIM"] = dim;
+      kernelProps["defines/Q"] = Q;
+      kernelProps["defines/P"] = P;
+      kernelProps["defines/MAX_PQ"] = P > Q ? P : Q;
+      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
       kernelProps["defines/TRANSPOSE"]          = transpose;
       kernelProps["defines/ELEMENTS_PER_BLOCK"] = Q <= 1024 ? (1024 / Q) : 1;
 
-      return kernelBuilder.build(getDevice(), kernelProps);
+      return kernelBuilder.getOrBuildKernel(::occa::scope({}, kernelProps));
     }
 
     int SimplexBasis::apply(const CeedInt elementCount,
