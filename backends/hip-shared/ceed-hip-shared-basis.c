@@ -14,7 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <hip/hip_runtime.h>
+#include <stddef.h>
 #include "ceed-hip-shared.h"
+#include "../hip/ceed-hip.h"
 #include "../hip/ceed-hip-compile.h"
 
 //------------------------------------------------------------------------------
@@ -29,6 +34,15 @@ static const char *kernelsShared = QUOTE(
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
   for (int i = 0; i < P1D; i++)
     r_V[i] += r_U[i];
+}
+
+//------------------------------------------------------------------------------
+// Load matrices for basis actions
+//------------------------------------------------------------------------------
+inline __device__ void loadMatrix(const CeedScalar* d_B, CeedScalar* B) {
+  CeedInt tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
+  for (CeedInt i = tid; i < P1D*Q1D; i += blockDim.x*blockDim.y*blockDim.z)
+    B[i] = d_B[i];
 }
 
 //------------------------------------------------------------------------------
@@ -111,7 +125,7 @@ inline __device__ void ContractTransposeX1d(CeedScalar *slice, const int tidx,
 // 1D interpolate to quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void interp1d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B,
+                                const CeedScalar *s_B,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
@@ -122,17 +136,16 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
   const int tidy = threadIdx.y;
   const int tidz = threadIdx.z;
 
-
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for (int comp = 0; comp < BASIS_NCOMP; comp++) {
       if (!transpose) {
         readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
-        ContractX1d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+        ContractX1d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
         writeQuads1d(elem, tidx, tidy, comp, 0, nelem, r_V, d_V);
       } else {
         readQuads1d(elem, tidx, tidy, tidz, comp, 0, nelem, d_U, slice);
-        ContractTransposeX1d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+        ContractTransposeX1d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
         writeDofs1d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
     }
@@ -143,7 +156,7 @@ inline __device__ void interp1d(const CeedInt nelem, const int transpose,
 // 1D derivatives at quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void grad1d(const CeedInt nelem, const int transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *s_B, const CeedScalar *s_G,
                               const CeedScalar *__restrict__ d_U,
                               CeedScalar *__restrict__ d_V,
                               CeedScalar *slice) {
@@ -160,13 +173,13 @@ inline __device__ void grad1d(const CeedInt nelem, const int transpose,
     for(int comp = 0; comp < BASIS_NCOMP; comp++) {
       if (!transpose) {
         readDofs1d(elem, tidx, tidy, tidz, comp, nelem, d_U, slice);
-        ContractX1d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
+        ContractX1d(slice, tidx, tidy, tidz, r_U, s_G, r_V);
         dim = 0;
         writeQuads1d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
       } else {
         dim = 0;
         readQuads1d(elem, tidx, tidy, tidz, comp, dim, nelem, d_U, slice);
-        ContractTransposeX1d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
+        ContractTransposeX1d(slice, tidx, tidy, tidz, r_U, s_G, r_V);
         writeDofs1d(elem, tidx, tidy, comp, nelem, r_V, d_V);
       }
     }
@@ -303,7 +316,7 @@ inline __device__ void ContractTransposeX2d(CeedScalar *slice, const int tidx,
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void interp2d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B,
+                                const CeedScalar *s_B,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
@@ -324,13 +337,13 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
     r_t = 0.0;
     if (!transpose) {
       readDofs2d(elem, tidx, tidy, comp, nelem, d_U, r_V);
-      ContractX2d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractY2d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+      ContractX2d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractY2d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
       writeQuads2d(elem, tidx, tidy, comp, 0, nelem, r_V, d_V);
     } else {
       readQuads2d(elem, tidx, tidy, comp, 0, nelem, d_U, r_V);
-      ContractTransposeY2d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+      ContractTransposeY2d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
       writeDofs2d(elem, tidx, tidy, comp, nelem, r_V, d_V);
     }
   }
@@ -340,7 +353,7 @@ inline __device__ void interp2d(const CeedInt nelem, const int transpose,
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void grad2d(const CeedInt nelem, const int transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *s_B, const CeedScalar *s_G,
                               const CeedScalar *__restrict__ d_U,
                               CeedScalar *__restrict__ d_V, CeedScalar *slice) {
   CeedScalar r_U;
@@ -359,23 +372,23 @@ inline __device__ void grad2d(const CeedInt nelem, const int transpose,
        elem += gridDim.x*elemsPerBlock) {
     if (!transpose) {
       readDofs2d(elem, tidx, tidy, comp, nelem, d_U, r_U);
-      ContractX2d(slice, tidx, tidy, tidz, r_U, c_G, r_t);
-      ContractY2d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+      ContractX2d(slice, tidx, tidy, tidz, r_U, s_G, r_t);
+      ContractY2d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
       dim = 0;
       writeQuads2d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
-      ContractX2d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
-      ContractY2d(slice, tidx, tidy, tidz, r_t, c_G, r_V);
+      ContractX2d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
+      ContractY2d(slice, tidx, tidy, tidz, r_t, s_G, r_V);
       dim = 1;
       writeQuads2d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
     } else {
       dim = 0;
       readQuads2d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-      ContractTransposeY2d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
-      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, c_G, r_V);
+      ContractTransposeY2d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
+      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, s_G, r_V);
       dim = 1;
       readQuads2d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-      ContractTransposeY2d(slice, tidx, tidy, tidz, r_U, c_G, r_t);
-      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, c_B, r_U);
+      ContractTransposeY2d(slice, tidx, tidy, tidz, r_U, s_G, r_t);
+      ContractTransposeX2d(slice, tidx, tidy, tidz, r_t, s_B, r_U);
       r_V += r_U;
       writeDofs2d(elem, tidx, tidy, comp, nelem, r_V, d_V);
     }
@@ -575,7 +588,7 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const int tidx,
 // 3D interpolate to quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void interp3d(const CeedInt nelem, const int transpose,
-                                const CeedScalar *c_B,
+                                const CeedScalar *s_B,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V,
                                 CeedScalar *slice) {
@@ -597,15 +610,15 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
     }
     if (!transpose) {
       readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_V);
-      ContractX3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractY3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
-      ContractZ3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+      ContractX3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractY3d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
+      ContractZ3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
       writeQuads3d(elem, tidx, tidy, comp, 0, nelem, r_t, d_V);
     } else {
       readQuads3d(elem, tidx, tidy, comp, 0, nelem, d_U, r_V);
-      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
-      ContractTransposeX3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
+      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
+      ContractTransposeX3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
       writeDofs3d(elem, tidx, tidy, comp, nelem, r_t, d_V);
     }
   }
@@ -615,7 +628,7 @@ inline __device__ void interp3d(const CeedInt nelem, const int transpose,
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
 inline __device__ void grad3d(const CeedInt nelem, const int transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *s_B, const CeedScalar *s_G,
                               const CeedScalar *__restrict__ d_U,
                               CeedScalar *__restrict__ d_V,
                               CeedScalar *slice) {
@@ -641,38 +654,38 @@ inline __device__ void grad3d(const CeedInt nelem, const int transpose,
     }
     if (!transpose) {
       readDofs3d(elem, tidx, tidy, comp, nelem, d_U, r_U);
-      ContractX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
-      ContractY3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractZ3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+      ContractX3d(slice, tidx, tidy, tidz, r_U, s_G, r_V);
+      ContractY3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractZ3d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
       dim = 0;
       writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
-      ContractX3d(slice, tidx, tidy, tidz, r_U, c_B, r_V);
-      ContractY3d(slice, tidx, tidy, tidz, r_V, c_G, r_t);
-      ContractZ3d(slice, tidx, tidy, tidz, r_t, c_B, r_V);
+      ContractX3d(slice, tidx, tidy, tidz, r_U, s_B, r_V);
+      ContractY3d(slice, tidx, tidy, tidz, r_V, s_G, r_t);
+      ContractZ3d(slice, tidx, tidy, tidz, r_t, s_B, r_V);
       dim = 1;
       writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
-      ContractX3d(slice, tidx, tidy, tidz, r_U, c_B, r_V);
-      ContractY3d(slice, tidx, tidy, tidz, r_V, c_B, r_t);
-      ContractZ3d(slice, tidx, tidy, tidz, r_t, c_G, r_V);
+      ContractX3d(slice, tidx, tidy, tidz, r_U, s_B, r_V);
+      ContractY3d(slice, tidx, tidy, tidz, r_V, s_B, r_t);
+      ContractZ3d(slice, tidx, tidy, tidz, r_t, s_G, r_V);
       dim = 2;
       writeQuads3d(elem, tidx, tidy, comp, dim, nelem, r_V, d_V);
     } else {
       dim = 0;
       readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
-      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_U);
-      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_G, r_V);
+      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
+      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, s_B, r_U);
+      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, s_G, r_V);
       dim = 1;
       readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
-      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_G, r_U);
-      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
+      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
+      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, s_G, r_U);
+      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
       add(r_V, r_t);
       dim = 2;
       readQuads3d(elem, tidx, tidy, comp, dim, nelem, d_U, r_U);
-      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, c_G, r_t);
-      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, c_B, r_U);
-      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, c_B, r_t);
+      ContractTransposeZ3d(slice, tidx, tidy, tidz, r_U, s_G, r_t);
+      ContractTransposeY3d(slice, tidx, tidy, tidz, r_t, s_B, r_U);
+      ContractTransposeX3d(slice, tidx, tidy, tidz, r_U, s_B, r_t);
       add(r_V, r_t);
       writeDofs3d(elem, tidx, tidy, comp, nelem, r_V, d_V);
     }
@@ -694,7 +707,6 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
   }
 }
 
-
 //------------------------------------------------------------------------------
 // Basis kernels
 //------------------------------------------------------------------------------
@@ -704,16 +716,22 @@ __device__ void weight3d(const CeedInt nelem, const CeedScalar *qweight1d,
 //------------------------------------------------------------------------------
 extern "C" __launch_bounds__(INTERP_BLKSIZE) __global__ void interp(
                                   const CeedInt nelem, const int transpose,
-                                  const CeedScalar *c_B,
+                                  CeedScalar *d_interp1d,
                                   const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
-  HIP_DYNAMIC_SHARED( double, slice)
+
+  HIP_DYNAMIC_SHARED( CeedScalar, slice)
+  // load interp1d into shared memory
+  __shared__ CeedScalar s_B[P1D*Q1D];
+  loadMatrix(d_interp1d, s_B); 
+  __syncthreads();
+
   if (BASIS_DIM == 1) {
-    interp1d(nelem, transpose, c_B, d_U, d_V, slice);
+    interp1d(nelem, transpose, s_B, d_U, d_V, slice);
   } else if (BASIS_DIM == 2) {
-    interp2d(nelem, transpose, c_B, d_U, d_V, slice);
+    interp2d(nelem, transpose, s_B, d_U, d_V, slice);
   } else if (BASIS_DIM == 3) {
-    interp3d(nelem, transpose, c_B, d_U, d_V, slice);
+    interp3d(nelem, transpose, s_B, d_U, d_V, slice);
   }
 }
 
@@ -722,16 +740,23 @@ extern "C" __launch_bounds__(INTERP_BLKSIZE) __global__ void interp(
 //------------------------------------------------------------------------------
 extern "C" __launch_bounds__(GRAD_BLKSIZE) __global__ void grad(const CeedInt nelem,
                                 const int transpose,
-                                const CeedScalar *c_B, const CeedScalar *c_G,
+                                CeedScalar *d_interp1d, CeedScalar *d_grad1d,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  HIP_DYNAMIC_SHARED( double, slice)
+  HIP_DYNAMIC_SHARED( CeedScalar, slice)
+  // load interp1d and grad1d into shared memory
+  __shared__ CeedScalar s_B[P1D*Q1D];
+  loadMatrix(d_interp1d, s_B); 
+  __shared__ CeedScalar s_G[P1D*Q1D];
+  loadMatrix(d_grad1d, s_G); 
+  __syncthreads();
+
   if (BASIS_DIM == 1) {
-    grad1d(nelem, transpose, c_B, c_G, d_U, d_V, slice);
+    grad1d(nelem, transpose, s_B, s_G, d_U, d_V, slice);
   } else if (BASIS_DIM == 2) {
-    grad2d(nelem, transpose, c_B, c_G, d_U, d_V, slice);
+    grad2d(nelem, transpose, s_B, s_G, d_U, d_V, slice);
   } else if (BASIS_DIM == 3) {
-    grad3d(nelem, transpose, c_B, c_G, d_U, d_V, slice);
+    grad3d(nelem, transpose, s_B, s_G, d_U, d_V, slice);
   }
 }
 
@@ -821,7 +846,7 @@ static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P1d,
   }
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -833,29 +858,29 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                     CeedVector v) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  Ceed_Hip_shared *ceed_Hip;
-  CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
+  Ceed_Hip *ceed_Hip;
+  CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedBasis_Hip_shared *data;
-  CeedBasisGetData(basis, &data); CeedChk(ierr);
+  CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   CeedInt dim, ncomp;
-  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
 
   // Read vectors
   const CeedScalar *d_u;
   CeedScalar *d_v;
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
 
   // Clear v for transpose mode
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
-    ierr = CeedVectorGetLength(v, &length); CeedChk(ierr);
-    ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar)); CeedChk(ierr);
+    ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
+    ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar)); CeedChkBackend(ierr);
   }
 
   // Apply basis operation
@@ -863,12 +888,10 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
   case CEED_EVAL_INTERP: {
     CeedInt P1d, Q1d;
     CeedInt blksize = data->blksizes[0];
-    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
     CeedInt thread1d = CeedIntMax(Q1d, P1d);
-    ierr = CeedHipInitInterp(data->d_interp1d, P1d, Q1d, &data->c_B);
-    CeedChk(ierr);
-    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
+    void *interpargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d,
                           &d_u, &d_v
                          };
     if (dim == 1) {
@@ -879,7 +902,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->interp, grid, thread1d, 1,
                                        elemsPerBlock, sharedMem,
-                                       interpargs); CeedChk(ierr);
+                                       interpargs); CeedChkBackend(ierr);
     } else if (dim == 2) {
       // Check if required threads is small enough to do multiple elems
       const CeedInt elemsPerBlock = CeedIntMax(blksize/(thread1d*thread1d*ncomp), 1);
@@ -888,7 +911,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->interp, grid, thread1d, thread1d,
                                        ncomp*elemsPerBlock, sharedMem,
-                                       interpargs); CeedChk(ierr);
+                                       interpargs); CeedChkBackend(ierr);
     } else if (dim == 3) {
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
@@ -896,20 +919,17 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->interp, grid, thread1d, thread1d,
                                        ncomp*elemsPerBlock, sharedMem,
-                                       interpargs); CeedChk(ierr);
+                                       interpargs); CeedChkBackend(ierr);
     }
   } break;
   case CEED_EVAL_GRAD: {
     CeedInt P1d, Q1d;
     CeedInt blksize = data->blksizes[1];
-    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
     CeedInt thread1d = CeedIntMax(Q1d, P1d);
-    ierr = CeedHipInitInterpGrad(data->d_interp1d, data->d_grad1d, P1d,
-                                 Q1d, &data->c_B, &data->c_G);
-    CeedChk(ierr);
-    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->c_B,
-                        &data->c_G, &d_u, &d_v
+    void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d,
+                        &data->d_grad1d, &d_u, &d_v
                        };
     if (dim == 1) {
       CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
@@ -919,7 +939,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->grad, grid, thread1d, 1,
                                        elemsPerBlock, sharedMem, gradargs);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
     } else if (dim == 2) {
       // Check if required threads is small enough to do multiple elems
       const CeedInt elemsPerBlock = CeedIntMax(blksize/(thread1d*thread1d*ncomp), 1);
@@ -928,7 +948,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->grad, grid, thread1d, thread1d,
                                        ncomp*elemsPerBlock, sharedMem,
-                                       gradargs); CeedChk(ierr);
+                                       gradargs); CeedChkBackend(ierr);
     } else if (dim == 3) {
       CeedInt elemsPerBlock = 1;
       CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
@@ -936,13 +956,13 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
       CeedInt sharedMem = ncomp*elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
       ierr = CeedRunKernelDimSharedHip(ceed, data->grad, grid, thread1d, thread1d,
                                        ncomp*elemsPerBlock, sharedMem,
-                                       gradargs); CeedChk(ierr);
+                                       gradargs); CeedChkBackend(ierr);
     }
   } break;
   case CEED_EVAL_WEIGHT: {
     CeedInt Q1d;
     CeedInt blksize = data->blksizes[2];
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
     if (dim == 1) {
       const CeedInt optElems = blksize/Q1d;
@@ -951,7 +971,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       ierr = CeedRunKernelDimHip(ceed, data->weight, gridsize, Q1d,
                                  elemsPerBlock, 1, weightargs);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
     } else if (dim == 2) {
       const CeedInt optElems = blksize/(Q1d*Q1d);
       const CeedInt elemsPerBlock = optElems>0?optElems:1;
@@ -959,34 +979,34 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
                                  nelem/elemsPerBlock*elemsPerBlock<nelem)? 1 : 0 );
       ierr = CeedRunKernelDimHip(ceed, data->weight, gridsize, Q1d, Q1d,
                                  elemsPerBlock, weightargs);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
     } else if (dim == 3) {
       const CeedInt gridsize = nelem;
       ierr = CeedRunKernelDimHip(ceed, data->weight, gridsize, Q1d, Q1d, Q1d,
                                  weightargs);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
     }
   } break;
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   // Evaluate the curl to/from the quadrature points
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
 
   // Restore vectors
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
-  return 0;
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -995,10 +1015,10 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt nelem,
 static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   CeedBasis_Hip_shared *data;
-  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
 
   CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
@@ -1007,9 +1027,9 @@ static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
   ierr = hipFree(data->d_grad1d); CeedChk_Hip(ceed, ierr);
   ierr = hipFree(data->d_collograd1d); CeedChk_Hip(ceed, ierr);
 
-  ierr = CeedFree(&data); CeedChk(ierr);
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1023,9 +1043,9 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                        CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   CeedBasis_Hip_shared *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
   // Copy basis data to GPU
   const CeedInt qBytes = Q1d * sizeof(CeedScalar);
@@ -1046,20 +1066,20 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   data->d_collograd1d = NULL;
   if (dim == 3 && Q1d >= P1d) {
     CeedScalar *collograd1d;
-    ierr = CeedMalloc(Q1d*Q1d, &collograd1d); CeedChk(ierr);
-    ierr = CeedBasisGetCollocatedGrad(basis, collograd1d); CeedChk(ierr);
+    ierr = CeedMalloc(Q1d*Q1d, &collograd1d); CeedChkBackend(ierr);
+    ierr = CeedBasisGetCollocatedGrad(basis, collograd1d); CeedChkBackend(ierr);
     ierr = hipMalloc((void **)&data->d_collograd1d, qBytes * Q1d);
     CeedChk_Hip(ceed, ierr);
     ierr = hipMemcpy(data->d_collograd1d, collograd1d, qBytes * Q1d,
                      hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
-    ierr = CeedFree(&collograd1d); CeedChk(ierr);
+    ierr = CeedFree(&collograd1d); CeedChkBackend(ierr);
   }
 
   // Set number of threads per block for basis kernels
   CeedInt ncomp;
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
   ierr = ComputeBasisThreadBlockSizes(dim, P1d, Q1d, ncomp, data->blksizes);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
   // Compile basis kernels
   ierr = CeedCompileHip(ceed, kernelsShared, &data->module, 11,
@@ -1075,22 +1095,22 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                         "INTERP_BLKSIZE", data->blksizes[0],
                         "GRAD_BLKSIZE", data->blksizes[1],
                         "WEIGHT_BLKSIZE", data->blksizes[2]
-                       ); CeedChk(ierr);
+                       ); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "grad", &data->grad);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "weight", &data->weight);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
-  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApplyTensor_Hip_shared);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroy_Hip_shared); CeedChk(ierr);
-  return 0;
+                                CeedBasisDestroy_Hip_shared); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

@@ -24,7 +24,7 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations when reference coordinates have a different
 //   dimension than the one of physical coordinates
@@ -48,14 +48,14 @@
 //   (by chain rule)
 //   dx_i/dX_j [3 * 2] = dx_i/dxx_k [3 * 3] * dxx_k/dX_j [3 * 2]
 //
-// modJ is given by the magnitude of the cross product of the columns of dx_i/dX_j
+// mod_J is given by the magnitude of the cross product of the columns of dx_i/dX_j
 //
-// The quadrature data is stored in the array qdata.
+// The quadrature data is stored in the array q_data.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
 //
-// qdata[0]: modJ * w
+// q_data[0]: mod_J * w
 //
 // We use the Moore–Penrose (left) pseudoinverse of dx_i/dX_j, to compute dX_i/dx_j (and its transpose),
 //   needed to properly compute integrals of the form: int( gradv gradu )
@@ -68,16 +68,14 @@
 //
 // Stored: g^{ij} (in Voigt convention) in
 //
-//   qdata[1:3]: [dXdxdXdxT00 dXdxdXdxT01]
+//   q_data[1:3]: [dXdxdXdxT00 dXdxdXdxT01]
 //               [dXdxdXdxT01 dXdxdXdxT11]
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   const CeedScalar *X = in[0], *J = in[1], *w = in[2];
-  CeedScalar *qdata = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -103,21 +101,21 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     // Setup
     // x = xx (xx^T xx)^{-1/2}
     // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
-    const CeedScalar modxxsq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
-    CeedScalar xxsq[3][3];
+    const CeedScalar mod_xx_sq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
+    CeedScalar xx_sq[3][3];
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
-        xxsq[j][k] = xx[j]*xx[k] / (sqrt(modxxsq) * modxxsq);
+        xx_sq[j][k] = xx[j]*xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
 
-    const CeedScalar dxdxx[3][3] = {{1./sqrt(modxxsq) - xxsq[0][0],
-                                     -xxsq[0][1],
-                                     -xxsq[0][2]},
-                                    {-xxsq[1][0],
-                                     1./sqrt(modxxsq) - xxsq[1][1],
-                                     -xxsq[1][2]},
-                                    {-xxsq[2][0],
-                                     -xxsq[2][1],
-                                     1./sqrt(modxxsq) - xxsq[2][2]}
+    const CeedScalar dxdxx[3][3] = {{1./sqrt(mod_xx_sq) - xx_sq[0][0],
+                                     -xx_sq[0][1],
+                                     -xx_sq[0][2]},
+                                    {-xx_sq[1][0],
+                                     1./sqrt(mod_xx_sq) - xx_sq[1][1],
+                                     -xx_sq[1][2]},
+                                    {-xx_sq[2][0],
+                                     -xx_sq[2][1],
+                                     1./sqrt(mod_xx_sq) - xx_sq[2][2]}
                                    };
 
     CeedScalar dxdX[3][2];
@@ -135,10 +133,10 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                            };
 
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar modJ = sqrt(J[0]*J[0]+J[1]*J[1]+J[2]*J[2]);
+    const CeedScalar mod_J = sqrt(J[0]*J[0]+J[1]*J[1]+J[2]*J[2]);
 
-    // Interp-to-Interp qdata
-    qdata[i+Q*0] = modJ * w[i];
+    // Interp-to-Interp q_data
+    q_data[i+Q*0] = mod_J * w[i];
 
     // dxdX_k,j * dxdX_j,k
     CeedScalar dxdXTdxdX[2][2];
@@ -153,32 +151,30 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
 
     // Compute inverse of dxdXTdxdX, which is the 2x2 contravariant metric tensor g^{ij}
-    CeedScalar dxdXTdxdXinv[2][2];
-    dxdXTdxdXinv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
-    dxdXTdxdXinv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;
-    dxdXTdxdXinv[1][0] = -dxdXTdxdX[1][0] / detdxdXTdxdX;
-    dxdXTdxdXinv[1][1] =  dxdXTdxdX[0][0] / detdxdXTdxdX;
+    CeedScalar dxdXTdxdX_inv[2][2];
+    dxdXTdxdX_inv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
+    dxdXTdxdX_inv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;
+    dxdXTdxdX_inv[1][0] = -dxdXTdxdX[1][0] / detdxdXTdxdX;
+    dxdXTdxdX_inv[1][1] =  dxdXTdxdX[0][0] / detdxdXTdxdX;
 
     // Stored in Voigt convention
-    qdata[i+Q*1] = dxdXTdxdXinv[0][0];
-    qdata[i+Q*2] = dxdXTdxdXinv[1][1];
-    qdata[i+Q*3] = dxdXTdxdXinv[0][1];
+    q_data[i+Q*1] = dxdXTdxdX_inv[0][0];
+    q_data[i+Q*2] = dxdXTdxdX_inv[1][1];
+    q_data[i+Q*3] = dxdXTdxdX_inv[0][1];
   } // End of Quadrature Point Loop
 
   // Return
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *X = in[0], *qdata = in[1];
+  const CeedScalar *X = in[0], *q_data = in[1];
   // Outputs
   CeedScalar *true_soln = out[0], *rhs = out[1];
 
@@ -202,30 +198,28 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
 
     true_soln[i+Q*0] = sin(lambda) * cos(theta);
 
-    rhs[i+Q*0] = qdata[i+Q*0] * 2 * sin(lambda)*cos(theta) / (R*R);
+    rhs[i+Q*0] = q_data[i+Q*0] * 2 * sin(lambda)*cos(theta) / (R*R);
 
   } // End of Quadrature Point Loop
 
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the diffusion operator for a scalar field.
 //
 // Inputs:
 //   ug     - Input vector gradient at quadrature points
-//   qdata  - Geometric factors
+//   q_data  - Geometric factors
 //
 // Output:
 //   vg     - Output vector (test functions) gradient at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar *ug = in[0], *qdata = in[1];
+  const CeedScalar *ug = in[0], *q_data = in[1];
   // Outputs
   CeedScalar *vg = out[0];
 
@@ -233,22 +227,22 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar du[2]           =  {ug[i+Q*0],
-                                         ug[i+Q*1]
-                                        };
-    // Read qdata
-    const CeedScalar wdetJ           =   qdata[i+Q*0];
-    // -- Grad-to-Grad qdata
+    const CeedScalar du[2]            =  {ug[i+Q*0],
+                                          ug[i+Q*1]
+                                         };
+    // Read q_data
+    const CeedScalar w_det_J          =   q_data[i+Q*0];
+    // -- Grad-to-Grad q_data
     // ---- dXdx_j,k * dXdx_k,j
-    const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+Q*1],
-                                         qdata[i+Q*3]},
-                                        {qdata[i+Q*3],
-                                         qdata[i+Q*2]}
-                                       };
+    const CeedScalar dXdxdXdx_T[2][2] = {{q_data[i+Q*1],
+                                          q_data[i+Q*3]},
+                                         {q_data[i+Q*3],
+                                          q_data[i+Q*2]}
+                                        };
 
     for (int j=0; j<2; j++) // j = direction of vg
-      vg[i+j*Q] = wdetJ * (du[0] * dXdxdXdxT[0][j] +
-                           du[1] * dXdxdXdxT[1][j]);
+      vg[i+j*Q] = w_det_J * (du[0] * dXdxdXdx_T[0][j] +
+                             du[1] * dXdxdXdx_T[1][j]);
 
   } // End of Quadrature Point Loop
 

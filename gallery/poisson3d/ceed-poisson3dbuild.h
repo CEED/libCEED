@@ -25,15 +25,15 @@
 CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
-  // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
+  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
 
   // in[0] is Jacobians with shape [3, nc=3, Q]
   // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *qw = in[1];
+  const CeedScalar *J = in[0], *w = in[1];
 
   // out[0] is qdata, size (Q)
-  CeedScalar *qd = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD
@@ -48,7 +48,7 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
                   J[i+Q*((j+1)%3+3*((k+2)%3))]*J[i+Q*((j+2)%3+3*((k+1)%3))];
 
     // Compute quadrature weight / det(J)
-    const CeedScalar w = qw[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
+    const CeedScalar qw = w[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
                                   J[i+Q*2]*A[2][2]);
 
     // Compute geometric factors
@@ -56,15 +56,15 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
     // 0 5 4
     // 5 1 3
     // 4 3 2
-    qd[i+Q*0] = w * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-    qd[i+Q*1] = w * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-    qd[i+Q*2] = w * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
-    qd[i+Q*3] = w * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-    qd[i+Q*4] = w * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-    qd[i+Q*5] = w * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
+    q_data[i+Q*0] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
+    q_data[i+Q*1] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
+    q_data[i+Q*2] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+    q_data[i+Q*3] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
+    q_data[i+Q*4] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
+    q_data[i+Q*5] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
   } // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 #endif // poisson3dbuild_h

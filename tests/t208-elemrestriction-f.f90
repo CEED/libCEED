@@ -1,20 +1,24 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
       integer ceed,err
       integer x,y
-      integer i,r
+      integer r
+      integer i,j,k
 
-      integer ne
-      parameter(ne=8)
-      integer blksize
-      parameter(blksize=5)
+      integer ne,elemsize,nb,blksize
+      parameter(ne=8,elemsize=2,nb=2,blksize=5)
+      integer ind(elemsize*ne)
+      integer layout(3)
+      integer blk,elem,indx
 
-      integer*4 ind(2*ne)
       real*8 a(ne+1)
-      integer*8 aoffset
+      real*8 yy(nb*blksize*elemsize)
+      real*8 xx(ne+1)
+      real*8 diff
+      integer*8 aoffset,xoffset,yoffset
 
       character arg*32
 
@@ -34,29 +38,57 @@
         ind(2*i-1)=i-1
         ind(2*i  )=i
       enddo
-
-      call ceedelemrestrictioncreateblocked(ceed,ne,2,blksize,1,1,ne+1,&
+      call ceedelemrestrictioncreateblocked(ceed,ne,elemsize,blksize,1,1,ne+1,&
      & ceed_mem_host,ceed_use_pointer,ind,r,err)
+  
+      call ceedvectorcreate(ceed,blksize*elemsize,y,err);
+      call ceedvectorsetvalue(y,0.d0,err)
 
-      call ceedvectorcreate(ceed,blksize*2,y,err);
-      call ceedvectorsetvalue(y,0.d0,err);
-
-!    No Transpose
-      call ceedelemrestrictionapplyblock(r,1,ceed_notranspose,&
-     & x,y,ceed_request_immediate,err)
-      call ceedvectorview(y,err)
-
-!    Transpose
-      call ceedvectorgetarray(x,ceed_mem_host,a,aoffset,err)
-      do i=1,ne+1
-        a(aoffset+i)=0.0
+!     NoTranspose
+      call ceedelemrestrictionapplyblock(r,1,ceed_notranspose,x,y,&
+     & ceed_request_immediate,err)
+      call ceedvectorgetarrayread(y,ceed_mem_host,yy,yoffset,err)
+      call ceedelemrestrictiongetelayout(r,layout,err)
+      do i=0,elemsize-1
+        do j=0,0
+          do k=blksize,ne-1
+            blk = k/blksize
+            elem = mod(k,blksize)
+            indx = (i*blksize+elem)*layout(1)+j*layout(2)*blksize+blk*layout(3)*blksize-&
+     & blksize*elemsize
+            diff=yy(yoffset+indx+1)
+            diff=diff-a(ind(k*elemsize+i+1)+1)
+            if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
+             write(*,*) 'Error in restricted array y(',i,')(',j,')(',k,')=',&
+     &         yy(yoffset+indx+1)
+! LCOV_EXCL_STOP
+            endif
+          enddo
+        enddo
       enddo
-      call ceedvectorrestorearray(x,a,aoffset,err)
-      
-      call ceedelemrestrictionapplyblock(r,1,ceed_transpose,&
-     & y,x,ceed_request_immediate,err)
+      call ceedvectorrestorearrayread(y,yy,yoffset,err)
 
-      call ceedvectorview(x,err)
+!     Transpose
+      call ceedvectorsetvalue(x,0.d0,err)
+      call ceedelemrestrictionapplyblock(r,1,ceed_transpose,y,x,&
+     & ceed_request_immediate,err)
+      call ceedvectorgetarrayread(x,ceed_mem_host,xx,xoffset,err)
+      do i=blksize+1,ne+1
+        diff=xx(xoffset+i)
+        if (i > blksize+1 .and. i < ne+1) then
+          diff=diff-2*(10+i-1)
+        else
+          diff=diff-(10+i-1)
+        endif
+        if (abs(diff) > 1.0D-15) then
+! LCOV_EXCL_START
+         write(*,*) 'Error in restricted array x(',i,')=',&
+     &         xx(xoffset+i)
+! LCOV_EXCL_STOP
+        endif
+      enddo
+      call ceedvectorrestorearrayread(x,xx,xoffset,err)
 
       call ceedvectordestroy(x,err)
       call ceedvectordestroy(y,err)

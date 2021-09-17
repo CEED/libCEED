@@ -20,7 +20,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     class Basis : public CeedObject {
@@ -36,6 +35,9 @@ namespace ceed {
       Basis();
 
       virtual ~Basis();
+
+      static Basis* getBasis(CeedBasis basis,
+                             const bool assertValid = true);
 
       static Basis* from(CeedBasis basis);
       static Basis* from(CeedOperatorField operatorField);

@@ -14,9 +14,11 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <string.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <iostream>
 #include <sstream>
+#include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 
@@ -50,18 +52,16 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   using std::ostringstream;
   using std::string;
   CeedQFunction_Hip *data;
-  ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChk(ierr);
+  ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
   // QFunction is built
   if (!data->qFunctionSource)
-    return 0;
+    return CEED_ERROR_SUCCESS;
   
   // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChk(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
-  CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, &numinputfields, &qfinputfields, &numoutputfields, &qfoutputfields);
+  CeedChkBackend(ierr);
 
   // Build strings for final kernel
   string qFunction(data->qFunctionSource);
@@ -73,8 +73,10 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "\n#define CeedPragmaSIMD\n";
-  code << "\n#define CEED_Q_VLA 1\n\n";
+  code << "#define CEED_QFUNCTION_HELPER inline __device__ __forceinline__\n";
+  code << "#define CeedPragmaSIMD\n";
+  code << "#define CEED_ERROR_SUCCESS 0\n";
+  code << "#define CEED_Q_VLA 1\n\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;\n";
   code << qReadWriteS;
   code << qFunction;
@@ -83,7 +85,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChkBackend(ierr);
     code << "  const CeedInt size_in_"<<i<<" = "<<size<<";\n";
     code << "  CeedScalar r_q"<<i<<"[size_in_"<<i<<"];\n";
   }
@@ -91,7 +93,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Outputs
   for (CeedInt i = 0; i < numoutputfields; i++) {
     code << "// Output field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChk(ierr);
+    ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChkBackend(ierr);
     code << "  const CeedInt size_out_"<<i<<" = "<<size<<";\n";
     code << "  CeedScalar r_qq"<<i<<"[size_out_"<<i<<"];\n";
   }
@@ -133,12 +135,12 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
  
   // Compile kernel
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 0);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, kernelName.c_str(), &data->qFunction);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
 
   // Cleanup
-  ierr = CeedFree(&data->qFunctionSource); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

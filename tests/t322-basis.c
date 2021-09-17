@@ -5,7 +5,7 @@
 #include <math.h>
 #include "t320-basis.h"
 
-double feval(double x1, double x2) {
+CeedScalar feval(CeedScalar x1, CeedScalar x2) {
   return x1*x1 + x2*x2 + x1*x2 + 1;
 }
 
@@ -14,18 +14,18 @@ int main(int argc, char **argv) {
   CeedVector In, Out, Weights;
   const CeedInt P = 6, Q = 4, dim = 2;
   CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
+  CeedScalar q_ref[dim*Q], q_weight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
   CeedScalar xr[] = {0., 0.5, 1., 0., 0.5, 0., 0., 0., 0., 0.5, 0.5, 1.};
   const CeedScalar *out, *weights;
   CeedScalar in[P], sum;
 
-  buildmats(qref, qweight, interp, grad);
+  buildmats(q_ref, q_weight, interp, grad);
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
-                    qweight, &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+                    q_weight, &b);
 
   // Interpolate function to quadrature points
   for (int i=0; i<P; i++)
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   sum = 0;
   for (int i=0; i<Q; i++)
     sum += out[i]*weights[i];
-  if (fabs(sum - 17./24.) > 1E-10)
+  if (fabs(sum - 17./24.) > 100.*CEED_EPSILON)
     // LCOV_EXCL_START
     printf("%f != %f\n", sum, 17./24.);
   // LCOV_EXCL_STOP

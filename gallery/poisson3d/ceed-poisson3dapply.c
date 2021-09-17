@@ -14,8 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <string.h>
-#include "ceed-backend.h"
 #include "ceed-poisson3dapply.h"
 
 /**
@@ -29,7 +30,8 @@ static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested,
   const char *name = "Poisson3DApply";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "QFunction '%s' does not match requested name: %s",
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunction '%s' does not match requested name: %s",
                      name, requested);
   // LCOV_EXCL_STOP
 
@@ -40,7 +42,7 @@ static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

@@ -13,7 +13,8 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
-#include <ceed.h>
+
+#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
 
 //------------------------------------------------------------------------------
@@ -64,5 +65,86 @@ extern "C" int CeedDeviceReciprocal_Hip(CeedScalar* d_array, CeedInt length) {
   if (bsize * gridsize < vecsize)
     gridsize += 1;
   hipLaunchKernelGGL(rcpValueK, dim3(gridsize), dim3(bsize), 0, 0, d_array, length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Kernel for scale
+//------------------------------------------------------------------------------
+__global__ static void scaleValueK(CeedScalar * __restrict__ x, CeedScalar alpha,
+    CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  x[idx] *= alpha;
+}
+
+//------------------------------------------------------------------------------
+// Compute x = alpha x on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha,
+    CeedInt length) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  hipLaunchKernelGGL(scaleValueK, dim3(gridsize), dim3(bsize), 0, 0, x_array, alpha,
+                     length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Kernel for axpy
+//------------------------------------------------------------------------------
+__global__ static void axpyValueK(CeedScalar * __restrict__ y, CeedScalar alpha,
+    CeedScalar * __restrict__ x, CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  y[idx] += alpha * x[idx];
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + y on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha,
+    CeedScalar *x_array, CeedInt length) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  hipLaunchKernelGGL(axpyValueK, dim3(gridsize), dim3(bsize), 0, 0, y_array, alpha,
+                     x_array, length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Kernel for pointwise mult
+//------------------------------------------------------------------------------
+__global__ static void pointwiseMultValueK(CeedScalar * __restrict__ w,
+    CeedScalar * x, CeedScalar * __restrict__ y, CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size)
+    return;
+  w[idx] = x[idx] * y[idx];
+}
+
+//------------------------------------------------------------------------------
+// Compute the pointwise multiplication w = x .* y on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array,
+    CeedScalar *y_array, CeedInt length) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  hipLaunchKernelGGL(pointwiseMultValueK, dim3(gridsize), dim3(bsize), 0, 0, w_array,
+                     x_array, y_array, length);
   return 0;
 }

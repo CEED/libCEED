@@ -37,6 +37,10 @@ dist
 __pycache__/
 .ipynb_checkpoints/
 
+# Rust
+/target/
+Cargo.lock
+
 # Documentation
 xml/*
 doc/html

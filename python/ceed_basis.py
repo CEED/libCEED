@@ -18,7 +18,7 @@ from _ceed_cffi import ffi, lib
 import tempfile
 import numpy as np
 from abc import ABC
-from .ceed_constants import TRANSPOSE, NOTRANSPOSE
+from .ceed_constants import TRANSPOSE, NOTRANSPOSE, scalar_types
 
 # ------------------------------------------------------------------------------
 
@@ -114,177 +114,6 @@ class Basis(ABC):
 
         return q_pointer[0]
 
-    # Gauss quadrature
-    @staticmethod
-    def gauss_quadrature(q):
-        """Construct a Gauss-Legendre quadrature.
-
-           Args:
-             Q: number of quadrature points (integrates polynomials of
-                  degree 2*Q-1 exactly)
-
-           Returns:
-             (qref1d, qweight1d): array of length Q to hold the abscissa on [-1, 1]
-                                    and array of length Q to hold the weights"""
-
-        # Setup arguments
-        qref1d = np.empty(q, dtype="float64")
-        qweight1d = np.empty(q, dtype="float64")
-
-        qref1d_pointer = ffi.new("CeedScalar *")
-        qref1d_pointer = ffi.cast(
-            "CeedScalar *",
-            qref1d.__array_interface__['data'][0])
-
-        qweight1d_pointer = ffi.new("CeedScalar *")
-        qweight1d_pointer = ffi.cast(
-            "CeedScalar *",
-            qweight1d.__array_interface__['data'][0])
-
-        # libCEED call
-        err_code = lib.CeedGaussQuadrature(q, qref1d_pointer, qweight1d_pointer)
-        self._ceed._check_error(err_code)
-
-        return qref1d, qweight1d
-
-    # Lobatto quadrature
-    @staticmethod
-    def lobatto_quadrature(q):
-        """Construct a Gauss-Legendre-Lobatto quadrature.
-
-           Args:
-             q: number of quadrature points (integrates polynomials of
-                  degree 2*Q-3 exactly)
-
-           Returns:
-             (qref1d, qweight1d): array of length Q to hold the abscissa on [-1, 1]
-                                    and array of length Q to hold the weights"""
-
-        # Setup arguments
-        qref1d = np.empty(q, dtype="float64")
-        qref1d_pointer = ffi.new("CeedScalar *")
-        qref1d_pointer = ffi.cast(
-            "CeedScalar *",
-            qref1d.__array_interface__['data'][0])
-
-        qweight1d = np.empty(q, dtype="float64")
-        qweight1d_pointer = ffi.new("CeedScalar *")
-        qweight1d_pointer = ffi.cast(
-            "CeedScalar *",
-            qweight1d.__array_interface__['data'][0])
-
-        # libCEED call
-        err_code = lib.CeedLobattoQuadrature(
-            q, qref1d_pointer, qweight1d_pointer)
-        self._ceed._check_error(err_code)
-
-        return qref1d, qweight1d
-
-    # QR factorization
-    @staticmethod
-    def qr_factorization(ceed, mat, tau, m, n):
-        """Return QR Factorization of a matrix.
-
-           Args:
-             ceed: Ceed context currently in use
-             *mat: Numpy array holding the row-major matrix to be factorized in place
-             *tau: Numpy array to hold the vector of lengt m of scaling factors
-             m: number of rows
-             n: numbef of columns"""
-
-        # Setup arguments
-        mat_pointer = ffi.new("CeedScalar *")
-        mat_pointer = ffi.cast(
-            "CeedScalar *",
-            mat.__array_interface__['data'][0])
-
-        tau_pointer = ffi.new("CeedScalar *")
-        tau_pointer = ffi.cast(
-            "CeedScalar *",
-            tau.__array_interface__['data'][0])
-
-        # libCEED call
-        lib.CeedQRFactorization(
-            ceed._pointer[0], mat_pointer, tau_pointer, m, n)
-
-        return mat, tau
-
-    # Symmetric Schur decomposition
-    @staticmethod
-    def symmetric_schur_decomposition(ceed, mat, n):
-        """Return symmetric Schur decomposition of a symmetric matrix
-             via symmetric QR factorization.
-
-           Args:
-             ceed: Ceed context currently in use
-             *mat: Numpy array holding the row-major matrix to be factorized in place
-             n: number of rows/columns
-
-           Returns:
-             lbda: Numpy array of length n holding eigenvalues"""
-
-        # Setup arguments
-        mat_pointer = ffi.new("CeedScalar *")
-        mat_pointer = ffi.cast(
-            "CeedScalar *",
-            mat.__array_interface__['data'][0])
-
-        lbda = np.empty(n, dtype="float64")
-        l_pointer = ffi.new("CeedScalar *")
-        l_pointer = ffi.cast(
-            "CeedScalar *",
-            lbda.__array_interface__['data'][0])
-
-        # libCEED call
-        lib.CeedSymmetricSchurDecomposition(
-            ceed._pointer[0], mat_pointer, l_pointer, n)
-
-        return lbda
-
-    # Simultaneous Diagonalization
-    @staticmethod
-    def simultaneous_diagonalization(ceed, matA, matB, n):
-        """Return Simultaneous Diagonalization of two matrices.
-
-           Args:
-             ceed: Ceed context currently in use
-             *matA: Numpy array holding the row-major matrix to be factorized with
-                      eigenvalues
-             *matB: Numpy array holding the row-major matrix to be factorized to identity
-             n: number of rows/columns
-
-           Returns:
-             (x, lbda): Numpy array holding the row-major orthogonal matrix and
-                          Numpy array holding the vector of length n of generalized
-                          eigenvalues"""
-
-        # Setup arguments
-        matA_pointer = ffi.new("CeedScalar *")
-        matA_pointer = ffi.cast(
-            "CeedScalar *",
-            matA.__array_interface__['data'][0])
-
-        matB_pointer = ffi.new("CeedScalar *")
-        matB_pointer = ffi.cast(
-            "CeedScalar *",
-            matB.__array_interface__['data'][0])
-
-        lbda = np.empty(n, dtype="float64")
-        l_pointer = ffi.new("CeedScalar *")
-        l_pointer = ffi.cast(
-            "CeedScalar *",
-            lbda.__array_interface__['data'][0])
-
-        x = np.empty(n * n, dtype="float64")
-        x_pointer = ffi.new("CeedScalar *")
-        x_pointer = ffi.cast("CeedScalar *", x.__array_interface__['data'][0])
-
-        # libCEED call
-        lib.CeedSimultaneousDiagonalization(ceed._pointer[0], matA_pointer, matB_pointer,
-                                            x_pointer, l_pointer, n)
-
-        return x, lbda
-
     # Destructor
     def __del__(self):
         # libCEED call
@@ -334,8 +163,8 @@ class BasisTensorH1(Basis):
                                                qweight1d_pointer, self._pointer)
         self._ceed._check_error(err_code)
 
-    #
-    def get_interp1d(self):
+    # Get 1D interpolation matrix
+    def get_interp_1d(self):
         """Return 1D interpolation matrix of a tensor product Basis.
 
            Returns:
@@ -353,6 +182,95 @@ class BasisTensorH1(Basis):
 
         # libCEED call
         lib.CeedBasisGetInterp1D(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D gradient matrix
+    def get_grad_1d(self):
+        """Return 1D gradient matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nnodes_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumNodes1D(self._pointer[0], nnodes_pointer)
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nnodes_pointer[0] * nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetGrad1D(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype="float64")
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D quadrature weights matrix
+    def get_q_weight_1d(self):
+        """Return 1D quadrature weights matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetQWeights(self._pointer[0], array_pointer)
+
+        # Return array created from buffer
+        # Create buffer object from returned pointer
+        buff = ffi.buffer(
+            array_pointer[0],
+            ffi.sizeof("CeedScalar") *
+            length)
+        # return read only Numpy array
+        ret = np.frombuffer(buff, dtype="float64")
+        ret.flags['WRITEABLE'] = False
+        return ret
+
+    # Get 1D quadrature points matrix
+    def get_q_ref_1d(self):
+        """Return 1D quadrature points matrix of a tensor product Basis.
+
+           Returns:
+             *array: Numpy array"""
+
+        # Compute the length of the array
+        nqpts_pointer = ffi.new("CeedInt *")
+        lib.CeedBasisGetNumQuadraturePoints1D(self._pointer[0], nqpts_pointer)
+        length = nqpts_pointer[0]
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        lib.CeedBasisGetQRef(self._pointer[0], array_pointer)
 
         # Return array created from buffer
         # Create buffer object from returned pointer

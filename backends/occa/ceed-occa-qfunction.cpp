@@ -21,7 +21,6 @@
 #include "ceed-occa-qfunctioncontext.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     QFunction::QFunction(const std::string &source) :
@@ -32,17 +31,28 @@ namespace ceed {
       qFunctionName = source.substr(colonIndex + 1);
     }
 
-    QFunction* QFunction::from(CeedQFunction qf) {
+    QFunction* QFunction::getQFunction(CeedQFunction qf,
+                                       const bool assertValid) {
       if (!qf) {
         return NULL;
       }
 
       int ierr;
-      QFunction *qFunction;
+      QFunction *qFunction = NULL;
 
       ierr = CeedQFunctionGetData(qf, &qFunction);
       CeedOccaFromChk(ierr);
 
+      return qFunction;
+    }
+
+    QFunction* QFunction::from(CeedQFunction qf) {
+      QFunction *qFunction = getQFunction(qf);
+      if (!qFunction) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedQFunctionGetCeed(qf, &qFunction->ceed);
       CeedOccaFromChk(ierr);
 
@@ -84,10 +94,13 @@ namespace ceed {
       // CEED defines
       props["defines/CeedPragmaSIMD"] = "";
       props["defines/CEED_Q_VLA"] = "OCCA_Q";
+      props["defines/CEED_ERROR_SUCCESS"] = 0;
 
       std::stringstream ss;
       ss << "#define CEED_QFUNCTION(FUNC_NAME) \\" << std::endl
          << "  inline int FUNC_NAME"               << std::endl
+         << "#define CEED_QFUNCTION_HELPER \\"     << std::endl
+         << "  inline"                             << std::endl
          <<                                           std::endl
          << "#include \"" << filename << "\""      << std::endl;
 
@@ -113,7 +126,7 @@ namespace ceed {
         );
       }
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     std::string QFunction::getKernelSource(const std::string &kernelName,
@@ -213,7 +226,7 @@ namespace ceed {
 
       qFunctionKernel.run();
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-----------
@@ -237,7 +250,7 @@ namespace ceed {
       CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
       CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int QFunction::ceedApply(CeedQFunction qf, CeedInt Q,
@@ -251,8 +264,8 @@ namespace ceed {
     }
 
     int QFunction::ceedDestroy(CeedQFunction qf) {
-      delete QFunction::from(qf);
-      return 0;
+      delete getQFunction(qf, false);
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

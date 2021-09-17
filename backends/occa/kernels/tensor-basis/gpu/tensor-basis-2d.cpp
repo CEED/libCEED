@@ -16,7 +16,6 @@
 
 #include "../../kernel-defines.hpp"
 
-
 const char *occa_tensor_basis_2d_gpu_source = STRINGIFY_SOURCE(
 
 typedef       CeedScalar* dofArray       @dim(P1D, P1D, BASIS_COMPONENT_COUNT, elementCount);
@@ -28,7 +27,6 @@ typedef const CeedScalar* const_quadArray @dim(Q1D, Q1D, elementCount, BASIS_COM
 typedef       CeedScalar* sharedBufferArray  @dim(MAX_PQ, MAX_PQ, ELEMENTS_PER_BLOCK);
 typedef const CeedScalar* quadToDof          @dim(P1D, Q1D);
 typedef       CeedScalar* elementWeightArray @dim(Q1D, Q1D, elementCount);
-
 
 //---[ Utility Methods ]----------------
 inline void readDofs(const int element,

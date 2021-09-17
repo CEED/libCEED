@@ -30,28 +30,28 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
   const CeedScalar *J = in[0], *w = in[1];
-  CeedScalar *qdata = out[0];
+  CeedScalar *q_data = out[0];
 
   switch (bc->dim + 10*bc->space_dim) {
   case 11:
     CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
-      qdata[i] = w[i] / J[i];
+      q_data[i] = w[i] / J[i];
     } // End of Quadrature Point Loop
     break;
   case 22:
     CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
-      // J: 0 2   qdata: 0 2   adj(J):  J22 -J12
+      // J: 0 2   q_data: 0 2   adj(J):  J22 -J12
       //    1 3          2 1           -J21  J11
       const CeedScalar J11 = J[i+Q*0];
       const CeedScalar J21 = J[i+Q*1];
       const CeedScalar J12 = J[i+Q*2];
       const CeedScalar J22 = J[i+Q*3];
       const CeedScalar qw = w[i] / (J11*J22 - J21*J12);
-      qdata[i+Q*0] =   qw * (J12*J12 + J22*J22);
-      qdata[i+Q*1] =   qw * (J11*J11 + J21*J21);
-      qdata[i+Q*2] = - qw * (J11*J12 + J21*J22);
+      q_data[i+Q*0] =   qw * (J12*J12 + J22*J22);
+      q_data[i+Q*1] =   qw * (J11*J11 + J21*J21);
+      q_data[i+Q*2] = - qw * (J11*J12 + J21*J22);
     } // End of Quadrature Point Loop
     break;
   case 33:
@@ -75,12 +75,12 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
       // 0 5 4
       // 5 1 3
       // 4 3 2
-      qdata[i+Q*0] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-      qdata[i+Q*1] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-      qdata[i+Q*2] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
-      qdata[i+Q*3] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-      qdata[i+Q*4] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-      qdata[i+Q*5] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
+      q_data[i+Q*0] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
+      q_data[i+Q*1] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
+      q_data[i+Q*2] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
+      q_data[i+Q*3] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
+      q_data[i+Q*4] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
+      q_data[i+Q*5] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
     } // End of Quadrature Point Loop
     break;
   }
@@ -92,14 +92,14 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in, CeedScalar *const *out) {
   struct BuildContext *bc = (struct BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
-  const CeedScalar *ug = in[0], *qdata = in[1];
+  const CeedScalar *ug = in[0], *q_data = in[1];
   CeedScalar *vg = out[0];
 
   switch (bc->dim) {
   case 1:
     CeedPragmaSIMD
     for (CeedInt i=0; i<Q; i++) {
-      vg[i] = ug[i] * qdata[i];
+      vg[i] = ug[i] * q_data[i];
     } // End of Quadrature Point Loop
     break;
   case 2:
@@ -110,20 +110,20 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
                                         ug[i+Q*1]
                                        };
 
-      // Read qdata (dXdxdXdxT symmetric matrix)
+      // Read q_data (dXdxdXdx_T symmetric matrix)
       // Stored in Voigt convention
       // 0 2
       // 2 1
       // *INDENT-OFF*
-      const CeedScalar dXdxdXdxT[2][2] = {{qdata[i+0*Q],
-                                           qdata[i+2*Q]},
-                                          {qdata[i+2*Q],
-                                           qdata[i+1*Q]}};
+      const CeedScalar dXdxdXdx_T[2][2] = {{q_data[i+0*Q],
+                                            q_data[i+2*Q]},
+                                           {q_data[i+2*Q],
+                                            q_data[i+1*Q]}};
       // *INDENT-ON*
       // j = direction of vg
       for (int j=0; j<2; j++)
-        vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
-                     du[1] * dXdxdXdxT[1][j]);
+        vg[i+j*Q] = (du[0] * dXdxdXdx_T[0][j] +
+                     du[1] * dXdxdXdx_T[1][j]);
     } // End of Quadrature Point Loop
     break;
   case 3:
@@ -135,28 +135,28 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q,
                                         ug[i+Q*2]
                                        };
 
-      // Read qdata (dXdxdXdxT symmetric matrix)
+      // Read q_data (dXdxdXdx_T symmetric matrix)
       // Stored in Voigt convention
       // 0 5 4
       // 5 1 3
       // 4 3 2
       // *INDENT-OFF*
-      const CeedScalar dXdxdXdxT[3][3] = {{qdata[i+0*Q],
-                                           qdata[i+5*Q],
-                                           qdata[i+4*Q]},
-                                          {qdata[i+5*Q],
-                                           qdata[i+1*Q],
-                                           qdata[i+3*Q]},
-                                          {qdata[i+4*Q],
-                                           qdata[i+3*Q],
-                                           qdata[i+2*Q]}
-                                         };
+      const CeedScalar dXdxdXdx_T[3][3] = {{q_data[i+0*Q],
+                                            q_data[i+5*Q],
+                                            q_data[i+4*Q]},
+                                           {q_data[i+5*Q],
+                                            q_data[i+1*Q],
+                                            q_data[i+3*Q]},
+                                           {q_data[i+4*Q],
+                                            q_data[i+3*Q],
+                                            q_data[i+2*Q]}
+                                          };
       // *INDENT-ON*
       // j = direction of vg
       for (int j=0; j<3; j++)
-        vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] +
-                     du[1] * dXdxdXdxT[1][j] +
-                     du[2] * dXdxdXdxT[2][j]);
+        vg[i+j*Q] = (du[0] * dXdxdXdx_T[0][j] +
+                     du[1] * dXdxdXdx_T[1][j] +
+                     du[2] * dXdxdXdx_T[2][j]);
     } // End of Quadrature Point Loop
     break;
   }

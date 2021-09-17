@@ -15,13 +15,13 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed-impl.h>
-#include <ceed-cuda.h>
+#include <ceed/cuda.h>
 
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points
 
-  @param qf CeedQFunction to set device pointer
-  @param f  Device function pointer to evaluate action at quadrature points
+  @param qf  CeedQFunction to set device pointer
+  @param f   Device function pointer to evaluate action at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -36,5 +36,5 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
   } else {
     ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

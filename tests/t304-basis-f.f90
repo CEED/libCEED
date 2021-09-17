@@ -1,10 +1,10 @@
 !-----------------------------------------------------------------------
       program test
       implicit none
-      include 'ceedf.h'
+      include 'ceed/fortran.h'
 
-      integer ceed,err,i,j
-      real*8 a(16), lambda(4)
+      integer ceed,err,i,j,kk
+      real*8 a(16), q(16), qlambdaqt(16), lambda(4), sum
 
       character arg*32
 
@@ -16,27 +16,34 @@
       call getarg(1,arg)
 
       call ceedinit(trim(arg)//char(0),ceed,err)
-      call ceedsymmetricschurdecomposition(ceed,a,lambda,4,err);
-      write (*,*) 'Q:'
+
+     do i=0,3
+       do j=1,4
+         q(4*i+j)=a(4*i+j)
+       enddo
+     enddo
+
+      call ceedsymmetricschurdecomposition(ceed,q,lambda,4,err)
+
+!     Check A = Q lambda Q^T
+      do i=0,3
+        do j=0,3
+          sum = 0
+          do kk=0,3
+            sum=sum+q(kk+i*4+1)*lambda(kk+1)*q(kk+j*4+1)
+          enddo
+          qlambdaqt(j+i*4+1)=sum
+        enddo
+      enddo
       do i=0,3
         do j=1,4
-          if (abs(a(i*4+j))<1.0D-14) then
+          if (abs(a(i*4+j) - qlambdaqt(i*4+j))>1.0D-14) then
 ! LCOV_EXCL_START
-            a(i*4+j) = 0
+            write(*,'(A,I1,A,I1,A,F12.8,A,F12.8)') 'Error: [', &
+     &      i,',',j-1,'] ',a(i*4+j),'!=',qlambdaqt(i*4+j)
 ! LCOV_EXCL_STOP
           endif
         enddo
-        write(*,'(A,F12.8,F12.8,F12.8,F12.8)') '',&
-     &   a(i*4+1),a(i*4+2),a(i*4+3),a(i*4+4)
-      enddo
-      write (*,*) 'lambda:'
-      do i=1,4
-        if (abs(lambda(i))<1.0D-14) then
-! LCOV_EXCL_START
-          lambda(i) = 0
-! LCOV_EXCL_STOP
-        endif
-        write(*,'(A,F12.8)') '',lambda(i)
       enddo
 
       call ceeddestroy(ceed,err)

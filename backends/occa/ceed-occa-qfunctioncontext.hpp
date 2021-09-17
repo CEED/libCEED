@@ -19,7 +19,6 @@
 
 #include "ceed-occa-ceed-object.hpp"
 
-
 namespace ceed {
   namespace occa {
     class QFunctionContext : public CeedObject {
@@ -39,6 +38,9 @@ namespace ceed {
       QFunctionContext();
 
       ~QFunctionContext();
+
+      static QFunctionContext* getQFunctionContext(CeedQFunctionContext ctx,
+                                                   const bool assertValid = true);
 
       static QFunctionContext* from(CeedQFunctionContext ctx);
 
@@ -73,6 +75,8 @@ namespace ceed {
 
       int useDataPointer(CeedMemType mtype, void *data);
 
+      int takeData(CeedMemType mtype, void *data);
+
       int getData(CeedMemType mtype, void *data);
 
       int restoreData();
@@ -87,6 +91,9 @@ namespace ceed {
 
       static int ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
                              CeedCopyMode cmode, void *data);
+
+      static int ceedTakeData(CeedQFunctionContext ctx, CeedMemType mtype,
+                              void *data);
 
       static int ceedGetData(CeedQFunctionContext ctx, CeedMemType mtype,
                              void *data);

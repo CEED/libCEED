@@ -7,11 +7,17 @@ from junit_xml import TestCase, TestSuite
 
 def parse_testargs(file):
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
-        return sum([[line.split()[1:]] for line in open(file).readlines()
+        return sum([[[line.split()[1:], [line.split()[0].strip('//TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
                     if line.startswith('//TESTARGS')], [])
     elif os.path.splitext(file)[1] == '.usr':
-        return sum([[line.split()[1:]] for line in open(file).readlines()
+        return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
                     if line.startswith('C_TESTARGS')], [])
+    elif os.path.splitext(file)[1] in ['.f90']:
+        return sum([[[line.split()[1:], [line.split()[0].strip('C_TESTARGS(name=').strip(')')]]]
+                    for line in open(file).readlines()
+                    if line.startswith('! TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
 
 def get_source(test):
@@ -27,12 +33,16 @@ def get_source(test):
         return os.path.join('examples', 'solids', test[7:] + '.c')
     elif test.startswith('ex'):
         return os.path.join('examples', 'ceed', test + '.c')
+    elif test.endswith('-f'):
+        return os.path.join('tests', test + '.f90')
+    else:
+        return os.path.join('tests', test + '.c')
 
-def get_testargs(test):
-    source = get_source(test)
-    if source is None:
-        return [['{ceed_resource}']]
-    return parse_testargs(source)
+def get_testargs(source):
+    args = parse_testargs(source)
+    if not args:
+        return [(['{ceed_resource}'], [''])]
+    return args
 
 def check_required_failure(case, stderr, required):
     if required in stderr:
@@ -45,22 +55,25 @@ def contains_any(resource, substrings):
 
 def skip_rule(test, resource):
     return any((
-        test.startswith('fluids-') and contains_any(resource, ['occa', 'gpu']) and not contains_any(resource, ['/gpu/cuda/gen']),
+        test.startswith('fluids-') and contains_any(resource, ['occa', 'magma']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('t507') and contains_any(resource, ['occa']),
-        test.startswith('t318') and contains_any(resource, ['magma']),
-        test.startswith('t506') and contains_any(resource, ['magma']),
+        test.startswith('t318') and contains_any(resource, ['magma', '/gpu/cuda/ref']),
+        test.startswith('t506') and contains_any(resource, ['magma', '/gpu/cuda/shared']),
         ))
-        
+
 def run(test, backends):
     import subprocess
     import time
     import difflib
-    allargs = get_testargs(test)
+    source = get_source(test)
+    allargs = get_testargs(source)
 
     testcases = []
-    for args in allargs:
+    my_env = os.environ.copy()
+    my_env["CEED_ERROR_HANDLER"] = 'exit';
+    for args, name in allargs:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
             rargs[rargs.index('{ceed_resource}')] = ceed_resource
@@ -76,11 +89,13 @@ def run(test, backends):
                 start = time.time()
                 proc = subprocess.run(rargs,
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE,
+                                      env=my_env)
                 proc.stdout = proc.stdout.decode('utf-8')
                 proc.stderr = proc.stderr.decode('utf-8')
 
-                case = TestCase('{} {}'.format(test, ceed_resource),
+                case = TestCase('{} {} {}'.format(test, *name, ceed_resource),
+                                classname=os.path.dirname(source),
                                 elapsed_sec=time.time()-start,
                                 timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                                 stdout=proc.stdout,
@@ -94,8 +109,14 @@ def run(test, backends):
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
                 elif 'Can only provide to HOST memory' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
+                elif 'Test not implemented in single precision' in proc.stderr:
+                    case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
 
             if not case.is_skipped():
+                if test[:4] in 't006 t007'.split():
+                    check_required_failure(case, proc.stderr, 'No suitable backend:')
+                if test[:4] in 't008'.split():
+                    check_required_failure(case, proc.stderr, 'Available backend resources:')
                 if test[:4] in 't110 t111 t112 t113 t114'.split():
                     check_required_failure(case, proc.stderr, 'Cannot grant CeedVector array access')
                 if test[:4] in 't115'.split():
@@ -127,7 +148,7 @@ def run(test, backends):
                 elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
             testcases.append(case)
-        return TestSuite(test, testcases)
+    return TestSuite(test, testcases)
 
 if __name__ == '__main__':
     import argparse

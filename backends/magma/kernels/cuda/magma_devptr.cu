@@ -1,4 +1,4 @@
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include <magma.h>
 #include <cuda.h>
 #include <cuda_runtime.h>

@@ -16,9 +16,9 @@
 
 /// @file
 /// Mass operator example using MFEM
+
 #include <ceed.h>
 #include <mfem.hpp>
-
 #include "bp1.h"
 
 /// Wrapper for a mass CeedOperator as an mfem::Operator
@@ -69,29 +69,29 @@ class CeedMassOperator : public mfem::Operator {
     const mfem::FiniteElement *fe1d =
       fes->FEColl()->FiniteElementForGeometry(mfem::Geometry::SEGMENT);
     mfem::DenseMatrix shape1d(fe1d->GetDof(), ir.GetNPoints());
-    mfem::DenseMatrix grad1d(fe1d->GetDof(), ir.GetNPoints());
-    mfem::Vector qref1d(ir.GetNPoints()), qweight1d(ir.GetNPoints());
+    mfem::DenseMatrix grad_1d(fe1d->GetDof(), ir.GetNPoints());
+    mfem::Vector q_ref_1d(ir.GetNPoints()), q_weight_1d(ir.GetNPoints());
     mfem::Vector shape_i(shape1d.Height());
-    mfem::DenseMatrix grad_i(grad1d.Height(), 1);
+    mfem::DenseMatrix grad_i(grad_1d.Height(), 1);
     const mfem::H1_SegmentElement *h1_fe1d =
       dynamic_cast<const mfem::H1_SegmentElement *>(fe1d);
     MFEM_VERIFY(h1_fe1d, "invalid FE");
     const mfem::Array<int> &dof_map_1d = h1_fe1d->GetDofMap();
     for (int i = 0; i < ir.GetNPoints(); i++) {
       const mfem::IntegrationPoint &ip = ir.IntPoint(i);
-      qref1d(i) = ip.x;
-      qweight1d(i) = ip.weight;
+      q_ref_1d(i) = ip.x;
+      q_weight_1d(i) = ip.weight;
       fe1d->CalcShape(ip, shape_i);
       fe1d->CalcDShape(ip, grad_i);
       for (int j = 0; j < shape1d.Height(); j++) {
         shape1d(j,i) = shape_i(dof_map_1d[j]);
-        grad1d(j,i) = grad_i(dof_map_1d[j],0);
+        grad_1d(j,i) = grad_i(dof_map_1d[j],0);
       }
     }
     CeedBasisCreateTensorH1(ceed, mesh->Dimension(), fes->GetVDim(), order+1,
                             ir.GetNPoints(), shape1d.GetData(),
-                            grad1d.GetData(), qref1d.GetData(),
-                            qweight1d.GetData(), basis);
+                            grad_1d.GetData(), q_ref_1d.GetData(),
+                            q_weight_1d.GetData(), basis);
 
     const mfem::Table &el_dof = fes->GetElementToDofTable();
     mfem::Array<int> tp_el_dof(el_dof.Size_of_connections());
@@ -118,7 +118,7 @@ class CeedMassOperator : public mfem::Operator {
     const int ir_order = 2*(order + 2) - 1; // <-----
     const mfem::IntegrationRule &ir =
       mfem::IntRules.Get(mfem::Geometry::SEGMENT, ir_order);
-    CeedInt nelem = mesh->GetNE(), dim = mesh->SpaceDimension(),
+    CeedInt num_elem = mesh->GetNE(), dim = mesh->SpaceDimension(),
             ncompx = dim, nqpts;
 
     FESpace2Ceed(fes, ir, ceed, &basis, &restr);
@@ -129,14 +129,14 @@ class CeedMassOperator : public mfem::Operator {
     CeedBasisGetNumQuadraturePoints(basis, &nqpts);
 
     CeedInt strides[3] = {1, nqpts, nqpts};
-    CeedElemRestrictionCreateStrided(ceed, nelem, nqpts, 1, nqpts*nelem,
+    CeedElemRestrictionCreateStrided(ceed, num_elem, nqpts, 1, nqpts*num_elem,
                                      strides, &restr_i);
 
     CeedVectorCreate(ceed, mesh->GetNodes()->Size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER,
                        mesh->GetNodes()->GetData());
 
-    CeedVectorCreate(ceed, nelem*nqpts, &qdata);
+    CeedVectorCreate(ceed, num_elem*nqpts, &qdata);
 
     // Context data to be passed to the 'f_build_mass' Q-function.
     build_ctx_data.dim = mesh->Dimension();

@@ -8,15 +8,15 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedBasis b;
   CeedVector U, V;
-  CeedInt Q = 8, P = 2, ncomp = 1, dim = 3,
-          len = pow((double)(Q), dim);
+  CeedInt Q = 8, P = 2, num_comp = 1, dim = 3,
+          len = pow((CeedScalar)(Q), dim);
 
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, len,   &U);
   CeedVectorCreate(ceed, len+1, &V);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, ncomp, P, Q, CEED_GAUSS, &b);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P, Q, CEED_GAUSS, &b);
 
   // Basis apply will error because dimensions don't agree
   CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);

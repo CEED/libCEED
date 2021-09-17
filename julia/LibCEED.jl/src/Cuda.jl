@@ -1,8 +1,6 @@
 # COV_EXCL_START
 using .CUDA, Cassette
 
-cuda_is_loaded = true
-
 #! format: off
 const cudafuns = (
     :cos, :cospi, :sin, :sinpi, :tan,
@@ -76,9 +74,9 @@ function generate_kernel(qf_name, kf, dims_in, dims_out)
             args[i] = f_ins[i]
         else
             def_ins[i] =
-                :($(f_ins[i]) = LibCEED.MArray{Tuple{$(dims_in[i]...)},Float64}(undef))
+                :($(f_ins[i]) = LibCEED.MArray{Tuple{$(dims_in[i]...)},CeedScalar}(undef))
             f_ins_j[i] = :($(f_ins[i])[j])
-            args[i] = :(LibCEED.SArray{Tuple{$(dims_in[i]...)},Float64}($(f_ins[i])))
+            args[i] = :(LibCEED.SArray{Tuple{$(dims_in[i]...)},CeedScalar}($(f_ins[i])))
         end
     end
     for i = 1:noutputs
@@ -86,7 +84,7 @@ function generate_kernel(qf_name, kf, dims_in, dims_out)
     end
 
     def_outs = [
-        :($(f_outs[i]) = LibCEED.MArray{Tuple{$(dims_out[i]...)},Float64}(undef))
+        :($(f_outs[i]) = LibCEED.MArray{Tuple{$(dims_out[i]...)},CeedScalar}(undef))
         for i = 1:noutputs
     ]
 

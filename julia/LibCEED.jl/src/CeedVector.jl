@@ -1,4 +1,4 @@
-import LinearAlgebra: norm
+import LinearAlgebra: norm, axpy!
 
 abstract type AbstractCeedVector end
 
@@ -55,18 +55,18 @@ Base.size(v::CeedVector) = (length(Int, v),)
 Base.length(v::CeedVector) = length(Int, v)
 
 """
-    setvalue!(v::CeedVector, val::CeedScalar)
+    setvalue!(v::CeedVector, val::Real)
 
 Set the [`CeedVector`](@ref) to a constant value.
 """
-setvalue!(v::CeedVector, val::CeedScalar) = C.CeedVectorSetValue(v[], val)
+setvalue!(v::CeedVector, val::Real) = C.CeedVectorSetValue(v[], val)
 """
-    setindex!(v::CeedVector, val::CeedScalar)
+    setindex!(v::CeedVector, val::Real)
     v[] = val
 
 Set the [`CeedVector`](@ref) to a constant value, synonymous to [`setvalue!`](@ref).
 """
-Base.setindex!(v::CeedVector, val::CeedScalar) = setvalue!(v, val)
+Base.setindex!(v::CeedVector, val::Real) = setvalue!(v, val)
 
 """
     norm(v::CeedVector, ntype::NormType)
@@ -185,7 +185,7 @@ will be used. If the size is not specified, a flat vector will be assumed.
 # Examples
 Negate the contents of `CeedVector` `v`:
 ```
-@witharray v_arr=v v_arr *= -1.0
+@witharray v_arr=v v_arr .*= -1.0
 ```
 """
 macro witharray(assignment, args...)
@@ -305,4 +305,38 @@ function witharray_read(f, v::CeedVector, mtype::MemType=MEM_HOST)
         C.CeedVectorRestoreArrayRead(v[], arr_ref)
     end
     return res
+end
+
+"""
+    scale!(v::CeedVector, a::Real)
+
+Overwrite `v` with `a*v` for scalar `a`. Returns `v`.
+"""
+function scale!(v::CeedVector, a::Real)
+    C.CeedVectorScale(v[], a)
+    return v
+end
+
+"""
+    axpy!(a::Real, x::CeedVector, y::CeedVector)
+
+Overwrite `y` with `x*a + y`, where `a` is a scalar. Returns `y`.
+
+!!! warning "Different argument order"
+    In order to be consistent with `LinearAlgebra.axpy!`, the arguments are passed in order: `a`,
+    `x`, `y`. This is different than the order of arguments of the C function `CeedVectorAXPY`.
+"""
+function axpy!(a::Real, x::CeedVector, y::CeedVector)
+    C.CeedVectorAXPY(y[], a, x[])
+    return y
+end
+
+"""
+    pointwisemult!(w::CeedVector, x::CeedVector, y::CeedVector)
+
+Overwrite `w` with `x .* y`. Any subset of x, y, and w may be the same vector. Returns `w`.
+"""
+function pointwisemult!(w::CeedVector, x::CeedVector, y::CeedVector)
+    C.CeedVectorPointwiseMult(w[], x[], y[])
+    return w
 end

@@ -10,12 +10,12 @@ int main(int argc, char **argv) {
   CeedVector In, Out;
   const CeedInt P = 6, Q = 4, dim = 2;
   CeedBasis b;
-  CeedScalar qref[dim*Q], qweight[Q];
+  CeedScalar q_ref[dim*Q], q_weight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
   const CeedScalar *out;
   CeedScalar colsum[P];
 
-  buildmats(qref, qweight, interp, grad);
+  buildmats(q_ref, q_weight, interp, grad);
 
   CeedInit(argv[1], &ceed);
 
@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
-                    qweight, &b);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+                    q_weight, &b);
 
   CeedVectorCreate(ceed, Q*dim, &In);
   CeedVectorSetValue(In, 1);
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   // Check values at quadrature points
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
   for (int i=0; i<P; i++)
-    if (fabs(colsum[i] - out[i]) > 1E-14)
+    if (fabs(colsum[i] - out[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("[%d] %f != %f\n", i, out[i], colsum[i]);
   // LCOV_EXCL_STOP

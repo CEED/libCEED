@@ -87,7 +87,6 @@ Example usage:
   $this_file  --run petsc-bps.sh
 "
 
-
 function build_examples()
 {
    for example; do
@@ -100,7 +99,6 @@ function build_examples()
    done
 }
 
-
 function compose_mpi_run_command()
 {
    mpi_run="${mpiexec:-mpirun} ${mpiexec_opts}"
@@ -109,7 +107,6 @@ function compose_mpi_run_command()
       mpi_run+=" $profiler"
    fi
 }
-
 
 function quoted_echo()
 {
@@ -123,7 +120,6 @@ function quoted_echo()
    done
    printf "%s\n" "${string# }"
 }
-
 
 function set_num_nodes()
 {
@@ -142,7 +138,6 @@ function set_num_nodes()
    echo "... with $num_proc_node tasks per node ..." | tee -a $output_file
    echo | tee -a $output_file
 }
-
 
 ### Process command line parameters
 
@@ -211,7 +206,6 @@ esac
 shift
 done # while ...
 # Done processing command line parameters
-
 
 num_proc_list=(${num_proc_run:-4})
 num_proc_list_size=${#num_proc_list[@]}
@@ -342,7 +336,6 @@ $exit_cmd 0
 done ## Loop over $backend_list
 
 done ## Loop over $bp_list
-
 
 $exit_cmd 0
 

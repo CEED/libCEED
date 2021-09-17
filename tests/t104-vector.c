@@ -21,9 +21,9 @@ int main(int argc, char **argv) {
   b[3] = -3.14;
   CeedVectorRestoreArray(x, &b);
 
-  if (a[3] != -3.14)
+  if (a[3] != (CeedScalar)(-3.14))
     // LCOV_EXCL_START
-    printf("Error writing array a[3] = %f", (double)a[3]);
+    printf("Error writing array a[3] = %f", (CeedScalar)a[3]);
   // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&x);

@@ -1,5 +1,6 @@
 *.vtk
 *.vtu
+*.a
 /area
 /petsc-area
 /bps

@@ -39,7 +39,7 @@ function create_interior_qfunction(c::Ceed, f::UserQFunction; vlength=1)
     # COV_EXCL_START
     if !isnothing(f.cuf)
         C.CeedQFunctionSetCUDAUserFunction(ref[], f.cuf)
-    elseif iscuda(c) && !cuda_is_loaded
+    elseif iscuda(c) && !isdefined(@__MODULE__, :CUDA)
         error(
             string(
                 "In order to use user Q-functions with a CUDA backend, the CUDA.jl package ",
@@ -112,12 +112,9 @@ end
 function get_field_sizes(qf::AbstractQFunction)
     ninputs = Ref{CeedInt}()
     noutputs = Ref{CeedInt}()
-
-    C.CeedQFunctionGetNumArgs(qf[], ninputs, noutputs)
-
     inputs = Ref{Ptr{C.CeedQFunctionField}}()
     outputs = Ref{Ptr{C.CeedQFunctionField}}()
-    C.CeedQFunctionGetFields(qf[], inputs, outputs)
+    C.CeedQFunctionGetFields(qf[], ninputs, inputs, noutputs, outputs)
 
     input_sizes = zeros(CeedInt, ninputs[])
     output_sizes = zeros(CeedInt, noutputs[])

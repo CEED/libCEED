@@ -13,14 +13,15 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #ifndef _ceed_cuda_h
 #define _ceed_cuda_h
 
-#include <ceed-backend.h>
-#include <nvrtc.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <cublas_v2.h>
+#include <cuda.h>
+#include <nvrtc.h>
 
 #define CUDA_MAX_PATH 256
 
@@ -28,7 +29,7 @@
 do { \
   nvrtcResult result = x; \
   if (result != NVRTC_SUCCESS) \
-    return CeedError((ceed), (int)result, nvrtcGetErrorString(result)); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, nvrtcGetErrorString(result)); \
 } while (0)
 
 #define CeedChk_Cu(ceed, x) \
@@ -37,7 +38,7 @@ do { \
   if (result != CUDA_SUCCESS) { \
     const char *msg; \
     cuGetErrorName(result, &msg); \
-    return CeedError((ceed), (int)result, msg); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
   } \
 } while (0)
 
@@ -46,7 +47,7 @@ do { \
   cublasStatus_t result = x; \
   if (result != CUBLAS_STATUS_SUCCESS) { \
     const char *msg = cublasGetErrorName(result); \
-    return CeedError((ceed), (int)result, msg); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
    } \
 } while (0)
 
@@ -168,9 +169,9 @@ typedef struct {
 } CeedOperator_Cuda;
 
 typedef struct {
-  int optblocksize;
   int deviceId;
   cublasHandle_t cublasHandle;
+  struct cudaDeviceProp deviceProp;
 } Ceed_Cuda;
 
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
@@ -186,6 +187,9 @@ CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
 CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
                                   const int gridSize,
                                   const int blockSize, void **args);
+
+CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel,
+    size_t size, void **args);
 
 CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
                                      const int gridSize,

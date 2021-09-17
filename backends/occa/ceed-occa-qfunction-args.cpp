@@ -23,7 +23,6 @@ namespace ceed {
         _inputCount(0),
         _outputCount(0) {}
 
-
     QFunctionArgs::QFunctionArgs(CeedQFunction qf) :
         _isValid(false),
         _inputCount(0),
@@ -42,7 +41,7 @@ namespace ceed {
       ierr = CeedQFunctionGetNumArgs(qf, &_inputCount, &_outputCount);
       CeedOccaValidChk(_isValid, ierr);
 
-      ierr = CeedQFunctionGetFields(qf, &ceedInputFields, &ceedOutputFields);
+      ierr = CeedQFunctionGetFields(qf, NULL, &ceedInputFields, NULL, &ceedOutputFields);
       CeedOccaValidChk(_isValid, ierr);
 
       _isValid = true;
@@ -59,7 +58,6 @@ namespace ceed {
         _isValid &= field.isValid();
       }
     }
-
 
 
     bool QFunctionArgs::isValid() const {

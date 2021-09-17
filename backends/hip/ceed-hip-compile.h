@@ -13,11 +13,11 @@
 // the planning and preparation of a capable exascale ecosystem, including
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
+
 #ifndef _ceed_hip_compile_h
 #define _ceed_hip_compile_h
 
-#include <ceed.h>
-
+#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
 
 CEED_INTERN int CeedCompileHip(Ceed ceed, const char *source,
@@ -42,4 +42,4 @@ CEED_INTERN int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel,
     const int blockSizeY, const int blockSizeZ,
     const int sharedMemSize, void **args);
 
-#endif
+#endif // _ceed_hip_compile_h

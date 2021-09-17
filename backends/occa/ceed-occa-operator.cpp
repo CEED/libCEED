@@ -21,7 +21,6 @@
 #include "ceed-occa-gpu-operator.hpp"
 #include "ceed-occa-qfunction.hpp"
 
-
 namespace ceed {
   namespace occa {
     Operator::Operator() :
@@ -32,15 +31,30 @@ namespace ceed {
 
     Operator::~Operator() {}
 
-    Operator* Operator::from(CeedOperator op) {
+    Operator* Operator::getOperator(CeedOperator op,
+                                    const bool assertValid) {
       if (!op) {
         return NULL;
       }
 
       int ierr;
-      Operator *operator_;
+      Operator *operator_ = NULL;
 
-      ierr = CeedOperatorGetData(op, (void**) &operator_); CeedOccaFromChk(ierr);
+      ierr = CeedOperatorGetData(op, (void**) &operator_);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
+
+      return operator_;
+    }
+
+    Operator* Operator::from(CeedOperator op) {
+      Operator *operator_ = getOperator(op);
+      if (!operator_) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedOperatorGetCeed(op, &operator_->ceed); CeedOccaFromChk(ierr);
 
       operator_->qfunction = QFunction::from(op);
@@ -74,7 +88,7 @@ namespace ceed {
 
       applyAdd(in, out);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Virtual Methods ]------------
@@ -111,7 +125,7 @@ namespace ceed {
       CeedOccaRegisterFunction(op, "ApplyAdd", Operator::ceedApplyAdd);
       CeedOccaRegisterFunction(op, "Destroy", Operator::ceedDestroy);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     int Operator::ceedCreateComposite(CeedOperator op) {
@@ -122,9 +136,8 @@ namespace ceed {
       CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
       CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
-
 
     int Operator::ceedLinearAssembleQFunction(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction");
@@ -156,8 +169,8 @@ namespace ceed {
     }
 
     int Operator::ceedDestroy(CeedOperator op) {
-      delete Operator::from(op);
-      return 0;
+      delete getOperator(op, false);
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

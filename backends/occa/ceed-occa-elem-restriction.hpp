@@ -20,7 +20,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-vector.hpp"
 
-
 namespace ceed {
   namespace occa {
     enum StrideType {
@@ -76,6 +75,9 @@ namespace ceed {
       void setupTransposeIndices();
 
       void setupKernelBuilders();
+
+      static ElemRestriction* getElemRestriction(CeedElemRestriction r,
+                                                 const bool assertValid = true);
 
       static ElemRestriction* from(CeedElemRestriction r);
       static ElemRestriction* from(CeedOperatorField operatorField);

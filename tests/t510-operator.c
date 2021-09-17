@@ -9,65 +9,66 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedElemRestriction Erestrictx, Erestrictu, Erestrictui;
-  CeedBasis bx, bu;
+  CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_qd_i;
+  CeedBasis basis_x, basis_u;
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
-  CeedVector qdata, X, U, V;
+  CeedVector q_data, X, U, V;
   const CeedScalar *hv;
-  CeedInt nelem = 12, dim = 2, P = 6, Q = 4;
+  CeedInt num_elem = 12, dim = 2, P = 6, Q = 4;
   CeedInt nx = 3, ny = 2;
   CeedInt row, col, offset;
-  CeedInt Ndofs = (nx*2+1)*(ny*2+1), Nqpts = nelem*Q;
-  CeedInt indx[nelem*P];
-  CeedScalar x[dim*Ndofs];
-  CeedScalar qref[dim*Q], qweight[Q];
+  CeedInt num_dofs = (nx*2+1)*(ny*2+1), num_qpts = num_elem*Q;
+  CeedInt ind_x[num_elem*P];
+  CeedScalar x[dim*num_dofs];
+  CeedScalar q_ref[dim*Q], q_weight[Q];
   CeedScalar interp[P*Q], grad[dim*P*Q];
 
   CeedInit(argv[1], &ceed);
 
-  for (CeedInt i=0; i<Ndofs; i++) {
+  for (CeedInt i=0; i<num_dofs; i++) {
     x[i] = (1. / (nx*2)) * (CeedScalar) (i % (nx*2+1));
-    x[i+Ndofs] = (1. / (ny*2)) * (CeedScalar) (i / (nx*2+1));
+    x[i+num_dofs] = (1. / (ny*2)) * (CeedScalar) (i / (nx*2+1));
   }
-  for (CeedInt i=0; i<nelem/2; i++) {
+  for (CeedInt i=0; i<num_elem/2; i++) {
     col = i % nx;
     row = i / nx;
     offset = col*2 + row*(nx*2+1)*2;
 
-    indx[i*2*P +  0] =  2 + offset;
-    indx[i*2*P +  1] =  9 + offset;
-    indx[i*2*P +  2] = 16 + offset;
-    indx[i*2*P +  3] =  1 + offset;
-    indx[i*2*P +  4] =  8 + offset;
-    indx[i*2*P +  5] =  0 + offset;
+    ind_x[i*2*P +  0] =  2 + offset;
+    ind_x[i*2*P +  1] =  9 + offset;
+    ind_x[i*2*P +  2] = 16 + offset;
+    ind_x[i*2*P +  3] =  1 + offset;
+    ind_x[i*2*P +  4] =  8 + offset;
+    ind_x[i*2*P +  5] =  0 + offset;
 
-    indx[i*2*P +  6] = 14 + offset;
-    indx[i*2*P +  7] =  7 + offset;
-    indx[i*2*P +  8] =  0 + offset;
-    indx[i*2*P +  9] = 15 + offset;
-    indx[i*2*P + 10] =  8 + offset;
-    indx[i*2*P + 11] = 16 + offset;
+    ind_x[i*2*P +  6] = 14 + offset;
+    ind_x[i*2*P +  7] =  7 + offset;
+    ind_x[i*2*P +  8] =  0 + offset;
+    ind_x[i*2*P +  9] = 15 + offset;
+    ind_x[i*2*P + 10] =  8 + offset;
+    ind_x[i*2*P + 11] = 16 + offset;
   }
 
   // Restrictions
-  CeedElemRestrictionCreate(ceed, nelem, P, dim, Ndofs, dim*Ndofs, CEED_MEM_HOST,
-                            CEED_USE_POINTER, indx, &Erestrictx);
+  CeedElemRestrictionCreate(ceed, num_elem, P, dim, num_dofs, dim*num_dofs,
+                            CEED_MEM_HOST,
+                            CEED_USE_POINTER, ind_x, &elem_restr_x);
 
-  CeedElemRestrictionCreate(ceed, nelem, P, 1, 1, Ndofs, CEED_MEM_HOST,
-                            CEED_USE_POINTER, indx, &Erestrictu);
-  CeedInt stridesu[3] = {1, Q, Q};
-  CeedElemRestrictionCreateStrided(ceed, nelem, Q, 1, Nqpts, stridesu,
-                                   &Erestrictui);
+  CeedElemRestrictionCreate(ceed, num_elem, P, 1, 1, num_dofs, CEED_MEM_HOST,
+                            CEED_USE_POINTER, ind_x, &elem_restr_u);
+  CeedInt strides_qd[3] = {1, Q, Q};
+  CeedElemRestrictionCreateStrided(ceed, num_elem, Q, 1, num_qpts, strides_qd,
+                                   &elem_restr_qd_i);
 
   // Bases
-  buildmats(qref, qweight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P, Q, interp, grad, qref,
-                    qweight, &bx);
+  buildmats(q_ref, q_weight, interp, grad);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P, Q, interp, grad, q_ref,
+                    q_weight, &basis_x);
 
-  buildmats(qref, qweight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, qref,
-                    qweight, &bu);
+  buildmats(q_ref, q_weight, interp, grad);
+  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+                    q_weight, &basis_u);
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
@@ -87,32 +88,32 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_mass);
 
-  CeedVectorCreate(ceed, dim*Ndofs, &X);
+  CeedVectorCreate(ceed, dim*num_dofs, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-  CeedVectorCreate(ceed, Nqpts, &qdata);
+  CeedVectorCreate(ceed, num_qpts, &q_data);
 
-  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
+  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, basis_x,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "dx", Erestrictx, bx, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup, "rho", Erestrictui, CEED_BASIS_COLLOCATED,
+  CeedOperatorSetField(op_setup, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "rho", elem_restr_qd_i, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
 
-  CeedOperatorSetField(op_mass, "rho", Erestrictui, CEED_BASIS_COLLOCATED,
-                       qdata);
-  CeedOperatorSetField(op_mass, "u", Erestrictu, bu, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", Erestrictu, bu, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "rho", elem_restr_qd_i, CEED_BASIS_COLLOCATED,
+                       q_data);
+  CeedOperatorSetField(op_mass, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorApply(op_setup, X, qdata, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
 
-  CeedVectorCreate(ceed, Ndofs, &U);
+  CeedVectorCreate(ceed, num_dofs, &U);
   CeedVectorSetValue(U, 0.0);
-  CeedVectorCreate(ceed, Ndofs, &V);
+  CeedVectorCreate(ceed, num_dofs, &V);
 
   CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
-  for (CeedInt i=0; i<Ndofs; i++)
+  for (CeedInt i=0; i<num_dofs; i++)
     if (fabs(hv[i]) > 1e-14) printf("[%d] v %g != 0.0\n",i, hv[i]);
   CeedVectorRestoreArrayRead(V, &hv);
 
@@ -120,15 +121,15 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
-  CeedElemRestrictionDestroy(&Erestrictu);
-  CeedElemRestrictionDestroy(&Erestrictx);
-  CeedElemRestrictionDestroy(&Erestrictui);
-  CeedBasisDestroy(&bu);
-  CeedBasisDestroy(&bx);
+  CeedElemRestrictionDestroy(&elem_restr_u);
+  CeedElemRestrictionDestroy(&elem_restr_x);
+  CeedElemRestrictionDestroy(&elem_restr_qd_i);
+  CeedBasisDestroy(&basis_u);
+  CeedBasisDestroy(&basis_x);
   CeedVectorDestroy(&X);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);
-  CeedVectorDestroy(&qdata);
+  CeedVectorDestroy(&q_data);
   CeedDestroy(&ceed);
   return 0;
 }

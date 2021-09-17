@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, evaluation, and destruction of identity qfunction
-/// \test Test creation, evaluation, and destruction of identity qfunction
+/// Test creation, evaluation, and destruction of identity QFunction
+/// \test Test creation, evaluation, and destruction of identity QFunction
 #include <ceed.h>
 #include <math.h>
 

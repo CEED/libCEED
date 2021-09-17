@@ -20,7 +20,6 @@
 #include "ceed-occa-ceed-object.hpp"
 #include "ceed-occa-qfunction-args.hpp"
 
-
 namespace ceed {
   namespace occa {
     class QFunction : public CeedObject {
@@ -36,6 +35,9 @@ namespace ceed {
       QFunctionArgs args;
 
       QFunction(const std::string &source);
+
+      static QFunction* getQFunction(CeedQFunction qf,
+                                     const bool assertValid = true);
 
       static QFunction* from(CeedQFunction qf);
       static QFunction* from(CeedOperator op);

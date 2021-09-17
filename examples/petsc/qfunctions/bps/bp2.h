@@ -24,24 +24,18 @@
 #  include <math.h>
 #endif
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
                               const CeedScalar *const *in,
                               CeedScalar *const *out) {
-  const CeedScalar *x = in[0], *J = in[1], *w = in[2];
+  const CeedScalar *x = in[0], *w = in[1];
   CeedScalar *true_soln = out[0], *rhs = out[1];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar detJ = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-
     // Component 1
     true_soln[i+0*Q] =  sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
     // Component 2
@@ -50,7 +44,7 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
     true_soln[i+2*Q] = 3 * true_soln[i+0*Q];
 
     // Component 1
-    rhs[i+0*Q] = detJ * w[i] * true_soln[i+0*Q];
+    rhs[i+0*Q] = w[i] * true_soln[i+0*Q];
     // Component 2
     rhs[i+1*Q] = 2 * rhs[i+0*Q];
     // Component 3
@@ -59,34 +53,31 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q,
   return 0;
 }
 
-// *****************************************************************************
+// -----------------------------------------------------------------------------
 // This QFunction applies the mass operator for a vector field of 3 components.
 //
 // Inputs:
 //   u     - Input vector at quadrature points
-//   qdata - Geometric factors
+//   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test functions) at quadrature points
 //
-// *****************************************************************************
-
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *u = in[0], *qdata = in[1];
+  const CeedScalar *u = in[0], *q_data = in[1];
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar r = qdata[i];
     // Component 1
-    v[i+0*Q] = r * u[i+0*Q];
+    v[i+0*Q] = q_data[i] * u[i+0*Q];
     // Component 2
-    v[i+1*Q] = r * u[i+1*Q];
+    v[i+1*Q] = q_data[i] * u[i+1*Q];
     // Component 3
-    v[i+2*Q] = r * u[i+2*Q];
+    v[i+2*Q] = q_data[i] * u[i+2*Q];
   } // End of Quadrature Point Loop
   return 0;
 }

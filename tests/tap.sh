@@ -20,29 +20,41 @@ fi
 
 # for examples/ceed petsc*, mfem*, or ex* grep the code to fetch arguments from a TESTARGS line
 declare -a allargs
-declare -a suffices
+declare -a names
 if [ ${1::6} == "petsc-" ]; then
     allargs=$(grep -F //TESTARGS examples/petsc/${1:6}.c* | cut -d\  -f2- )
 elif [ ${1::5} == "mfem-" ]; then
     allargs=$(grep -F //TESTARGS examples/mfem/${1:5}.c* | cut -d\  -f2- )
 elif [ ${1::4} == "nek-" ]; then
-    # get all test configurations
     numconfig=$(grep -F C_TESTARGS examples/nek/bps/${1:4}.usr* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/nek/bps/${1:4}.usr*)")
+      # get all test configurations
       allargs+=("$(awk -v i="$i" '/C_TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/nek/bps/${1:4}.usr* | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "fluids-" ]; then
-    # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/fluids/${1:7}.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/fluids/${1:7}.c)")
+      # get all test configurations
       allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/fluids/${1:7}.c | cut -d\  -f2- )")
     done
 elif [ ${1::7} == "solids-" ]; then
-    allargs=$(grep -F //TESTARGS examples/solids/${1:7}.c* | cut -d\  -f2- )
+    numconfig=$(grep -F //TESTARGS examples/solids/${1:7}.c* | wc -l)
+    for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/solids/${1:7}.c)")
+      # get all test configurations
+      allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/solids/${1:7}.c | cut -d\  -f2- )")
+    done
 elif [ ${1::2} == "ex" ]; then
-    # get all test configurations
     numconfig=$(grep -F //TESTARGS examples/ceed/$1.c* | wc -l)
     for ((i=0;i<${numconfig};++i)); do
+      # get test name
+      names+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print substr($1,18,length($1)-19)}' examples/ceed/$1.c)")
+      # get all test configurations
       allargs+=("$(awk -v i="$i" '/\/\/TESTARGS/,/\n/{j++}j==i+1{print; exit}' examples/ceed/$1.c | cut -d\  -f2- )")
     done
 else
@@ -57,6 +69,9 @@ trap 'rm -f ${tmpfiles}' EXIT
 # test configurations loop
 for ((j=0;j<${#allargs[@]};++j)); do
 args=${allargs[$j]}
+if [ -n "${names[$j]}" ]; then
+    printf "# Test Name: ${names[$j]}\n"
+fi
 printf "# TESTARGS: $args\n"
 
 # backends loop
@@ -84,12 +99,11 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue;
     fi
 
-    # Navier-Stokes test problem too large for most CUDA backends
-    if [[ "$backend" = *gpu* && "$backend" != /gpu/cuda/gen && \
-            ( "$1" = fluids-* ) ]]; then
-        printf "ok $i0 # SKIP - test problem too large for $backend\n"
-        printf "ok $i1 # SKIP - test problem too large for $backend stdout\n"
-        printf "ok $i2 # SKIP - test problem too large for $backend stderr\n"
+    # Navier-Stokes test problem has too many components for MAGMA backends
+    if [[ "$backend" = *magma* && ( "$1" = fluids-* ) ]]; then
+        printf "ok $i0 # SKIP - backend basis kernel not available $backend\n"
+        printf "ok $i1 # SKIP - backend basis kernel not available $backend stdout\n"
+        printf "ok $i2 # SKIP - backend basis kernel not available $backend stderr\n"
         continue;
     fi
 
@@ -106,9 +120,27 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass test t215 on error
-    if grep -F -q -e 'access' ${output}.err \
-            && [[ "$1" = "t215"* ]] ; then
+    # grep to skip test if Device memory is not supported
+    if grep -F -q -e 'Can only provide to HOST memory' \
+            ${output}.err ; then
+        printf "ok $i0 # SKIP - not supported $1 $backend\n"
+        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass test t006, t007 on error
+    if grep -F -q -e 'No suitable backend:' ${output}.err \
+            && [[ "$1" = "t006"* || "$1" = "t007"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass test t008 on output in stderr
+    if grep -F -q -e 'Available backend resources:' ${output}.err \
+            && [[ "$1" = "t008"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
@@ -124,6 +156,24 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # grep to pass test t215 on error
+    if grep -F -q -e 'access' ${output}.err \
+            && [[ "$1" = "t215"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
+    # grep to pass tests t300 and t320 for single precision
+    if grep -F -q -e 'Test not implemented in single precision' ${output}.err \
+            && [[ "$1" = "t300"* || "$1" = "t320"* ]] ; then
+        printf "ok $i0 PASS - not implemented $1 $backend\n"
+        printf "ok $i1 PASS - not implemented $1 $backend stdout\n"
+        printf "ok $i2 PASS - not implemented $1 $backend stderr\n"
+        continue
+    fi
+
     # grep to pass test t303 on error
     if grep -F -q -e 'vectors incompatible' ${output}.err \
             && [[ "$1" = "t303"* ]] ; then
@@ -133,12 +183,12 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip test if Device memory is not supported
-    if grep -F -q -e 'Can only provide to HOST memory' \
-            ${output}.err ; then
-        printf "ok $i0 # SKIP - not supported $1 $backend\n"
-        printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - not supported $1 $backend stderr\n"
+    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
+    if [[ "$backend" = *magma* || "$backend" = *cuda/ref ]] \
+            && [[ "$1" = t318* ]] ; then
+        printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
+        printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
+        printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
         continue
     fi
 
@@ -151,12 +201,12 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
-    if [[ "$backend" = *magma* || "$backend" = *cuda/ref ]] \
-            && [[ "$1" = t318* ]] ; then
-        printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
-        printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
+    # grep to pass test t541 for single precision
+    if grep -F -q -e 'Test not implemented in single precision' ${output}.err \
+            && [[ "$1" = "t541"* ]] ; then
+        printf "ok $i0 PASS - not implemented $1 $backend\n"
+        printf "ok $i1 PASS - not implemented $1 $backend stdout\n"
+        printf "ok $i2 PASS - not implemented $1 $backend stderr\n"
         continue
     fi
 
@@ -170,7 +220,7 @@ for ((i=0;i<${#backends[@]};++i)); do
     if [ -f tests/output/$1.out ]; then
         if diff -u tests/output/$1.out ${output}.out > ${output}.diff; then
             printf "ok $i1 $1 $backend stdout\n"
-        else
+        else            
             printf "not ok $i1 $1 $backend stdout\n"
             while read line; do
                 printf "# ${line}\n"

@@ -38,7 +38,7 @@
 //   dXdx_i,j = Aij / detJ
 //
 // Stored: Aij / detJ
-//   in qdata[1:9] as
+//   in q_data[1:9] as
 //              [A11 A12 A13]
 //  (detJ^-1) * [A21 A22 A23]
 //              [A31 A32 A33]
@@ -52,7 +52,7 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                       (*w) = in[1];
 
      // Outputs
-     CeedScalar (*qdata)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+     CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
      // *INDENT-ON*
 
   CeedPragmaSIMD
@@ -80,85 +80,23 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
 
     // Qdata
-    // -- Interp-to-Interp qdata
-    qdata[0][i] = w[i] * detJ;
+    // -- Interp-to-Interp q_data
+    q_data[0][i] = w[i] * detJ;
 
-    // -- Interp-to-Grad qdata
+    // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    qdata[1][i] = A11 / detJ;
-    qdata[2][i] = A12 / detJ;
-    qdata[3][i] = A13 / detJ;
-    qdata[4][i] = A21 / detJ;
-    qdata[5][i] = A22 / detJ;
-    qdata[6][i] = A23 / detJ;
-    qdata[7][i] = A31 / detJ;
-    qdata[8][i] = A32 / detJ;
-    qdata[9][i] = A33 / detJ;
+    q_data[1][i] = A11 / detJ;
+    q_data[2][i] = A12 / detJ;
+    q_data[3][i] = A13 / detJ;
+    q_data[4][i] = A21 / detJ;
+    q_data[5][i] = A22 / detJ;
+    q_data[6][i] = A23 / detJ;
+    q_data[7][i] = A31 / detJ;
+    q_data[8][i] = A32 / detJ;
+    q_data[9][i] = A33 / detJ;
 
   } // End of Quadrature Point Loop
 
-  return 0;
-}
-// -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
-// This QFunction computes the surface integral of the user traction vector on
-//   the constrained faces.
-//
-// Reference (parent) 2D coordinates: X
-// Physical (current) 3D coordinates: x
-// Change of coordinate matrix:
-//   dxdX_{i,j} = dx_i/dX_j (indicial notation) [3 * 2]
-//
-// (J1,J2,J3) is given by the cross product of the columns of dxdX_{i,j}
-//
-// detJb is the magnitude of (J1,J2,J3)
-//
-// Computed:
-//   t * (w detJb)
-//
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q,
-                                 const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-        (*w) = in[1];
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-
-  // User stress tensor
-  const CeedScalar (*traction) = (const CeedScalar(*))ctx;
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // *INDENT-OFF*
-    const CeedScalar dxdX[3][2] = {{J[0][0][i],
-                                    J[1][0][i]},
-                                   {J[0][1][i],
-                                    J[1][1][i]},
-                                   {J[0][2][i],
-                                    J[1][2][i]}};
-    // *INDENT-ON*
-    // J1, J2, and J3 are given by the cross product of the columns of dxdX
-    const CeedScalar J1 = dxdX[1][0] * dxdX[2][1] - dxdX[2][0] * dxdX[1][1];
-    const CeedScalar J2 = dxdX[2][0] * dxdX[0][1] - dxdX[0][0] * dxdX[2][1];
-    const CeedScalar J3 = dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1];
-
-    // Qdata
-    // -- Interp-to-Interp qdata
-    CeedScalar wdetJb = w[i] * sqrt(J1 * J1 + J2 * J2 + J3 * J3);
-
-    // Traction surface integral
-    for (CeedInt j = 0; j < 3; j++)
-      v[j][i] = traction[j] * wdetJb;
-
-  } // End of Quadrature Point Loop
-
-  // Return
   return 0;
 }
 // -----------------------------------------------------------------------------

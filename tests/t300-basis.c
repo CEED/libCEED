@@ -9,6 +9,12 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
+  // Test skipped if using single precision
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "Test not implemented in single precision");
+  }
+
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 4, 4, CEED_GAUSS_LOBATTO, &b);
   CeedBasisView(b, stdout);
   CeedBasisDestroy(&b);

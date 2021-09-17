@@ -13,15 +13,16 @@ int main(int argc, char **argv) {
 
   CeedGetResource(ceed, &resource);
 
-  const size_t resourceLength = strlen(resource);
-  const bool isExactMatch = strcmp(resource, backend) == 0;
-  const bool isMatchWithQueryArguments = (
-      !isExactMatch
-      && memcmp(resource, backend, resourceLength) == 0
-      && backend[resourceLength] == ':'
-                                         );
+  const size_t resource_length = strlen(resource);
+  const bool is_exact_match = strcmp(resource, backend) == 0;
+  const bool is_match_with_query_arguments =
+    // LCOV_EXCL_START
+    !is_exact_match
+    && memcmp(resource, backend, resource_length) == 0
+    && backend[resource_length] == ':';
+  // LCOV_EXCL_STOP
 
-  if (!isExactMatch && !isMatchWithQueryArguments) {
+  if (!is_exact_match && !is_match_with_query_arguments) {
     // LCOV_EXCL_START
     return CeedError(ceed, 1, "Incorrect full resource name: %s != %s",
                      resource, backend);

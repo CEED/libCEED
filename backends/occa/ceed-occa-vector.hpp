@@ -19,7 +19,6 @@
 
 #include "ceed-occa-ceed-object.hpp"
 
-
 namespace ceed {
   namespace occa {
     class Vector : public CeedObject {
@@ -40,6 +39,9 @@ namespace ceed {
       Vector();
 
       ~Vector();
+
+      static Vector* getVector(CeedVector vec,
+                               const bool assertValid = true);
 
       static Vector* from(CeedVector vec);
 

@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <hip/hip_runtime.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 
@@ -249,8 +252,8 @@ extern "C" __global__ void interp(const CeedInt nelem, const int transpose,
                                   CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
-  const double *U;
-  double V;
+  const CeedScalar *U;
+  CeedScalar V;
   //TODO load B in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
@@ -284,20 +287,20 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
                                 CeedScalar *__restrict__ d_V) {
   const int tid = threadIdx.x;
 
-  const double *U;
+  const CeedScalar *U;
   //TODO load G in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem;
        elem += gridDim.x*blockDim.z) {
     for (int comp=0; comp<BASIS_NCOMP; comp++) {
       if (!transpose) { // run with Q threads
-        double V[BASIS_DIM];
+        CeedScalar V[BASIS_DIM];
         U = d_U + elem*P + comp*nelem*P;
         for (int dim = 0; dim < BASIS_DIM; dim++)
           V[dim] = 0.0;
 
         for (int i = 0; i < P; ++i) {
-          const double val = U[i];
+          const CeedScalar val = U[i];
           for(int dim = 0; dim < BASIS_DIM; dim++)
             V[dim] += d_G[i + tid*P + dim*P*Q]*val;
         }
@@ -305,7 +308,7 @@ extern "C" __global__ void grad(const CeedInt nelem, const int transpose,
           d_V[elem*Q + comp*nelem*Q + dim*BASIS_NCOMP*nelem*Q + tid] = V[dim];
         }
       } else { // run with P threads
-        double V = 0.0;
+        CeedScalar V = 0.0;
         for (int dim = 0; dim < BASIS_DIM; dim++) {
           U = d_U + elem*Q + comp*nelem*Q +dim*BASIS_NCOMP*nelem*Q;
           for (int i = 0; i < Q; ++i)
@@ -342,11 +345,11 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
                        CeedEvalMode emode, CeedVector u, CeedVector v) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedBasis_Hip *data;
-  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   const int maxblocksize = 64;
 
@@ -354,14 +357,14 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
   const CeedScalar *d_u;
   CeedScalar *d_v;
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
 
   // Clear v for transpose operation
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
-    ierr = CeedVectorGetLength(v, &length); CeedChk(ierr);
+    ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Hip(ceed,ierr);
   }
@@ -373,13 +376,13 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
                           &data->d_interp1d, &d_u, &d_v
                          };
     CeedInt Q1d, dim;
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChk(ierr);
-    ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
+    ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
     CeedInt blocksize = CeedIntPow(Q1d, dim);
     blocksize = blocksize > maxblocksize ? maxblocksize : blocksize;
 
     ierr = CeedRunKernelHip(ceed, data->interp, nelem, blocksize, interpargs);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   } break;
   case CEED_EVAL_GRAD: {
     void *gradargs[] = {(void *) &nelem, (void *) &transpose, &data->d_interp1d,
@@ -388,7 +391,7 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
     CeedInt blocksize = maxblocksize;
 
     ierr = CeedRunKernelHip(ceed, data->grad, nelem, blocksize, gradargs);
-    CeedChk(ierr);
+    CeedChkBackend(ierr);
   } break;
   case CEED_EVAL_WEIGHT: {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight1d, &d_v};
@@ -398,28 +401,28 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt nelem,
       gridsize += 1;
 
     ierr = CeedRunKernelHip(ceed, data->weight, gridsize, blocksize,
-                            weightargs); CeedChk(ierr);
+                            weightargs); CeedChkBackend(ierr);
   } break;
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   // Evaluate the curl to/from the quadrature points
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
 
   // Restore vectors
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
-  return 0;
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -430,14 +433,14 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
                                 CeedVector u, CeedVector v) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   Ceed_Hip *ceed_Hip;
-  ierr = CeedGetData(ceed, &ceed_Hip); CeedChk(ierr);
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedBasisNonTensor_Hip *data;
-  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
   CeedInt nnodes, nqpt;
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis, &nqpt); CeedChkBackend(ierr);
+  ierr = CeedBasisGetNumNodes(basis, &nnodes); CeedChkBackend(ierr);
   const CeedInt transpose = tmode == CEED_TRANSPOSE;
   int elemsPerBlock = 1;
   int grid = nelem/elemsPerBlock+((nelem/elemsPerBlock*elemsPerBlock<nelem)?1:0);
@@ -446,14 +449,14 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
   const CeedScalar *d_u;
   CeedScalar *d_v;
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChk(ierr);
+    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChk(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
 
   // Clear v for transpose operation
   if (tmode == CEED_TRANSPOSE) {
     CeedInt length;
-    ierr = CeedVectorGetLength(v, &length); CeedChk(ierr);
+    ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Hip(ceed, ierr);
   }
@@ -466,10 +469,10 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
                          };
     if (!transpose) {
       ierr = CeedRunKernelDimHip(ceed, data->interp, grid, nqpt, 1,
-                                 elemsPerBlock, interpargs); CeedChk(ierr);
+                                 elemsPerBlock, interpargs); CeedChkBackend(ierr);
     } else {
       ierr = CeedRunKernelDimHip(ceed, data->interp, grid, nnodes, 1,
-                                 elemsPerBlock, interpargs); CeedChk(ierr);
+                                 elemsPerBlock, interpargs); CeedChkBackend(ierr);
     }
   } break;
   case CEED_EVAL_GRAD: {
@@ -478,37 +481,37 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
                        };
     if (!transpose) {
       ierr = CeedRunKernelDimHip(ceed, data->grad, grid, nqpt, 1,
-                                 elemsPerBlock, gradargs); CeedChk(ierr);
+                                 elemsPerBlock, gradargs); CeedChkBackend(ierr);
     } else {
       ierr = CeedRunKernelDimHip(ceed, data->grad, grid, nnodes, 1,
-                                 elemsPerBlock, gradargs); CeedChk(ierr);
+                                 elemsPerBlock, gradargs); CeedChkBackend(ierr);
     }
   } break;
   case CEED_EVAL_WEIGHT: {
     void *weightargs[] = {(void *) &nelem, (void *) &data->d_qweight, &d_v};
     ierr = CeedRunKernelDimHip(ceed, data->weight, grid, nqpt, 1,
-                               elemsPerBlock, weightargs); CeedChk(ierr);
+                               elemsPerBlock, weightargs); CeedChkBackend(ierr);
   } break;
   // LCOV_EXCL_START
   // Evaluate the divergence to/from the quadrature points
   case CEED_EVAL_DIV:
-    return CeedError(ceed, 1, "CEED_EVAL_DIV not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
   // Evaluate the curl to/from the quadrature points
   case CEED_EVAL_CURL:
-    return CeedError(ceed, 1, "CEED_EVAL_CURL not supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
   // Take no action, BasisApply should not have been called
   case CEED_EVAL_NONE:
-    return CeedError(ceed, 1,
+    return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CEED_EVAL_NONE does not make sense in this context");
     // LCOV_EXCL_STOP
   }
 
   // Restore vectors
   if (emode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChk(ierr);
-  return 0;
+  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -517,10 +520,10 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt nelem,
 static int CeedBasisDestroy_Hip(CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   CeedBasis_Hip *data;
-  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
 
   CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
@@ -528,8 +531,8 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
   ierr = hipFree(data->d_interp1d); CeedChk_Hip(ceed,ierr);
   ierr = hipFree(data->d_grad1d); CeedChk_Hip(ceed,ierr);
 
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -538,10 +541,10 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
 static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   CeedBasisNonTensor_Hip *data;
-  ierr = CeedBasisGetData(basis, &data); CeedChk(ierr);
+  ierr = CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
 
   CeedChk_Hip(ceed, hipModuleUnload(data->module));
 
@@ -549,8 +552,8 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   ierr = hipFree(data->d_interp); CeedChk_Hip(ceed, ierr);
   ierr = hipFree(data->d_grad); CeedChk_Hip(ceed, ierr);
 
-  ierr = CeedFree(&data); CeedChk(ierr);
-  return 0;
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -564,9 +567,9 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                 CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   CeedBasis_Hip *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
   // Copy data to GPU
   const CeedInt qBytes = Q1d * sizeof(CeedScalar);
@@ -585,7 +588,7 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d,
 
   // Complie basis kernels
   CeedInt ncomp;
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, basiskernels, &data->module, 7,
                         "BASIS_Q1D", Q1d,
                         "BASIS_P1D", P1d,
@@ -595,20 +598,20 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                         "BASIS_NCOMP", ncomp,
                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
-                       ); CeedChk(ierr);
+                       ); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "grad", &data->grad);
-  CeedChk(ierr);
+  CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "weight", &data->weight);
-  CeedChk(ierr);
-  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
+  CeedChkBackend(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
-                                CeedBasisApply_Hip); CeedChk(ierr);
+                                CeedBasisApply_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroy_Hip); CeedChk(ierr);
-  return 0;
+                                CeedBasisDestroy_Hip); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -620,9 +623,9 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
                           const CeedScalar *qweight, CeedBasis basis) {
   int ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
   CeedBasisNonTensor_Hip *data;
-  ierr = CeedCalloc(1, &data); CeedChk(ierr);
+  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
   // Copy basis data to GPU
   const CeedInt qBytes = nqpts * sizeof(CeedScalar);
@@ -642,7 +645,7 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
 
   // Compile basis kernels
   CeedInt ncomp;
-  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, kernelsNonTensorRef, &data->module, 4,
                         "Q", nqpts,
                         "P", nnodes,
@@ -656,13 +659,13 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
   ierr = CeedGetKernelHip(ceed, data->module, "weight", &data->weight);
   CeedChk_Hip(ceed, ierr);
 
-  ierr = CeedBasisSetData(basis, data); CeedChk(ierr);
+  ierr = CeedBasisSetData(basis, data); CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
-                                CeedBasisApplyNonTensor_Hip); CeedChk(ierr);
+                                CeedBasisApplyNonTensor_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
-                                CeedBasisDestroyNonTensor_Hip); CeedChk(ierr);
-  return 0;
+                                CeedBasisDestroyNonTensor_Hip); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

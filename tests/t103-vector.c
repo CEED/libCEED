@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (y[i] != 10+i)
       // LCOV_EXCL_START
-      printf("Error reading array y[%d] = %f",i,(double)y[i]);
+      printf("Error reading array y[%d] = %f",i,(CeedScalar)y[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Y, &y);
 

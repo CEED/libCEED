@@ -1,0 +1,10 @@
+[package]
+name = "mesh"
+version = "0.1.0"
+authors = [
+    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+]
+edition = "2018"
+
+[dependencies]
+libceed = { path = "../../../rust/libceed" }

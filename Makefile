@@ -71,10 +71,14 @@ OCCA_DIR ?= ../occa
 
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
-# If CUDA_DIR is not set, check for nvcc, or resort to /usr/local/cuda
-CUDA_DIR  ?= $(or $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir \
-               $(shell which nvcc 2> /dev/null))))),/usr/local/cuda)
-HIP_DIR ?= /opt/rocm
+
+# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
+CUDA_DIR  ?=
+CUDA_ARCH ?=
+
+# Often /opt/rocm, but sometimes present on machines that don't support HIP
+HIP_DIR ?=
+HIP_ARCH ?=
 
 # Check for PETSc in ../petsc
 ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
@@ -86,8 +90,8 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(subst oneAPI,icc,$(patsubst gcc%,gcc,$(firstword $(filter gcc% clang icc oneAPI XL,$(shell $(CC) --version)))))
-FC_VENDOR := $(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion)))
+CC_VENDOR := $(subst oneAPI,icc,$(firstword $(filter gcc clang icc oneAPI XL,$(subst -, ,$(shell $(CC) --version)))))
+FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
 MARCHFLAG.gcc           := -march=native
@@ -126,7 +130,13 @@ CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+ifneq ($(CUDA_ARCH),)
+  NVCCFLAGS += -arch=$(CUDA_ARCH)
+endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
+ifneq ($(HIP_ARCH),)
+  HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
+endif
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -173,22 +183,20 @@ CEED_LIBS = -lceed
 libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
-libceed_test.so := $(LIBDIR)/libceed_test.$(SO_EXT)
-libceed_test.a := $(LIBDIR)/libceed_test.a
-libceed_test := $(if $(STATIC),$(libceed_test.a),$(libceed_test.so))
-libceeds = $(libceed) $(libceed_test)
+libceeds = $(libceed)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
-BACKENDS := $(BACKENDS_BUILTIN)
+BACKENDS_MAKE := $(BACKENDS_BUILTIN)
+TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
-tests.f   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90))
+tests.f   := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
 tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
 ctests    := $(tests)
 tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
-examples.f := $(sort $(wildcard examples/ceed/*.f))
+examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
 examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
 examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
 # MFEM Examples
@@ -206,10 +214,9 @@ fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
-# Backends/[ref, blocked, template, memcheck, opt, avx, occa, magma]
+# Backends/[ref, blocked, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
-template.c     := $(sort $(wildcard backends/template/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
 opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
@@ -230,7 +237,6 @@ hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
-hip-shared.hip := $(sort $(wildcard backends/hip-shared/kernels/*.hip.cpp))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 
@@ -251,7 +257,7 @@ quiet ?= $($(1))
 lib: $(libceed) $(ceed.pc)
 # run 'lib' target in parallel
 par:;@$(MAKE) $(MFLAGS) V=$(V) lib
-backend_status = $(if $(filter $1,$(BACKENDS)), [backends: $1], [not found])
+backend_status = $(if $(filter $1,$(BACKENDS_MAKE)), [backends: $1], [not found])
 info:
 	$(info ------------------------------------)
 	$(info CC            = $(CC))
@@ -292,28 +298,26 @@ info:
 	@true
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
-.PHONY: lib all par info info-backends
+	@true
+info-backends-all:
+	$(info make: 'lib' with backends: $(filter-out $(TEST_BACKENDS),$(BACKENDS)))
+	@true
 
 $(libceed.so) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
-$(libceed_test) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed_test)))
 
 # Standard Backends
 libceed.c += $(ref.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
 
-# Testing Backends
-test_backends.c := $(template.c)
-TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
-
 # Memcheck Backend
 MEMCHK_STATUS = Disabled
-MEMCHK := $(shell echo "\#include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
+MEMCHK := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
 MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
-  BACKENDS += $(MEMCHK_BACKENDS)
+  BACKENDS_MAKE += $(MEMCHK_BACKENDS)
 endif
 
 # AVX Backed
@@ -324,7 +328,7 @@ AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
-  BACKENDS += $(AVX_BACKENDS)
+  BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config
@@ -349,7 +353,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
-  BACKENDS += $(XSMM_BACKENDS)
+  BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
 # OCCA Backends
@@ -365,7 +369,7 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
   LIBCEED_CONTAINS_CXX = 1
   libceed.cpp += $(occa.cpp)
-  BACKENDS += $(OCCA_BACKENDS)
+  BACKENDS_MAKE += $(OCCA_BACKENDS)
 endif
 
 # CUDA Backends
@@ -377,11 +381,11 @@ ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   LIBCEED_CONTAINS_CXX = 1
-  libceed.c   += interface/ceed-cuda.c
-  libceed.c   += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu  += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
-  BACKENDS    += $(CUDA_BACKENDS)
+  libceed.c     += interface/ceed-cuda.c
+  libceed.c     += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp   += $(cuda.cpp) $(cuda-gen.cpp)
+  libceed.cu    += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
 
 # HIP Backends
@@ -396,11 +400,11 @@ ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
-  libceed.c   += interface/ceed-hip.c
-  libceed.c   += $(hip.c) $(hip-shared.c) $(hip-gen.c)
-  libceed.cpp += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip += $(hip.hip) $(hip-shared.hip)
-  BACKENDS    += $(HIP_BACKENDS)
+  libceed.c     += interface/ceed-hip.c
+  libceed.c     += $(hip.c) $(hip-shared.c) $(hip-gen.c)
+  libceed.cpp   += $(hip.cpp) $(hip-gen.cpp)
+  libceed.hip   += $(hip.hip)
+  BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 
 # MAGMA Backend
@@ -440,10 +444,14 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   endif
   LIBCEED_CONTAINS_CXX = 1
-  BACKENDS += $(MAGMA_BACKENDS)
+  BACKENDS_MAKE += $(MAGMA_BACKENDS)
 endif
 
-export BACKENDS
+BACKENDS_ENV ?= BACKENDS
+ifneq ($(BACKENDS_ENV),)
+  BACKENDS = $(BACKENDS_MAKE)
+  export BACKENDS
+endif
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
@@ -503,7 +511,7 @@ $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
-	mv examples/mfem/$* $@
+	cp examples/mfem/$* $@
 
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
 #       this single Nek bps file to be built in parallel with other examples,
@@ -513,34 +521,37 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
-$(OBJDIR)/petsc-% : examples/petsc/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/petsc CEED_DIR=`pwd` \
+# Several executables have common utilities, but we can't build the utilities
+# from separate submake invocations because they'll compete with each
+# other/corrupt output. So we put it in this utility library, but we don't want
+# to manually list source dependencies up at this level, so we'll just always
+# call recursive make to check that this utility is up to date.
+examples/petsc/libutils.a.PHONY: $(libceed) $(ceed.pc)
+	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` AR=$(AR) ARFLAGS=$(ARFLAGS) \
+	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $(basename $(@F))
+
+$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/petsc/$* $@
+	cp examples/petsc/$* $@
 
-$(OBJDIR)/fluids-% : examples/fluids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/fluids CEED_DIR=`pwd` \
+$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/fluids/$* $@
+	cp examples/fluids/$* $@
 
-$(OBJDIR)/solids-% : examples/solids/%.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
-	+$(MAKE) -C examples/solids CEED_DIR=`pwd` \
+$(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
+    examples/solids/problems/*.c examples/solids/src/*.c \
+    examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
+    $(libceed) $(ceed.pc) | $$(@D)/.DIR
+	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
-	mv examples/solids/$* $@
-
-libceed_test.o = $(test_backends.c:%.c=$(OBJDIR)/%.o)
-$(libceed_test.so) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
-	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
-
-$(libceed_test.a) : $(call weak_last,$(libceed.o) $(libceed_test.o)) | $$(@D)/.DIR
-	$(call quiet,AR) $(ARFLAGS) $@ $^
+	cp examples/solids/$* $@
 
 $(examples) : $(libceed)
-$(tests) : $(libceed_test)
-$(tests) : CEED_LIBS = -lceed_test
+$(tests) : $(libceed)
 $(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
-run-t% : BACKENDS += $(TEST_BACKENDS)
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:$(OBJDIR)/%=%)
 
@@ -572,7 +583,6 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
-prove : BACKENDS += $(TEST_BACKENDS)
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
@@ -582,7 +592,6 @@ prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 prove-all :
 	+$(MAKE) prove realsearch=%
 
-junit-t% : BACKENDS += $(TEST_BACKENDS)
 junit-% : $(OBJDIR)/%
 	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
 
@@ -601,7 +610,7 @@ allbenchmarks = petsc-bps
 bench_targets = $(addprefix bench-,$(allbenchmarks))
 .PHONY: $(bench_targets) benchmarks
 $(bench_targets): bench-%: $(OBJDIR)/%
-	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS_MAKE)" -r $(*).sh
 benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
@@ -614,20 +623,30 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
-	  "$(libdir)" "$(pkgconfigdir)")
-	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
+	  "$(includedir)/ceed/" "$(libdir)" "$(pkgconfigdir)")
+	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/hash.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/khash.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
+	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-backend.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 
-.PHONY : cln clean doxygen doc lib install all print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends
+.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
-	$(MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
-	$(MAKE) -C tests/python clean
+	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
+	$(call quiet,MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
 
 distclean : clean
@@ -637,7 +656,7 @@ DOXYGEN ?= doxygen
 doxygen :
 	$(DOXYGEN) Doxyfile
 
-doc-html doc-latexpdf doc-epub : doc-% : doxygen
+doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 	make -C doc/sphinx $*
 
 doc : doc-html
@@ -651,7 +670,7 @@ style-c :
 AUTOPEP8 = autopep8
 style-py : AUTOPEP8_ARGS = --in-place --aggressive
 style-py :
-	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py tests/python**/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
+	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py python/tests/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
 
 style : style-c style-py
 
@@ -699,7 +718,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR XSMM_DIR CUDA_DIR MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR
+	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR HIP_ARCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

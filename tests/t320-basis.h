@@ -14,26 +14,27 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-static void buildmats(CeedScalar *qref, CeedScalar *qweight, CeedScalar *interp,
+static void buildmats(CeedScalar *q_ref, CeedScalar *q_weight,
+                      CeedScalar *interp,
                       CeedScalar *grad) {
   CeedInt P = 6, Q = 4;
 
-  qref[0] = 0.2;
-  qref[1] = 0.6;
-  qref[2] = 1./3.;
-  qref[3] = 0.2;
-  qref[4] = 0.2;
-  qref[5] = 0.2;
-  qref[6] = 1./3.;
-  qref[7] = 0.6;
-  qweight[0] = 25./96.;
-  qweight[1] = 25./96.;
-  qweight[2] = -27./96.;
-  qweight[3] = 25./96.;
+  q_ref[0] = 0.2;
+  q_ref[1] = 0.6;
+  q_ref[2] = 1./3.;
+  q_ref[3] = 0.2;
+  q_ref[4] = 0.2;
+  q_ref[5] = 0.2;
+  q_ref[6] = 1./3.;
+  q_ref[7] = 0.6;
+  q_weight[0] = 25./96.;
+  q_weight[1] = 25./96.;
+  q_weight[2] = -27./96.;
+  q_weight[3] = 25./96.;
 
   // Loop over quadrature points
   for (int i=0; i<Q; i++) {
-    CeedScalar x1 = qref[0*Q+i], x2 = qref[1*Q+i];
+    CeedScalar x1 = q_ref[0*Q+i], x2 = q_ref[1*Q+i];
     // Interp
     interp[i*P+0] =  2.*(x1+x2-1.)*(x1+x2-1./2.);
     interp[i*P+1] = -4.*x1*(x1+x2-1.);

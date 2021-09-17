@@ -17,7 +17,6 @@
 #include "ceed-occa-basis.hpp"
 #include "ceed-occa-tensor-basis.hpp"
 
-
 namespace ceed {
   namespace occa {
     Basis::Basis() :
@@ -28,19 +27,30 @@ namespace ceed {
 
     Basis::~Basis() {}
 
-    Basis* Basis::from(CeedBasis basis) {
+    Basis* Basis::getBasis(CeedBasis basis,
+                           const bool assertValid) {
       if (!basis) {
         return NULL;
       }
 
       int ierr;
-      Basis *basis_;
+      Basis *basis_ = NULL;
 
-      ierr = CeedBasisGetData(basis, &basis_); CeedOccaFromChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
+
+      return basis_;
+    }
+
+    Basis* Basis::from(CeedBasis basis) {
+      Basis *basis_ = getBasis(basis);
       if (!basis_) {
         return NULL;
       }
 
+      int ierr;
       ierr = basis_->setCeedFields(basis); CeedOccaFromChk(ierr);
 
       return basis_;
@@ -59,7 +69,7 @@ namespace ceed {
       ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
       ierr = CeedBasisGetNumComponents(basis, &ceedComponentCount); CeedChk(ierr);
 
-      return 0;
+      return CEED_ERROR_SUCCESS;
     }
 
     //---[ Ceed Callbacks ]-----------
@@ -87,8 +97,8 @@ namespace ceed {
     }
 
     int Basis::ceedDestroy(CeedBasis basis) {
-      delete Basis::from(basis);
-      return 0;
+      delete getBasis(basis, false);
+      return CEED_ERROR_SUCCESS;
     }
   }
 }

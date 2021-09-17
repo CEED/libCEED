@@ -14,12 +14,12 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include <cuda.h>
 
 const int sizeMax = 16;
-__constant__ double c_B[sizeMax*sizeMax];
-__constant__ double c_G[sizeMax*sizeMax];
+__constant__ CeedScalar c_B[sizeMax*sizeMax];
+__constant__ CeedScalar c_G[sizeMax*sizeMax];
 
 //------------------------------------------------------------------------------
 // Interp device initalization

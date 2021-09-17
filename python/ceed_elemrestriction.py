@@ -131,6 +131,29 @@ class _ElemRestrictionBase(ABC):
         # Return
         return mult
 
+    # Get ElemRestrition Layout
+    def get_layout(self):
+        """Get the element vector layout of an ElemRestriction.
+
+           Returns:
+             layout: Vector containing layout array, stored as [nodes, components, elements].
+                     The data for node i, component j, element k in the element
+                     vector is given by i*layout[0] + j*layout[1] + k*layout[2]."""
+
+        # Create output array
+        layout = np.zeros(3, dtype="int32")
+        array_pointer = ffi.cast(
+            "CeedInt *",
+            layout.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionGetELayout(
+            self._pointer[0], array_pointer)
+        self._ceed._check_error(err_code)
+
+        # Return
+        return layout
+
 # ------------------------------------------------------------------------------
 
 
