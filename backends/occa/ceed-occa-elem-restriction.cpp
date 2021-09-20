@@ -328,7 +328,7 @@ namespace ceed {
                        v.getKernelArg());
       } else {
         ::occa::kernel apply = applyKernelBuilder.getOrBuildKernel(
-          scope
+          ::occa::scope({}, kernelProps)
         );
 
         apply(ceedElementCount,
