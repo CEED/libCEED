@@ -34,7 +34,13 @@ namespace ceed {
         ceedUnstridedComponentStride(0),
         freeHostIndices(true),
         hostIndices(NULL),
-        freeIndices(true) {}
+        freeIndices(true),
+        applyKernelBuilder(::occa::kernelBuilder(
+          occa_elem_restriction_source, "applyRestriction"
+        )),
+        applyTransposeKernelBuilder(::occa::kernelBuilder(
+          occa_elem_restriction_source, "applyRestrictionTranspose"
+        )) {}
 
     ElemRestriction::~ElemRestriction() {
       if (freeHostIndices) {
@@ -55,8 +61,6 @@ namespace ceed {
       }
 
       setupTransposeIndices();
-
-      setupKernelBuilders();
     }
 
     void ElemRestriction::setupFromHostMemory(CeedCopyMode copyMode,
@@ -178,16 +182,6 @@ namespace ceed {
       delete [] transposeQuadIndices_h;
       delete [] transposeDofOffsets_h;
       delete [] transposeDofIndices_h;
-    }
-
-    void ElemRestriction::setupKernelBuilders() {
-      applyKernelBuilder = ::occa::kernelBuilder(
-        occa_elem_restriction_source, "applyRestriction"
-      );
-
-      applyTransposeKernelBuilder = ::occa::kernelBuilder(
-        occa_elem_restriction_source, "applyRestrictionTranspose"
-      );
     }
 
     ElemRestriction* ElemRestriction::getElemRestriction(CeedElemRestriction r,

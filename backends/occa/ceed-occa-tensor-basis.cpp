@@ -27,7 +27,16 @@ namespace ceed {
                              const CeedScalar *grad1D_,
                              const CeedScalar *qWeight1D_) :
         P1D(P1D_),
-        Q1D(Q1D_) {
+        Q1D(Q1D_),
+        interpKernelBuilder(::occa::kernelBuilder(
+          occa_tensor_basis_1d_gpu_source, "interp"
+        )),
+        gradKernelBuilder(::occa::kernelBuilder(
+          occa_tensor_basis_1d_gpu_source, "grad"
+        )),
+        weightKernelBuilder(::occa::kernelBuilder(
+          occa_tensor_basis_1d_gpu_source, "weight"
+        )) {
       setCeedFields(basis);
 
       dim = dim_;

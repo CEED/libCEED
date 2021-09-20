@@ -109,22 +109,6 @@ namespace ceed {
       return getDevice().wrapMemory<CeedScalar>(array, length);
     }
 
-    int Vector::setValue(CeedScalar value) {
-      // Prioritize keeping data in the device
-      if (syncState & SyncState::device) {
-        setCurrentMemoryIfNeeded();
-        ::occa::linalg::operator_eq(currentMemory, value);
-        syncState = SyncState::device;
-      } else {
-        setCurrentHostBufferIfNeeded();
-        for (CeedInt i = 0; i < length; ++i) {
-          currentHostBuffer[i] = value;
-        }
-        syncState = SyncState::host;
-      }
-      return CEED_ERROR_SUCCESS;
-    }
-
     int Vector::setArray(CeedMemType mtype,
                          CeedCopyMode cmode, CeedScalar *array) {
       switch (cmode) {
@@ -351,7 +335,6 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
-      CeedOccaRegisterFunction(vec, "SetValue", Vector::ceedSetValue);
       CeedOccaRegisterFunction(vec, "SetArray", Vector::ceedSetArray);
       CeedOccaRegisterFunction(vec, "TakeArray", Vector::ceedTakeArray);
       CeedOccaRegisterFunction(vec, "GetArray", Vector::ceedGetArray);
@@ -364,14 +347,6 @@ namespace ceed {
       ierr = CeedVectorSetData(vec, vector); CeedChk(ierr);
 
       return CEED_ERROR_SUCCESS;
-    }
-
-    int Vector::ceedSetValue(CeedVector vec, CeedScalar value) {
-      Vector *vector = Vector::from(vec);
-      if (!vector) {
-        return staticCeedError("Invalid CeedVector passed");
-      }
-      return vector->setValue(value);
     }
 
     int Vector::ceedSetArray(CeedVector vec, CeedMemType mtype,

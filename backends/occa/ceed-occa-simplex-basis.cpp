@@ -25,7 +25,16 @@ namespace ceed {
                                CeedInt Q_,
                                const CeedScalar *interp_,
                                const CeedScalar *grad_,
-                               const CeedScalar *qWeight_) {
+                               const CeedScalar *qWeight_) : 
+      interpKernelBuilder(::occa::kernelBuilder(
+        occa_simplex_basis_gpu_source, "interp"
+      )),
+      gradKernelBuilder(::occa::kernelBuilder(
+        occa_simplex_basis_gpu_source, "grad" 
+      )),
+      weightKernelBuilder(::occa::kernelBuilder(
+        occa_simplex_basis_gpu_source, "weight"
+      ))  {
       setCeedFields(basis);
 
       dim = dim_;
@@ -53,24 +62,22 @@ namespace ceed {
     }
 
     void SimplexBasis::setupKernelBuilders() {
-      std::string kernelSource;
-      if (usingGpuDevice()) {
-        kernelSource = occa_simplex_basis_gpu_source;
-      } else {
+      if (!usingGpuDevice()) {
+        std::string kernelSource;
         kernelSource = occa_simplex_basis_cpu_function_source;
         kernelSource += '\n';
         kernelSource += occa_simplex_basis_cpu_kernel_source;
-      }
 
-      interpKernelBuilder = ::occa::kernelBuilder(
-        kernelSource, "interp"
-      );
-      gradKernelBuilder = ::occa::kernelBuilder(
-        kernelSource, "grad" 
-      );
-      weightKernelBuilder = ::occa::kernelBuilder(
-        kernelSource, "weight"
-      );
+        interpKernelBuilder = ::occa::kernelBuilder(
+          kernelSource, "interp"
+        );
+        gradKernelBuilder = ::occa::kernelBuilder(
+          kernelSource, "grad" 
+        );
+        weightKernelBuilder = ::occa::kernelBuilder(
+          kernelSource, "weight"
+        );
+      }
     }
 
     int SimplexBasis::applyInterp(const CeedInt elementCount,
