@@ -8,10 +8,12 @@
 /// @file
 /// Hyperelasticity, finite strain for solid mechanics example using PETSc
 
-#ifndef ELAS_FSInitialNH1_H
-#define ELAS_FSInitialNH1_H
+#ifndef ELAS_FSInitialNH_AD_H
+#define ELAS_FSInitialNH_AD_H
 
 #include <math.h>
+
+static const int FSInitialNH_AD_TAPE_SIZE = 6;
 
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
@@ -36,7 +38,7 @@ struct Physics_private {
 CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
-  if (1) { // Disable if the smaller range sqrt(2)/2 < J < sqrt(2) is sufficient
+  if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
     if (x < left) { // Replace if with while for arbitrary range (may hurt vectorization)
       sum -= log(2.) / 2;
       x = 1 + 2 * x;
@@ -75,6 +77,22 @@ CEED_QFUNCTION_HELPER CeedScalar computeJM1(const CeedScalar grad_u[3][3]) {
 #endif
 
 // -----------------------------------------------------------------------------
+// Compute det C - 1
+// -----------------------------------------------------------------------------
+#ifndef DETCM1
+#define DETCM1
+CEED_QFUNCTION_HELPER CeedScalar computeDetCM1(const CeedScalar E2work[6]) {
+  return E2work[0]*(E2work[1]*E2work[2]-E2work[3]*E2work[3]) +
+         E2work[5]*(E2work[4]*E2work[3]-E2work[5]*E2work[2]) +
+         E2work[4]*(E2work[5]*E2work[3]-E2work[4]*E2work[1]) +
+         E2work[0] + E2work[1] + E2work[2] +
+         E2work[0]*E2work[1] + E2work[0]*E2work[2] +
+         E2work[1]*E2work[2] - E2work[5]*E2work[5] -
+         E2work[4]*E2work[4] - E2work[3]*E2work[3];
+};
+#endif
+
+// -----------------------------------------------------------------------------
 // Compute matrix^(-1), where matrix is symetric, returns array of 6
 // -----------------------------------------------------------------------------
 #ifndef MatinvSym
@@ -97,28 +115,16 @@ CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3],
 #endif
 
 // -----------------------------------------------------------------------------
-// Common computations between FS and dFS
+// Compute Second Piola-Kirchhoff S(E)
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
-                                   const CeedScalar grad_u[3][3], CeedScalar Swork[6],
-                                   CeedScalar Cinvwork[6], CeedScalar *logJ) {
-  // E - Green-Lagrange strain tensor
-  //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
-  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
-  CeedScalar E2work[6];
-  for (CeedInt m = 0; m < 6; m++) {
-    E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
-    for (CeedInt n = 0; n < 3; n++)
-      E2work[m] += grad_u[n][indj[m]]*grad_u[n][indk[m]];
-  }
+CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
+                                   const CeedScalar lambda, const CeedScalar mu) {
   // *INDENT-OFF*
   CeedScalar E2[3][3] = {{E2work[0], E2work[5], E2work[4]},
                          {E2work[5], E2work[1], E2work[3]},
                          {E2work[4], E2work[3], E2work[2]}
                         };
   // *INDENT-ON*
-  // J-1
-  const CeedScalar Jm1 = computeJM1(grad_u);
 
   // C : right Cauchy-Green tensor
   // C = I + 2E
@@ -130,20 +136,23 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
   // *INDENT-ON*
 
   // Compute C^(-1) : C-Inverse
-  const CeedScalar detC = (Jm1 + 1.)*(Jm1 + 1.);
-  computeMatinvSym(C, detC, Cinvwork);
+  CeedScalar Cinvwork[6];
+  const CeedScalar detCm1 = computeDetCM1(E2work);
+  computeMatinvSym(C, detCm1+1, Cinvwork);
 
   // *INDENT-OFF*
   const CeedScalar C_inv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
-                                 {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
-                                 {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
-                                };
+                                  {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
+                                  {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
+                                 };
   // *INDENT-ON*
 
   // Compute the Second Piola-Kirchhoff (S)
-  *logJ = log1p_series_shifted(Jm1);
+  const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+  const CeedScalar logJ = log1p_series_shifted(detCm1) / 2.;
+
   for (CeedInt m = 0; m < 6; m++) {
-    Swork[m] = (lambda*(*logJ))*Cinvwork[m];
+    Swork[m] = lambda*logJ*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
       Swork[m] += mu*C_inv[indj[m]][n]*E2[n][indk[m]];
   }
@@ -152,11 +161,39 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
 };
 
 // -----------------------------------------------------------------------------
+// Compute deltaS with Enzyme-AD
+// -----------------------------------------------------------------------------
+CEED_DEVICE void __enzyme_augmentfwd(void *, ...);
+CEED_DEVICE void __enzyme_fwdsplit(void *, ...);
+CEED_DEVICE int  __enzyme_augmentsize(void *, ...);
+
+CEED_DEVICE extern int enzyme_tape, enzyme_const, enzyme_dup, enzyme_nofree,
+            enzyme_allocated;
+
+CEED_QFUNCTION_HELPER void S_fwd(double *S, double *E, const double lambda,
+                                 const double mu, double *tape) {
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
+                                        enzyme_const, enzyme_const);
+  __enzyme_augmentfwd((void *)computeS, enzyme_allocated, tape_bytes,
+                      enzyme_tape, tape, enzyme_nofree, S, (double *)NULL, E, (double *)NULL,
+                      enzyme_const, lambda, enzyme_const, mu);
+}
+
+CEED_QFUNCTION_HELPER void grad_S(double *dS, double *dE, const double lambda,
+                                  const double mu, const double *tape) {
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
+                                        enzyme_const, enzyme_const);
+  __enzyme_fwdsplit((void *)computeS, enzyme_allocated, tape_bytes,
+                    enzyme_tape, tape, (double *)NULL, dS, (double *)NULL, dE,
+                    enzyme_const, lambda, enzyme_const, mu);
+}
+
+// -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
-                                  const CeedScalar *const *in,
-                                  CeedScalar *const *out) {
+CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -166,12 +203,19 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
   CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar (*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  // Store Swork
+  CeedScalar (*Swork)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  // Store tape for autodiff
+  CeedScalar (*tape)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
+
   // *INDENT-ON*
 
   // Context
   const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
+
+  // Constants
   const CeedScalar TwoMu = E / (1 + nu);
   const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
@@ -243,10 +287,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
                                   grad_u[2][1][i],
                                   grad_u[2][2][i] + 1}
                                 };
-    // *INDENT-ON*
 
-    // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], logJ;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
                                           grad_u[0][1][i],
@@ -259,15 +300,35 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
                                           grad_u[2][2][i]}
                                         };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &logJ);
+    // E - Green-Lagrange strain tensor
+    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
+    const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
+    CeedScalar E2work[6];
+    for (CeedInt m = 0; m < 6; m++) {
+      E2work[m] = tempgradu[indj[m]][indk[m]] + tempgradu[indk[m]][indj[m]];
+      for (CeedInt n = 0; n < 3; n++)
+        E2work[m] += tempgradu[n][indj[m]]*tempgradu[n][indk[m]];
+    }
 
-    // Second Piola-Kirchhoff (S)
+    // Compute Swork with Enzyme-AD and get tape
+    CeedScalar Swork_[6], packed_tape[FSInitialNH_AD_TAPE_SIZE];
+    S_fwd(Swork_, E2work, lambda, mu, packed_tape);
+    for (int j=0; j<FSInitialNH_AD_TAPE_SIZE; j++) tape[j][i] = packed_tape[j];
+
     // *INDENT-OFF*
-    const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
-                                {Swork[5], Swork[1], Swork[3]},
-                                {Swork[4], Swork[3], Swork[2]}
+    const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
+                                {Swork_[5], Swork_[1], Swork_[3]},
+                                {Swork_[4], Swork_[3], Swork_[2]}
                                };
     // *INDENT-ON*
+
+    // Store Swork
+    Swork[0][i] = Swork_[0];
+    Swork[1][i] = Swork_[1];
+    Swork[2][i] = Swork_[2];
+    Swork[3][i] = Swork_[3];
+    Swork[4][i] = Swork_[4];
+    Swork[5][i] = Swork_[5];
 
     // Compute the First Piola-Kirchhoff : P = F*S
     CeedScalar P[3][3];
@@ -294,15 +355,17 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
-                                   const CeedScalar *const *in,
-                                   CeedScalar *const *out) {
+CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in,
+                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // grad_u is used for hyperelasticity (non-linear)
   const CeedScalar (*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar (*Swork)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar (*tape)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -362,33 +425,18 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
     // I3 : 3x3 Identity matrix
     // Deformation Gradient : F = I3 + grad_u
     // *INDENT-OFF*
-    const CeedScalar F[3][3] =      {{grad_u[0][0][i] + 1,
-                                      grad_u[0][1][i],
-                                      grad_u[0][2][i]},
-                                     {grad_u[1][0][i],
-                                      grad_u[1][1][i] + 1,
-                                      grad_u[1][2][i]},
-                                     {grad_u[2][0][i],
-                                      grad_u[2][1][i],
-                                      grad_u[2][2][i] + 1}
-                                    };
-    // *INDENT-ON*
+    const CeedScalar F[3][3] =  {{grad_u[0][0][i] + 1,
+                                  grad_u[0][1][i],
+                                  grad_u[0][2][i]},
+                                 {grad_u[1][0][i],
+                                  grad_u[1][1][i] + 1,
+                                  grad_u[1][2][i]},
+                                 {grad_u[2][0][i],
+                                  grad_u[2][1][i],
+                                  grad_u[2][2][i] + 1}
+                                };
 
-    // Common components of finite strain calculations
-    CeedScalar Swork[6], Cinvwork[6], logJ;
-    // *INDENT-OFF*
-    const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
-                                          grad_u[0][1][i],
-                                          grad_u[0][2][i]},
-                                         {grad_u[1][0][i],
-                                          grad_u[1][1][i],
-                                          grad_u[1][2][i]},
-                                         {grad_u[2][0][i],
-                                          grad_u[2][1][i],
-                                          grad_u[2][2][i]}
-                                        };
     // *INDENT-ON*
-    commonFS(lambda, mu, tempgradu, Swork, Cinvwork, &logJ);
 
     // deltaE - Green-Lagrange strain tensor
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -399,58 +447,27 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
         deltaEwork[m] += (graddeltau[n][indj[m]]*F[n][indk[m]] +
                           F[n][indj[m]]*graddeltau[n][indk[m]])/2.;
     }
-    // *INDENT-OFF*
-    CeedScalar deltaE[3][3] = {{deltaEwork[0], deltaEwork[5], deltaEwork[4]},
-                               {deltaEwork[5], deltaEwork[1], deltaEwork[3]},
-                               {deltaEwork[4], deltaEwork[3], deltaEwork[2]}
-                              };
-    // *INDENT-ON*
 
-    // C : right Cauchy-Green tensor
-    // C^(-1) : C-Inverse
-    // *INDENT-OFF*
-    const CeedScalar C_inv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
-                                   {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
-                                   {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
-                                  };
-    // *INDENT-ON*
+    // Compute deltaSwork with Enzyme-AD
+    // -- 2E is the input of computeS
+    for (int j=0; j<6; j++) deltaEwork[j] *= 2.;
+    CeedScalar deltaSwork[6];
+    CeedScalar packed_tape[FSInitialNH_AD_TAPE_SIZE];
+    for (int j=0; j<FSInitialNH_AD_TAPE_SIZE; j++) packed_tape[j] = tape[j][i];
+    grad_S(deltaSwork, deltaEwork, lambda, mu, packed_tape);
 
-    // Second Piola-Kirchhoff (S)
     // *INDENT-OFF*
-    const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
-                                {Swork[5], Swork[1], Swork[3]},
-                                {Swork[4], Swork[3], Swork[2]}
+
+    const CeedScalar deltaS[3][3] = {{deltaSwork[0], deltaSwork[5], deltaSwork[4]},
+                                     {deltaSwork[5], deltaSwork[1], deltaSwork[3]},
+                                     {deltaSwork[4], deltaSwork[3], deltaSwork[2]}
+                                    };
+
+    const CeedScalar S[3][3] = {{Swork[0][i], Swork[5][i], Swork[4][i]},
+                                {Swork[5][i], Swork[1][i], Swork[3][i]},
+                                {Swork[4][i], Swork[3][i], Swork[2][i]}
                                };
     // *INDENT-ON*
-
-    // deltaS = dSdE:deltaE
-    //      = lambda(C_inv:deltaE)C_inv + 2(mu-lambda*log(J))C_inv*deltaE*C_inv
-    // -- C_inv:deltaE
-    CeedScalar Cinv_contract_E = 0;
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
-        Cinv_contract_E += C_inv[j][k]*deltaE[j][k];
-    // -- deltaE*C_inv
-    CeedScalar deltaECinv[3][3];
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++) {
-        deltaECinv[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          deltaECinv[j][k] += deltaE[j][m]*C_inv[m][k];
-      }
-    // -- intermediate deltaS = C_inv*deltaE*C_inv
-    CeedScalar deltaS[3][3];
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++) {
-        deltaS[j][k] = 0;
-        for (CeedInt m = 0; m < 3; m++)
-          deltaS[j][k] += C_inv[j][m]*deltaECinv[m][k];
-      }
-    // -- deltaS = lambda(C_inv:deltaE)C_inv - 2(lambda*log(J)-mu)*(intermediate)
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
-        deltaS[j][k] = lambda*Cinv_contract_E*C_inv[j][k] -
-                       2.*(lambda*logJ-mu)*deltaS[j][k];
 
     // deltaP = dPdF:deltaF = deltaF*S + F*deltaS
     CeedScalar deltaP[3][3];
@@ -476,4 +493,4 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q,
 
 // -----------------------------------------------------------------------------
 
-#endif // End of ELAS_FSInitialNH1_H
+#endif // End of ELAS_FSInitialNH_H

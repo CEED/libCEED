@@ -696,11 +696,11 @@ int main(int argc, char **argv) {
 
     // -- Scale the problem
     PetscScalar load_increment = 1.0*increment / app_ctx->num_increments,
-                scalingFactor = load_increment /
-                                (increment == 1 ? 1 : res_ctx->load_increment);
+                scaling_factor = load_increment /
+                                 (increment == 1 ? 1 : res_ctx->load_increment);
     res_ctx->load_increment = load_increment;
     if (app_ctx->num_increments > 1 && app_ctx->forcing_choice != FORCE_NONE) {
-      ierr = VecScale(F, scalingFactor); CHKERRQ(ierr);
+      ierr = VecScale(F, scaling_factor); CHKERRQ(ierr);
     }
 
     // -- Solve

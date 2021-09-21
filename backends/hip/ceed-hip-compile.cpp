@@ -27,7 +27,7 @@ do { \
 int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
                     const CeedInt num_opts, ...) {
   int ierr;
-  hipFree(0); // Make sure a Context exists for hiprtc 
+  hipFree(0); // Make sure a Context exists for hiprtc
   hiprtcProgram prog;
 
   std::ostringstream code;
@@ -48,7 +48,18 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
 
   // Macro definitions
   // Get kernel specific options, such as kernel constants
-  const int opts_size = 3;
+  const char *ENZYME_LIB = getenv("ENZYME_LIB");
+  const char *enzyme_opts[] = {
+    "-Xclang",
+    "-load",
+    "-Xclang",
+    ENZYME_LIB,
+    "-flegacy-pass-manager"
+  };
+  int opts_size = 3;
+  if (ENZYME_LIB && strcmp(ENZYME_LIB, "") != 0) {
+    opts_size += sizeof(enzyme_opts) / sizeof(*enzyme_opts);
+  }
   const char *opts[opts_size];
   if (num_opts > 0) {
     va_list args;
@@ -64,7 +75,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   }
 
   // Standard backend options
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) { 
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
     code << "#define CeedScalar float\n";
   }
   else {
@@ -72,8 +83,8 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   }
   code << "#define CeedInt int\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
- 
-  // Non-macro options     
+
+  // Non-macro options
   opts[0] = "-default-device";
   struct hipDeviceProp_t prop;
   Ceed_Hip *ceed_data;
@@ -82,6 +93,12 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   std::string arch_arg = "--gpu-architecture="  + std::string(prop.gcnArchName);
   opts[1] = arch_arg.c_str();
   opts[2] = "-munsafe-fp-atomics";
+
+  if (ENZYME_LIB && strcmp(ENZYME_LIB, "") != 0) {
+    for (int i=0; i<sizeof(enzyme_opts) / sizeof(*enzyme_opts); ++i) {
+      opts[3+i] = enzyme_opts[i];
+    }
+  }
 
   // Add string source argument provided in call
   code << source;

@@ -38,7 +38,16 @@ OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
-src.c := elasticity.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
+src.c := elasticity.c $(filter-out $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c))) $(sort $(wildcard $(SRCDIR)/*.c))
+
+# Enzyme-AD
+ENZYME_LIB ?=
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -flegacy-pass-manager
+ifneq ($(ENZYME_LIB),)
+	CFLAGS += $(ENZYMEFLAGS)
+	src.c += $(filter $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c)))
+endif
+
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: elasticity

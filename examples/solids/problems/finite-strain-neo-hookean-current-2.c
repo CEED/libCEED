@@ -11,6 +11,7 @@
 #include "../problems/problems.h"
 #include "../problems/neo-hookean.h"
 #include "../qfunctions/common.h"
+#include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-current-2.h"
 
 static const char *const field_names[] = {"dXdx", "tau", "lambda_log_J"};
@@ -23,15 +24,15 @@ ProblemData finite_strain_neo_Hookean_current_2 = {
   .quadrature_mode = CEED_GAUSS,
   .residual = ElasFSCurrentNH2F,
   .residual_loc = ElasFSCurrentNH2F_loc,
-  .number_fields_stored = 3,
+  .number_fields_stored = sizeof(field_sizes) / sizeof(*field_sizes),
   .field_names = field_names,
   .field_sizes = field_sizes,
   .jacobian = ElasFSCurrentNH2dF,
   .jacobian_loc = ElasFSCurrentNH2dF_loc,
-  .energy = ElasFSCurrentNH2Energy,
-  .energy_loc = ElasFSCurrentNH2Energy_loc,
-  .diagnostic = ElasFSCurrentNH2Diagnostic,
-  .diagnostic_loc = ElasFSCurrentNH2Diagnostic_loc,
+  .energy = ElasFSNHEnergy,
+  .energy_loc = ElasFSNHEnergy_loc,
+  .diagnostic = ElasFSNHDiagnostic,
+  .diagnostic_loc = ElasFSNHDiagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSCurrentNH2(DM dm, DM dm_energy,
@@ -63,5 +64,20 @@ PetscErrorCode SetupLibceedLevel_ElasFSCurrentNH2(DM dm, Ceed ceed,
                            level, num_comp_u, U_g_size, U_loc_size, fine_mult, data);
   CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+};
+
+PetscErrorCode ProblemRegister_ElasFSCurrentNH2(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSCurrent-NH2",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSCurrent-NH2", PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSCurrent-NH2", SetupLibceedFineLevel_ElasFSCurrentNH2); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSCurrent-NH2", SetupLibceedLevel_ElasFSCurrentNH2); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 };

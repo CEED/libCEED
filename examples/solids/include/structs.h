@@ -11,6 +11,7 @@
 #include <ceed.h>
 #include <petsc.h>
 #include "../problems/cl-problems.h"
+#include "petscsystypes.h"
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -143,13 +144,14 @@ struct CeedData_ {
   CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_geo_data_i,
                       elem_restr_energy, elem_restr_diagnostic,
                       elem_restr_geo_data_diagnostic_i,
-                      elem_restr_stored_fields_i[SOLIDS_MAX_NUMBER_FIELDS];
+                      elem_restr_stored_fields_i[SOLIDS_MAX_NUMBER_FIELDS],
+                      elem_restr_tape_i;
   CeedQFunction       qf_residual, qf_jacobian, qf_energy, qf_diagnostic;
   CeedOperator        op_residual, op_jacobian, op_restrict, op_prolong,
-                      op_energy,
-                      op_diagnostic;
+                      op_energy, op_diagnostic;
   CeedVector          geo_data, geo_data_diagnostic, x_ceed, y_ceed,
-                      true_soln, stored_fields[SOLIDS_MAX_NUMBER_FIELDS];
+                      true_soln, stored_fields[SOLIDS_MAX_NUMBER_FIELDS],
+                      stored_tape;
 };
 
 typedef struct {
@@ -160,6 +162,7 @@ typedef struct {
   CeedQuadMode quadrature_mode;
   CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
+  PetscErrorCode (*tape_size)(PetscInt *);
   const char *const *field_names;
 } ProblemData;
 

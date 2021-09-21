@@ -19,12 +19,12 @@
 
 
 //------------------------------------------------------------------------------
-// Calculate the block size used for launching the operator kernel 
+// Calculate the block size used for launching the operator kernel
 //------------------------------------------------------------------------------
 extern "C" int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt nelem,
      	                                  const CeedInt P1d, const CeedInt Q1d,
 				          CeedInt *block_sizes) {
-  
+
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
   if (dim==1) {
     CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
@@ -808,6 +808,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "#define CEED_QFUNCTION_HELPER __device__ __forceinline__\n";
+  code << "#define CEED_DEVICE __device__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
@@ -822,12 +823,12 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
       CeedChkBackend(ierr);
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d;
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr);
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
@@ -852,7 +853,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr);
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
       } else {
@@ -862,7 +863,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
         }
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d;
     }
   }
   data->dim = dim;
@@ -1051,7 +1052,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     if (emode != CEED_EVAL_WEIGHT &&
         !((emode == CEED_EVAL_NONE) && useCollograd)) {
       code << "    CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      
+
       bool isStrided;
       ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
       if (!isStrided) {
@@ -1383,7 +1384,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedDebug(ceed, code.str().c_str());
 
   CeedInt block_sizes[3] = {0, 0, 0};
-  ierr = BlockGridCalculate_Hip_gen(dim, numelements, data->maxP1d, Q1d, block_sizes); 
+  ierr = BlockGridCalculate_Hip_gen(dim, numelements, data->maxP1d, Q1d, block_sizes);
   CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 2,
                          "T1d", block_sizes[0],

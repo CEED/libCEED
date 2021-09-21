@@ -23,7 +23,7 @@ ProblemData finite_strain_Mooney_Rivlin_initial_1 = {
   .quadrature_mode = CEED_GAUSS,
   .residual = ElasFSInitialMR1F,
   .residual_loc = ElasFSInitialMR1F_loc,
-  .number_fields_stored = 1,
+  .number_fields_stored = sizeof(field_sizes) / sizeof(*field_sizes),
   .field_names = field_names,
   .field_sizes = field_sizes,
   .jacobian = ElasFSInitialMR1dF,
@@ -63,5 +63,20 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialMR1(DM dm, Ceed ceed,
                            level, num_comp_u, U_g_size, U_loc_size, fine_mult, data);
   CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+};
+
+PetscErrorCode ProblemRegister_ElasFSInitialMR1(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSInitial-MR1",
+                              PhysicsContext_MR); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSInitial-MR1", PhysicsSmootherContext_MR); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSInitial-MR1", SetupLibceedFineLevel_ElasFSInitialMR1); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSInitial-MR1", SetupLibceedLevel_ElasFSInitialMR1); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 };
