@@ -22,6 +22,8 @@ PetscErrorCode RegisterProblems(ProblemFunctions problem_functions) {
                           NH);
   SOLIDS_PROBLEM_REGISTER(problem_functions, "FSInitial-NH1", ElasFSInitialNH1,
                           NH);
+  SOLIDS_PROBLEM_REGISTER(problem_functions, "FSInitial-NH1-AD",
+                          ElasFSInitialNH1_AD, NH);
   SOLIDS_PROBLEM_REGISTER(problem_functions, "FSInitial-NH2", ElasFSInitialNH2,
                           NH);
   SOLIDS_PROBLEM_REGISTER(problem_functions, "FSInitial-MR1", ElasFSInitialMR1,
