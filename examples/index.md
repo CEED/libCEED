@@ -11,8 +11,8 @@ These examples are meant to demonstrate use of libCEED from standalone definitio
 
 notation.md
 ceed/index.md
-petsc/index.md
 bps.md
+petsc/index.md
 fluids/index.md
 solids/index.md
 ```
