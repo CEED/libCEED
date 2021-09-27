@@ -538,8 +538,9 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
                                 &qf_output_fields);
   CeedChkBackend(ierr);
   CeedVector vec;
-  CeedInt num_active_in = 0, num_active_out = 0;
-  CeedVector *active_in = NULL;
+  CeedInt num_active_in = impl->qf_num_active_in,
+          num_active_out = impl->qf_num_active_out;
+  CeedVector *active_in = impl->qf_active_in;
   CeedScalar *a, *tmp;
   Ceed ceed, ceed_parent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -563,41 +564,48 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
   CeedChkBackend(ierr);
 
   // Count number of active input fields
-  for (CeedInt i=0; i<num_input_fields; i++) {
-    // Get input vector
-    ierr = CeedOperatorFieldGetVector(op_input_fields[i], &vec);
-    CeedChkBackend(ierr);
-    // Check if active input
-    if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedQFunctionFieldGetSize(qf_input_fields[i], &size);
+  if (!num_active_in) {
+    for (CeedInt i=0; i<num_input_fields; i++) {
+      // Get input vector
+      ierr = CeedOperatorFieldGetVector(op_input_fields[i], &vec);
       CeedChkBackend(ierr);
-      ierr = CeedVectorSetValue(impl->q_vecs_in[i], 0.0); CeedChkBackend(ierr);
-      ierr = CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &tmp);
-      CeedChkBackend(ierr);
-      ierr = CeedRealloc(num_active_in + size, &active_in); CeedChkBackend(ierr);
-      for (CeedInt field=0; field<size; field++) {
-        ierr = CeedVectorCreate(ceed, Q, &active_in[num_active_in+field]);
+      // Check if active input
+      if (vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedQFunctionFieldGetSize(qf_input_fields[i], &size);
         CeedChkBackend(ierr);
-        ierr = CeedVectorSetArray(active_in[num_active_in+field], CEED_MEM_HOST,
-                                  CEED_USE_POINTER, &tmp[field*Q]);
+        ierr = CeedVectorSetValue(impl->q_vecs_in[i], 0.0); CeedChkBackend(ierr);
+        ierr = CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &tmp);
         CeedChkBackend(ierr);
+        ierr = CeedRealloc(num_active_in + size, &active_in); CeedChkBackend(ierr);
+        for (CeedInt field=0; field<size; field++) {
+          ierr = CeedVectorCreate(ceed, Q, &active_in[num_active_in+field]);
+          CeedChkBackend(ierr);
+          ierr = CeedVectorSetArray(active_in[num_active_in+field], CEED_MEM_HOST,
+                                    CEED_USE_POINTER, &tmp[field*Q]);
+          CeedChkBackend(ierr);
+        }
+        num_active_in += size;
+        ierr = CeedVectorRestoreArray(impl->q_vecs_in[i], &tmp); CeedChkBackend(ierr);
       }
-      num_active_in += size;
-      ierr = CeedVectorRestoreArray(impl->q_vecs_in[i], &tmp); CeedChkBackend(ierr);
     }
+    impl->qf_num_active_in = num_active_in;
+    impl->qf_active_in = active_in;
   }
 
   // Count number of active output fields
-  for (CeedInt i=0; i<num_output_fields; i++) {
-    // Get output vector
-    ierr = CeedOperatorFieldGetVector(op_output_fields[i], &vec);
-    CeedChkBackend(ierr);
-    // Check if active output
-    if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedQFunctionFieldGetSize(qf_output_fields[i], &size);
+  if (!num_active_out) {
+    for (CeedInt i=0; i<num_output_fields; i++) {
+      // Get output vector
+      ierr = CeedOperatorFieldGetVector(op_output_fields[i], &vec);
       CeedChkBackend(ierr);
-      num_active_out += size;
+      // Check if active output
+      if (vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedQFunctionFieldGetSize(qf_output_fields[i], &size);
+        CeedChkBackend(ierr);
+        num_active_out += size;
+      }
     }
+    impl->qf_num_active_out = num_active_out;
   }
 
   // Check sizes
@@ -679,12 +687,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
   // Restore output
   ierr = CeedVectorRestoreArray(*assembled, &a); CeedChkBackend(ierr);
 
-  // Cleanup
-  for (CeedInt i=0; i<num_active_in; i++) {
-    ierr = CeedVectorDestroy(&active_in[i]); CeedChkBackend(ierr);
-  }
-  ierr = CeedFree(&active_in); CeedChkBackend(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -734,6 +736,12 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
   }
   ierr = CeedFree(&impl->e_vecs_out); CeedChkBackend(ierr);
   ierr = CeedFree(&impl->q_vecs_out); CeedChkBackend(ierr);
+
+  // QFunction assembly
+  for (CeedInt i=0; i<impl->qf_num_active_in; i++) {
+    ierr = CeedVectorDestroy(&impl->qf_active_in[i]); CeedChkBackend(ierr);
+  }
+  ierr = CeedFree(&impl->qf_active_in); CeedChkBackend(ierr);
 
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
