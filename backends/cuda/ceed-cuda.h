@@ -151,6 +151,7 @@ typedef struct {
   CUfunction linearPointBlock;
   CeedBasis basisin, basisout;
   CeedElemRestriction diagrstr, pbdiagrstr;
+  CeedVector elemdiag, pbelemdiag;
   CeedInt numemodein, numemodeout, nnodes;
   CeedEvalMode *h_emodein, *h_emodeout;
   CeedEvalMode *d_emodein, *d_emodeout;
@@ -165,6 +166,8 @@ typedef struct {
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
+  CeedInt    qfnumactivein, qfnumactiveout;
+  CeedVector *qfactivein;
   CeedOperatorDiag_Cuda *diag;
 } CeedOperator_Cuda;
 

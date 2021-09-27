@@ -48,6 +48,12 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
   }
   ierr = CeedFree(&impl->qvecsout); CeedChkBackend(ierr);
 
+  // QFunction diagonal assembly data
+  for (CeedInt i=0; i<impl->qfnumactivein; i++) {
+    ierr = CeedVectorDestroy(&impl->qfactivein[i]); CeedChkBackend(ierr);
+  }
+  ierr = CeedFree(&impl->qfactivein); CeedChkBackend(ierr);
+
   // Diag data
   if (impl->diag) {
     Ceed ceed;
@@ -64,6 +70,8 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
     ierr = hipFree(impl->diag->d_gradout); CeedChk_Hip(ceed, ierr);
     ierr = CeedElemRestrictionDestroy(&impl->diag->pbdiagrstr);
     CeedChkBackend(ierr);
+    ierr = CeedVectorDestroy(&impl->diag->elemdiag); CeedChkBackend(ierr);
+    ierr = CeedVectorDestroy(&impl->diag->pbelemdiag); CeedChkBackend(ierr);
   }
   ierr = CeedFree(&impl->diag); CeedChkBackend(ierr);
 
@@ -538,8 +546,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedVector vec;
-  CeedInt numactivein = 0, numactiveout = 0;
-  CeedVector *activein = NULL;
+  CeedInt numactivein = impl->qfnumactivein, numactiveout = impl->qfnumactiveout;
+  CeedVector *activein = impl->qfactivein;
   CeedScalar *a, *tmp;
   Ceed ceed, ceedparent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -565,39 +573,46 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   CeedChkBackend(ierr);
 
   // Count number of active input fields
-  for (CeedInt i=0; i<numinputfields; i++) {
-    // Get input vector
-    ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
-    // Check if active input
-    if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedVectorSetValue(impl->qvecsin[i], 0.0); CeedChkBackend(ierr);
-      ierr = CeedVectorGetArray(impl->qvecsin[i], CEED_MEM_DEVICE, &tmp);
-      CeedChkBackend(ierr);
-      ierr = CeedRealloc(numactivein + size, &activein); CeedChkBackend(ierr);
-      for (CeedInt field = 0; field < size; field++) {
-        ierr = CeedVectorCreate(ceed, Q*numelements,
-                                &activein[numactivein+field]); CeedChkBackend(ierr);
-        ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_DEVICE,
-                                  CEED_USE_POINTER, &tmp[field*Q*numelements]);
+  if (!numactivein) {
+    for (CeedInt i=0; i<numinputfields; i++) {
+      // Get input vector
+      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
+      // Check if active input
+      if (vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChkBackend(ierr);
+        ierr = CeedVectorSetValue(impl->qvecsin[i], 0.0); CeedChkBackend(ierr);
+        ierr = CeedVectorGetArray(impl->qvecsin[i], CEED_MEM_DEVICE, &tmp);
         CeedChkBackend(ierr);
+        ierr = CeedRealloc(numactivein + size, &activein); CeedChkBackend(ierr);
+        for (CeedInt field = 0; field < size; field++) {
+          ierr = CeedVectorCreate(ceed, Q*numelements,
+                                  &activein[numactivein+field]); CeedChkBackend(ierr);
+          ierr = CeedVectorSetArray(activein[numactivein+field], CEED_MEM_DEVICE,
+                                    CEED_USE_POINTER, &tmp[field*Q*numelements]);
+          CeedChkBackend(ierr);
+        }
+        numactivein += size;
+        ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChkBackend(ierr);
       }
-      numactivein += size;
-      ierr = CeedVectorRestoreArray(impl->qvecsin[i], &tmp); CeedChkBackend(ierr);
     }
+    impl->qfnumactivein = numactivein;
+    impl->qfactivein = activein;
   }
 
   // Count number of active output fields
-  for (CeedInt i=0; i<numoutputfields; i++) {
-    // Get output vector
-    ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
-    CeedChkBackend(ierr);
-    // Check if active output
-    if (vec == CEED_VECTOR_ACTIVE) {
-      ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size);
+  if (!numactiveout) {
+    for (CeedInt i=0; i<numoutputfields; i++) {
+      // Get output vector
+      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
       CeedChkBackend(ierr);
-      numactiveout += size;
+      // Check if active output
+      if (vec == CEED_VECTOR_ACTIVE) {
+        ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size);
+        CeedChkBackend(ierr);
+        numactiveout += size;
+      }
     }
+    impl->qfnumactiveout = numactiveout;
   }
 
   // Check sizes
@@ -675,12 +690,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
 
   // Restore output
   ierr = CeedVectorRestoreArray(*assembled, &a); CeedChkBackend(ierr);
-
-  // Cleanup
-  for (CeedInt i=0; i<numactivein; i++) {
-    ierr = CeedVectorDestroy(&activein[i]); CeedChkBackend(ierr);
-  }
-  ierr = CeedFree(&activein); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1125,9 +1134,16 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
   CeedElemRestriction diagrstr = pointBlock ? diag->pbdiagrstr : diag->diagrstr;
 
   // Create diagonal vector
-  CeedVector elemdiag;
-  ierr = CeedElemRestrictionCreateVector(diagrstr, NULL, &elemdiag);
-  CeedChkBackend(ierr);
+  CeedVector elemdiag = pointBlock ? diag->pbelemdiag : diag->elemdiag;
+  if (!elemdiag) {
+    // Element diagonal vector
+    ierr = CeedElemRestrictionCreateVector(diagrstr, NULL, &elemdiag);
+    CeedChkBackend(ierr);
+    if (pointBlock)
+      diag->pbelemdiag = elemdiag;
+    else
+      diag->elemdiag = elemdiag;
+  }
   ierr = CeedVectorSetValue(elemdiag, 0.0); CeedChkBackend(ierr);
 
   // Assemble element operator diagonals
@@ -1169,7 +1185,6 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
 
   // Cleanup
   ierr = CeedVectorDestroy(&assembledqf); CeedChkBackend(ierr);
-  ierr = CeedVectorDestroy(&elemdiag); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
