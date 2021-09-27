@@ -23,7 +23,7 @@ and run with:
 
 % inclusion-solids-marker
 
-The elasticity min-app is controlled via command-line options, the following of which are mandatory.
+The elasticity mini-app is controlled via command-line options, the following of which are mandatory.
 
 :::{list-table} Mandatory Runtime Options
 :header-rows: 1
