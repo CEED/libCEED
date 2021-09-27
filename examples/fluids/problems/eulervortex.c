@@ -104,7 +104,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-euler_test", "Euler test option", NULL,
-                          EulerTestTypes, (PetscEnum)(euler_test = EULER_TEST_NONE),
+                          EulerTestTypes, (PetscEnum)(euler_test = EULER_TEST_ISENTROPIC_VORTEX),
                           (PetscEnum *)&euler_test, NULL); CHKERRQ(ierr);
 
   // -- Units

@@ -85,18 +85,18 @@ static const char *const BubbleContinuityTypes[] = {
 
 // Euler - test cases
 typedef enum {
-  EULER_TEST_NONE = 0,
-  EULER_TEST_1    = 1,
-  EULER_TEST_2    = 2,
-  EULER_TEST_3    = 3,
-  EULER_TEST_4    = 4,
+  EULER_TEST_ISENTROPIC_VORTEX = 0,
+  EULER_TEST_1 = 1,
+  EULER_TEST_2 = 2,
+  EULER_TEST_3 = 3,
+  EULER_TEST_4 = 4,
 } EulerTestType;
 static const char *const EulerTestTypes[] = {
-  "none",
-  "t1",
-  "t2",
-  "t3",
-  "t4",
+  "isentropic_vortex",
+  "test_1",
+  "test_2",
+  "test_3",
+  "test_4",
   "EulerTestType", "EULER_TEST_", NULL
 };
 
