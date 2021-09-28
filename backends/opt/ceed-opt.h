@@ -43,6 +43,10 @@ typedef struct {
   CeedVector *q_vecs_out;  /* Output Q-vectors needed to apply operator */
   CeedInt    num_e_vecs_in;
   CeedInt    num_e_vecs_out;
+  CeedInt    qf_num_active_in, qf_num_active_out;
+  CeedVector *qf_active_in;
+  CeedVector qf_lvec;
+  CeedElemRestriction qf_blk_rstr;
 } CeedOperator_Opt;
 
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);

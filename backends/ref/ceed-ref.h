@@ -63,6 +63,8 @@ typedef struct {
   CeedVector *q_vecs_out;  /* Output Q-vectors needed to apply operator */
   CeedInt    num_e_vecs_in;
   CeedInt    num_e_vecs_out;
+  CeedInt    qf_num_active_in, qf_num_active_out;
+  CeedVector *qf_active_in;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);

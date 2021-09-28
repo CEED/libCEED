@@ -298,6 +298,8 @@ struct CeedOperator_private {
   int ref_count;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
+  int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector,
+                                       CeedElemRestriction, CeedRequest *);
   int (*LinearAssembleDiagonal)(CeedOperator, CeedVector, CeedRequest *);
   int (*LinearAssembleAddDiagonal)(CeedOperator, CeedVector, CeedRequest *);
   int (*LinearAssemblePointBlockDiagonal)(CeedOperator, CeedVector,
@@ -327,6 +329,9 @@ struct CeedOperator_private {
   bool is_backend_setup;
   bool is_composite;
   bool has_restriction;
+  bool has_qf_assembled;
+  CeedVector qf_assembled;
+  CeedElemRestriction qf_assembled_rstr;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;

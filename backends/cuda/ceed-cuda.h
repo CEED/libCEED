@@ -151,6 +151,7 @@ typedef struct {
   CUfunction linearPointBlock;
   CeedBasis basisin, basisout;
   CeedElemRestriction diagrstr, pbdiagrstr;
+  CeedVector elemdiag, pbelemdiag;
   CeedInt numemodein, numemodeout, nnodes;
   CeedEvalMode *h_emodein, *h_emodeout;
   CeedEvalMode *d_emodein, *d_emodeout;
@@ -165,6 +166,8 @@ typedef struct {
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
   CeedInt    numeout;
+  CeedInt    qfnumactivein, qfnumactiveout;
+  CeedVector *qfactivein;
   CeedOperatorDiag_Cuda *diag;
 } CeedOperator_Cuda;
 
@@ -199,20 +202,6 @@ CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
 CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
     const int gridSize, const int blockSizeX, const int blockSizeY,
     const int blockSizeZ, const int sharedMemSize, void **args);
-
-CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
-                                      const int gridSize,
-                                      const int blockSizeX,
-                                      const int blockSizeY,
-                                      const int blockSizeZ,
-                                      const int sharedMemSize, void **args);
-
-CEED_INTERN int run_kernel_dim_shared(Ceed ceed, CUfunction kernel,
-                                      const int gridSize,
-                                      const int blockSizeX, const int blockSizeY,
-                                      const int blockSizeZ,
-                                      const int sharedMemSize,
-                                      void **args);
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
 

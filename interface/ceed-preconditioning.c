@@ -200,8 +200,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   CeedChk(ierr);
   CeedVector assembled_qf;
   CeedElemRestriction rstr;
-  ierr = CeedOperatorLinearAssembleQFunction(op,  &assembled_qf, &rstr, request);
-  CeedChk(ierr);
+  ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op,  &assembled_qf,
+         &rstr, request); CeedChk(ierr);
   CeedInt layout[3];
   ierr = CeedElemRestrictionGetELayout(rstr, &layout); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChk(ierr);
@@ -550,7 +550,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
   CeedVector assembled_qf;
   CeedElemRestriction rstr_q;
-  ierr = CeedOperatorLinearAssembleQFunction(
+  ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(
            op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
 
   CeedInt qf_length;
@@ -1059,8 +1059,8 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
 
   // Backend version
   if (op->LinearAssembleQFunction) {
-    ierr = op->LinearAssembleQFunction(op, assembled, rstr, request); CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
+    ierr = op->LinearAssembleQFunction(op, assembled, rstr, request);
+    CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
     if (!op->op_fallback) {
@@ -1069,8 +1069,61 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
     // Assemble
     ierr = CeedOperatorLinearAssembleQFunction(op->op_fallback, assembled,
            rstr, request); CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Assemble CeedQFunction and store result internall. Return copied
+           references of stored data to the caller. Caller is responsible for
+           ownership and destruction of the copied references. See also
+           @ref CeedOperatorLinearAssembleQFunction
+
+  @param op              CeedOperator to assemble CeedQFunction
+  @param assembled       CeedVector to store assembled CeedQFunction at
+                           quadrature points
+  @param rstr            CeedElemRestriction for CeedVector containing assembled
+                           CeedQFunction
+  @param request         Address of CeedRequest for non-blocking completion, else
+                           @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
+    CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+  int ierr;
+  ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
+
+  // Backend version
+  if (op->LinearAssembleQFunctionUpdate) {
+    if (op->has_qf_assembled) {
+      ierr = op->LinearAssembleQFunctionUpdate(op, op->qf_assembled,
+             op->qf_assembled_rstr, request);
+    } else {
+      ierr = op->LinearAssembleQFunction(op, &op->qf_assembled,
+                                         &op->qf_assembled_rstr, request);
+    }
+    CeedChk(ierr);
+    op->has_qf_assembled = true;
+    // Copy reference to internally held copy
+    *assembled = NULL;
+    *rstr = NULL;
+    ierr = CeedVectorReferenceCopy(op->qf_assembled, assembled); CeedChk(ierr);
+    ierr = CeedElemRestrictionReferenceCopy(op->qf_assembled_rstr, rstr);
+  } else {
+    // Fallback to reference Ceed
+    if (!op->op_fallback) {
+      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    }
+    // Assemble
+    ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op->op_fallback,
+           assembled, rstr, request); CeedChk(ierr);
+  }
+  CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1884,8 +1937,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   // Assemble QFunction
   CeedVector assembled;
   CeedElemRestriction rstr_qf;
-  ierr =  CeedOperatorLinearAssembleQFunction(op, &assembled, &rstr_qf, request);
-  CeedChk(ierr);
+  ierr =  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled,
+          &rstr_qf, request); CeedChk(ierr);
   CeedInt layout[3];
   ierr = CeedElemRestrictionGetELayout(rstr_qf, &layout); CeedChk(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_qf); CeedChk(ierr);

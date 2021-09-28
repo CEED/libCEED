@@ -764,7 +764,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
-  CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
+  CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
           numoutputfields, ncomp, dim = 0, lsize;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
@@ -800,8 +800,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   // Add atomicAdd function for old NVidia architectures
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr);
-  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr); CeedChkBackend(ierr);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId); CeedChkBackend(ierr);
   if ((prop.major<6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)){
     code << atomicAdd;
   }
