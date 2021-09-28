@@ -248,7 +248,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend MemType            : %s\n",
                        used_resource, CeedMemTypes[mem_type_backend]); CHKERRQ(ierr);
     // PETSc
-    char box_faces_str[PETSC_MAX_PATH_LEN] = "NONE";
+    char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
+    if (problem->dim == 2) box_faces_str[3] = '\0';
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
