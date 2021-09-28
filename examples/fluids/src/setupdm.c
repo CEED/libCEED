@@ -31,6 +31,7 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
 
   ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
                                  faces, &dim, NULL); CHKERRQ(ierr);
+  if (!dim) dim = problem->dim;
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, scale,
                              NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
 
