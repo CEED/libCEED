@@ -14,6 +14,7 @@ for each release of libCEED.
 - Clarify and document conditions where `CeedQFunction` and `CeedOperator` become immutable and no further fields or suboperators can be added.
 - Add {c:func} `CeedOperatorLinearAssembleQFunctionBuildOrUpdate` to reduce object creation overhead in assembly of CeedOperator preconditioning ingredients.
 - Promote {c:func} `CeedOperatorCheckReady`to the public API to facilitate interactive interfaces.
+- Warning added when compiling OCCA backend to alert users that this backend is experimental.
 
 ### New features
 
