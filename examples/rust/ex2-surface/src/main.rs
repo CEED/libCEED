@@ -241,7 +241,8 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
-        )?;
+        )?
+        .check()?;
 
     // Compute the quadrature data for the diff operator
     let elem_qpts = num_qpts.pow(dim as u32);
@@ -315,7 +316,8 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
         .operator(qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
         .field("du", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
-        .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?;
+        .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .check()?;
 
     // Solution vectors
     let mut u = ceed.vector(solution_size)?;

@@ -428,6 +428,11 @@ impl<'a> OperatorCore<'a> {
     }
 
     // Common implementations
+    pub fn check(&self) -> crate::Result<i32> {
+        let ierr = unsafe { bind_ceed::CeedOperatorCheckReady(self.ptr) };
+        self.check_error(ierr)
+    }
+
     pub fn apply(&self, input: &Vector, output: &mut Vector) -> crate::Result<i32> {
         let ierr = unsafe {
             bind_ceed::CeedOperatorApply(
@@ -866,6 +871,48 @@ impl<'a> Operator<'a> {
             )
         };
         Ok(outputs_slice)
+    }
+
+    /// Check if Operator is setup correctly
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let ne = 4;
+    /// let p = 3;
+    /// let q = 4;
+    /// let ndofs = p * ne - ne + 1;
+    ///
+    /// // Restrictions
+    /// let mut indx: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     indx[2 * i + 0] = i as i32;
+    ///     indx[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Build quadrature data
+    /// let qf_build = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let op_build = ceed
+    ///     .operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// // Check
+    /// assert!(op_build.check().is_ok(), "Operator setup incorrectly");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn check(self) -> crate::Result<Self> {
+        self.op_core.check()?;
+        Ok(self)
     }
 
     /// Get the number of elements associated with an Operator
@@ -2212,6 +2259,60 @@ impl<'a> CompositeOperator<'a> {
         let ierr =
             unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
         self.op_core.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Check if CompositeOperator is setup correctly
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let ne = 4;
+    /// let p = 3;
+    /// let q = 4;
+    /// let ndofs = p * ne - ne + 1;
+    ///
+    /// // Restrictions
+    /// let mut indx: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     indx[2 * i + 0] = i as i32;
+    ///     indx[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let rx = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &indx)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
+    ///
+    /// // Bases
+    /// let bx = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Build quadrature data
+    /// let qf_build_mass = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let op_build_mass = ceed
+    ///     .operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild")?;
+    /// let op_build_diff = ceed
+    ///     .operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .field("dx", &rx, &bx, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///
+    /// let op_build = ceed
+    ///     .composite_operator()?
+    ///     .sub_operator(&op_build_mass)?
+    ///     .sub_operator(&op_build_diff)?;
+    ///
+    /// // Check
+    /// assert!(op_build.check().is_ok(), "Operator setup incorrectly");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn check(self) -> crate::Result<Self> {
+        self.op_core.check()?;
         Ok(self)
     }
 
