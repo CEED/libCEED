@@ -29,7 +29,8 @@ noether-rocm:
     - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
 # libCEED
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
+#    Note: OCCA backends currently disabled in CI
+    - BACKENDS_CPU=$(OCCA_DIR= make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(OCCA_DIR= make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
     - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU

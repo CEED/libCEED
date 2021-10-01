@@ -637,9 +637,6 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-backend.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 
 .PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends info-backends-all
 
