@@ -66,7 +66,7 @@
 **/
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
-  static const char name ## _loc[] = __FILE__ ":" #name;        \
+  static const char name ## _loc[] = __FILE__ ":" #name; \
   static int name
 #endif
 
@@ -78,6 +78,17 @@
 **/
 #ifndef CEED_QFUNCTION_HELPER
 #define CEED_QFUNCTION_HELPER static inline
+#endif
+
+/**
+  @ingroup CeedQFunction
+  This macro populates the correct function annotations for User QFunction
+    helper function source for code generation backends or populates default
+    values for CPU backends.
+**/
+#ifndef CEED_QFUNCTION_HELPER_LOC
+#define CEED_QFUNCTION_HELPER_LOC(name) \
+  static const char name ## _loc[] = __FILE__ ;
 #endif
 
 /**

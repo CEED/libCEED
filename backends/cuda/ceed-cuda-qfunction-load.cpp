@@ -77,6 +77,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "#define CEED_QFUNCTION_HELPER inline __device__\n";
+  code << "#define CEED_QFUNCTION_HELPER_LOC(name)\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
@@ -132,6 +133,8 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
+  CeedDebug("--------- QFunction Source ---------");
+  CeedDebug(qFunctionName.c_str());
   CeedDebug(code.str().c_str());
 
   // Compile kernel

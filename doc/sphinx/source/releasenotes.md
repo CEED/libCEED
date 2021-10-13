@@ -20,6 +20,7 @@ for each release of libCEED.
 ### New features
 
 - `CeedScalar` can now be set as `float` or `double` at compile time.
+- {c:func} `CeedQFunctionCreateInterior` now supports users providing a list of multiple source files, separated by semicolons.
 
 ### Maintainability
 

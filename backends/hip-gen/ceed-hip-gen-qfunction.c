@@ -59,41 +59,73 @@ static int loadHipFunction(CeedQFunction qf, char *c_src_file) {
   CeedQFunction_Hip_gen *data;
   ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
 
-  // Find source file
-  char *hip_file;
-  ierr = CeedCalloc(HIP_MAX_PATH, &hip_file); CeedChkBackend(ierr);
-  memcpy(hip_file, c_src_file, strlen(c_src_file));
-  const char *last_dot = strrchr(hip_file, '.');
-  if (!last_dot)
-    return CeedError(ceed, 1, "Cannot find file's extension!");
-  const size_t hip_path_len = last_dot - hip_file;
-  strncpy(&hip_file[hip_path_len], ".h", 3);
+  // Count number of source file(s)
+  CeedInt num_files = 1;
+  CeedInt file_offset = 0;
+  for (CeedInt i = 0; i < (CeedInt) strlen(c_src_file); i++) {
+    if (c_src_file[i] == ';')
+      num_files++;
+  }
+  file_offset = 0;
 
-  // Open source file
-  FILE *fp;
-  long lSize;
+  // Loop over all source file(s)
   char *buffer;
-  fp = fopen (hip_file, "rb");
-  if (!fp)
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
-  // LCOV_EXCL_STOP
-
-  // Compute size of source file
-  fseek(fp, 0L, SEEK_END);
-  lSize = ftell(fp);
-  rewind(fp);
-
-  // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
-
-  // Copy the file into the buffer
-  if (1 != fread(buffer, lSize, 1, fp)) {
-    // LCOV_EXCL_START
-    fclose(fp);
-    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-    return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
+  CeedInt buffer_offset = 0;
+  ierr = CeedCalloc(buffer_offset + 1, &buffer); CeedChkBackend(ierr);
+  for (CeedInt i = 0; i < num_files; i++) {
+    // Find current source file path
+    char *hip_file;
+    ierr = CeedCalloc(HIP_MAX_PATH, &hip_file); CeedChkBackend(ierr);
+    CeedInt file_path_len = strlen(c_src_file) - file_offset;
+    const char *semicolon_loc = semicolon_loc = strchr(&c_src_file[file_offset],
+                                ';');
+    if (semicolon_loc)
+      file_path_len = semicolon_loc - &c_src_file[file_offset];
+    memcpy(hip_file, &c_src_file[file_offset], file_path_len);
+    const char *last_dot = strrchr(hip_file, '.');
+    if (!last_dot)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
     // LCOV_EXCL_STOP
+    const size_t hip_path_len = last_dot - hip_file;
+    strncpy(&hip_file[hip_path_len], ".h", 3);
+
+    // Open source file
+    FILE *fp;
+    long lSize;
+    fp = fopen (hip_file, "rb");
+    if (!fp)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Couldn't open the Cuda file for the QFunction.");
+    // LCOV_EXCL_STOP
+
+    // Compute size of source
+    fseek(fp, 0L, SEEK_END);
+    lSize = ftell(fp);
+    rewind(fp);
+
+    // Allocate memory for entire content
+    ierr = CeedRealloc(buffer_offset+lSize+1, &buffer); CeedChkBackend(ierr);
+
+    // Copy the file into the buffer
+    if (1 != fread(&buffer[buffer_offset], lSize, 1, fp)) {
+      // LCOV_EXCL_START
+      fclose(fp);
+      ierr = CeedFree(&buffer); CeedChkBackend(ierr);
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Couldn't read the Cuda file for the QFunction.");
+      // LCOV_EXCL_STOP
+    }
+    strncpy(&buffer[buffer_offset + lSize], "\n", 2);
+
+    // Cleanup
+    fclose(fp);
+    ierr = CeedFree(&hip_file); CeedChkBackend(ierr);
+
+    // Update offsets
+    file_offset += file_path_len + 1;
+    buffer_offset += lSize + 1;
   }
 
   // Append typedef and save source string
@@ -108,8 +140,6 @@ static int loadHipFunction(CeedQFunction qf, char *c_src_file) {
 
   // Cleanup
   ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-  fclose(fp);
-  ierr = CeedFree(&hip_file); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
