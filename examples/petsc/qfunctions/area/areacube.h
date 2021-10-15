@@ -20,7 +20,7 @@
 #ifndef areacube_h
 #define areacube_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

@@ -20,6 +20,7 @@ for each release of libCEED.
 ### New features
 
 - `CeedScalar` can now be set as `float` or `double` at compile time.
+- Add `CEED_QFUNCTION_JIT` macro to simplfy logic for header inclusion in QFunction source for JiT.
 
 ### Maintainability
 

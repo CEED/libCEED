@@ -20,7 +20,7 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

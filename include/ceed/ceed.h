@@ -82,6 +82,14 @@
 
 /**
   @ingroup CeedQFunction
+  This macro indicates if QFunction source is being JiT compiled.
+**/
+#ifndef CEED_QFUNCTION_JIT
+#define CEED_QFUNCTION_JIT 0
+#endif
+
+/**
+  @ingroup CeedQFunction
   Using VLA syntax to reshape User QFunction inputs and outputs can make
     user code more readable. VLA is a C99 feature that is not supported by
     the C++ dialect used by CUDA. This macro allows users to use the VLA

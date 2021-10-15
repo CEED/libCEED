@@ -20,7 +20,7 @@
 #ifndef mass_h
 #define mass_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

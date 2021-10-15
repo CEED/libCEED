@@ -20,7 +20,7 @@
 #ifndef ELAS_LINEAR_H
 #define ELAS_LINEAR_H
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

@@ -20,7 +20,7 @@
 #ifndef MANUFACTURED_H
 #define MANUFACTURED_H
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

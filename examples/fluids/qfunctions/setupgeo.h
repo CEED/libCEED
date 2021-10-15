@@ -20,7 +20,7 @@
 #ifndef setup_geo_h
 #define setup_geo_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

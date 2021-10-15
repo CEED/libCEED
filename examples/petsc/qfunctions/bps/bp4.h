@@ -20,7 +20,7 @@
 #ifndef bp4_h
 #define bp4_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

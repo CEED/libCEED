@@ -20,7 +20,7 @@
 #ifndef CONSTANT_H
 #define CONSTANT_H
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

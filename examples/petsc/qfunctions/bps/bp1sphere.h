@@ -20,7 +20,7 @@
 #ifndef bp1sphere_h
 #define bp1sphere_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

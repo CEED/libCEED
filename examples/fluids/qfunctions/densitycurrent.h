@@ -24,7 +24,7 @@
 #ifndef densitycurrent_h
 #define densitycurrent_h
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 

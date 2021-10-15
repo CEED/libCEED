@@ -20,7 +20,7 @@
 #ifndef ELAS_FSCurrentNH2_H
 #define ELAS_FSCurrentNH2_H
 
-#ifndef __CUDACC__
+#if !CEED_QFUNCTION_JIT
 #  include <math.h>
 #endif
 
