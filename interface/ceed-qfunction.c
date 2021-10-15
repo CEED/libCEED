@@ -360,13 +360,16 @@ int CeedQFunctionReference(CeedQFunction qf) {
                        points is a multiple of vec_length.
   @param f           Function pointer to evaluate action at quadrature points.
                        See \ref CeedQFunctionUser.
-  @param source      Absolute path to source of QFunction,
+  @param source      Absolute path to source of user QFunction,
                        "\abs_path\file.h:function_name".
                        For support across all backends, this source must only
                        contain constructs supported by C99, C++11, and CUDA.
                        Additional paths may be listed in a semicolon separated
                        list for source files with helper functions,
                        "\abs_path\helper.h;\abs_path\file.h:function_name".
+                       Source files are included in JiT kernel source in the
+                       order provided. The source path to the user QFunction
+                       must be listed last.
   @param[out] qf     Address of the variable where the newly created
                        CeedQFunction will be stored
 
