@@ -113,46 +113,22 @@ static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
 //------------------------------------------------------------------------------
 // Load QFunction source file
 //------------------------------------------------------------------------------
-static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
+static int CeedCudaLoadQFunction(CeedQFunction qf, CeedInt num_files,
+                                 const char **c_src_files) {
   int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
 
-  // Count number of source file(s)
-  CeedInt num_files = 1;
-  CeedInt file_offset = 0;
-  for (CeedInt i = 0; i < (CeedInt) strlen(c_src_file); i++) {
-    if (c_src_file[i] == ';')
-      num_files++;
-  }
-  file_offset = 0;
-
   // Loop over all source file(s)
   char *buffer;
-  CeedInt buffer_offset = 0;
+  CeedInt buffer_offset = 1;
   ierr = CeedCalloc(buffer_offset + 1, &buffer); CeedChkBackend(ierr);
+  strncpy(buffer, "\n", 2);
   for (CeedInt i = 0; i < num_files; i++) {
-    // Find current source file path
-    char *cuda_file;
-    ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChkBackend(ierr);
-    CeedInt file_path_len = strlen(c_src_file) - file_offset;
-    const char *semicolon_loc = semicolon_loc = strchr(&c_src_file[file_offset],
-                                ';');
-    if (semicolon_loc)
-      file_path_len = semicolon_loc - &c_src_file[file_offset];
-    memcpy(cuda_file, &c_src_file[file_offset], file_path_len);
-    const char *last_dot = strrchr(cuda_file, '.');
-    if (!last_dot)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
-    // LCOV_EXCL_STOP
-    const size_t cuda_path_len = last_dot - cuda_file;
-    strncpy(&cuda_file[cuda_path_len], ".h", 3);
-
     // Open source file
     FILE *fp;
     long lSize;
-    fp = fopen (cuda_file, "rb");
+    fp = fopen (c_src_files[i], "rb");
     if (!fp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
@@ -165,7 +141,7 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
     rewind(fp);
 
     // Allocate memory for entire content
-    ierr = CeedRealloc(buffer_offset+lSize+1, &buffer); CeedChkBackend(ierr);
+    ierr = CeedRealloc(buffer_offset+lSize+2, &buffer); CeedChkBackend(ierr);
 
     // Copy the file into the buffer
     if (1 != fread(&buffer[buffer_offset], lSize, 1, fp)) {
@@ -180,10 +156,8 @@ static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
 
     // Cleanup
     fclose(fp);
-    ierr = CeedFree(&cuda_file); CeedChkBackend(ierr);
 
     // Update offsets
-    file_offset += file_path_len + 1;
     buffer_offset += lSize + 1;
   }
 
@@ -207,13 +181,16 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
   // Read source
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  // Empty source path indicates user must supply Q-Function
-  if (source[0] != '\0') {
-    const char *funname = strrchr(source, ':') + 1;
+  const char **sources;
+  CeedInt num_sources;
+  ierr = CeedQFunctionGetSourcePaths(qf, &num_sources, &sources);
+  CeedChkBackend(ierr);
+  // Empty source path indicates user must supply QFunction kernel
+  if (num_sources != 0) {
+    const char *funname;
+    ierr = CeedQFunctionGetName(qf, &funname); CeedChkBackend(ierr);
     data->qFunctionName = (char *)funname;
-    ierr = CeedCudaLoadQFunction(qf, source); CeedChkBackend(ierr);
+    ierr = CeedCudaLoadQFunction(qf, num_sources, sources); CeedChkBackend(ierr);
   } else {
     data->module = NULL;
     data->qFunctionName = "";

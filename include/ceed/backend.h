@@ -192,7 +192,8 @@ CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *num_input_fields,
                                         CeedInt *num_output_fields);
-CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
+CEED_EXTERN int CeedQFunctionGetName(CeedQFunction qf, const char **name);
+CEED_EXTERN int CeedQFunctionGetSourcePaths(CeedQFunction qf, CeedInt *num_sources, const char ***sources);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf,

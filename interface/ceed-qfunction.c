@@ -211,17 +211,34 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input,
 }
 
 /**
-  @brief Get the source path string for a CeedQFunction
+  @brief Get the CeedQFunction user function name
 
-  @param qf           CeedQFunction
-  @param[out] source  Variable to store source path string
+  @param qf        CeedQFunction
+  @param[out] name Variable to store CeedQFunction name
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
-  *source = (char *) qf->source_path;
+int CeedQFunctionGetName(CeedQFunction qf, const char **name) {
+  *name = (char *) qf->qf_name;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the source path string for a CeedQFunction
+
+  @param qf           CeedQFunction
+  @param[out] source  Variable to store array of source path strings
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetSourcePaths(CeedQFunction qf, CeedInt *num_sources,
+                                const char ***sources) {
+  *num_sources = qf->num_sources;
+  *sources = qf->source_paths;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -384,7 +401,6 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
                                 CeedQFunctionUser f,
                                 const char *source, CeedQFunction *qf) {
   int ierr;
-  char *source_copy;
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
@@ -408,10 +424,39 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->vec_length = vec_length;
   (*qf)->is_identity = false;
   (*qf)->function = f;
-  size_t slen = strlen(source) + 1;
-  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
-  memcpy(source_copy, source, slen);
-  (*qf)->source_path = source_copy;
+
+  if (strlen(source) > 0) {
+    // Copy name
+    char *qf_name_copy;
+    const char *qf_name_ptr = strrchr(source, ':') + 1;
+    size_t qf_name_len = strlen(qf_name_ptr);
+    ierr = CeedCalloc(qf_name_len + 1, &qf_name_copy); CeedChk(ierr);
+    memcpy(qf_name_copy, qf_name_ptr, qf_name_len);
+    (*qf)->qf_name = qf_name_copy;
+
+    // Copy source paths
+    CeedInt num_sources = 1;
+    for (CeedInt i = 0; i < (CeedInt) strlen(source); i++) {
+      if (source[i] == ';')
+        num_sources++;
+    }
+    (*qf)->num_sources = num_sources;
+    ierr = CeedCalloc(num_sources, &(*qf)->source_paths); CeedChk(ierr);
+    CeedInt source_offset = 0;
+    for (CeedInt i = 0; i < num_sources; i++) {
+      CeedInt source_end = source_offset;
+      while (source[source_end] != ';' && source[source_end] != ':') source_end++;
+      CeedInt source_len = source_end - source_offset;
+
+      char *source_copy;
+      ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
+      memcpy(source_copy, &source[source_offset], source_len);
+      (*qf)->source_paths[i] = source_copy;
+
+      source_offset = source_end + 1;
+    }
+  }
+
   ierr = CeedCalloc(16, &(*qf)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->output_fields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
@@ -466,9 +511,10 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   // Copy name
   size_t slen = strlen(name) + 1;
-  ierr = CeedMalloc(slen, &name_copy); CeedChk(ierr);
+  ierr = CeedCalloc(slen + 1, &name_copy); CeedChk(ierr);
   memcpy(name_copy, name, slen);
-  (*qf)->qf_name = name_copy;
+  (*qf)->gallery_name = name_copy;
+  (*qf)->is_gallery = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -711,7 +757,8 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
   fprintf(stream, "%sCeedQFunction %s\n",
-          qf->qf_name ? "Gallery " : "User ", qf->qf_name ? qf->qf_name : "");
+          qf->is_gallery ? "Gallery " : "User ",
+          qf->is_gallery ? qf->gallery_name : qf->qf_name);
 
   fprintf(stream, "  %d Input Field%s:\n", qf->num_input_fields,
           qf->num_input_fields>1 ? "s" : "");
@@ -809,9 +856,12 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
 
   // User context data object
   ierr = CeedQFunctionContextDestroy(&(*qf)->ctx); CeedChk(ierr);
-
-  ierr = CeedFree(&(*qf)->source_path); CeedChk(ierr);
+  for (int i=0; i<(*qf)->num_sources; i++) {
+    ierr = CeedFree(&(*qf)->source_paths[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*qf)->source_paths); CeedChk(ierr);
   ierr = CeedFree(&(*qf)->qf_name); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->gallery_name); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;

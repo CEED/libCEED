@@ -238,13 +238,16 @@ struct CeedQFunction_private {
   CeedQFunctionField *output_fields;
   CeedInt num_input_fields, num_output_fields;
   CeedQFunctionUser function;
-  const char *source_path;
+  CeedInt num_sources;
+  const char **source_paths;
   const char *qf_name;
+  const char *gallery_name;
+  bool is_gallery;
   bool is_identity;
   bool is_fortran;
   bool is_immutable;
   CeedQFunctionContext ctx; /* user context for function */
-  void *data;          /* place for the backend to store any data */
+  void *data;               /* place for the backend to store any data */
 };
 
 struct CeedQFunctionContext_private {
@@ -288,7 +291,7 @@ struct CeedOperatorField_private {
                                        collocated fields */
   CeedVector vec;                 /* State vector for passive fields or
                                        CEED_VECTOR_NONE for no vector */
-  const char *field_name;          /* matching QFunction field name */
+  const char *field_name;         /* matching QFunction field name */
 };
 
 struct CeedOperator_private {
