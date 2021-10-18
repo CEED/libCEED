@@ -6,8 +6,8 @@
 #include "../qfunctions/common.h"
 #include "../qfunctions/finite-strain-neo-hookean-initial-1-ad.h"
 
-static const char *const field_names[] = {"gradu"};
-static CeedInt field_sizes[] = {9};
+static const char *const field_names[] = {"gradu", "Swork", "tape"};
+static CeedInt field_sizes[] = {9, 6, 6};
 
 ProblemData finite_strain_neo_Hookean_initial_1_ad = {
   .setup_geo = SetupGeo,
@@ -16,7 +16,7 @@ ProblemData finite_strain_neo_Hookean_initial_1_ad = {
   .quadrature_mode = CEED_GAUSS,
   .residual = ElasFSInitialNH1F_AD,
   .residual_loc = ElasFSInitialNH1F_AD_loc,
-  .number_fields_stored = 1,
+  .number_fields_stored = sizeof(field_sizes) / sizeof(*field_sizes),
   .field_names = field_names,
   .field_sizes = field_sizes,
   .jacobian = ElasFSInitialNH1dF_AD,

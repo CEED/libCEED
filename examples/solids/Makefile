@@ -36,9 +36,12 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
 # Enzyme-AD
 ENZYME_LIB ?=
-ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-vectorize -fno-unroll-loops
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops -mllvm -enzyme-print
+
 ifneq ($(ENZYME_LIB),)
   CFLAGS += $(ENZYMEFLAGS)
+else
+  $(error Must export ENZYME_LIB=/path/to/ClangEnzyme-XX.so)
 endif
 
 OBJDIR := build

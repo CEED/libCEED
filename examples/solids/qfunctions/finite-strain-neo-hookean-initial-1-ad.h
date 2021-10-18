@@ -159,6 +159,7 @@ CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
   // Compute the Second Piola-Kirchhoff (S)
   const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
   const CeedScalar logJ = log1p_series_shifted(detCm1) / 2.;
+
   for (CeedInt m = 0; m < 6; m++) {
     Swork[m] = lambda*logJ*Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++)
@@ -178,18 +179,26 @@ void __enzyme_reverse(void *, ...);
 int enzyme_dup;
 int enzyme_tape;
 int enzyme_const;
+int enzyme_nofree;
 int enzyme_allocated;
 
-void grad_S(double *S, double *dS, double *E, double *dE, const double lambda,
-            const double mu) {
-  int size = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
-                                  enzyme_const, enzyme_const);
-  void *data = malloc(size);
-  __enzyme_augmentfwd((void *)computeS, enzyme_allocated, size, enzyme_tape, data,
-                      S, dS, E, dE, lambda, mu);
-  __enzyme_reverse((void *)computeS,    enzyme_allocated, size, enzyme_tape, data,
-                   S, dS, E, dE, lambda, mu);
-  free(data);
+CEED_QFUNCTION_HELPER int getEnzymeSize(void *computeSfwd) {
+  return __enzyme_augmentsize(computeSfwd, enzyme_dup, enzyme_dup, enzyme_const,
+                              enzyme_const);
+}
+
+CEED_QFUNCTION_HELPER void grad_S_fwd(double *S, double *E, const double lambda,
+                                      const double mu, void *tape) {
+  __enzyme_augmentfwd((void *)computeS, enzyme_allocated, sizeof(tape[0]),
+                      enzyme_tape, tape, enzyme_nofree, S, (double *)NULL, E, (double *)NULL,
+                      enzyme_const, lambda, enzyme_const, mu);
+}
+
+CEED_QFUNCTION_HELPER void grad_S_rev(double *dS, double *dE,
+                                      const double lambda, const double mu, void *tape) {
+  __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
+                   enzyme_tape, tape, enzyme_nofree, (double *)NULL, dS, (double *)NULL, dE,
+                   enzyme_const, lambda, enzyme_const, mu);
 }
 
 // -----------------------------------------------------------------------------
@@ -207,6 +216,11 @@ CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
   CeedScalar (*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar (*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
+  // Store Swork
+  CeedScalar (*Swork)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  // Store tape for autodiff
+  void *(*tape)[CEED_Q_VLA] = (void *(*)[CEED_Q_VLA])out[3];
+
   // *INDENT-ON*
 
   // Context
@@ -307,16 +321,28 @@ CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
         E2work[m] += tempgradu[n][indj[m]]*tempgradu[n][indk[m]];
     }
 
-    // Second Piola-Kirchhoff (S)
-    CeedScalar Swork[6];
-    computeS(Swork, E2work, lambda, mu);
+    int size = getEnzymeSize((void *)computeS);
+    for (int j=0; j<6; j++) tape[j][i] = malloc(size);
+
+    CeedScalar Swork_[6];
+    for (CeedInt j=0; j<6; j++) {
+      grad_S_fwd(Swork_, E2work, lambda, mu, tape[j][i]);
+    }
 
     // *INDENT-OFF*
-    const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
-                                {Swork[5], Swork[1], Swork[3]},
-                                {Swork[4], Swork[3], Swork[2]}
+    const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
+                                {Swork_[5], Swork_[1], Swork_[3]},
+                                {Swork_[4], Swork_[3], Swork_[2]}
                                };
     // *INDENT-ON*
+
+    // Save Swork
+    Swork[0][i] = Swork_[0];
+    Swork[1][i] = Swork_[1];
+    Swork[2][i] = Swork_[2];
+    Swork[3][i] = Swork_[3];
+    Swork[4][i] = Swork_[4];
+    Swork[5][i] = Swork_[5];
 
     // Compute the First Piola-Kirchhoff : P = F*S
     CeedScalar P[3][3];
@@ -352,6 +378,8 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // grad_u is used for hyperelasticity (non-linear)
   const CeedScalar (*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar (*Swork)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  void *(*tape)[CEED_Q_VLA] = (void *(*)[CEED_Q_VLA])in[4];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -411,27 +439,17 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
     // I3 : 3x3 Identity matrix
     // Deformation Gradient : F = I3 + grad_u
     // *INDENT-OFF*
-    const CeedScalar F[3][3] =      {{grad_u[0][0][i] + 1,
-                                      grad_u[0][1][i],
-                                      grad_u[0][2][i]},
-                                     {grad_u[1][0][i],
-                                      grad_u[1][1][i] + 1,
-                                      grad_u[1][2][i]},
-                                     {grad_u[2][0][i],
-                                      grad_u[2][1][i],
-                                      grad_u[2][2][i] + 1}
-                                    };
+    const CeedScalar F[3][3] =  {{grad_u[0][0][i] + 1,
+                                  grad_u[0][1][i],
+                                  grad_u[0][2][i]},
+                                 {grad_u[1][0][i],
+                                  grad_u[1][1][i] + 1,
+                                  grad_u[1][2][i]},
+                                 {grad_u[2][0][i],
+                                  grad_u[2][1][i],
+                                  grad_u[2][2][i] + 1}
+                                };
 
-    const CeedScalar tempgradu[3][3] =  {{grad_u[0][0][i],
-                                          grad_u[0][1][i],
-                                          grad_u[0][2][i]},
-                                         {grad_u[1][0][i],
-                                          grad_u[1][1][i],
-                                          grad_u[1][2][i]},
-                                         {grad_u[2][0][i],
-                                          grad_u[2][1][i],
-                                          grad_u[2][2][i]}
-                                        };
     // *INDENT-ON*
 
     // deltaE - Green-Lagrange strain tensor
@@ -444,23 +462,14 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
                           F[n][indj[m]]*graddeltau[n][indk[m]])/2.;
     }
 
-    // E - Green-Lagrange strain tensor
-    //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
-    CeedScalar E2work[6];
-    for (CeedInt m = 0; m < 6; m++) {
-      E2work[m] = tempgradu[indj[m]][indk[m]] + tempgradu[indk[m]][indj[m]];
-      for (CeedInt n = 0; n < 3; n++)
-        E2work[m] += tempgradu[n][indj[m]]*tempgradu[n][indk[m]];
-    }
-
     // J = \partial Swork / \partial E2work
     CeedScalar J[6][6];
     for (CeedInt i=0; i<6; i++) for (CeedInt j=0; j<6; j++) J[i][j] = 0.;
 
-    CeedScalar Swork[6];
-    for (CeedInt i=0; i<6; i++) {
-      double dSwork[6]  = {0., 0., 0., 0., 0., 0.}; dSwork[i] = 1.;
-      grad_S(Swork, dSwork, E2work, J[i], lambda, mu);
+    //CeedScalar Swork[6];
+    for (CeedInt j=0; j<6; j++) {
+      double dSwork[6]  = {0., 0., 0., 0., 0., 0.}; dSwork[j] = 1.;
+      grad_S_rev(dSwork, J[j], lambda, mu, tape[j][i]);
     }
 
     CeedScalar deltaSwork[6];
@@ -479,9 +488,9 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
                                      {deltaSwork[4], deltaSwork[3], deltaSwork[2]}
                                     };
 
-    const CeedScalar S[3][3] = {{Swork[0], Swork[5], Swork[4]},
-                                {Swork[5], Swork[1], Swork[3]},
-                                {Swork[4], Swork[3], Swork[2]}
+    const CeedScalar S[3][3] = {{Swork[0][i], Swork[5][i], Swork[4][i]},
+                                {Swork[5][i], Swork[1][i], Swork[3][i]},
+                                {Swork[4][i], Swork[3][i], Swork[2][i]}
                                };
     // *INDENT-ON*
 
