@@ -122,7 +122,7 @@ static int CeedHipLoadQFunction(CeedQFunction qf, CeedInt num_files,
     if (!fp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Couldn't open the Cuda file for the QFunction.");
+                       "Error opening QFunction source file");
     // LCOV_EXCL_STOP
 
     // Compute size of source
@@ -139,7 +139,7 @@ static int CeedHipLoadQFunction(CeedQFunction qf, CeedInt num_files,
       fclose(fp);
       ierr = CeedFree(&buffer); CeedChkBackend(ierr);
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Couldn't read the Cuda file for the QFunction.");
+                       "Error reading QFunction source file");
       // LCOV_EXCL_STOP
     }
     strncpy(&buffer[buffer_offset + lSize], "\n", 2);
