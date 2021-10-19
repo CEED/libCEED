@@ -372,6 +372,54 @@ int CeedQFunctionReference(CeedQFunction qf) {
 /**
   @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
 
+    Note: The caller is responsible for freeing the `concatenated_paths` string.
+
+  @param ceed                    A Ceed object for error handling
+  @param[out] concatenated_paths Semicolon separated list of source paths for use
+                                   in `CeedQFunctionCreateInterior()`
+  @param qf_source_path          Absolute path to source of user QFunction
+  @param num_helper_paths        Number of paths to additional source files
+  @param helper_paths            Variadic arguments with absolute paths to
+                                   additional source files
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedConcatenateSourceFilePaths(Ceed ceed, char **concatenated_paths,
+                                   const char *qf_source_path, CeedInt num_helper_paths, ...) {
+  int ierr;
+  va_list args;
+  CeedInt offset = 0;
+  const char *helper_path;
+
+  ierr = CeedCalloc(1, concatenated_paths); CeedChk(ierr);
+
+  // Helper source paths
+  va_start(args, num_helper_paths);
+  for (CeedInt i = 0; i < num_helper_paths; i++) {
+    helper_path = va_arg(args, char *);
+    CeedInt helper_path_len = strlen(helper_path);
+    ierr = CeedRealloc(offset + helper_path_len + 1, concatenated_paths);
+    CeedChk(ierr);
+    memcpy(&(*concatenated_paths)[offset], helper_path, helper_path_len);
+    memcpy(&(*concatenated_paths)[offset + helper_path_len], ";", 1);
+    offset += helper_path_len + 1;
+  }
+  va_end(args);
+
+  // QFunction source path
+  CeedInt qf_source_path_len = strlen(qf_source_path);
+  ierr = CeedRealloc(offset + qf_source_path_len + 1, concatenated_paths);
+  CeedChk(ierr);
+  memcpy(&(*concatenated_paths)[offset], qf_source_path, qf_source_path_len + 1);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a CeedQFunction for evaluating interior (volumetric) terms.
+
   @param ceed        A Ceed object where the CeedQFunction will be created
   @param vec_length  Vector length. Caller must ensure that number of quadrature
                        points is a multiple of vec_length.

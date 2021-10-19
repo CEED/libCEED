@@ -3,6 +3,7 @@
 /// \test Test QFunction helper macro
 #include <ceed.h>
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include "t406-qfunction-helper.h"
 #include "t406-qfunction.h"
@@ -15,27 +16,25 @@ int main(int argc, char **argv) {
   CeedInt Q = 8;
   const CeedScalar *vv;
   CeedScalar w[Q], u[Q], v[Q];
-  char qf_source_with_helper_loc[1024];
+  char *qf_source_paths;
 
   CeedInit(argv[1], &ceed);
 
   // Semicolon separated list of source files
-  CeedInt helper_len = strlen(multiply_helper_loc);
-  strncpy(qf_source_with_helper_loc, multiply_helper_loc, helper_len + 1);
-  strncpy(&qf_source_with_helper_loc[helper_len], ";", 2);
-  strncpy(&qf_source_with_helper_loc[helper_len + 1], setup_loc,
-          strlen(setup_loc) + 1);
+  CeedConcatenateSourceFilePaths(ceed, &qf_source_paths, setup_loc, 1,
+                                 multiply_helper_loc);
 
-  CeedQFunctionCreateInterior(ceed, 1, setup, qf_source_with_helper_loc,
-                              &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, setup, qf_source_paths, &qf_setup);
+  free(qf_source_paths);
   CeedQFunctionAddInput(qf_setup, "w", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_NONE);
 
   // Semicolon separated list of source files
-  strncpy(&qf_source_with_helper_loc[helper_len + 1], mass_loc,
-          strlen(mass_loc) + 1);
+  CeedConcatenateSourceFilePaths(ceed, &qf_source_paths, mass_loc, 1,
+                                 multiply_helper_loc);
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, qf_source_with_helper_loc, &qf_mass);
+  CeedQFunctionCreateInterior(ceed, 1, mass, qf_source_paths, &qf_mass);
+  free(qf_source_paths);
   CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);

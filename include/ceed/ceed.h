@@ -602,6 +602,8 @@ typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
                                  const CeedScalar *const *in,
                                  CeedScalar *const *out);
 
+CEED_EXTERN int CeedConcatenateSourceFilePaths(Ceed ceed, char **concatenated_paths,
+    const char *qf_source_path, CeedInt num_helper_paths, ...);
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     CeedQFunctionUser f, const char *source, CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name,
