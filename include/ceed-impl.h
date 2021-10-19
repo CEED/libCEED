@@ -240,8 +240,8 @@ struct CeedQFunction_private {
   CeedQFunctionUser function;
   CeedInt num_sources;
   const char **source_paths;
-  const char *qf_name;
-  const char *gallery_name;
+  const char *qf_name;      /* name of user function */
+  const char *gallery_name; /* gallery display name for viewing */
   bool is_gallery;
   bool is_identity;
   bool is_fortran;
