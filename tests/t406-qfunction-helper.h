@@ -14,7 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-CEED_QFUNCTION_HELPER_LOC(multiply_helper);
+CEED_QFUNCTION_HELPER_FILE_LOC(multiply_helper);
 
 CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) {
   return 2 * x;

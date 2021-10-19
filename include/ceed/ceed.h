@@ -82,12 +82,12 @@
 
 /**
   @ingroup CeedQFunction
-  This macro populates the correct function annotations for User QFunction
-    helper function source for code generation backends or populates default
-    values for CPU backends.
+  This macro creates the variable `name_loc` holding the filepath to a
+    supplemental file with QFunction helper functions or type definitions
+    required for JiT compilation of user QFunction code as device kernels.
 **/
-#ifndef CEED_QFUNCTION_HELPER_LOC
-#define CEED_QFUNCTION_HELPER_LOC(name) \
+#ifndef CEED_QFUNCTION_HELPER_FILE_LOC
+#define CEED_QFUNCTION_HELPER_FILE_LOC(name) \
   static const char name ## _loc[] = __FILE__ ;
 #endif
 
