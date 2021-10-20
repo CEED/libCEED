@@ -118,14 +118,18 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   // Read source
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  const char *funname = strrchr(source, ':') + 1;
-  data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - source;
-  char filename[filenamelen];
-  memcpy(filename, source, filenamelen - 1);
-  filename[filenamelen - 1] = '\0';
-  ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, filename);
-  CeedChkBackend(ierr);
+  // Empty source path indicates user must supply Q-Function
+  if (source[0] != '\0') {
+    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+    CeedChkBackend(ierr);
+    ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, source);
+    CeedChkBackend(ierr);
+  } else {
+    data->module = NULL;
+    data->qFunctionName = "";
+    data->qFunctionSource = "";
+    data->qFunction = NULL;
+  }
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",

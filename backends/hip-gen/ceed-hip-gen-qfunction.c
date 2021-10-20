@@ -63,14 +63,15 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
 
   char *source;
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  const char *funname = strrchr(source, ':') + 1;
-  data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - source;
-  char filename[filenamelen];
-  memcpy(filename, source, filenamelen - 1);
-  filename[filenamelen - 1] = '\0';
-  ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, filename);
-  CeedChkBackend(ierr);
+  if (source[0] != '\0') {
+    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+    CeedChkBackend(ierr);
+    ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, source);
+    CeedChkBackend(ierr);
+  } else {
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "/gpu/hip/gen backend requires QFunction source code file");
+  }
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Hip_gen); CeedChkBackend(ierr);

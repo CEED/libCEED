@@ -28,7 +28,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
   char *temp_buffer;
 
   // Read file to temporary buffer
-  source_file = fopen (source_file_path, "rb");
+  source_file = fopen(source_file_path, "rb");
   if (!source_file)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_MAJOR, "Couldn't open source file: %s",
@@ -83,6 +83,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
         strncpy(include_source_path, source_file_path, root_length + 1);
         strncpy(&include_source_path[root_length + 1], &next_e[3],
                 include_file_name_len);
+        strncpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
         ierr = CeedLoadSourceToInitalizedBuffer(ceed, buffer, include_source_path);
         CeedChk(ierr);
