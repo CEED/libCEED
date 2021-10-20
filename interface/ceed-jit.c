@@ -72,7 +72,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
       strncpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
       strncpy(&(*buffer)[current_size + copy_size], "", 1);
       // -- Load local "header.h"
-      bool is_local_header = is_hash_include && next_e[2] == '"';
+      bool is_local_header = is_hash_include && next_e && next_e[2] == '"';
       if (is_local_header) {
         // ---- Build source path
         char *include_source_path;
