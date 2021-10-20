@@ -20,9 +20,7 @@
 #ifndef ELAS_FSInitialNH2_H
 #define ELAS_FSInitialNH2_H
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT

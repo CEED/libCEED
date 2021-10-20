@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit.h>
 #include <cuda.h>
 #include <stdio.h>
 #include <string.h>
@@ -193,7 +194,8 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
     char filename[filenamelen];
     memcpy(filename, source, filenamelen - 1);
     filename[filenamelen - 1] = '\0';
-    ierr = CeedCudaLoadQFunction(qf, filename); CeedChkBackend(ierr);
+    ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, filename);
+    CeedChkBackend(ierr);
   } else {
     data->module = NULL;
     data->qFunctionName = "";

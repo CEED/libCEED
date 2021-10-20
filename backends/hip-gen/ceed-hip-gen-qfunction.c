@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit.h>
 #include <hip/hip_runtime.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,70 +51,6 @@ static int CeedQFunctionDestroy_Hip_gen(CeedQFunction qf) {
 }
 
 //------------------------------------------------------------------------------
-// Load QFunction
-//------------------------------------------------------------------------------
-static int loadHipFunction(CeedQFunction qf, char *c_src_file) {
-  int ierr;
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
-  CeedQFunction_Hip_gen *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
-
-  // Find source file
-  char *hip_file;
-  ierr = CeedCalloc(HIP_MAX_PATH, &hip_file); CeedChkBackend(ierr);
-  memcpy(hip_file, c_src_file, strlen(c_src_file));
-  const char *last_dot = strrchr(hip_file, '.');
-  if (!last_dot)
-    return CeedError(ceed, 1, "Cannot find file's extension!");
-  const size_t hip_path_len = last_dot - hip_file;
-  strncpy(&hip_file[hip_path_len], ".h", 3);
-
-  // Open source file
-  FILE *fp;
-  long lSize;
-  char *buffer;
-  fp = fopen (hip_file, "rb");
-  if (!fp)
-    // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Couldn't open the Hip file for the QFunction.");
-  // LCOV_EXCL_STOP
-
-  // Compute size of source file
-  fseek(fp, 0L, SEEK_END);
-  lSize = ftell(fp);
-  rewind(fp);
-
-  // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
-
-  // Copy the file into the buffer
-  if (1 != fread(buffer, lSize, 1, fp)) {
-    // LCOV_EXCL_START
-    fclose(fp);
-    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-    return CeedError(ceed, 1, "Couldn't read the Hip file for the QFunction.");
-    // LCOV_EXCL_STOP
-  }
-
-  // Append typedef and save source string
-  // FIXME: the magic number 16 should be defined somewhere...
-  char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip_gen;";
-  ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
-                    &data->qFunctionSource); CeedChkBackend(ierr);
-  memcpy(data->qFunctionSource, fields_string, strlen(fields_string));
-  memcpy(data->qFunctionSource + strlen(fields_string), buffer,
-         strlen(buffer) + 1);
-
-  // Cleanup
-  ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-  fclose(fp);
-  ierr = CeedFree(&hip_file); CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
@@ -132,7 +69,8 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   char filename[filenamelen];
   memcpy(filename, source, filenamelen - 1);
   filename[filenamelen - 1] = '\0';
-  ierr = loadHipFunction(qf, filename); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, filename);
+  CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Hip_gen); CeedChkBackend(ierr);

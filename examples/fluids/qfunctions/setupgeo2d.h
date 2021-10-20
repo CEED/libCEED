@@ -20,10 +20,7 @@
 #ifndef setup_geo_2d_h
 #define setup_geo_2d_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
-
+#include <math.h>
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
 //   coordinate transformations
