@@ -84,16 +84,19 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
       strncpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
       strncpy(&(*buffer)[current_size + copy_size], "", 1);
       // -- Load local "header.h"
-      bool is_local_header = is_hash_include && next_e && next_e[2] == '"';
+      char *next_quote = strchr(first_hash, '"');
+      char *next_new_line = strchr(first_hash, '\n');
+      bool is_local_header = is_hash_include && next_quote
+                             && (next_new_line - next_quote > 0);
       if (is_local_header) {
         // ---- Build source path
         char *include_source_path;
         long root_length = strrchr(source_file_path, '/') - source_file_path;
-        long include_file_name_len = strchr(&next_e[3], '"') - next_e - 3;
+        long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
         ierr = CeedCalloc(root_length + include_file_name_len + 1,
                           &include_source_path); CeedChk(ierr);
         strncpy(include_source_path, source_file_path, root_length + 1);
-        strncpy(&include_source_path[root_length + 1], &next_e[3],
+        strncpy(&include_source_path[root_length + 1], &next_quote[1],
                 include_file_name_len);
         strncpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
