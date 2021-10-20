@@ -61,6 +61,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
                      source_file_path);
     // LCOV_EXCL_STOP
   }
+  fclose(source_file);
 
   // Search for headers to include
   const char *first_hash = strchr(temp_buffer, '#');
@@ -118,7 +119,6 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   strncpy(&(*buffer)[current_size + copy_size + 1], "", 1);
 
   // Cleanup
-  fclose(source_file);
   ierr = CeedFree(&temp_buffer); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
