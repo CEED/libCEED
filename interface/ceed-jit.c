@@ -102,6 +102,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
         // ---- Recursive call to load source to buffer
         ierr = CeedLoadSourceToInitalizedBuffer(ceed, include_source_path, buffer);
         CeedChk(ierr);
+        ierr = CeedFree(&include_source_path); CeedChk(ierr);
       }
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
     }
