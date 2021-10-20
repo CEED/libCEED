@@ -93,7 +93,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
         char *include_source_path;
         long root_length = strrchr(source_file_path, '/') - source_file_path;
         long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
-        ierr = CeedCalloc(root_length + include_file_name_len + 1,
+        ierr = CeedCalloc(root_length + include_file_name_len + 2,
                           &include_source_path); CeedChk(ierr);
         strncpy(include_source_path, source_file_path, root_length + 1);
         strncpy(&include_source_path[root_length + 1], &next_quote[1],
@@ -112,7 +112,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   // Copy rest of source file into buffer
   long current_size = strlen(*buffer);
   long copy_size = strlen(&temp_buffer[file_offset]);
-  ierr = CeedRealloc(current_size + copy_size + 1, buffer); CeedChk(ierr);
+  ierr = CeedRealloc(current_size + copy_size + 2, buffer); CeedChk(ierr);
   strncpy(&(*buffer)[current_size], "\n", 2);
   strncpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
   strncpy(&(*buffer)[current_size + copy_size + 1], "", 1);
