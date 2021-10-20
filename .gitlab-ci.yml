@@ -6,7 +6,6 @@ noether-rocm:
   tags:
     - rocm
   interruptible: true
-  image: jedbrown/rocm:latest
   script:
     - rm -f .SUCCESS
 # Compilers
@@ -86,7 +85,6 @@ noether-float:
   tags:
     - rocm 
   interruptible: true
-  image: jedbrown/rocm:latest
   script:
 # Compilers
     - export COVERAGE=1 CC=gcc CXX=g++ FC= HIPCC=hipcc
@@ -146,6 +144,7 @@ lv-cuda:
   interruptible: true
   before_script:
 # Compilers
+    - ulimit -v $[1024*1024*32] # 32 GiB in units of 1024 bytes
     - . /opt/rh/gcc-toolset-10/enable
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
     - export CUDA_DIR=/usr/local/cuda-11.4
