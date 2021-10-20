@@ -58,9 +58,9 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++)
-    if (fabs(5*v[i] - vv[i]) > 1E3*CEED_EPSILON)
+    if (fabs(5*v[i]*sqrt(2.) - vv[i]) > 1E3*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] v %f != vv %f\n",i, 5*v[i], vv[i]);
+      printf("[%d] v %f != vv %f\n",i, 5*v[i]*sqrt(2.), vv[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &vv);
 
