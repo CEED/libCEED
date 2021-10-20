@@ -61,12 +61,12 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  if (source[0] != '\0') {
+  char *source_path;
+  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChkBackend(ierr);
+  if (source_path[0] != '\0') {
     ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
     CeedChkBackend(ierr);
-    ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, source);
+    ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
     CeedChkBackend(ierr);
   } else {
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,

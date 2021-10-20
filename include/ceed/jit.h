@@ -19,6 +19,6 @@
 
 #include <ceed/ceed.h>
 
-CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, char **buffer, const char *source_file_path);
+CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer);
 
 #endif

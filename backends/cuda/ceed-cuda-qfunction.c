@@ -184,13 +184,13 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
   // Read source
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
+  char *source_path;
+  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChkBackend(ierr);
   // Empty source path indicates user must supply Q-Function
-  if (source[0] != '\0') {
+  if (source_path[0] != '\0') {
     ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
     CeedChkBackend(ierr);
-    ierr = CeedLoadSourceToBuffer(ceed, &data->qFunctionSource, source);
+    ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
     CeedChkBackend(ierr);
   } else {
     data->module = NULL;

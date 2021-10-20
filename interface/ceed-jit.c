@@ -20,8 +20,20 @@
 #include <stdio.h>
 #include <string.h>
 
-static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
-    const char *source_file_path) {
+/**
+  @brief Load source file into initalized string buffer, including full text
+           of local files in place of `#include "local.h"`
+
+  @param ceed                   A Ceed object for error handling
+  @param[in]  source_file_path  Absolute path to source file
+  @param[out] buffer            String buffer for source file contents
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
+    const char *source_file_path, char **buffer) {
   int ierr;
   FILE *source_file;
   long file_size, file_offset = 0;
@@ -85,7 +97,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
                 include_file_name_len);
         strncpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
-        ierr = CeedLoadSourceToInitalizedBuffer(ceed, buffer, include_source_path);
+        ierr = CeedLoadSourceToInitalizedBuffer(ceed, include_source_path, buffer);
         CeedChk(ierr);
       }
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
@@ -108,15 +120,28 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed, char **buffer,
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedLoadSourceToBuffer(Ceed ceed, char **buffer,
-                           const char *source_file_path) {
+/**
+  @brief Initalize and load source file into string buffer, including full text
+           of local files in place of `#include "local.h"`.
+         Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
+
+  @param ceed                   A Ceed object for error handling
+  @param[in]  source_file_path  Absolute path to source file
+  @param[out] buffer            String buffer for source file contents
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path,
+                           char **buffer) {
   int ierr;
 
   // Initalize buffer
   ierr = CeedCalloc(1, buffer); CeedChk(ierr);
 
   // Load to initalized buffer
-  ierr = CeedLoadSourceToInitalizedBuffer(ceed, buffer, source_file_path);
+  ierr = CeedLoadSourceToInitalizedBuffer(ceed, source_file_path, buffer);
   CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
