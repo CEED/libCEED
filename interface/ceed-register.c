@@ -27,12 +27,14 @@ int CeedRegisterAll() {
   if (register_all_called) return 0;
 
   if (getenv("CEED_DEBUG")) {
+    // LCOV_EXCL_START
     fflush(stdout);
     fprintf(stdout, "\033[38;5;%dm", 1);
     fprintf(stdout, "---------- Registering Backends ----------\n");
     fprintf(stdout, "\033[m");
     fprintf(stdout, "\n");
     fflush(stdout);
+    // LCOV_EXCL_STOP
   }
 
   register_all_called = true;
@@ -42,8 +44,10 @@ int CeedRegisterAll() {
 #undef MACRO
 
   if (getenv("CEED_DEBUG")) {
+    // LCOV_EXCL_START
     fprintf(stdout, "\n");
     fflush(stdout);
+    // LCOV_EXCL_STOP
   }
 
   return CEED_ERROR_SUCCESS;

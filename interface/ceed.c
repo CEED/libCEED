@@ -309,10 +309,12 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
 
   @ref Backend
 **/
+// LCOV_EXCL_START
 int CeedIsDebug(Ceed ceed, bool *is_debug) {
   *is_debug = ceed->debug;
   return CEED_ERROR_SUCCESS;
 }
+// LCOV_EXCL_STOP
 
 /**
   @brief Retrieve a parent Ceed context
