@@ -135,7 +135,7 @@ int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
                      max_threads_per_block, blockSize, 1, 1, shared_size_bytes, num_regs);
-  } else CeedChk_Cu(ceed, result);
+  } else CeedChk_Cu(ceed, result); // NOLINT
   return CEED_ERROR_SUCCESS;
 }
 
