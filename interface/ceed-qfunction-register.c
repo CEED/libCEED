@@ -41,6 +41,7 @@ int CeedQFunctionRegisterAll() {
 
   if (getenv("CEED_DEBUG")) {
     fprintf(stdout, "\n");
+    fflush(stdout);
   }
 
   return CEED_ERROR_SUCCESS;
