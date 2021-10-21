@@ -39,6 +39,12 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   long file_size, file_offset = 0;
   char *temp_buffer;
 
+  // Debug
+  CeedDebug(ceed, "---------- Ceed JiT ----------\n"
+            "Current source file: %s\n\n"
+            "Current buffer: %s\n\n",
+            source_file_path, *buffer);
+
   // Read file to temporary buffer
   source_file = fopen(source_file_path, "rb");
   if (!source_file)
@@ -120,6 +126,12 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
 
   // Cleanup
   ierr = CeedFree(&temp_buffer); CeedChk(ierr);
+
+  // Debug
+  CeedDebug(ceed, "---------- Ceed JiT ----------\n"
+            "Current source file: %s\n\n"
+            "Final buffer: %s\n\n",
+            source_file_path, *buffer);
 
   return CEED_ERROR_SUCCESS;
 }

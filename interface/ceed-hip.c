@@ -33,7 +33,8 @@ int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f) {
   if (!qf->SetHIPUserFunction) {
     Ceed ceed;
     ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-    CeedDebug("Backend does not support hipFunction_t pointers for QFunctions.");
+    CeedDebug(ceed,
+              "Backend does not support hipFunction_t pointers for QFunctions.");
   } else {
     ierr = qf->SetHIPUserFunction(qf, f); CeedChk(ierr);
   }
