@@ -410,6 +410,14 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (strlen(source) && !strrchr(source, ':'))
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                     "Provided path to source does not include function name. "
+                     "Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"",
+                     source);
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
