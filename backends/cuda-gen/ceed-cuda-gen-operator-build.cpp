@@ -1385,8 +1385,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug(ceed, "---------- Generated Cuda Kernel ----------\n%s\n",
-            code.str().c_str());
+  CeedDebug256(ceed, 1, "---------- Generated CUDA Kernel ----------\n");
+  CeedDebug256(ceed, 1, "Kernel source: ");
+  CeedDebug256(ceed, 255, "%s\n", code.str().c_str());
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));

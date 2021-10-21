@@ -33,7 +33,8 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
   if (!qf->SetCUDAUserFunction) {
     Ceed ceed;
     ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-    CeedDebug(ceed, "Backend does not support CUfunction pointers for QFunctions.");
+    CeedDebug256(ceed, 1,
+                 "Backend does not support CUfunction pointers for QFunctions.\n");
   } else {
     ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
   }

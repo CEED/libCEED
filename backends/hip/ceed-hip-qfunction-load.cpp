@@ -110,8 +110,9 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // View kernel for debugging
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  CeedDebug(ceed, "---------- Generated Hip Kernel ----------\n%s\n",
-            code.str().c_str());
+  CeedDebug256(ceed, 1, "---------- Generated HIP Kernel ----------\n");
+  CeedDebug256(ceed, 1, "Kernel source: ");
+  CeedDebug256(ceed, 255, "%s\n", code.str().c_str());
  
   // Compile kernel
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 0);

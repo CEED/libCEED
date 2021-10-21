@@ -40,10 +40,11 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   char *temp_buffer;
 
   // Debug
-  CeedDebug(ceed, "---------- Ceed JiT ----------\n"
-            "Current source file: %s\n\n"
-            "Current buffer: %s\n\n",
-            source_file_path, *buffer);
+  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, 1, "Current source file: ");
+  CeedDebug256(ceed, 255, "%s\n", source_file_path);
+  CeedDebug256(ceed, 1, "Current buffer:\n");
+  CeedDebug256(ceed, 255, "%s\n", *buffer);
 
   // Read file to temporary buffer
   source_file = fopen(source_file_path, "rb");
@@ -128,10 +129,11 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   ierr = CeedFree(&temp_buffer); CeedChk(ierr);
 
   // Debug
-  CeedDebug(ceed, "---------- Ceed JiT ----------\n"
-            "Current source file: %s\n\n"
-            "Final buffer: %s\n\n",
-            source_file_path, *buffer);
+  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, 1, "Current source file: ");
+  CeedDebug256(ceed, 255, "%s\n", source_file_path);
+  CeedDebug256(ceed, 1, "Final buffer:\n");
+  CeedDebug256(ceed, 255, "%s\n", *buffer);
 
   return CEED_ERROR_SUCCESS;
 }

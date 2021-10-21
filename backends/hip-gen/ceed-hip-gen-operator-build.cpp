@@ -1357,8 +1357,9 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug(ceed, "---------- Generated Hip Kernel ----------\n%s\n",
-            code.str().c_str());
+  CeedDebug256(ceed, 1, "---------- Generated HIP Kernel ----------\n");
+  CeedDebug256(ceed, 1, "Kernel source: ");
+  CeedDebug256(ceed, 255, "%s\n", code.str().c_str());
 
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));
