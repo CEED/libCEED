@@ -21,28 +21,7 @@
 #include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
-
-static const char *qReadWrite = QUOTE(
-template <int SIZE>
-//------------------------------------------------------------------------------
-// Read from quadrature points
-//------------------------------------------------------------------------------
-inline __device__ void readQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* d_u, CeedScalar* r_u) {
-  for(CeedInt comp = 0; comp < SIZE; ++comp) {
-    r_u[comp] = d_u[quad + nquads * comp];
-  }
-}
-
-//------------------------------------------------------------------------------
-// Write at quadrature points
-//------------------------------------------------------------------------------
-template <int SIZE>
-inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* r_v, CeedScalar* d_v) {
-  for(CeedInt comp = 0; comp < SIZE; ++comp) {
-    d_v[quad + nquads * comp] = r_v[comp];
-  }
-}
-);
+#include "kernel-strings/hip-qfunction.h"
 
 //------------------------------------------------------------------------------
 // Build QFunction kernel
