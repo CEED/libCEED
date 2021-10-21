@@ -5,7 +5,7 @@
 // This function provides a debug target for weak symbols
 // LCOV_EXCL_START
 static int CeedQFunctionRegister_Weak(const char *name) {
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Weak %s\n", name);
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "** Weak Register: %s\n", name);
   return CEED_ERROR_SUCCESS;
 }
 // LCOV_EXCL_STOP

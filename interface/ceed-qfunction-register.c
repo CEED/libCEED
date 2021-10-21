@@ -1,6 +1,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 static bool register_all_called;
 
@@ -22,6 +23,10 @@ static bool register_all_called;
 **/
 int CeedQFunctionRegisterAll() {
   if (register_all_called) return 0;
+
+  if (getenv("CEED_DEBUG")) fprintf(stderr,
+                                      "---------- Registering Gallery QFunctions ----------\n");
+
   register_all_called = true;
 
 #define MACRO(name) CeedChk(name());

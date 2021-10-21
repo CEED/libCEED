@@ -20,6 +20,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /// @file
@@ -79,6 +80,8 @@ int CeedQFunctionRegister(const char *name, const char *source,
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
   // LCOV_EXCL_STOP
+
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Gallery Register: %s\n", name);
 
   strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;

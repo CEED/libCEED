@@ -3,6 +3,7 @@
 #include <ceed-impl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static bool register_all_called;
 
@@ -24,6 +25,10 @@ static bool register_all_called;
 **/
 int CeedRegisterAll() {
   if (register_all_called) return 0;
+
+  if (getenv("CEED_DEBUG")) fprintf(stderr,
+                                      "---------- Registering Backends ----------\n");
+
   register_all_called = true;
 
 #define MACRO(name,...) CeedChk(name());
