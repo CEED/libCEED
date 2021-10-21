@@ -1187,6 +1187,13 @@ int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   return 0;
 }
 
+/**
+  @brief Get libCEED scalar type
+
+  @param[out] scalar_type  Address to store scalar type
+
+  @ref Developer
+*/
 int CeedGetScalarType(CeedScalarType *scalar_type) {
   *scalar_type = CEED_SCALAR_TYPE;
   return 0;
