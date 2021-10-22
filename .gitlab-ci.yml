@@ -8,7 +8,7 @@ noether-rocm:
   interruptible: true
   script:
     - rm -f .SUCCESS
-# Compilers
+# Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -31,9 +31,12 @@ noether-rocm:
 #    Note: OCCA backends currently disabled in CI
     - BACKENDS_CPU=$(OCCA_DIR= make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(OCCA_DIR= make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
-    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
-    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
+    - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
     - make -j$NPROC_CPU
+# Remove OCCA after verifying it compiles
+# CodeCov of OCCA backend not useful since testing is intentionally disabled
+    - export OCCA_DIR= && make -j$NPROC_CPU -W build/interface/ceed-register.o
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
@@ -86,7 +89,7 @@ noether-float:
     - rocm 
   interruptible: true
   script:
-# Compilers
+# Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC= HIPCC=hipcc
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -107,8 +110,8 @@ noether-float:
     - make configure HIP_DIR=/opt/rocm OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
-    - echo "-------------- BACKENDS_CPU---------" && echo $BACKENDS_CPU
-    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
+    - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -143,7 +146,7 @@ lv-cuda:
     - cuda
   interruptible: true
   before_script:
-# Compilers
+# Environment
     - ulimit -v $[1024*1024*32] # 32 GiB in units of 1024 bytes
     - . /opt/rh/gcc-toolset-10/enable
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
@@ -158,7 +161,7 @@ lv-cuda:
     - make configure OPT='-O -march=native -ffp-contract=fast'
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
-    - echo "-------------- BACKENDS_GPU---------" && echo $BACKENDS_GPU
+    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
   script:
     - rm -f .SUCCESS
