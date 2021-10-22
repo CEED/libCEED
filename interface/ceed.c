@@ -723,6 +723,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
   // Using Levenshtein distance to find closest match
   if (match_len <= 1 || match_len != stem_length) {
+    // LCOV_EXCL_START
     size_t lev_dis = UINT_MAX;
     size_t lev_idx = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
     for (size_t i=0; i<num_backends; i++) {
@@ -756,16 +757,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
          && prefix_lev[lev_length] != '\0'; lev_length++) {}
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
     if (lev_dis+1 >= m) {
-      // LCOV_EXCL_START
       return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
                        resource);
-      // LCOV_EXCL_STOP
     } else {
-      // LCOV_EXCL_START
       return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
                        "Closest match: %s", resource, backends[lev_idx].prefix);
-      // LCOV_EXCL_STOP
     }
+    // LCOV_EXCL_STOP
   }
 
   // Setup Ceed
