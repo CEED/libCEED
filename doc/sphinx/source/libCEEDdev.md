@@ -67,7 +67,7 @@ for (d=0; d<dim; d++)
   for (c=0; c<num_comp; c++)
     for (q=0; q<Q; q++)
       for (e=0; e<num_elem; e++)
-        u[((d*num_comp + c)*Q + q)*nnum_elemlem + e] = ...
+        u[((d*num_comp + c)*Q + q)*num_elem + e] = ...
 ```
 
 This ordering is sometimes referred to as row-major or C-style.  Note
