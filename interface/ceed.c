@@ -705,8 +705,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     match_help = 0;
   }
 
-  // Find best match, currently computed as number of matching characters
-  //   from requested resource stem but may use Levenshtein in future
+  // Find best match, computed as number of matching characters
+  //   from requested resource stem
   size_t stem_length;
   for (stem_length=0; resource[stem_length+match_help]
        && resource[stem_length+match_help] != ':'; stem_length++) {}
@@ -721,16 +721,51 @@ int CeedInit(const char *resource, Ceed *ceed) {
       match_idx = i;
     }
   }
-  if (match_len <= 1) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
-                     resource);
-    // LCOV_EXCL_STOP
-  } else if (match_len != stem_length) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
-                     "Closest match: %s", resource, backends[match_idx].prefix);
-    // LCOV_EXCL_STOP
+  // Using Levenshtein distance to find closest match
+  if (match_len <= 1 || match_len != stem_length) {
+    size_t lev_dis = UINT_MAX;
+    size_t lev_idx = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+    for (size_t i=0; i<num_backends; i++) {
+      const char *prefix = backends[i].prefix;
+      size_t prefix_length = strlen(backends[i].prefix);
+      size_t min_len = (prefix_length < stem_length) ? prefix_length : stem_length;
+      size_t column[min_len+1], last_diag, old_diag;
+      for (size_t j=1; j<=min_len; j++) column[j] = j;
+      for (size_t j=1; j<=min_len; j++) {
+        column[0] = j;
+        for (size_t k=1, last_diag=j-1; k<=min_len; k++) {
+          old_diag = column[k];
+          size_t min_1 = (column[k] < column[k-1]) ? column[k]+1 : column[k-1]+1;
+          size_t min_2 = last_diag + (resource[k-1] == prefix[j-1] ? 0 : 1);
+          column[k] = (min_1<min_2) ? min_1 : min_2;
+          last_diag = old_diag;
+        }
+      }
+      size_t n = column[min_len];
+      priority = backends[i].priority;
+      if (n < lev_dis || (n == lev_dis
+                          && lev_priority > priority)) {
+        lev_dis = n;
+        lev_priority = priority;
+        lev_idx = i;
+      }
+    }
+    const char *prefix_lev = backends[lev_idx].prefix;
+    size_t lev_length;
+    for (lev_length=0; prefix_lev[lev_length]
+         && prefix_lev[lev_length] != '\0'; lev_length++) {}
+    size_t m = (lev_length < stem_length) ? lev_length : stem_length;
+    if (lev_dis+1 >= m) {
+      // LCOV_EXCL_START
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
+                       resource);
+      // LCOV_EXCL_STOP
+    } else {
+      // LCOV_EXCL_START
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
+                       "Closest match: %s", resource, backends[lev_idx].prefix);
+      // LCOV_EXCL_STOP
+    }
   }
 
   // Setup Ceed
