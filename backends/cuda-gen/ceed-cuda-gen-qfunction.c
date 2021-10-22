@@ -69,8 +69,10 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
     ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
     CeedChkBackend(ierr);
   } else {
+    // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "/gpu/cuda/gen backend requires QFunction source code file");
+    // LCOV_EXCL_STOP
   }
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
