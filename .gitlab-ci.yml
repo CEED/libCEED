@@ -36,7 +36,7 @@ noether-rocm:
     - make -j$NPROC_CPU
 # Remove OCCA after verifying it compiles
 # CodeCov of OCCA backend not useful since testing is intentionally disabled
-    - make -j$NPROC_CPU clean && export OCCA_DIR= && make -j$NPROC_CPU
+    - export OCCA_DIR= && make -j$NPROC_CPU -W build/interface/ceed-register.o
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
