@@ -21,7 +21,7 @@
 #include <stddef.h>
 #include "ceed-cuda-shared.h"
 #include "../cuda/ceed-cuda-jit.h"
-#include "kernel-strings/cuda-shared-basis.h"
+#include "kernels/cuda-shared-basis.h"
 
 //------------------------------------------------------------------------------
 // Device initalization

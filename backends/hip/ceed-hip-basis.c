@@ -18,8 +18,8 @@
 #include <ceed/backend.h>
 #include "ceed-hip.h"
 #include "ceed-hip-jit.h"
-#include "kernel-strings/hip-tensor-basis.h"
-#include "kernel-strings/hip-non-tensor-basis.h"
+#include "kernels/hip-tensor-basis.h"
+#include "kernels/hip-non-tensor-basis.h"
 
 //------------------------------------------------------------------------------
 // Basis apply - tensor

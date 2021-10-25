@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include "ceed-cuda.h"
 #include "ceed-cuda-jit.h"
-#include "kernel-strings/cuda-restriction.h"
+#include "kernels/cuda-restriction.h"
 
 //------------------------------------------------------------------------------
 // Apply restriction

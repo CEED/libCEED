@@ -21,7 +21,7 @@
 #include <string>
 #include "ceed-hip.h"
 #include "ceed-hip-jit.h"
-#include "kernel-strings/hip-qfunction.h"
+#include "kernels/hip-qfunction.h"
 
 //------------------------------------------------------------------------------
 // Build QFunction kernel

@@ -20,7 +20,7 @@
 #include "ceed-hip-shared.h"
 #include "../hip/ceed-hip.h"
 #include "../hip/ceed-hip-jit.h"
-#include "kernel-strings/hip-shared-basis.h"
+#include "kernels/hip-shared-basis.h"
 
 //------------------------------------------------------------------------------
 // Compute a block size based on required minimum threads
