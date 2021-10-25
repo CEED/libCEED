@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef hip_restriction_kernels
-#define hip_restriction_kernels
+#ifndef _hip_restriction_kernels
+#define _hip_restriction_kernels
 
 //------------------------------------------------------------------------------
 // ElemRestriction Kernels
@@ -114,4 +114,4 @@ extern "C" __global__ void trOffset(const CeedInt *__restrict__ lvec_indices,
   }
 }
 
-#endif // hip_restriction_kernels
+#endif // _hip_restriction_kernels

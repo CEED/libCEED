@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef hip_tensor_basis_kernels
-#define hip_tensor_basis_kernels
+#ifndef _hip_tensor_basis_kernels
+#define _hip_tensor_basis_kernels
 
 //------------------------------------------------------------------------------
 // Tensor Basis Kernels
@@ -231,4 +231,4 @@ extern "C" __global__ void weight(const CeedInt nelem,
     weight3d(nelem, qweight1d, v);
 }
 
-#endif // hip_tensor_basis_kernels
+#endif // _hip_tensor_basis_kernels

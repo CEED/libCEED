@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef cuda_qfunction_kernels
-#define cuda_qfunction_kernels
+#ifndef _cuda_qfunction_kernels
+#define _cuda_qfunction_kernels
 
 //------------------------------------------------------------------------------
 // QFunction Kernels
@@ -41,4 +41,4 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, cons
   }
 }
 
-#endif // cuda_qfunction_kernels
+#endif // _cuda_qfunction_kernels

@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef hip_shared_basis_kernels
-#define hip_shared_basis_kernels
+#ifndef _hip_shared_basis_kernels
+#define _hip_shared_basis_kernels
 
 //------------------------------------------------------------------------------
 // Shared mem kernels
@@ -768,4 +768,4 @@ extern "C" __launch_bounds__(WEIGHT_BLKSIZE) __global__ void weight(const CeedIn
   }
 }
 
-#endif // hip_shared_basis_kernels
+#endif // _hip_shared_basis_kernels

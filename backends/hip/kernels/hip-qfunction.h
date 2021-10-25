@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef hip_qfunction_kernels
-#define hip_qfunction_kernels
+#ifndef _hip_qfunction_kernels
+#define _hip_qfunction_kernels
 
 //------------------------------------------------------------------------------
 // QFunction Kernels
@@ -41,4 +41,4 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, cons
   }
 }
 
-#endif // hip_qfunction_kernels
+#endif // _hip_qfunction_kernels

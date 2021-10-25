@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef cuda_shared_basis_kernels
-#define cuda_shared_basis_kernels
+#ifndef _cuda_shared_basis_kernels
+#define _cuda_shared_basis_kernels
 
 //------------------------------------------------------------------------------
 // Shared mem kernels
@@ -744,4 +744,4 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-#endif // cuda_shared_basis_kernels
+#endif // _cuda_shared_basis_kernels

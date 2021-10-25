@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef hip_non_tensor_basis_kernels
-#define hip_non_tensor_basis_kernels
+#ifndef _hip_non_tensor_basis_kernels
+#define _hip_non_tensor_basis_kernels
 
 //------------------------------------------------------------------------------
 // Non-Tensor Basis Kernels
@@ -112,4 +112,4 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-#endif // hip_non_tensor_basis_kernels
+#endif // _hip_non_tensor_basis_kernels

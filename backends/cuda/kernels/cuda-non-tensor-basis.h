@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef cuda_tensor_non_basis_kernels
-#define cuda_tensor_non_basis_kernels
+#ifndef _cuda_tensor_non_basis_kernels
+#define _cuda_tensor_non_basis_kernels
 
 //------------------------------------------------------------------------------
 // Non-Tensor Basis Kernels
@@ -112,4 +112,4 @@ extern "C" __global__ void weight(const CeedInt nelem,
   }
 }
 
-#endif // cuda_tensor_non_basis_kernels
+#endif // _cuda_tensor_non_basis_kernels
