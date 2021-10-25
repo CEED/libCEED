@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-jit.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator

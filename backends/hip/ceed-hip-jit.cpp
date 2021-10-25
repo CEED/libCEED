@@ -21,7 +21,7 @@
 #include <string.h>
 #include <hip/hiprtc.h>
 #include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-hip-jit.h"
 
 #define CeedChk_hiprtc(ceed, x) \
 do { \

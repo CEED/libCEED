@@ -20,6 +20,7 @@
 #include <cuda.h>
 #include <stdio.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-jit.h"
 #include "ceed-cuda-qfunction-load.h"
 
 //------------------------------------------------------------------------------

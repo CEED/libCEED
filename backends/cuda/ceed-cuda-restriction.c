@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-jit.h"
 #include "kernel-strings/cuda-restriction.h"
 
 //------------------------------------------------------------------------------

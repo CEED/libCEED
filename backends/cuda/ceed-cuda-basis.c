@@ -19,6 +19,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-jit.h"
 #include "kernel-strings/cuda-tensor-basis.h"
 #include "kernel-strings/cuda-non-tensor-basis.h"
 

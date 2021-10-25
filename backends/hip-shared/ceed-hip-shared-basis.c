@@ -19,7 +19,7 @@
 #include <stddef.h>
 #include "ceed-hip-shared.h"
 #include "../hip/ceed-hip.h"
-#include "../hip/ceed-hip-compile.h"
+#include "../hip/ceed-hip-jit.h"
 #include "kernel-strings/hip-shared-basis.h"
 
 //------------------------------------------------------------------------------

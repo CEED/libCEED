@@ -19,7 +19,7 @@
 #include <ceed/jit-tools.h>
 #include <stdio.h>
 #include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-hip-jit.h"
 #include "ceed-hip-qfunction-load.h"
 
 //------------------------------------------------------------------------------

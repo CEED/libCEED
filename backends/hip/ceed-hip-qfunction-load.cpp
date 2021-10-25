@@ -20,7 +20,7 @@
 #include <sstream>
 #include <string>
 #include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-hip-jit.h"
 #include "kernel-strings/hip-qfunction.h"
 
 //------------------------------------------------------------------------------

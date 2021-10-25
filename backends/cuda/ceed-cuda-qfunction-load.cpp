@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include "ceed-cuda.h"
+#include "ceed-cuda-jit.h"
 #include "kernel-strings/cuda-qfunction.h"
 
 //------------------------------------------------------------------------------

@@ -19,7 +19,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-hip-jit.h"
 #include "kernel-strings/hip-restriction.h"
 
 //------------------------------------------------------------------------------

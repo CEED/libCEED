@@ -19,7 +19,6 @@
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
 #include "ceed-cuda-gen.h"
-#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction

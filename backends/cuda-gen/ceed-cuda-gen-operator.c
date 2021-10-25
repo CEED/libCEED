@@ -19,7 +19,7 @@
 #include <stddef.h>
 #include "ceed-cuda-gen.h"
 #include "ceed-cuda-gen-operator-build.h"
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-jit.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator

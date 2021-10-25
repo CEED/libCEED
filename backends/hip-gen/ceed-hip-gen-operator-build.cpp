@@ -24,7 +24,7 @@
 #include "ceed-hip-gen.h"
 #include "../hip/ceed-hip.h"
 #include "../hip-shared/ceed-hip-shared.h"
-#include "../hip/ceed-hip-compile.h"
+#include "../hip/ceed-hip-jit.h"
 
 static const char *deviceFunctions = QUOTE(
 

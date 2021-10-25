@@ -20,7 +20,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-hip-jit.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
