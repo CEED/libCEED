@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 #include "kernel-strings/hip-tensor-basis.h"

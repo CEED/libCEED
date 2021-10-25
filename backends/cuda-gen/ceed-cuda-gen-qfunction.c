@@ -18,8 +18,6 @@
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
-#include <stdio.h>
-#include <string.h>
 #include "ceed-cuda-gen.h"
 #include "../cuda/ceed-cuda.h"
 

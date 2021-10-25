@@ -17,6 +17,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 

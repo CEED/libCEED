@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <math.h>
 #include <string.h>

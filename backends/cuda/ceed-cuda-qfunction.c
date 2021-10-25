@@ -19,7 +19,6 @@
 #include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <stdio.h>
-#include <string.h>
 #include "ceed-cuda.h"
 #include "ceed-cuda-qfunction-load.h"
 

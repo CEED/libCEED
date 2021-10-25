@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed/hip.h>
 #include <ceed-impl.h>
 

@@ -18,7 +18,7 @@
 #include <ceed/backend.h>
 #include <iostream>
 #include <sstream>
-#include <string.h>
+#include <string>
 #include "ceed-cuda.h"
 #include "kernel-strings/cuda-qfunction.h"
 

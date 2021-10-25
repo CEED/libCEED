@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>

@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stdbool.h>
 #include <string.h>
 #include "ceed-cuda-shared.h"
 #include "../cuda/ceed-cuda.h"

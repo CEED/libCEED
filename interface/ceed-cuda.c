@@ -15,8 +15,10 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed/cuda.h>
 #include <ceed-impl.h>
+#include <cuda.h>
 
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points

@@ -18,7 +18,7 @@
 #include <ceed/backend.h>
 #include <iostream>
 #include <sstream>
-#include <string.h>
+#include <string>
 #include "ceed-hip.h"
 #include "ceed-hip-compile.h"
 #include "kernel-strings/hip-qfunction.h"
