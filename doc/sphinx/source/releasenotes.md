@@ -20,7 +20,7 @@ for each release of libCEED.
 ### New features
 
 - `CeedScalar` can now be set as `float` or `double` at compile time.
-- Added JiT utilities in `ceed/jit.h` to simplify code generation backends.
+- Added JiT utilities in `ceed/jit-tools.h` to simplify code generation backends.
 - Added support for JiT of QFunctions with `#include` statements for additional local files.
 - Remove need to guard library headers in QFunction source for code generation backends.
 
