@@ -16,10 +16,10 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
+#include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-jit.h"
-#include "kernels/hip-tensor-basis.h"
-#include "kernels/hip-non-tensor-basis.h"
 
 //------------------------------------------------------------------------------
 // Basis apply - tensor
@@ -273,7 +273,13 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   // Complie basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  ierr = CeedCompileHip(ceed, basiskernels, &data->module, 7,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/hip-tensor-basis.h", 28);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileHip(ceed, basisKernels, &data->module, 7,
                         "BASIS_Q1D", Q1d,
                         "BASIS_P1D", P1d,
                         "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
@@ -283,6 +289,7 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                         "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
                         "BASIS_NQPT", CeedIntPow(Q1d, dim)
                        ); CeedChkBackend(ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "grad", &data->grad);
@@ -330,12 +337,19 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
   // Compile basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  ierr = CeedCompileHip(ceed, kernelsNonTensorRef, &data->module, 4,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/hip-non-tensor-basis.h", 32);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileHip(ceed, basisKernels, &data->module, 4,
                         "Q", nqpts,
                         "P", nnodes,
                         "BASIS_DIM", dim,
                         "BASIS_NCOMP", ncomp
                        ); CeedChk_Hip(ceed, ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
   CeedChk_Hip(ceed, ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "grad", &data->grad);

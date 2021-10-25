@@ -16,12 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include "ceed-cuda.h"
 #include "ceed-cuda-jit.h"
-#include "kernels/cuda-qfunction.h"
 
 //------------------------------------------------------------------------------
 // Build QFunction kernel
@@ -46,9 +46,17 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   ierr = CeedQFunctionGetFields(qf, &numinputfields, &qfinputfields, &numoutputfields, &qfoutputfields);
   CeedChkBackend(ierr);
 
+  // Additional kernels
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/cuda-qfunction.h", 26);
+  char *qFunctionKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &qFunctionKernels);
+  CeedChkBackend(ierr);
+
   // Build strings for final kernel
   string qFunction(data->qFunctionSource);
-  string qReadWriteS(qReadWrite);
+  string qFunctionKernelsS(qFunctionKernels);
   ostringstream code;
   string qFunctionName(data->qFunctionName);
   string kernelName;
@@ -61,7 +69,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;\n";
-  code << qReadWriteS;
+  code << qFunctionKernelsS;
   code << qFunction;
   code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
 
@@ -124,6 +132,8 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
 
   // Cleanup
   ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  ierr = CeedFree(&qFunctionKernels); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

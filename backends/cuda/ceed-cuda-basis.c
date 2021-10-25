@@ -16,12 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <string.h>
 #include "ceed-cuda.h"
 #include "ceed-cuda-jit.h"
-#include "kernels/cuda-tensor-basis.h"
-#include "kernels/cuda-non-tensor-basis.h"
 
 //------------------------------------------------------------------------------
 // Basis apply - tensor
@@ -269,10 +269,16 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   ierr = cudaMemcpy(data->d_grad1d, grad1d, iBytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed,ierr);
 
-  // Complie basis kernels
+  // Compile basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  ierr = CeedCompileCuda(ceed, basiskernels, &data->module, 7,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/cuda-tensor-basis.h", 29);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileCuda(ceed, basisKernels, &data->module, 7,
                          "BASIS_Q1D", Q1d,
                          "BASIS_P1D", P1d,
                          "BASIS_BUF_LEN", ncomp * CeedIntPow(Q1d > P1d ?
@@ -282,6 +288,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                          "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
                          "BASIS_NQPT", CeedIntPow(Q1d, dim)
                         ); CeedChkBackend(ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);
@@ -329,12 +336,19 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt nnodes,
   // Compile basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  ierr = CeedCompileCuda(ceed, kernelsNonTensorRef, &data->module, 4,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/cuda-non-tensor-basis.h", 33);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileCuda(ceed, basisKernels, &data->module, 4,
                          "Q", nqpts,
                          "P", nnodes,
                          "BASIS_DIM", dim,
                          "BASIS_NCOMP", ncomp
                         ); CeedChk_Cu(ceed, ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChk_Cu(ceed, ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);

@@ -16,12 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include "ceed-hip.h"
 #include "ceed-hip-jit.h"
-#include "kernels/hip-qfunction.h"
 
 //------------------------------------------------------------------------------
 // Build QFunction kernel
@@ -30,6 +30,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   CeedInt ierr;
   using std::ostringstream;
   using std::string;
+  Ceed ceed;
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Hip *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
   // QFunction is built
@@ -42,9 +44,17 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   ierr = CeedQFunctionGetFields(qf, &numinputfields, &qfinputfields, &numoutputfields, &qfoutputfields);
   CeedChkBackend(ierr);
 
+  // Additional kernels
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/hip-qfunction.h", 25);
+  char *qFunctionKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &qFunctionKernels);
+  CeedChkBackend(ierr);
+
   // Build strings for final kernel
   string qFunction(data->qFunctionSource);
-  string qReadWriteS(qReadWrite);
+  string qFunctionKernelsS(qFunctionKernels);
   ostringstream code;
   string qFunctionName(data->qFunctionName);
   string kernelName;
@@ -57,7 +67,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;\n";
-  code << qReadWriteS;
+  code << qFunctionKernelsS;
   code << qFunction;
   code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
   
@@ -108,8 +118,6 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
   CeedDebug256(ceed, 1, "---------- Generated HIP Kernel ----------\n");
   CeedDebug256(ceed, 1, "Kernel source: ");
   CeedDebug256(ceed, 255, "%s\n", code.str().c_str());
@@ -122,6 +130,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   // Cleanup
   ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  ierr = CeedFree(&qFunctionKernels); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

@@ -16,12 +16,13 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stddef.h>
+#include <string.h>
 #include "ceed-cuda-shared.h"
 #include "../cuda/ceed-cuda-jit.h"
-#include "kernels/cuda-shared-basis.h"
 
 //------------------------------------------------------------------------------
 // Device initalization
@@ -262,7 +263,13 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   // Compile basis kernels
   CeedInt ncomp;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  ierr = CeedCompileCuda(ceed, kernelsShared, &data->module, 8,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/cuda-shared-basis.h", 29);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileCuda(ceed, basisKernels, &data->module, 8,
                          "Q1D", Q1d,
                          "P1D", P1d,
                          "T1D", CeedIntMax(Q1d, P1d),
@@ -273,6 +280,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                          "BASIS_ELEMSIZE", CeedIntPow(P1d, dim),
                          "BASIS_NQPT", CeedIntPow(Q1d, dim)
                         ); CeedChkBackend(ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "interp", &data->interp);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "grad", &data->grad);

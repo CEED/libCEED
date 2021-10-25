@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // QFunction Kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *qReadWrite = QUOTE(
 
 //------------------------------------------------------------------------------
 // Read from quadrature points
@@ -42,7 +40,5 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, cons
     d_v[quad + nquads * comp] = r_v[comp];
   }
 }
-);
-// *INDENT-ON*
 
 #endif // hip_qfunction_kernels

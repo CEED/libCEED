@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // Shared mem kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *kernelsShared = QUOTE(
 
 //------------------------------------------------------------------------------
 // Sum input into output
@@ -769,8 +767,5 @@ extern "C" __launch_bounds__(WEIGHT_BLKSIZE) __global__ void weight(const CeedIn
     weight3d(nelem, qweight1d, v);
   }
 }
-
-);
-// *INDENT-ON*
 
 #endif // hip_shared_basis_kernels

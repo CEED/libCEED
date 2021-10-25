@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // Shared mem kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *kernelsShared = QUOTE(
 
 //------------------------------------------------------------------------------
 // Sum input into output
@@ -745,8 +743,5 @@ extern "C" __global__ void weight(const CeedInt nelem,
     weight3d(nelem, qweight1d, v);
   }
 }
-
-);
-// *INDENT-ON*
 
 #endif // cuda_shared_basis_kernels

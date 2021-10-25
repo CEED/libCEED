@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // Tensor Basis Kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *basiskernels = QUOTE(
 
 //------------------------------------------------------------------------------
 // Interp
@@ -222,8 +220,5 @@ extern "C" __global__ void weight(const CeedInt nelem,
   else if (BASIS_DIM==3)
     weight3d(nelem, qweight1d, v);
 }
-
-);
-// *INDENT-ON*
 
 #endif // cuda_tensor_basis_kernels

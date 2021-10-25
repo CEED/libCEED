@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // ElemRestriction Kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *restrictionkernels = QUOTE(
 
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, strided
@@ -115,8 +113,5 @@ extern "C" __global__ void trOffset(const CeedInt *__restrict__ lvec_indices,
       v[ind + comp*RESTRICTION_COMPSTRIDE] += value[comp];
   }
 }
-
-);
-// *INDENT-ON*
 
 #endif // hip_restriction_kernels

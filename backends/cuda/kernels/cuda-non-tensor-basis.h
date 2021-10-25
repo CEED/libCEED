@@ -20,8 +20,6 @@
 //------------------------------------------------------------------------------
 // Non-Tensor Basis Kernels
 //------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *kernelsNonTensorRef = QUOTE(
 
 //------------------------------------------------------------------------------
 // Interp
@@ -113,8 +111,5 @@ extern "C" __global__ void weight(const CeedInt nelem,
     d_V[elem*Q + tid] = qweight[tid];
   }
 }
-
-);
-// *INDENT-ON*
 
 #endif // cuda_tensor_non_basis_kernels

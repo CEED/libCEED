@@ -16,13 +16,14 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 #include "ceed-cuda.h"
 #include "ceed-cuda-jit.h"
-#include "kernels/cuda-restriction.h"
 
 //------------------------------------------------------------------------------
 // Apply restriction
@@ -340,7 +341,13 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype, CeedCopyMode cmode,
 
   // Compile CUDA kernels
   CeedInt nnodes = impl->nnodes;
-  ierr = CeedCompileCuda(ceed, restrictionkernels, &impl->module, 8,
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/cuda-restriction.h", 28);
+  char *restrictionKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &restrictionKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileCuda(ceed, restrictionKernels, &impl->module, 8,
                          "RESTRICTION_ELEMSIZE", elemsize,
                          "RESTRICTION_NELEM", nelem,
                          "RESTRICTION_NCOMP", ncomp,
@@ -349,6 +356,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mtype, CeedCopyMode cmode,
                          "STRIDE_NODES", strides[0],
                          "STRIDE_COMP", strides[1],
                          "STRIDE_ELEM", strides[2]); CeedChkBackend(ierr);
+  ierr = CeedFree(&restrictionKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, impl->module, "noTrStrided",
                            &impl->noTrStrided); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, impl->module, "noTrOffset", &impl->noTrOffset);

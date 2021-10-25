@@ -16,11 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <stddef.h>
+#include <string.h>
 #include "ceed-hip-shared.h"
 #include "../hip/ceed-hip.h"
 #include "../hip/ceed-hip-jit.h"
-#include "kernels/hip-shared-basis.h"
 
 //------------------------------------------------------------------------------
 // Compute a block size based on required minimum threads
@@ -326,7 +327,14 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedChkBackend(ierr);
 
   // Compile basis kernels
-  ierr = CeedCompileHip(ceed, kernelsShared, &data->module, 11,
+  ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
+  char source_path[CEED_MAX_PATH_LEN] = __FILE__;
+  CeedInt end = strrchr(source_path, '/') - source_path;
+  strncpy(&source_path[end], "/kernels/hip-shared-basis.h", 28);
+  char *basisKernels;
+  ierr = CeedLoadSourceToBuffer(ceed, source_path, &basisKernels);
+  CeedChkBackend(ierr);
+  ierr = CeedCompileHip(ceed, basisKernels, &data->module, 11,
                         "Q1D", Q1d,
                         "P1D", P1d,
                         "T1D", CeedIntMax(Q1d, P1d),
@@ -340,6 +348,7 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                         "GRAD_BLKSIZE", data->blksizes[1],
                         "WEIGHT_BLKSIZE", data->blksizes[2]
                        ); CeedChkBackend(ierr);
+  ierr = CeedFree(&basisKernels); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "interp", &data->interp);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "grad", &data->grad);
