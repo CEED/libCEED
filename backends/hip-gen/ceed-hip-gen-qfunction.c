@@ -16,7 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit.h>
+#include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
 #include <stdio.h>
 #include <string.h>

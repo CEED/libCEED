@@ -16,7 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit.h>
+#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <stdio.h>
 #include <string.h>
