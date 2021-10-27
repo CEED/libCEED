@@ -731,7 +731,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       size_t prefix_length = strlen(backends[i].prefix);
       size_t min_len = (prefix_length < stem_length) ? prefix_length : stem_length;
       size_t column[min_len+1];
-      for (size_t j=1; j<=min_len; j++) column[j] = j;
+      for (size_t j=0; j<=min_len; j++) column[j] = j;
       for (size_t j=1; j<=min_len; j++) {
         column[0] = j;
         for (size_t k=1, last_diag=j-1; k<=min_len; k++) {
