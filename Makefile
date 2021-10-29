@@ -48,6 +48,9 @@ ASAN ?=
 LDFLAGS ?=
 UNDERSCORE ?= 1
 
+# Verbose mode, V or VERBOSE
+V ?= $(VERBOSE)
+
 # MFEM_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../mfem/libmfem.*),)
   MFEM_DIR ?= ../mfem
@@ -276,7 +279,7 @@ info:
 	$(info OPT           = $(OPT))
 	$(info AFLAGS        = $(AFLAGS))
 	$(info ASAN          = $(or $(ASAN),(empty)))
-	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
+	$(info VERBOSE       = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
