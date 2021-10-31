@@ -175,12 +175,7 @@ CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
 int  __enzyme_augmentsize(void *, ...);
 void __enzyme_augmentfwd(void *, ...);
 void __enzyme_reverse(void *, ...);
-
-int enzyme_dup;
-int enzyme_tape;
-int enzyme_const;
-int enzyme_nofree;
-int enzyme_allocated;
+int enzyme_dup, enzyme_tape, enzyme_const, enzyme_nofree, enzyme_allocated;
 
 CEED_QFUNCTION_HELPER int getEnzymeSize(void *computeSfwd) {
   return __enzyme_augmentsize(computeSfwd, enzyme_dup, enzyme_dup, enzyme_const,
@@ -219,7 +214,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
   // Store Swork
   CeedScalar (*Swork)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // Store tape for autodiff
-  void *(*tape)[CEED_Q_VLA] = (void *(*)[CEED_Q_VLA])out[3];
+  void *(*tape) = (void *(*))out[3];
 
   // *INDENT-ON*
 
@@ -322,12 +317,10 @@ CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
     }
 
     int size = getEnzymeSize((void *)computeS);
-    for (int j=0; j<6; j++) tape[j][i] = malloc(size);
+    tape[i] = malloc(size);
 
     CeedScalar Swork_[6];
-    for (CeedInt j=0; j<6; j++) {
-      grad_S_fwd(Swork_, E2work, lambda, mu, tape[j][i]);
-    }
+    grad_S_fwd(Swork_, E2work, lambda, mu, tape[i]);
 
     // *INDENT-OFF*
     const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
@@ -379,7 +372,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
   // grad_u is used for hyperelasticity (non-linear)
   const CeedScalar (*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
   const CeedScalar (*Swork)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  void *(*tape)[CEED_Q_VLA] = (void *(*)[CEED_Q_VLA])in[4];
+  void *(*tape) = (void *(*))in[4];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -469,7 +462,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
     //CeedScalar Swork[6];
     for (CeedInt j=0; j<6; j++) {
       double dSwork[6]  = {0., 0., 0., 0., 0., 0.}; dSwork[j] = 1.;
-      grad_S_rev(dSwork, J[j], lambda, mu, tape[j][i]);
+      grad_S_rev(dSwork, J[j], lambda, mu, tape[i]);
     }
 
     CeedScalar deltaSwork[6];
