@@ -11,6 +11,7 @@
 #include "../problems/problems.h"
 #include "../problems/neo-hookean.h"
 #include "../qfunctions/common.h"
+#include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-initial-2.h"
 
 static const char *const field_names[] = {"gradu", "C_inv", "lambda_log_J"};
@@ -28,10 +29,10 @@ ProblemData finite_strain_neo_Hookean_initial_2 = {
   .field_sizes = field_sizes,
   .jacobian = ElasFSInitialNH2dF,
   .jacobian_loc = ElasFSInitialNH2dF_loc,
-  .energy = ElasFSInitialNH2Energy,
-  .energy_loc = ElasFSInitialNH2Energy_loc,
-  .diagnostic = ElasFSInitialNH2Diagnostic,
-  .diagnostic_loc = ElasFSInitialNH2Diagnostic_loc,
+  .energy = ElasFSNHEnergy,
+  .energy_loc = ElasFSNHEnergy_loc,
+  .diagnostic = ElasFSNHDiagnostic,
+  .diagnostic_loc = ElasFSNHDiagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH2(DM dm, DM dm_energy,

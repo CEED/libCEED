@@ -4,6 +4,7 @@
 #include "../problems/problems.h"
 #include "../problems/neo-hookean.h"
 #include "../qfunctions/common.h"
+#include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-initial-ad.h"
 
 static const char *const field_names[] = {"gradu", "Swork", "tape"};
@@ -21,10 +22,10 @@ ProblemData finite_strain_neo_Hookean_initial_ad = {
   .field_sizes = field_sizes,
   .jacobian = ElasFSInitialNHdF_AD,
   .jacobian_loc = ElasFSInitialNHdF_AD_loc,
-  .energy = ElasFSInitialNHEnergy_AD,
-  .energy_loc = ElasFSInitialNHEnergy_AD_loc,
-  .diagnostic = ElasFSInitialNHDiagnostic_AD,
-  .diagnostic_loc = ElasFSInitialNHDiagnostic_AD_loc,
+  .energy = ElasFSNHEnergy,
+  .energy_loc = ElasFSNHEnergy_loc,
+  .diagnostic = ElasFSNHDiagnostic,
+  .diagnostic_loc = ElasFSNHDiagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH_AD(DM dm, DM dm_energy,

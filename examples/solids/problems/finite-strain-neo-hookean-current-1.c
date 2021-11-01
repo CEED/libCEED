@@ -11,6 +11,7 @@
 #include "../problems/problems.h"
 #include "../problems/neo-hookean.h"
 #include "../qfunctions/common.h"
+#include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-current-1.h"
 
 static const char *const field_names[] = {"gradu"};
@@ -28,10 +29,10 @@ ProblemData finite_strain_neo_Hookean_current_1 = {
   .field_sizes = field_sizes,
   .jacobian = ElasFSCurrentNH1dF,
   .jacobian_loc = ElasFSCurrentNH1dF_loc,
-  .energy = ElasFSCurrentNH1Energy,
-  .energy_loc = ElasFSCurrentNH1Energy_loc,
-  .diagnostic = ElasFSCurrentNH1Diagnostic,
-  .diagnostic_loc = ElasFSCurrentNH1Diagnostic_loc,
+  .energy = ElasFSNHEnergy,
+  .energy_loc = ElasFSNHEnergy_loc,
+  .diagnostic = ElasFSNHDiagnostic,
+  .diagnostic_loc = ElasFSNHDiagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSCurrentNH1(DM dm, DM dm_energy,
