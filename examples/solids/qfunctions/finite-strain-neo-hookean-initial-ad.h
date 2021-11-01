@@ -17,8 +17,8 @@
 /// @file
 /// Hyperelasticity, finite strain for solid mechanics example using PETSc
 
-#ifndef ELAS_FSInitialNH1_AD_H
-#define ELAS_FSInitialNH1_AD_H
+#ifndef ELAS_FSInitialNH_AD_H
+#define ELAS_FSInitialNH_AD_H
 
 #ifndef __CUDACC__
 #  include <math.h>
@@ -199,9 +199,9 @@ CEED_QFUNCTION_HELPER void grad_S_rev(double *dS, double *dE,
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
-                                     const CeedScalar *const *in,
-                                     CeedScalar *const *out) {
+CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -362,9 +362,9 @@ CEED_QFUNCTION(ElasFSInitialNH1F_AD)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
-                                      const CeedScalar *const *in,
-                                      CeedScalar *const *out) {
+CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in,
+                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
@@ -512,7 +512,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF_AD)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1Energy_AD)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialNHEnergy_AD)(void *ctx, CeedInt Q,
     const CeedScalar *const *in,
     CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -603,7 +603,7 @@ CEED_QFUNCTION(ElasFSInitialNH1Energy_AD)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Nodal diagnostic quantities for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNH1Diagnostic_AD)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(ElasFSInitialNHDiagnostic_AD)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
@@ -707,4 +707,4 @@ CEED_QFUNCTION(ElasFSInitialNH1Diagnostic_AD)(void *ctx, CeedInt Q,
 }
 // -----------------------------------------------------------------------------
 
-#endif // End of ELAS_FSInitialNH1_H
+#endif // End of ELAS_FSInitialNH_H

@@ -4,30 +4,30 @@
 #include "../problems/problems.h"
 #include "../problems/neo-hookean.h"
 #include "../qfunctions/common.h"
-#include "../qfunctions/finite-strain-neo-hookean-initial-1-ad.h"
+#include "../qfunctions/finite-strain-neo-hookean-initial-ad.h"
 
 static const char *const field_names[] = {"gradu", "Swork", "tape"};
 static CeedInt field_sizes[] = {9, 6, 1};
 
-ProblemData finite_strain_neo_Hookean_initial_1_ad = {
+ProblemData finite_strain_neo_Hookean_initial_ad = {
   .setup_geo = SetupGeo,
   .setup_geo_loc = SetupGeo_loc,
   .geo_data_size = 10,
   .quadrature_mode = CEED_GAUSS,
-  .residual = ElasFSInitialNH1F_AD,
-  .residual_loc = ElasFSInitialNH1F_AD_loc,
+  .residual = ElasFSInitialNHF_AD,
+  .residual_loc = ElasFSInitialNHF_AD_loc,
   .number_fields_stored = sizeof(field_sizes) / sizeof(*field_sizes),
   .field_names = field_names,
   .field_sizes = field_sizes,
-  .jacobian = ElasFSInitialNH1dF_AD,
-  .jacobian_loc = ElasFSInitialNH1dF_AD_loc,
-  .energy = ElasFSInitialNH1Energy_AD,
-  .energy_loc = ElasFSInitialNH1Energy_AD_loc,
-  .diagnostic = ElasFSInitialNH1Diagnostic_AD,
-  .diagnostic_loc = ElasFSInitialNH1Diagnostic_AD_loc,
+  .jacobian = ElasFSInitialNHdF_AD,
+  .jacobian_loc = ElasFSInitialNHdF_AD_loc,
+  .energy = ElasFSInitialNHEnergy_AD,
+  .energy_loc = ElasFSInitialNHEnergy_AD_loc,
+  .diagnostic = ElasFSInitialNHDiagnostic_AD,
+  .diagnostic_loc = ElasFSInitialNHDiagnostic_AD_loc,
 };
 
-PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH1_AD(DM dm, DM dm_energy,
+PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH_AD(DM dm, DM dm_energy,
     DM dm_diagnostic, Ceed ceed, AppCtx app_ctx, CeedQFunctionContext phys_ctx,
     PetscInt fine_level, PetscInt num_comp_u, PetscInt U_g_size,
     PetscInt U_loc_size, CeedVector force_ceed, CeedVector neumann_ceed,
@@ -37,14 +37,14 @@ PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH1_AD(DM dm, DM dm_energy,
   PetscFunctionBegin;
 
   ierr = SetupLibceedFineLevel(dm, dm_energy, dm_diagnostic, ceed, app_ctx,
-                               phys_ctx, finite_strain_neo_Hookean_initial_1_ad,
+                               phys_ctx, finite_strain_neo_Hookean_initial_ad,
                                fine_level, num_comp_u, U_g_size, U_loc_size,
                                force_ceed, neumann_ceed, data); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
 
-PetscErrorCode SetupLibceedLevel_ElasFSInitialNH1_AD(DM dm, Ceed ceed,
+PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
     AppCtx app_ctx, PetscInt level, PetscInt num_comp_u, PetscInt U_g_size,
     PetscInt U_loc_size, CeedVector fine_mult, CeedData *data) {
   PetscErrorCode ierr;
@@ -52,7 +52,7 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH1_AD(DM dm, Ceed ceed,
   PetscFunctionBegin;
 
   ierr = SetupLibceedLevel(dm, ceed, app_ctx,
-                           finite_strain_neo_Hookean_initial_1_ad,
+                           finite_strain_neo_Hookean_initial_ad,
                            level, num_comp_u, U_g_size, U_loc_size, fine_mult, data);
   CHKERRQ(ierr);
 
