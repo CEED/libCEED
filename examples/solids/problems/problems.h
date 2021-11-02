@@ -15,16 +15,6 @@
 #include "../problems/mooney-rivlin.h"
 
 // Physics options
-#define SOLIDS_PROBLEM_REGISTER(list, name, fname, physics) \
-  ierr = PetscFunctionListAdd(&list->setupPhysics, name,                          \
-                              PhysicsContext_ ## physics); CHKERRQ(ierr);         \
-  ierr = PetscFunctionListAdd(&list->setupSmootherPhysics, name,                  \
-                              PhysicsSmootherContext_ ## physics); CHKERRQ(ierr); \
-  ierr = PetscFunctionListAdd(&list->setupLibceedFineLevel, name,                 \
-                              SetupLibceedFineLevel_ ## fname); CHKERRQ(ierr);    \
-  ierr = PetscFunctionListAdd(&list->setupLibceedLevel, name,                     \
-                              SetupLibceedLevel_ ## fname); CHKERRQ(ierr);        \
-
 typedef struct ProblemFunctions_ *ProblemFunctions;
 struct ProblemFunctions_ {
   PetscFunctionList setupPhysics, setupSmootherPhysics, setupLibceedFineLevel,

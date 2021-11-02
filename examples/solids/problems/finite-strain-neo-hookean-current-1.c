@@ -66,3 +66,18 @@ PetscErrorCode SetupLibceedLevel_ElasFSCurrentNH1(DM dm, Ceed ceed,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasFSCurrentNH1(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSCurrent-NH1",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSCurrent-NH1", PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSCurrent-NH1", SetupLibceedFineLevel_ElasFSCurrentNH1); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSCurrent-NH1", SetupLibceedLevel_ElasFSCurrentNH1); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};

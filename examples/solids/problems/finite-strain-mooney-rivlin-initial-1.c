@@ -65,3 +65,18 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialMR1(DM dm, Ceed ceed,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasFSInitialMR1(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSInitial-MR1",
+                              PhysicsContext_MR); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSInitial-MR1", PhysicsSmootherContext_MR); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSInitial-MR1", SetupLibceedFineLevel_ElasFSInitialMR1); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSInitial-MR1", SetupLibceedLevel_ElasFSInitialMR1); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};

@@ -59,3 +59,18 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasFSInitialNH_AD(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSInitial-NH-AD",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSInitial-NH-AD", PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSInitial-NH-AD", SetupLibceedFineLevel_ElasFSInitialNH_AD); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSInitial-NH-AD", SetupLibceedLevel_ElasFSInitialNH_AD); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};

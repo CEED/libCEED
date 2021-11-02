@@ -34,21 +34,20 @@ LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc)
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
-# Enzyme-AD
-ENZYME_LIB ?=
-ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops -mllvm -enzyme-print
-
-ifneq ($(ENZYME_LIB),)
-  CFLAGS += $(ENZYMEFLAGS)
-else
-  $(error Must export ENZYME_LIB=/path/to/ClangEnzyme-XX.so)
-endif
-
 OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
-src.c := elasticity.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
+src.c := elasticity.c $(filter-out $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c))) $(sort $(wildcard $(SRCDIR)/*.c))
+
+# Enzyme-AD
+ENZYME_LIB ?=
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops -mllvm -enzyme-print
+ifneq ($(ENZYME_LIB),)
+	CFLAGS += $(ENZYMEFLAGS)
+	src.c += $(filter $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c)))
+endif
+
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: elasticity

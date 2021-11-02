@@ -66,3 +66,18 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH2(DM dm, Ceed ceed,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasFSInitialNH2(ProblemFunctions
+    problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "FSInitial-NH2",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics,
+                              "FSInitial-NH2", PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel,
+                              "FSInitial-NH2", SetupLibceedFineLevel_ElasFSInitialNH2); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel,
+                              "FSInitial-NH2", SetupLibceedLevel_ElasFSInitialNH2); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};

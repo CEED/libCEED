@@ -62,3 +62,17 @@ PetscErrorCode SetupLibceedLevel_ElasLinear(DM dm, Ceed ceed, AppCtx app_ctx,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasLinear(ProblemFunctions problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "Linear",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics, "Linear",
+                              PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel, "Linear",
+                              SetupLibceedFineLevel_ElasLinear); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel, "Linear",
+                              SetupLibceedLevel_ElasLinear); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};

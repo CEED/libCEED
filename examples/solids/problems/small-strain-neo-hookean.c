@@ -64,3 +64,17 @@ PetscErrorCode SetupLibceedLevel_ElasSSNH(DM dm, Ceed ceed, AppCtx app_ctx,
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode ProblemRegister_ElasSSNH(ProblemFunctions problem_functions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscFunctionListAdd(&problem_functions->setupPhysics, "SS-NH",
+                              PhysicsContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupSmootherPhysics, "SS-NH",
+                              PhysicsSmootherContext_NH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedFineLevel, "SS-NH",
+                              SetupLibceedFineLevel_ElasSSNH); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&problem_functions->setupLibceedLevel, "SS-NH",
+                              SetupLibceedLevel_ElasSSNH); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+};
