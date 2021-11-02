@@ -1098,6 +1098,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   @param topo        Topology of element, e.g. hypercube, simplex, ect
   @param num_nodes   Total number of nodes
   @param num_qpts    Total number of quadrature points
+  @param basis_space 2 for H(div) discretization (1 for H^1, 3 for H(curl))
   @param interp      Row-major (dim*num_qpts * num_nodes*dim) matrix expressing the values of
                        nodal basis functions at quadrature points
   @param div        Row-major (num_qpts * num_nodes*dim) matrix expressing
@@ -1118,9 +1119,9 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
                         const CeedScalar *div, const CeedScalar *q_ref,
                         const CeedScalar *q_weight, CeedBasis *basis) {
   int ierr;
-  CeedInt Q = num_qpts, P = num_nodes, dim = 0;
+  CeedInt Q = num_qpts, dim = 0;
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
-  CeedInt dof = dim*P; // dof per element!
+  CeedInt P = dim*num_nodes; // dof per element!
   if (!ceed->BasisCreateHdiv) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
@@ -1148,14 +1149,15 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   (*basis)->num_comp = num_comp;
   (*basis)->P = P;
   (*basis)->Q = Q;
+  (*basis)->basis_space = 2; // 2 for H(div) space
   ierr = CeedMalloc(Q*dim,&(*basis)->q_ref_1d); CeedChk(ierr);
   ierr = CeedMalloc(Q,&(*basis)->q_weight_1d); CeedChk(ierr);
   memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
   memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
-  ierr = CeedMalloc(dim*Q*dof, &(*basis)->interp); CeedChk(ierr);
-  ierr = CeedMalloc(Q*dof, &(*basis)->div); CeedChk(ierr);
-  memcpy((*basis)->interp, interp, dim*Q*dof*sizeof(interp[0]));
-  memcpy((*basis)->div, div, Q*dof*sizeof(div[0]));
+  ierr = CeedMalloc(dim*Q*P, &(*basis)->interp); CeedChk(ierr);
+  ierr = CeedMalloc(Q*P, &(*basis)->div); CeedChk(ierr);
+  memcpy((*basis)->interp, interp, dim*Q*P*sizeof(interp[0]));
+  memcpy((*basis)->div, div, Q*P*sizeof(div[0]));
   ierr = ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref,
                                q_weight, *basis); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -1358,46 +1360,6 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     if (basis->div) {
       CeedCall(CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P, basis->div, stream));
     }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief View a CeedBasisHdiv
-
-  @param basis   CeedBasisHdiv to view
-  @param stream  Stream to view to, e.g., stdout
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedBasisHdivView(CeedBasis basis, FILE *stream) {
-  int ierr;
-
-  if (basis->tensor_basis) {
-    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P_1d,
-            basis->Q_1d);
-    ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d,
-                          basis->q_weight_1d, stream); CeedChk(ierr);
-    ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
-                          basis->interp_1d, stream); CeedChk(ierr);
-    ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
-                          basis->grad_1d, stream); CeedChk(ierr);
-  } else {
-    fprintf(stream, "CeedBasis: dim=%d P=%d Q=%d\n", basis->dim, basis->P,
-            basis->Q);
-    ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
-                          basis->q_ref_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->q_weight_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("interp", "\t% 12.8f", basis->dim*basis->Q, basis->dim*basis->P,
-                          basis->interp, stream); CeedChk(ierr);
-    ierr = CeedScalarView("div", "\t% 12.8f", basis->Q, basis->dim*basis->P,
-                          basis->div, stream); CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
 }

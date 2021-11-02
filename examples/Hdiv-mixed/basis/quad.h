@@ -44,7 +44,7 @@ int HdivBasisQuad(CeedScalar *xhat, CeedScalar *Bx, CeedScalar *By) {
   return 0;
 }
 
-static void buildmats(CeedInt Q1d, CeedScalar *q_ref, CeedScalar *q_weights,
+static void QuadBasis(CeedInt Q1d, CeedScalar *q_ref, CeedScalar *q_weights,
                       CeedScalar *interp, CeedScalar *div) {
 
   // Get 1D quadrature on [-1,1]
