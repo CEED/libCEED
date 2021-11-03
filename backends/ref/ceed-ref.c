@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-ref.h"
 
@@ -58,6 +59,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Ref(void) {
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n",
+                                      "/cpu/self/ref/serial");
   return
 //! [Register]
     CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);

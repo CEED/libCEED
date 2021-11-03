@@ -17,6 +17,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-avx.h"
 
@@ -56,6 +57,8 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Avx_Blocked(void) {
-  return CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
+  const char prefix[] = "/cpu/self/avx/blocked";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Avx, 30);
 }
 //------------------------------------------------------------------------------

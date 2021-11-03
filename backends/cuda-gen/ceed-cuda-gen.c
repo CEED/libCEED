@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-cuda-gen.h"
 #include "../cuda/ceed-cuda.h"
@@ -58,6 +59,8 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
 // Register backend
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Cuda_Gen(void) {
-  return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
+  const char prefix[] = "/gpu/cuda/gen";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Cuda_gen, 20);
 }
 //------------------------------------------------------------------------------

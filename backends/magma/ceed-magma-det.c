@@ -73,8 +73,14 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 
 CEED_INTERN int CeedRegister_Magma_Det(void) {
   #ifdef HAVE_HIP
-  return CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
+  {
+    const char prefix[] = "/gpu/hip/magma/det";
+    if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+    return CeedRegister(prefix, CeedInit_Magma_Det, 125);
+  }
   #else
-  return CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
+  const char prefix[] = "/gpu/cuda/magma/det";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Magma_Det, 125);
   #endif
 }

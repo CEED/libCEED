@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-memcheck.h"
 
@@ -47,6 +48,8 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Memcheck_Blocked(void) {
-  return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110);
+  const char prefix[] = "/cpu/self/memcheck/blocked";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Memcheck, 110);
 }
 //------------------------------------------------------------------------------

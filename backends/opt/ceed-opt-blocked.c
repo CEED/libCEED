@@ -17,6 +17,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-opt.h"
 
@@ -74,6 +75,8 @@ static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Opt_Blocked(void) {
-  return CeedRegister("/cpu/self/opt/blocked", CeedInit_Opt_Blocked, 40);
+  const char prefix[] = "/cpu/self/opt/blocked";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Opt_Blocked, 40);
 }
 //------------------------------------------------------------------------------

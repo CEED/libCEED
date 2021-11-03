@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ceed-hip-gen.h"
 #include "../hip/ceed-hip.h"
@@ -58,6 +59,8 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
 // Register backend
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Hip_Gen(void) {
-  return CeedRegister("/gpu/hip/gen", CeedInit_Hip_gen, 20);
+  const char prefix[] = "/gpu/hip/gen";
+  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  return CeedRegister(prefix, CeedInit_Hip_gen, 20);
 }
 //------------------------------------------------------------------------------
