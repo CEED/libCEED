@@ -1,4 +1,4 @@
-cff-version: 1.1.0
+cff-version: 1.2.0
 title: "libCEED: Efficient Extensible Discretization"
 version: 0.9.0
 date-released: 2021-07-07
@@ -49,8 +49,7 @@ authors:
 doi: 10.5281/zenodo.5080234
 url: "https://libceed.readthedocs.io/en/latest/"
 repository: "https://github.com/CEED/libCEED"
-
-references:
+preferred-citation:
   - type: article
     title: "libCEED: Fast algebra for high-order element-based discretizations"
     authors:
@@ -104,6 +103,7 @@ references:
     number: 63
     start: 1945
     doi: 10.21105/joss.02945
+references:
   - type: manual
     title: libCEED User Manual
     authors:
