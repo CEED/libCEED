@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
   PetscScalar eps = 1.0;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
   PetscLogStage solve_stage;
+  PetscLogEvent assemble_event;
   DM  *dm, dm_orig;
   KSP ksp;
   PC pc;
@@ -432,6 +433,8 @@ int main(int argc, char **argv) {
   // Assemble coarse grid Jacobian for AMG (or other sparse matrix) solve
   ierr = DMCreateMatrix(dm[0], &mat_coarse); CHKERRQ(ierr);
 
+  ierr = PetscLogEventRegister("AssembleMatrix", MAT_CLASSID, &assemble_event);
+  CHKERRQ(ierr);
   if (PETSC_VERSION_GE(3,16,0)) { // Assemble matrix analytically
     CeedInt num_entries, *rows, *cols;
     CeedVector coo_values;
@@ -448,11 +451,13 @@ int main(int argc, char **argv) {
     free(rows);
     free(cols);
     CeedVectorCreate(ceed, num_entries, &coo_values);
+    ierr = PetscLogEventBegin(assemble_event, mat_coarse, 0, 0, 0); CHKERRQ(ierr);
     CeedOperatorLinearAssemble(user_O[0]->op, coo_values);
     const CeedScalar *values;
     CeedVectorGetArrayRead(coo_values, CEED_MEM_HOST, &values);
     ierr = MatSetValuesCOO(mat_coarse, values, ADD_VALUES); CHKERRQ(ierr);
     CeedVectorRestoreArrayRead(coo_values, &values);
+    ierr = PetscLogEventEnd(assemble_event, mat_coarse, 0, 0, 0); CHKERRQ(ierr);
     CeedVectorDestroy(&coo_values);
   } else { // Assemble matrix using coloring. Our interfaces match SNES so it's convenient
     SNES snes_dummy;
