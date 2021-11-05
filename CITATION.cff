@@ -50,59 +50,59 @@ doi: 10.5281/zenodo.5080234
 url: "https://libceed.readthedocs.io/en/latest/"
 repository: "https://github.com/CEED/libCEED"
 preferred-citation:
-  - type: article
-    title: "libCEED: Fast algebra for high-order element-based discretizations"
-    authors:
-      - family-names: Brown
-        given-names: Jed
-        orcid: 0000-0002-9945-0639
-      - family-names: Abdelfattah
-        given-names: Ahmad
-        orcid: 0000-0001-5054-4784
-      - family-names: Barra
-        given-names: Valeria
-        orcid: 0000-0003-1129-2056
-      - family-names: Beams
-        given-names: Natalie
-        orcid: 0000-0001-6060-4082
-      - family-names: Camier
-        given-names: Jean Sylvain
-        orcid: 0000-0003-2421-1999
-      - family-names: Dobrev
-        given-names: Veselin
-        orcid: 0000-0003-1793-5622
-      - family-names: Dudouit
-        given-names: Yohann
-        orcid: 0000-0001-5831-561X
-      - family-names: Ghaffari
-        given-names: Leila
-        orcid: 0000-0002-0965-214X
-      - family-names: Kolev
-        given-names: Tzanio
-        orcid: 0000-0002-2810-3090
-      - family-names: Medina
-        given-names: David
-      - family-names: Pazner
-        given-names: Will
-        orcid: 0000-0003-4885-2934
-      - family-names: Ratnayaka
-        given-names: Thilina
-        orcid: 0000-0001-6102-6560
-      - family-names: Thompson
-        given-names: Jeremy L
-        orcid: 0000-0003-2980-0899
-      - family-names: Tomov
-        given-names: Stanimire
-        orcid: 0000-0002-5937-7959
-    journal: "Journal of Open Source Software"
-    year: 2021
-    publisher:
-      - name: "The Open Journal"
-        website: "https://joss.theoj.org/"
-    volume: 6
-    number: 63
-    start: 1945
-    doi: 10.21105/joss.02945
+  type: article
+  title: "libCEED: Fast algebra for high-order element-based discretizations"
+  authors:
+    - family-names: Brown
+      given-names: Jed
+      orcid: 0000-0002-9945-0639
+    - family-names: Abdelfattah
+      given-names: Ahmad
+      orcid: 0000-0001-5054-4784
+    - family-names: Barra
+      given-names: Valeria
+      orcid: 0000-0003-1129-2056
+    - family-names: Beams
+      given-names: Natalie
+      orcid: 0000-0001-6060-4082
+    - family-names: Camier
+      given-names: Jean Sylvain
+      orcid: 0000-0003-2421-1999
+    - family-names: Dobrev
+      given-names: Veselin
+      orcid: 0000-0003-1793-5622
+    - family-names: Dudouit
+      given-names: Yohann
+      orcid: 0000-0001-5831-561X
+    - family-names: Ghaffari
+      given-names: Leila
+      orcid: 0000-0002-0965-214X
+    - family-names: Kolev
+      given-names: Tzanio
+      orcid: 0000-0002-2810-3090
+    - family-names: Medina
+      given-names: David
+    - family-names: Pazner
+      given-names: Will
+      orcid: 0000-0003-4885-2934
+    - family-names: Ratnayaka
+      given-names: Thilina
+      orcid: 0000-0001-6102-6560
+    - family-names: Thompson
+      given-names: Jeremy L
+      orcid: 0000-0003-2980-0899
+    - family-names: Tomov
+      given-names: Stanimire
+      orcid: 0000-0002-5937-7959
+  journal: "Journal of Open Source Software"
+  year: 2021
+  publisher:
+    - name: "The Open Journal"
+      website: "https://joss.theoj.org/"
+  volume: 6
+  number: 63
+  start: 1945
+  doi: 10.21105/joss.02945
 references:
   - type: manual
     title: libCEED User Manual
