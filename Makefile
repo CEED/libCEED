@@ -641,7 +641,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
 
-.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends info-backends-all
+.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy iwyu info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
@@ -686,6 +686,17 @@ tidy_c   : $(libceed.c:%=%.tidy)
 tidy_cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy_c tidy_cpp
+
+ifneq ($(wildcard ../iwyu/*),)
+  IWYU_DIR ?= ../iwyu
+endif
+ifneq ($(IWYU_DIR),)
+  IWYU_CC = $(IWYU_DIR)/build/bin/include-what-you-use
+
+  iwyu_cc :
+    CC = $(IWYU_CC)
+  iwyu : lib | iwyu_cc
+endif
 
 print :
 	@echo $(VAR)=$($(VAR))
