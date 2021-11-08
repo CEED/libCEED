@@ -24,6 +24,7 @@ for each release of libCEED.
 ### Maintainability
 
 - Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.
+- `Include-what-you-use` makefile target added as `make iwyu`.
 
 (v0-9)=
 
