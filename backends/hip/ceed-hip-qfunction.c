@@ -122,11 +122,6 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
     CeedChkBackend(ierr);
     ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
     CeedChkBackend(ierr);
-  } else {
-    data->module = NULL;
-    data->qFunctionName = "";
-    data->qFunctionSource = "";
-    data->qFunction = NULL;
   }
 
   // Register backend functions
