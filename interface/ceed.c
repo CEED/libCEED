@@ -140,7 +140,7 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Backend
 **/
 // LCOV_EXCL_START
-void CeedDebugImpl(const Ceed ceed, const char *format,...) {
+void CeedDebugImpl(const Ceed ceed, const char *format, ...) {
   if (!ceed->debug) return;
   va_list args;
   va_start(args, format);
@@ -162,8 +162,52 @@ void CeedDebugImpl(const Ceed ceed, const char *format,...) {
 **/
 // LCOV_EXCL_START
 void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
-                      const char *format,...) {
+                      const char *format, ...) {
   if (!ceed->debug) return;
+  va_list args;
+  va_start(args, format);
+  fflush(stdout);
+  fprintf(stdout, "\033[38;5;%dm", color);
+  vfprintf(stdout, format, args);
+  fprintf(stdout, "\033[m");
+  fprintf(stdout, "\n");
+  fflush(stdout);
+  va_end(args);
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Print debugging information if CEED_DEBUG environment variable set
+
+  @param format  Printing format
+
+  @return None
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+void CeedDebugEnvImpl(const char *format, ...) {
+  if (!getenv("CEED_DEBUG")) return;
+  va_list args;
+  va_start(args, format);
+  CeedDebugEnvImpl256(0, format, args);
+  va_end(args);
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Print Ceed debugging information in color
+
+  @param color   Color to print
+  @param format  Printing format
+
+  @return None
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+void CeedDebugEnvImpl256(const unsigned char color, const char *format, ...) {
+  if (!getenv("CEED_DEBUG")) return;
   va_list args;
   va_start(args, format);
   fflush(stdout);

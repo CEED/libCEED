@@ -17,7 +17,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include "ceed-avx.h"
 
@@ -58,7 +57,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Avx_Serial(void) {
   const char prefix[] = "/cpu/self/avx/serial";
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  CeedDebugEnv("Backend Register: %s", prefix);
   return CeedRegister(prefix, CeedInit_Avx, 35);
 }
 //------------------------------------------------------------------------------

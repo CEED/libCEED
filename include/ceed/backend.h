@@ -66,14 +66,18 @@
 
 /// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & macros
 #ifndef CEED_DEBUG_COLOR
-#define CEED_DEBUG_COLOR 0
+#define CEED_DEBUG_COLOR 255
 #endif
-CEED_EXTERN void CeedDebugImpl(const Ceed,const char *,...);
-CEED_EXTERN void CeedDebugImpl256(const Ceed,const unsigned char,const char *,
+CEED_EXTERN void CeedDebugImpl(const Ceed, const char *, ...);
+CEED_EXTERN void CeedDebugImpl256(const Ceed, const unsigned char, const char *,
                                   ...);
+CEED_EXTERN void CeedDebugEnvImpl(const char *, ...);
+CEED_EXTERN void CeedDebugEnvImpl256(const unsigned char color, const char *format, ...);
 #define CeedDebug1(ceed, format, ...) CeedDebugImpl(ceed, format, __VA_ARGS__)
 #define CeedDebug256(ceed, color, ...) CeedDebugImpl256(ceed, color, __VA_ARGS__)
 #define CeedDebug(ceed, ...) CeedDebug256(ceed, (unsigned char)CEED_DEBUG_COLOR, __VA_ARGS__)
+#define CeedDebugEnv256(color, ...) CeedDebugEnvImpl256(color, __VA_ARGS__)
+#define CeedDebugEnv(...) CeedDebugEnv256((unsigned char)CEED_DEBUG_COLOR, __VA_ARGS__)
 
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis

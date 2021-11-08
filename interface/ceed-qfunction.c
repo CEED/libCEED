@@ -81,7 +81,7 @@ int CeedQFunctionRegister(const char *name, const char *source,
     return CeedError(NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
   // LCOV_EXCL_STOP
 
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Gallery Register: %s\n", name);
+  CeedDebugEnv("Gallery Register: %s", name);
 
   strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;

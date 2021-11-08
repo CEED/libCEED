@@ -21,7 +21,7 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   int ierr;
   for (int i=0; i<num_prefixes; i++) {
     const char *prefix = va_arg(prefixes, const char*);
-    if (getenv("CEED_DEBUG")) fprintf(stderr, "** Weak Register: %s\n", prefix);
+    CeedDebugEnv("** Weak Register: %s", prefix);
     ierr = CeedRegister(prefix, CeedInit_Weak, CEED_MAX_BACKEND_PRIORITY);
     if (ierr) va_end(prefixes); // Prevent leak on error
     CeedChk(ierr);

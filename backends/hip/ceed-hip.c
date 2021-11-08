@@ -17,7 +17,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include <stdlib.h>
 #include "ceed-hip.h"
 
 //------------------------------------------------------------------------------
@@ -133,7 +132,7 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Hip(void) {
   const char prefix[] = "/gpu/hip/ref";
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  CeedDebugEnv("Backend Register: %s", prefix);
   return CeedRegister(prefix, CeedInit_Hip, 40);
 }
 //------------------------------------------------------------------------------

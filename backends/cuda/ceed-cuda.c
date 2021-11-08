@@ -20,7 +20,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include "ceed-cuda.h"
 
@@ -133,7 +132,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Cuda(void) {
   const char prefix[] = "/gpu/cuda/ref";
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  CeedDebugEnv("Backend Register: %s", prefix);
   return CeedRegister(prefix, CeedInit_Cuda, 40);
 }
 //------------------------------------------------------------------------------

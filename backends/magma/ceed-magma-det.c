@@ -17,7 +17,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include <stdlib.h>
 #include "ceed-magma.h"
 
 CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
@@ -75,12 +74,12 @@ CEED_INTERN int CeedRegister_Magma_Det(void) {
   #ifdef HAVE_HIP
   {
     const char prefix[] = "/gpu/hip/magma/det";
-    if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+    CeedDebugEnv("Backend Register: %s", prefix);
     return CeedRegister(prefix, CeedInit_Magma_Det, 125);
   }
   #else
   const char prefix[] = "/gpu/cuda/magma/det";
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  CeedDebugEnv("Backend Register: %s", prefix);
   return CeedRegister(prefix, CeedInit_Magma_Det, 125);
   #endif
 }

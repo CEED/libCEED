@@ -17,7 +17,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 #include "ceed-blocked.h"
 
@@ -56,7 +55,7 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Ref_Blocked(void) {
   const char prefix[] = "/cpu/self/ref/blocked";
-  if (getenv("CEED_DEBUG")) fprintf(stderr, "Backend Register: %s\n", prefix);
+  CeedDebugEnv("Backend Register: %s", prefix);
   return CeedRegister(prefix, CeedInit_Blocked, 55);
 }
 //------------------------------------------------------------------------------
