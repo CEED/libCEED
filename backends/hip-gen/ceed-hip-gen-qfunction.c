@@ -16,7 +16,6 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,19 +60,16 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  char *source_path;
-  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChkBackend(ierr);
-  if (source_path[0] != '\0') {
-    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
-    CeedChkBackend(ierr);
-    ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
-    CeedChkBackend(ierr);
-  } else {
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
+  if (!strlen(data->qFunctionSource))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "/gpu/hip/gen backend requires QFunction source code file");
-    // LCOV_EXCL_STOP
-  }
+  // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Hip_gen); CeedChkBackend(ierr);

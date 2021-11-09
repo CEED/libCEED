@@ -16,9 +16,9 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-cuda.h"
 #include "ceed-cuda-jit.h"
 #include "ceed-cuda-qfunction-load.h"
@@ -122,16 +122,11 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  // Read source
-  char *source_path;
-  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChkBackend(ierr);
-  // Empty source path indicates user must supply Q-Function
-  if (source_path[0] != '\0') {
-    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
-    CeedChkBackend(ierr);
-    ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
-    CeedChkBackend(ierr);
-  }
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",

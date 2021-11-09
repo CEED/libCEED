@@ -16,8 +16,8 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-tools.h>
 #include <stdio.h>
+#include <string.h>
 #include "ceed-hip.h"
 #include "ceed-hip-jit.h"
 #include "ceed-hip-qfunction-load.h"
@@ -113,16 +113,11 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChkBackend(ierr);
 
-  // Read source
-  char *source_path;
-  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChkBackend(ierr);
-  // Empty source path indicates user must supply Q-Function
-  if (source_path[0] != '\0') {
-    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
-    CeedChkBackend(ierr);
-    ierr = CeedLoadSourceToBuffer(ceed, source_path, &data->qFunctionSource);
-    CeedChkBackend(ierr);
-  }
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
