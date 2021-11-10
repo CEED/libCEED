@@ -65,7 +65,7 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   CeedChkBackend(ierr);
   ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
   CeedChkBackend(ierr);
-  if (!strlen(data->qFunctionSource))
+  if (!data->qFunctionSource)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "/gpu/hip/gen backend requires QFunction source code file");

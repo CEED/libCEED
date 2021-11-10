@@ -247,7 +247,7 @@ int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
 
   ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChk(ierr);
   *source_buffer = NULL;
-  if (strlen(source_path)) {
+  if (source_path) {
     ierr = CeedLoadSourceToBuffer(qf->ceed, source_path, source_buffer);
     CeedChk(ierr);
   }
