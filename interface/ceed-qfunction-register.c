@@ -1,6 +1,5 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <stdbool.h>
 
 static bool register_all_called;
 

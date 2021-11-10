@@ -132,7 +132,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  CeedDebug(code.str().c_str());
+  CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);

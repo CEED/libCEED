@@ -130,29 +130,38 @@ int CeedRequestWait(CeedRequest *req) {
 /// @{
 
 /**
-  @brief Print Ceed debugging information
+  @brief Return value of CEED_DEBUG environment variable
 
   @param ceed    Ceed context
-  @param format  Printing format
 
-  @return None
+  @return boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
 
   @ref Backend
 **/
 // LCOV_EXCL_START
-void CeedDebugImpl(const Ceed ceed, const char *format,...) {
-  if (!ceed->debug) return;
-  va_list args;
-  va_start(args, format);
-  CeedDebugImpl256(ceed, 0, format, args);
-  va_end(args);
+bool CeedDebugFlag(const Ceed ceed) {
+  return ceed->is_debug;
 }
 // LCOV_EXCL_STOP
 
 /**
-  @brief Print Ceed debugging information in color
+  @brief Return value of CEED_DEBUG environment variable
 
-  @param ceed    Ceed context
+  @return boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+bool CeedDebugFlagEnv(void) {
+  return !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG");
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Print debugging information in color
+
   @param color   Color to print
   @param format  Printing format
 
@@ -161,15 +170,15 @@ void CeedDebugImpl(const Ceed ceed, const char *format,...) {
   @ref Backend
 **/
 // LCOV_EXCL_START
-void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
-                      const char *format,...) {
-  if (!ceed->debug) return;
+void CeedDebugImpl256(const unsigned char color, const char *format,...) {
   va_list args;
   va_start(args, format);
   fflush(stdout);
-  fprintf(stdout, "\033[38;5;%dm", color);
+  if (color != CEED_DEBUG_COLOR_NONE)
+    fprintf(stdout, "\033[38;5;%dm", color);
   vfprintf(stdout, format, args);
-  fprintf(stdout, "\033[m");
+  if (color != CEED_DEBUG_COLOR_NONE)
+    fprintf(stdout, "\033[m");
   fprintf(stdout, "\n");
   fflush(stdout);
   va_end(args);
@@ -308,7 +317,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
   @ref Backend
 **/
 int CeedIsDebug(Ceed ceed, bool *is_debug) {
-  *is_debug = ceed->debug;
+  *is_debug = ceed->is_debug;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -853,7 +862,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedChk(ierr);
 
   // Record env variables CEED_DEBUG or DBG
-  (*ceed)->debug = !!getenv("CEED_DEBUG") || !!getenv("DBG");
+  (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") ||
+                      !!getenv("DBG");
 
   // Backend specific setup
   ierr = backends[match_idx].init(&resource[match_help], *ceed); CeedChk(ierr);

@@ -120,9 +120,9 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int ref_count;
-  bool is_deterministic;
   void *data;
-  bool debug;
+  bool is_debug;
+  bool is_deterministic;
   char err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset *f_offsets;
 };
