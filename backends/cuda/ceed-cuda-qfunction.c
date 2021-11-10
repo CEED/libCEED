@@ -111,67 +111,6 @@ static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
 }
 
 //------------------------------------------------------------------------------
-// Load QFunction source file
-//------------------------------------------------------------------------------
-static int CeedCudaLoadQFunction(CeedQFunction qf, char *c_src_file) {
-  int ierr;
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
-
-  // Find source file
-  char *cuda_file;
-  ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChkBackend(ierr);
-  memcpy(cuda_file, c_src_file, strlen(c_src_file));
-  const char *last_dot = strrchr(cuda_file, '.');
-  if (!last_dot)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
-  // LCOV_EXCL_STOP
-  const size_t cuda_path_len = last_dot - cuda_file;
-  strncpy(&cuda_file[cuda_path_len], ".h", 3);
-
-  // Open source file
-  FILE *fp;
-  long lSize;
-  char *buffer;
-  fp = fopen (cuda_file, "rb");
-  if (!fp)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Couldn't open the Cuda file for the QFunction.");
-  // LCOV_EXCL_STOP
-
-  // Compute size of source
-  fseek(fp, 0L, SEEK_END);
-  lSize = ftell(fp);
-  rewind(fp);
-
-  // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
-
-  // Copy the file into the buffer
-  if(1 != fread(buffer, lSize, 1, fp)) {
-    // LCOV_EXCL_START
-    fclose(fp);
-    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Couldn't read the Cuda file for the QFunction.");
-    // LCOV_EXCL_STOP
-  }
-
-  // Cleanup
-  fclose(fp);
-  ierr = CeedFree(&cuda_file); CeedChkBackend(ierr);
-
-  // Save QFunction source
-  CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
-  data->qFunctionSource = buffer;
-  data->qFunction = NULL;
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
@@ -182,15 +121,11 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  // Read source
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  // Empty source path indicates user must supply Q-Function
-  if (source[0] != '\0') {
-    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
-    CeedChkBackend(ierr);
-    ierr = CeedCudaLoadQFunction(qf, source); CeedChkBackend(ierr);
-  }
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",

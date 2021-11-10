@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <ceed-impl.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -238,6 +239,33 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
 **/
 int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
   *source_path = (char *) qf->source_path;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Initalize and load QFunction source file into string buffer, including
+           full text of local files in place of `#include "local.h"`.
+           The `buffer` is set to `NULL` if there is no QFunction source file.
+         Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
+
+  @param qf                     CeedQFunction
+  @param[out] buffer            String buffer for source file contents
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
+  int ierr;
+  char *source_path;
+
+  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChk(ierr);
+  *source_buffer = NULL;
+  if (source_path) {
+    ierr = CeedLoadSourceToBuffer(qf->ceed, source_path, source_buffer);
+    CeedChk(ierr);
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
