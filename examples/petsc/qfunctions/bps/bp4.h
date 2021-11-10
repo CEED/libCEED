@@ -20,9 +20,7 @@
 #ifndef bp4_h
 #define bp4_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem

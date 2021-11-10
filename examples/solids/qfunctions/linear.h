@@ -20,9 +20,7 @@
 #ifndef ELAS_LINEAR_H
 #define ELAS_LINEAR_H
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
