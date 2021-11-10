@@ -22,7 +22,7 @@ static bool register_all_called;
 int CeedQFunctionRegisterAll() {
   if (register_all_called) return 0;
   register_all_called = true;
-
+  CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");
 #define MACRO(name) CeedChk(name());
 #include "../gallery/ceed-gallery-list.h"
 #undef MACRO
