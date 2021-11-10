@@ -187,18 +187,9 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
   // Empty source path indicates user must supply Q-Function
   if (source[0] != '\0') {
-    const char *funname = strrchr(source, ':') + 1;
-    data->qFunctionName = (char *)funname;
-    const int filenamelen = funname - source;
-    char filename[filenamelen];
-    memcpy(filename, source, filenamelen - 1);
-    filename[filenamelen - 1] = '\0';
-    ierr = CeedCudaLoadQFunction(qf, filename); CeedChkBackend(ierr);
-  } else {
-    data->module = NULL;
-    data->qFunctionName = "";
-    data->qFunctionSource = "";
-    data->qFunction = NULL;
+    ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+    CeedChkBackend(ierr);
+    ierr = CeedCudaLoadQFunction(qf, source); CeedChkBackend(ierr);
   }
 
   // Register backend functions

@@ -16,6 +16,7 @@ for each release of libCEED.
 - Promote {c:func} `CeedOperatorCheckReady`to the public API to facilitate interactive interfaces.
 - Warning added when compiling OCCA backend to alert users that this backend is experimental.
 - `ceed-backend.h`, `ceed-hash.h`, and `ceed-khash.h` removed. Users should use `ceed/backend.h`, `ceed/hash.h`, and `ceed/khash.h`.
+- Added {c:func} `CeedQFunctionGetKernelName`; refactored {c:func} `CeedQFunctionGetSourcePath` to exclude function kernel name.
 
 ### New features
 

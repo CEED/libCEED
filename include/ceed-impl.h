@@ -239,7 +239,9 @@ struct CeedQFunction_private {
   CeedInt num_input_fields, num_output_fields;
   CeedQFunctionUser function;
   const char *source_path;
-  const char *qf_name;
+  const char *kernel_name;
+  const char *gallery_name;
+  bool is_gallery;
   bool is_identity;
   bool is_fortran;
   bool is_immutable;
