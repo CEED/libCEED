@@ -294,6 +294,7 @@ blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
 opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
+sve.c          := $(sort $(wildcard backends/sve/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 # - GPU
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
@@ -433,6 +434,7 @@ info:
 	$(info Backend Dependencies:)
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
+	$(info SVE_STATUS    = $(SVE_STATUS)$(call backend_status,$(SVE_BACKENDS)))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
@@ -501,6 +503,17 @@ ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
   BACKENDS_MAKE += $(AVX_BACKENDS)
+endif
+
+# SVE Backends
+SVE_STATUS   = Disabled
+SVE_FLAG    := $(if $(filter clang,$(CC_VENDOR)),+sve,-msve)
+SVE         := $(filter $(SVE_FLAG),$(shell $(CC) $(CFLAGS:-M%=) -v -E -x c /dev/null 2>&1))
+SVE_BACKENDS = /cpu/self/sve/serial /cpu/self/sve/blocked
+ifneq ($(SVE),)
+  SVE_STATUS     = Enabled
+  libceed.c     += $(sve.c)
+  BACKENDS_MAKE += $(SVE_BACKENDS)
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config
