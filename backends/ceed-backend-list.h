@@ -15,6 +15,8 @@
 #include "ceed-backend-list-ref.h"
 // Requires AVX support
 #include "ceed-backend-list-avx.h"
+// Requires SVE support
+#include "ceed-backend-list-sve.h"
 // Requires Valgrind
 #include "ceed-backend-list-memcheck.h"
 // Requires LIBXSMM
