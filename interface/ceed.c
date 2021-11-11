@@ -298,6 +298,8 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
     return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
   // LCOV_EXCL_STOP
 
+  CeedDebugEnv("Backend Register: %s", prefix);
+
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
   backends[num_backends].init = init;
