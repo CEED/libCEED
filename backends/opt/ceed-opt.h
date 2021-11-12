@@ -49,6 +49,8 @@ typedef struct {
   CeedElemRestriction qf_blk_rstr;
 } CeedOperator_Opt;
 
+CEED_INTERN int CeedTensorContractCreate_Opt(CeedBasis basis,
+    CeedTensorContract contract);
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
 
 #endif // _ceed_opt_h
