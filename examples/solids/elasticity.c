@@ -909,6 +909,18 @@ int main(int argc, char **argv) {
     ierr = PetscFree(diagnostic_ctx); CHKERRQ(ierr);
   }
 
+  if(ceed_data[fine_level]->qf_tape) {
+    DM dm_tape;
+    PetscInt num_comp_t = 1;
+    ierr = DMClone(dm_orig, &dm_tape); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm_tape, app_ctx, app_ctx->level_degrees[fine_level],
+                           PETSC_FALSE, num_comp_t); CHKERRQ(ierr);
+    ierr = DMSetVecType(dm_tape, vectype); CHKERRQ(ierr);
+    ierr = FreeTapeMemory(dm_tape, res_ctx, ceed_data[fine_level]->op_tape, U);
+    CHKERRQ(ierr);
+    ierr = DMDestroy(&dm_tape); CHKERRQ(ierr);
+  }
+
   // ---------------------------------------------------------------------------
   // Free objects
   // ---------------------------------------------------------------------------

@@ -190,10 +190,25 @@ CEED_QFUNCTION_HELPER void grad_S_fwd(double *S, double *E, const double lambda,
 }
 
 CEED_QFUNCTION_HELPER void grad_S_rev(double *dS, double *dE,
-                                      const double lambda, const double mu, void *tape) {
-  __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
-                   enzyme_tape, tape, enzyme_nofree, (double *)NULL, dS, (double *)NULL, dE,
-                   enzyme_const, lambda, enzyme_const, mu);
+                                      const double lambda, const double mu, void *tape, bool no_free) {
+  if (no_free)
+    __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
+                     enzyme_tape, tape, enzyme_nofree, (double *)NULL, dS, (double *)NULL, dE,
+                     enzyme_const, lambda, enzyme_const, mu);
+  else
+    __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
+                     enzyme_tape, tape, (double *)NULL, dS, (double *)NULL, dE,
+                     enzyme_const, lambda, enzyme_const, mu);
+}
+
+CEED_QFUNCTION_HELPER void free_tape(void *tape) {
+  bool no_free = false;
+  CeedScalar dSwork = 1, lambda =1, mu=1;
+  CeedScalar J[6][6];
+  for (CeedInt i=0; i<6; i++) for (CeedInt j=0; j<6; j++) J[i][j] = 0.;
+  grad_S_rev(&dSwork, J[0], lambda, mu, tape, no_free);
+  // Free allocated memory for tape
+  free(tape);
 }
 
 // -----------------------------------------------------------------------------
@@ -459,10 +474,10 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
     CeedScalar J[6][6];
     for (CeedInt i=0; i<6; i++) for (CeedInt j=0; j<6; j++) J[i][j] = 0.;
 
-    //CeedScalar Swork[6];
+    bool no_free = true;
     for (CeedInt j=0; j<6; j++) {
       double dSwork[6]  = {0., 0., 0., 0., 0., 0.}; dSwork[j] = 1.;
-      grad_S_rev(dSwork, J[j], lambda, mu, tape[i]);
+      grad_S_rev(dSwork, J[j], lambda, mu, tape[i], no_free);
     }
 
     CeedScalar deltaSwork[6];
@@ -504,6 +519,26 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
           deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wdetJ;
       }
 
+  } // End of Quadrature Point Loop
+
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// Free tape memory
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(ElasFSInitialNHFree_AD)(void *ctx, CeedInt Q,
+                                       const CeedScalar *const *in,
+                                       CeedScalar *const *out) {
+  // Inputs
+  void *(*tape) = (void *(*))in[0];
+  // No outputs
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    // Free allocated memory for tape
+    free_tape(tape[i]);
   } // End of Quadrature Point Loop
 
   return 0;

@@ -75,11 +75,13 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedQFunctionDestroy(&data->qf_jacobian);
   CeedQFunctionDestroy(&data->qf_energy);
   CeedQFunctionDestroy(&data->qf_diagnostic);
+  CeedQFunctionDestroy(&data->qf_tape);
   // Operators
   CeedOperatorDestroy(&data->op_residual);
   CeedOperatorDestroy(&data->op_jacobian);
   CeedOperatorDestroy(&data->op_energy);
   CeedOperatorDestroy(&data->op_diagnostic);
+  CeedOperatorDestroy(&data->op_tape);
   // Restriction and Prolongation data
   CeedBasisDestroy(&data->basis_c_to_f);
   CeedOperatorDestroy(&data->op_prolong);
@@ -194,7 +196,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   // -- Diagnostic output basis
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_u, P, P, CEED_GAUSS_LOBATTO,
                                   &data[fine_level]->basis_diagnostic);
-
   // ---------------------------------------------------------------------------
   // libCEED restrictions
   // ---------------------------------------------------------------------------
@@ -241,7 +242,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                    num_elem*P*P*P*q_data_size,
                                    CEED_STRIDES_BACKEND,
                                    &data[fine_level]->elem_restr_geo_data_diagnostic_i);
-
   // ---------------------------------------------------------------------------
   // Element coordinates
   // ---------------------------------------------------------------------------
@@ -270,7 +270,6 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   // -- Collocated geometric data vector
   CeedVectorCreate(ceed, num_elem*P*P*P*q_data_size,
                    &data[fine_level]->geo_data_diagnostic);
-
   // ---------------------------------------------------------------------------
   // Geometric factor computation
   // ---------------------------------------------------------------------------
@@ -624,6 +623,30 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   data[fine_level]->qf_diagnostic = qf_diagnostic;
   data[fine_level]->op_diagnostic = op_diagnostic;
 
+  // ---------------------------------------------------------------------------
+  // Enzyme-AD
+  // ---------------------------------------------------------------------------
+  // Create the QFunction and Operator that frees memory created for Enzyme-AD
+  // ---------------------------------------------------------------------------
+  if (problem_data.tape) {
+    CeedOperator op_tape;
+    CeedQFunction qf_tape;
+    CeedInt idx = problem_data.number_fields_stored - 1, num_comp_tape = 1;
+    // -- QFunction
+    CeedQFunctionCreateInterior(ceed, 1, problem_data.tape,
+                                problem_data.tape_loc, &qf_tape);
+    CeedQFunctionAddInput(qf_tape, "tape", num_comp_tape, CEED_EVAL_NONE);
+    // -- Operator
+    CeedOperatorCreate(ceed, qf_tape, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
+                       &op_tape);
+    CeedOperatorSetField(op_tape, "tape",
+                         data[fine_level]->elem_restr_stored_fields_i[idx], CEED_BASIS_COLLOCATED,
+                         data[fine_level]->stored_fields[idx]);
+    CeedOperatorSetNumQuadraturePoints(op_tape, num_qpts);
+    // -- Save libCEED data
+    data[fine_level]->qf_tape = qf_tape;
+    data[fine_level]->op_tape = op_tape;
+  }
   // ---------------------------------------------------------------------------
   // Cleanup
   // ---------------------------------------------------------------------------

@@ -292,3 +292,41 @@ PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
 
   PetscFunctionReturn(0);
 };
+
+// This function frees memory allocated for Enzyme-AD
+PetscErrorCode FreeTapeMemory(DM dm_tape, UserMult user, CeedOperator op_tape,
+                              Vec X) {
+  PetscErrorCode ierr;
+  PetscScalar *x;
+  PetscMemType x_mem_type;
+  CeedInt length;
+
+  PetscFunctionBeginUser;
+
+  // Global-to-local
+  ierr = VecZeroEntries(user->X_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, X, INSERT_VALUES, user->X_loc); CHKERRQ(ierr);
+
+  // Setup libCEED input vector
+  ierr = VecGetArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x,
+                                   &x_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(user->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+
+  // Setup libCEED output vector
+  Vec E_loc;
+  CeedVector e_loc;
+  ierr = DMCreateLocalVector(dm_tape, &E_loc); CHKERRQ(ierr);
+  ierr = VecGetSize(E_loc, &length); CHKERRQ(ierr);
+  ierr = VecDestroy(&E_loc); CHKERRQ(ierr);
+  CeedVectorCreate(user->ceed, length, &e_loc);
+
+  // Apply libCEED operator
+  CeedOperatorApply(op_tape, user->x_ceed, e_loc, CEED_REQUEST_IMMEDIATE);
+
+  // Restore PETSc vector
+  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(x_mem_type), NULL);
+  ierr = VecRestoreArrayRead(user->X_loc, (const PetscScalar **)&x);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+};

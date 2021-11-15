@@ -144,19 +144,18 @@ struct CeedData_ {
                       elem_restr_energy, elem_restr_diagnostic,
                       elem_restr_geo_data_diagnostic_i,
                       elem_restr_stored_fields_i[SOLIDS_MAX_NUMBER_FIELDS];
-  CeedQFunction       qf_residual, qf_jacobian, qf_energy, qf_diagnostic;
+  CeedQFunction       qf_residual, qf_jacobian, qf_energy, qf_diagnostic, qf_tape;
   CeedOperator        op_residual, op_jacobian, op_restrict, op_prolong,
-                      op_energy,
-                      op_diagnostic;
+                      op_energy, op_diagnostic, op_tape;
   CeedVector          geo_data, geo_data_diagnostic, x_ceed, y_ceed,
                       true_soln, stored_fields[SOLIDS_MAX_NUMBER_FIELDS];
 };
 
 typedef struct {
   CeedQFunctionUser setup_geo, residual, jacobian, energy,
-                    diagnostic, true_soln;
+                    diagnostic, true_soln, tape;
   const char *setup_geo_loc, *residual_loc, *jacobian_loc, *energy_loc,
-        *diagnostic_loc, *true_soln_loc;
+        *diagnostic_loc, *true_soln_loc, *tape_loc;
   CeedQuadMode quadrature_mode;
   CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
