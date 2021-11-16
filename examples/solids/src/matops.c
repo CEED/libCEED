@@ -240,7 +240,7 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
 };
 
 // This function calculates the strain energy in the final solution
-PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user,
+PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
                                    CeedOperator op_energy, Vec X,
                                    PetscReal *energy) {
   PetscErrorCode ierr;
@@ -265,7 +265,7 @@ PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user,
   // Setup libCEED output vector
   Vec E_loc;
   CeedVector e_loc;
-  ierr = DMCreateLocalVector(dmEnergy, &E_loc); CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(dm_energy, &E_loc); CHKERRQ(ierr);
   ierr = VecGetSize(E_loc, &length); CHKERRQ(ierr);
   ierr = VecDestroy(&E_loc); CHKERRQ(ierr);
   CeedVectorCreate(user->ceed, length, &e_loc);

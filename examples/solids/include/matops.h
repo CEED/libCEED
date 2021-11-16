@@ -38,7 +38,7 @@ PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
                                    CeedOperator op_energy, Vec X,
                                    PetscReal *energy);
 
-// this function checks to see if the computed energy is close enough to reference file energy.
+// This function checks to see if the computed energy is close enough to reference file energy.
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
 #endif // libceed_solids_examples_matopts_h
