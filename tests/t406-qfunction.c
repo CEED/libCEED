@@ -5,7 +5,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "t406-qfunction-helper.h"
 #include "t406-qfunction.h"
 
 int main(int argc, char **argv) {
