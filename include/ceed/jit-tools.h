@@ -19,8 +19,6 @@
 
 #include <ceed/ceed.h>
 
-#define CEED_MAX_PATH_LEN 1024
-
 CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer);
 
 #endif
