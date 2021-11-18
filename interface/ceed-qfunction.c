@@ -16,10 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <ceed-impl.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /// @file
@@ -211,17 +213,59 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input,
 }
 
 /**
-  @brief Get the source path string for a CeedQFunction
+  @brief Get the name of the user function for a CeedQFunction
 
-  @param qf           CeedQFunction
-  @param[out] source  Variable to store source path string
+  @param qf                CeedQFunction
+  @param[out] kernel_name  Variable to store source path string
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source) {
-  *source = (char *) qf->source_path;
+int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
+  *kernel_name = (char *) qf->kernel_name;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the source path string for a CeedQFunction
+
+  @param qf                CeedQFunction
+  @param[out] source_path  Variable to store source path string
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
+  *source_path = (char *) qf->source_path;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Initalize and load QFunction source file into string buffer, including
+           full text of local files in place of `#include "local.h"`.
+           The `buffer` is set to `NULL` if there is no QFunction source file.
+         Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
+
+  @param qf                     CeedQFunction
+  @param[out] buffer            String buffer for source file contents
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
+  int ierr;
+  char *source_path;
+
+  ierr = CeedQFunctionGetSourcePath(qf, &source_path); CeedChk(ierr);
+  *source_buffer = NULL;
+  if (source_path) {
+    ierr = CeedLoadSourceToBuffer(qf->ceed, source_path, source_buffer);
+    CeedChk(ierr);
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -378,7 +422,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
                                 CeedQFunctionUser f,
                                 const char *source, CeedQFunction *qf) {
   int ierr;
-  char *source_copy;
+  char *source_copy, *kernel_name_copy;
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
@@ -395,6 +439,14 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (strlen(source) && !strrchr(source, ':'))\
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                     "Provided path to source does not include function name. "
+                     "Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"",
+                     source);
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, qf); CeedChk(ierr);
   (*qf)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
@@ -402,10 +454,18 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->vec_length = vec_length;
   (*qf)->is_identity = false;
   (*qf)->function = f;
-  size_t slen = strlen(source) + 1;
-  ierr = CeedMalloc(slen, &source_copy); CeedChk(ierr);
-  memcpy(source_copy, source, slen);
-  (*qf)->source_path = source_copy;
+  if (strlen(source)) {
+    const char *kernel_name = strrchr(source, ':') + 1;
+    size_t kernel_name_len = strlen(kernel_name);
+    ierr = CeedCalloc(kernel_name_len + 1, &kernel_name_copy); CeedChk(ierr);
+    strncpy(kernel_name_copy, kernel_name, kernel_name_len);
+    (*qf)->kernel_name = kernel_name_copy;
+
+    size_t source_len = strlen(source) - kernel_name_len - 1;
+    ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
+    strncpy(source_copy, source, source_len);
+    (*qf)->source_path = source_copy;
+  }
   ierr = CeedCalloc(16, &(*qf)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(16, &(*qf)->output_fields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
@@ -462,7 +522,8 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   size_t slen = strlen(name) + 1;
   ierr = CeedMalloc(slen, &name_copy); CeedChk(ierr);
   memcpy(name_copy, name, slen);
-  (*qf)->qf_name = name_copy;
+  (*qf)->gallery_name = name_copy;
+  (*qf)->is_gallery = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -705,7 +766,8 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
   fprintf(stream, "%sCeedQFunction %s\n",
-          qf->qf_name ? "Gallery " : "User ", qf->qf_name ? qf->qf_name : "");
+          qf->is_gallery ? "Gallery " : "User ",
+          qf->is_gallery ? qf->gallery_name : qf->kernel_name);
 
   fprintf(stream, "  %d Input Field%s:\n", qf->num_input_fields,
           qf->num_input_fields>1 ? "s" : "");
@@ -805,7 +867,8 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   ierr = CeedQFunctionContextDestroy(&(*qf)->ctx); CeedChk(ierr);
 
   ierr = CeedFree(&(*qf)->source_path); CeedChk(ierr);
-  ierr = CeedFree(&(*qf)->qf_name); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->gallery_name); CeedChk(ierr);
+  ierr = CeedFree(&(*qf)->kernel_name); CeedChk(ierr);
   ierr = CeedDestroy(&(*qf)->ceed); CeedChk(ierr);
   ierr = CeedFree(qf); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;

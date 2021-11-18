@@ -16,10 +16,14 @@ for each release of libCEED.
 - Promote {c:func} `CeedOperatorCheckReady`to the public API to facilitate interactive interfaces.
 - Warning added when compiling OCCA backend to alert users that this backend is experimental.
 - `ceed-backend.h`, `ceed-hash.h`, and `ceed-khash.h` removed. Users should use `ceed/backend.h`, `ceed/hash.h`, and `ceed/khash.h`.
+- Added {c:func} `CeedQFunctionGetKernelName`; refactored {c:func} `CeedQFunctionGetSourcePath` to exclude function kernel name.
 
 ### New features
 
 - `CeedScalar` can now be set as `float` or `double` at compile time.
+- Added JiT utilities in `ceed/jit-tools.h` to reduce duplicated code in GPU backends.
+- Added support for JiT of QFunctions with `#include "relative/path/local-file.h"` statements for additional local files. Note that files included with `""` are searched relative to the current file first, then by compiler paths (as with `<>` includes). To use this feature, one should adhere to relative paths only, not compiler flags like `-I`, which the JiT will not be aware of.
+- Remove need to guard library headers in QFunction source for code generation backends.
 
 ### Maintainability
 

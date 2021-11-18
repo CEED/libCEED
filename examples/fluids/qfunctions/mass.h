@@ -20,9 +20,7 @@
 #ifndef mass_h
 #define mass_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.

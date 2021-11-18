@@ -20,9 +20,7 @@
 #ifndef ELAS_FSInitialMR1_H
 #define ELAS_FSInitialMR1_H
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // -----------------------------------------------------------------------------
 // Mooney-Rivlin context

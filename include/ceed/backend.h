@@ -192,7 +192,9 @@ CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf,
                                         CeedInt *num_input_fields,
                                         CeedInt *num_output_fields);
-CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source);
+CEED_EXTERN int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name);
+CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path);
+CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf,

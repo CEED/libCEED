@@ -20,9 +20,7 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef setup_context_struct
 #define setup_context_struct

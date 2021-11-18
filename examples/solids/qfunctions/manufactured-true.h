@@ -20,9 +20,7 @@
 #ifndef MANUFACTURED_TRUE_H
 #define MANUFACTURED_TRUE_H
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // -----------------------------------------------------------------------------
 // True solution for linear elasticity manufactured solution

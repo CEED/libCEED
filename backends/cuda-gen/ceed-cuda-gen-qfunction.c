@@ -50,72 +50,6 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
 }
 
 //------------------------------------------------------------------------------
-// Load QFunction
-//------------------------------------------------------------------------------
-static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
-  int ierr;
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
-  CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
-
-  // Find source file
-  char *cuda_file;
-  ierr = CeedCalloc(CUDA_MAX_PATH, &cuda_file); CeedChkBackend(ierr);
-  memcpy(cuda_file, c_src_file, strlen(c_src_file));
-  const char *last_dot = strrchr(cuda_file, '.');
-  if (!last_dot)
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot find file's extension!");
-  const size_t cuda_path_len = last_dot - cuda_file;
-  strncpy(&cuda_file[cuda_path_len], ".h", 3);
-
-  // Open source file
-  FILE *fp;
-  long lSize;
-  char *buffer;
-  fp = fopen (cuda_file, "rb");
-  if (!fp)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Couldn't open the Cuda file for the QFunction.");
-  // LCOV_EXCL_STOP
-
-  // Compute size of source file
-  fseek(fp, 0L, SEEK_END);
-  lSize = ftell(fp);
-  rewind(fp);
-
-  // Allocate memory for entire content
-  ierr = CeedCalloc(lSize+1, &buffer); CeedChkBackend(ierr);
-
-  // Copy the file into the buffer
-  if (1 != fread(buffer, lSize, 1, fp)) {
-    // LCOV_EXCL_START
-    fclose(fp);
-    ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Couldn't read the Cuda file for the QFunction.");
-    // LCOV_EXCL_STOP
-  }
-
-  // Append typedef and save source string
-  // FIXME: the magic number 16 should be defined somewhere...
-  char *fields_string =
-    "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda_gen;";
-  ierr = CeedMalloc(1 + strlen(fields_string) + strlen(buffer),
-                    &data->qFunctionSource); CeedChkBackend(ierr);
-  memcpy(data->qFunctionSource, fields_string, strlen(fields_string));
-  memcpy(data->qFunctionSource + strlen(fields_string), buffer,
-         strlen(buffer) + 1);
-
-  // Cleanup
-  ierr = CeedFree(&buffer); CeedChkBackend(ierr);
-  fclose(fp);
-  ierr = CeedFree(&cuda_file); CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
@@ -126,15 +60,16 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  const char *funname = strrchr(source, ':') + 1;
-  data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - source;
-  char filename[filenamelen];
-  memcpy(filename, source, filenamelen - 1);
-  filename[filenamelen - 1] = '\0';
-  ierr = loadCudaFunction(qf, filename); CeedChkBackend(ierr);
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
+  if (!data->qFunctionSource)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "/gpu/cuda/gen backend requires QFunction source code file");
+  // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda_gen); CeedChkBackend(ierr);
