@@ -121,6 +121,37 @@ int CeedRequestWait(CeedRequest *req) {
 /// @addtogroup CeedDeveloper
 /// @{
 
+/**
+  @brief Register a Ceed backend internally.
+           Note: Backends should call `CeedRegister` instead.
+
+  @param prefix    Prefix of resources for this backend to respond to.  For
+                     example, the reference backend responds to "/cpu/self".
+  @param init      Initialization function called by CeedInit() when the backend
+                     is selected to drive the requested resource.
+  @param priority  Integer priority.  Lower values are preferred in case the
+                     resource requested by CeedInit() has non-unique best prefix
+                     match.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed),
+                     unsigned int priority) {
+  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
+    // LCOV_EXCL_START
+    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
+  // LCOV_EXCL_STOP
+
+  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
+  backends[num_backends].init = init;
+  backends[num_backends].priority = priority;
+  num_backends++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -293,18 +324,8 @@ int CeedFree(void *p) {
 **/
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
                  unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
-  // LCOV_EXCL_STOP
-
   CeedDebugEnv("Backend Register: %s", prefix);
-
-  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
-  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
-  backends[num_backends].init = init;
-  backends[num_backends].priority = priority;
-  num_backends++;
+  CeedRegisterImpl(prefix, init, priority);
   return CEED_ERROR_SUCCESS;
 }
 

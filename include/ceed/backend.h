@@ -100,6 +100,9 @@ CEED_INTERN int CeedFree(void *p);
 CEED_EXTERN int CeedRegister(const char *prefix,
                              int (*init)(const char *, Ceed),
                              unsigned int priority);
+CEED_EXTERN int CeedRegisterImpl(const char *prefix,
+                                 int (*init)(const char *, Ceed),
+                                 unsigned int priority);
 
 CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *is_debug);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
