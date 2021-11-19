@@ -198,7 +198,6 @@ struct SimpleBC_private {
 // Initial conditions
 #ifndef setup_context_struct
 #define setup_context_struct
-typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
   CeedScalar thetaC;

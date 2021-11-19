@@ -376,3 +376,9 @@ PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
 
   PetscFunctionReturn(0);
 }
+
+// Problem Register
+PetscErrorCode ProblemRegister_DensityCurrent(AppCtx app_ctx) {
+  return PetscFunctionListAdd(&app_ctx->problems, "density_current",
+                              NS_DENSITY_CURRENT);
+}

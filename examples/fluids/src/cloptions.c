@@ -19,29 +19,6 @@
 
 #include "../navierstokes.h"
 
-// Register problems to be available on the command line
-PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
-
-
-  app_ctx->problems = NULL;
-  PetscErrorCode   ierr;
-  PetscFunctionBeginUser;
-
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
-                              NS_DENSITY_CURRENT); CHKERRQ(ierr);
-
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
-                              NS_EULER_VORTEX); CHKERRQ(ierr);
-
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection",
-                              NS_ADVECTION); CHKERRQ(ierr);
-
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d",
-                              NS_ADVECTION2D); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
 

@@ -310,3 +310,8 @@ PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
   }
   PetscFunctionReturn(0);
 }
+
+// Problem Register
+PetscErrorCode ProblemRegister_Advection(AppCtx app_ctx) {
+  return PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION);
+}

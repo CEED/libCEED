@@ -1,0 +1,4 @@
+MACRO(ProblemRegister_DensityCurrent)
+MACRO(ProblemRegister_EulerVortex)
+MACRO(ProblemRegister_Advection)
+MACRO(ProblemRegister_Advection2D)

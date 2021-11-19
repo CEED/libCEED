@@ -17,6 +17,8 @@
 COMMON ?= ../../common.mk
 -include $(COMMON)
 
+# Note: PETSC_ARCH can be undefined or empty for installations which do not use
+#       PETSC_ARCH - for example when using PETSc installed through Spack.
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
@@ -36,7 +38,16 @@ OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
-src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
+src.c := navierstokes.c $(filter-out $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c))) $(sort $(wildcard $(SRCDIR)/*.c))
+
+# Enzyme-AD
+ENZYME_LIB ?=
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops -mllvm -enzyme-print
+ifneq ($(ENZYME_LIB),)
+	CFLAGS += $(ENZYMEFLAGS)
+	src.c += $(filter $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c)))
+endif
+
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: navierstokes

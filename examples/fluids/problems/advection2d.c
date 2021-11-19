@@ -262,3 +262,8 @@ PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
   }
   PetscFunctionReturn(0);
 }
+
+// Problem Register
+PetscErrorCode ProblemRegister_Advection2D(AppCtx app_ctx) {
+  return PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D);
+}
