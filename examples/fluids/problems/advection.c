@@ -199,18 +199,15 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   setup_context->time = 0;
 
   // -- QFunction Context
-  user->phys->stab                         = stab;
   user->phys->wind_type                    = wind_type;
   user->phys->bubble_type                  = bubble_type;
   user->phys->bubble_continuity_type       = bubble_continuity_type;
-  //  if passed correctly
-  user->phys->implicit                     = implicit;
   user->phys->has_curr_time                = has_curr_time;
   user->phys->advection_ctx->CtauS         = CtauS;
   user->phys->advection_ctx->E_wind        = E_wind;
-  user->phys->advection_ctx->implicit      = implicit;
   user->phys->advection_ctx->strong_form   = strong_form;
-  user->phys->advection_ctx->stabilization = stab;
+  user->phys->advection_ctx->stabilization = user->phys->stab = stab;
+  user->phys->advection_ctx->implicit      = user->phys->implicit = implicit;
 
   PetscFunctionReturn(0);
 }

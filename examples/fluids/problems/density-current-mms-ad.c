@@ -15,46 +15,48 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Utility functions for setting up DENSITY_CURRENT
+/// Utility functions for setting up DENSITY_CURRENT_MMS
 
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/densitycurrent.h"
+#include "../qfunctions/density-current-mms-ad.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
-                                  void *ctx) {
+PetscErrorCode NS_DENSITY_CURRENT_MMS(ProblemData *problem, void *setup_ctx,
+                                      void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
-  PetscBool         has_curr_time = PETSC_FALSE;
+  PetscBool         has_curr_time = PETSC_TRUE;
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
   ierr = PetscCalloc1(1, &user->phys->dc_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
-  //               SET UP DENSITY_CURRENT
+  //               SET UP DENSITY_CURRENT_MMS
   // ------------------------------------------------------
   problem->dim                     = 3;
   problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
   problem->setup_vol               = Setup;
   problem->setup_vol_loc           = Setup_loc;
   problem->setup_sur               = SetupBoundary;
   problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsDC;
-  problem->ics_loc                 = ICsDC_loc;
+  problem->ics                     = ICsDC_MMS;
+  problem->ics_loc                 = ICsDC_MMS_loc;
   problem->apply_vol_rhs           = DC;
   problem->apply_vol_rhs_loc       = DC_loc;
   problem->apply_vol_ifunction     = IFunction_DC;
   problem->apply_vol_ifunction_loc = IFunction_DC_loc;
-  problem->bc                      = Exact_DC;
-  problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
-  problem->bc_func                 = BC_DENSITY_CURRENT;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_DENSITY_CURRENT;
+  problem->mms                     = DC_MMS;
+  problem->mms_loc                 = DC_MMS_loc;
+  problem->bc                      = Exact_DC_MMS;
+  problem->setup_ctx               = SetupContext_DENSITY_CURRENT_MMS;
+  problem->bc_func                 = BC_DENSITY_CURRENT_MMS;
+  problem->non_zero_time           = PETSC_TRUE;
+  problem->print_info              = PRINT_DENSITY_CURRENT_MMS;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -89,7 +91,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT_MMS problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
@@ -238,35 +240,37 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->cp        = cp;
   user->phys->dc_ctx->g         = g;
   user->phys->dc_ctx->Rd        = Rd;
-  user->phys->dc_ctx->curr_time = user->phys->curr_time =
-                                    0.; // TODO: Do we need this?
+  user->phys->dc_ctx->curr_time = user->phys->curr_time = 0.;
   user->phys->dc_ctx->implicit  = user->phys->implicit  = implicit;
   user->phys->dc_ctx->stabilization = user->phys->stab = stab;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
+PetscErrorCode SetupContext_DENSITY_CURRENT_MMS(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
   CeedQFunctionContextCreate(ceed, &ceed_data->dc_context);
   CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*phys->dc_ctx), phys->dc_ctx);
-  if (ceed_data->qf_rhs_vol)
+  // Initial Conditions
+  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->dc_context);
+  // Solver
+  if (ceed_data->qf_rhs_vol) // Explicit time-stepping
     CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
-  if (ceed_data->qf_ifunction_vol)
+  if (ceed_data->qf_ifunction_vol) // Implicit time-stepping
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->dc_context);
+  // MMS Force
+  CeedQFunctionSetContext(ceed_data->qf_mms, ceed_data->dc_context);
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-                                  void *setup_ctx) {
+PetscErrorCode BC_DENSITY_CURRENT_MMS(DM dm, SimpleBC bc, Physics phys,
+                                      void *setup_ctx) {
 
   PetscInt       len;
   PetscBool      flg;
@@ -285,7 +289,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
   bc->slips[2][1] = 2;
 
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
+  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT_MMS BCs ",
                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsIntArray("-bc_wall",
                               "Use wall boundary conditions on this list of faces",
@@ -360,8 +364,8 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
-                                     AppCtx app_ctx) {
+PetscErrorCode PRINT_DENSITY_CURRENT_MMS(Physics phys, SetupContext setup_ctx,
+    AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
@@ -369,15 +373,18 @@ PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
   ierr = PetscPrintf(comm,
                      "  Problem:\n"
                      "    Problem Name                       : %s\n"
-                     "    Stabilization                      : %s\n",
-                     app_ctx->problem_name, StabilizationTypes[phys->stab]);
+                     "    Stabilization                      : %s\n"
+                     "    Forcing                            : %s\n",
+                     app_ctx->problem_name,
+                     StabilizationTypes[phys->stab],
+                     "MMS");
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 // Problem Register
-PetscErrorCode ProblemRegister_DensityCurrent(AppCtx app_ctx) {
-  return PetscFunctionListAdd(&app_ctx->problems, "density_current",
-                              NS_DENSITY_CURRENT);
+PetscErrorCode ProblemRegister_DensityCurrentMMS(AppCtx app_ctx) {
+  return PetscFunctionListAdd(&app_ctx->problems, "density_current_mms",
+                              NS_DENSITY_CURRENT_MMS);
 }

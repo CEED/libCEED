@@ -42,7 +42,7 @@ src.c := navierstokes.c $(filter-out $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(P
 
 # Enzyme-AD
 ENZYME_LIB ?=
-ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops -mllvm -enzyme-print
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -fno-unroll-loops # -mllvm -enzyme-print
 ifneq ($(ENZYME_LIB),)
 	CFLAGS += $(ENZYMEFLAGS)
 	src.c += $(filter $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c)))

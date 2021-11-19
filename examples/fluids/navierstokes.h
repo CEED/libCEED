@@ -151,7 +151,7 @@ struct CeedData_private {
   CeedQFunctionContext setup_context, dc_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur, qf_apply_sur;
+                       qf_setup_sur, qf_apply_sur, qf_mms;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur,
                        basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
@@ -233,6 +233,8 @@ struct DCContext_ {
   CeedScalar cp;
   CeedScalar g;
   CeedScalar Rd;
+  CeedScalar curr_time;
+  bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -274,9 +276,10 @@ struct Physics_private {
   BubbleContinuityType bubble_continuity_type;
   EulerTestType        euler_test;
   StabilizationType    stab;
+  CeedScalar           curr_time;
   PetscBool            implicit;
-  PetscBool            has_curr_time;
   PetscBool            has_neumann;
+  PetscBool            has_curr_time;
 };
 
 // Problem specific data
@@ -284,9 +287,9 @@ struct Physics_private {
 typedef struct {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
   CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_sur;
-  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
+                    apply_sur, mms;
+  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc, *apply_vol_rhs_loc,
+                    *apply_vol_ifunction_loc, *apply_sur_loc, *mms_loc;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
@@ -302,52 +305,48 @@ typedef struct {
 // Set up function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
     void *ctx);
-
+extern PetscErrorCode NS_DENSITY_CURRENT_MMS(ProblemData *problem,
+    void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
                                       void *ctx);
-
 extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
                                    void *ctx);
-
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
                                      void *ctx);
 
 // Set up context for each problem
 extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
     CeedData ceed_data, AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
+extern PetscErrorCode SetupContext_DENSITY_CURRENT_MMS(Ceed ceed,
+    CeedData ceed_data, AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 extern PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
 extern PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
 extern PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 
 // Boundary condition function for each problem
 extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     void *setup_ctx);
-
+extern PetscErrorCode BC_DENSITY_CURRENT_MMS(DM dm, SimpleBC bc, Physics phys,
+    void *setup_ctx);
 extern PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
                                       void *setup_ctx);
-
 extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
                                    void *setup_ctx);
-
 extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
                                      void *setup_ctx);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys,
     SetupContext setup_ctx, AppCtx app_ctx);
-
+extern PetscErrorCode PRINT_DENSITY_CURRENT_MMS(Physics phys,
+    SetupContext setup_ctx, AppCtx app_ctx);
 extern PetscErrorCode PRINT_EULER_VORTEX(Physics phys, SetupContext setup_ctx,
     AppCtx app_ctx);
-
 extern PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
                                       AppCtx app_ctx);
-
 extern PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
                                         AppCtx app_ctx);
 
@@ -376,6 +375,11 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator op_apply_vol, CeedInt height,
                                        CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedOperator *op_apply);
+
+// Utility function to create CEED Composite Operator for Method of Manufactured Solutions
+PetscErrorCode CreateOperatorForMMS(Ceed ceed, DM dm, CeedData ceed_data,
+                                    ProblemData *problem, CeedInt num_comp_q, CeedOperator op_apply_vol,
+                                    CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc);

@@ -67,6 +67,8 @@ struct DCContext_ {
   CeedScalar cp;
   CeedScalar g;
   CeedScalar Rd;
+  CeedScalar curr_time;
+  bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -162,7 +164,7 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
 
   const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
-  // Initial Conditions
+  // Exact solutions
   q[0] = rho;
   q[1] = 0.0;
   q[2] = 0.0;
@@ -190,9 +192,8 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     CeedScalar q[5];
 
     Exact_DC(3, 0., x, 5, q, ctx);
-
-    for (CeedInt j=0; j<5; j++)
-      q0[j][i] = q[j];
+    // Initial Conditions
+    for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
   // Return
@@ -780,6 +781,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
+
 // *****************************************************************************
 
 #endif // densitycurrent_h

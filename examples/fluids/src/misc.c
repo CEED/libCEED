@@ -203,7 +203,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
   PetscFunctionBegin;
 
   // Print relative error
-  if (problem->non_zero_time && !app_ctx->test_mode) {
+  if ((problem->non_zero_time || problem->mms) && !app_ctx->test_mode) {
     ierr = GetError_NS(ceed_data, dm, app_ctx, Q, final_time); CHKERRQ(ierr);
   }
 

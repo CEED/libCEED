@@ -98,8 +98,8 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Update EulerContext
-  if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
+  // Update time
+  if (user->phys->has_curr_time) user->phys->curr_time = t;
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
@@ -155,8 +155,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
-  // Update EulerContext
-  if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
+  // Update time
+  if (user->phys->has_curr_time) user->phys->curr_time = t;
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);

@@ -147,16 +147,14 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   setup_context->center[0] = center[0];
   setup_context->center[1] = center[1];
   setup_context->center[2] = center[2];
-  setup_context->time      = 0;
+  setup_context->time      = 0.;
 
   // -- QFunction Context
-  user->phys->euler_test                  = euler_test;
-  user->phys->implicit                    = implicit;
-  user->phys->has_curr_time               = has_curr_time;
   user->phys->has_neumann                 = has_neumann;
-  user->phys->euler_ctx->curr_time        = 0.;
-  user->phys->euler_ctx->implicit         = implicit;
-  user->phys->euler_ctx->euler_test       = euler_test;
+  user->phys->has_curr_time               = has_curr_time;
+  user->phys->euler_ctx->curr_time        = user->phys->curr_time = 0.;
+  user->phys->euler_ctx->implicit         = user->phys->implicit = implicit;
+  user->phys->euler_ctx->euler_test       = user->phys->euler_test = euler_test;
   user->phys->euler_ctx->center[0]        = center[0];
   user->phys->euler_ctx->center[1]        = center[1];
   user->phys->euler_ctx->center[2]        = center[2];
@@ -171,18 +169,18 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
 PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
+  // Set up context for ICs and BCs
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*setup_ctx), setup_ctx);
+                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
+  // Set up context for Surface
   CeedQFunctionContextCreate(ceed, &ceed_data->euler_context);
   CeedQFunctionContextSetData(ceed_data->euler_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*phys->euler_ctx), phys->euler_ctx);
-  if (ceed_data->qf_ics)
+                              CEED_USE_POINTER, sizeof(*phys->euler_ctx), phys->euler_ctx);
+  // Set context
+  if (ceed_data->qf_ics) // ICs and BCs
     CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->euler_context);
-  if (ceed_data->qf_apply_sur)
+  if (ceed_data->qf_apply_sur) // Surface
     CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->euler_context);
 
   PetscFunctionReturn(0);

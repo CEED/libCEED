@@ -276,6 +276,47 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   PetscFunctionReturn(0);
 }
 
+// Utility function to create CEED Composite Operator for Method of Manufactured Solutions
+PetscErrorCode CreateOperatorForMMS(Ceed ceed, DM dm, CeedData ceed_data,
+                                    ProblemData *problem, CeedInt num_comp_q, CeedOperator op_apply_vol,
+                                    CeedOperator *op_apply) {
+  const CeedInt num_comp_x      = problem->dim,
+                q_data_size     = problem->q_data_size_vol;
+  CeedOperator  op_mms;
+  PetscFunctionBeginUser;
+
+  // Create Composite Operaters
+  CeedCompositeOperatorCreate(ceed, op_apply);
+
+  // --Apply Sub-Operator for solver
+  CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
+
+  // -- Create Sub-Operator for MMS
+  CeedQFunctionCreateInterior(ceed, 1, problem->mms, problem->mms_loc,
+                              &ceed_data->qf_mms);
+  CeedQFunctionAddInput(ceed_data->qf_mms, "q_data", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(ceed_data->qf_mms, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(ceed_data->qf_mms, "force", num_comp_q,
+                         CEED_EVAL_INTERP);
+
+  // ----- CEED Operator for MMS
+  CeedOperatorCreate(ceed, ceed_data->qf_mms, NULL, NULL, &op_mms);
+  CeedOperatorSetField(op_mms, "q_data", ceed_data->elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_mms, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
+                       ceed_data->x_coord);
+  CeedOperatorSetField(op_mms, "force", ceed_data->elem_restr_q,
+                       ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+
+  // ----- Apply Sub-Operator for MMS
+  CeedCompositeOperatorAddSub(*op_apply, op_mms);
+
+  // ----- Cleanup
+  CeedOperatorDestroy(&op_mms);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscErrorCode ierr;
@@ -450,8 +491,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedOperatorSetField(op, "q_dot", ceed_data->elem_restr_q, ceed_data->basis_q,
                          user->q_dot_ceed);
     CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
-                         CEED_BASIS_COLLOCATED,
-                         ceed_data->q_data);
+                         CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -524,6 +564,17 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
                                    user->op_ifunction_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
+  }
+
+  // -- Apply CEED Operator for MMS
+  if (problem->mms) {
+    if (!user->phys->implicit) { // RHS
+      ierr = CreateOperatorForMMS(ceed, dm, ceed_data, problem, num_comp_q,
+                                  user->op_rhs_vol, &user->op_rhs); CHKERRQ(ierr);
+    } else { // IFunction
+      ierr = CreateOperatorForMMS(ceed, dm, ceed_data, problem, num_comp_q,
+                                  user->op_ifunction_vol, &user->op_ifunction); CHKERRQ(ierr);
+    }
   }
 
   PetscFunctionReturn(0);
