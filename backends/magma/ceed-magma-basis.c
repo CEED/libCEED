@@ -54,7 +54,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
 
-  CeedDebug("\033[01m[CeedBasisApply_Magma] vsize=%d, comp = %d",
+  CeedDebug(ceed, "\033[01m[CeedBasisApply_Magma] vsize=%d, comp = %d",
             ncomp*CeedIntPow(P1d, dim), ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
@@ -242,7 +242,7 @@ int CeedBasisApplyNonTensor_f64_Magma(CeedBasis basis, CeedInt nelem,
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  CeedDebug("\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
+  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
             ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
@@ -367,7 +367,7 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem,
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  CeedDebug("\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
+  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
             ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {

@@ -1385,7 +1385,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug(code.str().c_str());
+  CeedDebug(ceed, code.str().c_str());
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));

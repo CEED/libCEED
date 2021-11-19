@@ -14,8 +14,10 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed-impl.h>
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
 #include <ceed/cuda.h>
+#include <ceed-impl.h>
 
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points
@@ -32,7 +34,7 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
   if (!qf->SetCUDAUserFunction) {
     Ceed ceed;
     ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-    CeedDebug("Backend does not support CUfunction pointers for QFunctions.");
+    CeedDebug(ceed, "Backend does not support CUfunction pointers for QFunctions.");
   } else {
     ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
   }
