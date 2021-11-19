@@ -689,14 +689,11 @@ tidy : tidy_c tidy_cpp
 
 ifneq ($(wildcard ../iwyu/*),)
   IWYU_DIR ?= ../iwyu
+  IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
 endif
-ifneq ($(IWYU_DIR),)
-  IWYU_CC = $(IWYU_DIR)/build/bin/include-what-you-use
 
-  iwyu_cc :
-    CC = $(IWYU_CC)
-  iwyu : lib | iwyu_cc
-endif
+iwyu : CC=$(IWYU_CC)
+iwyu : lib
 
 print :
 	@echo $(VAR)=$($(VAR))

@@ -37,7 +37,7 @@ Header inclusion for source files should follow the principal of 'include what y
 Every symbol that is used in the source file `foo.c` should be defined in `foo.c`, `foo.h`, or in a header file `#include`d in one of these two locations.
 Please check your code by running the tool [`include-what-you-use`](https://include-what-you-use.org/) to see recommendations for changes to your source.
 Most issues reported by `include-what-you-use` should be fixed; however this rule is flexible to account for differences in header file organization in external libraries.
-If you have `include-what-you-use` installed in a sibling directory to libCEED, then you can use the makefile target `make iwyu`.
+If you have `include-what-you-use` installed in a sibling directory to libCEED or set the environment variable `IWYU_CC`, then you can use the makefile target `make iwyu`.
 
 Header files should be listed in alphabetical order, with installed headers preceding local headers and `ceed` headers being listed first.
 The `ceed-f64.h` and `ceed-f32.h` headers should only be included in `ceed.h`.
