@@ -12,11 +12,6 @@
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateBCLabel(DM dm, const char name[]);
 
-// Create FE by degree
-PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
-                                     PetscBool is_simplex, const char prefix[],
-                                     PetscInt order, PetscFE *fem);
-
 // Read mesh and distribute DM in parallel
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm);
 

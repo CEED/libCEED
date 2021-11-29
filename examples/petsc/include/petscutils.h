@@ -7,9 +7,6 @@
 #include <petscfe.h>
 
 CeedMemType MemTypeP2C(PetscMemType mtype);
-PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
-                                     PetscBool isSimplex, const char prefix[],
-                                     PetscInt order, PetscFE *fem);
 PetscErrorCode ProjectToUnitSphere(DM dm);
 PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps);
 typedef PetscErrorCode (*BCFunction)(PetscInt dim, PetscReal time,
