@@ -322,11 +322,11 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // -- Grad-to-Grad q_data
     // dU/dx
-    CeedScalar du[3][3] = {{0}};
-    CeedScalar drhodx[3] = {0};
-    CeedScalar dEdx[3] = {0};
-    CeedScalar dUdx[3][3] = {{0}};
-    CeedScalar dXdxdXdxT[3][3] = {{0}};
+    CeedScalar du[3][3] = {{0.}};
+    CeedScalar drhodx[3] = {0.};
+    CeedScalar dEdx[3] = {0.};
+    CeedScalar dUdx[3][3] = {{0.}};
+    CeedScalar dXdxdXdxT[3][3] = {{0.}};
     for (int j=0; j<3; j++) {
       for (int k=0; k<3; k++) {
         du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
@@ -338,7 +338,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
         }
       }
     }
-    CeedScalar dudx[3][3] = {{0}};
+    CeedScalar dudx[3][3] = {{0.}};
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         for (int l=0; l<3; l++)
@@ -377,17 +377,17 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     // P = pressure
     const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {{{0}}};
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
     for (int j=0; j<3; j++) {
       jacob_F_conv[j][4][0]       = u[j] * (2*Rd*ke/cv - E*gamma);
       jacob_F_conv[j][4][4]       = u[j] * gamma;
       for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
-        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0);
-        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0);
-        jacob_F_conv[j][0][k+1]   = (j==k?1:0);
-        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
-        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
+        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0.);
+        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0.);
+        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0.);
+        jacob_F_conv[j][0][k+1]   = (j==k?1:0.);
+        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0.) - Rd/cv);
+        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0.);
       }
     }
     jacob_F_conv[0][2][1] = u[1];
@@ -414,20 +414,20 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     }
 
     // strong_conv = dF/dq * dq/dx    (Strong convection)
-    CeedScalar strong_conv[5] = {0};
+    CeedScalar strong_conv[5] = {0.};
     for (int j=0; j<3; j++)
       for (int k=0; k<5; k++)
         for (int l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, 0, 0, -rho*g, 0};
+    const CeedScalar body_force[5] = {0., 0., 0., -rho*g, 0.};
 
     // The Physics
     // Zero dv so all future terms can safely sum into it
     for (int j=0; j<5; j++)
       for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+        dv[k][j][i] = 0.;
 
     // -- Density
     // ---- u rho
@@ -585,11 +585,11 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     // -- Grad-to-Grad q_data
     // dU/dx
-    CeedScalar du[3][3] = {{0}};
-    CeedScalar drhodx[3] = {0};
-    CeedScalar dEdx[3] = {0};
-    CeedScalar dUdx[3][3] = {{0}};
-    CeedScalar dXdxdXdxT[3][3] = {{0}};
+    CeedScalar du[3][3] = {{0.}};
+    CeedScalar drhodx[3] = {0.};
+    CeedScalar dEdx[3] = {0.};
+    CeedScalar dUdx[3][3] = {{0.}};
+    CeedScalar dXdxdXdxT[3][3] = {{0.}};
     for (int j=0; j<3; j++) {
       for (int k=0; k<3; k++) {
         du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
@@ -601,7 +601,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
         }
       }
     }
-    CeedScalar dudx[3][3] = {{0}};
+    CeedScalar dudx[3][3] = {{0.}};
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
         for (int l=0; l<3; l++)
@@ -641,17 +641,17 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {{{0}}};
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
     for (int j=0; j<3; j++) {
       jacob_F_conv[j][4][0]       = u[j] * (2*Rd*ke/cv - E*gamma);
       jacob_F_conv[j][4][4]       = u[j] * gamma;
       for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
-        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0);
-        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0);
-        jacob_F_conv[j][0][k+1]   = (j==k?1:0);
-        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
-        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
+        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0.);
+        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0.);
+        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0.);
+        jacob_F_conv[j][0][k+1]   = (j==k?1:0.);
+        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0.) - Rd/cv);
+        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0.);
       }
     }
     jacob_F_conv[0][2][1] = u[1];
@@ -676,14 +676,14 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
         dqdx[k+1][j] = dUdx[k][j];
     }
     // strong_conv = dF/dq * dq/dx    (Strong convection)
-    CeedScalar strong_conv[5] = {0};
+    CeedScalar strong_conv[5] = {0.};
     for (int j=0; j<3; j++)
       for (int k=0; k<5; k++)
         for (int l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, 0, 0, -rho*g, 0};
+    const CeedScalar body_force[5] = {0., 0., 0., -rho*g, 0.};
 
     // Strong residual
     CeedScalar strong_res[5];

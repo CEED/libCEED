@@ -139,15 +139,15 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
     q[0] = 1.;
     q[1] = -(y - center[1]);
     q[2] =  (x - center[0]);
-    q[3] = 0;
-    q[4] = 0;
+    q[3] = 0.;
+    q[4] = 0.;
     break;
   case 1:    // Translation
     q[0] = 1.;
     q[1] = wind[0];
     q[2] = wind[1];
-    q[3] = 0;
-    q[4] = 0;
+    q[3] = 0.;
+    q[4] = 0.;
     break;
   default:
     return 1;
@@ -159,10 +159,10 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
   if (0) { // non-smooth initial conditions
     if (q[4] < E) q[4] = E;
     r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
-    if (r <= rc) q[4] = 1;
+    if (r <= rc) q[4] = 1.;
   }
   r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
-  E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
+  E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0.;
   if (q[4] < E) q[4] = E;
 
   return 0;
@@ -266,17 +266,16 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
 
     // No Change in density or momentum
     for (CeedInt f=0; f<4; f++) {
-      for (CeedInt j=0; j<2; j++)
-        dv[j][f][i] = 0;
-      v[f][i] = 0;
+      for (CeedInt j=0; j<2; j++) dv[j][f][i] = 0;
+      v[f][i] = 0.;
     }
 
     // -- Total Energy
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
-    CeedScalar div_u = 0, u_dot_grad_E = 0;
+    CeedScalar div_u = 0., u_dot_grad_E = 0.;
     for (CeedInt j=0; j<2; j++) {
-      CeedScalar dEdx_j = 0;
+      CeedScalar dEdx_j = 0.;
       for (CeedInt k=0; k<2; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
@@ -289,7 +288,7 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<2; j++)
       dv[j][4][i] = (1 - strong_form) * wdetJ * E * (u[0]*dXdx[j][0] +
                     u[1]*dXdx[j][1]);
-    v[4][i] = 0;
+    v[4][i] = 0.;
 
     // Strong Galerkin convection term: - v div(E u)
     v[4][i] = -strong_form * wdetJ * strong_conv;
@@ -369,17 +368,16 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
     // The Physics
     // No Change in density or momentum
     for (CeedInt f=0; f<4; f++) {
-      for (CeedInt j=0; j<2; j++)
-        dv[j][f][i] = 0;
+      for (CeedInt j=0; j<2; j++) dv[j][f][i] = 0.;
       v[f][i] = wdetJ * q_dot[f][i];
     }
 
     // -- Total Energy
     // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
     // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
-    CeedScalar div_u = 0, u_dot_grad_E = 0;
+    CeedScalar div_u = 0., u_dot_grad_E = 0.;
     for (CeedInt j=0; j<2; j++) {
-      CeedScalar dEdx_j = 0;
+      CeedScalar dEdx_j = 0.;
       for (CeedInt k=0; k<2; k++) {
         div_u += du[j][k] * dXdx[k][j]; // u_{j,j} = u_{j,K} X_{K,j}
         dEdx_j += dE[k] * dXdx[k][j];
@@ -473,18 +471,14 @@ CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
                                     };
     // Normal velocity
     const CeedScalar u_normal = norm[0]*u[0] + norm[1]*u[1];
-
     // No Change in density or momentum
-    for (CeedInt j=0; j<4; j++) {
-      v[j][i] = 0;
-    }
-
+    for (CeedInt j=0; j<4; j++) v[j][i] = 0.;
     // Implementing in/outflow BCs
-    if (u_normal > 0) { // outflow
+    if (u_normal > 0) // outflow
       v[4][i] = -(1 - strong_form) * wdetJb * E * u_normal;
-    } else { // inflow
+    else  // inflow
       v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_normal;
-    }
+
   } // End Quadrature Point Loop
   return 0;
 }

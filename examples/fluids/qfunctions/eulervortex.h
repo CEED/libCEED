@@ -286,9 +286,8 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     // The Physics
     // Zero v and dv so all future terms can safely sum into it
     for (int j=0; j<5; j++) {
-      v[j][i] = 0;
-      for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+      v[j][i] = 0.;
+      for (int k=0; k<3; k++) dv[k][j][i] = 0.;
     }
 
     // -- Density
@@ -369,9 +368,8 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     // The Physics
     // Zero v and dv so all future terms can safely sum into it
     for (int j=0; j<5; j++) {
-      v[j][i] = 0;
-      for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+      v[j][i] = 0.;
+      for (int k=0; k<3; k++) dv[k][j][i] = 0.;
     }
     //-----mass matrix
     for (int j=0; j<5; j++)
@@ -475,7 +473,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
                                    norm[2]*mean_velocity[2];
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0;
+    for (int j=0; j<5; j++) v[j][i] = 0.;
 
     // Implementing in/outflow BCs
     if (face_normal > 0) { // outflow

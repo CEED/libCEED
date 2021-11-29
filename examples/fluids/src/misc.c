@@ -112,13 +112,13 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {
 
-  Vec            Qbc;
+  Vec            Q_bc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-  ierr = VecAXPY(Q_loc, 1., Qbc); CHKERRQ(ierr);
-  ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
+  ierr = DMGetNamedLocalVector(dm, "Q_bc", &Q_bc); CHKERRQ(ierr);
+  ierr = VecAXPY(Q_loc, 1., Q_bc); CHKERRQ(ierr);
+  ierr = DMRestoreNamedLocalVector(dm, "Q_bc", &Q_bc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -252,16 +252,16 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
 
-  Vec            Qbc;
+  Vec            Q_bc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-  ierr = VecCopy(Q_loc, Qbc); CHKERRQ(ierr);
+  ierr = DMGetNamedLocalVector(dm, "Q_bc", &Q_bc); CHKERRQ(ierr);
+  ierr = VecCopy(Q_loc, Q_bc); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = VecAXPY(Qbc, -1., Q_loc); CHKERRQ(ierr);
-  ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
+  ierr = VecAXPY(Q_bc, -1., Q_loc); CHKERRQ(ierr);
+  ierr = DMRestoreNamedLocalVector(dm, "Q_bc", &Q_bc); CHKERRQ(ierr);
   ierr = PetscObjectComposeFunction((PetscObject)dm,
                                     "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
   CHKERRQ(ierr);
