@@ -82,17 +82,6 @@ struct AppCtx_ {
   PetscReal     expect_final_strain;
 };
 
-// Problem specific data
-// *INDENT-OFF*
-typedef struct {
-  CeedInt           geo_data_size;
-  CeedQFunctionUser setup_geo, apply, jacob, energy, diagnostic;
-  const char        *setup_geo_loc, *apply_loc, *jacob_loc, *energy_loc,
-                    *diagnostic_loc;
-  CeedQuadMode      quad_mode;
-} problemData;
-// *INDENT-ON*
-
 // Forcing function data
 typedef struct {
   CeedQFunctionUser setup_forcing;
