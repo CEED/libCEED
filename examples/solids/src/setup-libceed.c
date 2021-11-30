@@ -458,13 +458,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     if (forcing_choice == FORCE_MMS) {
       CeedQFunctionSetContext(qf_setup_force, phys_ctx);
     } else {
-      CeedQFunctionContext ctxForcing;
-      CeedQFunctionContextCreate(ceed, &ctxForcing);
-      CeedQFunctionContextSetData(ctxForcing, CEED_MEM_HOST, CEED_USE_POINTER,
+      CeedQFunctionContext forcing_ctx;
+      CeedQFunctionContextCreate(ceed, &forcing_ctx);
+      CeedQFunctionContextSetData(forcing_ctx, CEED_MEM_HOST, CEED_USE_POINTER,
                                   sizeof(*app_ctx->forcing_vector),
                                   app_ctx->forcing_vector);
-      CeedQFunctionSetContext(qf_setup_force, ctxForcing);
-      CeedQFunctionContextDestroy(&ctxForcing);
+      CeedQFunctionSetContext(qf_setup_force, forcing_ctx);
+      CeedQFunctionContextDestroy(&forcing_ctx);
     }
     // -- Operator
     CeedOperatorCreate(ceed, qf_setup_force, CEED_QFUNCTION_NONE,
