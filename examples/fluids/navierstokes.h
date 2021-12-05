@@ -268,6 +268,20 @@ struct ShockTubeContext_ {
 };
 #endif
 
+// SHOCKTUBE
+#ifndef shocktube_context_struct
+#define shocktube_context_struct
+typedef struct ShockTubeContext_ *ShockTubeContext;
+struct ShockTubeContext_ {
+  CeedScalar cv;
+  CeedScalar Cyzb;
+  CeedScalar Byzb;
+  bool implicit;
+  bool yzb;
+  int stabilization;
+};
+#endif
+
 // ADVECTION and ADVECTION2D
 #ifndef advection_context_struct
 #define advection_context_struct
