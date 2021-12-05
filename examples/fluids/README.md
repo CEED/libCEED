@@ -392,6 +392,58 @@ This problem can be run with:
 ./navierstokes -problem shocktube -dm_plex_box_faces 200,1,1 -yzb -stab su
 ```
 
+For the Shock Tube problem, the following additional command-line options are available:
+
+:::{list-table} Shock Tube Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-lx`
+  - Length scale in x direction
+  - `1000`
+  - `m`
+
+* - `-ly`
+  - Length scale in y direction
+  - `100`
+  - `m`
+
+* - `-lz`
+  - Length scale in z direction
+  - `100`
+  - `m`
+
+* - `-units_meter`
+  - 1 meter in scaled length units
+  - `1E-2`
+  -
+
+* - `-units_second`
+  - 1 second in scaled time units
+  - `1E-2`
+  -
+
+* - `-yzb`
+  - Use YZB discontinuity capturing
+  - `none`
+  -
+
+* - `-stab`
+  - Stabilization method (`none`, `su`, or `supg`)
+  - `none`
+  -
+:::
+
+This problem can be run with:
+
+```
+./navierstokes -problem shocktube -dm_plex_box_faces 200,1,1 -yzb -stab su
+```
+
 For the Density Current problem, the following additional command-line options are available:
 
 :::{list-table} Shock Tube Runtime Options
