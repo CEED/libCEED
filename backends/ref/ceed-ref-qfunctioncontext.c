@@ -23,7 +23,7 @@
 // QFunctionContext Set Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *data) {
+    CeedMemType mem_type, CeedCopyMode copy_mode, void *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
@@ -62,7 +62,7 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 // QFunctionContext Take Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mem_type, CeedScalar *data) {
+    CeedMemType mem_type, void *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
@@ -92,7 +92,7 @@ static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx,
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
-    CeedMemType mem_type, CeedScalar *data) {
+    CeedMemType mem_type, void *data) {
   int ierr;
   CeedQFunctionContext_Ref *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);

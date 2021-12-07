@@ -33,6 +33,21 @@ static inline size_t bytes(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
+// Set host array to value
+//------------------------------------------------------------------------------
+static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedInt length,
+                                CeedScalar val) {
+  for (int i = 0; i < length; i++)
+    h_array[i] = val;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set device array to value (impl in .hip file)
+//------------------------------------------------------------------------------
+int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedInt length, CeedScalar val);
+
+//------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
@@ -42,8 +57,24 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  ierr = hipMemcpy(data->d_array, data->h_array, bytes(vec),
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  if (data->d_array_borrowed) {
+    data->d_array = data->d_array_borrowed;
+  } else if (data->d_array_owned) {
+    data->d_array = data->d_array_owned;
+  } else {
+    ierr = hipMalloc((void **)&data->d_array_owned, bytes(vec));
+    CeedChk_Hip(ceed, ierr);
+    data->d_array = data->d_array_owned;
+  }
+
+  if (data->h_array) {
+    ierr = hipMemcpy(data->d_array, data->h_array, bytes(vec),
+                     hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  } else {
+    CeedInt length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    ierr = CeedDeviceSetValue_Hip(data->d_array, length, 0.0); CeedChkBackend(ierr);
+  }
 
   return CEED_ERROR_SUCCESS;
 }
@@ -58,8 +89,39 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  ierr = hipMemcpy(data->h_array, data->d_array, bytes(vec),
-                   hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+  if (data->h_array_borrowed) {
+    data->h_array = data->h_array_borrowed;
+  } else if (data->h_array_owned) {
+    data->h_array = data->h_array_owned;
+  } else {
+    CeedInt length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    ierr = CeedMalloc(length, &data->h_array_owned); CeedChkBackend(ierr);
+    data->h_array = data->h_array_owned;
+  }
+
+  if (data->d_array) {
+    ierr = hipMemcpy(data->h_array, data->d_array, bytes(vec),
+                     hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+  } else {
+    CeedInt length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    ierr = CeedHostSetValue_Hip(data->h_array, length, 0.0); CeedChkBackend(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set all pointers as stale
+//------------------------------------------------------------------------------
+static inline int CeedVectorSetAllStale_Hip(const CeedVector vec) {
+  int ierr;
+  CeedVector_Hip *data;
+  ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
+
+  data->h_array = NULL;
+  data->d_array = NULL;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -73,7 +135,6 @@ static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  data->d_array = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES: {
     CeedInt length;
@@ -113,7 +174,6 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  data->h_array = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES:
     if (!data->d_array_owned) {
@@ -156,6 +216,7 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mtype,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
+  ierr = CeedVectorSetAllStale_Hip(vec); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     return CeedVectorSetArrayHost_Hip(vec, cmode, array);
@@ -215,21 +276,6 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
 }
 
 //------------------------------------------------------------------------------
-// Set host array to value
-//------------------------------------------------------------------------------
-static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedInt length,
-                                CeedScalar val) {
-  for (int i = 0; i < length; i++)
-    h_array[i] = val;
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Set device array to value (impl in .hip file)
-//------------------------------------------------------------------------------
-int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedInt length, CeedScalar val);
-
-//------------------------------------------------------------------------------
 // Set a vector to a value,
 //------------------------------------------------------------------------------
 static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
@@ -245,16 +291,15 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   if (!data->d_array && !data->h_array) {
     if (data->d_array_borrowed) {
       data->d_array = data->d_array_borrowed;
-    } else if (data->d_array_owned) {
-      data->d_array = data->d_array_owned;
     } else if (data->h_array_borrowed) {
       data->h_array = data->h_array_borrowed;
+    } else if (data->d_array_owned) {
+      data->d_array = data->d_array_owned;
     } else if (data->h_array_owned) {
       data->h_array = data->h_array_owned;
     } else {
-      ierr = hipMalloc((void **)&data->d_array_owned, bytes(vec));
-      CeedChk_Hip(ceed, ierr);
-      data->d_array = data->d_array_owned;
+      ierr = CeedVectorSetArray(vec, CEED_MEM_DEVICE, CEED_COPY_VALUES, NULL);
+      CeedChkBackend(ierr);
     }
   }
   if (data->d_array) {
@@ -284,36 +329,13 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
   switch (mtype) {
   case CEED_MEM_HOST:
     if (!data->h_array) {
-      if (data->h_array_borrowed) {
-        data->h_array = data->h_array_borrowed;
-      } else if (data->h_array_owned) {
-        data->h_array = data->h_array_owned;
-      } else {
-        CeedInt length;
-        ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-        ierr = CeedMalloc(length, &data->h_array_owned); CeedChkBackend(ierr);
-        data->h_array = data->h_array_owned;
-      }
-      if (data->d_array) {
-        ierr = CeedVectorSyncD2H_Hip(vec); CeedChkBackend(ierr);
-      }
+      ierr = CeedVectorSyncD2H_Hip(vec); CeedChkBackend(ierr);
     }
     *array = data->h_array;
     break;
   case CEED_MEM_DEVICE:
     if (!data->d_array) {
-      if (data->d_array_borrowed) {
-        data->d_array = data->d_array_borrowed;
-      } else if (data->d_array_owned) {
-        data->d_array = data->d_array_owned;
-      } else {
-        ierr = hipMalloc((void **)&data->d_array_owned, bytes(vec));
-        CeedChk_Hip(ceed, ierr);
-        data->d_array = data->d_array_owned;
-      }
-      if (data->h_array) {
-        ierr = CeedVectorSyncH2D_Hip(vec); CeedChkBackend(ierr);
-      }
+      ierr = CeedVectorSyncH2D_Hip(vec); CeedChkBackend(ierr);
     }
     *array = data->d_array;
     break;
@@ -334,12 +356,13 @@ static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mtype,
   ierr = CeedVectorGetArrayRead_Hip(vec, mtype, (const CeedScalar **)array);
   CeedChkBackend(ierr);
 
+  ierr = CeedVectorSetAllStale_Hip(vec); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
-    data->d_array = NULL;
+    data->h_array = *array;
     break;
   case CEED_MEM_DEVICE:
-    data->h_array = NULL;
+    data->d_array = *array;
     break;
   }
 

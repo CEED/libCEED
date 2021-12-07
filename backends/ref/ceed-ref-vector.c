@@ -171,7 +171,7 @@ int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Ref); CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
+  ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
   ierr = CeedVectorSetData(vec, impl); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;

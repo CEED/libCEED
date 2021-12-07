@@ -41,6 +41,17 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
+
+  if (impl->d_data_borrowed) {
+    impl->d_data = impl->d_data_borrowed;
+  } else if (impl->d_data_owned) {
+    impl->d_data = impl->d_data_owned;
+  } else {
+    ierr = cudaMalloc((void **)&impl->d_data_owned, bytes(ctx));
+    CeedChk_Cu(ceed, ierr);
+    impl->d_data = impl->d_data_owned;
+  }
+
   ierr = cudaMemcpy(impl->d_data, impl->h_data, bytes(ctx),
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
@@ -58,8 +69,33 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
+  if (impl->h_data_borrowed) {
+    impl->h_data = impl->h_data_borrowed;
+  } else if (impl->h_data_owned) {
+    impl->h_data = impl->h_data_owned;
+  } else {
+    ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned);
+    CeedChkBackend(ierr);
+    impl->h_data = impl->h_data_owned;
+  }
+
   ierr = cudaMemcpy(impl->h_data, impl->d_data, bytes(ctx),
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set all pointers as stale
+//------------------------------------------------------------------------------
+static inline int CeedQFunctionContextSetAllStale_Cuda(const
+    CeedQFunctionContext ctx) {
+  int ierr;
+  CeedQFunctionContext_Cuda *data;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+
+  data->h_data = NULL;
+  data->d_data = NULL;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -68,12 +104,11 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
 // Set data from host
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
-    const CeedCopyMode cmode, CeedScalar *data) {
+    const CeedCopyMode cmode, void *data) {
   int ierr;
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  impl->d_data = NULL;
   ierr = CeedFree(&impl->h_data_owned); CeedChkBackend(ierr);
   switch (cmode) {
   case CEED_COPY_VALUES: {
@@ -100,14 +135,13 @@ static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
 // Set data from device
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetDataDevice_Cuda(
-  const CeedQFunctionContext ctx, const CeedCopyMode cmode, CeedScalar *data) {
+  const CeedQFunctionContext ctx, const CeedCopyMode cmode, void *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  impl->h_data = NULL;
   ierr = cudaFree(impl->d_data_owned); CeedChk_Cu(ceed, ierr);
   switch (cmode) {
   case CEED_COPY_VALUES:
@@ -138,11 +172,12 @@ static int CeedQFunctionContextSetDataDevice_Cuda(
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx,
-    const CeedMemType mtype, const CeedCopyMode cmode, CeedScalar *data) {
+    const CeedMemType mtype, const CeedCopyMode cmode, void *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
+  ierr = CeedQFunctionContextSetAllStale_Cuda(ctx); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     return CeedQFunctionContextSetDataHost_Cuda(ctx, cmode, data);
@@ -178,8 +213,7 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
                        "No host context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
     // LCOV_EXCL_STOP
 
-    if (!impl->h_data && impl->d_data) {
-      impl->h_data = impl->h_data_borrowed;
+    if (!impl->h_data) {
       ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChkBackend(ierr);
     }
     *(void **)data = impl->h_data_borrowed;
@@ -193,8 +227,7 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
                        "No device context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
     // LCOV_EXCL_STOP
 
-    if (!impl->d_data && impl->h_data) {
-      impl->d_data = impl->d_data_borrowed;
+    if (!impl->d_data) {
       ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChkBackend(ierr);
     }
     *(void **)data = impl->d_data_borrowed;
@@ -210,7 +243,7 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
 // Get data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
-    const CeedMemType mtype, CeedScalar *data) {
+    const CeedMemType mtype, void *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
@@ -225,37 +258,26 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
   switch (mtype) {
   case CEED_MEM_HOST:
     if (!impl->h_data) {
-      if (impl->h_data_borrowed) {
-        impl->h_data = impl->h_data_borrowed;
-      } else if (impl->h_data_owned) {
-        impl->h_data = impl->h_data_owned;
-      } else {
-        ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned);
-        CeedChkBackend(ierr);
-        impl->h_data = impl->h_data_owned;
-      }
-      if (impl->d_data) {
-        ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChkBackend(ierr);
-      }
+      ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChkBackend(ierr);
     }
     *(void **)data = impl->h_data;
     break;
   case CEED_MEM_DEVICE:
     if (!impl->d_data) {
-      if (impl->d_data_borrowed) {
-        impl->d_data = impl->d_data_borrowed;
-      } else if (impl->d_data_owned) {
-        impl->d_data = impl->d_data_owned;
-      } else {
-        ierr = cudaMalloc((void **)&impl->d_data_owned, bytes(ctx));
-        CeedChk_Cu(ceed, ierr);
-        impl->d_data = impl->d_data_owned;
-      }
-      if (impl->h_data) {
-        ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChkBackend(ierr);
-      }
+      ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChkBackend(ierr);
     }
     *(void **)data = impl->d_data;
+    break;
+  }
+
+  // Mark only pointer for requested memory as valid
+  ierr = CeedQFunctionContextSetAllStale_Cuda(ctx); CeedChkBackend(ierr);
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    impl->h_data = *(void **)data;
+    break;
+  case CEED_MEM_DEVICE:
+    impl->d_data = *(void **)data;
     break;
   }
 
