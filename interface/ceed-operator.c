@@ -718,9 +718,11 @@ found:
   Note: Calling this function asserts that setup is complete
           and sets the CeedOperator as immutable.
 
-  @param op                  CeedOperator
-  @param[out] input_fields   Variable to store input_fields
-  @param[out] output_fields  Variable to store output_fields
+  @param op                      CeedOperator
+  @param[out] num_input_fields   Variable to store number of input fields
+  @param[out] input_fields       Variable to store input_fields
+  @param[out] num_output_fields  Variable to store number of output fields
+  @param[out] output_fields      Variable to store output_fields
 
   @return An error code: 0 - success, otherwise - failure
 

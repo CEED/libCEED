@@ -250,8 +250,8 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
            The `buffer` is set to `NULL` if there is no QFunction source file.
          Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
 
-  @param qf                     CeedQFunction
-  @param[out] buffer            String buffer for source file contents
+  @param qf                  CeedQFunction
+  @param[out] source_buffer  String buffer for source file contents
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -671,9 +671,11 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name,
   Note: Calling this function asserts that setup is complete
           and sets the CeedQFunction as immutable.
 
-  @param qf                  CeedQFunction
-  @param[out] input_fields   Variable to store input_fields
-  @param[out] output_fields  Variable to store output_fields
+  @param qf                      CeedQFunction
+  @param[out] num_input_fields   Variable to store number of input fields
+  @param[out] input_fields       Variable to store input fields
+  @param[out] num_output_fields  Variable to store number of output fields
+  @param[out] output_fields      Variable to store output fields
 
   @return An error code: 0 - success, otherwise - failure
 
