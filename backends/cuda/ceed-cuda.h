@@ -70,19 +70,13 @@ static const char *cublasGetErrorName(cublasStatus_t error) {
 }
 // LCOV_EXCL_STOP
 
-typedef enum {
-  CEED_CUDA_HOST_SYNC,
-  CEED_CUDA_DEVICE_SYNC,
-  CEED_CUDA_BOTH_SYNC,
-  CEED_CUDA_NONE_SYNC
-} CeedCudaSyncState;
-
 typedef struct {
   CeedScalar *h_array;
-  CeedScalar *h_array_allocated;
+  CeedScalar *h_array_borrowed;
+  CeedScalar *h_array_owned;
   CeedScalar *d_array;
-  CeedScalar *d_array_allocated;
-  CeedCudaSyncState memState;
+  CeedScalar *d_array_borrowed;
+  CeedScalar *d_array_owned;
 } CeedVector_Cuda;
 
 typedef struct {
@@ -119,10 +113,11 @@ typedef struct {
 
 typedef struct {
   CeedScalar *h_data;
-  CeedScalar *h_data_allocated;
+  CeedScalar *h_data_borrowed;
+  CeedScalar *h_data_owned;
   CeedScalar *d_data;
-  CeedScalar *d_data_allocated;
-  CeedCudaSyncState memState;
+  CeedScalar *d_data_borrowed;
+  CeedScalar *d_data_owned;
 } CeedQFunctionContext_Cuda;
 
 typedef struct {

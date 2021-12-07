@@ -61,19 +61,13 @@ CEED_UNUSED static const char *hipblasGetErrorName(hipblasStatus_t error) {
 }
 // LCOV_EXCL_STOP
 
-typedef enum {
-  CEED_HIP_HOST_SYNC,
-  CEED_HIP_DEVICE_SYNC,
-  CEED_HIP_BOTH_SYNC,
-  CEED_HIP_NONE_SYNC
-} CeedHipSyncState;
-
 typedef struct {
   CeedScalar *h_array;
-  CeedScalar *h_array_allocated;
+  CeedScalar *h_array_borrowed;
+  CeedScalar *h_array_owned;
   CeedScalar *d_array;
-  CeedScalar *d_array_allocated;
-  CeedHipSyncState memState;
+  CeedScalar *d_array_borrowed;
+  CeedScalar *d_array_owned;
 } CeedVector_Hip;
 
 typedef struct {
@@ -110,10 +104,11 @@ typedef struct {
 
 typedef struct {
   CeedScalar *h_data;
-  CeedScalar *h_data_allocated;
+  CeedScalar *h_data_borrowed;
+  CeedScalar *h_data_owned;
   CeedScalar *d_data;
-  CeedScalar *d_data_allocated;
-  CeedHipSyncState memState;
+  CeedScalar *d_data_borrowed;
+  CeedScalar *d_data_owned;
 } CeedQFunctionContext_Hip;
 
 typedef struct {

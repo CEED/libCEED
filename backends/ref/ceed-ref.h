@@ -29,7 +29,8 @@ typedef struct {
 
 typedef struct {
   CeedScalar *array;
-  CeedScalar *array_allocated;
+  CeedScalar *array_borrowed;
+  CeedScalar *array_owned;
 } CeedVector_Ref;
 
 typedef struct {
@@ -47,7 +48,8 @@ typedef struct {
 
 typedef struct {
   void *data;
-  void *data_allocated;
+  void *data_borrowed;
+  void *data_owned;
 } CeedQFunctionContext_Ref;
 
 typedef struct {

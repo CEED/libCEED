@@ -44,6 +44,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
 
   ierr = cudaMemcpy(data->d_array, data->h_array, bytes(vec),
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -59,6 +60,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 
   ierr = cudaMemcpy(data->h_array, data->d_array, bytes(vec),
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -66,34 +68,37 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
-                                       const CeedCopyMode cmode,
-                                       CeedScalar *array) {
+                                       const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
+  data->d_array = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES: {
     CeedInt length;
-    if(!data->h_array) {
+    if (!data->h_array_owned) {
       ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-      ierr = CeedMalloc(length, &data->h_array_allocated); CeedChkBackend(ierr);
-      data->h_array = data->h_array_allocated;
+      ierr = CeedMalloc(length, &data->h_array_owned); CeedChkBackend(ierr);
     }
+    data->h_array_borrowed = NULL;
+    data->h_array = data->h_array_owned;
     if (array)
       memcpy(data->h_array, array, bytes(vec));
   } break;
   case CEED_OWN_POINTER:
-    ierr = CeedFree(&data->h_array_allocated); CeedChkBackend(ierr);
-    data->h_array_allocated = array;
+    ierr = CeedFree(&data->h_array_owned); CeedChkBackend(ierr);
+    data->h_array_owned = array;
+    data->h_array_borrowed = NULL;
     data->h_array = array;
     break;
   case CEED_USE_POINTER:
-    ierr = CeedFree(&data->h_array_allocated); CeedChkBackend(ierr);
+    ierr = CeedFree(&data->h_array_owned); CeedChkBackend(ierr);
+    data->h_array_borrowed = array;
     data->h_array = array;
     break;
   }
-  data->memState = CEED_CUDA_HOST_SYNC;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -108,12 +113,13 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
+  data->h_array = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES:
-    if (!data->d_array) {
-      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
+    if (!data->d_array_owned) {
+      ierr = cudaMalloc((void **)&data->d_array_owned, bytes(vec));
       CeedChk_Cu(ceed, ierr);
-      data->d_array = data->d_array_allocated;
+      data->d_array = data->d_array_owned;
     }
     if (array) {
       ierr = cudaMemcpy(data->d_array, array, bytes(vec),
@@ -121,17 +127,19 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
     }
     break;
   case CEED_OWN_POINTER:
-    ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
-    data->d_array_allocated = array;
+    ierr = cudaFree(data->d_array_owned); CeedChk_Cu(ceed, ierr);
+    data->d_array_owned = array;
+    data->d_array_borrowed = NULL;
     data->d_array = array;
     break;
   case CEED_USE_POINTER:
-    ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
-    data->d_array_allocated = NULL;
+    ierr = cudaFree(data->d_array_owned); CeedChk_Cu(ceed, ierr);
+    data->d_array_owned = NULL;
+    data->d_array_borrowed = array;
     data->d_array = array;
     break;
   }
-  data->memState = CEED_CUDA_DEVICE_SYNC;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -140,9 +148,7 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedVectorSetArray_Cuda(const CeedVector vec,
-                                   const CeedMemType mtype,
-                                   const CeedCopyMode cmode,
-                                   CeedScalar *array) {
+                                   const CeedMemType mtype, const CeedCopyMode cmode, CeedScalar *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -155,7 +161,8 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
   case CEED_MEM_DEVICE:
     return CeedVectorSetArrayDevice_Cuda(vec, cmode, array);
   }
-  return 1;
+
+  return CEED_ERROR_UNSUPPORTED;
 }
 
 //------------------------------------------------------------------------------
@@ -164,27 +171,39 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
 static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mtype,
                                     CeedScalar **array) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
   switch(mtype) {
   case CEED_MEM_HOST:
-    if (impl->memState == CEED_CUDA_DEVICE_SYNC) {
+    if (!impl->h_array_borrowed)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "No host array set with CeedVectorSetArray and CEED_USE_POINTER");
+    // LCOV_EXCL_STOP
+
+    if (!impl->h_array && impl->d_array) {
       ierr = CeedVectorSyncD2H_Cuda(vec); CeedChkBackend(ierr);
     }
-    (*array) = impl->h_array;
+    (*array) = impl->h_array_borrowed;
+    impl->h_array_borrowed = NULL;
     impl->h_array = NULL;
-    impl->h_array_allocated = NULL;
-    impl->memState = CEED_CUDA_HOST_SYNC;
     break;
   case CEED_MEM_DEVICE:
-    if (impl->memState == CEED_CUDA_HOST_SYNC) {
+    if (!impl->d_array_borrowed)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "No device array set with CeedVectorSetArray and CEED_USE_POINTER");
+    // LCOV_EXCL_STOP
+
+    if (!impl->d_array && impl->h_array) {
       ierr = CeedVectorSyncH2D_Cuda(vec); CeedChkBackend(ierr);
     }
-    (*array) = impl->d_array;
+    (*array) = impl->d_array_borrowed;
+    impl->d_array_borrowed = NULL;
     impl->d_array = NULL;
-    impl->d_array_allocated = NULL;
-    impl->memState = CEED_CUDA_DEVICE_SYNC;
     break;
   }
 
@@ -220,34 +239,31 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
-  switch(data->memState) {
-  case CEED_CUDA_HOST_SYNC:
-    ierr = CeedHostSetValue_Cuda(data->h_array, length, val); CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_NONE_SYNC:
-    /*
-      Handles the case where SetValue is used without SetArray.
-      Default allocation then happens on the GPU.
-    */
-    if (data->d_array == NULL) {
-      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
+  if (!data->d_array && !data->h_array) {
+    if (data->d_array_borrowed) {
+      data->d_array = data->d_array_borrowed;
+    } else if (data->d_array_owned) {
+      data->d_array = data->d_array_owned;
+    } else if (data->h_array_borrowed) {
+      data->h_array = data->h_array_borrowed;
+    } else if (data->h_array_owned) {
+      data->h_array = data->h_array_owned;
+    } else {
+      ierr = cudaMalloc((void **)&data->d_array_owned, bytes(vec));
       CeedChk_Cu(ceed, ierr);
-      data->d_array = data->d_array_allocated;
+      data->d_array = data->d_array_owned;
     }
-    data->memState = CEED_CUDA_DEVICE_SYNC;
-    ierr = CeedDeviceSetValue_Cuda(data->d_array, length, val);
-    CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_DEVICE_SYNC:
-    ierr = CeedDeviceSetValue_Cuda(data->d_array, length, val);
-    CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_BOTH_SYNC:
-    ierr = CeedHostSetValue_Cuda(data->h_array, length, val); CeedChkBackend(ierr);
-    ierr = CeedDeviceSetValue_Cuda(data->d_array, length, val);
-    CeedChkBackend(ierr);
-    break;
   }
+  if (data->d_array) {
+    ierr = CeedDeviceSetValue_Cuda(data->d_array, length, val);
+    CeedChkBackend(ierr);
+    data->h_array = NULL;
+  }
+  if (data->h_array) {
+    ierr = CeedHostSetValue_Cuda(data->h_array, length, val); CeedChkBackend(ierr);
+    data->d_array = NULL;
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -257,8 +273,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
 //   this will perform a copy (possibly cached).
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
-                                       const CeedMemType mtype,
-                                       const CeedScalar **array) {
+                                       const CeedMemType mtype, const CeedScalar **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -268,34 +283,42 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
   // Sync array to requested memtype and update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if(data->h_array==NULL) {
-      CeedInt length;
-      ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-      ierr = CeedMalloc(length, &data->h_array_allocated);
-      CeedChkBackend(ierr);
-      data->h_array = data->h_array_allocated;
-    }
-    if(data->memState==CEED_CUDA_DEVICE_SYNC) {
-      ierr = CeedVectorSyncD2H_Cuda(vec);
-      CeedChkBackend(ierr);
-      data->memState = CEED_CUDA_BOTH_SYNC;
+    if (!data->h_array) {
+      if (data->h_array_borrowed) {
+        data->h_array = data->h_array_borrowed;
+      } else if (data->h_array_owned) {
+        data->h_array = data->h_array_owned;
+      } else {
+        CeedInt length;
+        ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+        ierr = CeedMalloc(length, &data->h_array_owned);  CeedChkBackend(ierr);
+        data->h_array = data->h_array_owned;
+      }
+      if (data->d_array) {
+        ierr = CeedVectorSyncD2H_Cuda(vec); CeedChkBackend(ierr);
+      }
     }
     *array = data->h_array;
     break;
   case CEED_MEM_DEVICE:
-    if (data->d_array==NULL) {
-      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
-      CeedChk_Cu(ceed, ierr);
-      data->d_array = data->d_array_allocated;
-    }
-    if (data->memState==CEED_CUDA_HOST_SYNC) {
-      ierr = CeedVectorSyncH2D_Cuda(vec);
-      CeedChkBackend(ierr);
-      data->memState = CEED_CUDA_BOTH_SYNC;
+    if (!data->d_array) {
+      if (data->d_array_borrowed) {
+        data->d_array = data->d_array_borrowed;
+      } else if (data->d_array_owned) {
+        data->d_array = data->d_array_owned;
+      } else {
+        ierr = cudaMalloc((void **)&data->d_array_owned, bytes(vec));
+        CeedChk_Cu(ceed, ierr);
+        data->d_array = data->d_array_owned;
+      }
+      if (data->h_array) {
+        ierr = CeedVectorSyncH2D_Cuda(vec); CeedChkBackend(ierr);
+      }
     }
     *array = data->d_array;
     break;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -303,43 +326,23 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
 // Get array
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Cuda(const CeedVector vec,
-                                   const CeedMemType mtype,
-                                   CeedScalar **array) {
+                                   const CeedMemType mtype, CeedScalar **array) {
   int ierr;
-  Ceed ceed;
-  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  // Sync array to requested memtype and update pointer
+  ierr = CeedVectorGetArrayRead_Cuda(vec, mtype, (const CeedScalar **)array);
+  CeedChkBackend(ierr);
+
   switch (mtype) {
   case CEED_MEM_HOST:
-    if(data->h_array==NULL) {
-      CeedInt length;
-      ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-      ierr = CeedMalloc(length, &data->h_array_allocated);
-      CeedChkBackend(ierr);
-      data->h_array = data->h_array_allocated;
-    }
-    if(data->memState==CEED_CUDA_DEVICE_SYNC) {
-      ierr = CeedVectorSyncD2H_Cuda(vec); CeedChkBackend(ierr);
-    }
-    data->memState = CEED_CUDA_HOST_SYNC;
-    *array = data->h_array;
+    data->d_array = NULL;
     break;
   case CEED_MEM_DEVICE:
-    if (data->d_array==NULL) {
-      ierr = cudaMalloc((void **)&data->d_array_allocated, bytes(vec));
-      CeedChk_Cu(ceed, ierr);
-      data->d_array = data->d_array_allocated;
-    }
-    if (data->memState==CEED_CUDA_HOST_SYNC) {
-      ierr = CeedVectorSyncH2D_Cuda(vec); CeedChkBackend(ierr);
-    }
-    data->memState = CEED_CUDA_DEVICE_SYNC;
-    *array = data->d_array;
+    data->h_array = NULL;
     break;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -443,22 +446,13 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
-  switch(data->memState) {
-  case CEED_CUDA_HOST_SYNC:
-    ierr = CeedHostReciprocal_Cuda(data->h_array, length); CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_DEVICE_SYNC:
+  if (data->d_array) {
     ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_BOTH_SYNC:
-    ierr = CeedDeviceReciprocal_Cuda(data->d_array, length); CeedChkBackend(ierr);
-    data->memState = CEED_CUDA_DEVICE_SYNC;
-    break;
-  // LCOV_EXCL_START
-  case CEED_CUDA_NONE_SYNC:
-    break; // Not possible, but included for completness
-    // LCOV_EXCL_STOP
   }
+  if (data->h_array) {
+    ierr = CeedHostReciprocal_Cuda(data->h_array, length); CeedChkBackend(ierr);
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -491,25 +485,14 @@ static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
   ierr = CeedVectorGetLength(x, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
-  switch(x_data->memState) {
-  case CEED_CUDA_HOST_SYNC:
-    ierr = CeedHostScale_Cuda(x_data->h_array, alpha, length);
-    CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_DEVICE_SYNC:
+  if (x_data->d_array) {
     ierr = CeedDeviceScale_Cuda(x_data->d_array, alpha, length);
     CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_BOTH_SYNC:
-    ierr = CeedDeviceScale_Cuda(x_data->d_array, alpha, length);
-    CeedChkBackend(ierr);
-    x_data->memState = CEED_CUDA_DEVICE_SYNC;
-    break;
-  // LCOV_EXCL_START
-  case CEED_CUDA_NONE_SYNC:
-    break; // Not possible, but included for completness
-    // LCOV_EXCL_STOP
   }
+  if (x_data->h_array) {
+    ierr = CeedHostScale_Cuda(x_data->h_array, alpha, length); CeedChkBackend(ierr);
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -543,28 +526,17 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
   ierr = CeedVectorGetLength(y, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
-  switch(y_data->memState) {
-  case CEED_CUDA_HOST_SYNC:
+  if (y_data->d_array) {
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
+    CeedChkBackend(ierr);
+  }
+  if (y_data->h_array) {
     ierr = CeedVectorSyncArray(x, CEED_MEM_HOST); CeedChkBackend(ierr);
     ierr = CeedHostAXPY_Cuda(y_data->h_array, alpha, x_data->h_array, length);
     CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_DEVICE_SYNC:
-    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
-    CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_BOTH_SYNC:
-    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedDeviceAXPY_Cuda(y_data->d_array, alpha, x_data->d_array, length);
-    CeedChkBackend(ierr);
-    y_data->memState = CEED_CUDA_DEVICE_SYNC;
-    break;
-  // LCOV_EXCL_START
-  case CEED_CUDA_NONE_SYNC:
-    break; // Not possible, but included for completness
-    // LCOV_EXCL_STOP
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -600,38 +572,24 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x,
   ierr = CeedVectorGetLength(w, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
-  switch(w_data->memState) {
-  case CEED_CUDA_HOST_SYNC:
+  if (!w_data->d_array && w_data->h_array) {
+    ierr = CeedVectorSetValue(w, 0.0); CeedChkBackend(ierr);
+  }
+  if (w_data->d_array) {
+    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
+    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
+                                        y_data->d_array, length);
+    CeedChkBackend(ierr);
+  }
+  if (w_data->h_array) {
     ierr = CeedVectorSyncArray(x, CEED_MEM_HOST); CeedChkBackend(ierr);
     ierr = CeedVectorSyncArray(y, CEED_MEM_HOST); CeedChkBackend(ierr);
     ierr = CeedHostPointwiseMult_Cuda(w_data->h_array, x_data->h_array,
                                       y_data->h_array, length);
     CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_DEVICE_SYNC:
-    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
-                                        y_data->d_array, length);
-    CeedChkBackend(ierr);
-    break;
-  case CEED_CUDA_BOTH_SYNC:
-    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
-                                        y_data->d_array, length);
-    CeedChkBackend(ierr);
-    w_data->memState = CEED_CUDA_DEVICE_SYNC;
-    break;
-  case CEED_CUDA_NONE_SYNC:
-    ierr = CeedVectorSetValue(w, 0.0); CeedChkBackend(ierr);
-    ierr = CeedVectorSyncArray(x, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedVectorSyncArray(y, CEED_MEM_DEVICE); CeedChkBackend(ierr);
-    ierr = CeedDevicePointwiseMult_Cuda(w_data->d_array, x_data->d_array,
-                                        y_data->d_array, length);
-    CeedChkBackend(ierr);
-    break;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -645,9 +603,10 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  ierr = cudaFree(data->d_array_allocated); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&data->h_array_allocated); CeedChkBackend(ierr);
+  ierr = cudaFree(data->d_array_owned); CeedChk_Cu(ceed, ierr);
+  ierr = CeedFree(&data->h_array_owned); CeedChkBackend(ierr);
   ierr = CeedFree(&data); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -689,6 +648,6 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedVectorSetData(vec, data); CeedChkBackend(ierr);
-  data->memState = CEED_CUDA_NONE_SYNC;
+
   return CEED_ERROR_SUCCESS;
 }

@@ -43,6 +43,7 @@ static inline int CeedQFunctionContextSyncH2D_Hip(
 
   ierr = hipMemcpy(impl->d_data, impl->h_data, bytes(ctx),
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -59,6 +60,7 @@ static inline int CeedQFunctionContextSyncD2H_Hip(
 
   ierr = hipMemcpy(impl->h_data, impl->d_data, bytes(ctx),
                    hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -71,25 +73,26 @@ static int CeedQFunctionContextSetDataHost_Hip(const CeedQFunctionContext ctx,
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
+  impl->d_data = NULL;
+  ierr = CeedFree(&impl->h_data_owned); CeedChkBackend(ierr);
   switch (cmode) {
   case CEED_COPY_VALUES: {
-    if(!impl->h_data) {
-      ierr = CeedMalloc(bytes(ctx), &impl->h_data_allocated); CeedChkBackend(ierr);
-      impl->h_data = impl->h_data_allocated;
-    }
+    ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned); CeedChkBackend(ierr);
+    impl->h_data_borrowed = NULL;
+    impl->h_data = impl->h_data_owned;
     memcpy(impl->h_data, data, bytes(ctx));
   } break;
   case CEED_OWN_POINTER:
-    ierr = CeedFree(&impl->h_data_allocated); CeedChkBackend(ierr);
-    impl->h_data_allocated = data;
+    impl->h_data_owned = data;
+    impl->h_data_borrowed = NULL;
     impl->h_data = data;
     break;
   case CEED_USE_POINTER:
-    ierr = CeedFree(&impl->h_data_allocated); CeedChkBackend(ierr);
+    impl->h_data_borrowed = data;
     impl->h_data = data;
     break;
   }
-  impl->memState = CEED_HIP_HOST_SYNC;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -104,28 +107,30 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
+  impl->h_data = NULL;
+  ierr = hipFree(impl->d_data_owned); CeedChk_Hip(ceed, ierr);
+  impl->d_data_owned = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES:
-    if (!impl->d_data) {
-      ierr = hipMalloc((void **)&impl->d_data_allocated, bytes(ctx));
-      CeedChk_Hip(ceed, ierr);
-      impl->d_data = impl->d_data_allocated;
-    }
+    ierr = hipMalloc((void **)&impl->d_data_owned, bytes(ctx));
+    CeedChk_Hip(ceed, ierr);
+    impl->d_data_borrowed = NULL;
+    impl->d_data = impl->d_data_owned;
     ierr = hipMemcpy(impl->d_data, data, bytes(ctx),
                      hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
     break;
   case CEED_OWN_POINTER:
-    ierr = hipFree(impl->d_data_allocated); CeedChk_Hip(ceed, ierr);
-    impl->d_data_allocated = data;
+    impl->d_data_owned = data;
+    impl->d_data_borrowed = NULL;
     impl->d_data = data;
     break;
   case CEED_USE_POINTER:
-    ierr = hipFree(impl->d_data_allocated); CeedChk_Hip(ceed, ierr);
-    impl->d_data_allocated = NULL;
+    impl->d_data_owned = NULL;
+    impl->d_data_borrowed = data;
     impl->d_data = data;
     break;
   }
-  impl->memState = CEED_HIP_DEVICE_SYNC;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -145,7 +150,8 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx,
   case CEED_MEM_DEVICE:
     return CeedQFunctionContextSetDataDevice_Hip(ctx, cmode, data);
   }
-  return 1;
+
+  return CEED_ERROR_UNSUPPORTED;
 }
 
 //------------------------------------------------------------------------------
@@ -158,7 +164,8 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
-  if(impl->h_data == NULL && impl->d_data == NULL)
+
+  if (!impl->h_data && !impl->d_data)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
   // LCOV_EXCL_STOP
@@ -166,34 +173,37 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
   // Sync array to requested memtype and update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if (impl->h_data == NULL) {
-      ierr = CeedMalloc(bytes(ctx), &impl->h_data_allocated);
-      CeedChkBackend(ierr);
-      impl->h_data = impl->h_data_allocated;
-    }
-    if (impl->memState == CEED_HIP_DEVICE_SYNC) {
+    if (!impl->h_data_borrowed)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "No host context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
+    // LCOV_EXCL_STOP
+
+    if (!impl->h_data && impl->d_data) {
+      impl->h_data = impl->h_data_borrowed;
       ierr = CeedQFunctionContextSyncD2H_Hip(ctx); CeedChkBackend(ierr);
     }
-    impl->memState = CEED_HIP_HOST_SYNC;
-    *(void **)data = impl->h_data;
+    *(void **)data = impl->h_data_borrowed;
+    impl->h_data_borrowed = NULL;
     impl->h_data = NULL;
-    impl->h_data_allocated = NULL;
     break;
   case CEED_MEM_DEVICE:
-    if (impl->d_data == NULL) {
-      ierr = hipMalloc((void **)&impl->d_data_allocated, bytes(ctx));
-      CeedChk_Hip(ceed, ierr);
-      impl->d_data = impl->d_data_allocated;
-    }
-    if (impl->memState == CEED_HIP_HOST_SYNC) {
+    if (!impl->d_data_borrowed)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "No device context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
+    // LCOV_EXCL_STOP
+
+    if (!impl->d_data && impl->h_data) {
+      impl->d_data = impl->d_data_borrowed;
       ierr = CeedQFunctionContextSyncH2D_Hip(ctx); CeedChkBackend(ierr);
     }
-    impl->memState = CEED_HIP_DEVICE_SYNC;
-    *(void **)data = impl->d_data;
+    *(void **)data = impl->d_data_borrowed;
+    impl->d_data_borrowed = NULL;
     impl->d_data = NULL;
-    impl->d_data_allocated = NULL;
     break;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -207,7 +217,7 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
-  if(impl->h_data == NULL && impl->d_data == NULL)
+  if (!impl->h_data && !impl->d_data)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
   // LCOV_EXCL_STOP
@@ -215,30 +225,41 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
   // Sync array to requested memtype and update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if (impl->h_data == NULL) {
-      ierr = CeedMalloc(bytes(ctx), &impl->h_data_allocated);
-      CeedChkBackend(ierr);
-      impl->h_data = impl->h_data_allocated;
+    if (!impl->h_data) {
+      if (impl->h_data_borrowed) {
+        impl->h_data = impl->h_data_borrowed;
+      } else if (impl->h_data_owned) {
+        impl->h_data = impl->h_data_owned;
+      } else {
+        ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned);
+        CeedChkBackend(ierr);
+        impl->h_data = impl->h_data_owned;
+      }
+      if (impl->d_data) {
+        ierr = CeedQFunctionContextSyncD2H_Hip(ctx); CeedChkBackend(ierr);
+      }
     }
-    if (impl->memState == CEED_HIP_DEVICE_SYNC) {
-      ierr = CeedQFunctionContextSyncD2H_Hip(ctx); CeedChkBackend(ierr);
-    }
-    impl->memState = CEED_HIP_HOST_SYNC;
     *(void **)data = impl->h_data;
     break;
   case CEED_MEM_DEVICE:
-    if (impl->d_data == NULL) {
-      ierr = hipMalloc((void **)&impl->d_data_allocated, bytes(ctx));
-      CeedChk_Hip(ceed, ierr);
-      impl->d_data = impl->d_data_allocated;
+    if (!impl->d_data) {
+      if (impl->d_data_borrowed) {
+        impl->d_data = impl->d_data_borrowed;
+      } else if (impl->d_data_owned) {
+        impl->d_data = impl->d_data_owned;
+      } else {
+        ierr = hipMalloc((void **)&impl->d_data_owned, bytes(ctx));
+        CeedChk_Hip(ceed, ierr);
+        impl->d_data = impl->d_data_owned;
+      }
+      if (impl->h_data) {
+        ierr = CeedQFunctionContextSyncH2D_Hip(ctx); CeedChkBackend(ierr);
+      }
     }
-    if (impl->memState == CEED_HIP_HOST_SYNC) {
-      ierr = CeedQFunctionContextSyncH2D_Hip(ctx); CeedChkBackend(ierr);
-    }
-    impl->memState = CEED_HIP_DEVICE_SYNC;
     *(void **)data = impl->d_data;
     break;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -259,9 +280,10 @@ static int CeedQFunctionContextDestroy_Hip(const CeedQFunctionContext ctx) {
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  ierr = hipFree(impl->d_data_allocated); CeedChk_Hip(ceed, ierr);
-  ierr = CeedFree(&impl->h_data_allocated); CeedChkBackend(ierr);
+  ierr = hipFree(impl->d_data_owned); CeedChk_Hip(ceed, ierr);
+  ierr = CeedFree(&impl->h_data_owned); CeedChkBackend(ierr);
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -284,9 +306,10 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextRestoreData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Hip); CeedChkBackend(ierr);
+
   ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
-  impl->memState = CEED_HIP_NONE_SYNC;
   ierr = CeedQFunctionContextSetBackendData(ctx, impl); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

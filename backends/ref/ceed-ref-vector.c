@@ -36,18 +36,26 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
-  ierr = CeedFree(&impl->array_allocated); CeedChkBackend(ierr);
+
   switch (copy_mode) {
   case CEED_COPY_VALUES:
-    ierr = CeedMalloc(length, &impl->array_allocated); CeedChkBackend(ierr);
-    impl->array = impl->array_allocated;
-    if (array) memcpy(impl->array, array, length * sizeof(array[0]));
+    if (!impl->array_owned) {
+      ierr = CeedMalloc(length, &impl->array_owned); CeedChkBackend(ierr);
+    }
+    impl->array_borrowed = NULL;
+    impl->array = impl->array_owned;
+    if (array)
+      memcpy(impl->array, array, length * sizeof(array[0]));
     break;
   case CEED_OWN_POINTER:
-    impl->array_allocated = array;
+    ierr = CeedFree(&impl->array_owned); CeedChkBackend(ierr);
+    impl->array_owned = array;
+    impl->array_borrowed = NULL;
     impl->array = array;
     break;
   case CEED_USE_POINTER:
+    ierr = CeedFree(&impl->array_owned); CeedChkBackend(ierr);
+    impl->array_borrowed = array;
     impl->array = array;
   }
   return CEED_ERROR_SUCCESS;
@@ -69,9 +77,15 @@ static int CeedVectorTakeArray_Ref(CeedVector vec, CeedMemType mem_type,
     return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   // LCOV_EXCL_STOP
 
-  (*array) = impl->array;
+  if (!impl->array_borrowed)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "No array set with CeedVectorSetArray and CEED_USE_POINTER");
+  // LCOV_EXCL_STOP
+
+  (*array) = impl->array_borrowed;
+  impl->array_borrowed = NULL;
   impl->array = NULL;
-  impl->array_allocated = NULL;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -91,11 +105,13 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
   // LCOV_EXCL_STOP
+
   if (!impl->array) { // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
     CeedChkBackend(ierr);
   }
   *array = impl->array;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -104,22 +120,7 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mem_type,
                                       const CeedScalar **array) {
-  int ierr;
-  CeedVector_Ref *impl;
-  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-  Ceed ceed;
-  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
-
-  if (mem_type != CEED_MEM_HOST)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
-  // LCOV_EXCL_STOP
-  if (!impl->array) { // Allocate if array is not yet allocated
-    ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
-    CeedChkBackend(ierr);
-  }
-  *array = impl->array;
-  return CEED_ERROR_SUCCESS;
+  return CeedVectorGetArray_Ref(vec, mem_type, (CeedScalar **)array);
 }
 
 //------------------------------------------------------------------------------
@@ -141,7 +142,7 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  ierr = CeedFree(&impl->array_allocated); CeedChkBackend(ierr);
+  ierr = CeedFree(&impl->array_owned); CeedChkBackend(ierr);
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -169,8 +170,10 @@ int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
                                 CeedVectorRestoreArrayRead_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Ref); CeedChkBackend(ierr);
+
   ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
   ierr = CeedVectorSetData(vec, impl); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
