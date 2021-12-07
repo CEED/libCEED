@@ -295,9 +295,11 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
 }
 
 /**
-  @brief Take ownership of the CeedVector array and remove the array from the
-           CeedVector. The caller is responsible for managing and freeing
-           the array.
+  @brief Take ownership of the CeedVector array set by @ref CeedVectorSetArray()
+           with @ref CEED_USE_POINTER and remove the array from the CeedVector.
+           The caller is responsible for managing and freeing the array.
+           This function will error if @ref CeedVectorSetArray() was not previously
+           called with @ref CEED_USE_POINTER for the corresponding mem_type.
 
   @param vec         CeedVector
   @param mem_type    Memory type on which to take the array. If the backend
