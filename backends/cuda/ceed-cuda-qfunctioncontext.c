@@ -143,6 +143,7 @@ static int CeedQFunctionContextSetDataDevice_Cuda(
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
   ierr = cudaFree(impl->d_data_owned); CeedChk_Cu(ceed, ierr);
+  impl->d_data_owned = NULL;
   switch (cmode) {
   case CEED_COPY_VALUES:
     ierr = cudaMalloc((void **)&impl->d_data_owned, bytes(ctx));
