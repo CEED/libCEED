@@ -131,6 +131,29 @@ impl<'a> VectorOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
+// CeedVector borrowed slice wrapper
+// -----------------------------------------------------------------------------
+pub struct VectorSliceBorrow<'a> {
+    pub(crate) vector: crate::Vector<'a>,
+    pub(crate) _slice: &'a mut [crate::Scalar],
+}
+
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for VectorSliceBorrow<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedVectorTakeArray(
+                self.vector.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                std::ptr::null_mut(),
+            )
+        };
+    }
+}
+
+// -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
@@ -373,6 +396,76 @@ impl<'a> Vector<'a> {
             )
         };
         self.check_error(ierr)
+    }
+
+    /// Set Vector array to borrowed slice of the same length
+    ///
+    /// # arguments
+    ///
+    /// * `slice` - values to into self; length must match
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut vec = ceed.vector(4)?;
+    /// let mut slice = vec![10., 11., 12., 13.];
+    ///
+    /// {
+    ///     // `borrow` holds a mutable reference to the slice
+    ///     let borrow = vec.set_borrowed_slice(&mut slice)?;
+    ///     vec.view()?.iter().enumerate().for_each(|(i, v)| {
+    ///         assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
+    ///     });
+    ///
+    ///     // This line will not compile, as the `borrow` is still in scope
+    ///     // slice[0] = 5.0;
+    ///
+    ///     // Changes here are reflected in the `slice`
+    ///     vec.set_value(5.0)?;
+    ///     vec.view()?.iter().for_each(|v| {
+    ///         assert_eq!(*v, 5 as Scalar, "Slice not set correctly");
+    ///     });
+    /// }
+    ///
+    /// // Slice remains changed
+    /// slice.iter().for_each(|v| {
+    ///     assert_eq!(*v, 5 as Scalar, "Slice not set correctly");
+    /// });
+    ///
+    /// // This line will error, as the Vector has dropped the reference
+    /// //   to the slice and no new array was allocated for the Vector
+    /// // vec.view()?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn set_borrowed_slice<'b>(
+        &mut self,
+        slice: &'b mut [crate::Scalar],
+    ) -> crate::Result<VectorSliceBorrow<'b>> {
+        assert_eq!(self.length(), slice.len());
+        let (host, copy_mode) = (
+            crate::MemType::Host as bind_ceed::CeedMemType,
+            crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedVectorSetArray(
+                self.ptr,
+                host,
+                copy_mode,
+                slice.as_ptr() as *mut crate::Scalar,
+            )
+        };
+        self.check_error(ierr)?;
+
+        let mut ptr_copy = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
+        self.check_error(ierr)?;
+
+        Ok(crate::VectorSliceBorrow {
+            vector: crate::Vector::from_raw(ptr_copy)?,
+            _slice: slice,
+        })
     }
 
     /// Sync the CeedVector to a specified memtype

@@ -36,7 +36,7 @@ pub mod prelude {
             self, QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt,
             QFunctionOutputs,
         },
-        vector::{self, Vector, VectorOpt},
+        vector::{self, Vector, VectorOpt, VectorSliceBorrow},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
         CEED_STRIDES_BACKEND, EPSILON, MAX_QFUNCTION_FIELDS,
     };
