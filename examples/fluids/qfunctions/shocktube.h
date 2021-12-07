@@ -52,11 +52,11 @@ struct ShockTubeContext_ {
 //   Temperature:
 //     T   = P / (rho * R)
 //   Density:
-//     rho = 1.0        if x <= midpt
-//         =            if x >  midpt
+//     rho = 1.0        if x <= mid_point
+//         =            if x >  mid_point
 //   Pressure:
-//     P   = 1.0        if x <= midpt
-//         = 0.1        if x >  midpt
+//     P   = 1.0        if x <= mid_point
+//         = 0.1        if x >  mid_point
 //   Velocity:
 //     u   = 0
 //   Velocity/Momentum Density:
@@ -67,7 +67,7 @@ struct ShockTubeContext_ {
 // Constants:
 //   cv              ,  Specific heat, constant volume
 //   cp              ,  Specific heat, constant pressure
-//   midpt           ,  Location of initial domain midpt
+//   mid_point       ,  Location of initial domain mid_point
 //   gamma  = cp / cv,  Specific heat ratio
 //
 // *****************************************************************************
@@ -82,7 +82,7 @@ CEED_QFUNCTION_HELPER int Exact_ShockTube(CeedInt dim, CeedScalar time,
 
   // Context
   const SetupContext context = (SetupContext)ctx;
-  const CeedScalar midpt = context->midpt;              // Midpoint of the domain
+  const CeedScalar mid_point = context->mid_point;      // Midpoint of the domain
   const CeedScalar P_high = context->P_high;            // Driver section pressure
   const CeedScalar rho_high = context->rho_high;        // Driver section density
   const CeedScalar P_low = context->P_low;              // Driven section pressure
@@ -95,7 +95,7 @@ CEED_QFUNCTION_HELPER int Exact_ShockTube(CeedInt dim, CeedScalar time,
   CeedScalar rho, P, u[3] = {0.};
 
   // Initial Conditions
-  if (x <= midpt) {
+  if (x <= mid_point) {
     rho = rho_high;
     P   = P_high;
   } else {

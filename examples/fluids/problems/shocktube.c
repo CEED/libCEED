@@ -74,8 +74,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   CeedScalar cv              = 50.0;    // J/(kg K)
   // Tuning parameters for the YZB shock capturing
   CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
-  CeedScalar Byzb            =
-    2.0;     // -, 1 for smooth shocks, 2 for sharp shocks
+  CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks, 2 for sharp shocks
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -130,13 +129,13 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   lx = fabs(lx) * meter;
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
-  CeedScalar midpt = 0.5*lx;
+  CeedScalar mid_point = 0.5*lx;
 
   // -- Setup Context
   setup_context->lx        = lx;
   setup_context->ly        = ly;
   setup_context->lz        = lz;
-  setup_context->midpt     = midpt;
+  setup_context->mid_point = mid_point;
   setup_context->time      = 0.0;
   setup_context->P_high    = P_high;
   setup_context->rho_high  = rho_high;
@@ -185,11 +184,11 @@ PetscErrorCode BC_SHOCKTUBE(DM dm, SimpleBC bc, Physics phys,
   // Default boundary conditions
   //    slip BC on y and z faces
   bc->num_slip[0] = 0;
-  bc->num_slip[1] = bc->num_slip[2] = 4;
-  bc->slips[1][0] = bc->slips[2][0] = 1;
-  bc->slips[1][1] = bc->slips[2][1] = 2;
-  bc->slips[1][2] = bc->slips[2][2] = 3;
-  bc->slips[1][3] = bc->slips[2][3] = 4;
+  bc->num_slip[1] = bc->num_slip[2] = 2;
+  bc->slips[1][0] = 3;
+  bc->slips[1][1] = 4;
+  bc->slips[2][0] = 1;
+  bc->slips[2][1] = 2;
   //    wall BC on x faces
   bc->num_wall = 2;
   bc->walls[0] = 5;
