@@ -211,7 +211,7 @@ struct SetupContext_ {
   CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
-  CeedScalar midpt;
+  CeedScalar mid_point;
   CeedScalar P_high;
   CeedScalar rho_high;
   CeedScalar P_low;
