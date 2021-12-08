@@ -34,16 +34,10 @@ typedef struct CeedScalarArrayObj {
 } CeedScalarArray;
 ```
 
-***Discussion point: should a `CeedScalarArray` contain its own length data, if
-it will be used by `CeedVector` as well, which has length as an interface-level
-(not backend-dependent) variable?***  This would likely depend on whether
-or not we ever intend `CeedScalarArray` to have wider use than just within
-backends that have enabled mixed precision, and also:
-***Discussion point: do we want users to be able to interact with `CeedScalarArray`
-objects when getting/setting data from `CeedVector`s -- would there be a use case
-for this?***
+We may want a different name?
 
-For more about potentially using this data struct in `CeedVector`, see the next section.
+For now, any such struct will be internal to libCEED only; users will not interact directly with
+them. 
 
 
 ##  Design of CeedVector
@@ -92,31 +86,20 @@ CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
 
 ### Proposed rules for the vector access in mixed precision
 
-We will introduce a new `CeedVector` member, the *preferred precision*, which can be get/set
-at any point in a vector's lifetime.  E.g., the preferred precision can be set
-before ever filling the vector with any data, or it can be set later, at which point
-it would trigger a conversion to the new precision.  ***Discussion point: should this
-be considered read or read/write access as far as whether or not the original data should
-be deleted/cleared?***  This could be an interface-level parameter or a backend-specific
-parameter (part of a private data struct in a backend).
-
 We have the following proposed rules for allowing multiple precision access to 
 `CeedVector`s:
 
  - `Read` access (`GetArrayRead`) will convert if necessary to a new precision, but will not 
-    delete/clear the data from the original precision. If more than one precision is currently
+    invalidate the data from the original precision. If more than one precision is currently
     active (in the future, if we expand to more than two precision options) and a third precision
     is requested, the *preferred precision* will be used as the basis for copying/converting to the new precision.
+    For now, the *preferred precision* will be chosen to be the highest precision for which the data 
+    is currently valid (may revisit in the future).
 
- - `Read/write` access (`GetArray`) will convert if necessary, and *will* delete/clear the 
-    original data. The *preferred precision* will be updated to the new precision.
+ - `Read/write` access (`GetArray`) will convert if necessary, and *will* invalidate the 
+    original data.
 
  - `Take` access will convert if necessary and delete/clear all data from the `CeedVector`.
-    *Preferred precision* will remain unchanged, since the `CeedVector` no longer contains any data. 
-
-    Following this access pattern, if two (or more) precisions in a `CeedVector`
-    are active at the same time, we can conclude that they are the same data, but in different
-    precisions, and both are still "valid" representations of the `CeedVector` data. 
 
 Note that we are assuming all backends will keep the distinction between non-owned data and data
 allocated/owned by the vector.  Thus, any data conversion will result in allocating the corresponding
@@ -124,17 +107,15 @@ memory in the `allocated` object, even if the data being converted was not owned
 
 ***Discussion point: SetArray behavior***
 
-We must first define exactly what we mean by `SetArray` in this context. One way to interpret it is
-"use exactly this data," when coupled with the `CEED_USE_POINTER` or `CEED_OWN_POINTER` 
-options.  A possible consequence of such an interpretation would be to omit any "requested precision" parameter
-from the multiprecision version of `SetArray`, indicating that the `CeedVector` should update itself to 
-use the given data, in whichever precision it is -- or the multiple precisions it is in, if the general
-interface uses `CeedScalarArray *` to pass the data (see discussion on options for general interface below).
-One could argue this is the direct correlation to the `CeedScalar` (current) case.  However, we could 
-also add a preferred precision argument to this function, as with the other multiprecision versions, 
-and have the `CeedVector` convert the input data as necessary.  This could, however, blur the lines 
-between the `modes` of the function, as a `CEED_USE_POINTER` mode might still end up allocating and 
-copying/casting data as in the `CEED_COPY_VALUES` case.
+Should `SetArray` take one or two precision arguments?
+
+ - One argument: the precision of the data you want the `CeedVector` to use (interface with `void *`)
+
+ - Two arguments: the precision of the data you want the `CeedVector` to use, plus the precision you 
+   want it to use the precision in -- such that the vector will convert/copy the given data to the
+   new precision. In this case, would the `CeedVector` have both precisions valid after this operation?
+   Potential confusion in that `CEED_USE_POINTER` could result in allocation/ownership of the new 
+   precision data, as well as non-owning storage of the given data.
 
 Another possible difficulty in not being able to set the data directly through pointers could
 be in the common use case of passive input data which will be used in the QFunction, resulting in 
@@ -143,18 +124,9 @@ discussion in options for general interface surrounding the use of various point
 
 Currently, `CeedVectorSetArray` will allocate new memory if `array` is NULL and the mode is 
 `CEED_COPY_VALUES`.  In a multiprecision `CeedVector`, this would correspond to either allocating
-memory in the vector's current preferred precision (in the version where `SetArray` doesn't have 
-a requested/preferred precision parameter) or the requested precision.
-
-A final note about the behavior of `SetArray` is that of the preferred precision.  If we can 
-set data with more than one precision currently active to the `CeedVector` at the same time (taking
-a `CeedScalarArray` parameter as input, but without a preferred precision parameter), how would 
-the `CeedVector` know which precision it should consider its preferred precision moving foward? (Note 
-that if `SetArray` is called through a general interface with `void *`, we would of course
-have to provide information about the type of the data in the `void *`, but this could be used as the 
-preferred precision or in addition to a preferred precision parameter, if we want the routine to do
-automatic conversion.)
-
+memory in the `CeedScalar` precision, or the given precision argument (in a two-precision case, 
+the one for the data could be ignored/zero and the requested precision would determine the allocation
+type?). 
 
 ***Discussion point: multiple versions of `GetArray`/read/write access?***
 Would we want to add another option for the case where we are getting read/write access *only* to overwrite
@@ -183,7 +155,10 @@ CeedVectorScale(CeedVector x, CeedScalar alpha)
 
 CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x)
 ```
- 
+
+*Initially, we could have these routines deduce computation precision from the state of the 
+input/output vectors, and convert if necessary, defaulting to the higher precision if 
+there is a mismatch.* 
 
 ### Specific implementation modifications to CeedVector
 
@@ -254,149 +229,35 @@ general interface (using `void *`) instead. A drawback is the "messiness" of nee
 growing by 4 every time a new precision is added in the future.  The same issues with possible unnecessary
 reconversion of passive input data could occur here, depending on how the `edata` inside an operator
 is configured (e.g., if using `CeedScalarArray **` in order to allow E-Vectors in different precisions). 
- 
-***Discusion point: sync behavior***
 
-For the GPU backends, we must determine how `CeedVectorSyncArray` should handle the possibility of multiple
-precisions being active.  For example, the sync function could sync/copy all currently active 
-precisions on the host or device, or it could sync only the vector's current preferred precision, 
-or we could have multiple versions of sync function.  
+### Behavior of sync
 
-Syncing all current data is likely the best way to avoid pitfalls, though it could result
-in unnecessary data movement/copying. 
-
-###  Options for adding precision to get/set functions
-
-***Discussion point: Public API vs internal use***
-
-It seems likely that we would want to have a general set of functions which can be called 
-in places (e.g. inside other backend functions) where the other top-level code could
-be agnostic to the datatype (at least when using some parameter from the `CeedScalarType` enum), 
-namely in operator-level functions, though perhaps for other objects as well.  For example, 
-a common use pattern across backend objects is to get read or read/write access to a vector's 
-data in order to use it directly in an object's action or 
-pass it as a parameter to a kernel:
-
->
-> **CODE EXAMPLE: preparing an element restriction call in the cuda-ref backend**
->
-```
-// Get vectors
-const CeedScalar *d_u;
-CeedScalar *d_v;
-ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
-ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr); 
-(&d_u and &d_v passed as kernel args)
-```
-
-But a more complicated case is the use inside of operators, e.g. when getting/setting E-Vector
-data as part of a `CeedOperator` application. 
-
-The following backends use a data type `CeedScalar **`
-inside their private backend operator data structs for E-Vector data: `ref`, `blocked`, `opt`, `cuda-ref` (and thus by 
-delegation, `cuda-shared` and `magma`), `hip-ref` (and `hip-shared`, `magma`). 
-
-What if not all E-vectors should have same precision, e.g. a passive input with a basis none 
-that will be used in single precision in the QFunction?  Or even if we do want all E-vectors
-to be in the same precision, we can't just use `CeedScalar **` as the type in the backend
-data structs.  Using `CeedScalarArray **` instead would allow the get/set interactions
-of internal E-vectors and Q-vectors with the "edata" to proceed as before.
-
-Whether or not we also
-want these generic multiprecision functions to be available as part of the API, in case users may also wish to 
-have a polymorphic-ish interface to `CeedVector`s, is an open question that could determine
-the other choices. 
-
-A backend would likely want to have internal implementations for different precisions, to which the
-general version of the function would dispatch.  However, we could potentially leave the 
-general interface set of functions as the only ones that get added as new backend functions for the `CeedVector`, 
-so that expanding to more precisions in the future wouldn't mean continually adding new 
-function pointers to the `CeedVector` object and adding more "not implemented/error" functions for
-every backend that doesn't support mixed precisions (unless the plan is for all backends to eventually 
-support it?). We could/almost surely will also add specific interface-level functions with different names for each
-precision in the public API -- but should these also be backend functions, or should they call the general
-versions with specific parameters set?  Performance considerations?
-
-####  General interface with CeedScalarArray
-
-One idea would be for any backend implementing mixed-precision functionality to add
-an additional set of backend functions for `CeedVector` objects:
-
-```
-CEED_EXTERN int CeedVectorSetArrayObj(CeedVector vec, CeedMemType mem_type,
-                                      CeedCopyMode copy_mode,
-                                      CeedScalarType prec,
-                                      CeedScalarArray *array);
-CEED_EXTERN int CeedVectorTakeArrayObj(CeedVector vec, CeedMemType mem_type,
-                                       CeedScalarType prec,
-                                       CeedScalarArray **array);
-CEED_EXTERN int CeedVectorGetArrayObj(CeedVector vec, CeedMemType mem_type,
-                          CeedScalarType prec, CeedScalarArray **array);
-CEED_EXTERN int CeedVectorGetArrayObjRead(CeedVector vec, CeedMemType mem_type,
-                           CeedScalarType prec, const CeedScalarArray **array);
-CEED_EXTERN int CeedVectorRestoreArrayObj(CeedVector vec, CeedScalarArray **array);
-CEED_EXTERN int CeedVectorRestoreArrayObjRead(CeedVector vec,
-                                              const CeedScalarArray **array);
-```
-
-which are the same prototypes as for the current/`CeedScalar`-based functions, 
-but with the `array` datatype changed to `CeedScalarArray`.  
-
- - pro: could be used at API level if desired (no `void *` for potential issues with 
-Rust/Julia etc. interfaces).  Very similar to the `CeedScalar` version.  Could easily 
-set an array with multiple precisions currently active, if such a use case would arise?
-
- - con: maybe too complicated? Annoying way to interact with it in setup for `Apply` of objects -- 
- E.g., consider the previous code example for the element restriction in the cuda-ref backend,
-but needing to initialize a `CeedScalarArray` object before passing it to the function because
-the function expects to be able to check which pointers inside the `CeedScalarArray` are currently
-valid:
-
-> 
-> **CODE EXAMPLE: double pointers and CeedScalarArray**
-> 
-```
-// Get vectors
-CeedScalarArray d_u_i;
-const CeedScalarArray *d_u = &d_u_i;
-CeedScalarArray d_v_i;
-CeedScalarArray *d_v = &d_v_i;
-ierr = CeedVectorGetArrayObjRead(u, CEED_MEM_DEVICE, CEED_SCALAR_FP64, &d_u); CeedChkBackend(ierr);
-ierr = CeedVectorGetArrayObj(v, CEED_MEM_DEVICE, CEED_SCALAR_FP64, &d_v); CeedChkBackend(ierr);
-
-(&d_u->double_data and &d_v->double_data are passed as kernel args)
-```
-
-However, if we use a single pointer in the prototype instead, we cannot have the `array` be `const`
-in `GetArrayObjRead`. 
-
+We will add a version of sync which can determine which precision should be synced between 
+host/device. 
 
 #### General interface with void pointers
 
+We will add a new set of backend functions to `CeedVector` corresponding to the `Get/Set/Read/Take` functions
+above.
 
-Another possibility would be to have a general interface with `void` pointers and requested precision type. 
-
+Proposed (***discussion point: preferred name?***) :
+ 
 ```
-CEED_EXTERN int CeedVectorSetArrayUntyped(CeedVector vec, CeedMemType mem_type,
+CEED_EXTERN int CeedVectorSetArrayTyped(CeedVector vec, CeedMemType mem_type,
                                       CeedCopyMode copy_mode,
                                       CeedScalarType prec,
                                       void *array);
-CEED_EXTERN int CeedVectorTakeArrayUntyped(CeedVector vec, CeedMemType mem_type,
+CEED_EXTERN int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type,
                                        CeedScalarType prec,
-                                       void **array);
-CEED_EXTERN int CeedVectorGetArrayUntyped(CeedVector vec, CeedMemType mem_type,
-                          CeedScalarType prec, void **array);
-CEED_EXTERN int CeedVectorGetArrayReadUntyped(CeedVector vec, CeedMemType mem_type,
-                           CeedScalarType prec, const void **array);
-CEED_EXTERN int CeedVectorRestoreArrayUntyped(CeedVector vec, void **array);
-CEED_EXTERN int CeedVectorRestoreArrayReadUntyped(CeedVector vec,
-                                                  const void **array);
+                                       void *array);
+CEED_EXTERN int CeedVectorGetArrayTyped(CeedVector vec, CeedMemType mem_type,
+                          CeedScalarType prec, void *array);
+CEED_EXTERN int CeedVectorGetArrayReadTyped(CeedVector vec, CeedMemType mem_type,
+                           CeedScalarType prec, const void *array);
+CEED_EXTERN int CeedVectorRestoreArrayTyped(CeedVector vec, void *array);
+CEED_EXTERN int CeedVectorRestoreArrayReadTyped(CeedVector vec,
+                                                  const void *array);
 ```
-
-- pro: No need for intializing `CeedScalarArray` for use 
-
-- con: cannot be used in public API (if we want a general version to be available).  May be harder 
-to use in a type-agnostic way if casts are required?  (Need to think more about this)
 
 
 ## Other potential uses for CeedScalarArray
@@ -414,7 +275,8 @@ adding them to an operator. This would allow very fine-tuned control.
 A question is whether the user should be able to change the precision of an object during
 its lifetime, or create two separate objects.  A strong argument could be made for being 
 able to change the precision during the lifetime of the object, allowing operators to 
-change computation precision inside a solve. 
+change computation precision inside a solve.  However, this would not have to be implemented
+as a first step. 
 
 Regardless of the level of control over individual operator components exposed to users, 
 we will also want to provide some operator-level options which would be very simple to use.
@@ -450,7 +312,7 @@ Proposed rules:
    case the E-Vector is also the Q-Vector and may need to be in the precision of the QFunction.  This would require
    changes to the way operators store `edata`, as mentioned above.)
 
- - Should all L-Vector inputs/outputs be required to be the same precision? (Preferred precision)
+ - Should all L-Vector inputs/outputs be required to be the same precision?
  
 
 
