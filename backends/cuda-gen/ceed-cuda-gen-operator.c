@@ -137,7 +137,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
-  CeedVector vec, outvecs[16] = {};
+  CeedVector vec, outvecs[CEED_FIELD_MAX] = {};
 
   // Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChkBackend(ierr);

@@ -220,8 +220,8 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
   ierr = CeedCalloc(numinputfields + numoutputfields, &impl->edata);
   CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(16, &impl->qvecsin); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->qvecsout); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->qvecsin); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->qvecsout); CeedChkBackend(ierr);
 
   impl->numein = numinputfields; impl->numeout = numoutputfields;
 

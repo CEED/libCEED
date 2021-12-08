@@ -174,11 +174,11 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   ierr = CeedCalloc(num_input_fields + num_output_fields, &impl->e_data);
   CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(16, &impl->input_state); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->e_vecs_in); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->e_vecs_out); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->q_vecs_in); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->q_vecs_out); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->input_state); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->e_vecs_in); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->e_vecs_out); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->q_vecs_in); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->q_vecs_out); CeedChkBackend(ierr);
 
   impl->num_e_vecs_in = num_input_fields;
   impl->num_e_vecs_out = num_output_fields;
