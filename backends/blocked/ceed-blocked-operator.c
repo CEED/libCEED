@@ -138,9 +138,9 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
 //------------------------------------------------------------------------------
 static int CeedOperatorSetup_Blocked(CeedOperator op) {
   int ierr;
-  bool setup_done;
-  ierr = CeedOperatorIsSetupDone(op, &setup_done); CeedChkBackend(ierr);
-  if (setup_done) return CEED_ERROR_SUCCESS;
+  bool is_setup_done;
+  ierr = CeedOperatorIsSetupDone(op, &is_setup_done); CeedChkBackend(ierr);
+  if (is_setup_done) return CEED_ERROR_SUCCESS;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedOperator_Blocked *impl;

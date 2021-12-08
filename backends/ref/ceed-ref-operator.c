@@ -104,9 +104,9 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
 //------------------------------------------------------------------------------/*
 static int CeedOperatorSetup_Ref(CeedOperator op) {
   int ierr;
-  bool setup_done;
-  ierr = CeedOperatorIsSetupDone(op, &setup_done); CeedChkBackend(ierr);
-  if (setup_done) return CEED_ERROR_SUCCESS;
+  bool is_setup_done;
+  ierr = CeedOperatorIsSetupDone(op, &is_setup_done); CeedChkBackend(ierr);
+  if (is_setup_done) return CEED_ERROR_SUCCESS;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedOperator_Ref *impl;

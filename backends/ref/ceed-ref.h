@@ -23,8 +23,8 @@
 #include <stdint.h>
 
 typedef struct {
-  CeedScalar *collograd1d;
-  bool collo_interp;
+  CeedScalar *collo_grad_1d;
+  bool has_collo_interp;
 } CeedBasis_Ref;
 
 typedef struct {
@@ -43,7 +43,6 @@ typedef struct {
 typedef struct {
   const CeedScalar **inputs;
   CeedScalar **outputs;
-  bool setup_done;
 } CeedQFunction_Ref;
 
 typedef struct {
