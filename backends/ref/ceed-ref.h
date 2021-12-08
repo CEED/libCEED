@@ -53,9 +53,7 @@ typedef struct {
 
 typedef struct {
   bool is_identity_qf, is_identity_restr_op;
-  CeedVector
-  *e_vecs;   /* E-vectors needed to apply operator (input followed by outputs) */
-  CeedScalar **e_data;
+  CeedVector *e_vecs;      /* All E-vectors, inputs followed by outputs */
   uint64_t *input_state;   /* State counter of inputs */
   CeedVector *e_vecs_in;   /* Input E-vectors needed to apply operator */
   CeedVector *e_vecs_out;  /* Output E-vectors needed to apply operator */
