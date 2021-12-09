@@ -112,12 +112,12 @@ typedef struct {
 } CeedQFunction_Cuda;
 
 typedef struct {
-  CeedScalar *h_data;
-  CeedScalar *h_data_borrowed;
-  CeedScalar *h_data_owned;
-  CeedScalar *d_data;
-  CeedScalar *d_data_borrowed;
-  CeedScalar *d_data_owned;
+  void *h_data;
+  void *h_data_borrowed;
+  void *h_data_owned;
+  void *d_data;
+  void *d_data_borrowed;
+  void *d_data_owned;
 } CeedQFunctionContext_Cuda;
 
 typedef struct {

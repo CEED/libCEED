@@ -193,7 +193,7 @@ static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx,
 // Take data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
-    const CeedMemType mtype, CeedScalar *data) {
+    const CeedMemType mtype, void *data) {
   int ierr;
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
