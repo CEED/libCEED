@@ -42,25 +42,25 @@ noether-rocm:
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search="petsc fluids solids"
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search="petsc fluids solids"
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
 # -- MFEM v4.2
     - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=mfem
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search=mfem
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=mfem
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=mfem
 # -- Nek5000 v19.0
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit search=nek
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit search=nek
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
@@ -118,8 +118,8 @@ noether-float:
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" junit realsearch=%
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" junit realsearch=%
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="float-cpu" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="float-hip" junit realsearch=%
 # Report status
     - echo "SUCCESS" > .job_status
   after_script:
@@ -169,10 +169,10 @@ lv-cuda:
     - echo "-------------- quick CPU tests to get everything built (no junit) --------------"
     - nice make -k -j$NPROC_CPU -l$NPROC_CPU test BACKENDS=/cpu/self/avx/blocked realsearch=%
     - echo "-------------- CUDA tests without PETSc (makes *.junit) --------------"
-    - nice make -k -j$NPROC_GPU junit PETSC_DIR= BACKENDS="$BACKENDS_GPU" realsearch=%
+    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit PETSC_DIR= BACKENDS="$BACKENDS_GPU" realsearch=%
     - echo "-------------- CUDA tests with PETSc (makes *.junit) --------------"
 # skip fluids and solids due to CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES on RTX 2080 Super
-    - nice make -k -j$NPROC_GPU junit BACKENDS="$BACKENDS_GPU" search="petsc"
+    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc"
 # Report status
     - touch .SUCCESS
   after_script:
