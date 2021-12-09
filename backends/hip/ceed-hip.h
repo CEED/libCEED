@@ -150,9 +150,7 @@ typedef struct {
 } CeedOperatorDiag_Hip;
 
 typedef struct {
-  CeedVector
-  *evecs;   // E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
+  CeedVector *evecs;   // E-vectors, inputs followed by outputs
   CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;
