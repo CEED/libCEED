@@ -35,7 +35,8 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
 
   if (mem_type != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Can only set HOST memory for this backend");
   // LCOV_EXCL_STOP
 
   ierr = CeedFree(&impl->data_owned); CeedChkBackend(ierr);
@@ -72,13 +73,14 @@ static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx,
 
   if (mem_type != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
   if (!impl->data_borrowed)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "No context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
+                     "Must set context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
   // LCOV_EXCL_STOP
 
   *(void **)data = impl->data;
@@ -102,7 +104,8 @@ static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
 
   if (mem_type != CEED_MEM_HOST)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
   if (!impl->data)

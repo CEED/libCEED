@@ -210,7 +210,7 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
     if (!impl->h_data_borrowed)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "No host context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
+                       "Must set HOST context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
     // LCOV_EXCL_STOP
 
     if (!impl->h_data) {
@@ -224,7 +224,7 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
     if (!impl->d_data_borrowed)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "No device context data set with CeedQFunctionContextSetData and CEED_USE_POINTER");
+                       "Must set DEVICE context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
     // LCOV_EXCL_STOP
 
     if (!impl->d_data) {

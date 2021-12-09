@@ -244,7 +244,7 @@ static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mtype,
     if (!impl->h_array_borrowed)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "No host array set with CeedVectorSetArray and CEED_USE_POINTER");
+                       "Must set HOST array with CeedVectorSetArray and CEED_USE_POINTER before calling CeedVectorTakeArray");
     // LCOV_EXCL_STOP
 
     if (!impl->h_array && impl->d_array) {
@@ -258,7 +258,7 @@ static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mtype,
     if (!impl->d_array_borrowed)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "No device array set with CeedVectorSetArray and CEED_USE_POINTER");
+                       "Must set DEVICE array with CeedVectorSetArray and CEED_USE_POINTER before calling CeedVectorTakeArray");
     // LCOV_EXCL_STOP
 
     if (!impl->d_array && impl->h_array) {
