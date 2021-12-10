@@ -569,7 +569,7 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
   if (is_all_stale)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
+                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorReciprocal");
   // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
@@ -616,7 +616,7 @@ static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
   if (is_all_stale)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
+                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorScale");
   // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
@@ -666,7 +666,7 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
   if (is_all_stale_x || is_all_stale_y)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
+                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorAXPY");
   // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
@@ -721,7 +721,7 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x,
   if (is_all_stale_x || is_all_stale_y)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
+                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorPointwiseMult");
   // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
