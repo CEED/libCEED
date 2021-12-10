@@ -401,7 +401,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
           for (int l=0; l<5; l++) {
             stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_conv[l];
           }
-
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
           dv[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
