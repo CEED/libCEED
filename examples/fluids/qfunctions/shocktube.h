@@ -287,7 +287,8 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
       CeedScalar j_gradn[3] = {0.0};      // j * grad(N)
       CeedScalar h_shock = 0.0;           // element lengthscale
-      CeedScalar acoustic_vel = 0.0;      // characteristic velocity, set to acoustic speed
+      CeedScalar acoustic_vel =
+        0.0;      // characteristic velocity, set to acoustic speed
       CeedScalar tau_shock = 0.0;         // timescale
       CeedScalar nu_shock = 0.0;          // artificial diffusion
 
@@ -300,14 +301,14 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       // Approximate dot(j_vec,grad(N)) using the metric tensor
       for (int j=0; j<3; j++)
         j_gradn[j] = j_vec[0] * dXdx[0][j]
-                   + j_vec[1] * dXdx[1][j]
-                   + j_vec[2] * dXdx[2][j];
+                     + j_vec[1] * dXdx[1][j]
+                     + j_vec[2] * dXdx[2][j];
 
       if (drho_norm == 0.0) {
         nu_shock = 0.0;
       } else {
         h_shock = 2.0 / (Cyzb * sqrt(j_gradn[0]*j_gradn[0] + j_gradn[1]*j_gradn[1] +
-                                    j_gradn[2]*j_gradn[2]));
+                                     j_gradn[2]*j_gradn[2]));
         acoustic_vel = sqrt(gamma*P/rho);
         tau_shock = h_shock / (2*acoustic_vel) * pow(drho_norm * h_shock / rho, Byzb);
         nu_shock = fabs(tau_shock * acoustic_vel * acoustic_vel);
