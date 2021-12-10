@@ -202,9 +202,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
                                     dq[1][0][i],
                                     dq[2][0][i]
                                    };
-    // printf("x[0:2] = %1.5e, %1.5e, %1.5e \n", x[0][i],x[1][i],x[2][i]);
-    // printf("q[0:4] = %1.5e, %1.5e, %1.5e, %1.5e, %1.5e \n", q[0][i],q[1][i],q[2][i],q[3][i],q[4][i]);
-    // printf("drho = %1.5e, %1.5e, %1.5e \n",drho[0],drho[1],drho[2]); 
     const CeedScalar dU[3][3]   = {{dq[0][1][i],
                                     dq[1][1][i],
                                     dq[2][1][i]},
@@ -286,13 +283,13 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
 
     // -- YZB stabilization
     if (context->yzb) {
-      CeedScalar drho_norm = 0.0;   // magnitude of the density gradient
-      CeedScalar j_vec[3] = {0.0};  // unit vector aligned with the density gradient
-      CeedScalar jdgn[3] = {0.0};   // j * grad(N)
-      CeedScalar h_shoc = 0.0;      // element lengthscale
-      CeedScalar u_cha = 0.0;       // characteristic velocity, set to acoustic speed
-      CeedScalar tau_shoc = 0.0;    // timescale
-      CeedScalar nu_shoc = 0.0;     // artificial diffusion
+      CeedScalar drho_norm = 0.0;         // magnitude of the density gradient
+      CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
+      CeedScalar j_gradn[3] = {0.0};      // j * grad(N)
+      CeedScalar h_shock = 0.0;           // element lengthscale
+      CeedScalar acoustic_vel = 0.0;      // characteristic velocity, set to acoustic speed
+      CeedScalar tau_shock = 0.0;         // timescale
+      CeedScalar nu_shock = 0.0;          // artificial diffusion
 
       // Unit vector aligned with the density gradient
       drho_norm = sqrt(drhodx[0]*drhodx[0] + drhodx[1]*drhodx[1] +
@@ -302,29 +299,29 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
 
       // Approximate dot(j_vec,grad(N)) using the metric tensor
       for (int j=0; j<3; j++)
-        jdgn[j] = j_vec[0] * dXdx[0][j]
-                  + j_vec[1] * dXdx[1][j]
-                  + j_vec[2] * dXdx[2][j];
+        j_gradn[j] = j_vec[0] * dXdx[0][j]
+                   + j_vec[1] * dXdx[1][j]
+                   + j_vec[2] * dXdx[2][j];
 
       if (drho_norm == 0.0) {
-        nu_shoc = 0.0;
+        nu_shock = 0.0;
       } else {
-        h_shoc = 2.0 / (Cyzb * sqrt(jdgn[0]*jdgn[0] + jdgn[1]*jdgn[1] +
-                                    jdgn[2]*jdgn[2]));
-        u_cha = sqrt(gamma*P/rho);
-        tau_shoc = h_shoc / (2*u_cha) * pow(drho_norm * h_shoc / rho, Byzb);
-        nu_shoc = fabs(tau_shoc * u_cha * u_cha);
+        h_shock = 2.0 / (Cyzb * sqrt(j_gradn[0]*j_gradn[0] + j_gradn[1]*j_gradn[1] +
+                                    j_gradn[2]*j_gradn[2]));
+        acoustic_vel = sqrt(gamma*P/rho);
+        tau_shock = h_shock / (2*acoustic_vel) * pow(drho_norm * h_shock / rho, Byzb);
+        nu_shock = fabs(tau_shock * acoustic_vel * acoustic_vel);
       }
 
       for (int j=0; j<3; j++)
-        dv[j][0][i] -= wdetJ * nu_shoc * drhodx[j];
+        dv[j][0][i] -= wdetJ * nu_shock * drhodx[j];
 
       for (int k=0; k<3; k++)
         for (int j=0; j<3; j++)
-          dv[j][k][i] -= wdetJ * nu_shoc * du[k][j];
+          dv[j][k][i] -= wdetJ * nu_shock * du[k][j];
 
       for (int j=0; j<3; j++)
-        dv[j][4][i] -= wdetJ * nu_shoc * dEdx[j];
+        dv[j][4][i] -= wdetJ * nu_shock * dEdx[j];
     }
 
     // Stabilization
@@ -332,17 +329,17 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
     // Need the Jacobian for the advective fluxes for stabilization
     //    indexed as: jacob_F_conv[direction][flux component][solution component]
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
-    CeedScalar velsq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
-    CeedScalar rhosq = rho*rho;
+    CeedScalar vel_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
+    CeedScalar rho_sq = rho*rho;
     for (int j=0; j<3; j++) {
-      jacob_F_conv[j][4][0] = (gamma-1.) * (-u[j]*P/rho - u[j]/rho*(E-velsq/
-                                            (2.*rho)) + u[j]*(velsq/(2.*rho)));
+      jacob_F_conv[j][4][0] = (gamma-1.) * (-u[j]*P/rho - u[j]/rho*(E-vel_sq/
+                                            (2.*rho)) + u[j]*(vel_sq/(2.*rho)));
       jacob_F_conv[j][4][4] =  u[j] * gamma;
       for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0] = -u[j]*u[k] + (j==k?((gamma-1.)*velsq/(2*rhosq)):0.);
+        jacob_F_conv[j][k+1][0] = -u[j]*u[k] + (j==k?((gamma-1.)*vel_sq/(2*rho_sq)):0.);
         jacob_F_conv[j][k+1][4] = (j==k?(gamma-1.):0.);
         jacob_F_conv[j][0][k+1] = (j==k?1.:0.);
-        jacob_F_conv[j][4][k+1] = (j==k?(E/rho + (gamma-1.)/rho*(E-velsq/
+        jacob_F_conv[j][4][k+1] = (j==k?(E/rho + (gamma-1.)/rho*(E-vel_sq/
                                          (2*rho))):0.) - (gamma-1.)*u[j]*u[k];
         jacob_F_conv[j][j+1][k+1] = -(gamma-1.)*u[k];
         jacob_F_conv[j][k+1][k+1] += (j==k?(2*u[j]):(u[j]));
@@ -402,8 +399,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++) {
             stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_conv[l];
-            // printf("strong_conv[%d], Tau[%d] = %1.5e, %1.5e \n",l,l,strong_conv[l],Tau[l]);
-            // printf("stab[%d][%d] = %1.5e \n",k,j,stab[k][j]);
           }
 
       for (int j=0; j<5; j++)
