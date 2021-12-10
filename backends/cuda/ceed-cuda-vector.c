@@ -87,7 +87,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   } else {
     CeedInt length;
     ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-    ierr = CeedMalloc(length, &data->h_array_owned);  CeedChkBackend(ierr);
+    ierr = CeedCalloc(length, &data->h_array_owned);  CeedChkBackend(ierr);
     data->h_array = data->h_array_owned;
   }
 

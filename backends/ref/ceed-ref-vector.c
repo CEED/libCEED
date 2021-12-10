@@ -41,7 +41,7 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
   switch (copy_mode) {
   case CEED_COPY_VALUES:
     if (!impl->array_owned) {
-      ierr = CeedMalloc(length, &impl->array_owned); CeedChkBackend(ierr);
+      ierr = CeedCalloc(length, &impl->array_owned); CeedChkBackend(ierr);
     }
     impl->array_borrowed = NULL;
     impl->array = impl->array_owned;
