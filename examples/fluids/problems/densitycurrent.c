@@ -227,7 +227,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
-  setup_context->time       = 0;
+  setup_context->time       = 0.;
 
   // -- QFunction Context
   user->phys->has_curr_time     = has_curr_time;

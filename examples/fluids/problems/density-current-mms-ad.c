@@ -200,14 +200,14 @@ PetscErrorCode NS_DENSITY_CURRENT_MMS(ProblemData *problem, void *setup_ctx,
   N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  Rd     = cp - cv;
+  Rd      = cp - cv;
   g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
-  lx     = fabs(lx) * meter;
-  ly     = fabs(ly) * meter;
-  lz     = fabs(lz) * meter;
-  rc     = fabs(rc) * meter;
+  lx      = fabs(lx) * meter;
+  ly      = fabs(ly) * meter;
+  lz      = fabs(lz) * meter;
+  rc      = fabs(rc) * meter;
   for (int i=0; i<3; i++) center[i] *= meter;
 
   // -- Setup Context
@@ -229,7 +229,7 @@ PetscErrorCode NS_DENSITY_CURRENT_MMS(ProblemData *problem, void *setup_ctx,
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
-  setup_context->time       = 0;
+  setup_context->time       = 0.;
 
   // -- QFunction Context
   user->phys->has_curr_time     = has_curr_time;

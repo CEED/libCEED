@@ -196,7 +196,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   setup_context->wind_type              = wind_type;
   setup_context->bubble_type            = bubble_type;
   setup_context->bubble_continuity_type = bubble_continuity_type;
-  setup_context->time = 0;
+  setup_context->time = 0.;
 
   // -- QFunction Context
   user->phys->wind_type                    = wind_type;

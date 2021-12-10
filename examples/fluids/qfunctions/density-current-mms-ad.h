@@ -205,7 +205,6 @@ CEED_QFUNCTION(DC_MMS)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   //const CeedScalar cv     = context->cv;
   //const CeedScalar cp     = context->cp;
   //const CeedScalar g      = context->g;
-  //const CeedScalar Rd     = context->Rd;
   //const CeedScalar gamma  = cp / cv;
   const CeedScalar t      = context->curr_time;
   const bool implicit     = context->implicit;

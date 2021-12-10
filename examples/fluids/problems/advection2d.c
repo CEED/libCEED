@@ -176,7 +176,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   setup_context->wind[0]   = wind[0];
   setup_context->wind[1]   = wind[1];
   setup_context->wind_type = wind_type;
-  setup_context->time      = 0;
+  setup_context->time      = 0.;
 
   // -- QFunction Context
   user->phys->wind_type                    = wind_type;
