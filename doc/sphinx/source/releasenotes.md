@@ -30,6 +30,7 @@ for each release of libCEED.
 
 - Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.
 - `Include-what-you-use` makefile target added as `make iwyu`.
+- Create backend constant `CEED_FIELD_MAX` to reduce magic numbers in codebase.
 
 (v0-9)=
 

@@ -468,8 +468,8 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     strncpy(source_copy, source, source_len);
     (*qf)->source_path = source_copy;
   }
-  ierr = CeedCalloc(16, &(*qf)->input_fields); CeedChk(ierr);
-  ierr = CeedCalloc(16, &(*qf)->output_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->input_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->output_fields); CeedChk(ierr);
   ierr = ceed->QFunctionCreate(*qf); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }

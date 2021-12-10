@@ -95,8 +95,8 @@ typedef struct {
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
 typedef struct {
-  const CeedScalar *inputs[16];
-  CeedScalar *outputs[16];
+  const CeedScalar *inputs[CEED_FIELD_MAX];
+  CeedScalar *outputs[CEED_FIELD_MAX];
 } Fields_Hip;
 
 typedef struct {
@@ -150,9 +150,7 @@ typedef struct {
 } CeedOperatorDiag_Hip;
 
 typedef struct {
-  CeedVector
-  *evecs;   // E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **edata;
+  CeedVector *evecs;   // E-vectors, inputs followed by outputs
   CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
   CeedInt    numein;

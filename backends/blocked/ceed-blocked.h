@@ -28,20 +28,17 @@ typedef struct {
 
 typedef struct {
   bool is_identity_qf, is_identity_restr_op;
-  CeedElemRestriction *blk_restr; /// Blocked versions of restrictions
-  CeedVector
-  *e_vecs;   /// E-vectors needed to apply operator (input followed by outputs)
-  CeedScalar **e_data;
-  uint64_t *input_state;  /// State counter of inputs
-  CeedVector *e_vecs_in;   /// Input E-vectors needed to apply operator
-  CeedVector *e_vecs_out;  /// Output E-vectors needed to apply operator
-  CeedVector *q_vecs_in;   /// Input Q-vectors needed to apply operator
-  CeedVector *q_vecs_out;  /// Output Q-vectors needed to apply operator
-  CeedInt    num_e_vecs_in;
-  CeedInt    num_e_vecs_out;
-  CeedInt    qf_num_active_in, qf_num_active_out;
+  CeedElemRestriction *blk_restr; /* Blocked versions of restrictions */
+  CeedVector *e_vecs_full; /* Full E-vectors, inputs followed by outputs */
+  uint64_t *input_states;  /* State counter of inputs */
+  CeedVector *e_vecs_in;   /* Element block input E-vectors  */
+  CeedVector *e_vecs_out;  /* Element block output E-vectors */
+  CeedVector *q_vecs_in;   /* Element block input Q-vectors  */
+  CeedVector *q_vecs_out;  /* Element block output Q-vectors */
+  CeedInt    num_inputs, num_outputs;
+  CeedInt    num_active_in, num_active_out;
   CeedVector *qf_active_in;
-  CeedVector qf_lvec;
+  CeedVector qf_l_vec;
   CeedElemRestriction qf_blk_rstr;
 } CeedOperator_Blocked;
 

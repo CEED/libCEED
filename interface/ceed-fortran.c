@@ -936,7 +936,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
                          int *v12, int *v13, int *v14, int *v15, int *err) {
   CeedQFunction qf_ = CeedQFunction_dict[*qf];
   CeedVector *in;
-  *err = CeedCalloc(16, &in);
+  *err = CeedCalloc(CEED_FIELD_MAX, &in);
   if (*err) return;
   in[0] = *u==FORTRAN_NULL?NULL:CeedVector_dict[*u];
   in[1] = *u1==FORTRAN_NULL?NULL:CeedVector_dict[*u1];
@@ -955,7 +955,7 @@ void fCeedQFunctionApply(int *qf, int *Q,
   in[14] = *u14==FORTRAN_NULL?NULL:CeedVector_dict[*u14];
   in[15] = *u15==FORTRAN_NULL?NULL:CeedVector_dict[*u15];
   CeedVector *out;
-  *err = CeedCalloc(16, &out);
+  *err = CeedCalloc(CEED_FIELD_MAX, &out);
   if (*err) return;
   out[0] = *v==FORTRAN_NULL?NULL:CeedVector_dict[*v];
   out[1] = *v1==FORTRAN_NULL?NULL:CeedVector_dict[*v1];

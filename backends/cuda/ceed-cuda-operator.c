@@ -36,7 +36,6 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
     ierr = CeedVectorDestroy(&impl->evecs[i]); CeedChkBackend(ierr);
   }
   ierr = CeedFree(&impl->evecs); CeedChkBackend(ierr);
-  ierr = CeedFree(&impl->edata); CeedChkBackend(ierr);
 
   for (CeedInt i = 0; i < impl->numein; i++) {
     ierr = CeedVectorDestroy(&impl->qvecsin[i]); CeedChkBackend(ierr);
@@ -218,11 +217,9 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   // Allocate
   ierr = CeedCalloc(numinputfields + numoutputfields, &impl->evecs);
   CeedChkBackend(ierr);
-  ierr = CeedCalloc(numinputfields + numoutputfields, &impl->edata);
-  CeedChkBackend(ierr);
 
-  ierr = CeedCalloc(16, &impl->qvecsin); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->qvecsout); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->qvecsin); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->qvecsout); CeedChkBackend(ierr);
 
   impl->numein = numinputfields; impl->numeout = numoutputfields;
 
@@ -248,8 +245,8 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
 //------------------------------------------------------------------------------
 static inline int CeedOperatorSetupInputs_Cuda(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
-    CeedVector invec, const bool skipactive, CeedOperator_Cuda *impl,
-    CeedRequest *request) {
+    CeedVector invec, const bool skipactive, CeedScalar *edata[2*CEED_FIELD_MAX],
+    CeedOperator_Cuda *impl, CeedRequest *request) {
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
@@ -280,14 +277,14 @@ static inline int CeedOperatorSetupInputs_Cuda(CeedInt numinputfields,
       if (!impl->evecs[i]) {
         // No restriction for this field; read data directly from vec.
         ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE,
-                                      (const CeedScalar **) &impl->edata[i]);
+                                      (const CeedScalar **) &edata[i]);
         CeedChkBackend(ierr);
       } else {
         ierr = CeedElemRestrictionApply(Erestrict, CEED_NOTRANSPOSE, vec,
                                         impl->evecs[i], request); CeedChkBackend(ierr);
         // Get evec
         ierr = CeedVectorGetArrayRead(impl->evecs[i], CEED_MEM_DEVICE,
-                                      (const CeedScalar **) &impl->edata[i]);
+                                      (const CeedScalar **) &edata[i]);
         CeedChkBackend(ierr);
       }
     }
@@ -300,7 +297,8 @@ static inline int CeedOperatorSetupInputs_Cuda(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
-    CeedInt numinputfields, const bool skipactive, CeedOperator_Cuda *impl) {
+    CeedInt numinputfields, const bool skipactive,
+    CeedScalar *edata[2*CEED_FIELD_MAX],CeedOperator_Cuda *impl) {
   CeedInt ierr;
   CeedInt elemsize, size;
   CeedElemRestriction Erestrict;
@@ -327,8 +325,7 @@ static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
     switch (emode) {
     case CEED_EVAL_NONE:
       ierr = CeedVectorSetArray(impl->qvecsin[i], CEED_MEM_DEVICE,
-                                CEED_USE_POINTER,
-                                impl->edata[i]); CeedChkBackend(ierr);
+                                CEED_USE_POINTER, edata[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis);
@@ -360,7 +357,8 @@ static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
 //------------------------------------------------------------------------------
 static inline int CeedOperatorRestoreInputs_Cuda(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
-    const bool skipactive, CeedOperator_Cuda *impl) {
+    const bool skipactive, CeedScalar *edata[2*CEED_FIELD_MAX],
+    CeedOperator_Cuda *impl) {
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
@@ -379,11 +377,11 @@ static inline int CeedOperatorRestoreInputs_Cuda(CeedInt numinputfields,
       if (!impl->evecs[i]) {  // This was a skiprestrict case
         ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
         ierr = CeedVectorRestoreArrayRead(vec,
-                                          (const CeedScalar **)&impl->edata[i]);
+                                          (const CeedScalar **)&edata[i]);
         CeedChkBackend(ierr);
       } else {
         ierr = CeedVectorRestoreArrayRead(impl->evecs[i],
-                                          (const CeedScalar **) &impl->edata[i]);
+                                          (const CeedScalar **) &edata[i]);
         CeedChkBackend(ierr);
       }
     }
@@ -416,18 +414,19 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
+  CeedScalar *edata[2*CEED_FIELD_MAX] = {0};
 
   // Setup
   ierr = CeedOperatorSetup_Cuda(op); CeedChkBackend(ierr);
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Cuda(numinputfields, qfinputfields,
-                                      opinputfields, invec, false, impl,
-                                      request); CeedChkBackend(ierr);
+                                      opinputfields, invec, false, edata,
+                                      impl, request); CeedChkBackend(ierr);
 
   // Input basis apply if needed
   ierr = CeedOperatorInputBasis_Cuda(numelements, qfinputfields, opinputfields,
-                                     numinputfields, false, impl);
+                                     numinputfields, false, edata, impl);
   CeedChkBackend(ierr);
 
   // Output pointers, as necessary
@@ -437,10 +436,9 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     if (emode == CEED_EVAL_NONE) {
       // Set the output Q-Vector to use the E-Vector data directly.
       ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
-                                &impl->edata[i + numinputfields]); CeedChkBackend(ierr);
+                                &edata[i + numinputfields]); CeedChkBackend(ierr);
       ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
-                                CEED_USE_POINTER,
-                                impl->edata[i + numinputfields]);
+                                CEED_USE_POINTER, edata[i + numinputfields]);
       CeedChkBackend(ierr);
     }
   }
@@ -501,7 +499,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     CeedChkBackend(ierr);
     if (emode == CEED_EVAL_NONE) {
       ierr = CeedVectorRestoreArray(impl->evecs[i+impl->numein],
-                                    &impl->edata[i + numinputfields]);
+                                    &edata[i + numinputfields]);
       CeedChkBackend(ierr);
     }
     // Get output vector
@@ -521,7 +519,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
-                                        opinputfields, false, impl);
+                                        opinputfields, false, edata, impl);
   CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -557,6 +555,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
   ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceedparent);
   CeedChkBackend(ierr);
   ceedparent = ceedparent ? ceedparent : ceed;
+  CeedScalar *edata[2*CEED_FIELD_MAX];
 
   // Setup
   ierr = CeedOperatorSetup_Cuda(op); CeedChkBackend(ierr);
@@ -572,8 +571,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
 
   // Input Evecs and Restriction
   ierr = CeedOperatorSetupInputs_Cuda(numinputfields, qfinputfields,
-                                      opinputfields, NULL, true, impl, request);
-  CeedChkBackend(ierr);
+                                      opinputfields, NULL, true, edata,
+                                      impl, request); CeedChkBackend(ierr);
 
   // Count number of active input fields
   if (!numactivein) {
@@ -644,7 +643,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
 
   // Input basis apply
   ierr = CeedOperatorInputBasis_Cuda(numelements, qfinputfields, opinputfields,
-                                     numinputfields, true, impl);
+                                     numinputfields, true, edata, impl);
   CeedChkBackend(ierr);
 
   // Assemble QFunction
@@ -688,7 +687,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
 
   // Restore input arrays
   ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
-                                        opinputfields, true, impl);
+                                        opinputfields, true, edata, impl);
   CeedChkBackend(ierr);
 
   // Restore output

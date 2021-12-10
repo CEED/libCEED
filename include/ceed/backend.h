@@ -30,6 +30,7 @@
 #define CEED_MAX_BACKEND_PRIORITY UINT_MAX
 #define CEED_ALIGN 64
 #define CEED_COMPOSITE_MAX 16
+#define CEED_FIELD_MAX 16
 
 /**
   @ingroup Ceed

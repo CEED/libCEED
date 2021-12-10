@@ -514,8 +514,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     (*op)->dqfT = dqfT;
     ierr = CeedQFunctionReference(dqfT); CeedChk(ierr);
   }
-  ierr = CeedCalloc(16, &(*op)->input_fields); CeedChk(ierr);
-  ierr = CeedCalloc(16, &(*op)->output_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -548,7 +548,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   (*op)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
   (*op)->is_composite = true;
-  ierr = CeedCalloc(16, &(*op)->sub_operators); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators); CeedChk(ierr);
 
   if (ceed->CompositeOperatorCreate) {
     ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
