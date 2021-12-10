@@ -128,9 +128,8 @@ static inline int CeedQFunctionContextIsAllStale_Hip(
 //------------------------------------------------------------------------------
 // Check if data of given type needs sync
 //------------------------------------------------------------------------------
-static inline int CeedQFunctionContextNeedSync_Hip(const CeedQFunctionContext
-    ctx,
-    CeedMemType mtype, bool *need_sync) {
+static inline int CeedQFunctionContextNeedSync_Hip(
+  const CeedQFunctionContext ctx, CeedMemType mtype, bool *need_sync) {
   int ierr;
   CeedQFunctionContext_Hip *data;
   ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);

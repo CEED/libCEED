@@ -88,8 +88,8 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
 //------------------------------------------------------------------------------
 // Sync data of type
 //------------------------------------------------------------------------------
-static inline int CeedQFunctionContextSync_Cuda(const CeedQFunctionContext ctx,
-    CeedMemType mtype) {
+static inline int CeedQFunctionContextSync_Cuda(
+  const CeedQFunctionContext ctx, CeedMemType mtype) {
   switch (mtype) {
   case CEED_MEM_HOST: return CeedQFunctionContextSyncD2H_Cuda(ctx);
   case CEED_MEM_DEVICE: return CeedQFunctionContextSyncH2D_Cuda(ctx);
