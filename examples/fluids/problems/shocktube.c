@@ -74,7 +74,8 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   CeedScalar cv              = 50.0;    // J/(kg K)
   // Tuning parameters for the YZB shock capturing
   CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
-  CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks, 2 for sharp shocks
+  CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks
+  //                                          2 for sharp shocks
 
   // ------------------------------------------------------
   //             Create the PETSc context
