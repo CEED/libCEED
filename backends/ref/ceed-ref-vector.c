@@ -109,10 +109,19 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
                      "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
-  if (!impl->array) { // Allocate if array is not yet allocated
-    ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
-    CeedChkBackend(ierr);
+  if (!impl->array) {
+    // Allocate if array is not yet allocated
+    if (!impl->array_owned && !impl->array_borrowed) {
+      ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
+      CeedChkBackend(ierr);
+    } else {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
+      // LCOV_EXCL_STOP
+    }
   }
+
   *array = impl->array;
 
   return CEED_ERROR_SUCCESS;

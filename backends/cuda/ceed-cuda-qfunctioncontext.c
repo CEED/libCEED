@@ -86,16 +86,67 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
 }
 
 //------------------------------------------------------------------------------
+// Sync data of type
+//------------------------------------------------------------------------------
+static inline int CeedQFunctionContextSync_Cuda(const CeedQFunctionContext ctx,
+    CeedMemType mtype) {
+  switch (mtype) {
+  case CEED_MEM_HOST: return CeedQFunctionContextSyncD2H_Cuda(ctx);
+  case CEED_MEM_DEVICE: return CeedQFunctionContextSyncH2D_Cuda(ctx);
+  }
+  return CEED_ERROR_UNSUPPORTED;
+}
+
+//------------------------------------------------------------------------------
 // Set all pointers as stale
 //------------------------------------------------------------------------------
-static inline int CeedQFunctionContextSetAllStale_Cuda(const
-    CeedQFunctionContext ctx) {
+static inline int CeedQFunctionContextSetAllStale_Cuda(
+  const CeedQFunctionContext ctx) {
   int ierr;
   CeedQFunctionContext_Cuda *data;
   ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
 
   data->h_data = NULL;
   data->d_data = NULL;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Check if all pointers are stale
+//------------------------------------------------------------------------------
+static inline int CeedQFunctionContextIsAllStale_Cuda(
+  const CeedQFunctionContext ctx, bool *is_all_stale) {
+  int ierr;
+  CeedQFunctionContext_Cuda *data;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+
+  *is_all_stale = !data->h_data & !data->d_data;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Check if data of given type needs sync
+//------------------------------------------------------------------------------
+static inline int CeedQFunctionContextNeedSync_Cuda(const CeedQFunctionContext
+    ctx,
+    CeedMemType mtype, bool *need_sync) {
+  int ierr;
+  CeedQFunctionContext_Cuda *data;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+
+  bool is_all_stale = false;
+  ierr = CeedQFunctionContextIsAllStale_Cuda(ctx, &is_all_stale);
+  CeedChkBackend(ierr);
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *need_sync = !is_all_stale && !data->h_data;
+    break;
+  case CEED_MEM_DEVICE:
+    *need_sync = !is_all_stale && !data->d_data;
+    break;
+  }
 
   return CEED_ERROR_SUCCESS;
 }
@@ -169,8 +220,8 @@ static int CeedQFunctionContextSetDataDevice_Cuda(
 }
 
 //------------------------------------------------------------------------------
-// Set the array used by a user context,
-//   freeing any previously allocated array if applicable
+// Set the data used by a user context,
+//   freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx,
     const CeedMemType mtype, const CeedCopyMode cmode, void *data) {
@@ -200,12 +251,23 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  if (!impl->h_data && !impl->d_data)
+  bool is_all_stale = false;
+  ierr = CeedQFunctionContextIsAllStale_Cuda(ctx, &is_all_stale);
+  CeedChkBackend(ierr);
+  if (is_all_stale)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid context data set");
   // LCOV_EXCL_STOP
 
-  // Sync array to requested memtype and update pointer
+  // Sync data to requested memtype
+  bool need_sync = false;
+  ierr = CeedQFunctionContextNeedSync_Cuda(ctx, mtype, &need_sync);
+  CeedChkBackend(ierr);
+  if (need_sync) {
+    ierr = CeedQFunctionContextSync_Cuda(ctx, mtype); CeedChkBackend(ierr);
+  }
+
+  // Update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
     if (!impl->h_data_borrowed)
@@ -214,9 +276,6 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
                        "Must set HOST context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
     // LCOV_EXCL_STOP
 
-    if (!impl->h_data) {
-      ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChkBackend(ierr);
-    }
     *(void **)data = impl->h_data_borrowed;
     impl->h_data_borrowed = NULL;
     impl->h_data = NULL;
@@ -228,9 +287,6 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx,
                        "Must set DEVICE context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
     // LCOV_EXCL_STOP
 
-    if (!impl->d_data) {
-      ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChkBackend(ierr);
-    }
     *(void **)data = impl->d_data_borrowed;
     impl->d_data_borrowed = NULL;
     impl->d_data = NULL;
@@ -250,23 +306,29 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
-  if (!impl->h_data && !impl->d_data)
+
+  bool is_all_stale = false;
+  ierr = CeedQFunctionContextIsAllStale_Cuda(ctx, &is_all_stale);
+  CeedChkBackend(ierr);
+  if (is_all_stale)
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid context data set");
   // LCOV_EXCL_STOP
 
-  // Sync array to requested memtype and update pointer
+  // Sync data to requested memtype
+  bool need_sync = false;
+  ierr = CeedQFunctionContextNeedSync_Cuda(ctx, mtype, &need_sync);
+  CeedChkBackend(ierr);
+  if (need_sync) {
+    ierr = CeedQFunctionContextSync_Cuda(ctx, mtype); CeedChkBackend(ierr);
+  }
+
+  // Update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if (!impl->h_data) {
-      ierr = CeedQFunctionContextSyncD2H_Cuda(ctx); CeedChkBackend(ierr);
-    }
     *(void **)data = impl->h_data;
     break;
   case CEED_MEM_DEVICE:
-    if (!impl->d_data) {
-      ierr = CeedQFunctionContextSyncH2D_Cuda(ctx); CeedChkBackend(ierr);
-    }
     *(void **)data = impl->d_data;
     break;
   }
