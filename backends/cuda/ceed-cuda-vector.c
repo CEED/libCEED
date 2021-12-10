@@ -364,7 +364,7 @@ static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mtype,
   }
 
   // Update pointer
-  switch(mtype) {
+  switch (mtype) {
   case CEED_MEM_HOST:
     if (!impl->h_array_borrowed)
       // LCOV_EXCL_START
