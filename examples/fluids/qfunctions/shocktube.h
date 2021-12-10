@@ -287,8 +287,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
       CeedScalar j_gradn[3] = {0.0};      // j * grad(N)
       CeedScalar h_shock = 0.0;           // element lengthscale
-      CeedScalar acoustic_vel =
-        0.0;      // characteristic velocity, set to acoustic speed
+      CeedScalar acoustic_vel = 0.0;      // characteristic velocity, set to acoustic speed
       CeedScalar tau_shock = 0.0;         // timescale
       CeedScalar nu_shock = 0.0;          // artificial diffusion
 
