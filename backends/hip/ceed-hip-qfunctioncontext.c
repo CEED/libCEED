@@ -97,9 +97,9 @@ static inline int CeedQFunctionContextSync_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Set all pointers as stale
+// Set all pointers as invalid
 //------------------------------------------------------------------------------
-static inline int CeedQFunctionContextSetAllStale_Hip(
+static inline int CeedQFunctionContextSetAllInvalid_Hip(
   const CeedQFunctionContext ctx) {
   int ierr;
   CeedQFunctionContext_Hip *data;
@@ -112,15 +112,15 @@ static inline int CeedQFunctionContextSetAllStale_Hip(
 }
 
 //------------------------------------------------------------------------------
-// Check if all pointers are stale
+// Check for valid data
 //------------------------------------------------------------------------------
-static inline int CeedQFunctionContextIsAllStale_Hip(
-  const CeedQFunctionContext ctx, bool *is_all_stale) {
+static inline int CeedQFunctionContextHasValidData_Hip(
+  const CeedQFunctionContext ctx, bool *has_valid_data) {
   int ierr;
   CeedQFunctionContext_Hip *data;
   ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
 
-  *is_all_stale = !data->h_data && !data->d_data;
+  *has_valid_data = !!data->h_data || !!data->d_data;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -134,15 +134,15 @@ static inline int CeedQFunctionContextNeedSync_Hip(
   CeedQFunctionContext_Hip *data;
   ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedQFunctionContextIsAllStale_Hip(ctx, &is_all_stale);
+  bool has_valid_data = true;
+  ierr = CeedQFunctionContextHasValidData_Hip(ctx, &has_valid_data);
   CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
-    *need_sync = !is_all_stale && !data->h_data;
+    *need_sync = has_valid_data && !data->h_data;
     break;
   case CEED_MEM_DEVICE:
-    *need_sync = !is_all_stale && !data->d_data;
+    *need_sync = has_valid_data && !data->d_data;
     break;
   }
 
@@ -227,7 +227,7 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx,
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
-  ierr = CeedQFunctionContextSetAllStale_Hip(ctx); CeedChkBackend(ierr);
+  ierr = CeedQFunctionContextSetAllInvalid_Hip(ctx); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     return CeedQFunctionContextSetDataHost_Hip(ctx, cmode, data);
@@ -248,14 +248,6 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
-
-  bool is_all_stale = false;
-  ierr = CeedQFunctionContextIsAllStale_Hip(ctx, &is_all_stale);
-  CeedChkBackend(ierr);
-  if (is_all_stale)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid context data set");
-  // LCOV_EXCL_STOP
 
   // Sync data to requested memtype
   bool need_sync = false;
@@ -305,14 +297,6 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
   CeedQFunctionContext_Hip *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedQFunctionContextIsAllStale_Hip(ctx, &is_all_stale);
-  CeedChkBackend(ierr);
-  if (is_all_stale)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid context data set");
-  // LCOV_EXCL_STOP
-
   // Sync data to requested memtype
   bool need_sync = false;
   ierr = CeedQFunctionContextNeedSync_Hip(ctx, mtype, &need_sync);
@@ -332,7 +316,7 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
   }
 
   // Mark only pointer for requested memory as valid
-  ierr = CeedQFunctionContextSetAllStale_Hip(ctx); CeedChkBackend(ierr);
+  ierr = CeedQFunctionContextSetAllInvalid_Hip(ctx); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     impl->h_data = *(void **)data;
@@ -378,6 +362,9 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "HasValidData",
+                                CeedQFunctionContextHasValidData_Hip);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
                                 CeedQFunctionContextSetData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "TakeData",

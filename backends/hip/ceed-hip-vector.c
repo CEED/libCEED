@@ -109,9 +109,9 @@ static inline int CeedVectorSync_Hip(const CeedVector vec, CeedMemType mtype) {
 }
 
 //------------------------------------------------------------------------------
-// Set all pointers as stale
+// Set all pointers as invalid
 //------------------------------------------------------------------------------
-static inline int CeedVectorSetAllStale_Hip(const CeedVector vec) {
+static inline int CeedVectorSetAllInvalid_Hip(const CeedVector vec) {
   int ierr;
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
@@ -123,15 +123,15 @@ static inline int CeedVectorSetAllStale_Hip(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
-// Check if all pointers are stale
+// Check if CeedVector has any valid pointers
 //------------------------------------------------------------------------------
-static inline int CeedVectorIsAllStale_Hip(const CeedVector vec,
-    bool *is_all_stale) {
+static inline int CeedVectorHasValidArray_Hip(const CeedVector vec,
+    bool *has_valid_array) {
   int ierr;
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  *is_all_stale = !data->h_array && !data->d_array;
+  *has_valid_array = !!data->h_array || !!data->d_array;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -166,14 +166,14 @@ static inline int CeedVectorNeedSync_Hip(const CeedVector vec,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedVectorIsAllStale_Hip(vec, &is_all_stale); CeedChkBackend(ierr);
+  bool has_valid_array = false;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
-    *need_sync = !is_all_stale && !data->h_array;
+    *need_sync = has_valid_array && !data->h_array;
     break;
   case CEED_MEM_DEVICE:
-    *need_sync = !is_all_stale && !data->d_array;
+    *need_sync = has_valid_array && !data->d_array;
     break;
   }
 
@@ -270,7 +270,7 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mtype,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  ierr = CeedVectorSetAllStale_Hip(vec); CeedChkBackend(ierr);
+  ierr = CeedVectorSetAllInvalid_Hip(vec); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     return CeedVectorSetArrayHost_Hip(vec, cmode, array);
@@ -344,14 +344,6 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedVectorIsAllStale_Hip(vec, &is_all_stale); CeedChkBackend(ierr);
-  if (is_all_stale)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorTakeArray");
-  // LCOV_EXCL_STOP
-
   // Sync array to requested memtype
   bool need_sync = false;
   ierr = CeedVectorNeedSync_Hip(vec, mtype, &need_sync); CeedChkBackend(ierr);
@@ -401,12 +393,11 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
   CeedVector_Hip *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedVectorIsAllStale_Hip(vec, &is_all_stale); CeedChkBackend(ierr);
-  bool is_array_of_type = true;
+  bool has_valid_array = false, is_array_of_type = true;
+  ierr = CeedVectorHasValidArray_Hip(vec, &has_valid_array); CeedChkBackend(ierr);
   ierr = CeedVectorIsArrayOfType_Hip(vec, mtype, &is_array_of_type);
   CeedChkBackend(ierr);
-  if (is_all_stale && is_array_of_type) {
+  if (!has_valid_array && is_array_of_type) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
@@ -448,7 +439,7 @@ static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mtype,
   ierr = CeedVectorGetArrayRead_Hip(vec, mtype, (const CeedScalar **)array);
   CeedChkBackend(ierr);
 
-  ierr = CeedVectorSetAllStale_Hip(vec); CeedChkBackend(ierr);
+  ierr = CeedVectorSetAllInvalid_Hip(vec); CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
     data->h_array = *array;
@@ -560,14 +551,6 @@ static int CeedVectorReciprocal_Hip(CeedVector vec) {
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
 
-  bool is_all_stale = false;
-  ierr = CeedVectorIsAllStale_Hip(vec, &is_all_stale); CeedChkBackend(ierr);
-  if (is_all_stale)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorReciprocal");
-  // LCOV_EXCL_STOP
-
   // Set value for synced device/host array
   if (data->d_array) {
     ierr = CeedDeviceReciprocal_Hip(data->d_array, length); CeedChkBackend(ierr);
@@ -606,14 +589,6 @@ static int CeedVectorScale_Hip(CeedVector x, CeedScalar alpha) {
   ierr = CeedVectorGetData(x, &x_data); CeedChkBackend(ierr);
   CeedInt length;
   ierr = CeedVectorGetLength(x, &length); CeedChkBackend(ierr);
-
-  bool is_all_stale = false;
-  ierr = CeedVectorIsAllStale_Hip(x, &is_all_stale); CeedChkBackend(ierr);
-  if (is_all_stale)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorScale");
-  // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
   if (x_data->d_array) {
@@ -655,15 +630,6 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
   ierr = CeedVectorGetData(x, &x_data); CeedChkBackend(ierr);
   CeedInt length;
   ierr = CeedVectorGetLength(y, &length); CeedChkBackend(ierr);
-
-  bool is_all_stale_x = false, is_all_stale_y = false;
-  ierr = CeedVectorIsAllStale_Hip(x, &is_all_stale_x); CeedChkBackend(ierr);
-  ierr = CeedVectorIsAllStale_Hip(y, &is_all_stale_y); CeedChkBackend(ierr);
-  if (is_all_stale_x || is_all_stale_y)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorAXPY");
-  // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
   if (y_data->d_array) {
@@ -710,15 +676,6 @@ static int CeedVectorPointwiseMult_Hip(CeedVector w, CeedVector x,
   ierr = CeedVectorGetData(y, &y_data); CeedChkBackend(ierr);
   CeedInt length;
   ierr = CeedVectorGetLength(w, &length); CeedChkBackend(ierr);
-
-  bool is_all_stale_x = false, is_all_stale_y = false;
-  ierr = CeedVectorIsAllStale_Hip(x, &is_all_stale_x); CeedChkBackend(ierr);
-  ierr = CeedVectorIsAllStale_Hip(y, &is_all_stale_y); CeedChkBackend(ierr);
-  if (is_all_stale_x || is_all_stale_y)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorPointwiseMult");
-  // LCOV_EXCL_STOP
 
   // Set value for synced device/host array
   if (!w_data->d_array && !w_data->h_array) {
@@ -768,6 +725,8 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray",
+                                CeedVectorHasValidArray_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",

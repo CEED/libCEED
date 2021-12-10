@@ -20,6 +20,21 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
+// QFunctionContext Has Valid Data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextHasValidData_Ref(CeedQFunctionContext ctx,
+    bool *has_valid_data) {
+  int ierr;
+  CeedQFunctionContext_Ref *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
+  CeedChkBackend(ierr);
+
+  *has_valid_data = !!impl->data;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // QFunctionContext Set Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx,
@@ -108,11 +123,6 @@ static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx,
                      "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
-  if (!impl->data)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No context data set");
-  // LCOV_EXCL_STOP
-
   *(void **)data = impl->data;
 
   return CEED_ERROR_SUCCESS;
@@ -147,6 +157,9 @@ int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "HasValidData",
+                                CeedQFunctionContextHasValidData_Ref);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
                                 CeedQFunctionContextSetData_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "TakeData",

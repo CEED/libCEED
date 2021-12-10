@@ -20,6 +20,19 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
+// Has Valid Array
+//------------------------------------------------------------------------------
+static int CeedVectorHasValidArray_Ref(CeedVector vec, bool *has_valid_array) {
+  int ierr;
+  CeedVector_Ref *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  *has_valid_array = !!impl->array;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Vector Set Array
 //------------------------------------------------------------------------------
 static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
@@ -109,17 +122,10 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
                      "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
-  if (!impl->array) {
+  if (!impl->array && !impl->array_owned && !impl->array_borrowed) {
     // Allocate if array is not yet allocated
-    if (!impl->array_owned && !impl->array_borrowed) {
-      ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
-      CeedChkBackend(ierr);
-    } else {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
-      // LCOV_EXCL_STOP
-    }
+    ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
+    CeedChkBackend(ierr);
   }
 
   *array = impl->array;
@@ -168,6 +174,8 @@ int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
 
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray",
+                                CeedVectorHasValidArray_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",

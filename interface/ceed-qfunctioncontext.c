@@ -45,6 +45,31 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 }
 
 /**
+  @brief Check for valid data in a CeedQFunctionContext
+
+  @param ctx                  CeedQFunctionContext to check validity
+  @param[out] has_valid_data  Variable to store validity
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx,
+                                     bool *has_valid_data) {
+  int ierr;
+
+  if (!ctx->HasValidData)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support HasValidData");
+  // LCOV_EXCL_STOP
+
+  ierr = ctx->HasValidData(ctx, has_valid_data); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the state of a CeedQFunctionContext
 
   @param ctx         CeedQFunctionContext to retrieve state
@@ -229,6 +254,14 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
                                  void *data) {
   int ierr;
 
+  bool has_valid_data = true;
+  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
+  if (!has_valid_data)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
+                     "CeedQFunctionContext has no valid data to take, must set data");
+  // LCOV_EXCL_STOP
+
   if (!ctx->TakeData)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
@@ -268,6 +301,14 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
 int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
                                 void *data) {
   int ierr;
+
+  bool has_valid_data = true;
+  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
+  if (!has_valid_data)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
+                     "CeedQFunctionContext has no valid data to get, must set data");
+  // LCOV_EXCL_STOP
 
   if (!ctx->GetData)
     // LCOV_EXCL_START

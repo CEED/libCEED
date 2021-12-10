@@ -48,6 +48,30 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /// @{
 
 /**
+  @brief Check for valid data in a CeedVector
+
+  @param vec                   CeedVector to check validity
+  @param[out] has_valid_array  Variable to store validity
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
+  int ierr;
+
+  if (!vec->HasValidArray)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support HasValidArray");
+  // LCOV_EXCL_STOP
+
+  ierr = vec->HasValidArray(vec, has_valid_array); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the state of a CeedVector
 
   @param vec         CeedVector to retrieve state
@@ -328,6 +352,15 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
                      "has read access");
   // LCOV_EXCL_STOP
 
+  bool has_valid_array = true;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
+  if (!has_valid_array)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no valid data to take, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+
   CeedScalar *temp_array = NULL;
   ierr = vec->TakeArray(vec, mem_type, &temp_array); CeedChk(ierr);
   if (array) (*array) = temp_array;
@@ -484,6 +517,15 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   int ierr;
 
+  bool has_valid_array = true;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
+  if (!has_valid_array)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no valid data to compute norm, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+
   // Backend impl for GPU, if added
   if (vec->Norm) {
     ierr = vec->Norm(vec, norm_type, norm); CeedChk(ierr);
@@ -533,6 +575,15 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   CeedScalar *x_array;
   CeedInt n_x;
 
+  bool has_valid_array = true;
+  ierr = CeedVectorHasValidArray(x, &has_valid_array); CeedChk(ierr);
+  if (!has_valid_array)
+    // LCOV_EXCL_START
+    return CeedError(x->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no valid data to scale, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
 
   // Backend implementation
@@ -576,6 +627,22 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
     // LCOV_EXCL_START
     return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED,
                      "Cannot use same vector for x and y in CeedVectorAXPY");
+  // LCOV_EXCL_STOP
+
+  bool has_valid_array_x = true, has_valid_array_y = true;
+  ierr = CeedVectorHasValidArray(x, &has_valid_array_x); CeedChk(ierr);
+  if (!has_valid_array_x)
+    // LCOV_EXCL_START
+    return CeedError(x->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector x has no valid data, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+  ierr = CeedVectorHasValidArray(y, &has_valid_array_y); CeedChk(ierr);
+  if (!has_valid_array_y)
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector y has no valid data, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
   // LCOV_EXCL_STOP
 
   Ceed ceed_parent_x, ceed_parent_y;
@@ -644,6 +711,22 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
                      "Vectors w, x, and y must be created by the same Ceed context");
   // LCOV_EXCL_STOP
 
+  bool has_valid_array_x = true, has_valid_array_y = true;
+  ierr = CeedVectorHasValidArray(x, &has_valid_array_x); CeedChk(ierr);
+  if (!has_valid_array_x)
+    // LCOV_EXCL_START
+    return CeedError(x->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector x has no valid data, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+  ierr = CeedVectorHasValidArray(y, &has_valid_array_y); CeedChk(ierr);
+  if (!has_valid_array_y)
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector y has no valid data, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
+
   // Backend implementation
   if (w->PointwiseMult) {
     ierr = w->PointwiseMult(w, x, y); CeedChk(ierr);
@@ -689,6 +772,15 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
 **/
 int CeedVectorReciprocal(CeedVector vec) {
   int ierr;
+
+  bool has_valid_array = true;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
+  if (!has_valid_array)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no valid data to compute reciprocal, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
 
   // Check if vector data set
   if (!vec->state)
