@@ -114,11 +114,11 @@ static inline int CeedQFunctionContextSync_Cuda(
 static inline int CeedQFunctionContextSetAllInvalid_Cuda(
   const CeedQFunctionContext ctx) {
   int ierr;
-  CeedQFunctionContext_Cuda *data;
-  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  data->h_data = NULL;
-  data->d_data = NULL;
+  impl->h_data = NULL;
+  impl->d_data = NULL;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -129,10 +129,10 @@ static inline int CeedQFunctionContextSetAllInvalid_Cuda(
 static inline int CeedQFunctionContextHasValidData_Cuda(
   const CeedQFunctionContext ctx, bool *has_valid_data) {
   int ierr;
-  CeedQFunctionContext_Cuda *data;
-  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  *has_valid_data = !!data->h_data || !!data->d_data;
+  *has_valid_data = !!impl->h_data || !!impl->d_data;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -143,18 +143,18 @@ static inline int CeedQFunctionContextHasValidData_Cuda(
 static inline int CeedQFunctionContextNeedSync_Cuda(
   const CeedQFunctionContext ctx, CeedMemType mtype, bool *need_sync) {
   int ierr;
-  CeedQFunctionContext_Cuda *data;
-  ierr = CeedQFunctionContextGetBackendData(ctx, &data); CeedChkBackend(ierr);
+  CeedQFunctionContext_Cuda *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
   bool has_valid_data = true;
   ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data);
   CeedChkBackend(ierr);
   switch (mtype) {
   case CEED_MEM_HOST:
-    *need_sync = has_valid_data && !data->h_data;
+    *need_sync = has_valid_data && !impl->h_data;
     break;
   case CEED_MEM_DEVICE:
-    *need_sync = has_valid_data && !data->d_data;
+    *need_sync = has_valid_data && !impl->d_data;
     break;
   }
 
