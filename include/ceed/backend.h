@@ -223,6 +223,8 @@ CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx,
     Ceed *ceed);
 CEED_EXTERN int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, 
     bool *has_valid_data);
+CEED_EXTERN int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, 
+    CeedMemType mem_type, bool *has_borrowed_data_of_type);
 CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx,
     uint64_t *state);
 CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,

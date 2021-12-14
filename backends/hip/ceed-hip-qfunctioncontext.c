@@ -138,6 +138,28 @@ static inline int CeedQFunctionContextHasValidData_Hip(
 }
 
 //------------------------------------------------------------------------------
+// Check if ctx has borrowed data
+//------------------------------------------------------------------------------
+static inline int CeedQFunctionContextHasBorrowedDataOfType_Hip(
+  const CeedQFunctionContext ctx, CeedMemType mtype,
+  bool *has_borrowed_data_of_type) {
+  int ierr;
+  CeedQFunctionContext_Hip *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
+
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *has_borrowed_data_of_type = !!impl->h_data_borrowed;
+    break;
+  case CEED_MEM_DEVICE:
+    *has_borrowed_data_of_type = !!impl->d_data_borrowed;
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Check if data of given type needs sync
 //------------------------------------------------------------------------------
 static inline int CeedQFunctionContextNeedSync_Hip(
@@ -272,23 +294,11 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
   // Update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if (!impl->h_data_borrowed)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Must set HOST context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
-    // LCOV_EXCL_STOP
-
     *(void **)data = impl->h_data_borrowed;
     impl->h_data_borrowed = NULL;
     impl->h_data = NULL;
     break;
   case CEED_MEM_DEVICE:
-    if (!impl->d_data_borrowed)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Must set DEVICE context data with CeedQFunctionContextSetData and CEED_USE_POINTER before calling CeedQFunctionContextTakeData");
-    // LCOV_EXCL_STOP
-
     *(void **)data = impl->d_data_borrowed;
     impl->d_data_borrowed = NULL;
     impl->d_data = NULL;
@@ -376,6 +386,10 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
 
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "HasValidData",
                                 CeedQFunctionContextHasValidData_Hip);
+  CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx,
+                                "HasBorrowedDataOfType",
+                                CeedQFunctionContextHasBorrowedDataOfType_Hip);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData",
                                 CeedQFunctionContextSetData_Hip); CeedChkBackend(ierr);

@@ -256,6 +256,7 @@ struct CeedQFunctionContext_private {
   Ceed ceed;
   int ref_count;
   int (*HasValidData)(CeedQFunctionContext, bool *);
+  int (*HasBorrowedDataOfType)(CeedQFunctionContext, CeedMemType, bool *);
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
   int (*TakeData)(CeedQFunctionContext, CeedMemType, void *);
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);

@@ -70,6 +70,34 @@ int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx,
 }
 
 /**
+  @brief Check for borrowed data of a specific CeedMemType in a
+           CeedQFunctionContext
+
+  @param ctx                  CeedQFunctionContext to check
+  @param mem_type             Memory type to check
+  @param[out] has_valid_data  Variable to store result
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx,
+    CeedMemType mem_type, bool *has_borrowed_data_of_type) {
+  int ierr;
+
+  if (!ctx->HasBorrowedDataOfType)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support HasBorrowedDataOfType");
+  // LCOV_EXCL_STOP
+
+  ierr = ctx->HasBorrowedDataOfType(ctx, mem_type, has_borrowed_data_of_type);
+  CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the state of a CeedQFunctionContext
 
   @param ctx         CeedQFunctionContext to retrieve state
@@ -275,6 +303,17 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
                      "access lock is already in use");
   // LCOV_EXCL_STOP
 
+  bool has_borrowed_data_of_type = true;
+  ierr = CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type,
+         &has_borrowed_data_of_type); CeedChk(ierr);
+  if (!has_borrowed_data_of_type)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
+                     "CeedQFunctionContext has no borowed %s data, "
+                     "must set data with CeedQFunctionContextSetData",
+                     CeedMemTypes[mem_type]);
+  // LCOV_EXCL_STOP
+
   void *temp_data = NULL;
   ierr = ctx->TakeData(ctx, mem_type, &temp_data); CeedChk(ierr);
   if (data) (*(void **)data) = temp_data;
@@ -302,14 +341,6 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
                                 void *data) {
   int ierr;
 
-  bool has_valid_data = true;
-  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
-  if (!has_valid_data)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
-                     "CeedQFunctionContext has no valid data to get, must set data");
-  // LCOV_EXCL_STOP
-
   if (!ctx->GetData)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
@@ -321,6 +352,14 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
     return CeedError(ctx->ceed, 1,
                      "Cannot grant CeedQFunctionContext data access, the "
                      "access lock is already in use");
+  // LCOV_EXCL_STOP
+
+  bool has_valid_data = true;
+  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
+  if (!has_valid_data)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
+                     "CeedQFunctionContext has no valid data to get, must set data");
   // LCOV_EXCL_STOP
 
   ierr = ctx->GetData(ctx, mem_type, data); CeedChk(ierr);
