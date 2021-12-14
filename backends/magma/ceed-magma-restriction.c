@@ -45,7 +45,7 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
   CeedScalar *dv;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &du); CeedChkBackend(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
 
   bool isStrided;
   ierr = CeedElemRestrictionIsStrided(r, &isStrided); CeedChkBackend(ierr);
