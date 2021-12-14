@@ -322,6 +322,7 @@ def test_199(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     vec = ceed.Vector(12)
+    vec.set_value(0.0)
     with vec.array(4, 3) as x:
         x[...] = np.eye(4, 3)
 
