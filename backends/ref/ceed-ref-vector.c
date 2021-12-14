@@ -163,10 +163,18 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
                      "Can only provide HOST memory for this backend");
   // LCOV_EXCL_STOP
 
-  if (!impl->array_owned && !impl->array_borrowed) {
-    // Allocate if array is not yet allocated
-    ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
-    CeedChkBackend(ierr);
+  if (!impl->array) {
+    if (!impl->array_owned && !impl->array_borrowed) {
+      // Allocate if array is not yet allocated
+      ierr = CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL);
+      CeedChkBackend(ierr);
+    } else {
+      // Select dirty array for GetArrayWrite
+      if (impl->array_borrowed)
+        impl->array = impl->array_borrowed;
+      else
+        impl->array = impl->array_owned;
+    }
   }
 
   *array = impl->array;

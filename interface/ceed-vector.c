@@ -539,6 +539,44 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Get write access to a CeedVector via the specified memory type.
+           Restore access with @ref CeedVectorRestoreArray(). All old
+           values should be assumed to be invalid.
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
+                            CeedScalar **array) {
+  int ierr;
+
+  if (!vec->GetArray)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support GetArray");
+  // LCOV_EXCL_STOP
+
+  if (vec->state % 2 == 1)
+    return CeedError(vec->ceed, CEED_ERROR_ACCESS,
+                     "Cannot grant CeedVector array access, the "
+                     "access lock is already in use");
+
+  if (vec->num_readers > 0)
+    return CeedError(vec->ceed, CEED_ERROR_ACCESS,
+                     "Cannot grant CeedVector array access, a "
+                     "process has read access");
+
+  ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
+  vec->state += 1;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Restore an array obtained using @ref CeedVectorGetArray()
 
   @param vec    CeedVector to restore

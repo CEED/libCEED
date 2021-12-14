@@ -436,6 +436,21 @@ static int CeedVectorGetArrayCore_Hip(const CeedVector vec,
     // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
     CeedChkBackend(ierr);
+  } else {
+    // Select dirty array for GetArrayWrite
+    switch (mtype) {
+    case CEED_MEM_HOST:
+      if (impl->h_array_borrowed)
+        impl->h_array = impl->h_array_borrowed;
+      else
+        impl->h_array = impl->h_array_owned;
+      break;
+    case CEED_MEM_DEVICE:
+      if (impl->d_array_borrowed)
+        impl->d_array = impl->d_array_borrowed;
+      else
+        impl->d_array = impl->d_array_owned;
+    }
   }
 
   // Update pointer
