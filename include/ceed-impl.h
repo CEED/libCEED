@@ -130,6 +130,8 @@ struct Ceed_private {
 struct CeedVector_private {
   Ceed ceed;
   int (*HasValidArray)(CeedVector, bool *);
+  int (*HasInvalidArrayOfType)(CeedVector, CeedMemType, bool *);
+  int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);

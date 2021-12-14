@@ -72,6 +72,60 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
 }
 
 /**
+  @brief Check for array with invalid data of a specific CeedMemType in a CeedVector
+
+  @param vec                             CeedVector to check
+  @param mem_type                        Memory type to check
+  @param[out] has_invalid_array_of_type  Variable to store result
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorHasInvalidArrayOfType(CeedVector vec, CeedMemType mem_type,
+                                    bool *has_invalid_array_of_type) {
+  int ierr;
+
+  if (!vec->HasInvalidArrayOfType)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support HasInvalidArrayOfType");
+  // LCOV_EXCL_STOP
+
+  ierr = vec->HasInvalidArrayOfType(vec, mem_type, has_invalid_array_of_type);
+  CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Check for borrowed array of a specific CeedMemType in a CeedVector
+
+  @param vec                              CeedVector to check
+  @param mem_type                         Memory type to check
+  @param[out] has_borrowed_array_of_type  Variable to store result
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type,
+                                     bool *has_borrowed_array_of_type) {
+  int ierr;
+
+  if (!vec->HasBorrowedArrayOfType)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support HasBorrowedArrayOfType");
+  // LCOV_EXCL_STOP
+
+  ierr = vec->HasBorrowedArrayOfType(vec, mem_type, has_borrowed_array_of_type);
+  CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the state of a CeedVector
 
   @param vec         CeedVector to retrieve state
@@ -352,6 +406,17 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
                      "has read access");
   // LCOV_EXCL_STOP
 
+  bool has_borrowed_array_of_type = true;
+  ierr = CeedVectorHasBorrowedArrayOfType(vec, mem_type,
+                                          &has_borrowed_array_of_type);
+  CeedChk(ierr);
+  if (!has_borrowed_array_of_type)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no borrowed %s array, "
+                     "must set array withCeedVectorSetArray", CeedMemTypes[mem_type]);
+  // LCOV_EXCL_STOP
+
   bool has_valid_array = true;
   ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
   if (!has_valid_array)
@@ -405,6 +470,17 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
 
+  bool has_valid_array = true, has_invalid_array_of_type = false;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
+  ierr = CeedVectorHasInvalidArrayOfType(vec, mem_type,
+                                         &has_invalid_array_of_type);
+  CeedChk(ierr);
+  if (!has_valid_array && has_invalid_array_of_type)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has invalid data to read/write, "
+                     "must update data with CeedVectorSetValue or CeedVectorSetArray");
+
   ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
   vec->state += 1;
   return CEED_ERROR_SUCCESS;
@@ -438,6 +514,15 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector read-only array "
                      "access, the access lock is already in use");
+
+  bool has_valid_array = true;
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
+  if (!has_valid_array)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
+                     "CeedVector has no valid data to read, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
 
   ierr = vec->GetArrayRead(vec, mem_type, array); CeedChk(ierr);
   vec->num_readers++;
@@ -491,6 +576,13 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
                      "Backend does not support RestoreArrayRead");
+  // LCOV_EXCL_STOP
+
+  if (vec->num_readers == 0)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_ACCESS,
+                     "Cannot restore CeedVector array read access, "
+                     "access was not granted");
   // LCOV_EXCL_STOP
 
   ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);

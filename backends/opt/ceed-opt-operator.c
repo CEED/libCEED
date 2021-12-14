@@ -248,6 +248,10 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt num_input_fields,
           CeedChkBackend(ierr);
           impl->input_states[i] = state;
         }
+        // Get evec
+        ierr = CeedVectorGetArrayRead(impl->e_vecs_full[i], CEED_MEM_HOST,
+                                      (const CeedScalar **) &e_data[i]);
+        CeedChkBackend(ierr);
       } else {
         // Set Qvec for CEED_EVAL_NONE
         if (eval_mode == CEED_EVAL_NONE) {
@@ -259,10 +263,6 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt num_input_fields,
                                         &e_data[i]); CeedChkBackend(ierr);
         }
       }
-      // Get evec
-      ierr = CeedVectorGetArrayRead(impl->e_vecs_full[i], CEED_MEM_HOST,
-                                    (const CeedScalar **) &e_data[i]);
-      CeedChkBackend(ierr);
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -440,13 +440,15 @@ static inline int CeedOperatorRestoreInputs_Opt(CeedInt num_input_fields,
     CeedQFunctionField *qf_input_fields, CeedOperatorField *op_input_fields,
     CeedScalar *e_data[2*CEED_FIELD_MAX], CeedOperator_Opt *impl) {
   CeedInt ierr;
-  CeedEvalMode eval_mode;
 
   for (CeedInt i=0; i<num_input_fields; i++) {
+    CeedEvalMode eval_mode;
+    CeedVector vec;
     ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
     CeedChkBackend(ierr);
-    if (eval_mode == CEED_EVAL_WEIGHT) { // Skip
-    } else {
+    ierr = CeedOperatorFieldGetVector(op_input_fields[i], &vec);
+    CeedChkBackend(ierr);
+    if (eval_mode != CEED_EVAL_WEIGHT && vec != CEED_VECTOR_ACTIVE) {
       ierr = CeedVectorRestoreArrayRead(impl->e_vecs_full[i],
                                         (const CeedScalar **) &e_data[i]);
       CeedChkBackend(ierr);

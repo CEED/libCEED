@@ -137,20 +137,65 @@ static inline int CeedVectorHasValidArray_Hip(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Check if is any array of given type
+// Check if has any array of given type
 //------------------------------------------------------------------------------
-static inline int CeedVectorIsArrayOfType_Hip(const CeedVector vec,
-    CeedMemType mtype, bool *is_array) {
+static inline int CeedVectorHasArrayOfType_Hip(const CeedVector vec,
+    CeedMemType mtype, bool *has_array_of_type) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
   switch (mtype) {
   case CEED_MEM_HOST:
-    *is_array = !!impl->h_array_borrowed || !!impl->h_array_owned;
+    *has_array_of_type = !!impl->h_array_borrowed || !!impl->h_array_owned;
     break;
   case CEED_MEM_DEVICE:
-    *is_array = !!impl->d_array_borrowed || !!impl->d_array_owned;
+    *has_array_of_type = !!impl->d_array_borrowed || !!impl->d_array_owned;
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Check if has invalid array of given type
+//------------------------------------------------------------------------------
+static inline int CeedVectorHasInvalidArrayOfType_Hip(const CeedVector vec,
+    CeedMemType mtype, bool *has_invalid_array_of_type) {
+  int ierr;
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  bool has_array_of_type = false;
+  ierr = CeedVectorHasArrayOfType_Hip(vec, mtype, &has_array_of_type);
+  CeedChkBackend(ierr);
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *has_invalid_array_of_type = !impl->h_array && has_array_of_type;
+    break;
+  case CEED_MEM_DEVICE:
+    *has_invalid_array_of_type = !impl->d_array && has_array_of_type;
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Check if has borrowed array of given type
+//------------------------------------------------------------------------------
+static inline int CeedVectorHasBorrowedArrayOfType_Hip(const CeedVector vec,
+    CeedMemType mtype, bool *has_borrowed_array_of_type) {
+  int ierr;
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  switch (mtype) {
+  case CEED_MEM_HOST:
+    *has_borrowed_array_of_type = !!impl->h_array_borrowed;
+    break;
+  case CEED_MEM_DEVICE:
+    *has_borrowed_array_of_type = !!impl->d_array_borrowed;
     break;
   }
 
@@ -354,23 +399,11 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
   // Update pointer
   switch (mtype) {
   case CEED_MEM_HOST:
-    if (!impl->h_array_borrowed)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Must set HOST array with CeedVectorSetArray and CEED_USE_POINTER before calling CeedVectorTakeArray");
-    // LCOV_EXCL_STOP
-
     (*array) = impl->h_array_borrowed;
     impl->h_array_borrowed = NULL;
     impl->h_array = NULL;
     break;
   case CEED_MEM_DEVICE:
-    if (!impl->d_array_borrowed)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND,
-                       "Must set DEVICE array with CeedVectorSetArray and CEED_USE_POINTER before calling CeedVectorTakeArray");
-    // LCOV_EXCL_STOP
-
     (*array) = impl->d_array_borrowed;
     impl->d_array_borrowed = NULL;
     impl->d_array = NULL;
@@ -381,35 +414,26 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mtype,
 }
 
 //------------------------------------------------------------------------------
-// Get read-only access to a vector via the specified mtype memory type
-//   on which to access the array. If the backend uses a different memory type,
-//   this will perform a copy (possibly cached).
+// Core logic for array syncronization for GetArray.
+//   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
-                                      const CeedMemType mtype, const CeedScalar **array) {
+static int CeedVectorGetArrayCore_Hip(const CeedVector vec,
+                                      const CeedMemType mtype, CeedScalar **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  bool has_valid_array = false, is_array_of_type = true;
-  ierr = CeedVectorHasValidArray_Hip(vec, &has_valid_array); CeedChkBackend(ierr);
-  ierr = CeedVectorIsArrayOfType_Hip(vec, mtype, &is_array_of_type);
-  CeedChkBackend(ierr);
-  if (!has_valid_array && is_array_of_type) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid data in array; must set vector with CeedVectorSetValue or CeedVectorSetArray before calling CeedVectorGetArray");
-    // LCOV_EXCL_STOP
-  }
-
-  // Sync array to requested memtype
-  bool need_sync = false;
+  bool need_sync = false, has_array_of_type = true;
   ierr = CeedVectorNeedSync_Hip(vec, mtype, &need_sync); CeedChkBackend(ierr);
+  ierr = CeedVectorHasArrayOfType_Hip(vec, mtype, &has_array_of_type);
+  CeedChkBackend(ierr);
   if (need_sync) {
+    // Sync array to requested memtype
     ierr = CeedVectorSync_Hip(vec, mtype); CeedChkBackend(ierr);
-  } else if (!is_array_of_type) {
+  } else if (!has_array_of_type) {
+    // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
     CeedChkBackend(ierr);
   }
@@ -428,7 +452,15 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Get array
+// Get read-only access to a vector via the specified mtype
+//------------------------------------------------------------------------------
+static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
+                                      const CeedMemType mtype, const CeedScalar **array) {
+  return CeedVectorGetArrayCore_Hip(vec, mtype, (CeedScalar **)array);
+}
+
+//------------------------------------------------------------------------------
+// Get read/write access to a vector via the specified mtype
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mtype,
                                   CeedScalar **array) {
@@ -436,8 +468,7 @@ static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mtype,
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  ierr = CeedVectorGetArrayRead_Hip(vec, mtype, (const CeedScalar **)array);
-  CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayCore_Hip(vec, mtype, array); CeedChkBackend(ierr);
 
   ierr = CeedVectorSetAllInvalid_Hip(vec); CeedChkBackend(ierr);
   switch (mtype) {
@@ -727,6 +758,12 @@ int CeedVectorCreate_Hip(CeedInt n, CeedVector vec) {
 
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray",
                                 CeedVectorHasValidArray_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasInvalidArrayOfType",
+                                CeedVectorHasInvalidArrayOfType_Hip);
+  CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType",
+                                CeedVectorHasBorrowedArrayOfType_Hip);
+  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
                                 CeedVectorSetArray_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",

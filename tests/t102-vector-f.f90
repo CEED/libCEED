@@ -17,6 +17,7 @@
       n=10
 
       call ceedvectorcreate(ceed,n,x,err)
+      call ceedvectorsetvalue(x,0.0,err)
 
       call ceedvectorgetarrayread(x,ceed_mem_host,a,aoffset,err)
       call ceedvectorgetarrayread(x,ceed_mem_host,b,boffset,err)
