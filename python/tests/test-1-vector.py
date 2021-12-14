@@ -88,6 +88,7 @@ def test_102(ceed_resource):
 
     n = 10
     x = ceed.Vector(n)
+    x.set_value(0)
 
     # Two read accesses should not generate an error
     a = x.get_array_read()
