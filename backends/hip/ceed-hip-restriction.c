@@ -144,7 +144,7 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   const CeedScalar *d_u;
   CeedScalar *d_v;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
-  ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
 
   // Restrict
   if (tmode == CEED_NOTRANSPOSE) {

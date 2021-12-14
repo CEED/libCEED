@@ -150,6 +150,9 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
         ierr = CeedElemRestrictionCreateVector(Erestrict, NULL,
                                                &evecs[i + starte]);
         CeedChkBackend(ierr);
+        // Allocate array
+        ierr = CeedVectorSetArray(evecs[i + starte], CEED_MEM_DEVICE, CEED_COPY_VALUES,
+                                  NULL); CeedChkBackend(ierr);
       }
     }
 

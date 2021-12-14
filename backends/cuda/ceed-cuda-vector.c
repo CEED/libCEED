@@ -469,6 +469,7 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec,
 
   bool has_array_of_type = true;
   ierr = CeedVectorHasArrayOfType_Cuda(vec, mtype, &has_array_of_type);
+  CeedChkBackend(ierr);
   if (!has_array_of_type) {
     // Allocate if array is not yet allocated
     ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
