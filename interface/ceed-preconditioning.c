@@ -473,7 +473,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
   CeedVector index_vec;
   ierr = CeedVectorCreate(ceed, num_nodes, &index_vec); CeedChk(ierr);
   CeedScalar *array;
-  ierr = CeedVectorGetArray(index_vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(index_vec, CEED_MEM_HOST, &array); CeedChk(ierr);
   for (CeedInt i = 0; i < num_nodes; ++i) {
     array[i] = i;
   }
@@ -678,7 +678,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   CeedScalar elem_mat[elem_size * elem_size];
   int count = 0;
   CeedScalar *vals;
-  ierr = CeedVectorGetArray(values, CEED_MEM_HOST, &vals); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(values, CEED_MEM_HOST, &vals); CeedChk(ierr);
   for (int e = 0; e < num_elem; ++e) {
     for (int comp_in = 0; comp_in < num_comp; ++comp_in) {
       for (int comp_out = 0; comp_out < num_comp; ++comp_out) {

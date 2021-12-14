@@ -143,6 +143,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
     u = CeedVector(ceed, sol_size)
     v = CeedVector(ceed, sol_size)
     # Initialize 'u' with sum of coordinates, x+y+z.
+    u[] = 0.0
     @witharray_read(
         x_host = mesh_coords,
         size = (mesh_size÷dim, dim),

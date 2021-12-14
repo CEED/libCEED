@@ -433,8 +433,8 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
     CeedChkBackend(ierr);
     if (emode == CEED_EVAL_NONE) {
       // Set the output Q-Vector to use the E-Vector data directly.
-      ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
-                                &edata[i + numinputfields]); CeedChkBackend(ierr);
+      ierr = CeedVectorGetArrayWrite(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
+                                     &edata[i + numinputfields]); CeedChkBackend(ierr);
       ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
                                 CEED_USE_POINTER, edata[i + numinputfields]);
       CeedChkBackend(ierr);

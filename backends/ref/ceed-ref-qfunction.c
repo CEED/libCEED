@@ -47,7 +47,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
     CeedChkBackend(ierr);
   }
   for (int i = 0; i<num_out; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
+    ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_HOST, &impl->outputs[i]);
     CeedChkBackend(ierr);
   }
 

@@ -139,7 +139,7 @@
 ! Setup U, V
 
       call ceedvectorcreate(ceed,2*nu,u,err)
-      call ceedvectorgetarray(u,ceed_mem_host,hu,voffset,err)
+      call ceedvectorgetarraywrite(u,ceed_mem_host,hu,voffset,err)
       do i=1,nu
         hu(voffset+2*i-1)=1.
         hu(voffset+2*i)=2.

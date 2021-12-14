@@ -72,33 +72,6 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
 }
 
 /**
-  @brief Check for array with invalid data of a specific CeedMemType in a CeedVector
-
-  @param vec                             CeedVector to check
-  @param mem_type                        Memory type to check
-  @param[out] has_invalid_array_of_type  Variable to store result
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedVectorHasInvalidArrayOfType(CeedVector vec, CeedMemType mem_type,
-                                    bool *has_invalid_array_of_type) {
-  int ierr;
-
-  if (!vec->HasInvalidArrayOfType)
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support HasInvalidArrayOfType");
-  // LCOV_EXCL_STOP
-
-  ierr = vec->HasInvalidArrayOfType(vec, mem_type, has_invalid_array_of_type);
-  CeedChk(ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Check for borrowed array of a specific CeedMemType in a CeedVector
 
   @param vec                              CeedVector to check
@@ -342,7 +315,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     ierr = vec->SetValue(vec, value); CeedChk(ierr);
   } else {
     CeedScalar *array;
-    ierr = CeedVectorGetArray(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+    ierr = CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
     for (int i=0; i<vec->length; i++) array[i] = value;
     ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   }
@@ -479,16 +452,14 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
 
-  bool has_valid_array = true, has_invalid_array_of_type = false;
+  bool has_valid_array = true;
   ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
-  ierr = CeedVectorHasInvalidArrayOfType(vec, mem_type,
-                                         &has_invalid_array_of_type);
-  CeedChk(ierr);
-  if (!has_valid_array && has_invalid_array_of_type)
+  if (!has_valid_array)
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has invalid data to read/write, "
-                     "must update data with CeedVectorSetValue or CeedVectorSetArray");
+                     "CeedVector has no valid data to read, "
+                     "must set data with CeedVectorSetValue or CeedVectorSetArray");
+  // LCOV_EXCL_STOP
 
   ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
   vec->state += 1;
@@ -555,23 +526,27 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
                             CeedScalar **array) {
   int ierr;
 
-  if (!vec->GetArray)
+  if (!vec->GetArrayWrite)
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support GetArray");
+                     "Backend does not support GetArrayWrite");
   // LCOV_EXCL_STOP
 
   if (vec->state % 2 == 1)
+    // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector array access, the "
                      "access lock is already in use");
+  // LCOV_EXCL_STOP
 
   if (vec->num_readers > 0)
+    // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
+  // LCOV_EXCL_STOP
 
-  ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
+  ierr = vec->GetArrayWrite(vec, mem_type, array); CeedChk(ierr);
   vec->state += 1;
   return CEED_ERROR_SUCCESS;
 }
@@ -730,7 +705,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
     return x->Scale(x, alpha);
 
   // Default implementation
-  ierr = CeedVectorGetArray(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
   for (CeedInt i=0; i<n_x; i++)
     x_array[i] *= alpha;
   ierr = CeedVectorRestoreArray(x, &x_array); CeedChk(ierr);
@@ -800,7 +775,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   }
 
   // Default implementation
-  ierr = CeedVectorGetArray(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
   ierr = CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
 
   for (CeedInt i=0; i<n_y; i++)
@@ -873,7 +848,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   }
 
   // Default implementation
-  ierr = CeedVectorGetArray(w, CEED_MEM_HOST, &w_array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(w, CEED_MEM_HOST, &w_array); CeedChk(ierr);
   if (x != w) {
     ierr = CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
   } else {
@@ -937,7 +912,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   CeedInt len;
   ierr = CeedVectorGetLength(vec, &len); CeedChk(ierr);
   CeedScalar *array;
-  ierr = CeedVectorGetArray(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
   for (CeedInt i=0; i<len; i++)
     if (fabs(array[i]) > CEED_EPSILON)
       array[i] = 1./array[i];

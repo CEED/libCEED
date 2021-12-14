@@ -38,7 +38,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
   v_offset = start*blk_size*elem_size*num_comp;
 
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu); CeedChkBackend(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_HOST, &vv); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &vv); CeedChkBackend(ierr);
   // Restriction from L-vector to E-vector
   // Perform: v = r * u
   if (t_mode == CEED_NOTRANSPOSE) {

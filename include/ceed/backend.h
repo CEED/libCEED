@@ -130,8 +130,6 @@ CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
 
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
-CEED_EXTERN int CeedVectorHasInvalidArrayOfType(CeedVector vec, CeedMemType mem_type,
-    bool *has_invalid_array_of_type);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type,
     bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);

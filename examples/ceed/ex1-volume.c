@@ -374,7 +374,7 @@ int SetCartesianMeshCoords(int dim, int num_xyz[dim], int mesh_degree,
     scalar_size *= nd[d];
   }
   CeedScalar *coords;
-  CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
+  CeedVectorGetArrayWrite(mesh_coords, CEED_MEM_HOST, &coords);
   CeedScalar *nodes = malloc(sizeof(CeedScalar) * p);
   // The H1 basis uses Lobatto quadrature points as nodes.
   CeedLobattoQuadrature(p, nodes, NULL); // nodes are in [-1,1]

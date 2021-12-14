@@ -158,30 +158,6 @@ static inline int CeedVectorHasArrayOfType_Cuda(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Check if has invalid array of given type
-//------------------------------------------------------------------------------
-static inline int CeedVectorHasInvalidArrayOfType_Cuda(const CeedVector vec,
-    CeedMemType mtype, bool *has_invalid_array_of_type) {
-  int ierr;
-  CeedVector_Cuda *impl;
-  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-
-  bool has_array_of_type = false;
-  ierr = CeedVectorHasArrayOfType_Cuda(vec, mtype, &has_array_of_type);
-  CeedChkBackend(ierr);
-  switch (mtype) {
-  case CEED_MEM_HOST:
-    *has_invalid_array_of_type = !impl->h_array && has_array_of_type;
-    break;
-  case CEED_MEM_DEVICE:
-    *has_invalid_array_of_type = !impl->d_array && has_array_of_type;
-    break;
-  }
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Check if has borrowed array of given type
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasBorrowedArrayOfType_Cuda(const CeedVector vec,
@@ -436,25 +412,6 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec,
   if (need_sync) {
     // Sync array to requested memtype
     ierr = CeedVectorSync_Cuda(vec, mtype); CeedChkBackend(ierr);
-  } else if (!has_array_of_type) {
-    // Allocate if array is not yet allocated
-    ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
-    CeedChkBackend(ierr);
-  } else {
-    // Select dirty array for GetArrayWrite
-    switch (mtype) {
-    case CEED_MEM_HOST:
-      if (impl->h_array_borrowed)
-        impl->h_array = impl->h_array_borrowed;
-      else
-        impl->h_array = impl->h_array_owned;
-      break;
-    case CEED_MEM_DEVICE:
-      if (impl->d_array_borrowed)
-        impl->d_array = impl->d_array_borrowed;
-      else
-        impl->d_array = impl->d_array_owned;
-    }
   }
 
   // Update pointer
@@ -499,6 +456,41 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
   }
 
   return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Get write access to a vector via the specified memtype
+//------------------------------------------------------------------------------
+static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec,
+                                        const CeedMemType mtype, CeedScalar **array) {
+  int ierr;
+  CeedVector_Cuda *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  bool has_array_of_type = true;
+  ierr = CeedVectorHasArrayOfType_Cuda(vec, mtype, &has_array_of_type);
+  if (!has_array_of_type) {
+    // Allocate if array is not yet allocated
+    ierr = CeedVectorSetArray(vec, mtype, CEED_COPY_VALUES, NULL);
+    CeedChkBackend(ierr);
+  } else {
+    // Select dirty array
+    switch (mtype) {
+    case CEED_MEM_HOST:
+      if (impl->h_array_borrowed)
+        impl->h_array = impl->h_array_borrowed;
+      else
+        impl->h_array = impl->h_array_owned;
+      break;
+    case CEED_MEM_DEVICE:
+      if (impl->d_array_borrowed)
+        impl->d_array = impl->d_array_borrowed;
+      else
+        impl->d_array = impl->d_array_owned;
+    }
+  }
+
+  return CeedVectorGetArray_Cuda(vec, mtype, array);
 }
 
 //------------------------------------------------------------------------------
@@ -776,9 +768,6 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
 
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray",
                                 CeedVectorHasValidArray_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasInvalidArrayOfType",
-                                CeedVectorHasInvalidArrayOfType_Cuda);
-  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType",
                                 CeedVectorHasBorrowedArrayOfType_Cuda);
   CeedChkBackend(ierr);
@@ -793,6 +782,8 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorGetArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
                                 CeedVectorGetArrayRead_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
+                                CeedVectorGetArrayWrite_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
                                 CeedVectorRestoreArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
