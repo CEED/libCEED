@@ -325,9 +325,18 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   int ierr;
 
   if (vec->state % 2 == 1)
+    // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot grant CeedVector array access, the "
                      "access lock is already in use");
+  // LCOV_EXCL_STOP
+
+  if (vec->num_readers > 0)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_ACCESS,
+                     "Cannot grant CeedVector array access, a "
+                     "process has read access");
+  // LCOV_EXCL_STOP
 
   if (vec->SetValue) {
     ierr = vec->SetValue(vec, value); CeedChk(ierr);
@@ -414,7 +423,7 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_BACKEND,
                      "CeedVector has no borrowed %s array, "
-                     "must set array withCeedVectorSetArray", CeedMemTypes[mem_type]);
+                     "must set array with CeedVectorSetArray", CeedMemTypes[mem_type]);
   // LCOV_EXCL_STOP
 
   bool has_valid_array = true;
@@ -796,7 +805,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   ierr = CeedGetParent(w->ceed, &ceed_parent_w); CeedChk(ierr);
   ierr = CeedGetParent(x->ceed, &ceed_parent_x); CeedChk(ierr);
   ierr = CeedGetParent(y->ceed, &ceed_parent_y); CeedChk(ierr);
-  if ((ceed_parent_w != ceed_parent_y) ||
+  if ((ceed_parent_w != ceed_parent_x) ||
       (ceed_parent_w != ceed_parent_y))
     // LCOV_EXCL_START
     return CeedError(w->ceed, CEED_ERROR_INCOMPATIBLE,
