@@ -191,6 +191,52 @@ class Vector():
             # return read only Numba array
             return nbcuda.from_cuda_array_interface(desc)
 
+    # Get Vector's data array in write-only mode
+    def get_array_write(self, memtype=MEM_HOST):
+        """Get write-only access to a Vector via the specified memory type.
+           All old values should be considered invalid.
+
+           Args:
+             **memtype: memory type of the array being passed, default CEED_MEM_HOST
+
+           Returns:
+             *array: Numpy or Numba array"""
+
+        # Retrieve the length of the array
+        length_pointer = ffi.new("CeedInt *")
+        err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
+        self._ceed._check_error(err_code)
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        err_code = lib.CeedVectorGetArrayWrite(
+            self._pointer[0], memtype, array_pointer)
+        self._ceed._check_error(err_code)
+
+        # Return array created from buffer
+        if memtype == MEM_HOST:
+            # Create buffer object from returned pointer
+            buff = ffi.buffer(
+                array_pointer[0],
+                ffi.sizeof("CeedScalar") *
+                length_pointer[0])
+            # return Numpy array
+            return np.frombuffer(buff, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
+        else:
+            # CUDA array interface
+            # https://numba.pydata.org/numba-doc/latest/cuda/cuda_array_interface.html
+            import numba.cuda as nbcuda
+            desc = {
+                'shape': (length_pointer[0]),
+                'typestr': '>f8',
+                'data': (int(ffi.cast("intptr_t", array_pointer[0])), False),
+                'version': 2
+            }
+            # return Numba array
+            return nbcuda.from_cuda_array_interface(desc)
+
     # Restore the Vector's data array
     def restore_array(self):
         """Restore an array obtained using get_array()."""
@@ -263,6 +309,32 @@ class Vector():
             x = x.reshape(shape)
         yield x
         self.restore_array_read()
+
+    @contextlib.contextmanager
+    def array_write(self, *shape, memtype=MEM_HOST):
+        """Context manager for write-only array access.
+           All old values should be considered invalid.
+
+        Args:
+          shape (tuple): shape of returned numpy.array
+          **memtype: memory type of the array being passed, default CEED_MEM_HOST
+
+        Returns:
+          np.array: write-only view of vector
+
+        Examples:
+          Viewing contents of a reshaped libceed.Vector view:
+
+          >>> vec = ceed.Vector(6)
+          >>> vec.set_value(1.3)
+          >>> with vec.array_read(2, 3) as x:
+          >>>     print(x)
+        """
+        x = self.get_array_write(memtype=memtype)
+        if shape:
+            x = x.reshape(shape)
+        yield x
+        self.restore_array()
 
     # Get the length of a Vector
     def get_length(self):

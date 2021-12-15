@@ -313,6 +313,26 @@ def test_123(ceed_resource, capsys):
         assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
+# Test getArrayWrite to modify array
+# -------------------------------------------------------------------------------
+
+
+def test_124(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+
+    x = ceed.Vector(n)
+
+    with x.array_write() as a:
+        for i in range(len(a)):
+            a[i] = 3 * i
+
+    with x.array_read() as a:
+        for i in range(len(a)):
+            assert a[i] == 3 * i
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 
