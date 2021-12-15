@@ -90,10 +90,6 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       ierr = CeedElemRestrictionCreateVector(blk_restr[i+start_e], NULL,
                                              &e_vecs_full[i+start_e]);
       CeedChkBackend(ierr);
-      if (is_input) {
-        ierr = CeedVectorSetArray(e_vecs_full[i+start_e], CEED_MEM_HOST,
-                                  CEED_COPY_VALUES, NULL); CeedChkBackend(ierr);
-      }
     }
 
     switch(eval_mode) {

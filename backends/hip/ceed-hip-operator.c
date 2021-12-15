@@ -150,11 +150,6 @@ static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op,
         ierr = CeedElemRestrictionCreateVector(Erestrict, NULL,
                                                &evecs[i + starte]);
         CeedChkBackend(ierr);
-        // Allocate array
-        if (isinput) {
-          ierr = CeedVectorSetArray(evecs[i + starte], CEED_MEM_DEVICE,
-                                    CEED_COPY_VALUES, NULL); CeedChkBackend(ierr);
-        }
       }
     }
 

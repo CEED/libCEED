@@ -144,7 +144,13 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   const CeedScalar *d_u;
   CeedScalar *d_v;
   ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
-  ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  if (tmode == CEED_TRANSPOSE) {
+    // Sum into for transpose mode, e-vec to l-vec
+    ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  } else {
+    // Overwrite for notranspose mode, l-vec to e-vec
+    ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  }
 
   // Restrict
   if (tmode == CEED_NOTRANSPOSE) {
