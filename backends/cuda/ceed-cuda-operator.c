@@ -1153,10 +1153,11 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   ierr = CeedVectorSetValue(elemdiag, 0.0); CeedChkBackend(ierr);
 
   // Assemble element operator diagonals
-  CeedScalar *elemdiagarray, *assembledqfarray;
+  CeedScalar *elemdiagarray;
+  const CeedScalar *assembledqfarray;
   ierr = CeedVectorGetArray(elemdiag, CEED_MEM_DEVICE, &elemdiagarray);
   CeedChkBackend(ierr);
-  ierr = CeedVectorGetArray(assembledqf, CEED_MEM_DEVICE, &assembledqfarray);
+  ierr = CeedVectorGetArrayRead(assembledqf, CEED_MEM_DEVICE, &assembledqfarray);
   CeedChkBackend(ierr);
   CeedInt nelem;
   ierr = CeedElemRestrictionGetNumElements(diagrstr, &nelem);
@@ -1182,7 +1183,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
 
   // Restore arrays
   ierr = CeedVectorRestoreArray(elemdiag, &elemdiagarray); CeedChkBackend(ierr);
-  ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray);
+  ierr = CeedVectorRestoreArrayRead(assembledqf, &assembledqfarray);
   CeedChkBackend(ierr);
 
   // Assemble local operator diagonal

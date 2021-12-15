@@ -488,8 +488,8 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec,
   // Output Evecs
   for (CeedInt i=0; i<num_output_fields; i++) {
     ierr = CeedVectorGetArrayWrite(impl->e_vecs_full[i+impl->num_inputs],
-                                   CEED_MEM_HOST,
-                                   &e_data_full[i + num_input_fields]); CeedChkBackend(ierr);
+                                   CEED_MEM_HOST, &e_data_full[i + num_input_fields]);
+    CeedChkBackend(ierr);
   }
 
   // Loop through elements
@@ -529,7 +529,8 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec,
   for (CeedInt i=0; i<num_output_fields; i++) {
     // Restore evec
     ierr = CeedVectorRestoreArray(impl->e_vecs_full[i+impl->num_inputs],
-                                  &e_data_full[i + num_input_fields]); CeedChkBackend(ierr);
+                                  &e_data_full[i + num_input_fields]);
+    CeedChkBackend(ierr);
     // Get output vector
     ierr = CeedOperatorFieldGetVector(op_output_fields[i], &vec);
     CeedChkBackend(ierr);
@@ -655,10 +656,9 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(
   if (!l_vec) {
     ierr = CeedVectorCreate(ceed, num_blks*blk_size*Q*num_active_in*num_active_out,
                             &l_vec); CeedChkBackend(ierr);
-    ierr = CeedVectorSetValue(l_vec, 0.0); CeedChkBackend(ierr);
     impl->qf_l_vec = l_vec;
   }
-  ierr = CeedVectorGetArray(l_vec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(l_vec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
 
   // Build objects if needed
   CeedInt strides[3] = {1, Q, num_active_in *num_active_out*Q};

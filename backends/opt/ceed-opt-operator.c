@@ -263,12 +263,14 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt num_input_fields,
       } else {
         // Set Qvec for CEED_EVAL_NONE
         if (eval_mode == CEED_EVAL_NONE) {
-          ierr = CeedVectorGetArrayWrite(impl->e_vecs_in[i], CEED_MEM_HOST,
-                                         &e_data[i]); CeedChkBackend(ierr);
+          ierr = CeedVectorGetArrayRead(impl->e_vecs_in[i], CEED_MEM_HOST,
+                                        (const CeedScalar **)&e_data[i]);
+          CeedChkBackend(ierr);
           ierr = CeedVectorSetArray(impl->q_vecs_in[i], CEED_MEM_HOST,
                                     CEED_USE_POINTER, e_data[i]); CeedChkBackend(ierr);
-          ierr = CeedVectorRestoreArray(impl->e_vecs_in[i],
-                                        &e_data[i]); CeedChkBackend(ierr);
+          ierr = CeedVectorRestoreArrayRead(impl->e_vecs_in[i],
+                                            (const CeedScalar **)&e_data[i]);
+          CeedChkBackend(ierr);
         }
       }
     }

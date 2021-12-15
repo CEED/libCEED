@@ -311,11 +311,12 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
   CeedChk(ierr);
 
   // Assemble element operator diagonals
-  CeedScalar *elem_diag_array, *assembled_qf_array;
+  CeedScalar *elem_diag_array;
+  const CeedScalar *assembled_qf_array;
   ierr = CeedVectorSetValue(elem_diag, 0.0); CeedChk(ierr);
   ierr = CeedVectorGetArray(elem_diag, CEED_MEM_HOST, &elem_diag_array);
   CeedChk(ierr);
-  ierr = CeedVectorGetArray(assembled_qf, CEED_MEM_HOST, &assembled_qf_array);
+  ierr = CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array);
   CeedChk(ierr);
   CeedInt num_elem, num_nodes, num_qpts;
   ierr = CeedElemRestrictionGetNumElements(diag_rstr, &num_elem); CeedChk(ierr);
@@ -386,7 +387,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
     }
   }
   ierr = CeedVectorRestoreArray(elem_diag, &elem_diag_array); CeedChk(ierr);
-  ierr = CeedVectorRestoreArray(assembled_qf, &assembled_qf_array); CeedChk(ierr);
+  ierr = CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array);
+  CeedChk(ierr);
 
   // Assemble local operator diagonal
   ierr = CeedElemRestrictionApply(diag_rstr, CEED_TRANSPOSE, elem_diag,
@@ -2000,7 +2002,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   ierr = CeedVectorCreate(ceed_parent, num_elem*num_comp*elem_size, &q_data);
   CeedChk(ierr);
   ierr = CeedVectorSetValue(q_data, 0.0); CeedChk(ierr);
-  ierr = CeedVectorGetArray(q_data, CEED_MEM_HOST, &q_data_array); CeedChk(ierr);
+  ierr = CeedVectorGetArrayWrite(q_data, CEED_MEM_HOST, &q_data_array);
+  CeedChk(ierr);
   for (CeedInt e=0; e<num_elem; e++)
     for (CeedInt c=0; c<num_comp; c++)
       for (CeedInt n=0; n<elem_size; n++)
