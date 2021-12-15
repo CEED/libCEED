@@ -73,9 +73,9 @@ int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx,
   @brief Check for borrowed data of a specific CeedMemType in a
            CeedQFunctionContext
 
-  @param ctx                  CeedQFunctionContext to check
-  @param mem_type             Memory type to check
-  @param[out] has_valid_data  Variable to store result
+  @param ctx                             CeedQFunctionContext to check
+  @param mem_type                        Memory type to check
+  @param[out] has_borrowed_data_of_type  Variable to store result
 
   @return An error code: 0 - success, otherwise - failure
 
