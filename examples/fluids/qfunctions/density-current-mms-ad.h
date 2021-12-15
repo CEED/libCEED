@@ -51,32 +51,20 @@ struct DCContext_ {
 // True Solutions for the Method of Manufactured Solutions
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int ExactSolution(CeedScalar q[], CeedScalar *time,
-                                        CeedScalar *X, CeedScalar *Y, CeedScalar *Z) {
+                                        CeedScalar X[]) {
   // -- Time
-  CeedScalar t = time[0];
+  double t = time[0];
   // -- Coordinates
-  CeedScalar x = X[0];
-  CeedScalar y = Y[0];
-  CeedScalar z = Z[0];
+  double x = X[0];
+  double y = X[1];
+  double z = X[2];
 
   // Exact solutions
-  q[0] = 10.*(t*t+t+1.) + (1.*x) + (6. *y) + (11.*z);
-  q[1] = 20.*(t*t+t+1.) + (2.*x) + (7. *y) + (12.*z);
-  q[2] = 30.*(t*t+t+1.) + (3.*x) + (8. *y) + (13.*z);
-  q[3] = 40.*(t*t+t+1.) + (4.*x) + (9. *y) + (14.*z);
-  q[4] = 50.*(t*t+t+1.) + (5.*x) + (10.*y) + (15.*z);
-
-  //q[0] = exp(6*t)*exp(2*x)*sin(3*y)*cos(4*z)/1e5;
-  //q[1] = exp(7*t)*sin(3*x)*cos(4*y)*cos(5*z)/1e5;
-  //q[2] = exp(7*t)*cos(4*x)*sin(5*y)*sin(3*z)/1e5;
-  //q[3] = exp(7*t)*sin(5*x)*sin(3*y)*cos(4*z)/1e5;
-  //q[4] = exp(8*t)*sin(4*x)*cos(5*y)*exp(6*z)/1e5;
-
-  //q[0] = 2*(t*t + t + 1.) + (1*x*x) + (6 *y*y) +  (20*z*z);
-  //q[1] = 3*(t*t + t + 1.) + (2*x*x) + (7 *y*y) +  (30*z*z);
-  //q[2] = 4*(t*t + t + 1.) + (3*x*x) + (8 *y*y) +  (40*z*z);
-  //q[3] = 5*(t*t + t + 1.) + (4*x*x) + (9 *y*y) +  (50*z*z);
-  //q[4] = 6*(t*t + t + 1.) + (5*x*x) + (10*y*y) +  (60*z*z);
+  q[0] = cos(2*x)*sin(3*y)*cos(4*z) + .01; // exp(6*t)*
+  q[1] = sin(3*x)*cos(4*y)*cos(5*z) + .01; // exp(7*t)*
+  q[2] = cos(4*x)*sin(5*y)*sin(3*z) + .01; // exp(7*t)*
+  q[3] = sin(5*x)*sin(3*y)*cos(4*z) + .01; // exp(7*t)*
+  q[4] = sin(4*x)*cos(5*y)*sin(6*z) + .01; // exp(8*t)*
 
   return 0;
 }
@@ -86,63 +74,353 @@ CEED_QFUNCTION_HELPER int ExactSolution(CeedScalar q[], CeedScalar *time,
 // Enzyme-AD
 // *****************************************************************************
 // -- Enzyme functions and variables
-int  __enzyme_autodiff(void *, ...);
+void __enzyme_autodiff(void *, ...);
 int enzyme_const;
 
-// -----------------------------------------------------------------------------
-// -- Compute q_dot
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION_HELPER void computeQdot(CeedScalar *q_dot, CeedScalar *t,
-                                       CeedScalar *x, CeedScalar *y, CeedScalar *z) {
-  CeedScalar q[5];
-  for (CeedInt i=0; i<5; i++) {
-    CeedScalar q_[5] = {0.}; q_[i] = 1.;
+// -- q_diff
+CEED_QFUNCTION_HELPER void q_diff(double q[5], double q_dot[5], double dq[5][3],
+                                  double *t, double x[]) {
+  for (int i=0; i<5; i++) {
+    double q_[5] = {0.}; q_[i] = 1.;
     __enzyme_autodiff((void *)ExactSolution,
                       q, q_,
                       t, &q_dot[i],
-                      enzyme_const, x,
-                      enzyme_const, y,
-                      enzyme_const, z);
+                      x, dq[i]);
   }
 }
 
-// -----------------------------------------------------------------------------
-// -- Compute grad_q
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION_HELPER void computeGrad_q(CeedScalar grad_q[3][5], CeedScalar *t,
-    CeedScalar *x, CeedScalar *y, CeedScalar *z) {
-  CeedScalar q[5];
-  // Derivative wrt x
-  for (CeedInt i=0; i<5; i++) {
-    CeedScalar q_[5] = {0.}; q_[i] = 1.;
-    __enzyme_autodiff((void *)ExactSolution,
-                      q, q_,
-                      enzyme_const, t,
-                      x, &grad_q[0][i],
-                      enzyme_const, y,
-                      enzyme_const, z);
+// -- dFlux[0]/dx
+CEED_QFUNCTION_HELPER void Fi0(double f0[5], double *t, double x[],
+                               double lambda, double mu, double k, double cv, double cp, double g) {
+  // Compute state variables and the derivatives
+  double q[5];
+  double q_dot[5] = {0.};
+  double dq[5][3] = {{0.}};
+  q_diff(q, q_dot, dq, t, x);
+
+  // -- q
+  double rho = q[0];
+  double u[3] = {q[1]/rho, q[2]/rho, q[3]/rho};
+  double E = q[4];
+  // -- dq
+  double drho[3]   = {dq[0][0], dq[0][1], dq[0][2]};
+  // *INDENT-OFF*
+  double dU[3][3] = {{dq[1][0], dq[1][1], dq[1][2]},
+                     {dq[2][0], dq[2][1], dq[2][2]},
+                     {dq[3][0], dq[3][1], dq[3][2]}
+                    };
+  // *INDENT-ON*
+  double dE[3] =     {dq[4][0], dq[4][1], dq[4][2]};
+  double du[3][3] = {{0.}};
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
+
+  // Density
+  // -- Advective flux
+  double F_adv_density[3] = {rho *u[0], rho *u[1], rho *u[2]};
+
+  // -- No diffusive flux
+
+  // Momentum
+  // -- Advective flux
+  double gamma = cp/cv;
+  double kinetic_energy = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
+  double P = (E - kinetic_energy * rho - rho*g*x[2]) * (gamma - 1.);
+  // *INDENT-OFF*
+  double F_adv_momentum[3][3] = {{rho *u[0] *u[0] + P, rho *u[0] *u[1],     rho *u[0] *u[2]},
+                                 {rho *u[1] *u[0],     rho *u[1] *u[1] + P, rho *u[1] *u[2]},
+                                 {rho *u[2] *u[0],     rho *u[2] *u[1],     rho *u[2] *u[02] + P}
+                               };
+  // *INDENT-ON*
+  // -- Diffusive Flux
+  double Fu[6] = {mu *(du[0][0] * (2 + lambda) + lambda * (du[1][1] + du[2][2])),
+                  mu *(du[0][1] + du[1][0]),
+                  mu *(du[0][2] + du[2][0]),
+                  mu *(du[1][1] * (2 + lambda) + lambda * (du[0][0] + du[2][2])),
+                  mu *(du[1][2] + du[2][1]),
+                  mu *(du[2][2] * (2 + lambda) + lambda * (du[0][0] + du[1][1]))
+                 };
+
+  const int Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
+  double F_dif_momentum[3][3];
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      F_dif_momentum[j][k] = Fu[Fuviscidx[j][k]];
+
+  // Total Energy
+  // -- Advective flux
+  double F_adv_energy[3] = {(E + P) *u[0], (E + P) *u[1], (E + P) *u[2]};
+
+  // -- Diffusive Flux
+  double dT[3] = {(dE[0]/rho - E *drho[0]/(rho*rho) - (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))    /cv,
+                  (dE[1]/rho - E *drho[1]/(rho*rho) - (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1]))    /cv,
+                  (dE[2]/rho - E *drho[2]/(rho*rho) - (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
+                 };
+  double F_dif_energy[3] = {u[0] *Fu[0] + u[1] *Fu[1] + u[2] *Fu[2] + k *dT[0],
+                            u[0] *Fu[1] + u[1] *Fu[3] + u[2] *Fu[4] + k *dT[1],
+                            u[0] *Fu[2] + u[1] *Fu[4] + u[2] *Fu[5] + k *dT[2]
+                           };
+
+  // Populate Flux
+  // -- Zero f0
+  for (int j=0; j<5; j++) f0[j] = 0.;
+
+  // -- Density
+  f0[0] += F_adv_density[0];
+
+  // -- Momentum
+  for (int j=0; j<3; j++) {
+    f0[j+1] += F_adv_momentum[j][0];
+    f0[j+1] -= F_dif_momentum[j][0];
   }
-  // Derivative wrt y
-  for (CeedInt i=0; i<5; i++) {
-    CeedScalar q_[5] = {0.}; q_[i] = 1.;
-    __enzyme_autodiff((void *)ExactSolution,
-                      q, q_,
+
+  // -- Energy
+  f0[4] += F_adv_energy[0];
+  f0[4] -= F_dif_energy[0];
+
+}
+
+CEED_QFUNCTION_HELPER void dFi0_dx(double df0_dx[5], double *t, double x[],
+                                   double lambda, double mu, double k, double cv, double cp, double g) {
+  double f[5];
+  for (int i=0; i<5; i++) {
+    double f_[5] = {0.}; f_[i] = 1.;
+    double df[3] = {0.};
+    __enzyme_autodiff((void *)Fi0,
+                      f, f_,
                       enzyme_const, t,
-                      enzyme_const, x,
-                      y, &grad_q[1][i],
-                      enzyme_const, z);
-  }
-  // Derivative wrt z
-  for (CeedInt i=0; i<5; i++) {
-    CeedScalar q_[5] = {0.}; q_[i] = 1.;
-    __enzyme_autodiff((void *)ExactSolution,
-                      q, q_,
-                      enzyme_const, t,
-                      enzyme_const, x,
-                      enzyme_const, y,
-                      z, &grad_q[2][i]);
+                      x, df,
+                      enzyme_const, lambda,
+                      enzyme_const, mu,
+                      enzyme_const, k,
+                      enzyme_const, cv,
+                      enzyme_const, cp,
+                      enzyme_const, g);
+    df0_dx[i] = df[0];
   }
 }
+
+// -- dFlux[1]/dy
+CEED_QFUNCTION_HELPER void Fi1(double f1[5], double *t, double x[],
+                               double lambda, double mu, double k, double cv, double cp, double g) {
+  // Compute state variables and the derivatives
+  double q[5];
+  double q_dot[5] = {0.};
+  double dq[5][3] = {{0.}};
+  q_diff(q, q_dot, dq, t, x);
+
+  // -- q
+  double rho = q[0];
+  double u[3] = {q[1]/rho, q[2]/rho, q[3]/rho};
+  double E = q[4];
+  // -- dq
+  double drho[3]   = {dq[0][0], dq[0][1], dq[0][2]};
+  double dU[3][3] = {{dq[1][0], dq[1][1], dq[1][2]},
+    {dq[2][0], dq[2][1], dq[2][2]},
+    {dq[3][0], dq[3][1], dq[3][2]}
+  };
+  double dE[3] =     {dq[4][0], dq[4][1], dq[4][2]};
+  double du[3][3] = {{0.}};
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
+
+  // Density
+  // -- Advective flux
+  double F_adv_density[3] = {rho *u[0], rho *u[1], rho *u[2]};
+
+  // -- No diffusive flux
+
+  // Momentum
+  // -- Advective flux
+  double gamma = cp/cv;
+  double kinetic_energy = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
+  double P = (E - kinetic_energy * rho - rho*g*x[2]) * (gamma - 1.);
+  // *INDENT-OFF*
+  double F_adv_momentum[3][3] = {{rho *u[0] *u[0] + P, rho *u[0] *u[1],     rho *u[0] *u[2]},
+                                 {rho *u[1] *u[0],     rho *u[1] *u[1] + P, rho *u[1] *u[2]},
+                                 {rho *u[2] *u[0],     rho *u[2] *u[1],     rho *u[2] *u[02] + P}
+                               };
+  // *INDENT-ON*
+  // -- Diffusive Flux
+  double Fu[6] = {mu *(du[0][0] * (2 + lambda) + lambda * (du[1][1] + du[2][2])),
+                  mu *(du[0][1] + du[1][0]),
+                  mu *(du[0][2] + du[2][0]),
+                  mu *(du[1][1] * (2 + lambda) + lambda * (du[0][0] + du[2][2])),
+                  mu *(du[1][2] + du[2][1]),
+                  mu *(du[2][2] * (2 + lambda) + lambda * (du[0][0] + du[1][1]))
+                 };
+
+  const int Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
+  double F_dif_momentum[3][3];
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      F_dif_momentum[j][k] = Fu[Fuviscidx[j][k]];
+
+  // Total Energy
+  // -- Advective flux
+  double F_adv_energy[3] = {(E + P) *u[0], (E + P) *u[1], (E + P) *u[2]};
+
+  // -- Diffusive Flux
+  double dT[3] = {(dE[0]/rho - E *drho[0]/(rho*rho) - (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))    /cv,
+                  (dE[1]/rho - E *drho[1]/(rho*rho) - (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1]))    /cv,
+                  (dE[2]/rho - E *drho[2]/(rho*rho) - (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
+                 };
+  double F_dif_energy[3] = {u[0] *Fu[0] + u[1] *Fu[1] + u[2] *Fu[2] + k *dT[0],
+                            u[0] *Fu[1] + u[1] *Fu[3] + u[2] *Fu[4] + k *dT[1],
+                            u[0] *Fu[2] + u[1] *Fu[4] + u[2] *Fu[5] + k *dT[2]
+                           };
+
+  // Populate Flux
+  // -- Zero f0
+  for (int j=0; j<5; j++) f1[j] = 0.;
+
+  // -- Density
+  f1[0] += F_adv_density[1];
+
+  // -- Momentum
+  for (int j=0; j<3; j++) {
+    f1[j+1] += F_adv_momentum[j][1];
+    f1[j+1] -= F_dif_momentum[j][1];
+  }
+
+  // -- Energy
+  f1[4] += F_adv_energy[1];
+  f1[4] -= F_dif_energy[1];
+}
+
+CEED_QFUNCTION_HELPER void dFi1_dy(double df1_dy[5], double *t, double x[],
+                                   double lambda, double mu, double k, double cv, double cp, double g) {
+  double f[5];
+  for (int i=0; i<5; i++) {
+    double f_[5] = {0.}; f_[i] = 1.;
+    double df[3] = {0.};
+    __enzyme_autodiff((void *)Fi1,
+                      f, f_,
+                      enzyme_const, t,
+                      x, df,
+                      enzyme_const, lambda,
+                      enzyme_const, mu,
+                      enzyme_const, k,
+                      enzyme_const, cv,
+                      enzyme_const, cp,
+                      enzyme_const, g);
+    df1_dy[i] = df[1];
+  }
+}
+
+// -- dFlux[2]/dz
+CEED_QFUNCTION_HELPER void Fi2(double f2[5], double *t, double x[],
+                               double lambda, double mu, double k, double cv, double cp, double g) {
+  // Compute state variables and the derivatives
+  double q[5];
+  double q_dot[5] = {0.};
+  double dq[5][3] = {{0.}};
+  q_diff(q, q_dot, dq, t, x);
+
+  // -- q
+  double rho = q[0];
+  double u[3] = {q[1]/rho, q[2]/rho, q[3]/rho};
+  double E = q[4];
+  // -- dq
+  double drho[3]   = {dq[0][0], dq[0][1], dq[0][2]};
+  // *INDENT-OFF*
+  double dU[3][3] = {{dq[1][0], dq[1][1], dq[1][2]},
+                     {dq[2][0], dq[2][1], dq[2][2]},
+                     {dq[3][0], dq[3][1], dq[3][2]}
+                   };
+  // *INDENT-ON*
+  double dE[3] =     {dq[4][0], dq[4][1], dq[4][2]};
+  double du[3][3] = {{0.}};
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      du[j][k] = (dU[j][k] - drho[k]*u[j]) / rho;
+
+  // Density
+  // -- Advective flux
+  double F_adv_density[3] = {rho *u[0], rho *u[1], rho *u[2]};
+
+  // -- No diffusive flux
+
+  // Momentum
+  // -- Advective flux
+  double gamma = cp/cv;
+  double kinetic_energy = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
+  double P = (E - kinetic_energy * rho - rho*g*x[2]) * (gamma - 1.);
+  // *INDENT-OFF*
+  double F_adv_momentum[3][3] = {{rho *u[0] *u[0] + P, rho *u[0] *u[1],     rho *u[0] *u[2]},
+                                 {rho *u[1] *u[0],     rho *u[1] *u[1] + P, rho *u[1] *u[2]},
+                                 {rho *u[2] *u[0],     rho *u[2] *u[1],     rho *u[2] *u[02] + P}
+                               };
+  // *INDENT-ON*
+  // -- Diffusive Flux
+  double Fu[6] = {mu *(du[0][0] * (2 + lambda) + lambda * (du[1][1] + du[2][2])),
+                  mu *(du[0][1] + du[1][0]),
+                  mu *(du[0][2] + du[2][0]),
+                  mu *(du[1][1] * (2 + lambda) + lambda * (du[0][0] + du[2][2])),
+                  mu *(du[1][2] + du[2][1]),
+                  mu *(du[2][2] * (2 + lambda) + lambda * (du[0][0] + du[1][1]))
+                 };
+
+  const int Fuviscidx[3][3] = {{0, 1, 2}, {1, 3, 4}, {2, 4, 5}}; // symmetric matrix indices
+  double F_dif_momentum[3][3];
+  for (int j=0; j<3; j++)
+    for (int k=0; k<3; k++)
+      F_dif_momentum[j][k] = Fu[Fuviscidx[j][k]];
+
+  // Total Energy
+  // -- Advective flux
+  double F_adv_energy[3] = {(E + P) *u[0], (E + P) *u[1], (E + P) *u[2]};
+
+  // -- Diffusive Flux
+  double dT[3] = {(dE[0]/rho - E *drho[0]/(rho*rho) - (u[0]*du[0][0] + u[1]*du[1][0] + u[2]*du[2][0]))    /cv,
+                  (dE[1]/rho - E *drho[1]/(rho*rho) - (u[0]*du[0][1] + u[1]*du[1][1] + u[2]*du[2][1]))    /cv,
+                  (dE[2]/rho - E *drho[2]/(rho*rho) - (u[0]*du[0][2] + u[1]*du[1][2] + u[2]*du[2][2]) - g)/cv
+                 };
+  double F_dif_energy[3] = {u[0] *Fu[0] + u[1] *Fu[1] + u[2] *Fu[2] + k *dT[0],
+                            u[0] *Fu[1] + u[1] *Fu[3] + u[2] *Fu[4] + k *dT[1],
+                            u[0] *Fu[2] + u[1] *Fu[4] + u[2] *Fu[5] + k *dT[2]
+                           };
+
+  // Populate Flux
+  // -- Zero f0
+  for (int j=0; j<5; j++) f2[j] = 0.;
+
+  // -- Density
+  f2[0] += F_adv_density[2];
+
+  // -- Momentum
+  for (int j=0; j<3; j++) {
+    f2[j+1] += F_adv_momentum[j][2];
+    f2[j+1] -= F_dif_momentum[j][2];
+  }
+
+  // -- Energy
+  f2[4] += F_adv_energy[2];
+  f2[4] -= F_dif_energy[2];
+}
+
+CEED_QFUNCTION_HELPER void dFi2_dz(double df2_dz[5], double *t, double x[],
+                                   double lambda, double mu, double k, double cv, double cp, double g) {
+  double f[5];
+  for (int i=0; i<5; i++) {
+    double f_[5] = {0.}; f_[i] = 1.;
+    double df[3] = {0.};
+    __enzyme_autodiff((void *)Fi2,
+                      f, f_,
+                      enzyme_const, t,
+                      x, df,
+                      enzyme_const, lambda,
+                      enzyme_const, mu,
+                      enzyme_const, k,
+                      enzyme_const, cv,
+                      enzyme_const, cp,
+                      enzyme_const, g);
+    df2_dz[i] = df[2];
+  }
+}
+
 // *****************************************************************************
 
 // *****************************************************************************
@@ -153,8 +431,8 @@ CEED_QFUNCTION_HELPER int Exact_DC_MMS(CeedInt dim, CeedScalar time,
                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[],
                                        void *ctx) {
   CeedScalar t[1] = {time};
-  CeedScalar x[1] = {X[0]}, y[1] = {X[1]}, z[1] = {X[2]};
-  ExactSolution(q, t, x, y, z);
+  CeedScalar x[] = {X[0], X[1], X[2]};
+  ExactSolution(q, t, x);
   return 0;
 }
 // *****************************************************************************
@@ -185,7 +463,7 @@ CEED_QFUNCTION(ICsDC_MMS)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
-// Forcing term for Method of Manufactured Solutions
+// Forcing terms for Method of Manufactured Solutions
 // *****************************************************************************
 CEED_QFUNCTION(DC_MMS)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                        CeedScalar *const *out) {
@@ -199,55 +477,60 @@ CEED_QFUNCTION(DC_MMS)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
   // Context
   DCContext context = (DCContext)ctx;
-  //const CeedScalar lambda = context->lambda;
-  //const CeedScalar mu     = context->mu;
-  //const CeedScalar k      = context->k;
-  //const CeedScalar cv     = context->cv;
-  //const CeedScalar cp     = context->cp;
-  //const CeedScalar g      = context->g;
-  //const CeedScalar gamma  = cp / cv;
+  const CeedScalar lambda = context->lambda;
+  const CeedScalar mu     = context->mu;
+  const CeedScalar k      = context->k;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar g      = context->g;
   const CeedScalar t      = context->curr_time;
   const bool implicit     = context->implicit;
-  CeedScalar time[1] = {t};
+  CeedScalar time[1] = {t}; // TODO: This needs a fix
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
-    printf("\n-------------------------------------------------------------------------");
-    printf("\nqpt  = %d \ntime = %f", i, t);
-    printf("\n-------------------------------------------------------------------------");
     const CeedScalar wdetJ = (implicit ? -1. : 1.) * q_data[0][i];
-    CeedScalar x[1] = {X[0][i]}, y[1] = {X[1][i]}, z[1] = {X[2][i]};
+    CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
 
     // Zero force so all future terms can safely sum into it
     for (CeedInt j=0; j<5; j++) force[j][i] = 0.;
 
     // -------------------------------------------------------------------------
-    // q_dot
+    // q_diff
     // -------------------------------------------------------------------------
-    CeedScalar q_dot[5] = {0.};
-    computeQdot(q_dot, time, x, y, z);
+    double q[5];
+    double q_dot[5] = {0.};
+    double dq[5][3] = {{0.}};
+    q_diff(q, q_dot, dq, time, x);
 
-    // Print output
-    printf("\nq_dot:\n");
-    for (int j=0; j<5; j++) printf("%f\t", q_dot[j]);
-    printf("\n");
-
-    // Add Qdot to the forcing term
+    // Add Qdot to the forcing terms
     for (CeedInt j=0; j<5; j++) force[j][i] += wdetJ*q_dot[j];
 
     // -------------------------------------------------------------------------
-    // grad_q
+    // div(flux) = div(flux_advective - flux_diffusive)
     // -------------------------------------------------------------------------
-    CeedScalar grad_q[3][5] = {{0.}};
-    computeGrad_q(grad_q, time, x, y, z);
+    // -- Compute df
+    double df[3][5] = {{0.}};
+    dFi0_dx(df[0], time, x, lambda, mu, k, cv, cp, g);
+    dFi1_dy(df[1], time, x, lambda, mu, k, cv, cp, g);
+    dFi2_dz(df[2], time, x, lambda, mu, k, cv, cp, g);
 
-    // Print output
-    for (int i=0; i<3; i++) {
-      printf("\nDerivative in direction %d:\n", i);
-      for (int j=0; j<5; j++) printf("%f\t", grad_q[i][j]);
-      printf("\n");
-    }
+    // -- Compute div(flux)
+    double div_f[5] = {0.};
+    for (int j=0; j<5; j++) for (int k=0; k<3; k++) div_f[j] += df[k][j];
+
+    // Add div(flux) to the forcing terms
+    for (CeedInt j=0; j<5; j++) force[j][i] += wdetJ*div_f[j];
+
+    // -------------------------------------------------------------------------
+    // Body force
+    // -------------------------------------------------------------------------
+    double rho = q[0];
+
+    // Add body force to the forcing terms
+    force[3][i] += wdetJ*rho*g;
+
   } // End Quadrature Point Loop
 
   return 0; // Return
