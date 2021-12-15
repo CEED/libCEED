@@ -82,7 +82,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
 // Setup infields or outfields
 //------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
-                                        bool inOrOut, CeedVector *evecs,
+                                        bool isinput, CeedVector *evecs,
                                         CeedVector *qvecs, CeedInt starte,
                                         CeedInt numfields, CeedInt Q,
                                         CeedInt numelements) {
@@ -97,15 +97,15 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
   bool strided;
   bool skiprestrict;
 
-  if (inOrOut) {
-    ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &opfields);
-    CeedChkBackend(ierr);
-    ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qffields);
-    CeedChkBackend(ierr);
-  } else {
+  if (isinput) {
     ierr = CeedOperatorGetFields(op, NULL, &opfields, NULL, NULL);
     CeedChkBackend(ierr);
     ierr = CeedQFunctionGetFields(qf, NULL, &qffields, NULL, NULL);
+    CeedChkBackend(ierr);
+  } else {
+    ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &opfields);
+    CeedChkBackend(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qffields);
     CeedChkBackend(ierr);
   }
 
@@ -125,7 +125,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
       // CEED_STRIDES_BACKEND.
 
       // First, check whether the field is input or output:
-      if (!inOrOut) {
+      if (isinput) {
         // Check for passive input:
         ierr = CeedOperatorFieldGetVector(opfields[i], &fieldvec); CeedChkBackend(ierr);
         if (fieldvec != CEED_VECTOR_ACTIVE) {
@@ -151,8 +151,10 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
                                                &evecs[i + starte]);
         CeedChkBackend(ierr);
         // Allocate array
-        ierr = CeedVectorSetArray(evecs[i + starte], CEED_MEM_DEVICE, CEED_COPY_VALUES,
-                                  NULL); CeedChkBackend(ierr);
+        if (isinput) {
+          ierr = CeedVectorSetArray(evecs[i + starte], CEED_MEM_DEVICE,
+                                    CEED_COPY_VALUES, NULL); CeedChkBackend(ierr);
+        }
       }
     }
 
@@ -228,13 +230,13 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
 
   // Set up infield and outfield evecs and qvecs
   // Infields
-  ierr = CeedOperatorSetupFields_Cuda(qf, op, 0,
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, true,
                                       impl->evecs, impl->qvecsin, 0,
                                       numinputfields, Q, numelements);
   CeedChkBackend(ierr);
 
   // Outfields
-  ierr = CeedOperatorSetupFields_Cuda(qf, op, 1,
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, false,
                                       impl->evecs, impl->qvecsout,
                                       numinputfields, numoutputfields, Q,
                                       numelements); CeedChkBackend(ierr);
