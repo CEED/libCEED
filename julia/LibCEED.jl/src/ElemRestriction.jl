@@ -168,8 +168,8 @@ function apply(r::ElemRestriction, u::AbstractVector; tmode=NOTRANSPOSE)
         ruv = create_evector(r)
     else
         ruv = create_lvector(r)
-        ruv[] = 0.0
     end
+    ruv[] = 0.0
     apply!(r, uv, ruv; tmode=tmode)
     Vector(ruv)
 end
