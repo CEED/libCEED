@@ -271,6 +271,20 @@ PetscErrorCode SetupContext_DENSITY_CURRENT_MMS(Ceed ceed, CeedData ceed_data,
 
 PetscErrorCode BC_DENSITY_CURRENT_MMS(DM dm, SimpleBC bc, Physics phys,
                                       void *setup_ctx) {
+  IS             face_set_is; // Index Set for Face Sets
+  PetscInt       num_faces;   // Number of Face Sets in face_set_is
+  const PetscInt *faces_is;   // id of each FaceSet
+  DMLabel        label;
+  const char     *name = "Face Sets";
+  PetscErrorCode ierr;
+  PetscFunctionBeginUser;
+  ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
+  ierr = ISGetSize(face_set_is,&num_faces); CHKERRQ(ierr);
+  ierr = ISGetIndices(face_set_is, &faces_is); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
+  ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
+                       num_faces, faces_is, 0, 0, NULL, (void(*)(void))Exact_DC_MMS, NULL,
+                       NULL, NULL); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
