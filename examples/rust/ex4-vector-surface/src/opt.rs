@@ -21,8 +21,8 @@ use structopt::StructOpt;
 // ----------------------------------------------------------------------------
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "libCEED Rust Example 1 - Volume",
-    about = "This example uses the mass matrix to compute the length, area, or volume of a region, depending upon runtime parameters."
+    name = "libCEED Rust Example 4 - Vector Surface Area",
+    about = "This example illustrates a simple usage of libCEED to compute the surface area of a body using matrix-free application of a 3 component vector diffusion operator."
 )]
 #[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
