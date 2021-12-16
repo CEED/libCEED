@@ -12,8 +12,8 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, DM *dm) {
   PetscInt       dim = 2, num_comp_u = dim;
   PetscInt       p_start, p_end;
   PetscInt       c_start, c_end; // cells
-  PetscInt       e_start, e_end; // edges
-  PetscInt       v_start, v_end, v; // vertices
+  PetscInt       e_start, e_end, e; // edges
+  PetscInt       v_start, v_end; // vertices
 
   PetscFunctionBeginUser;
 
@@ -28,12 +28,12 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, DM *dm) {
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1); CHKERRQ(ierr);
   ierr = PetscSectionSetFieldName(sec,0,"Velocity"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec,0,num_comp_u); CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldComponents(sec,0,1); CHKERRQ(ierr);
   ierr = PetscSectionSetChart(sec,p_start,p_end); CHKERRQ(ierr);
   // Setup dofs
-  for (v = v_start; v < v_end; v++) {
-    ierr = PetscSectionSetFieldDof(sec, v, 0, num_comp_u); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof     (sec, v, num_comp_u); CHKERRQ(ierr);
+  for (e = e_start; e < e_end; e++) {
+    ierr = PetscSectionSetFieldDof(sec, e, 0, num_comp_u); CHKERRQ(ierr);
+    ierr = PetscSectionSetDof     (sec, e, num_comp_u); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
   ierr = DMSetSection(*dm,sec); CHKERRQ(ierr);

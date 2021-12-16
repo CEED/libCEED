@@ -8,7 +8,9 @@
 CeedMemType MemTypeP2C(PetscMemType mem_type) {
   return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST;
 }
+// -----------------------------------------------------------------------------
 // Destroy libCEED objects
+// -----------------------------------------------------------------------------
 PetscErrorCode CeedDataDestroy(CeedData ceed_data) {
   PetscErrorCode ierr;
 
@@ -132,7 +134,8 @@ PetscErrorCode CreateRestrictionFromPlexOriented(Ceed ceed, DM dm, CeedInt P,
   }
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
   num_elem = c_end - c_start;
-  ierr = PetscMalloc1(num_elem*PetscPowInt(P, topo_dim), &elem_restr_offsets);
+  ierr = PetscMalloc1(num_elem*topo_dim*PetscPowInt(P, topo_dim),
+                      &elem_restr_offsets); // doesn't alocate as many entries
   CHKERRQ(ierr);
   bool *orient;
   ierr = PetscMalloc1(num_elem*PetscPowInt(P, topo_dim), &orient);
@@ -142,7 +145,8 @@ PetscErrorCode CreateRestrictionFromPlexOriented(Ceed ceed, DM dm, CeedInt P,
     ierr = DMPlexGetClosureIndices(dm, section, section, p, PETSC_TRUE,
                                    &num_indices, &indices, NULL, NULL);
     CHKERRQ(ierr);
-    num_nodes = num_indices / field_off[num_fields];
+    num_nodes = num_indices /
+                field_off[num_fields]; // 8 / 2, but I think there are really 8 nodes
     for (PetscInt i = 0; i < num_nodes; i++) {
       PetscInt ii = i;
       // Check that indices are blocked by node and thus can be coalesced as a single field with
@@ -158,7 +162,7 @@ PetscErrorCode CreateRestrictionFromPlexOriented(Ceed ceed, DM dm, CeedInt P,
       }
       // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
       PetscInt loc = Involute(indices[ii*num_comp[0]]);
-      elem_restr_offsets[e_offset] = loc;
+      elem_restr_offsets[e_offset] = loc; // Are we getting two nodes per edge? yes,
       // Set orientation
       ierr = DMPlexGetConeOrientation(dm, p, &ornt); CHKERRQ(ierr);
       orient[e_offset] = ornt[i] < 0;
@@ -168,7 +172,8 @@ PetscErrorCode CreateRestrictionFromPlexOriented(Ceed ceed, DM dm, CeedInt P,
                                        &num_indices, &indices, NULL, NULL);
     CHKERRQ(ierr);
   }
-  if (e_offset != num_elem*PetscPowInt(P, topo_dim))
+  if (e_offset != num_elem*topo_dim*PetscPowInt(P,
+      topo_dim)) // this probably needs to be like this
     SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
              "ElemRestriction of size (%D,%D) initialized %D nodes", num_elem,
              PetscPowInt(P, topo_dim),e_offset);
@@ -176,7 +181,9 @@ PetscErrorCode CreateRestrictionFromPlexOriented(Ceed ceed, DM dm, CeedInt P,
   ierr = DMGetLocalVector(dm, &U_loc); CHKERRQ(ierr);
   ierr = VecGetLocalSize(U_loc, &num_dof); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm, &U_loc); CHKERRQ(ierr);
-  CeedElemRestrictionCreateOriented(ceed, num_elem, PetscPowInt(P, topo_dim),
+  // dof per element in Hdiv is dim*P^dim, for linear element P=2
+  CeedElemRestrictionCreateOriented(ceed, num_elem, topo_dim*PetscPowInt(P,
+                                    topo_dim), // as we're using here
                                     field_off[num_fields],
                                     1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
                                     elem_restr_offsets, orient, elem_restr_oriented);
@@ -245,8 +252,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, num_comp_u,
                                    num_comp_u*num_elem*num_qpts,
                                    CEED_STRIDES_BACKEND, &ceed_data->elem_restr_u_i);
-  //CeedElemRestrictionView(ceed_data->elem_restr_x, stdout);
-  //CeedElemRestrictionView(ceed_data->elem_restr_u, stdout);
+  printf("----elem_restr_x:\n");
+  CeedElemRestrictionView(ceed_data->elem_restr_x, stdout);
+  printf("----elem_restr_u:\n");
+  CeedElemRestrictionView(ceed_data->elem_restr_u, stdout);
   //CeedElemRestrictionView(ceed_data->elem_restr_geo_data_i, stdout);
   //CeedElemRestrictionView(ceed_data->elem_restr_u_i, stdout);
 
