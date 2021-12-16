@@ -22,16 +22,16 @@
 #ifndef vectorpoisson2dapply_h
 #define vectorpoisson2dapply_h
 
-CEED_QFUNCTION(VectorPoisson2DApply)(void *ctx, const CeedInt Q,
-                                     const CeedScalar *const *in,
-                                     CeedScalar *const *out) {
+CEED_QFUNCTION(Vector3Poisson2DApply)(void *ctx, const CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
   // *INDENT-OFF*
   // in[0] is gradient u, shape [2, nc=3, Q]
   // in[1] is quadrature data, size (3*Q)
-  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // out[0] is output to multiply against gradient v, shape [2, nc=3, Q]
-  CeedScalar       (*vg)[3][CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar       (*vg)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   const CeedInt dim = 2, num_comp = 3;

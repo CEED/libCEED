@@ -23,12 +23,12 @@
   @brief Set fields for Ceed QFunction for applying the mass matrix
            on a vector system with three components
 **/
-static int CeedQFunctionInit_VectorMassApply(Ceed ceed, const char *requested,
+static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "VectorMassApply";
+  const char *name = "Vector3MassApply";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
@@ -51,7 +51,7 @@ static int CeedQFunctionInit_VectorMassApply(Ceed ceed, const char *requested,
   @brief Register Ceed QFunction for applying the mass matrix on a vector system
            with three components
 **/
-CEED_INTERN int CeedQFunctionRegister_VectorMassApply(void) {
-  return CeedQFunctionRegister("VectorMassApply", VectorMassApply_loc, 1,
-                               VectorMassApply, CeedQFunctionInit_VectorMassApply);
+CEED_INTERN int CeedQFunctionRegister_Vector3MassApply(void) {
+  return CeedQFunctionRegister("Vector3MassApply", Vector3MassApply_loc, 1,
+                               Vector3MassApply, CeedQFunctionInit_Vector3MassApply);
 }

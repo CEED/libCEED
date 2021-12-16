@@ -22,8 +22,8 @@
 #ifndef vectormassapply_h
 #define vectormassapply_h
 
-CEED_QFUNCTION(VectorMassApply)(void *ctx, const CeedInt Q,
-                                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q,
+                                 const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // in[0] is u, size (Q)
   // in[1] is quadrature data, size (Q)

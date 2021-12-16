@@ -23,13 +23,13 @@
   @brief Set fields for Ceed QFunction applying the 3D Poisson operator
            on a vector system with three components
 **/
-static int CeedQFunctionInit_VectorPoisson3DApply(Ceed ceed,
+static int CeedQFunctionInit_Vector3Poisson3DApply(Ceed ceed,
     const char *requested,
     CeedQFunction qf) {
   int ierr;
 
   // Check QFunction name
-  const char *name = "VectorPoisson3DApply";
+  const char *name = "Vector3Poisson3DApply";
   if (strcmp(name, requested))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
@@ -53,8 +53,8 @@ static int CeedQFunctionInit_VectorPoisson3DApply(Ceed ceed,
   @brief Register Ceed QFunction for applying the 3D Poisson operator
            on a vector system with three components
 **/
-CEED_INTERN int CeedQFunctionRegister_VectorPoisson3DApply(void) {
-  return CeedQFunctionRegister("VectorPoisson3DApply", VectorPoisson3DApply_loc,
-                               1, VectorPoisson3DApply,
-                               CeedQFunctionInit_VectorPoisson3DApply);
+CEED_INTERN int CeedQFunctionRegister_Vector3Poisson3DApply(void) {
+  return CeedQFunctionRegister("Vector3Poisson3DApply", Vector3Poisson3DApply_loc,
+                               1, Vector3Poisson3DApply,
+                               CeedQFunctionInit_Vector3Poisson3DApply);
 }

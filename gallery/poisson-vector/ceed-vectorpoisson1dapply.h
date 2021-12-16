@@ -22,9 +22,9 @@
 #ifndef vectorpoisson1dapply_h
 #define vectorpoisson1dapply_h
 
-CEED_QFUNCTION(VectorPoisson1DApply)(void *ctx, const CeedInt Q,
-                                     const CeedScalar *const *in,
-                                     CeedScalar *const *out) {
+CEED_QFUNCTION(Vector3Poisson1DApply)(void *ctx, const CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
   // *INDENT-OFF*
   // in[0] is gradient u, shape [1, nc=3, Q]
   // in[1] is quadrature data, size (Q)

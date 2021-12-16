@@ -23,9 +23,9 @@
 #ifndef vectorpoisson3dapply_h
 #define vectorpoisson3dapply_h
 
-CEED_QFUNCTION(VectorPoisson3DApply)(void *ctx, const CeedInt Q,
-                                     const CeedScalar *const *in,
-                                     CeedScalar *const *out) {
+CEED_QFUNCTION(Vector3Poisson3DApply)(void *ctx, const CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
   // *INDENT-OFF*
   // in[0] is gradient u, shape [3, nc=3, Q]
   // in[1] is quadrature data, size (6*Q)
