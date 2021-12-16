@@ -200,7 +200,7 @@ PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
   PetscInt comps[1] = {3};
   ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
                        bc->num_slip[2], bc->slips[2], 0, 1, comps,
-                       (void(*)(void))NULL, NULL, setup_ctx, NULL);
+                       (void(*)(void))NULL, NULL, phys->euler_ctx, NULL);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
