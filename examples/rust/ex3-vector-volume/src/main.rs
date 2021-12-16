@@ -254,14 +254,23 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
         .check()?;
 
     // Solution vectors
-    let u = ceed.vector_from_slice(&vec![1.0; solution_size])?;
+    let mut u = ceed.vector(solution_size)?;
     let mut v = ceed.vector(solution_size)?;
+
+    // Initialize u with component index
+    for c in 0..ncomp_u {
+        let q = solution_size / ncomp_u;
+        u.view_mut()?.iter_mut().skip(c * q).take(q).for_each(|u| {
+            *u = (c + 1) as libceed::Scalar;
+        });
+    }
 
     // Apply the mass operator
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: Scalar = v.view()?.iter().sum::<libceed::Scalar>() / ncomp_u as libceed::Scalar;
+    let volume: Scalar = v.view()?.iter().sum::<libceed::Scalar>()
+        / ((ncomp_u * (ncomp_u + 1)) / 2) as libceed::Scalar;
 
     // Output results
     if !quiet {

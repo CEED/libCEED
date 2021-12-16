@@ -354,7 +354,8 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
             .take(q)
             .enumerate()
             .for_each(|(i, u)| {
-                *u = (0..dim).map(|d| coords[i + d * q]).sum();
+                *u = (0..dim).map(|d| coords[i + d * q]).sum::<libceed::Scalar>()
+                    * (c + 1) as libceed::Scalar;
             });
     }
 
@@ -367,7 +368,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
         .iter()
         .map(|v| (*v).abs())
         .sum::<libceed::Scalar>()
-        / ncomp_u as libceed::Scalar;
+        / ((ncomp_u * (ncomp_u + 1)) / 2) as libceed::Scalar;
 
     // Output results
     if !quiet {
@@ -376,7 +377,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
         println!("Surface area error          : {:.12e}", area - exact_area);
     }
     let tolerance = match dim {
-        1 => 10000.0 * libceed::EPSILON,
+        1 => 1E-5,
         _ => 1E-1,
     };
     let error = (area - exact_area).abs();
