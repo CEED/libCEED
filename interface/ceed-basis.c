@@ -1096,6 +1096,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 
   @param ceed        A Ceed object where the CeedBasis will be created
   @param topo        Topology of element, e.g. hypercube, simplex, ect
+  @param num_comp    Number of componenet, we have 1 vector componenet in H(div)
   @param num_nodes   Total number of nodes
   @param num_qpts    Total number of quadrature points
   @param basis_space 2 for H(div) discretization (1 for H^1, 3 for H(curl))

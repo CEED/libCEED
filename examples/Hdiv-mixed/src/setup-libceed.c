@@ -212,8 +212,8 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   PetscInt      c_start, c_end, num_elem;
   const PetscScalar *coordArray;
   CeedVector    x_coord;
-  CeedQFunction qf_setup_geo, qf_residual;
-  CeedOperator  op_setup_geo, op_residual;
+  CeedQFunction qf_residual;
+  CeedOperator  op_residual;
 
   PetscFunctionBeginUser;
   // ---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   // ---------------------------------------------------------------------------
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   num_comp_x = dim;
-  num_comp_u = dim;
+  num_comp_u = 1;
   CeedInt       elem_dof = dim*elem_node; // dof per element
   CeedScalar    q_ref[dim*num_qpts], q_weights[num_qpts];
   CeedScalar    div[elem_dof*num_qpts], interp[dim*elem_dof*num_qpts];
@@ -246,6 +246,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   // ---- Geometric ceed_data restriction
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
   num_elem = c_end - c_start;
+
   CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, geo_data_size,
                                    num_elem*num_qpts*geo_data_size,
                                    CEED_STRIDES_BACKEND, &ceed_data->elem_restr_geo_data_i);
@@ -256,8 +257,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   CeedElemRestrictionView(ceed_data->elem_restr_x, stdout);
   printf("----elem_restr_u:\n");
   CeedElemRestrictionView(ceed_data->elem_restr_u, stdout);
-  //CeedElemRestrictionView(ceed_data->elem_restr_geo_data_i, stdout);
-  //CeedElemRestrictionView(ceed_data->elem_restr_u_i, stdout);
+  printf("----elem_restr_geo_data_i:\n");
+  CeedElemRestrictionView(ceed_data->elem_restr_geo_data_i, stdout);
+  printf("----elem_restr_u_i:\n");
+  CeedElemRestrictionView(ceed_data->elem_restr_u_i, stdout);
 
   // ---------------------------------------------------------------------------
   // Element coordinates
@@ -276,6 +279,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   // -- Operator action variables
   CeedVectorCreate(ceed, U_loc_size, &ceed_data->x_ceed);
   CeedVectorCreate(ceed, U_loc_size, &ceed_data->y_ceed);
+  /*
   // -- Geometric data vector
   CeedVectorCreate(ceed, num_elem*num_qpts*geo_data_size,
                    &ceed_data->geo_data);
@@ -308,7 +312,7 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx,
   // -- Cleanup
   CeedQFunctionDestroy(&qf_setup_geo);
   CeedOperatorDestroy(&op_setup_geo);
-
+  */
   // ---------------------------------------------------------------------------
   // Local residual evaluator
   // ---------------------------------------------------------------------------
