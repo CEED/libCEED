@@ -114,9 +114,9 @@ int CeedQFunctionRegister(const char *name, const char *source,
 **/
 static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *field_name,
                                  CeedInt size, CeedEvalMode eval_mode) {
+  int ierr;
   size_t len = strlen(field_name);
   char *tmp;
-  int ierr;
 
   ierr = CeedCalloc(1, f); CeedChk(ierr);
   ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);

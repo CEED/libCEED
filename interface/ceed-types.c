@@ -69,3 +69,8 @@ const char *const CeedElemTopologies[] = {
   [CEED_PRISM] = "prism",
   [CEED_HEX] = "hexahedron",
 };
+
+const char *const CeedContextFieldTypes[] = {
+  [CEED_CONTEXT_FIELD_DOUBLE] = "double",
+  [CEED_CONTEXT_FIELD_INT32] = "int32",
+};

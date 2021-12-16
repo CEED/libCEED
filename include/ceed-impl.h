@@ -262,6 +262,9 @@ struct CeedQFunctionContext_private {
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedInt num_fields;
+  CeedInt max_fields;
+  CeedQFunctionContextFieldDescription *field_descriptions;
   uint64_t state;
   size_t ctx_size;
   void *data;

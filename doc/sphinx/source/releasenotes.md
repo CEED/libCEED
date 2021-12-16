@@ -19,6 +19,8 @@ for each release of libCEED.
 - Added {c:func}`CeedQFunctionGetKernelName`; refactored {c:func}`CeedQFunctionGetSourcePath` to exclude function kernel name.
 - Clarify documentation for {c:func}`CeedVectorTakeArray`; this function will error if {c:func}`CeedVectorSetArray` with `copy_mode == CEED_USE_POINTER` was not previously called for the corresponding `CeedMemType`.
 - Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
+- Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {ref}`CeedQFunctionContext` data by user defined field names.
+- Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
 
 ### New features
 
