@@ -15,29 +15,36 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 3D mass matrix
+  @brief Ceed QFunction for applying the 1D Poisson operator
+           on a vector system with three components
 **/
 
-#ifndef mass3dbuild_h
-#define mass3dbuild_h
+#ifndef vectorpoisson1dapply_h
+#define vectorpoisson1dapply_h
 
-CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in, CeedScalar *const *out) {
-  // in[0] is Jacobians with shape [3, nc=3, Q]
-  // in[1] is quadrature weights, size (Q)
-  const CeedScalar *J = in[0], *w = in[1];
-  // out[0] is quadrature data, size (Q)
-  CeedScalar *q_data = out[0];
+CEED_QFUNCTION(Vector3Poisson1DApply)(void *ctx, const CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // in[0] is gradient u, shape [1, nc=3, Q]
+  // in[1] is quadrature data, size (Q)
+  const CeedScalar (*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                           (*q_data) = in[1];
+  // out[0] is output to multiply against gradient v, shape [1, nc=3, Q]
+  CeedScalar       (*vg)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  const CeedInt num_comp = 3;
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    q_data[i] = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                 J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                 J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6])) * w[i];
+    for (CeedInt c=0; c<num_comp; c++) {
+      vg[c][i] = ug[c][i] * q_data[i];
+    }
   } // End of Quadrature Point Loop
 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif // mass3dbuild_h
+#endif // vectorpoisson1dapply_h

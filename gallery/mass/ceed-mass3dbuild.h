@@ -15,29 +15,32 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /**
-  @brief Ceed QFunction for applying the 1D Poisson operator
+  @brief Ceed QFunction for building the geometric data for the 3D mass matrix
 **/
 
-#ifndef poisson1dapply_h
-#define poisson1dapply_h
+#ifndef mass3dbuild_h
+#define mass3dbuild_h
 
-CEED_QFUNCTION(Poisson1DApply)(void *ctx, const CeedInt Q,
-                               const CeedScalar *const *in,
-                               CeedScalar *const *out) {
-  // in[0] is gradient u, size (Q)
-  // in[1] is quadrature data, size (Q)
-  const CeedScalar *du = in[0], *q_data = in[1];
-
-  // out[0] is output to multiply against gradient v, size (Q)
-  CeedScalar *dv = out[0];
+CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
+                            const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // in[0] is Jacobians with shape [2, nc=3, Q]
+  // in[1] is quadrature weights, size (Q)
+  const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
+                                    *w = in[1];
+  // out[0] is quadrature data, size (Q)
+  CeedScalar                   *q_data = out[0];
+  // *INDENT-ON*
 
   // Quadrature point loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    dv[i] = du[i] * q_data[i];
+    q_data[i] = (J[0][0][i]*(J[1][1][i]*J[2][2][i] - J[1][2][i]*J[2][1][i]) -
+                 J[0][1][i]*(J[1][0][i]*J[2][2][i] - J[1][2][i]*J[2][0][i]) +
+                 J[0][2][i]*(J[1][0][i]*J[2][1][i] - J[1][1][i]*J[2][0][i])) * w[i];
   } // End of Quadrature Point Loop
 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif // poisson1dapply_h
+#endif // mass3dbuild_h

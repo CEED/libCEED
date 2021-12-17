@@ -21,8 +21,8 @@ use structopt::StructOpt;
 // ----------------------------------------------------------------------------
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "libCEED Rust Example 1 - Volume",
-    about = "This example uses the mass matrix to compute the length, area, or volume of a region, depending upon runtime parameters."
+    name = "libCEED Rust Example 3 - Vector Volume",
+    about = "This example uses the mass matrix to compute the length, area, or volume of a region in triplicate, depending upon runtime parameters."
 )]
 #[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
