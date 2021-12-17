@@ -346,6 +346,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
 
     // Initialize u with sum of node coordinates
     let coords = mesh_coords.view()?;
+    u.set_value(0.0)?;
     for c in 0..ncomp_u {
         let q = solution_size / ncomp_u;
         u.view_mut()?

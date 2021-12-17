@@ -258,6 +258,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     let mut v = ceed.vector(solution_size)?;
 
     // Initialize u with component index
+    u.set_value(0.0)?;
     for c in 0..ncomp_u {
         let q = solution_size / ncomp_u;
         u.view_mut()?.iter_mut().skip(c * q).take(q).for_each(|u| {
