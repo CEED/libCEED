@@ -82,7 +82,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
 // Setup infields or outfields
 //------------------------------------------------------------------------------
 static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
-                                        bool inOrOut, CeedVector *evecs,
+                                        bool isinput, CeedVector *evecs,
                                         CeedVector *qvecs, CeedInt starte,
                                         CeedInt numfields, CeedInt Q,
                                         CeedInt numelements) {
@@ -97,15 +97,15 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
   bool strided;
   bool skiprestrict;
 
-  if (inOrOut) {
-    ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &opfields);
-    CeedChkBackend(ierr);
-    ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qffields);
-    CeedChkBackend(ierr);
-  } else {
+  if (isinput) {
     ierr = CeedOperatorGetFields(op, NULL, &opfields, NULL, NULL);
     CeedChkBackend(ierr);
     ierr = CeedQFunctionGetFields(qf, NULL, &qffields, NULL, NULL);
+    CeedChkBackend(ierr);
+  } else {
+    ierr = CeedOperatorGetFields(op, NULL, NULL, NULL, &opfields);
+    CeedChkBackend(ierr);
+    ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qffields);
     CeedChkBackend(ierr);
   }
 
@@ -125,7 +125,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
       // CEED_STRIDES_BACKEND.
 
       // First, check whether the field is input or output:
-      if (!inOrOut) {
+      if (isinput) {
         // Check for passive input:
         ierr = CeedOperatorFieldGetVector(opfields[i], &fieldvec); CeedChkBackend(ierr);
         if (fieldvec != CEED_VECTOR_ACTIVE) {
@@ -225,13 +225,13 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
 
   // Set up infield and outfield evecs and qvecs
   // Infields
-  ierr = CeedOperatorSetupFields_Cuda(qf, op, 0,
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, true,
                                       impl->evecs, impl->qvecsin, 0,
                                       numinputfields, Q, numelements);
   CeedChkBackend(ierr);
 
   // Outfields
-  ierr = CeedOperatorSetupFields_Cuda(qf, op, 1,
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, false,
                                       impl->evecs, impl->qvecsout,
                                       numinputfields, numoutputfields, Q,
                                       numelements); CeedChkBackend(ierr);
@@ -435,8 +435,8 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
     CeedChkBackend(ierr);
     if (emode == CEED_EVAL_NONE) {
       // Set the output Q-Vector to use the E-Vector data directly.
-      ierr = CeedVectorGetArray(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
-                                &edata[i + numinputfields]); CeedChkBackend(ierr);
+      ierr = CeedVectorGetArrayWrite(impl->evecs[i + impl->numein], CEED_MEM_DEVICE,
+                                     &edata[i + numinputfields]); CeedChkBackend(ierr);
       ierr = CeedVectorSetArray(impl->qvecsout[i], CEED_MEM_DEVICE,
                                 CEED_USE_POINTER, edata[i + numinputfields]);
       CeedChkBackend(ierr);
@@ -1148,10 +1148,11 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   ierr = CeedVectorSetValue(elemdiag, 0.0); CeedChkBackend(ierr);
 
   // Assemble element operator diagonals
-  CeedScalar *elemdiagarray, *assembledqfarray;
+  CeedScalar *elemdiagarray;
+  const CeedScalar *assembledqfarray;
   ierr = CeedVectorGetArray(elemdiag, CEED_MEM_DEVICE, &elemdiagarray);
   CeedChkBackend(ierr);
-  ierr = CeedVectorGetArray(assembledqf, CEED_MEM_DEVICE, &assembledqfarray);
+  ierr = CeedVectorGetArrayRead(assembledqf, CEED_MEM_DEVICE, &assembledqfarray);
   CeedChkBackend(ierr);
   CeedInt nelem;
   ierr = CeedElemRestrictionGetNumElements(diagrstr, &nelem);
@@ -1177,7 +1178,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
 
   // Restore arrays
   ierr = CeedVectorRestoreArray(elemdiag, &elemdiagarray); CeedChkBackend(ierr);
-  ierr = CeedVectorRestoreArray(assembledqf, &assembledqfarray);
+  ierr = CeedVectorRestoreArrayRead(assembledqf, &assembledqfarray);
   CeedChkBackend(ierr);
 
   // Assemble local operator diagonal

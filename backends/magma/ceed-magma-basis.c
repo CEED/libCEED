@@ -45,7 +45,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &v); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &v); CeedChkBackend(ierr);
 
   CeedBasis_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
@@ -237,7 +237,7 @@ int CeedBasisApplyNonTensor_f64_Magma(CeedBasis basis, CeedInt nelem,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
 
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
@@ -362,7 +362,7 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &dv); CeedChkBackend(ierr);
 
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);

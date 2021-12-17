@@ -17,6 +17,8 @@ for each release of libCEED.
 - Warning added when compiling OCCA backend to alert users that this backend is experimental.
 - `ceed-backend.h`, `ceed-hash.h`, and `ceed-khash.h` removed. Users should use `ceed/backend.h`, `ceed/hash.h`, and `ceed/khash.h`.
 - Added {c:func}`CeedQFunctionGetKernelName`; refactored {c:func}`CeedQFunctionGetSourcePath` to exclude function kernel name.
+- Clarify documentation for {c:func}`CeedVectorTakeArray`; this function will error if {c:func}`CeedVectorSetArray` with `copy_mode == CEED_USE_POINTER` was not previously called for the corresponding `CeedMemType`.
+- Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
 
 ### New features
 

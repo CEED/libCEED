@@ -129,12 +129,15 @@ struct Ceed_private {
 
 struct CeedVector_private {
   Ceed ceed;
+  int (*HasValidArray)(CeedVector, bool *);
+  int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);
   int (*TakeArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
+  int (*GetArrayWrite)(CeedVector, CeedMemType, CeedScalar **);
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
@@ -252,6 +255,8 @@ struct CeedQFunction_private {
 struct CeedQFunctionContext_private {
   Ceed ceed;
   int ref_count;
+  int (*HasValidData)(CeedQFunctionContext, bool *);
+  int (*HasBorrowedDataOfType)(CeedQFunctionContext, CeedMemType, bool *);
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
   int (*TakeData)(CeedQFunctionContext, CeedMemType, void *);
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);

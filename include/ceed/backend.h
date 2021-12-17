@@ -129,6 +129,10 @@ CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
 
+CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
+CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type,
+    bool *has_borrowed_array_of_type);
+CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorAddReference(CeedVector vec);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
@@ -158,8 +162,9 @@ CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
     CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
-                                      const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n,
-                                      CeedInt k, CeedInt row, CeedInt col);
+                                      const CeedScalar *tau, CeedTransposeMode t_mode,
+                                      CeedInt m, CeedInt n, CeedInt k,
+                                      CeedInt row, CeedInt col);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
@@ -212,8 +217,12 @@ CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);
 
-CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext cxt,
+CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx,
     Ceed *ceed);
+CEED_EXTERN int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, 
+    bool *has_valid_data);
+CEED_EXTERN int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, 
+    CeedMemType mem_type, bool *has_borrowed_data_of_type);
 CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx,
     uint64_t *state);
 CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,

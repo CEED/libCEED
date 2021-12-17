@@ -325,6 +325,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
 
     // Initialize u with sum of node coordinates
     let coords = mesh_coords.view()?;
+    u.set_value(0.0)?;
     u.view_mut()?.iter_mut().enumerate().for_each(|(i, u)| {
         *u = (0..dim).map(|d| coords[i + d * solution_size]).sum();
     });

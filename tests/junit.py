@@ -107,7 +107,7 @@ def run(test, backends):
                     case.add_skipped_info('occa mode not supported {} {}'.format(test, ceed_resource))
                 elif 'Backend does not implement' in proc.stderr:
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
-                elif 'Can only provide to HOST memory' in proc.stderr:
+                elif 'Can only provide HOST memory for this backend' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
                 elif 'Test not implemented in single precision' in proc.stderr:
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))

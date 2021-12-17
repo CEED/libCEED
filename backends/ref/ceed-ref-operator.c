@@ -455,8 +455,9 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec,
 
   // Output Evecs
   for (CeedInt i=0; i<num_output_fields; i++) {
-    ierr = CeedVectorGetArray(impl->e_vecs_full[i+impl->num_inputs], CEED_MEM_HOST,
-                              &e_data_full[i + num_input_fields]); CeedChkBackend(ierr);
+    ierr = CeedVectorGetArrayWrite(impl->e_vecs_full[i+impl->num_inputs],
+                                   CEED_MEM_HOST, &e_data_full[i + num_input_fields]);
+    CeedChkBackend(ierr);
   }
 
   // Loop through elements

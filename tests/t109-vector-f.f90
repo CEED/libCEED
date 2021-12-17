@@ -38,7 +38,7 @@
       endif
 
 ! Getting array should not modify a
-      call ceedvectorgetarray(x,ceed_mem_host,b,boffset,err)
+      call ceedvectorgetarraywrite(x,ceed_mem_host,b,boffset,err)
       b(boffset+5) = -3.14
       call ceedvectorrestorearray(x,b,boffset,err)
       diff=a(5)+3.14

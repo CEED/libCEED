@@ -147,6 +147,7 @@ pub fn cartesian_mesh_coords(
 
     // Coordinates for mesh
     let mut mesh_coords = ceed.vector(mesh_size)?;
+    mesh_coords.set_value(0.0)?;
     {
         let mut coords = mesh_coords.view_mut()?;
         let nodes = nodes_full.view()?;

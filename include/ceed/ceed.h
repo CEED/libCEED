@@ -347,6 +347,8 @@ CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedScalar **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
                                        const CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
+                                        CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);

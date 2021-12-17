@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorCreate(ceed, 2*num_nodes_u, &U);
-  CeedVectorGetArray(U, CEED_MEM_HOST, &hu);
+  CeedVectorGetArrayWrite(U, CEED_MEM_HOST, &hu);
   for (int i = 0; i < num_nodes_u; i++) {
     hu[2*i] = 1.0;
     hu[2*i+1] = 2.0;

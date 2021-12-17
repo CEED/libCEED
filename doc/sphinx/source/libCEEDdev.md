@@ -88,9 +88,44 @@ and
 are purely implicit -- one just indexes the same array using the
 appropriate convention.
 
-## `restrict` semantics
+## `restrict` Semantics
 
 QFunction arguments can be assumed to have `restrict` semantics. That is, each input and output array must reside in distinct memory without overlap.
+
+## CeedVector Array Access Semantics
+
+Backend implementations are expected to separately track 'owned' and 'borrowed' memory locations.
+Backends are responsible for freeing 'owned' memory; 'borrowed' memory is set by the user and backends only have read/write access to 'borrowed' memory.
+For any given precision and memory type, a backend should only have 'owned' or 'borrowed' memory, not both.
+
+Backends are responsible for tracking which memory locations contain valid data.
+If the user calls {c:func}`CeedVectorTakeArray` on the only memory location that contains valid data, then the {ref}`CeedVector` is left in an *invalid state*.
+To repair an *invalid state*, the user must set valid data by calling {c:func}`CeedVectorSetValue`, {c:func}`CeedVectorSetArray`, or {c:func}`CeedVectorGetArrayWrite`.
+
+Some checks for consistency and data validity with {ref}`CeedVector` array access are performed at the interface level.
+All backends may assume that array access will conform to these guidelines:
+
+- Borrowed memory
+
+  - {ref}`CeedVector` access to borrowed memory is set with {c:func}`CeedVectorSetArray` with `copy_mode = CEED_USE_POINTER` and revoked with {c:func}`CeedVectorTakeArray`.
+    The user must first call {c:func}`CeedVectorSetArray` with `copy_mode = CEED_USE_POINTER` for the appropriate precision and memory type before calling {c:func}`CeedVectorTakeArray`.
+  - {c:func}`CeedVectorTakeArray` cannot be called on a vector in a *invalid state*.
+
+- Owned memory
+
+  - Owned memory can be allocated by calling {c:func}`CeedVectorSetValue` or by calling {c:func}`CeedVectorSetArray` with `copy_mode = CEED_COPY_VALUES`.
+  - Owned memory can be set by calling {c:func}`CeedVectorSetArray` with `copy_mode = CEED_OWN_POINTER`.
+  - Owned memory can also be allocated by calling {c:func}`CeedVectorGetArrayWrite`.
+    The user is responsible for manually setting the contents of the array in this case.
+
+- Data validity
+
+  - Internal syncronization and user calls to {c:func}`CeedVectorSync` cannot be made on a vector in an *invalid state*.
+  - Calls to {c:func}`CeedVectorGetArray` and {c:func}`CeedVectorGetArrayRead` cannot be made on a vector in an *invalid state*.
+  - Calls to {c:func}`CeedVectorSetArray` and {c:func}`CeedVectorSetValue` can be made on a vector in an *invalid state*.
+  - Calls to {c:func}`CeedVectorGetArrayWrite` can be made on a vector in an *invalid* state.
+    Data syncronization is not required for the memory location returned by {c:func}`CeedVectorGetArrayWrite`.
+    The caller should assume that all data at the memory location returned by {c:func}`CeedVectorGetArrayWrite` is *invalid*.
 
 ## Internal Layouts
 

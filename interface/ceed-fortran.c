@@ -191,6 +191,16 @@ void fCeedVectorGetArrayRead(int *vec, int *memtype, CeedScalar *array,
   *offset = b - array;
 }
 
+#define fCeedVectorGetArrayWrite \
+    FORTRAN_NAME(ceedvectorgetarraywrite,CEEDVECTORGETARRAYWRITE)
+void fCeedVectorGetArrayWrite(int *vec, int *memtype, CeedScalar *array,
+                              int64_t *offset, int *err) {
+  CeedScalar *b;
+  CeedVector vec_ = CeedVector_dict[*vec];
+  *err = CeedVectorGetArrayWrite(vec_, (CeedMemType)*memtype, &b);
+  *offset = b - array;
+}
+
 #define fCeedVectorRestoreArray \
     FORTRAN_NAME(ceedvectorrestorearray,CEEDVECTORRESTOREARRAY)
 void fCeedVectorRestoreArray(int *vec, CeedScalar *array,

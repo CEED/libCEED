@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, n, &x);
+  CeedVectorSetValue(x, 0.0);
 
   // Should error because no GetArray was not called
   CeedVectorRestoreArray(x, &a);

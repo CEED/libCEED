@@ -48,7 +48,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem,
                      "An input vector is required for this CeedEvalMode");
     // LCOV_EXCL_STOP
   }
-  ierr = CeedVectorGetArray(V, CEED_MEM_HOST, &v); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v); CeedChkBackend(ierr);
 
   // Clear v if operating in transpose
   if (t_mode == CEED_TRANSPOSE) {

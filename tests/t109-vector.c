@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
   // Getting array should not modify a
-  CeedVectorGetArray(x, CEED_MEM_HOST, &b);
+  CeedVectorGetArrayWrite(x, CEED_MEM_HOST, &b);
   b[5] = -3.14;
   CeedVectorRestoreArray(x, &b);
 
@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
 // Note: We do not need to free c because c == a was stack allocated.
-//         If libCEED allocated c, then free() would be required.
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;

@@ -300,6 +300,7 @@ def test_502(ceed_resource):
     op_setup.apply(x, qdata)
 
     # Apply mass matrix
+    u.set_value(0.0)
     with u.array() as u_array:
         for i in range(nu):
             u_array[2 * i] = 1.

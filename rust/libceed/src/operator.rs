@@ -1064,6 +1064,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ndofs)?;
+    /// true_diag.set_value(0.0)?;
     /// for i in 0..ndofs {
     ///     u.set_value(0.0);
     ///     {
@@ -1074,7 +1075,7 @@ impl<'a> Operator<'a> {
     ///     op_mass.apply(&u, &mut v)?;
     ///
     ///     {
-    ///         let v_array = v.view_mut()?;
+    ///         let v_array = v.view()?;
     ///         let mut true_array = true_diag.view_mut()?;
     ///         true_array[i] = v_array[i];
     ///     }
@@ -1170,6 +1171,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ndofs)?;
+    /// true_diag.set_value(0.0)?;
     /// for i in 0..ndofs {
     ///     u.set_value(0.0);
     ///     {
@@ -1180,7 +1182,7 @@ impl<'a> Operator<'a> {
     ///     op_mass.apply(&u, &mut v)?;
     ///
     ///     {
-    ///         let v_array = v.view_mut()?;
+    ///         let v_array = v.view()?;
     ///         let mut true_array = true_diag.view_mut()?;
     ///         true_array[i] = v_array[i] + 1.0;
     ///     }
@@ -1301,6 +1303,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ncomp * ncomp * ndofs)?;
+    /// true_diag.set_value(0.0)?;
     /// for i in 0..ndofs {
     ///     for j in 0..ncomp {
     ///         u.set_value(0.0);
@@ -1312,7 +1315,7 @@ impl<'a> Operator<'a> {
     ///         op_mass.apply(&u, &mut v)?;
     ///
     ///         {
-    ///             let v_array = v.view_mut()?;
+    ///             let v_array = v.view()?;
     ///             let mut true_array = true_diag.view_mut()?;
     ///             for k in 0..ncomp {
     ///                 true_array[i * ncomp * ncomp + k * ncomp + j] = v_array[i + k * ndofs];
@@ -1439,6 +1442,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Manual diagonal computation
     /// let mut true_diag = ceed.vector(ncomp * ncomp * ndofs)?;
+    /// true_diag.set_value(0.0)?;
     /// for i in 0..ndofs {
     ///     for j in 0..ncomp {
     ///         u.set_value(0.0);
@@ -1450,7 +1454,7 @@ impl<'a> Operator<'a> {
     ///         op_mass.apply(&u, &mut v)?;
     ///
     ///         {
-    ///             let v_array = v.view_mut()?;
+    ///             let v_array = v.view()?;
     ///             let mut true_array = true_diag.view_mut()?;
     ///             for k in 0..ncomp {
     ///                 true_array[i * ncomp * ncomp + k * ncomp + j] = v_array[i + k * ndofs];

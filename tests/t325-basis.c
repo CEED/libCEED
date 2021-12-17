@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
                     q_weight, &b);
 
   CeedVectorCreate(ceed, Q*dim*num_comp, &In);
-  CeedVectorGetArray(In, CEED_MEM_HOST, &in);
+  CeedVectorGetArrayWrite(In, CEED_MEM_HOST, &in);
   for (int d=0; d<dim; d++)
     for (int n=0; n<num_comp; n++)
       for (int q=0; q<Q; q++)

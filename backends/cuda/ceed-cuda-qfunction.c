@@ -48,7 +48,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
     CeedChkBackend(ierr);
   }
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
+    ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
     CeedChkBackend(ierr);
   }
 
