@@ -69,13 +69,6 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
       ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
-      ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
-      ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*num_comp, &e_vecs[i]); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
-      break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
