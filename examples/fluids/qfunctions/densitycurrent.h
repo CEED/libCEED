@@ -40,7 +40,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -66,7 +65,6 @@ struct DCContext_ {
   CeedScalar cv;
   CeedScalar cp;
   CeedScalar g;
-  CeedScalar Rd;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -134,11 +132,11 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
   const CeedScalar N        = context->N;
   const CeedScalar cv       = context->cv;
   const CeedScalar cp       = context->cp;
-  const CeedScalar Rd       = context->Rd;
   const CeedScalar g        = context->g;
   const CeedScalar rc       = context->rc;
   const CeedScalar *center  = context->center;
   const CeedScalar *dc_axis = context->dc_axis;
+  const CeedScalar Rd       = cp - cv;
 
   // Setup
   // -- Coordinates
@@ -173,6 +171,31 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
 }
 
 // *****************************************************************************
+// Helper function for computing flux Jacobian
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
+    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
+    const CeedScalar gamma, const CeedScalar g, CeedScalar z) {
+  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
+  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
+    for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
+      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - g*z)) : 0.) - u[i]*u[j];
+      for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
+        dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
+        dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
+                          ((i==k) ? u[j] : 0.) -
+                          ((i==j) ? u[k] : 0.) * (gamma-1.);
+        dF[i][4][k+1]   = ((i==k) ? (E*gamma/rho - (gamma-1.)*u_sq/2.) : 0.) -
+                          (gamma-1.)*u[i]*u[k];
+      }
+      dF[i][j+1][4] = ((i==j) ? (gamma-1.) : 0.);
+    }
+    dF[i][4][0] = u[i] * ((gamma-1.)*u_sq - E*gamma/rho);
+    dF[i][4][4] = u[i] * gamma;
+  }
+}
+
+// *****************************************************************************
 // This QFunction sets the initial conditions for density current
 // *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
@@ -187,7 +210,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5];
+    CeedScalar q[5] = {0.};
 
     Exact_DC(3, 0., x, 5, q, ctx);
 
@@ -270,7 +293,6 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
-  const CeedScalar Rd     = context->Rd;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -372,30 +394,16 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                                    u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] + /* *NOPAD* */
                                    k*grad_T[2] /* *NOPAD* */
                                   };
-    // ke = kinetic energy
-    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
-    // P = pressure
-    const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
+    // Pressure
+    const CeedScalar
+    E_kinetic   = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
+    E_potential = rho*g*x[2][i],
+    E_internal  = E - E_kinetic - E_potential,
+    P           = E_internal * (gamma - 1.); // P = pressure
+
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {{{0}}};
-    for (int j=0; j<3; j++) {
-      jacob_F_conv[j][4][0]       = u[j] * (2*Rd*ke/cv - E*gamma);
-      jacob_F_conv[j][4][4]       = u[j] * gamma;
-      for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
-        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0);
-        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0);
-        jacob_F_conv[j][0][k+1]   = (j==k?1:0);
-        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
-        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
-      }
-    }
-    jacob_F_conv[0][2][1] = u[1];
-    jacob_F_conv[0][3][1] = u[2];
-    jacob_F_conv[1][1][2] = u[0];
-    jacob_F_conv[1][3][2] = u[2];
-    jacob_F_conv[2][1][3] = u[0];
-    jacob_F_conv[2][2][3] = u[1];
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
+    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x[2][i]);
 
     // jacob_F_conv_T = jacob_F_conv^T
     CeedScalar jacob_F_conv_T[3][5][5];
@@ -463,8 +471,8 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
 
     //Stabilization
     CeedScalar uX[3];
-    for (int j=0; j<3;
-         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3; j++)
+      uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
     const CeedScalar Cc      = 1.;
     const CeedScalar Ce      = 1.;
@@ -473,7 +481,6 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
                               (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
     const CeedScalar TauM   = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE   = TauM / (Ce * cv);
-    // *INDENT-ON*
     const CeedScalar Tau[5]  = {TauC, TauM, TauM, TauM, TauE};
     CeedScalar stab[5][3];
     switch (context->stabilization) {
@@ -532,7 +539,6 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
-  const CeedScalar Rd     = context->Rd;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -634,32 +640,16 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
                                    u[0]*Fu[2] + u[1]*Fu[4] + u[2]*Fu[5] + /* *NOPAD* */
                                    k*grad_T[2] /* *NOPAD* */
                                   };
-    // ke = kinetic energy
-    const CeedScalar ke = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
-
-    // P = pressure
-    const CeedScalar P  = (E - ke * rho - rho*g*x[2][i]) * (gamma - 1.);
+    // Pressure
+    const CeedScalar
+    E_kinetic   = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
+    E_potential = rho*g*x[2][i],
+    E_internal  = E - E_kinetic - E_potential,
+    P           = E_internal * (gamma - 1.); // P = pressure
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {{{0}}};
-    for (int j=0; j<3; j++) {
-      jacob_F_conv[j][4][0]       = u[j] * (2*Rd*ke/cv - E*gamma);
-      jacob_F_conv[j][4][4]       = u[j] * gamma;
-      for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0]   = -u[j]*u[k] + (j==k?(ke*Rd/cv):0);
-        jacob_F_conv[j][k+1][4]   = (j==k?(Rd/cv):0);
-        jacob_F_conv[j][k+1][k+1] = (j!=k?u[j]:0);
-        jacob_F_conv[j][0][k+1]   = (j==k?1:0);
-        jacob_F_conv[j][j+1][k+1] = u[k] * ((j==k?2:0) - Rd/cv);
-        jacob_F_conv[j][4][k+1]   = -(Rd/cv)*u[j]*u[k] + (j==k?(E*gamma - Rd*ke/cv):0);
-      }
-    }
-    jacob_F_conv[0][2][1] = u[1];
-    jacob_F_conv[0][3][1] = u[2];
-    jacob_F_conv[1][1][2] = u[0];
-    jacob_F_conv[1][3][2] = u[2];
-    jacob_F_conv[2][1][3] = u[0];
-    jacob_F_conv[2][2][3] = u[1];
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
+    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x[2][i]);
 
     // jacob_F_conv_T = jacob_F_conv^T
     CeedScalar jacob_F_conv_T[3][5][5];
@@ -734,8 +724,8 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
 
     //Stabilization
     CeedScalar uX[3];
-    for (int j=0; j<3;
-         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
+    for (int j=0; j<3; j++)
+      uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
     const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
     const CeedScalar Cc      = 1.;
     const CeedScalar Ce      = 1.;
@@ -745,6 +735,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     const CeedScalar TauM   = 1. / (f1>1. ? f1 : 1.);
     const CeedScalar TauE   = TauM / (Ce * cv);
     const CeedScalar Tau[5]  = {TauC, TauM, TauM, TauM, TauE};
+
     CeedScalar stab[5][3];
     switch (context->stabilization) {
     case 0:        // Galerkin

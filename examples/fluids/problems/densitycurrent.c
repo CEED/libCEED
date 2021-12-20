@@ -75,7 +75,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   PetscScalar lz    = 4000.;   // m
   CeedScalar rc     = 1000.;   // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
-  CeedScalar Rd;
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -198,7 +197,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  Rd     = cp - cv;
   g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
@@ -215,7 +213,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->N          = N;
   setup_context->cv         = cv;
   setup_context->cp         = cp;
-  setup_context->Rd         = Rd;
   setup_context->g          = g;
   setup_context->rc         = rc;
   setup_context->lx         = lx;
@@ -239,7 +236,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->cv       = cv;
   user->phys->dc_ctx->cp       = cp;
   user->phys->dc_ctx->g        = g;
-  user->phys->dc_ctx->Rd       = Rd;
   user->phys->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
@@ -333,7 +329,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     CHKERRQ(ierr);
   }
 
-  if (bc->user_bc == PETSC_TRUE) {
+  if (bc->user_bc) {
     for (PetscInt c = 0; c < 3; c++) {
       for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
         for (PetscInt w = 0; w < bc->num_wall; w++) {

@@ -36,7 +36,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -183,7 +182,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i]};
-    CeedScalar q[5] = {};
+    CeedScalar q[5] = {0.};
 
     Exact_Advection2d(2, context->time, x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];

@@ -160,7 +160,6 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
                                        CeedElemRestriction *elem_restr_q,
                                        CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
-
   DM             dm_coord;
   CeedInt        dim, loc_num_elem;
   CeedInt        Q_dim;
@@ -174,11 +173,9 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domain_label, value,
-                                   elem_restr_q);
-  CHKERRQ(ierr);
+                                   elem_restr_q); CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, height, domain_label, value,
-                                   elem_restr_x);
-  CHKERRQ(ierr);
+                                   elem_restr_x); CHKERRQ(ierr);
   CeedElemRestrictionGetNumElements(*elem_restr_q, &loc_num_elem);
   CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim,
                                    q_data_size, q_data_size*loc_num_elem*Q_dim,
@@ -204,7 +201,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
 
   // -- Create Sub-Operator for in/outflow BCs
-  if (phys->has_neumann == PETSC_TRUE) {
+  if (phys->has_neumann) {
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
     ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -238,8 +235,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       // ----- CEED Operator for Setup (geometric factors)
       CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
       CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
-                           ceed_data->basis_x_sur,
-                           CEED_VECTOR_ACTIVE);
+                           ceed_data->basis_x_sur, CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
                            ceed_data->basis_x_sur, CEED_VECTOR_NONE);
       CeedOperatorSetField(op_setup_sur, "q_data_sur", elem_restr_qd_i_sur,
@@ -296,10 +292,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -----------------------------------------------------------------------------
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_q, P, Q, CEED_GAUSS,
                                   &ceed_data->basis_q);
-
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS,
                                   &ceed_data->basis_x);
-
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, P,
                                   CEED_GAUSS_LOBATTO, &ceed_data->basis_xc);
 
@@ -406,11 +400,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedOperatorSetField(ceed_data->op_setup_vol, "dx", ceed_data->elem_restr_x,
                        ceed_data->basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(ceed_data->op_setup_vol, "weight",
-                       CEED_ELEMRESTRICTION_NONE,
-                       ceed_data->basis_x, CEED_VECTOR_NONE);
+                       CEED_ELEMRESTRICTION_NONE, ceed_data->basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(ceed_data->op_setup_vol, "q_data",
-                       ceed_data->elem_restr_qd_i,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+                       ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // -- Create CEED operator for ICs
   CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &ceed_data->op_ics);
@@ -428,8 +420,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
-                         CEED_BASIS_COLLOCATED,
-                         ceed_data->q_data);
+                         CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -450,8 +441,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedOperatorSetField(op, "q_dot", ceed_data->elem_restr_q, ceed_data->basis_q,
                          user->q_dot_ceed);
     CeedOperatorSetField(op, "q_data", ceed_data->elem_restr_qd_i,
-                         CEED_BASIS_COLLOCATED,
-                         ceed_data->q_data);
+                         CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -475,12 +465,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -----------------------------------------------------------------------------
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_q, P_sur, Q_sur,
                                   CEED_GAUSS, &ceed_data->basis_q_sur);
-
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, Q_sur, CEED_GAUSS,
                                   &ceed_data->basis_x_sur);
-
-  CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, P_sur,
-                                  CEED_GAUSS_LOBATTO, &ceed_data->basis_xc_sur);
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions

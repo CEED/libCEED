@@ -219,7 +219,6 @@ int main(int argc, char **argv) {
   // Print problem summary
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
-
     // Header and rank
     char host_name[PETSC_MAX_PATH_LEN];
     int  comm_size;
@@ -325,7 +324,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&ceed_data->basis_xc);
   CeedBasisDestroy(&ceed_data->basis_q_sur);
   CeedBasisDestroy(&ceed_data->basis_x_sur);
-  CeedBasisDestroy(&ceed_data->basis_xc_sur);
 
   // -- Restrictions
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_q);
