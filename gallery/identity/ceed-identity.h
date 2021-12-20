@@ -21,11 +21,16 @@
 #ifndef identity_h
 #define identity_h
 
+typedef struct {
+  CeedInt size;
+} IdentityCtx;
+
 CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
                          const CeedScalar *const *in,
                          CeedScalar *const *out) {
   // Ctx holds field size
-  const CeedInt size = *(CeedInt *)ctx;
+  IdentityCtx identity_ctx = *(IdentityCtx *)ctx;
+  const CeedInt size = identity_ctx.size;
 
   // in[0] is input, size (Q*size)
   const CeedScalar *input = in[0];

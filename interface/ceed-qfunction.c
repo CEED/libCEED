@@ -558,16 +558,11 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
   ierr = CeedQFunctionAddOutput(*qf, "output", size, out_mode); CeedChk(ierr);
 
   (*qf)->is_identity = true;
-  CeedInt *size_data;
-  ierr = CeedCalloc(1, &size_data); CeedChk(ierr);
-  size_data[0] = size;
+
   CeedQFunctionContext ctx;
-  ierr = CeedQFunctionContextCreate(ceed, &ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                     sizeof(*size_data), (void *)size_data);
-  CeedChk(ierr);
-  ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
+  ierr = CeedQFunctionGetContext(*qf, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetInt32(ctx, "size", size); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
