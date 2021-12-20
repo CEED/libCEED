@@ -30,7 +30,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
                                        CeedVector *e_vecs, CeedVector *q_vecs,
                                        CeedInt start_e, CeedInt num_fields,
                                        CeedInt Q) {
-  CeedInt dim, ierr, size, P;
+  CeedInt ierr, num_comp, size, P;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedBasis basis;
@@ -69,19 +69,12 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
       ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
-      ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(elem_restr, &P);
-      CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*size, &e_vecs[i]); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
-      break;
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(elem_restr, &P);
-      CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*size/dim, &e_vecs[i]); CeedChkBackend(ierr);
+      ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
+      ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
+      ierr = CeedVectorCreate(ceed, P*num_comp, &e_vecs[i]); CeedChkBackend(ierr);
       ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
