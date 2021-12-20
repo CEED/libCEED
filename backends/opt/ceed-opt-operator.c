@@ -30,7 +30,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
                                        CeedVector *e_vecs_full, CeedVector *e_vecs,
                                        CeedVector *q_vecs, CeedInt start_e,
                                        CeedInt num_fields, CeedInt Q) {
-  CeedInt dim, ierr, num_comp, size, P;
+  CeedInt ierr, num_comp, size, P;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedBasis basis;
@@ -101,10 +101,11 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
+      ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(r, &P);
-      CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*size*blk_size, &e_vecs[i]);
+      ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
+      ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
+      ierr = CeedVectorCreate(ceed, P*num_comp*blk_size, &e_vecs[i]);
       CeedChkBackend(ierr);
       ierr = CeedVectorCreate(ceed, Q*size*blk_size, &q_vecs[i]);
       CeedChkBackend(ierr);
@@ -112,10 +113,9 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
     case CEED_EVAL_GRAD:
       ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(r, &P);
-      CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*size/dim*blk_size, &e_vecs[i]);
+      ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
+      ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
+      ierr = CeedVectorCreate(ceed, P*num_comp*blk_size, &e_vecs[i]);
       CeedChkBackend(ierr);
       ierr = CeedVectorCreate(ceed, Q*size*blk_size, &q_vecs[i]);
       CeedChkBackend(ierr);
