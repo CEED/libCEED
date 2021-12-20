@@ -767,15 +767,15 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
                                     const CeedScalar *const *u,
                                     CeedScalar *const *v) {
   CeedFortranContext fctx = ctx;
-  CeedQFunctionContext innerctx = fctx->innerctx;
+  CeedQFunctionContext inner_ctx = fctx->inner_ctx;
   int ierr;
 
   CeedScalar *ctx_ = NULL;
   // Note: Device backends are generating their own kernels from
   //         single source files, so only Host backends need to
   //         use this Fortran stub.
-  if (innerctx) {
-    ierr = CeedQFunctionContextGetData(innerctx, CEED_MEM_HOST, &ctx_);
+  if (inner_ctx) {
+    ierr = CeedQFunctionContextGetData(inner_ctx, CEED_MEM_HOST, &ctx_);
     CeedChk(ierr);
   }
 
@@ -784,8 +784,8 @@ static int CeedQFunctionFortranStub(void *ctx, int nq,
           v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9],
           v[10],v[11],v[12],v[13],v[14],v[15],&ierr);
 
-  if (innerctx) {
-    ierr = CeedQFunctionContextRestoreData(innerctx, (void *)&ctx_);
+  if (inner_ctx) {
+    ierr = CeedQFunctionContextRestoreData(inner_ctx, (void *)&ctx_);
     CeedChk(ierr);
   }
 
@@ -832,7 +832,7 @@ void fCeedQFunctionCreateInterior(int *ceed, int *vec_length,
   CeedFortranContext fctxdata;
   *err = CeedCalloc(1, &fctxdata);
   if (*err) return;
-  fctxdata->f = f; fctxdata->innerctx = NULL;
+  fctxdata->f = f; fctxdata->inner_ctx = NULL;
   CeedQFunctionContext fctx;
   *err = CeedQFunctionContextCreate(Ceed_dict[*ceed], &fctx);
   if (*err) return;
@@ -920,7 +920,7 @@ void fCeedQFunctionSetContext(int *qf, int *ctx, int *err) {
   CeedFortranContext fctxdata;
   *err = CeedQFunctionContextGetData(fctx, CEED_MEM_HOST, &fctxdata);
   if (*err) return;
-  fctxdata->innerctx = ctx_;
+  fctxdata->inner_ctx = ctx_;
   *err = CeedQFunctionContextRestoreData(fctx, (void **)&fctxdata);
 }
 

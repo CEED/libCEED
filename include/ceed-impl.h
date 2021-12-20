@@ -273,7 +273,7 @@ struct CeedQFunctionContext_private {
 /// Struct to handle the context data to use the Fortran QFunction stub
 /// @ingroup CeedQFunction
 struct CeedFortranContext_private {
-  CeedQFunctionContext innerctx;
+  CeedQFunctionContext inner_ctx;
   void (*f)(void *ctx, int *nq,
             const CeedScalar *u,const CeedScalar *u1,
             const CeedScalar *u2,const CeedScalar *u3,
