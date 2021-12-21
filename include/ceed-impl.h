@@ -262,6 +262,9 @@ struct CeedQFunctionContext_private {
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedInt num_fields;
+  CeedInt max_fields;
+  CeedQFunctionContextFieldDescription *field_descriptions;
   uint64_t state;
   size_t ctx_size;
   void *data;
@@ -270,7 +273,7 @@ struct CeedQFunctionContext_private {
 /// Struct to handle the context data to use the Fortran QFunction stub
 /// @ingroup CeedQFunction
 struct CeedFortranContext_private {
-  CeedQFunctionContext innerctx;
+  CeedQFunctionContext inner_ctx;
   void (*f)(void *ctx, int *nq,
             const CeedScalar *u,const CeedScalar *u1,
             const CeedScalar *u2,const CeedScalar *u3,

@@ -704,11 +704,8 @@ found:
   }
 
   op->num_fields += 1;
-  size_t len = strlen(field_name);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, field_name, len+1);
-  (*op_field)->field_name = tmp;
+  ierr = CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name);
+  CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

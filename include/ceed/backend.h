@@ -87,6 +87,7 @@ typedef struct CeedTensorContract_private *CeedTensorContract;
 CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
+CEED_INTERN int CeedStringAllocCopy(const char *source, char **copy);
 CEED_INTERN int CeedFree(void *p);
 
 #define CeedChk(ierr) do { int ierr_ = ierr; if (ierr_) return ierr_; } while (0)

@@ -19,6 +19,8 @@ for each release of libCEED.
 - Added {c:func}`CeedQFunctionGetKernelName`; refactored {c:func}`CeedQFunctionGetSourcePath` to exclude function kernel name.
 - Clarify documentation for {c:func}`CeedVectorTakeArray`; this function will error if {c:func}`CeedVectorSetArray` with `copy_mode == CEED_USE_POINTER` was not previously called for the corresponding `CeedMemType`.
 - Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
+- Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {ref}`CeedQFunctionContext` data by user defined field names.
+- Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
 
 ### New features
 
@@ -27,6 +29,7 @@ for each release of libCEED.
 - Added support for JiT of QFunctions with `#include "relative/path/local-file.h"` statements for additional local files. Note that files included with `""` are searched relative to the current file first, then by compiler paths (as with `<>` includes). To use this feature, one should adhere to relative paths only, not compiler flags like `-I`, which the JiT will not be aware of.
 - Remove need to guard library headers in QFunction source for code generation backends.
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
+- Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 
 ### Maintainability
 

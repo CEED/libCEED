@@ -112,16 +112,13 @@ int CeedQFunctionRegister(const char *name, const char *source,
 
   @ref Developer
 **/
-static int CeedQFunctionFieldSet(CeedQFunctionField *f,const char *field_name,
+static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name,
                                  CeedInt size, CeedEvalMode eval_mode) {
-  size_t len = strlen(field_name);
-  char *tmp;
   int ierr;
 
   ierr = CeedCalloc(1, f); CeedChk(ierr);
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, field_name, len+1);
-  (*f)->field_name = tmp;
+  ierr = CeedStringAllocCopy(field_name, (char **)&(*f)->field_name);
+  CeedChk(ierr);
   (*f)->size = size;
   (*f)->eval_mode = eval_mode;
   return CEED_ERROR_SUCCESS;
@@ -322,7 +319,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
     CeedFortranContext fortran_ctx = NULL;
     ierr = CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fortran_ctx);
     CeedChk(ierr);
-    *ctx = fortran_ctx->innerctx;
+    *ctx = fortran_ctx->inner_ctx;
     ierr = CeedQFunctionContextRestoreData(qf->ctx, (void *)&fortran_ctx);
     CeedChk(ierr);
   } else {
@@ -489,8 +486,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
 int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
                                       CeedQFunction *qf) {
   int ierr;
-  size_t match_len = 0, match_idx = UINT_MAX;
-  char *name_copy;
+  size_t match_len = 0, match_index = UINT_MAX;
 
   ierr = CeedQFunctionRegisterAll(); CeedChk(ierr);
   // Find matching backend
@@ -502,7 +498,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
     for (n = 0; curr_name[n] && curr_name[n] == name[n]; n++) {}
     if (n > match_len) {
       match_len = n;
-      match_idx = i;
+      match_index = i;
     }
   }
   if (!match_len)
@@ -512,19 +508,16 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
 
   // Create QFunction
   ierr = CeedQFunctionCreateInterior(ceed,
-                                     gallery_qfunctions[match_idx].vec_length,
-                                     gallery_qfunctions[match_idx].f,
-                                     gallery_qfunctions[match_idx].source, qf);
+                                     gallery_qfunctions[match_index].vec_length,
+                                     gallery_qfunctions[match_index].f,
+                                     gallery_qfunctions[match_index].source, qf);
   CeedChk(ierr);
 
   // QFunction specific setup
-  ierr = gallery_qfunctions[match_idx].init(ceed, name, *qf); CeedChk(ierr);
+  ierr = gallery_qfunctions[match_index].init(ceed, name, *qf); CeedChk(ierr);
 
   // Copy name
-  size_t slen = strlen(name) + 1;
-  ierr = CeedMalloc(slen, &name_copy); CeedChk(ierr);
-  memcpy(name_copy, name, slen);
-  (*qf)->gallery_name = name_copy;
+  ierr = CeedStringAllocCopy(name, (char **)&(*qf)->gallery_name); CeedChk(ierr);
   (*qf)->is_gallery = true;
   return CEED_ERROR_SUCCESS;
 }
@@ -558,16 +551,11 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
   ierr = CeedQFunctionAddOutput(*qf, "output", size, out_mode); CeedChk(ierr);
 
   (*qf)->is_identity = true;
-  CeedInt *size_data;
-  ierr = CeedCalloc(1, &size_data); CeedChk(ierr);
-  size_data[0] = size;
+
   CeedQFunctionContext ctx;
-  ierr = CeedQFunctionContextCreate(ceed, &ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                     sizeof(*size_data), (void *)size_data);
-  CeedChk(ierr);
-  ierr = CeedQFunctionSetContext(*qf, ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
+  ierr = CeedQFunctionGetContext(*qf, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetInt32(ctx, "size", size); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

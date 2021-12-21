@@ -16,6 +16,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <stddef.h>
 #include <string.h>
 #include "ceed-identity.h"
 
@@ -24,6 +25,8 @@
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
                                       CeedQFunction qf) {
+  int ierr;
+
   // Check QFunction name
   const char *name = "Identity";
   if (strcmp(name, requested))
@@ -35,6 +38,18 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
 
   // QFunction fields 'input' and 'output' with requested emodes added
   //   by the library rather than being added here
+
+  // Context data
+  CeedQFunctionContext ctx;
+  IdentityCtx ctx_data = {.size = 1};
+  ierr = CeedQFunctionContextCreate(ceed, &ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES,
+                                     sizeof(ctx_data), (void *)&ctx_data);
+  CeedChk(ierr);
+  ierr = CeedQFunctionContextRegisterInt32(ctx, "size", offsetof(IdentityCtx,
+         size), "field size of identity QFunction"); CeedChk(ierr);
+  ierr = CeedQFunctionSetContext(qf, ctx); CeedChk(ierr);
+  ierr = CeedQFunctionContextDestroy(&ctx); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
