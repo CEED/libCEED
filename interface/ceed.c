@@ -295,6 +295,28 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Allocate a cleared string buffer on the host
+
+  Memory usage can be tracked by the library.
+
+  @param source Pointer to string to be copied
+  @param copy   Pointer to variable to hold newly allocated string copy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @sa CeedFree()
+
+  @ref Backend
+**/
+int CeedStringAllocCopy(const char *source, char **copy) {
+  int ierr;
+  size_t len = strlen(source);
+  ierr = CeedCalloc(len + 1, copy); CeedChk(ierr);
+  memcpy(*copy, source, len + 1);
+  return CEED_ERROR_SUCCESS;
+}
+
 /** Free memory allocated using CeedMalloc() or CeedCalloc()
 
   @param p  address of pointer to memory.  This argument is of type void* to
@@ -443,7 +465,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
   @ref Backend
 **/
 int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
-  CeedInt ierr;
+  int ierr;
   CeedInt count = ceed->obj_delegate_count;
 
   // Malloc or Realloc
@@ -456,9 +478,8 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 
   // Set object delegate
   ceed->obj_delegates[count].delegate = delegate;
-  size_t slen = strlen(obj_name) + 1;
-  ierr = CeedMalloc(slen, &ceed->obj_delegates[count].obj_name); CeedChk(ierr);
-  memcpy(ceed->obj_delegates[count].obj_name, obj_name, slen);
+  ierr = CeedStringAllocCopy(obj_name, &ceed->obj_delegates[count].obj_name);
+  CeedChk(ierr);
 
   // Set delegate parent
   delegate->parent = ceed;
@@ -501,11 +522,8 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   ierr = CeedFree(&ceed->op_fallback_resource); CeedChk(ierr);
 
   // Set new
-  size_t len = strlen(resource);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, resource, len+1);
-  ceed->op_fallback_resource = tmp;
+  ierr = CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource);
+  CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -706,7 +724,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t match_len = 0, match_idx = UINT_MAX,
+  size_t match_len = 0, match_index = UINT_MAX,
          match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
@@ -750,14 +768,14 @@ int CeedInit(const char *resource, Ceed *ceed) {
     if (n > match_len || (n == match_len && match_priority > priority)) {
       match_len = n;
       match_priority = priority;
-      match_idx = i;
+      match_index = i;
     }
   }
   // Using Levenshtein distance to find closest match
   if (match_len <= 1 || match_len != stem_length) {
     // LCOV_EXCL_START
     size_t lev_dis = UINT_MAX;
-    size_t lev_idx = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+    size_t lev_index = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
     for (size_t i=0; i<num_backends; i++) {
       const char *prefix = backends[i].prefix;
       size_t prefix_length = strlen(backends[i].prefix);
@@ -780,10 +798,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
                           && lev_priority > priority)) {
         lev_dis = n;
         lev_priority = priority;
-        lev_idx = i;
+        lev_index = i;
       }
     }
-    const char *prefix_lev = backends[lev_idx].prefix;
+    const char *prefix_lev = backends[lev_index].prefix;
     size_t lev_length;
     for (lev_length=0; prefix_lev[lev_length]
          && prefix_lev[lev_length] != '\0'; lev_length++) {}
@@ -793,7 +811,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
                        resource);
     } else {
       return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
-                       "Closest match: %s", resource, backends[lev_idx].prefix);
+                       "Closest match: %s", resource, backends[lev_index].prefix);
     }
     // LCOV_EXCL_STOP
   }
@@ -894,14 +912,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
                       !!getenv("DBG");
 
   // Backend specific setup
-  ierr = backends[match_idx].init(&resource[match_help], *ceed); CeedChk(ierr);
+  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
 
   // Copy resource prefix, if backend setup successful
-  size_t len = strlen(backends[match_idx].prefix);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, backends[match_idx].prefix, len+1);
-  (*ceed)->resource = tmp;
+  ierr = CeedStringAllocCopy(backends[match_index].prefix,
+                             (char **)&(*ceed)->resource);
+  CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

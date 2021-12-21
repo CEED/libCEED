@@ -29,6 +29,7 @@ for each release of libCEED.
 - Added support for JiT of QFunctions with `#include "relative/path/local-file.h"` statements for additional local files. Note that files included with `""` are searched relative to the current file first, then by compiler paths (as with `<>` includes). To use this feature, one should adhere to relative paths only, not compiler flags like `-I`, which the JiT will not be aware of.
 - Remove need to guard library headers in QFunction source for code generation backends.
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
+- Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 
 ### Maintainability
 

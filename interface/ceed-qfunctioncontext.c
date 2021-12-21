@@ -93,25 +93,16 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   }
 
   // Copy field data
-  {
-    size_t len = strlen(field_name);
-    char *tmp;
-    ierr = CeedCalloc(len + 1, &tmp); CeedChk(ierr);
-    memcpy(tmp, field_name, len+1);
-    ctx->field_descriptions[ctx->num_fields].name = tmp;
-  }
-  {
-    size_t len = strlen(field_description);
-    char *tmp;
-    ierr = CeedCalloc(len + 1, &tmp); CeedChk(ierr);
-    memcpy(tmp, field_description, len+1);
-    ctx->field_descriptions[ctx->num_fields].description = tmp;
-  }
+  ierr = CeedStringAllocCopy(field_name,
+                             (char **)&ctx->field_descriptions[ctx->num_fields].name);
+  CeedChk(ierr);
+  ierr = CeedStringAllocCopy(field_description,
+                             (char **)&ctx->field_descriptions[ctx->num_fields].description);
+  CeedChk(ierr);
   ctx->field_descriptions[ctx->num_fields].type = field_type;
   ctx->field_descriptions[ctx->num_fields].offset = field_offset;
   ctx->field_descriptions[ctx->num_fields].size = field_size;
   ctx->num_fields++;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -157,7 +148,6 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
   memcpy(&data[ctx->field_descriptions[field_index].offset], value,
          ctx->field_descriptions[field_index].size);
   ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 
