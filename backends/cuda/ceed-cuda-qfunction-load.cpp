@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-compile.h"
 
 static const char *qReadWrite = QUOTE(
 template <int SIZE>

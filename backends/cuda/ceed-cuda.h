@@ -21,32 +21,24 @@
 #include <ceed/backend.h>
 #include <cublas_v2.h>
 #include <cuda.h>
-#include <nvrtc.h>
 
 #define CUDA_MAX_PATH 256
 
-#define CeedChk_Nvrtc(ceed, x) \
-do { \
-  nvrtcResult result = x; \
-  if (result != NVRTC_SUCCESS) \
-    return CeedError((ceed), CEED_ERROR_BACKEND, nvrtcGetErrorString(result)); \
-} while (0)
-
 #define CeedChk_Cu(ceed, x) \
 do { \
-  CUresult result = x; \
-  if (result != CUDA_SUCCESS) { \
+  CUresult cuda_result = x; \
+  if (cuda_result != CUDA_SUCCESS) { \
     const char *msg; \
-    cuGetErrorName(result, &msg); \
+    cuGetErrorName(cuda_result, &msg); \
     return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
   } \
 } while (0)
 
 #define CeedChk_Cublas(ceed, x) \
 do { \
-  cublasStatus_t result = x; \
-  if (result != CUBLAS_STATUS_SUCCESS) { \
-    const char *msg = cublasGetErrorName(result); \
+  cublasStatus_t cublas_result = x; \
+  if (cublas_result != CUBLAS_STATUS_SUCCESS) { \
+    const char *msg = cublasGetErrorName(cublas_result); \
     return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
    } \
 } while (0)
@@ -173,28 +165,6 @@ typedef struct {
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
   return (numer + denom - 1) / denom;
 }
-
-CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
-                                const CeedInt numopts, ...);
-
-CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
-                                  CUfunction *kernel);
-
-CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
-                                  const int gridSize,
-                                  const int blockSize, void **args);
-
-CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel,
-    size_t size, void **args);
-
-CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
-                                     const int gridSize,
-                                     const int blockSizeX, const int blockSizeY,
-                                     const int blockSizeZ, void **args);
-
-CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
-    const int gridSize, const int blockSizeX, const int blockSizeY,
-    const int blockSizeZ, const int sharedMemSize, void **args);
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
 

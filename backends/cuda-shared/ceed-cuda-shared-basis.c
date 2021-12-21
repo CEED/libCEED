@@ -20,7 +20,7 @@
 #include <cuda_runtime.h>
 #include <stddef.h>
 #include "ceed-cuda-shared.h"
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-compile.h"
 
 //------------------------------------------------------------------------------
 // Shared mem kernels

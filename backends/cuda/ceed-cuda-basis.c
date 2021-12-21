@@ -19,6 +19,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-compile.h"
 
 //------------------------------------------------------------------------------
 // Tensor Basis Kernels

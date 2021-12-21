@@ -26,19 +26,19 @@
 
 #define CeedChk_Hip(ceed, x) \
 do { \
-  hipError_t result = x; \
-  if (result != hipSuccess) { \
-    const char *msg = hipGetErrorName(result); \
-    return CeedError((ceed), (int)result, msg); \
+  hipError_t hip_result = x; \
+  if (hip_result != hipSuccess) { \
+    const char *msg = hipGetErrorName(hip_result); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
   } \
 } while (0)
 
 #define CeedChk_Hipblas(ceed, x) \
 do { \
-  hipblasStatus_t result = x; \
-  if (result != HIPBLAS_STATUS_SUCCESS) { \
-    const char *msg = hipblasGetErrorName(result); \
-    return CeedError((ceed), (int)result, msg); \
+  hipblasStatus_t hipblas_result = x; \
+  if (hipblas_result != HIPBLAS_STATUS_SUCCESS) { \
+    const char *msg = hipblasGetErrorName(hipblas_result); \
+    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
    } \
 } while (0)
 

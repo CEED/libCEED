@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "ceed-cuda.h"
+#include "ceed-cuda-compile.h"
 
 // *INDENT-OFF*
 static const char *restrictionkernels = QUOTE(
