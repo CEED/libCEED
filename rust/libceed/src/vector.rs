@@ -133,7 +133,7 @@ impl<'a> VectorOpt<'a> {
 // -----------------------------------------------------------------------------
 // CeedVector borrowed slice wrapper
 // -----------------------------------------------------------------------------
-pub struct VectorSliceBorrow<'a> {
+pub struct VectorSliceWrapper<'a> {
     pub(crate) vector: crate::Vector<'a>,
     pub(crate) _slice: &'a mut [crate::Scalar],
 }
@@ -141,7 +141,7 @@ pub struct VectorSliceBorrow<'a> {
 // -----------------------------------------------------------------------------
 // Destructor
 // -----------------------------------------------------------------------------
-impl<'a> Drop for VectorSliceBorrow<'a> {
+impl<'a> Drop for VectorSliceWrapper<'a> {
     fn drop(&mut self) {
         unsafe {
             bind_ceed::CeedVectorTakeArray(
@@ -398,51 +398,55 @@ impl<'a> Vector<'a> {
         self.check_error(ierr)
     }
 
-    /// Set Vector array to borrowed slice of the same length
+    /// Wrap a mutable slice in a Vector of the same length
     ///
     /// # arguments
     ///
-    /// * `slice` - values to into self; length must match
+    /// * `slice` - values to wrap in self; length must match
     ///
     /// ```
     /// # use libceed::prelude::*;
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector(4)?;
-    /// let mut slice = vec![10., 11., 12., 13.];
+    /// let mut array = [10., 11., 12., 13.];
     ///
     /// {
-    ///     // `borrow` holds a mutable reference to the slice
-    ///     let borrow = vec.set_borrowed_slice(&mut slice)?;
+    ///     // `wrapper` holds a mutable reference to the wrapped slice
+    ///     //   that is dropped when `wrapper` goes out of scope
+    ///     let wrapper = vec.wrap_slice_mut(&mut array)?;
     ///     vec.view()?.iter().enumerate().for_each(|(i, v)| {
     ///         assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
     ///     });
     ///
-    ///     // This line will not compile, as the `borrow` is still in scope
-    ///     // slice[0] = 5.0;
+    ///     // This line will not compile, as the `wrapper` holds mutable
+    ///     //   access to the `array`
+    ///     // array[0] = 5.0;
     ///
-    ///     // Changes here are reflected in the `slice`
+    ///     // Changes here are reflected in the `array`
     ///     vec.set_value(5.0)?;
     ///     vec.view()?.iter().for_each(|v| {
-    ///         assert_eq!(*v, 5 as Scalar, "Slice not set correctly");
+    ///         assert_eq!(*v, 5.0 as Scalar, "Value not set correctly");
     ///     });
     /// }
     ///
-    /// // Slice remains changed
-    /// slice.iter().for_each(|v| {
-    ///     assert_eq!(*v, 5 as Scalar, "Slice not set correctly");
+    /// // 'array' remains changed
+    /// array.iter().for_each(|v| {
+    ///     assert_eq!(*v, 5.0 as Scalar, "Array not mutated correctly");
     /// });
     ///
-    /// // This line will error, as the Vector has dropped the reference
-    /// //   to the slice and no new array was allocated for the Vector
-    /// // vec.view()?;
+    /// // While changes to `vec` no longer affect `array`
+    /// vec.set_value(6.0)?;
+    /// array.iter().for_each(|v| {
+    ///     assert_eq!(*v, 5.0 as Scalar, "Array mutated without permission");
+    /// });
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set_borrowed_slice<'b>(
+    pub fn wrap_slice_mut<'b>(
         &mut self,
         slice: &'b mut [crate::Scalar],
-    ) -> crate::Result<VectorSliceBorrow<'b>> {
+    ) -> crate::Result<VectorSliceWrapper<'b>> {
         assert_eq!(self.length(), slice.len());
         let (host, copy_mode) = (
             crate::MemType::Host as bind_ceed::CeedMemType,
@@ -462,7 +466,7 @@ impl<'a> Vector<'a> {
         let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
         self.check_error(ierr)?;
 
-        Ok(crate::VectorSliceBorrow {
+        Ok(crate::VectorSliceWrapper {
             vector: crate::Vector::from_raw(ptr_copy)?,
             _slice: slice,
         })
