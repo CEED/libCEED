@@ -22,7 +22,7 @@
 #include <string>
 #include <sstream>
 #include "ceed-hip-gen.h"
-#include "../hip/ceed-hip.h"
+#include "../hip-ref/ceed-hip.h"
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 

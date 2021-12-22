@@ -20,7 +20,7 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 #include <string.h>
-#include "ceed-cuda.h"
+#include "../cuda-ref/ceed-cuda.h"
 #include "ceed-cuda-compile.h"
 
 #define CeedChk_Nvrtc(ceed, x) \

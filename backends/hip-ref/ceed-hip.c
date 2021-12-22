@@ -16,120 +16,82 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <cublas_v2.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <string.h>
-#include "ceed-cuda.h"
+#include <stdlib.h>
+#include "ceed-hip.h"
 
 //------------------------------------------------------------------------------
-// CUDA preferred MemType
+// HIP preferred MemType
 //------------------------------------------------------------------------------
-static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
+static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
   *type = CEED_MEM_DEVICE;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
-// Device information backend init
+// Get hipBLAS handle
 //------------------------------------------------------------------------------
-int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
+int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
   int ierr;
-  const char *device_spec = strstr(resource, ":device_id=");
-  const int deviceID = (device_spec) ? atoi(device_spec+11) : -1;
-
-  int currentDeviceID;
-  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
-  if (deviceID >= 0 && currentDeviceID != deviceID) {
-    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
-    currentDeviceID = deviceID;
-  }
-  Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  data->deviceId = currentDeviceID;
-  ierr = cudaGetDeviceProperties(&data->deviceProp, currentDeviceID);
-  CeedChk_Cu(ceed,ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Get CUBLAS handle
-//------------------------------------------------------------------------------
-int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
-  int ierr;
-  Ceed_Cuda *data;
+  Ceed_Hip *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
-  if (!data->cublasHandle) {
-    ierr = cublasCreate(&data->cublasHandle); CeedChk_Cublas(ceed, ierr);
+  if (!data->hipblasHandle) {
+    ierr = hipblasCreate(&data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
   }
-  *handle = data->cublasHandle;
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Backend destroy
-//------------------------------------------------------------------------------
-int CeedDestroy_Cuda(Ceed ceed) {
-  int ierr;
-  Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  if (data->cublasHandle) {
-    ierr = cublasDestroy(data->cublasHandle); CeedChk_Cublas(ceed, ierr);
-  }
-  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  *handle = data->hipblasHandle;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+static int CeedInit_Hip(const char *resource, Ceed ceed) {
   int ierr;
-  const int nrc = 9; // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/ref", nrc))
+  const int nrc = 8; // number of characters in resource
+  if (strncmp(resource, "/gpu/hip/ref", nrc))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Cuda backend cannot use resource: %s", resource);
+                     "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
   ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
 
-  Ceed_Cuda *data;
+  Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedCudaInit(ceed, resource, nrc); CeedChkBackend(ierr);
+  ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
-                                CeedGetPreferredMemType_Cuda); CeedChkBackend(ierr);
+                                CeedGetPreferredMemType_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
-                                CeedVectorCreate_Cuda); CeedChkBackend(ierr);
+                                CeedVectorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Cuda); CeedChkBackend(ierr);
+                                CeedBasisCreateTensorH1_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda); CeedChkBackend(ierr);
+                                CeedBasisCreateH1_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Cuda); CeedChkBackend(ierr);
+                                CeedElemRestrictionCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Cuda);
+                                CeedElemRestrictionCreateBlocked_Hip);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Cuda); CeedChkBackend(ierr);
+                                CeedQFunctionCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Cuda); CeedChkBackend(ierr);
+                                CeedQFunctionContextCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Cuda); CeedChkBackend(ierr);
+                                CeedOperatorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Cuda); CeedChkBackend(ierr);
+                                CeedCompositeOperatorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChkBackend(ierr);
+                                CeedDestroy_Hip); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda(void) {
-  return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 40);
+CEED_INTERN int CeedRegister_Hip(void) {
+  return CeedRegister("/gpu/hip/ref", CeedInit_Hip, 40);
 }
 //------------------------------------------------------------------------------

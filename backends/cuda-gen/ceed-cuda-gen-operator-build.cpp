@@ -23,6 +23,7 @@
 #include <sstream>
 #include "ceed-cuda-gen.h"
 #include "../cuda/ceed-cuda-compile.h"
+#include "../cuda-ref/ceed-cuda.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
 static const char *atomicAdd = QUOTE(

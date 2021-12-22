@@ -20,7 +20,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <cuda.h>
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-common.h"
 
 typedef struct { const CeedScalar *in[CEED_FIELD_MAX]; CeedScalar *out[CEED_FIELD_MAX]; } CudaFields;
 typedef struct { CeedInt *in[CEED_FIELD_MAX]; CeedInt *out[CEED_FIELD_MAX]; } CudaFieldsInt;

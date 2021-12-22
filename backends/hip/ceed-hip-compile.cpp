@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <hip/hiprtc.h>
-#include "ceed-hip.h"
+#include "ceed-hip-common.h"
 #include "ceed-hip-compile.h"
 
 #define CeedChk_hiprtc(ceed, x) \

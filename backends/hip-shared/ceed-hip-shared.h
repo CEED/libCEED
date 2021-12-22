@@ -20,7 +20,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
-#include "../hip/ceed-hip.h"
+#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   hipModule_t module;

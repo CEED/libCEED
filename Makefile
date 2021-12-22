@@ -225,8 +225,9 @@ opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
-cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
-cuda.cu        := $(sort $(wildcard backends/cuda/kernels/*.cu))
+cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
+cuda-ref.cpp   := $(sort $(wildcard backends/cuda-ref/*.cpp))
+cuda-ref.cu    := $(sort $(wildcard backends/cuda-ref/kernels/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
@@ -238,7 +239,9 @@ magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
 magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
-hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
+hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
+hip-ref.cpp    := $(sort $(wildcard backends/hip-ref/*.cpp))
+hip-ref.hip    := $(sort $(wildcard backends/hip-ref/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
@@ -385,9 +388,9 @@ ifneq ($(CUDA_LIB_DIR),)
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
-  libceed.c     += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp   += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu    += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  libceed.c     += $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp   += $(cuda-ref.cpp) $(cuda-gen.cpp)
+  libceed.cu    += $(cuda-ref.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
 
@@ -404,9 +407,9 @@ ifneq ($(HIP_LIB_DIR),)
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-hip.c
-  libceed.c     += $(hip.c) $(hip-shared.c) $(hip-gen.c)
-  libceed.cpp   += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip   += $(hip.hip)
+  libceed.c     += $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+  libceed.cpp   += $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
+  libceed.hip   += $(hip-ref.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 

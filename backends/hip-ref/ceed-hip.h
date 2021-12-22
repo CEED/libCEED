@@ -21,45 +21,7 @@
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
-
-#define HIP_MAX_PATH 256
-
-#define CeedChk_Hip(ceed, x) \
-do { \
-  hipError_t hip_result = x; \
-  if (hip_result != hipSuccess) { \
-    const char *msg = hipGetErrorName(hip_result); \
-    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
-  } \
-} while (0)
-
-#define CeedChk_Hipblas(ceed, x) \
-do { \
-  hipblasStatus_t hipblas_result = x; \
-  if (hipblas_result != HIPBLAS_STATUS_SUCCESS) { \
-    const char *msg = hipblasGetErrorName(hipblas_result); \
-    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
-   } \
-} while (0)
-
-#define QUOTE(...) #__VA_ARGS__
-
-#define CASE(name) case name: return #name
-// LCOV_EXCL_START
-CEED_UNUSED static const char *hipblasGetErrorName(hipblasStatus_t error) {
-  switch (error) {
-    CASE(HIPBLAS_STATUS_SUCCESS);
-    CASE(HIPBLAS_STATUS_NOT_INITIALIZED);
-    CASE(HIPBLAS_STATUS_ALLOC_FAILED);
-    CASE(HIPBLAS_STATUS_INVALID_VALUE);
-    CASE(HIPBLAS_STATUS_ARCH_MISMATCH);
-    CASE(HIPBLAS_STATUS_MAPPING_ERROR);
-    CASE(HIPBLAS_STATUS_EXECUTION_FAILED);
-    CASE(HIPBLAS_STATUS_INTERNAL_ERROR);
-  default: return "HIPBLAS_STATUS_UNKNOWN_ERROR";
-  }
-}
-// LCOV_EXCL_STOP
+#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   CeedScalar *h_array;
@@ -155,21 +117,11 @@ typedef struct {
   CeedOperatorDiag_Hip *diag;
 } CeedOperator_Hip;
 
-typedef struct {
-  int optblocksize;
-  int deviceId;
-  hipblasHandle_t hipblasHandle;
-} Ceed_Hip;
-
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
   return (numer + denom - 1) / denom;
 }
 
-CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource, int nrc);
-
 CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);
-
-CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
 
 CEED_INTERN int CeedVectorCreate_Hip(CeedInt n, CeedVector vec);
 

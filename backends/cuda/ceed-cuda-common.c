@@ -14,49 +14,43 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
 #include <string.h>
-#include "ceed-hip-gen.h"
+#include "ceed-cuda-common.h"
 
 //------------------------------------------------------------------------------
-// Backend init
+// Device information backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
+int CeedCudaInit(Ceed ceed, const char *resource, int nrc) {
   int ierr;
-  const int nrc = 8; // number of characters in resource
-  if (strncmp(resource, "/gpu/hip/gen", nrc))
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Hip backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
+  const char *device_spec = strstr(resource, ":device_id=");
+  const int deviceID = (device_spec) ? atoi(device_spec+11) : -1;
 
-  Ceed_Hip *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
-
-  Ceed ceedshared;
-  CeedInit("/gpu/hip/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
-
-  const char fallbackresource[] = "/gpu/hip/ref";
-  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
-  CeedChkBackend(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Hip_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Hip_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Hip); CeedChkBackend(ierr);
+  int currentDeviceID;
+  ierr = cudaGetDevice(&currentDeviceID); CeedChk_Cu(ceed,ierr);
+  if (deviceID >= 0 && currentDeviceID != deviceID) {
+    ierr = cudaSetDevice(deviceID); CeedChk_Cu(ceed,ierr);
+    currentDeviceID = deviceID;
+  }
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  data->deviceId = currentDeviceID;
+  ierr = cudaGetDeviceProperties(&data->deviceProp, currentDeviceID);
+  CeedChk_Cu(ceed,ierr);
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
-// Register backend
+// Backend destroy
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip_Gen(void) {
-  return CeedRegister("/gpu/hip/gen", CeedInit_Hip_gen, 20);
+int CeedDestroy_Cuda(Ceed ceed) {
+  int ierr;
+  Ceed_Cuda *data;
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  if (data->cublasHandle) {
+    ierr = cublasDestroy(data->cublasHandle); CeedChk_Cublas(ceed, ierr);
+  }
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

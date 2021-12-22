@@ -19,48 +19,8 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <cublas_v2.h>
 #include <cuda.h>
-
-#define CUDA_MAX_PATH 256
-
-#define CeedChk_Cu(ceed, x) \
-do { \
-  CUresult cuda_result = x; \
-  if (cuda_result != CUDA_SUCCESS) { \
-    const char *msg; \
-    cuGetErrorName(cuda_result, &msg); \
-    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
-  } \
-} while (0)
-
-#define CeedChk_Cublas(ceed, x) \
-do { \
-  cublasStatus_t cublas_result = x; \
-  if (cublas_result != CUBLAS_STATUS_SUCCESS) { \
-    const char *msg = cublasGetErrorName(cublas_result); \
-    return CeedError((ceed), CEED_ERROR_BACKEND, msg); \
-   } \
-} while (0)
-
-#define QUOTE(...) #__VA_ARGS__
-
-#define CASE(name) case name: return #name
-// LCOV_EXCL_START
-static const char *cublasGetErrorName(cublasStatus_t error) {
-  switch (error) {
-    CASE(CUBLAS_STATUS_SUCCESS);
-    CASE(CUBLAS_STATUS_NOT_INITIALIZED);
-    CASE(CUBLAS_STATUS_ALLOC_FAILED);
-    CASE(CUBLAS_STATUS_INVALID_VALUE);
-    CASE(CUBLAS_STATUS_ARCH_MISMATCH);
-    CASE(CUBLAS_STATUS_MAPPING_ERROR);
-    CASE(CUBLAS_STATUS_EXECUTION_FAILED);
-    CASE(CUBLAS_STATUS_INTERNAL_ERROR);
-  default: return "CUBLAS_STATUS_UNKNOWN_ERROR";
-  }
-}
-// LCOV_EXCL_STOP
+#include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
   CeedScalar *h_array;
@@ -156,21 +116,11 @@ typedef struct {
   CeedOperatorDiag_Cuda *diag;
 } CeedOperator_Cuda;
 
-typedef struct {
-  int deviceId;
-  cublasHandle_t cublasHandle;
-  struct cudaDeviceProp deviceProp;
-} Ceed_Cuda;
-
 static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
   return (numer + denom - 1) / denom;
 }
 
-CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource, int nrc);
-
 CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
-
-CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 

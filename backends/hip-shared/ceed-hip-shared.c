@@ -19,7 +19,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include "ceed-hip-shared.h"
-#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Backend init

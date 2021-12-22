@@ -18,7 +18,6 @@
 #include <ceed/backend.h>
 #include <string.h>
 #include "ceed-cuda-gen.h"
-#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Backend init
