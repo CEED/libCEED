@@ -14,33 +14,37 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef _ceed_hip_compile_h
-#define _ceed_hip_compile_h
+#ifndef _ceed_cuda_compile_h
+#define _ceed_cuda_compile_h
 
 #include <ceed/ceed.h>
-#include <hip/hip_runtime.h>
+#include <cuda.h>
+#include <nvrtc.h>
 
 static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) {
   return (numerator + denominator - 1) / denominator;
 }
 
-CEED_INTERN int CeedCompileHip(Ceed ceed, const char *source,
-                               hipModule_t *module, const CeedInt numopts, ...);
+CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
+                                const CeedInt num_opts, ...);
 
-CEED_INTERN int CeedGetKernelHip(Ceed ceed, hipModule_t module,
-                                 const char *name, hipFunction_t *kernel);
+CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
+                                  CUfunction *kernel);
 
-CEED_INTERN int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel,
-                                 const int grid_size,
-                                 const int block_size, void **args);
+CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel,
+                                  const int grid_size,
+                                  const int block_size, void **args);
 
-CEED_INTERN int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel,
-                                    const int grid_size,
-                                    const int block_size_x, const int block_size_y,
-                                    const int block_size_z, void **args);
+CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel,
+    size_t size, void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel,
+CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel,
+                                     const int grid_size,
+                                     const int block_size_x, const int block_size_y,
+                                     const int block_size_z, void **args);
+
+CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
     const int grid_size, const int block_size_x, const int block_size_y,
     const int block_size_z, const int shared_mem_size, void **args);
 
-#endif // _ceed_hip_compile_h
+#endif // _ceed_cuda_compile_h

@@ -19,9 +19,9 @@
 #include <hip/hip_runtime.h>
 #include <stdio.h>
 #include <string.h>
-#include "ceed-hip.h"
-#include "ceed-hip-compile.h"
-#include "ceed-hip-qfunction-load.h"
+#include "ceed-hip-ref.h"
+#include "ceed-hip-ref-qfunction-load.h"
+#include "../hip/ceed-hip-compile.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
@@ -42,7 +42,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   CeedInt numinputfields, numoutputfields;
   ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
   CeedChkBackend(ierr);
-  const int blocksize = ceed_Hip->optblocksize;
+  const int blocksize = ceed_Hip->opt_block_size;
 
   // Read vectors
   for (CeedInt i = 0; i < numinputfields; i++) {

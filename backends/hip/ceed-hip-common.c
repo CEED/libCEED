@@ -17,46 +17,47 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-cuda-gen.h"
+#include <stdlib.h>
+#include "ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
-// Backend init
+// Device information backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
+int CeedHipInit(Ceed ceed, const char *resource) {
   int ierr;
+  const char *device_spec = strstr(resource, ":device_id=");
+  const int device_id = (device_spec) ? atoi(device_spec + 11) : -1;
 
-  if (strcmp(resource, "/gpu/cuda") && strcmp(resource, "/gpu/cuda/gen"))
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Cuda backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
+  int current_device_id;
+  ierr = hipGetDevice(&current_device_id); CeedChk_Hip(ceed, ierr);
+  if (device_id >= 0 && current_device_id != device_id) {
+    ierr = hipSetDevice(device_id); CeedChk_Hip(ceed, ierr);
+    current_device_id = device_id;
+  }
 
-  Ceed_Cuda *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedCudaInit(ceed, resource); CeedChkBackend(ierr);
+  struct hipDeviceProp_t device_prop;
+  ierr = hipGetDeviceProperties(&device_prop, current_device_id);
+  CeedChk_Hip(ceed, ierr);
 
-  Ceed ceedshared;
-  CeedInit("/gpu/cuda/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
-
-  const char fallbackresource[] = "/gpu/cuda/ref";
-  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
-  CeedChkBackend(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Cuda_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Cuda_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChkBackend(ierr);
+  Ceed_Hip *data;
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  data->device_id = current_device_id;
+  data->opt_block_size = 256;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
-// Register backend
+// Backend Destroy
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda_Gen(void) {
-  return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
+int CeedDestroy_Hip(Ceed ceed) {
+  int ierr;
+  Ceed_Hip *data;
+  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  if (data->hipblas_handle) {
+    ierr = hipblasDestroy(data->hipblas_handle); CeedChk_Hipblas(ceed, ierr);
+  }
+  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

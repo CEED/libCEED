@@ -22,6 +22,8 @@
 #include <iostream>
 #include <sstream>
 #include "ceed-cuda-gen.h"
+#include "../cuda/ceed-cuda-compile.h"
+#include "../cuda-ref/ceed-cuda-ref.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
 static const char *atomicAdd = QUOTE(
@@ -801,8 +803,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
   ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr); CeedChkBackend(ierr);
-  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId); CeedChkBackend(ierr);
-  if ((prop.major<6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)){
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->device_id); CeedChkBackend(ierr);
+  if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)){
     code << atomicAdd;
   }
 

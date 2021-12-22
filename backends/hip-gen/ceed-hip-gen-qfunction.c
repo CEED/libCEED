@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "ceed-hip-gen.h"
-#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction

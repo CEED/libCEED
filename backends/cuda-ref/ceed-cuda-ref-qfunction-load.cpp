@@ -19,8 +19,8 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
-#include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-cuda-ref.h"
+#include "../cuda/ceed-cuda-compile.h"
 
 static const char *qReadWrite = QUOTE(
 template <int SIZE>
@@ -47,16 +47,20 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, cons
 //------------------------------------------------------------------------------
 // Build QFunction kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
+extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   CeedInt ierr;
   using std::ostringstream;
   using std::string;
-  CeedQFunction_Hip *data;
+  Ceed ceed;
+  CeedQFunctionGetCeed(qf, &ceed);
+  CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
   // QFunction is built
-  if (!data->qFunctionSource)
+  if (data->qFunction)
     return CEED_ERROR_SUCCESS;
-  
+  if (!data->qFunctionSource)
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
+
   // QFunction kernel generation
   CeedInt numinputfields, numoutputfields, size;
   CeedQFunctionField *qfinputfields, *qfoutputfields;
@@ -69,19 +73,19 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   ostringstream code;
   string qFunctionName(data->qFunctionName);
   string kernelName;
-  kernelName = "CeedKernel_Hip_ref_" + qFunctionName;
+  kernelName = "CeedKernel_Cuda_ref_" + qFunctionName;
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "#define CEED_QFUNCTION_HELPER inline __device__ __forceinline__\n";
+  code << "#define CEED_QFUNCTION_HELPER inline __device__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
-  code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;\n";
+  code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;\n";
   code << qReadWriteS;
   code << qFunction;
-  code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
-  
+  code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
+
   // Inputs
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "// Input field "<<i<<"\n";
@@ -129,14 +133,12 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
   CeedDebug(ceed, code.str().c_str());
- 
+
   // Compile kernel
-  ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 0);
+  ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChkBackend(ierr);
-  ierr = CeedGetKernelHip(ceed, data->module, kernelName.c_str(), &data->qFunction);
+  ierr = CeedGetKernelCuda(ceed, data->module, kernelName.c_str(), &data->qFunction);
   CeedChkBackend(ierr);
 
   // Cleanup

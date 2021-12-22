@@ -16,19 +16,20 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include <assert.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <stdbool.h>
 #include <string.h>
-#include "ceed-hip.h"
-#include "ceed-hip-compile.h"
+#include "ceed-cuda-ref.h"
+#include "../cuda/ceed-cuda-compile.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
-static int CeedOperatorDestroy_Hip(CeedOperator op) {
+static int CeedOperatorDestroy_Cuda(CeedOperator op) {
   int ierr;
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
 
   // Apply data
@@ -47,7 +48,7 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
   }
   ierr = CeedFree(&impl->qvecsout); CeedChkBackend(ierr);
 
-  // QFunction diagonal assembly data
+  // QFunction assembly data
   for (CeedInt i=0; i<impl->qfnumactivein; i++) {
     ierr = CeedVectorDestroy(&impl->qfactivein[i]); CeedChkBackend(ierr);
   }
@@ -57,16 +58,16 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
   if (impl->diag) {
     Ceed ceed;
     ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-    CeedChk_Hip(ceed, hipModuleUnload(impl->diag->module));
+    CeedChk_Cu(ceed, cuModuleUnload(impl->diag->module));
     ierr = CeedFree(&impl->diag->h_emodein); CeedChkBackend(ierr);
     ierr = CeedFree(&impl->diag->h_emodeout); CeedChkBackend(ierr);
-    ierr = hipFree(impl->diag->d_emodein); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_emodeout); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_identity); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_interpin); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_interpout); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_gradin); CeedChk_Hip(ceed, ierr);
-    ierr = hipFree(impl->diag->d_gradout); CeedChk_Hip(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_emodein); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_emodeout); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_identity); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_interpin); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_interpout); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_gradin); CeedChk_Cu(ceed, ierr);
+    ierr = cudaFree(impl->diag->d_gradout); CeedChk_Cu(ceed, ierr);
     ierr = CeedElemRestrictionDestroy(&impl->diag->pbdiagrstr);
     CeedChkBackend(ierr);
     ierr = CeedVectorDestroy(&impl->diag->elemdiag); CeedChkBackend(ierr);
@@ -81,11 +82,11 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Setup infields or outfields
 //------------------------------------------------------------------------------
-static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op,
-                                       bool isinput, CeedVector *evecs,
-                                       CeedVector *qvecs, CeedInt starte,
-                                       CeedInt numfields, CeedInt Q,
-                                       CeedInt numelements) {
+static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op,
+                                        bool isinput, CeedVector *evecs,
+                                        CeedVector *qvecs, CeedInt starte,
+                                        CeedInt numfields, CeedInt Q,
+                                        CeedInt numelements) {
   CeedInt dim, ierr, size;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -190,7 +191,7 @@ static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op,
 // CeedOperator needs to connect all the named fields (be they active or passive)
 //   to the named inputs and outputs of its CeedQFunction.
 //------------------------------------------------------------------------------
-static int CeedOperatorSetup_Hip(CeedOperator op) {
+static int CeedOperatorSetup_Cuda(CeedOperator op) {
   int ierr;
   bool setupdone;
   ierr = CeedOperatorIsSetupDone(op, &setupdone); CeedChkBackend(ierr);
@@ -198,13 +199,14 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
     return CEED_ERROR_SUCCESS;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
+  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
                                &numoutputfields, &opoutputfields);
@@ -224,16 +226,16 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
 
   // Set up infield and outfield evecs and qvecs
   // Infields
-  ierr = CeedOperatorSetupFields_Hip(qf, op, true,
-                                     impl->evecs, impl->qvecsin, 0,
-                                     numinputfields, Q, numelements);
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, true,
+                                      impl->evecs, impl->qvecsin, 0,
+                                      numinputfields, Q, numelements);
   CeedChkBackend(ierr);
 
   // Outfields
-  ierr = CeedOperatorSetupFields_Hip(qf, op, false,
-                                     impl->evecs, impl->qvecsout,
-                                     numinputfields, numoutputfields, Q,
-                                     numelements); CeedChkBackend(ierr);
+  ierr = CeedOperatorSetupFields_Cuda(qf, op, false,
+                                      impl->evecs, impl->qvecsout,
+                                      numinputfields, numoutputfields, Q,
+                                      numelements); CeedChkBackend(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
@@ -242,10 +244,10 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Setup Operator Inputs
 //------------------------------------------------------------------------------
-static inline int CeedOperatorSetupInputs_Hip(CeedInt numinputfields,
+static inline int CeedOperatorSetupInputs_Cuda(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedVector invec, const bool skipactive, CeedScalar *edata[2*CEED_FIELD_MAX],
-    CeedOperator_Hip *impl, CeedRequest *request) {
+    CeedOperator_Cuda *impl, CeedRequest *request) {
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
@@ -294,10 +296,10 @@ static inline int CeedOperatorSetupInputs_Hip(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 // Input Basis Action
 //------------------------------------------------------------------------------
-static inline int CeedOperatorInputBasis_Hip(CeedInt numelements,
+static inline int CeedOperatorInputBasis_Cuda(CeedInt numelements,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     CeedInt numinputfields, const bool skipactive,
-    CeedScalar *edata[2*CEED_FIELD_MAX], CeedOperator_Hip *impl) {
+    CeedScalar *edata[2*CEED_FIELD_MAX],CeedOperator_Cuda *impl) {
   CeedInt ierr;
   CeedInt elemsize, size;
   CeedElemRestriction Erestrict;
@@ -354,10 +356,10 @@ static inline int CeedOperatorInputBasis_Hip(CeedInt numelements,
 //------------------------------------------------------------------------------
 // Restore Input Vectors
 //------------------------------------------------------------------------------
-static inline int CeedOperatorRestoreInputs_Hip(CeedInt numinputfields,
+static inline int CeedOperatorRestoreInputs_Cuda(CeedInt numinputfields,
     CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
     const bool skipactive, CeedScalar *edata[2*CEED_FIELD_MAX],
-    CeedOperator_Hip *impl) {
+    CeedOperator_Cuda *impl) {
   CeedInt ierr;
   CeedEvalMode emode;
   CeedVector vec;
@@ -391,16 +393,17 @@ static inline int CeedOperatorRestoreInputs_Hip(CeedInt numinputfields,
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
-                                    CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec,
+                                     CeedVector outvec, CeedRequest *request) {
   int ierr;
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedInt Q, numelements, elemsize, numinputfields, numoutputfields, size;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
+  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
                                &numoutputfields, &opoutputfields);
@@ -412,19 +415,19 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
   CeedVector vec;
   CeedBasis basis;
   CeedElemRestriction Erestrict;
-  CeedScalar *edata[2*CEED_FIELD_MAX];
+  CeedScalar *edata[2*CEED_FIELD_MAX] = {0};
 
   // Setup
-  ierr = CeedOperatorSetup_Hip(op); CeedChkBackend(ierr);
+  ierr = CeedOperatorSetup_Cuda(op); CeedChkBackend(ierr);
 
   // Input Evecs and Restriction
-  ierr = CeedOperatorSetupInputs_Hip(numinputfields, qfinputfields,
-                                     opinputfields, invec, false, edata,
-                                     impl, request); CeedChkBackend(ierr);
+  ierr = CeedOperatorSetupInputs_Cuda(numinputfields, qfinputfields,
+                                      opinputfields, invec, false, edata,
+                                      impl, request); CeedChkBackend(ierr);
 
   // Input basis apply if needed
-  ierr = CeedOperatorInputBasis_Hip(numelements, qfinputfields, opinputfields,
-                                    numinputfields, false, edata, impl);
+  ierr = CeedOperatorInputBasis_Cuda(numelements, qfinputfields, opinputfields,
+                                     numinputfields, false, edata, impl);
   CeedChkBackend(ierr);
 
   // Output pointers, as necessary
@@ -516,8 +519,8 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Hip(numinputfields, qfinputfields,
-                                       opinputfields, false, edata, impl);
+  ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
+                                        opinputfields, false, edata, impl);
   CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -525,17 +528,18 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Core code for assembling linear QFunction
 //------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
+static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op,
     bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
     CeedRequest *request) {
   int ierr;
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedInt Q, numelements, numinputfields, numoutputfields, size;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
+  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
                                &numoutputfields, &opoutputfields);
@@ -555,7 +559,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   CeedScalar *edata[2*CEED_FIELD_MAX];
 
   // Setup
-  ierr = CeedOperatorSetup_Hip(op); CeedChkBackend(ierr);
+  ierr = CeedOperatorSetup_Cuda(op); CeedChkBackend(ierr);
 
   // Check for identity
   bool identityqf;
@@ -567,9 +571,9 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   // LCOV_EXCL_STOP
 
   // Input Evecs and Restriction
-  ierr = CeedOperatorSetupInputs_Hip(numinputfields, qfinputfields,
-                                     opinputfields, NULL, true, edata,
-                                     impl, request); CeedChkBackend(ierr);
+  ierr = CeedOperatorSetupInputs_Cuda(numinputfields, qfinputfields,
+                                      opinputfields, NULL, true, edata,
+                                      impl, request); CeedChkBackend(ierr);
 
   // Count number of active input fields
   if (!numactivein) {
@@ -639,8 +643,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   CeedChkBackend(ierr);
 
   // Input basis apply
-  ierr = CeedOperatorInputBasis_Hip(numelements, qfinputfields, opinputfields,
-                                    numinputfields, true, edata, impl);
+  ierr = CeedOperatorInputBasis_Cuda(numelements, qfinputfields, opinputfields,
+                                     numinputfields, true, edata, impl);
   CeedChkBackend(ierr);
 
   // Assemble QFunction
@@ -683,8 +687,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
   }
 
   // Restore input arrays
-  ierr = CeedOperatorRestoreInputs_Hip(numinputfields, qfinputfields,
-                                       opinputfields, true, edata, impl);
+  ierr = CeedOperatorRestoreInputs_Cuda(numinputfields, qfinputfields,
+                                        opinputfields, true, edata, impl);
   CeedChkBackend(ierr);
 
   // Restore output
@@ -696,19 +700,19 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunction_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunction_Cuda(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Hip(op, true, assembled, rstr,
+  return CeedOperatorLinearAssembleQFunctionCore_Cuda(op, true, assembled, rstr,
          request);
 }
 
 //------------------------------------------------------------------------------
-// Assemble Linear QFunction
+// Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunctionUpdate_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleQFunctionUpdate_Cuda(CeedOperator op,
     CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Hip(op, false, &assembled, &rstr,
-         request);
+  return CeedOperatorLinearAssembleQFunctionCore_Cuda(op, false, &assembled,
+         &rstr, request);
 }
 
 //------------------------------------------------------------------------------
@@ -736,7 +740,7 @@ typedef enum {
 //------------------------------------------------------------------------------
 // Get Basis Emode Pointer
 //------------------------------------------------------------------------------
-extern "C" __device__ void CeedOperatorGetBasisPointer_Hip(const CeedScalar **basisptr,
+extern "C" __device__ void CeedOperatorGetBasisPointer_Cuda(const CeedScalar **basisptr,
     CeedEvalMode emode, const CeedScalar *identity, const CeedScalar *interp,
     const CeedScalar *grad) {
   switch (emode) {
@@ -780,14 +784,14 @@ __device__ void diagonalCore(const CeedInt nelem,
       const CeedScalar *bt = NULL;
       if (emodeout[eout] == CEED_EVAL_GRAD)
         dout += 1;
-      CeedOperatorGetBasisPointer_Hip(&bt, emodeout[eout], identity, interpout,
+      CeedOperatorGetBasisPointer_Cuda(&bt, emodeout[eout], identity, interpout,
                                       &gradout[dout*NQPTS*NNODES]);
       CeedInt din = -1;
       for (CeedInt ein = 0; ein < NUMEMODEIN; ein++) {
         const CeedScalar *b = NULL;
         if (emodein[ein] == CEED_EVAL_GRAD)
           din += 1;
-        CeedOperatorGetBasisPointer_Hip(&b, emodein[ein], identity, interpin,
+        CeedOperatorGetBasisPointer_Cuda(&b, emodein[ein], identity, interpin,
                                         &gradin[din*NQPTS*NNODES]);
         // Each component
         for (CeedInt compOut = 0; compOut < NCOMP; compOut++) {
@@ -898,7 +902,7 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
 //------------------------------------------------------------------------------
 // Assemble diagonal setup
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
+static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
     const bool pointBlock) {
   int ierr;
   Ceed ceed;
@@ -1007,10 +1011,10 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
   }
 
   // Operator data struct
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
   ierr = CeedCalloc(1, &impl->diag); CeedChkBackend(ierr);
-  CeedOperatorDiag_Hip *diag = impl->diag;
+  CeedOperatorDiag_Cuda *diag = impl->diag;
   diag->basisin = basisin;
   diag->basisout = basisout;
   diag->h_emodein = emodein;
@@ -1023,18 +1027,18 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
   ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChkBackend(ierr);
   diag->nnodes = nnodes;
-  ierr = CeedCompileHip(ceed, diagonalkernels, &diag->module, 5,
-                        "NUMEMODEIN", numemodein,
-                        "NUMEMODEOUT", numemodeout,
-                        "NNODES", nnodes,
-                        "NQPTS", nqpts,
-                        "NCOMP", ncomp
-                       ); CeedChk_Hip(ceed, ierr);
-  ierr = CeedGetKernelHip(ceed, diag->module, "linearDiagonal",
-                          &diag->linearDiagonal); CeedChk_Hip(ceed, ierr);
-  ierr = CeedGetKernelHip(ceed, diag->module, "linearPointBlockDiagonal",
-                          &diag->linearPointBlock);
-  CeedChk_Hip(ceed, ierr);
+  ierr = CeedCompileCuda(ceed, diagonalkernels, &diag->module, 5,
+                         "NUMEMODEIN", numemodein,
+                         "NUMEMODEOUT", numemodeout,
+                         "NNODES", nnodes,
+                         "NQPTS", nqpts,
+                         "NCOMP", ncomp
+                        ); CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, diag->module, "linearDiagonal",
+                           &diag->linearDiagonal); CeedChk_Cu(ceed, ierr);
+  ierr = CeedGetKernelCuda(ceed, diag->module, "linearPointBlockDiagonal",
+                           &diag->linearPointBlock);
+  CeedChk_Cu(ceed, ierr);
 
   // Basis matrices
   const CeedInt qBytes = nqpts * sizeof(CeedScalar);
@@ -1054,40 +1058,40 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
     ierr = CeedCalloc(nqpts*nnodes, &identity); CeedChkBackend(ierr);
     for (CeedInt i=0; i<(nnodes<nqpts?nnodes:nqpts); i++)
       identity[i*nnodes+i] = 1.0;
-    ierr = hipMalloc((void **)&diag->d_identity, iBytes); CeedChk_Hip(ceed, ierr);
-    ierr = hipMemcpy(diag->d_identity, identity, iBytes,
-                     hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+    ierr = cudaMalloc((void **)&diag->d_identity, iBytes); CeedChk_Cu(ceed, ierr);
+    ierr = cudaMemcpy(diag->d_identity, identity, iBytes,
+                      cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   }
 
   // CEED_EVAL_INTERP
   ierr = CeedBasisGetInterp(basisin, &interpin); CeedChkBackend(ierr);
-  ierr = hipMalloc((void **)&diag->d_interpin, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_interpin, interpin, iBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_interpin, iBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_interpin, interpin, iBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   ierr = CeedBasisGetInterp(basisout, &interpout); CeedChkBackend(ierr);
-  ierr = hipMalloc((void **)&diag->d_interpout, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_interpout, interpout, iBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_interpout, iBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_interpout, interpout, iBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // CEED_EVAL_GRAD
   ierr = CeedBasisGetGrad(basisin, &gradin); CeedChkBackend(ierr);
-  ierr = hipMalloc((void **)&diag->d_gradin, gBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_gradin, gradin, gBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_gradin, gBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_gradin, gradin, gBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
   ierr = CeedBasisGetGrad(basisout, &gradout); CeedChkBackend(ierr);
-  ierr = hipMalloc((void **)&diag->d_gradout, gBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_gradout, gradout, gBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_gradout, gBytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_gradout, gradout, gBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // Arrays of emodes
-  ierr = hipMalloc((void **)&diag->d_emodein, numemodein * eBytes);
-  CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_emodein, emodein, numemodein * eBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
-  ierr = hipMalloc((void **)&diag->d_emodeout, numemodeout * eBytes);
-  CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(diag->d_emodeout, emodeout, numemodeout * eBytes,
-                   hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_emodein, numemodein * eBytes);
+  CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_emodein, emodein, numemodein * eBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMalloc((void **)&diag->d_emodeout, numemodeout * eBytes);
+  CeedChk_Cu(ceed, ierr);
+  ierr = cudaMemcpy(diag->d_emodeout, emodeout, numemodeout * eBytes,
+                    cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   // Restriction
   diag->diagrstr = rstrout;
@@ -1098,12 +1102,12 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
+static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
     CeedVector assembled, CeedRequest *request, const bool pointBlock) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
   ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
 
   // Assemble QFunction
@@ -1118,10 +1122,10 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
 
   // Setup
   if (!impl->diag) {
-    ierr = CeedOperatorAssembleDiagonalSetup_Hip(op, pointBlock);
+    ierr = CeedOperatorAssembleDiagonalSetup_Cuda(op, pointBlock);
     CeedChkBackend(ierr);
   }
-  CeedOperatorDiag_Hip *diag = impl->diag;
+  CeedOperatorDiag_Cuda *diag = impl->diag;
   assert(diag != NULL);
 
   // Restriction
@@ -1135,7 +1139,6 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
   // Create diagonal vector
   CeedVector elemdiag = pointBlock ? diag->pbelemdiag : diag->elemdiag;
   if (!elemdiag) {
-    // Element diagonal vector
     ierr = CeedElemRestrictionCreateVector(diagrstr, NULL, &elemdiag);
     CeedChkBackend(ierr);
     if (pointBlock)
@@ -1165,12 +1168,12 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
                   &assembledqfarray, &elemdiagarray
                  };
   if (pointBlock) {
-    ierr = CeedRunKernelDimHip(ceed, diag->linearPointBlock, grid,
-                               diag->nnodes, 1, elemsPerBlock, args);
+    ierr = CeedRunKernelDimCuda(ceed, diag->linearPointBlock, grid,
+                                diag->nnodes, 1, elemsPerBlock, args);
     CeedChkBackend(ierr);
   } else {
-    ierr = CeedRunKernelDimHip(ceed, diag->linearDiagonal, grid,
-                               diag->nnodes, 1, elemsPerBlock, args);
+    ierr = CeedRunKernelDimCuda(ceed, diag->linearDiagonal, grid,
+                                diag->nnodes, 1, elemsPerBlock, args);
     CeedChkBackend(ierr);
   }
 
@@ -1192,7 +1195,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble composite diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(
+static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(
   CeedOperator op, CeedVector assembled, CeedRequest *request,
   const bool pointBlock) {
   int ierr;
@@ -1201,7 +1204,7 @@ static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(
   ierr = CeedOperatorGetNumSub(op, &numSub); CeedChkBackend(ierr);
   ierr = CeedOperatorGetSubList(op, &subOperators); CeedChkBackend(ierr);
   for (CeedInt i = 0; i < numSub; i++) {
-    ierr = CeedOperatorAssembleDiagonalCore_Hip(subOperators[i], assembled,
+    ierr = CeedOperatorAssembleDiagonalCore_Cuda(subOperators[i], assembled,
            request, pointBlock); CeedChkBackend(ierr);
   }
   return CEED_ERROR_SUCCESS;
@@ -1210,83 +1213,82 @@ static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(
 //------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleAddDiagonal_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleAddDiagonal_Cuda(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(op, assembled,
            request, false);
   } else {
-    return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, false);
+    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, false);
   }
 }
 
 //------------------------------------------------------------------------------
 // Assemble Linear Point Block Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op,
+static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   bool isComposite;
   ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
   if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
+    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(op, assembled,
            request, true);
   } else {
-    return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, true);
+    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, true);
   }
 }
-
 
 //------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
-int CeedOperatorCreate_Hip(CeedOperator op) {
+int CeedOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-  CeedOperator_Hip *impl;
+  CeedOperator_Cuda *impl;
 
   ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
   ierr = CeedOperatorSetData(op, impl); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",
-                                CeedOperatorLinearAssembleQFunction_Hip);
+                                CeedOperatorLinearAssembleQFunction_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleQFunctionUpdate",
-                                CeedOperatorLinearAssembleQFunctionUpdate_Hip);
+                                CeedOperatorLinearAssembleQFunctionUpdate_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleAddDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddDiagonal_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                CeedOperatorApplyAdd_Hip); CeedChkBackend(ierr);
+                                CeedOperatorApplyAdd_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
-                                CeedOperatorDestroy_Hip); CeedChkBackend(ierr);
+                                CeedOperatorDestroy_Cuda); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Composite Operator Create
 //------------------------------------------------------------------------------
-int CeedCompositeOperatorCreate_Hip(CeedOperator op) {
+int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleAddDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddDiagonal_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
                                 "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
+                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
   CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }

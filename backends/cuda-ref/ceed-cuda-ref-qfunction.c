@@ -19,8 +19,9 @@
 #include <cuda.h>
 #include <stdio.h>
 #include <string.h>
-#include "ceed-cuda.h"
-#include "ceed-cuda-qfunction-load.h"
+#include "ceed-cuda-ref.h"
+#include "ceed-cuda-ref-qfunction-load.h"
+#include "../cuda/ceed-cuda-compile.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
