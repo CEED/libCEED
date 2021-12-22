@@ -24,8 +24,8 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   int ierr;
-  const int nrc = 8; // number of characters in resource
-  if (strncmp(resource, "/gpu/hip/gen", nrc))
+
+  if (strcmp(resource, "/gpu/hip") && strcmp(resource, "/gpu/hip/gen"))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
@@ -34,7 +34,7 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
+  ierr = CeedHipInit(ceed, resource); CeedChkBackend(ierr);
 
   Ceed ceedshared;
   CeedInit("/gpu/hip/shared", &ceedshared);
