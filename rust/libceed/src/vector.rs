@@ -176,12 +176,8 @@ impl<'a> VectorSliceWrapper<'a> {
         };
         vec.check_error(ierr)?;
 
-        let mut ptr_copy = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(vec.ptr, &mut ptr_copy) };
-        vec.check_error(ierr)?;
-
         Ok(Self {
-            vector: crate::Vector::from_raw(ptr_copy)?,
+            vector: crate::Vector::from_raw(vec.ptr_copy_mut()?)?,
             _slice: slice,
         })
     }
@@ -273,6 +269,13 @@ impl<'a> Vector<'a> {
             ptr,
             _lifeline: PhantomData,
         })
+    }
+
+    fn ptr_copy_mut(&mut self) -> crate::Result<bind_ceed::CeedVector> {
+        let mut ptr_copy = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
+        self.check_error(ierr)?;
+        Ok(ptr_copy)
     }
 
     /// Create a Vector from a slice
