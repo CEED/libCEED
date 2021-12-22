@@ -22,8 +22,6 @@
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 
-#define HIP_MAX_PATH 256
-
 #define QUOTE(...) #__VA_ARGS__
 
 #define CeedChk_Hip(ceed, x) \

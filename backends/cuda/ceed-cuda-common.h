@@ -25,8 +25,6 @@
 
 #define QUOTE(...) #__VA_ARGS__
 
-#define CUDA_MAX_PATH 256
-
 #define CeedChk_Cu(ceed, x) \
 do { \
   CUresult cuda_result = x; \
