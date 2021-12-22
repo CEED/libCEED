@@ -351,9 +351,9 @@ impl<'a> Vector<'a> {
     /// let val = 42.0;
     /// vec.set_value(val)?;
     ///
-    /// vec.view()?.iter().for_each(|v| {
+    /// for v in vec.view()?.iter() {
     ///     assert_eq!(*v, val, "Value not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -375,9 +375,9 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector(4)?;
     /// vec.set_slice(&[10., 11., 12., 13.])?;
     ///
-    /// vec.view()?.iter().enumerate().for_each(|(i, v)| {
+    /// for (i, v) in vec.view()?.iter().enumerate() {
     ///     assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -415,9 +415,9 @@ impl<'a> Vector<'a> {
     ///     // `wrapper` holds a mutable reference to the wrapped slice
     ///     //   that is dropped when `wrapper` goes out of scope
     ///     let wrapper = vec.wrap_slice_mut(&mut array)?;
-    ///     vec.view()?.iter().enumerate().for_each(|(i, v)| {
+    ///     for (i, v) in vec.view()?.iter().enumerate() {
     ///         assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
-    ///     });
+    ///     }
     ///
     ///     // This line will not compile, as the `wrapper` holds mutable
     ///     //   access to the `array`
@@ -425,21 +425,21 @@ impl<'a> Vector<'a> {
     ///
     ///     // Changes here are reflected in the `array`
     ///     vec.set_value(5.0)?;
-    ///     vec.view()?.iter().for_each(|v| {
+    ///     for v in vec.view()?.iter() {
     ///         assert_eq!(*v, 5.0 as Scalar, "Value not set correctly");
-    ///     });
+    ///     }
     /// }
     ///
     /// // 'array' remains changed
-    /// array.iter().for_each(|v| {
+    /// for v in array.iter() {
     ///     assert_eq!(*v, 5.0 as Scalar, "Array not mutated correctly");
-    /// });
+    /// }
     ///
     /// // While changes to `vec` no longer affect `array`
     /// vec.set_value(6.0)?;
-    /// array.iter().for_each(|v| {
+    /// for v in array.iter() {
     ///     assert_eq!(*v, 5.0 as Scalar, "Array mutated without permission");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -489,9 +489,9 @@ impl<'a> Vector<'a> {
     /// vec.set_value(val);
     /// vec.sync(MemType::Host)?;
     ///
-    /// vec.view()?.iter().for_each(|v| {
+    /// for v in vec.view()?.iter() {
     ///     assert_eq!(*v, val, "Value not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -589,9 +589,9 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// vec = vec.scale(-1.0)?;
-    /// vec.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, -(i as Scalar), "Value not set correctly");
-    /// });
+    /// for (i, v) in vec.view()?.iter().enumerate() {
+    ///     assert_eq!(*v, -(i as Scalar), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -617,9 +617,9 @@ impl<'a> Vector<'a> {
     /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// y = y.axpy(-0.5, &x)?;
-    /// y.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar) / 2.0, "Value not set correctly");
-    /// });
+    /// for (i, y) in y.view()?.iter().enumerate() {
+    ///     assert_eq!(*y, (i as Scalar) / 2.0, "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -646,9 +646,9 @@ impl<'a> Vector<'a> {
     /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_mult(&x, &y)?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -673,9 +673,9 @@ impl<'a> Vector<'a> {
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_scale(&x)?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -695,9 +695,9 @@ impl<'a> Vector<'a> {
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_square()?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
