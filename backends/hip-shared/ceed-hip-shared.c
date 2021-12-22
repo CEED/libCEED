@@ -38,9 +38,9 @@ static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
   ierr = CeedHipInit(ceed, resource); CeedChkBackend(ierr);
 
-  Ceed ceedref;
-  CeedInit("/gpu/hip/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
+  Ceed ceed_ref;
+  CeedInit("/gpu/hip/ref", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Hip_shared);

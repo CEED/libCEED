@@ -1,6 +1,6 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
+// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
+// All Rights reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
@@ -15,35 +15,27 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed/ceed.h>
-#include <cuda.h>
 
-const int sizeMax = 16;
-__constant__ CeedScalar c_B[sizeMax*sizeMax];
-__constant__ CeedScalar c_G[sizeMax*sizeMax];
-
+template <int SIZE>
 //------------------------------------------------------------------------------
-// Interp device initalization
+// Read from quadrature points
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
-                                  CeedScalar **c_B_ptr) {
-  const int Bsize = P_1d*Q_1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_B_ptr, c_B);
-
-  return CEED_ERROR_SUCCESS;
+inline __device__ void readQuads(const CeedInt quad, const CeedInt num_qpts,
+                                 const CeedScalar* d_u, CeedScalar* r_u) {
+  for(CeedInt comp = 0; comp < SIZE; ++comp) {
+    r_u[comp] = d_u[quad + num_qpts * comp];
+  }
 }
 
 //------------------------------------------------------------------------------
-// Grad device initalization
+// Write at quadrature points
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
-    CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
-  const int Bsize = P_1d*Q_1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_B_ptr, c_B);
-  cudaMemcpyToSymbol(c_G, d_G, Bsize, 0, cudaMemcpyDeviceToDevice);
-  cudaGetSymbolAddress((void **)c_G_ptr, c_G);
-
-  return CEED_ERROR_SUCCESS;
+template <int SIZE>
+inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts,
+                                  const CeedScalar* r_v, CeedScalar* d_v) {
+  for(CeedInt comp = 0; comp < SIZE; ++comp) {
+    d_v[quad + num_qpts * comp] = r_v[comp];
+  }
 }
+
 //------------------------------------------------------------------------------

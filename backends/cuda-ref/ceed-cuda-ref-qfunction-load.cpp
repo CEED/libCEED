@@ -16,33 +16,12 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <iostream>
 #include <sstream>
 #include <string.h>
 #include "ceed-cuda-ref.h"
 #include "../cuda/ceed-cuda-compile.h"
-
-static const char *qReadWrite = QUOTE(
-template <int SIZE>
-//------------------------------------------------------------------------------
-// Read from quadrature points
-//------------------------------------------------------------------------------
-inline __device__ void readQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* d_u, CeedScalar* r_u) {
-  for(CeedInt comp = 0; comp < SIZE; ++comp) {
-    r_u[comp] = d_u[quad + nquads * comp];
-  }
-}
-
-//------------------------------------------------------------------------------
-// Write at quadrature points
-//------------------------------------------------------------------------------
-template <int SIZE>
-inline __device__ void writeQuads(const CeedInt quad, const CeedInt nquads, const CeedScalar* r_v, CeedScalar* d_v) {
-  for(CeedInt comp = 0; comp < SIZE; ++comp) {
-    d_v[quad + nquads * comp] = r_v[comp];
-  }
-}
-);
 
 //------------------------------------------------------------------------------
 // Build QFunction kernel
@@ -55,25 +34,35 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
+
   // QFunction is built
-  if (data->qFunction)
+  if (data->QFunction)
     return CEED_ERROR_SUCCESS;
-  if (!data->qFunctionSource)
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
+
+  if (!data->qfunction_source)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "No QFunction source or CUfunction provided.");
+  // LCOV_EXCL_STOP
 
   // QFunction kernel generation
-  CeedInt numinputfields, numoutputfields, size;
-  CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &numinputfields, &qfinputfields, &numoutputfields, &qfoutputfields);
+  CeedInt num_input_fields, num_output_fields, size;
+  CeedQFunctionField *input_fields, *output_fields;
+  ierr = CeedQFunctionGetFields(qf, &num_input_fields, &input_fields,
+                                &num_output_fields, &output_fields);
   CeedChkBackend(ierr);
 
   // Build strings for final kernel
-  string qFunction(data->qFunctionSource);
-  string qReadWriteS(qReadWrite);
+  char *read_write_kernel_path, *read_write_kernel_source;
+  ierr = CeedPathConcatenate(ceed, __FILE__, "kernels/cuda-ref-qfunction.h",
+                             &read_write_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source);
+  CeedChkBackend(ierr);
+  string qfunction_source(data->qfunction_source);
+  string qfunction_name(data->qfunction_name);
+  string read_write(read_write_kernel_source);
+  string kernel_name = "CeedKernel_Cuda_ref_" + qfunction_name;
   ostringstream code;
-  string qFunctionName(data->qFunctionName);
-  string kernelName;
-  kernelName = "CeedKernel_Cuda_ref_" + qFunctionName;
 
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
@@ -82,67 +71,74 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
   code << "typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;\n";
-  code << qReadWriteS;
-  code << qFunction;
-  code << "extern \"C\" __global__ void " << kernelName << "(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
+  code << read_write;
+  code << qfunction_source;
+  code << "extern \"C\" __global__ void " << kernel_name << "(void *ctx, CeedInt Q, Fields_Cuda fields) {\n";
 
   // Inputs
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    code << "// Input field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetSize(qfinputfields[i], &size); CeedChkBackend(ierr);
-    code << "  const CeedInt size_in_"<<i<<" = "<<size<<";\n";
-    code << "  CeedScalar r_q"<<i<<"[size_in_"<<i<<"];\n";
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    code << "  // Input field " << i << "\n";
+    ierr = CeedQFunctionFieldGetSize(input_fields[i], &size); CeedChkBackend(ierr);
+    code << "  const CeedInt size_in_" << i << " = "<<size<<";\n";
+    code << "  CeedScalar r_q" << i << "[size_in_" << i << "];\n";
   }
+  code << "\n";
 
   // Outputs
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    code << "// Output field "<<i<<"\n";
-    ierr = CeedQFunctionFieldGetSize(qfoutputfields[i], &size); CeedChkBackend(ierr);
-    code << "  const CeedInt size_out_"<<i<<" = "<<size<<";\n";
-    code << "  CeedScalar r_qq"<<i<<"[size_out_"<<i<<"];\n";
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    code << "  // Output field " << i << "\n";
+    ierr = CeedQFunctionFieldGetSize(output_fields[i], &size); CeedChkBackend(ierr);
+    code << "  const CeedInt size_out_" << i << " = " << size << ";\n";
+    code << "  CeedScalar r_qq" << i << "[size_out_" << i << "];\n";
   }
+  code << "\n";
 
   // Setup input/output arrays
-  code << "  const CeedScalar* in["<<numinputfields<<"];\n";
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    code << "    in["<<i<<"] = r_q"<<i<<";\n";
+  code << "  const CeedScalar* in[" << num_input_fields << "];\n";
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    code << "    in[" << i << "] = r_q" << i << ";\n";
   }
-  code << "  CeedScalar* out["<<numoutputfields<<"];\n";
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    code << "    out["<<i<<"] = r_qq"<<i<<";\n";
+  code << "  CeedScalar* out[" << num_output_fields << "];\n";
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    code << "    out[" << i << "] = r_qq" << i << ";\n";
   }
+  code << "\n";
 
   // Loop over quadrature points
   code << "  for (CeedInt q = blockIdx.x * blockDim.x + threadIdx.x; q < Q; q += blockDim.x * gridDim.x) {\n";
 
   // Load inputs
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    code << "// Input field "<<i<<"\n";
-    code << "  readQuads<size_in_"<<i<<">(q, Q, fields.inputs["<<i<<"], r_q"<<i<<");\n";
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    code << "    // Input field " << i << "\n";
+    code << "    readQuads<size_in_" << i << ">(q, Q, fields.inputs[" << i << "], r_q" << i << ");\n";
   }
   // QFunction
-  code << "// QFunction\n";
-  code << "    "<<qFunctionName<<"(ctx, 1, in, out);\n";
+  code << "    // QFunction\n";
+  code << "    " << qfunction_name << "(ctx, 1, in, out);\n";
 
   // Write outputs
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    code << "// Output field "<<i<<"\n";
-    code << "  writeQuads<size_out_"<<i<<">(q, Q, r_qq"<<i<<", fields.outputs["<<i<<"]);\n";
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    code << "    // Output field " << i << "\n";
+    code << "    writeQuads<size_out_" << i << ">(q, Q, r_qq" << i << ", fields.outputs[" << i << "]);\n";
   }
   code << "  }\n";
   code << "}\n";
 
   // View kernel for debugging
+  CeedDebug256(ceed, 1, "Generated QFunction Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0);
   CeedChkBackend(ierr);
-  ierr = CeedGetKernelCuda(ceed, data->module, kernelName.c_str(), &data->qFunction);
+  ierr = CeedGetKernelCuda(ceed, data->module, kernel_name.c_str(), &data->QFunction);
   CeedChkBackend(ierr);
 
   // Cleanup
-  ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  ierr = CeedFree(&data->qfunction_source); CeedChkBackend(ierr);
+  ierr = CeedFree(&read_write_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&read_write_kernel_source); CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

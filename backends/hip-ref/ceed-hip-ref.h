@@ -34,19 +34,39 @@ typedef struct {
 
 typedef struct {
   hipModule_t module;
-  hipFunction_t noTrStrided;
-  hipFunction_t noTrOffset;
-  hipFunction_t trStrided;
-  hipFunction_t trOffset;
-  CeedInt nnodes;
+  hipFunction_t StridedTranspose;
+  hipFunction_t StridedNoTranspose;
+  hipFunction_t OffsetTranspose;
+  hipFunction_t OffsetNoTranspose;
+  CeedInt num_nodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
   CeedInt *d_ind;
   CeedInt *d_ind_allocated;
-  CeedInt *d_toffsets;
-  CeedInt *d_tindices;
-  CeedInt *d_lvec_indices;
+  CeedInt *d_t_offsets;
+  CeedInt *d_t_indices;
+  CeedInt *d_l_vec_indices;
 } CeedElemRestriction_Hip;
+
+typedef struct {
+  hipModule_t module;
+  hipFunction_t Interp;
+  hipFunction_t Grad;
+  hipFunction_t Weight;
+  CeedScalar *d_interp_1d;
+  CeedScalar *d_grad_1d;
+  CeedScalar *d_q_weight_1d;
+} CeedBasis_Hip;
+
+typedef struct {
+  hipModule_t module;
+  hipFunction_t Interp;
+  hipFunction_t Grad;
+  hipFunction_t Weight;
+  CeedScalar *d_interp;
+  CeedScalar *d_grad;
+  CeedScalar *d_q_weight;
+} CeedBasisNonTensor_Hip;
 
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
@@ -57,9 +77,9 @@ typedef struct {
 
 typedef struct {
   hipModule_t module;
-  char *qFunctionName;
-  char *qFunctionSource;
-  hipFunction_t qFunction;
+  char *qfunction_name;
+  char *qfunction_source;
+  hipFunction_t QFunction;
   Fields_Hip fields;
   void *d_c;
 } CeedQFunction_Hip;
@@ -72,26 +92,6 @@ typedef struct {
   void *d_data_borrowed;
   void *d_data_owned;
 } CeedQFunctionContext_Hip;
-
-typedef struct {
-  hipModule_t module;
-  hipFunction_t interp;
-  hipFunction_t grad;
-  hipFunction_t weight;
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_qweight1d;
-} CeedBasis_Hip;
-
-typedef struct {
-  hipModule_t module;
-  hipFunction_t interp;
-  hipFunction_t grad;
-  hipFunction_t weight;
-  CeedScalar *d_interp;
-  CeedScalar *d_grad;
-  CeedScalar *d_qweight;
-} CeedBasisNonTensor_Hip;
 
 typedef struct {
   hipModule_t module;

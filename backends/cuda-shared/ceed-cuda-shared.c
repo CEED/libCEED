@@ -37,9 +37,9 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   ierr = CeedSetData(ceed, data); CeedChk(ierr);
   ierr = CeedCudaInit(ceed, resource); CeedChk(ierr);
 
-  Ceed ceedref;
-  CeedInit("/gpu/cuda/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChk(ierr);
+  Ceed ceed_ref;
+  CeedInit("/gpu/cuda/ref", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChk(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Cuda_shared);

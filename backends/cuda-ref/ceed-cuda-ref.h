@@ -33,19 +33,39 @@ typedef struct {
 
 typedef struct {
   CUmodule module;
-  CUfunction noTrStrided;
-  CUfunction noTrOffset;
-  CUfunction trStrided;
-  CUfunction trOffset;
-  CeedInt nnodes;
+  CUfunction StridedTranspose;
+  CUfunction StridedNoTranspose;
+  CUfunction OffsetTranspose;
+  CUfunction OffsetNoTranspose;
+  CeedInt num_nodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
   CeedInt *d_ind;
   CeedInt *d_ind_allocated;
-  CeedInt *d_toffsets;
-  CeedInt *d_tindices;
-  CeedInt *d_lvec_indices;
+  CeedInt *d_t_offsets;
+  CeedInt *d_t_indices;
+  CeedInt *d_l_vec_indices;
 } CeedElemRestriction_Cuda;
+
+typedef struct {
+  CUmodule module;
+  CUfunction Interp;
+  CUfunction Grad;
+  CUfunction Weight;
+  CeedScalar *d_interp_1d;
+  CeedScalar *d_grad_1d;
+  CeedScalar *d_q_weight_1d;
+} CeedBasis_Cuda;
+
+typedef struct {
+  CUmodule module;
+  CUfunction Interp;
+  CUfunction Grad;
+  CUfunction Weight;
+  CeedScalar *d_interp;
+  CeedScalar *d_grad;
+  CeedScalar *d_q_weight;
+} CeedBasisNonTensor_Cuda;
 
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
@@ -56,9 +76,9 @@ typedef struct {
 
 typedef struct {
   CUmodule module;
-  char *qFunctionName;
-  char *qFunctionSource;
-  CUfunction qFunction;
+  char *qfunction_name;
+  char *qfunction_source;
+  CUfunction QFunction;
   Fields_Cuda fields;
   void *d_c;
 } CeedQFunction_Cuda;
@@ -71,26 +91,6 @@ typedef struct {
   void *d_data_borrowed;
   void *d_data_owned;
 } CeedQFunctionContext_Cuda;
-
-typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_qweight1d;
-} CeedBasis_Cuda;
-
-typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
-  CeedScalar *d_interp;
-  CeedScalar *d_grad;
-  CeedScalar *d_qweight;
-} CeedBasisNonTensor_Cuda;
 
 typedef struct {
   CUmodule module;
@@ -120,26 +120,25 @@ CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
-    CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type,
+    CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mtype,
-    const CeedCopyMode cmode, const CeedInt *indices,
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType
+    mem_type,
+    const CeedCopyMode copy_mode, const CeedInt *indices,
     const CeedElemRestriction res);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
-    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis,
+    const CeedInt num_elem,
+    CeedTransposeMode t_mode, CeedEvalMode eval_mode, const CeedVector u,
+    CeedVector v);
 
 CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
     const CeedVector *const u, const CeedVector *v);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d,
-    const CeedScalar *interp1d,
-    const CeedScalar *grad1d,
-    const CeedScalar *qref1d,
-    const CeedScalar *qweight1d,
-    CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d,
+    CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+    const CeedScalar *qref_1d, const CeedScalar *qweight_1d, CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
                                        CeedInt, const CeedScalar *,
