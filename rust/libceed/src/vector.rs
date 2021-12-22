@@ -154,6 +154,40 @@ impl<'a> Drop for VectorSliceWrapper<'a> {
 }
 
 // -----------------------------------------------------------------------------
+// Convenience constructor
+// -----------------------------------------------------------------------------
+impl<'a> VectorSliceWrapper<'a> {
+    fn from_vector_and_slice_mut<'b>(
+        vec: &'b mut crate::Vector,
+        slice: &'a mut [crate::Scalar],
+    ) -> crate::Result<Self> {
+        assert_eq!(vec.length(), slice.len());
+        let (host, copy_mode) = (
+            crate::MemType::Host as bind_ceed::CeedMemType,
+            crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedVectorSetArray(
+                vec.ptr,
+                host,
+                copy_mode,
+                slice.as_ptr() as *mut crate::Scalar,
+            )
+        };
+        vec.check_error(ierr)?;
+
+        let mut ptr_copy = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(vec.ptr, &mut ptr_copy) };
+        vec.check_error(ierr)?;
+
+        Ok(Self {
+            vector: crate::Vector::from_raw(ptr_copy)?,
+            _slice: slice,
+        })
+    }
+}
+
+// -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
@@ -447,29 +481,7 @@ impl<'a> Vector<'a> {
         &mut self,
         slice: &'b mut [crate::Scalar],
     ) -> crate::Result<VectorSliceWrapper<'b>> {
-        assert_eq!(self.length(), slice.len());
-        let (host, copy_mode) = (
-            crate::MemType::Host as bind_ceed::CeedMemType,
-            crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
-        );
-        let ierr = unsafe {
-            bind_ceed::CeedVectorSetArray(
-                self.ptr,
-                host,
-                copy_mode,
-                slice.as_ptr() as *mut crate::Scalar,
-            )
-        };
-        self.check_error(ierr)?;
-
-        let mut ptr_copy = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
-        self.check_error(ierr)?;
-
-        Ok(crate::VectorSliceWrapper {
-            vector: crate::Vector::from_raw(ptr_copy)?,
-            _slice: slice,
-        })
+        crate::VectorSliceWrapper::from_vector_and_slice_mut(self, slice)
     }
 
     /// Sync the CeedVector to a specified memtype
