@@ -62,9 +62,9 @@ static const char *cublasGetErrorName(cublasStatus_t error) {
 // LCOV_EXCL_STOP
 
 typedef struct {
-  int deviceId;
-  cublasHandle_t cublasHandle;
-  struct cudaDeviceProp deviceProp;
+  int device_id;
+  cublasHandle_t cublas_handle;
+  struct cudaDeviceProp device_prop;
 } Ceed_Cuda;
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource);

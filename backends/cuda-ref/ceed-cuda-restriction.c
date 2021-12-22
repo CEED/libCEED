@@ -20,7 +20,7 @@
 #include <cuda_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "ceed-cuda.h"
+#include "ceed-cuda-ref.h"
 #include "../cuda/ceed-cuda-compile.h"
 
 // *INDENT-OFF*

@@ -20,7 +20,7 @@
 #include <hipblas.h>
 #include <math.h>
 #include <string.h>
-#include "ceed-hip.h"
+#include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
 // * Bytes used

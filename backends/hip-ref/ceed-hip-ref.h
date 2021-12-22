@@ -14,13 +14,14 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef _ceed_cuda_h
-#define _ceed_cuda_h
+#ifndef _ceed_hip_h
+#define _ceed_hip_h
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <cuda.h>
-#include "../cuda/ceed-cuda-common.h"
+#include <hip/hip_runtime.h>
+#include <hipblas.h>
+#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   CeedScalar *h_array;
@@ -29,14 +30,14 @@ typedef struct {
   CeedScalar *d_array;
   CeedScalar *d_array_borrowed;
   CeedScalar *d_array_owned;
-} CeedVector_Cuda;
+} CeedVector_Hip;
 
 typedef struct {
-  CUmodule module;
-  CUfunction noTrStrided;
-  CUfunction noTrOffset;
-  CUfunction trStrided;
-  CUfunction trOffset;
+  hipModule_t module;
+  hipFunction_t noTrStrided;
+  hipFunction_t noTrOffset;
+  hipFunction_t trStrided;
+  hipFunction_t trOffset;
   CeedInt nnodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
@@ -45,23 +46,23 @@ typedef struct {
   CeedInt *d_toffsets;
   CeedInt *d_tindices;
   CeedInt *d_lvec_indices;
-} CeedElemRestriction_Cuda;
+} CeedElemRestriction_Hip;
 
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
 typedef struct {
   const CeedScalar *inputs[CEED_FIELD_MAX];
   CeedScalar *outputs[CEED_FIELD_MAX];
-} Fields_Cuda;
+} Fields_Hip;
 
 typedef struct {
-  CUmodule module;
+  hipModule_t module;
   char *qFunctionName;
   char *qFunctionSource;
-  CUfunction qFunction;
-  Fields_Cuda fields;
+  hipFunction_t qFunction;
+  Fields_Hip fields;
   void *d_c;
-} CeedQFunction_Cuda;
+} CeedQFunction_Hip;
 
 typedef struct {
   void *h_data;
@@ -70,32 +71,32 @@ typedef struct {
   void *d_data;
   void *d_data_borrowed;
   void *d_data_owned;
-} CeedQFunctionContext_Cuda;
+} CeedQFunctionContext_Hip;
 
 typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
+  hipModule_t module;
+  hipFunction_t interp;
+  hipFunction_t grad;
+  hipFunction_t weight;
   CeedScalar *d_interp1d;
   CeedScalar *d_grad1d;
   CeedScalar *d_qweight1d;
-} CeedBasis_Cuda;
+} CeedBasis_Hip;
 
 typedef struct {
-  CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
+  hipModule_t module;
+  hipFunction_t interp;
+  hipFunction_t grad;
+  hipFunction_t weight;
   CeedScalar *d_interp;
   CeedScalar *d_grad;
   CeedScalar *d_qweight;
-} CeedBasisNonTensor_Cuda;
+} CeedBasisNonTensor_Hip;
 
 typedef struct {
-  CUmodule module;
-  CUfunction linearDiagonal;
-  CUfunction linearPointBlock;
+  hipModule_t module;
+  hipFunction_t linearDiagonal;
+  hipFunction_t linearPointBlock;
   CeedBasis basisin, basisout;
   CeedElemRestriction diagrstr, pbdiagrstr;
   CeedVector elemdiag, pbelemdiag;
@@ -103,7 +104,7 @@ typedef struct {
   CeedEvalMode *h_emodein, *h_emodeout;
   CeedEvalMode *d_emodein, *d_emodeout;
   CeedScalar *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
-} CeedOperatorDiag_Cuda;
+} CeedOperatorDiag_Hip;
 
 typedef struct {
   CeedVector *evecs;   // E-vectors, inputs followed by outputs
@@ -113,31 +114,27 @@ typedef struct {
   CeedInt    numeout;
   CeedInt    qfnumactivein, qfnumactiveout;
   CeedVector *qfactivein;
-  CeedOperatorDiag_Cuda *diag;
-} CeedOperator_Cuda;
+  CeedOperatorDiag_Hip *diag;
+} CeedOperator_Hip;
 
-static inline CeedInt CeedDivUpInt(CeedInt numer, CeedInt denom) {
-  return (numer + denom - 1) / denom;
-}
+CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);
 
-CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
+CEED_INTERN int CeedVectorCreate_Hip(CeedInt n, CeedVector vec);
 
-CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
-
-CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mtype,
+CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mtype,
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype,
     const CeedCopyMode cmode, const CeedInt *indices,
     const CeedElemRestriction res);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt nelem,
-    CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Hip(CeedBasis basis, const CeedInt nelem,
+                                        CeedTransposeMode tmode, CeedEvalMode emode, const CeedVector u, CeedVector v);
 
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q,
+CEED_INTERN int CeedQFunctionApplyElems_Hip(CeedQFunction qf, const CeedInt Q,
     const CeedVector *const u, const CeedVector *v);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
+CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d,
     CeedInt Q1d,
     const CeedScalar *interp1d,
     const CeedScalar *grad1d,
@@ -145,16 +142,16 @@ CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P1d,
     const CeedScalar *qweight1d,
     CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt,
-                                       CeedInt, const CeedScalar *,
-                                       const CeedScalar *, const CeedScalar *,
-                                       const CeedScalar *, CeedBasis);
+CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology, CeedInt, CeedInt,
+                                      CeedInt, const CeedScalar *,
+                                      const CeedScalar *, const CeedScalar *,
+                                      const CeedScalar *, CeedBasis);
 
-CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
+CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
 
-CEED_INTERN int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx);
+CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
-CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
+CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Cuda(CeedOperator op);
+CEED_INTERN int CeedCompositeOperatorCreate_Hip(CeedOperator op);
 #endif

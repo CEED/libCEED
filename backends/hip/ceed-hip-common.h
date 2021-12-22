@@ -60,9 +60,9 @@ CEED_UNUSED static const char *hipblasGetErrorName(hipblasStatus_t error) {
 // LCOV_EXCL_STOP
 
 typedef struct {
-  int optblocksize;
-  int deviceId;
-  hipblasHandle_t hipblasHandle;
+  int opt_block_size;
+  int device_id;
+  hipblasHandle_t hipblas_handle;
 } Ceed_Hip;
 
 CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource);

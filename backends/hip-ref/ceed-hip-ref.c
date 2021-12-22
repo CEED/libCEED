@@ -18,7 +18,7 @@
 #include <ceed/backend.h>
 #include <string.h>
 #include <stdlib.h>
-#include "ceed-hip.h"
+#include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
 // HIP preferred MemType
@@ -36,10 +36,10 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
   Ceed_Hip *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
-  if (!data->hipblasHandle) {
-    ierr = hipblasCreate(&data->hipblasHandle); CeedChk_Hipblas(ceed, ierr);
+  if (!data->hipblas_handle) {
+    ierr = hipblasCreate(&data->hipblas_handle); CeedChk_Hipblas(ceed, ierr);
   }
-  *handle = data->hipblasHandle;
+  *handle = data->hipblas_handle;
   return CEED_ERROR_SUCCESS;
 }
 

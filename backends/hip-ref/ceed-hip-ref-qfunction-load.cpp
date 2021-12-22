@@ -19,7 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
-#include "ceed-hip.h"
+#include "ceed-hip-ref.h"
 #include "../hip/ceed-hip-compile.h"
 
 static const char *qReadWrite = QUOTE(

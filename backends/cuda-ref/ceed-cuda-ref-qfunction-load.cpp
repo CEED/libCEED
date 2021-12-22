@@ -19,7 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
-#include "ceed-cuda.h"
+#include "ceed-cuda-ref.h"
 #include "../cuda/ceed-cuda-compile.h"
 
 static const char *qReadWrite = QUOTE(

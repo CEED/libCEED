@@ -20,7 +20,7 @@
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 #include <string.h>
-#include "../cuda-ref/ceed-cuda.h"
+#include "ceed-cuda-common.h"
 #include "ceed-cuda-compile.h"
 
 #define CeedChk_Nvrtc(ceed, x) \
@@ -34,26 +34,26 @@ do { \
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
 int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
-                    const CeedInt numopts, ...) {
+                    const CeedInt num_opts, ...) {
   int ierr;
   cudaFree(0); // Make sure a Context exists for nvrtc
   nvrtcProgram prog;
   CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
 
   // Get kernel specific options, such as kernel constants
-  const int optslen = 32;
-  const int optsextra = 4;
-  const char *opts[numopts + optsextra];
-  char buf[numopts][optslen];
-  if (numopts > 0) {
+  const int opts_len = 32;
+  const int opts_extra = 4;
+  const char *opts[num_opts + opts_extra];
+  char buf[num_opts][opts_len];
+  if (num_opts > 0) {
     va_list args;
-    va_start(args, numopts);
+    va_start(args, num_opts);
     char *name;
     int val;
-    for (int i = 0; i < numopts; i++) {
+    for (int i = 0; i < num_opts; i++) {
       name = va_arg(args, char *);
       val = va_arg(args, int);
-      snprintf(&buf[i][0], optslen,"-D%s=%d", name, val);
+      snprintf(&buf[i][0], opts_len,"-D%s=%d", name, val);
       opts[i] = &buf[i][0];
     }
     va_end(args);
@@ -61,37 +61,37 @@ int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 
   // Standard backend options
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    opts[numopts]     = "-DCeedScalar=float";
+    opts[num_opts]   = "-DCeedScalar=float";
   } else {
-    opts[numopts]     = "-DCeedScalar=double";
+    opts[num_opts]   = "-DCeedScalar=double";
   }
-  opts[numopts + 1] = "-DCeedInt=int";
-  opts[numopts + 2] = "-default-device";
+  opts[num_opts + 1] = "-DCeedInt=int";
+  opts[num_opts + 2] = "-default-device";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
   ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr);
-  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->device_id);
   CeedChk_Cu(ceed, ierr);
-  char buff[optslen];
-  snprintf(buff, optslen,"-arch=compute_%d%d", prop.major, prop.minor);
-  opts[numopts + 3] = buff;
+  char buff[opts_len];
+  snprintf(buff, opts_len,"-arch=compute_%d%d", prop.major, prop.minor);
+  opts[num_opts + 3] = buff;
 
   // Compile kernel
-  nvrtcResult result = nvrtcCompileProgram(prog, numopts + optsextra, opts);
+  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + opts_extra, opts);
   if (result != NVRTC_SUCCESS) {
-    size_t logsize;
-    CeedChk_Nvrtc(ceed, nvrtcGetProgramLogSize(prog, &logsize));
+    size_t log_size;
+    CeedChk_Nvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
     char *log;
-    ierr = CeedMalloc(logsize, &log); CeedChkBackend(ierr);
+    ierr = CeedMalloc(log_size, &log); CeedChkBackend(ierr);
     CeedChk_Nvrtc(ceed, nvrtcGetProgramLog(prog, log));
     return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s",
                      nvrtcGetErrorString(result), log);
   }
 
-  size_t ptxsize;
-  CeedChk_Nvrtc(ceed, nvrtcGetPTXSize(prog, &ptxsize));
+  size_t ptx_size;
+  CeedChk_Nvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
   char *ptx;
-  ierr = CeedMalloc(ptxsize, &ptx); CeedChkBackend(ierr);
+  ierr = CeedMalloc(ptx_size, &ptx); CeedChkBackend(ierr);
   CeedChk_Nvrtc(ceed, nvrtcGetPTX(prog, ptx));
   CeedChk_Nvrtc(ceed, nvrtcDestroyProgram(&prog));
 
@@ -125,9 +125,9 @@ int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t points,
 //------------------------------------------------------------------------------
 // Run CUDA kernel
 //------------------------------------------------------------------------------
-int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                      const int blockSize, void **args) {
-  CUresult result = cuLaunchKernel(kernel, gridSize, 1, 1, blockSize, 1,
+int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int grid_size,
+                      const int block_size, void **args) {
+  CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1, block_size, 1,
                                    1, 0, NULL, args, NULL);
   if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
     int max_threads_per_block, shared_size_bytes, num_regs;
@@ -138,7 +138,7 @@ int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
     cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
-                     max_threads_per_block, blockSize, 1, 1, shared_size_bytes, num_regs);
+                     max_threads_per_block, block_size, 1, 1, shared_size_bytes, num_regs);
   } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
 }
@@ -146,11 +146,11 @@ int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int gridSize,
 //------------------------------------------------------------------------------
 // Run CUDA kernel for spatial dimension
 //------------------------------------------------------------------------------
-int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                         const int blockSizeX, const int blockSizeY,
-                         const int blockSizeZ, void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
-                                  blockSizeX, blockSizeY, blockSizeZ,
+int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int grid_size,
+                         const int block_size_x, const int block_size_y,
+                         const int block_size_z, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, grid_size, 1, 1,
+                                  block_size_x, block_size_y, block_size_z,
                                   0, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
@@ -158,13 +158,13 @@ int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int gridSize,
 //------------------------------------------------------------------------------
 // Run CUDA kernel for spatial dimension with sharde memory
 //------------------------------------------------------------------------------
-int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int gridSize,
-                               const int blockSizeX, const int blockSizeY,
-                               const int blockSizeZ, const int sharedMemSize,
-                               void **args) {
-  CeedChk_Cu(ceed, cuLaunchKernel(kernel, gridSize, 1, 1,
-                                  blockSizeX, blockSizeY, blockSizeZ,
-                                  sharedMemSize, NULL, args, NULL));
+int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
+                               const int grid_size, const int block_size_x,
+                               const int block_size_y, const int block_size_z,
+                               const int shared_mem_size, void **args) {
+  CeedChk_Cu(ceed, cuLaunchKernel(kernel, grid_size, 1, 1,
+                                  block_size_x, block_size_y, block_size_z,
+                                  shared_mem_size, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
 

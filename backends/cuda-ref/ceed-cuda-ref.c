@@ -20,7 +20,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <string.h>
-#include "ceed-cuda.h"
+#include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
 // CUDA preferred MemType
@@ -38,10 +38,10 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
   Ceed_Cuda *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
-  if (!data->cublasHandle) {
-    ierr = cublasCreate(&data->cublasHandle); CeedChk_Cublas(ceed, ierr);
+  if (!data->cublas_handle) {
+    ierr = cublasCreate(&data->cublas_handle); CeedChk_Cublas(ceed, ierr);
   }
-  *handle = data->cublasHandle;
+  *handle = data->cublas_handle;
   return CEED_ERROR_SUCCESS;
 }
 

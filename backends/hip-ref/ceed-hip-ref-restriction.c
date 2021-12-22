@@ -19,7 +19,7 @@
 #include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "ceed-hip.h"
+#include "ceed-hip-ref.h"
 #include "../hip/ceed-hip-compile.h"
 
 // *INDENT-OFF*

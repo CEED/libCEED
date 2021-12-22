@@ -18,7 +18,7 @@
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
 #include <string.h>
-#include "ceed-hip.h"
+#include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
 // * Bytes used
