@@ -131,6 +131,59 @@ impl<'a> VectorOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
+// CeedVector borrowed slice wrapper
+// -----------------------------------------------------------------------------
+pub struct VectorSliceWrapper<'a> {
+    pub(crate) vector: crate::Vector<'a>,
+    pub(crate) _slice: &'a mut [crate::Scalar],
+}
+
+// -----------------------------------------------------------------------------
+// Destructor
+// -----------------------------------------------------------------------------
+impl<'a> Drop for VectorSliceWrapper<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            bind_ceed::CeedVectorTakeArray(
+                self.vector.ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                std::ptr::null_mut(),
+            )
+        };
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Convenience constructor
+// -----------------------------------------------------------------------------
+impl<'a> VectorSliceWrapper<'a> {
+    fn from_vector_and_slice_mut<'b>(
+        vec: &'b mut crate::Vector,
+        slice: &'a mut [crate::Scalar],
+    ) -> crate::Result<Self> {
+        assert_eq!(vec.length(), slice.len());
+        let (host, copy_mode) = (
+            crate::MemType::Host as bind_ceed::CeedMemType,
+            crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedVectorSetArray(
+                vec.ptr,
+                host,
+                copy_mode,
+                slice.as_ptr() as *mut crate::Scalar,
+            )
+        };
+        vec.check_error(ierr)?;
+
+        Ok(Self {
+            vector: crate::Vector::from_raw(vec.ptr_copy_mut()?)?,
+            _slice: slice,
+        })
+    }
+}
+
+// -----------------------------------------------------------------------------
 // CeedVector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
@@ -216,6 +269,13 @@ impl<'a> Vector<'a> {
             ptr,
             _lifeline: PhantomData,
         })
+    }
+
+    fn ptr_copy_mut(&mut self) -> crate::Result<bind_ceed::CeedVector> {
+        let mut ptr_copy = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
+        self.check_error(ierr)?;
+        Ok(ptr_copy)
     }
 
     /// Create a Vector from a slice
@@ -328,9 +388,9 @@ impl<'a> Vector<'a> {
     /// let val = 42.0;
     /// vec.set_value(val)?;
     ///
-    /// vec.view()?.iter().for_each(|v| {
+    /// for v in vec.view()?.iter() {
     ///     assert_eq!(*v, val, "Value not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -352,9 +412,9 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector(4)?;
     /// vec.set_slice(&[10., 11., 12., 13.])?;
     ///
-    /// vec.view()?.iter().enumerate().for_each(|(i, v)| {
+    /// for (i, v) in vec.view()?.iter().enumerate() {
     ///     assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -375,6 +435,58 @@ impl<'a> Vector<'a> {
         self.check_error(ierr)
     }
 
+    /// Wrap a mutable slice in a Vector of the same length
+    ///
+    /// # arguments
+    ///
+    /// * `slice` - values to wrap in self; length must match
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let mut vec = ceed.vector(4)?;
+    /// let mut array = [10., 11., 12., 13.];
+    ///
+    /// {
+    ///     // `wrapper` holds a mutable reference to the wrapped slice
+    ///     //   that is dropped when `wrapper` goes out of scope
+    ///     let wrapper = vec.wrap_slice_mut(&mut array)?;
+    ///     for (i, v) in vec.view()?.iter().enumerate() {
+    ///         assert_eq!(*v, 10. + i as Scalar, "Slice not set correctly");
+    ///     }
+    ///
+    ///     // This line will not compile, as the `wrapper` holds mutable
+    ///     //   access to the `array`
+    ///     // array[0] = 5.0;
+    ///
+    ///     // Changes here are reflected in the `array`
+    ///     vec.set_value(5.0)?;
+    ///     for v in vec.view()?.iter() {
+    ///         assert_eq!(*v, 5.0 as Scalar, "Value not set correctly");
+    ///     }
+    /// }
+    ///
+    /// // 'array' remains changed
+    /// for v in array.iter() {
+    ///     assert_eq!(*v, 5.0 as Scalar, "Array not mutated correctly");
+    /// }
+    ///
+    /// // While changes to `vec` no longer affect `array`
+    /// vec.set_value(6.0)?;
+    /// for v in array.iter() {
+    ///     assert_eq!(*v, 5.0 as Scalar, "Array mutated without permission");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn wrap_slice_mut<'b>(
+        &mut self,
+        slice: &'b mut [crate::Scalar],
+    ) -> crate::Result<VectorSliceWrapper<'b>> {
+        crate::VectorSliceWrapper::from_vector_and_slice_mut(self, slice)
+    }
+
     /// Sync the CeedVector to a specified memtype
     ///
     /// # arguments
@@ -392,9 +504,9 @@ impl<'a> Vector<'a> {
     /// vec.set_value(val);
     /// vec.sync(MemType::Host)?;
     ///
-    /// vec.view()?.iter().for_each(|v| {
+    /// for v in vec.view()?.iter() {
     ///     assert_eq!(*v, val, "Value not set correctly");
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -492,9 +604,9 @@ impl<'a> Vector<'a> {
     /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// vec = vec.scale(-1.0)?;
-    /// vec.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, -(i as Scalar), "Value not set correctly");
-    /// });
+    /// for (i, v) in vec.view()?.iter().enumerate() {
+    ///     assert_eq!(*v, -(i as Scalar), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -520,9 +632,9 @@ impl<'a> Vector<'a> {
     /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// y = y.axpy(-0.5, &x)?;
-    /// y.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar) / 2.0, "Value not set correctly");
-    /// });
+    /// for (i, y) in y.view()?.iter().enumerate() {
+    ///     assert_eq!(*y, (i as Scalar) / 2.0, "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -549,9 +661,9 @@ impl<'a> Vector<'a> {
     /// let y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_mult(&x, &y)?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -576,9 +688,9 @@ impl<'a> Vector<'a> {
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_scale(&x)?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -598,9 +710,9 @@ impl<'a> Vector<'a> {
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
     /// w = w.pointwise_square()?;
-    /// w.view()?.iter().enumerate().for_each(|(i, &v)| {
-    ///     assert_eq!(v, (i as Scalar).powf(2.0), "Value not set correctly");
-    /// });
+    /// for (i, w) in w.view()?.iter().enumerate() {
+    ///     assert_eq!(*w, (i as Scalar).powf(2.0), "Value not set correctly");
+    /// }
     /// # Ok(())
     /// # }
     /// ```

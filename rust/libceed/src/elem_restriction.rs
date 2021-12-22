@@ -364,13 +364,13 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.apply(TransposeMode::NoTranspose, &x, &mut y)?;
     ///
-    /// y.view()?.iter().enumerate().for_each(|(i, arr)| {
+    /// for (i, y) in y.view()?.iter().enumerate() {
     ///     assert_eq!(
-    ///         *arr,
+    ///         *y,
     ///         ((i + 1) / 2) as Scalar,
     ///         "Incorrect value in restricted vector"
     ///     );
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
@@ -535,13 +535,13 @@ impl<'a> ElemRestriction<'a> {
     ///
     /// r.multiplicity(&mut mult)?;
     ///
-    /// mult.view()?.iter().enumerate().for_each(|(i, arr)| {
+    /// for (i, m) in mult.view()?.iter().enumerate() {
     ///     assert_eq!(
+    ///         *m,
     ///         if (i == 0 || i == nelem) { 1. } else { 2. },
-    ///         *arr,
-    ///         "Incorrect multiplicity array"
+    ///         "Incorrect multiplicity value"
     ///     );
-    /// });
+    /// }
     /// # Ok(())
     /// # }
     /// ```
