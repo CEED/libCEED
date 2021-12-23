@@ -30,12 +30,14 @@ for each release of libCEED.
 - Remove need to guard library headers in QFunction source for code generation backends.
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
 - Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
+- Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
 
 ### Maintainability
 
 - Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.
 - `Include-what-you-use` makefile target added as `make iwyu`.
 - Create backend constant `CEED_FIELD_MAX` to reduce magic numbers in codebase.
+- Put GPU JiTed kernel source code into separate files.
 
 (v0-9)=
 
