@@ -62,8 +62,10 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   // Read QFunction source
   ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
   ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
   if (!data->qFunctionSource)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,

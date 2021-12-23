@@ -1387,6 +1387,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
+  CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1,

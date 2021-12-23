@@ -277,8 +277,10 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   char *basis_kernel_path, *basis_kernel_source;
   ierr = CeedPathConcatenate(ceed, __FILE__, "kernels/cuda-ref-basis-tensor.h",
                              &basis_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
   ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 7,
                          "BASIS_Q1D", Q_1d,
                          "BASIS_P1D", P_1d,
@@ -344,8 +346,10 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
   char *basis_kernel_path, *basis_kernel_source;
   ierr = CeedPathConcatenate(ceed, __FILE__, "kernels/cuda-ref-basis-nontensor.h",
                              &basis_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
   ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 4,
                          "Q", num_qpts,
                          "P", num_nodes,

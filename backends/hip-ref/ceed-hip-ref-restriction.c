@@ -27,7 +27,8 @@
 // Apply restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
-                                        CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                        CeedTransposeMode t_mode, CeedVector u,
+                                        CeedVector v, CeedRequest *request) {
   int ierr;
   CeedElemRestriction_Hip *impl;
   ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
@@ -348,9 +349,12 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
   char *restriction_kernel_path, *restriction_kernel_source;
   ierr = CeedPathConcatenate(ceed, __FILE__, "kernels/hip-ref-restriction.h",
                              &restriction_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, restriction_kernel_path,
                                 &restriction_kernel_source);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2,
+               "----- Loading Restriction Kernel Source Complete! -----\n");
   ierr = CeedCompileHip(ceed, restriction_kernel_source, &impl->module, 8,
                         "RESTRICTION_ELEMSIZE", elem_size,
                         "RESTRICTION_NELEM", num_elem,

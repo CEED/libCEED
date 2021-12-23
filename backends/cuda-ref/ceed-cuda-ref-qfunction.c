@@ -127,8 +127,10 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   // Read QFunction source
   ierr = CeedQFunctionGetKernelName(qf, &data->qfunction_name);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
   ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
 
   // Register backend functions
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",

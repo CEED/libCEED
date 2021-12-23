@@ -351,9 +351,12 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode,
   char *restriction_kernel_path, *restriction_kernel_source;
   ierr = CeedPathConcatenate(ceed, __FILE__, "kernels/cuda-ref-restriction.h",
                              &restriction_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, restriction_kernel_path,
                                 &restriction_kernel_source);
   CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2,
+               "----- Loading Restriction Kernel Source Complete! -----\n");
   ierr = CeedCompileCuda(ceed, restriction_kernel_source, &impl->module, 8,
                          "RESTRICTION_ELEMSIZE", elem_size,
                          "RESTRICTION_NELEM", num_elem,
