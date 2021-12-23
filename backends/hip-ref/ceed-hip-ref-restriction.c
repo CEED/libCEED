@@ -356,14 +356,14 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
   CeedDebug256(ceed, 2,
                "----- Loading Restriction Kernel Source Complete! -----\n");
   ierr = CeedCompileHip(ceed, restriction_kernel_source, &impl->module, 8,
-                        "RESTRICTION_ELEMSIZE", elem_size,
-                        "RESTRICTION_NELEM", num_elem,
-                        "RESTRICTION_NCOMP", num_comp,
-                        "RESTRICTION_NNODES", num_nodes,
-                        "RESTRICTION_COMPSTRIDE", comp_stride,
-                        "STRIDE_NODES", strides[0],
-                        "STRIDE_COMP", strides[1],
-                        "STRIDE_ELEM", strides[2]); CeedChkBackend(ierr);
+                        "RESTR_ELEM_SIZE", elem_size,
+                        "RESTR_NUM_ELEM", num_elem,
+                        "RESTR_NUM_COMP", num_comp,
+                        "RESTR_NUM_NODES", num_nodes,
+                        "RESTR_COMP_STRIDE", comp_stride,
+                        "RESTR_STRIDE_NODES", strides[0],
+                        "RESTR_STRIDE_COMP", strides[1],
+                        "RESTR_STRIDE_ELEM", strides[2]); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "StridedNoTranspose",
                           &impl->StridedNoTranspose); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, impl->module, "OffsetNoTranspose",

@@ -23,11 +23,11 @@
 //------------------------------------------------------------------------------
 // Interp
 //------------------------------------------------------------------------------
-extern "C" __global__ void Interp(const CeedInt num_elem, const int transpose,
+extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose,
                                   const CeedScalar *d_B,
                                   const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
-  const int tid = threadIdx.x;
+  const CeedInt t_id = threadIdx.x;
 
   const CeedScalar *U;
   CeedScalar V;
@@ -35,21 +35,21 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const int transpose,
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
        elem += gridDim.x*blockDim.z) {
-    for (int comp = 0; comp < BASIS_NCOMP; comp++) {
-      if (!transpose) { // run with Q threads
-        U = d_U + elem*P + comp*num_elem*P;
+    for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
+      if (transpose) { // run with P threads
+        U = d_U + elem*BASIS_Q + comp*num_elem*BASIS_Q;
         V = 0.0;
-        for (int i = 0; i < P; ++i)
-          V += d_B[i + tid*P]*U[i];
+        for (CeedInt i = 0; i < BASIS_Q; i++)
+          V += d_B[t_id + i*BASIS_P]*U[i];
 
-        d_V[elem*Q + comp*num_elem*Q + tid] = V;
-      } else { // run with P threads
-        U = d_U + elem*Q + comp*num_elem*Q;
+        d_V[elem*BASIS_P + comp*num_elem*BASIS_P + t_id] = V;
+      } else { // run with Q threads
+        U = d_U + elem*BASIS_P + comp*num_elem*BASIS_P;
         V = 0.0;
-        for (int i = 0; i < Q; ++i)
-          V += d_B[tid + i*P]*U[i];
+        for (CeedInt i = 0; i < BASIS_P; i++)
+          V += d_B[i + t_id*BASIS_P]*U[i];
 
-        d_V[elem*P + comp*num_elem*P + tid] = V;
+        d_V[elem*BASIS_Q + comp*num_elem*BASIS_Q + t_id] = V;
       }
     }
   }
@@ -58,40 +58,42 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const int transpose,
 //------------------------------------------------------------------------------
 // Grad
 //------------------------------------------------------------------------------
-extern "C" __global__ void Grad(const CeedInt num_elem, const int transpose,
+extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
                                 const CeedScalar *d_G,
                                 const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  const int tid = threadIdx.x;
+  const CeedInt t_id = threadIdx.x;
 
   const CeedScalar *U;
   //TODO load G in shared memory if blockDim.z > 1?
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
        elem += gridDim.x*blockDim.z) {
-    for (int comp=0; comp<BASIS_NCOMP; comp++) {
-      if (!transpose) { // run with Q threads
+    for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
+      if (transpose) { // run with P threads
+        CeedScalar V = 0.0;
+        for (CeedInt dim = 0; dim < BASIS_DIM; dim++) {
+          U = d_U + elem*BASIS_Q + comp*num_elem*BASIS_Q +
+              dim*BASIS_NUM_COMP*num_elem*BASIS_Q;
+          for (CeedInt i = 0; i < BASIS_Q; i++)
+            V += d_G[t_id + i*BASIS_P + dim*BASIS_P*BASIS_Q]*U[i];
+        }
+        d_V[elem*BASIS_P + comp*num_elem*BASIS_P + t_id] = V;
+      } else { // run with Q threads
         CeedScalar V[BASIS_DIM];
-        U = d_U + elem*P + comp*num_elem*P;
-        for (int dim = 0; dim < BASIS_DIM; dim++)
+        U = d_U + elem*BASIS_P + comp*num_elem*BASIS_P;
+        for (CeedInt dim = 0; dim < BASIS_DIM; dim++)
           V[dim] = 0.0;
 
-        for (int i = 0; i < P; ++i) {
+        for (CeedInt i = 0; i < BASIS_P; i++) {
           const CeedScalar val = U[i];
-          for(int dim = 0; dim < BASIS_DIM; dim++)
-            V[dim] += d_G[i + tid*P + dim*P*Q]*val;
+          for(CeedInt dim = 0; dim < BASIS_DIM; dim++)
+            V[dim] += d_G[i + t_id*BASIS_P + dim*BASIS_P*BASIS_Q]*val;
         }
-        for (int dim = 0; dim < BASIS_DIM; dim++) {
-          d_V[elem*Q + comp*num_elem*Q + dim*BASIS_NCOMP*num_elem*Q + tid] = V[dim];
+        for (CeedInt dim = 0; dim < BASIS_DIM; dim++) {
+          d_V[elem*BASIS_Q + comp*num_elem*BASIS_Q +
+              dim*BASIS_NUM_COMP*num_elem*BASIS_Q + t_id] = V[dim];
         }
-      } else { // run with P threads
-        CeedScalar V = 0.0;
-        for (int dim = 0; dim < BASIS_DIM; dim++) {
-          U = d_U + elem*Q + comp*num_elem*Q +dim*BASIS_NCOMP*num_elem*Q;
-          for (int i = 0; i < Q; ++i)
-            V += d_G[tid + i*P + dim*P*Q]*U[i];
-        }
-        d_V[elem*P + comp*num_elem*P + tid] = V;
       }
     }
   }
@@ -103,11 +105,11 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const int transpose,
 extern "C" __global__ void Weight(const CeedInt num_elem,
                                   const CeedScalar *__restrict__ qweight,
                                   CeedScalar *__restrict__ d_V) {
-  const int tid = threadIdx.x;
+  const CeedInt t_id = threadIdx.x;
   //TODO load qweight in shared memory if blockDim.z > 1?
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
        elem += gridDim.x*blockDim.z) {
-    d_V[elem*Q + tid] = qweight[tid];
+    d_V[elem*BASIS_Q + t_id] = qweight[t_id];
   }
 }
 

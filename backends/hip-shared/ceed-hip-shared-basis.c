@@ -342,18 +342,18 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
   ierr = CeedCompileHip(ceed, basis_kernel_source, &data->module, 11,
-                        "Q1D", Q_1d,
-                        "P1D", P_1d,
-                        "T1D", CeedIntMax(Q_1d, P_1d),
+                        "BASIS_Q_1D", Q_1d,
+                        "BASIS_P_1D", P_1d,
+                        "BASIS_T_1D", CeedIntMax(Q_1d, P_1d),
                         "BASIS_BUF_LEN", num_comp * CeedIntPow(Q_1d > P_1d ?
                             Q_1d : P_1d, dim),
                         "BASIS_DIM", dim,
-                        "BASIS_NCOMP", num_comp,
-                        "BASIS_ELEMSIZE", CeedIntPow(P_1d, dim),
-                        "BASIS_NQPT", CeedIntPow(Q_1d, dim),
-                        "INTERP_BLKSIZE", data->block_sizes[0],
-                        "GRAD_BLKSIZE", data->block_sizes[1],
-                        "WEIGHT_BLKSIZE", data->block_sizes[2]
+                        "BASIS_NUM_COMP", num_comp,
+                        "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
+                        "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim),
+                        "BASIS_INTERP_BLOCK_SIZE", data->block_sizes[0],
+                        "BASIS_GRAD_BLOCK_SIZE", data->block_sizes[1],
+                        "BASIS_WEIGHT_BLOCK_SIZE", data->block_sizes[2]
                        ); CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, "Interp", &data->Interp);
   CeedChkBackend(ierr);

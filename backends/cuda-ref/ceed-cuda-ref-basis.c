@@ -282,14 +282,14 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
   ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 7,
-                         "BASIS_Q1D", Q_1d,
-                         "BASIS_P1D", P_1d,
+                         "BASIS_Q_1D", Q_1d,
+                         "BASIS_P_1D", P_1d,
                          "BASIS_BUF_LEN", num_comp * CeedIntPow(Q_1d > P_1d ?
                              Q_1d : P_1d, dim),
                          "BASIS_DIM", dim,
-                         "BASIS_NCOMP", num_comp,
-                         "BASIS_ELEMSIZE", CeedIntPow(P_1d, dim),
-                         "BASIS_NQPT", CeedIntPow(Q_1d, dim)
+                         "BASIS_NUM_COMP", num_comp,
+                         "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
+                         "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)
                         ); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "Interp", &data->Interp);
   CeedChkBackend(ierr);
@@ -351,10 +351,10 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim,
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
   ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 4,
-                         "Q", num_qpts,
-                         "P", num_nodes,
+                         "BASIS_Q", num_qpts,
+                         "BASIS_P", num_nodes,
                          "BASIS_DIM", dim,
-                         "BASIS_NCOMP", num_comp
+                         "BASIS_NUM_COMP", num_comp
                         ); CeedChk_Cu(ceed, ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "Interp", &data->Interp);
   CeedChk_Cu(ceed, ierr);
