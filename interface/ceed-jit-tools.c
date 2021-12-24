@@ -165,3 +165,32 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path,
 
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Build an absolute filepath from a base filepath and an absolute filepath.
+           This helps construct source file paths for `CeedLoadSourceToBuffer()`.
+         Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
+
+  @param ceed                     A Ceed object for error handling
+  @param[in]  base_file_path      Absolute path to current file
+  @param[in]  relative_file_path  Relative path to target file
+  @param[out] new_file_path       String buffer for absolute path to target file
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedPathConcatenate(Ceed ceed, const char *base_file_path,
+                        const char *relative_file_path, char **new_file_path) {
+  int ierr;
+  char *last_slash = strrchr(base_file_path, '/');
+  size_t base_length = (last_slash - base_file_path + 1),
+         relative_length = strlen(relative_file_path),
+         new_file_path_length = base_length + relative_length + 1;
+
+  ierr = CeedCalloc(new_file_path_length, new_file_path); CeedChk(ierr);
+  memcpy(*new_file_path, base_file_path, base_length);
+  memcpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
+
+  return CEED_ERROR_SUCCESS;
+}

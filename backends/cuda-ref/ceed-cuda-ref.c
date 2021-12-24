@@ -25,8 +25,8 @@
 //------------------------------------------------------------------------------
 // CUDA preferred MemType
 //------------------------------------------------------------------------------
-static int CeedGetPreferredMemType_Cuda(CeedMemType *type) {
-  *type = CEED_MEM_DEVICE;
+static int CeedGetPreferredMemType_Cuda(CeedMemType *mem_type) {
+  *mem_type = CEED_MEM_DEVICE;
   return CEED_ERROR_SUCCESS;
 }
 
