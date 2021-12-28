@@ -15,70 +15,42 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Mixed poisson 2D quad element using PETSc
+/// Compute error of the H(div) example using PETSc
 
-#ifndef POISSON_MASS2D_H
-#define POISSON_MASS2D_H
+#ifndef ERROR_H
+#define ERROR_H
 
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction applies the mass operator for a vector field of 2 components.
-//
-// Inputs:
-//   w     - weight of quadrature
-//   J     - dx/dX. x physical coordinate, X reference coordinate [-1,1]^dim
-//   u     - Input basis at quadrature points
-//
-// Output:
-//   v     - Output vector (test functions) at quadrature points
-// Note we need to apply Piola map on the basis, which is J*u/detJ
-// So (v,u) = \int (v^T * u detJ*w) ==> \int (v^T J^T*J*u*w/detJ)
+// Compuet error
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q,
+                             const CeedScalar *const *in,
+                             CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*w) = in[0],
                    (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
-                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-
+                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*target) = in[3];
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-
+  CeedScalar (*error) = out[0];
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    // *INDENT-OFF*
     // Setup, J = dx/dX
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
     const CeedScalar detJ = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+    // Error
+    error[i+0*Q] = fabs(u[0][i] - target[i+0*Q]) * w[i] * detJ;
+    error[i+1*Q] = fabs(u[1][i] - target[i+1*Q]) * w[i] * detJ;
 
-    const CeedScalar u1[2]   = {u[0][i], u[1][i]};
-    // *INDENT-ON*
-    // Piola map: J^T*J*u*w/detJ
-    // 1) Compute J^T * J
-    CeedScalar JTJ[2][2];
-    for (CeedInt j = 0; j < 2; j++) {
-      for (CeedInt k = 0; k < 2; k++) {
-        JTJ[j][k] = 0;
-        for (CeedInt m = 0; m < 2; m++)
-          JTJ[j][k] += J[m][j] * J[m][k];
-      }
-    }
-    // 2) Compute Piola map J^T*J*u * w /detJ
-    for (CeedInt k = 0; k < 2; k++) {
-      v[k][i] = 0;
-      for (CeedInt m = 0; m < 2; m++)
-        v[k][i] += JTJ[k][m] * u1[m] * w[i]/detJ;
-    }
   } // End of Quadrature Point Loop
 
   return 0;
 }
-
 // -----------------------------------------------------------------------------
 
-#endif //End of POISSON_MASS2D_H
+#endif // End ERROR_H

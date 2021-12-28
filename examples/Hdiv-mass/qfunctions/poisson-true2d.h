@@ -15,62 +15,66 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Mixed poisson 2D quad element using PETSc
+/// Compute true solution of the H(div) example using PETSc
 
-#ifndef POISSON_RHS2D_H
-#define POISSON_RHS2D_H
+#ifndef TRUE_H
+#define TRUE_H
 
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the rhs for the problem
-// Inputs:
-//   x     - interpolation of the physical coordinate
-//   w     - weight of quadrature
-//   J     - dx/dX. x physical coordinate, X reference coordinate [-1,1]^dim
-//
-// Output:
-//   rhs       - Output vector (test functions) at quadrature points
-// Note we need to apply Piola map on the basis, which is J*u/detJ
-// So (v,ue) = \int (v^T * ue detJ*w) ==> \int (v^T J^T* ue * w)
+// Compuet true solution
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupRhs)(void *ctx, const CeedInt Q,
-                         const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+CEED_QFUNCTION(SetupTrueSoln2D)(void *ctx, const CeedInt Q,
+                                const CeedScalar *const *in,
+                                CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*coords) = in[0],
-                   (*w) = in[1],
-                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[2];
+                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
   // Outputs
-  //CeedScalar (*rhs)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar (*true_soln) = out[0], (*rhs) = out[1];
-
+  CeedScalar (*true_soln_Hdiv) = out[0];
   // Quadrature Point Loop
+  printf("True solution projected into H(div) space;Qfunction poisson-true2d.h\n");
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    // Setup, (x,y) and J = dx/dX
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
+    // Setup, J = dx/dX
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
-    // *INDENT-ON*
-    // Compute J^T*ue
+    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
     CeedScalar ue[2] = {x-y, x+y};
-    CeedScalar rhs1[2];
-    for (CeedInt k = 0; k < 2; k++) {
-      rhs1[k] = 0;
-      for (CeedInt m = 0; m < 2; m++)
-        rhs1[k] += J[m][k] * ue[m];
+    CeedScalar nl[2] = {-J[1][1],J[0][1]};
+    CeedScalar nr[2] = {J[1][1],-J[0][1]};
+    CeedScalar nb[2] = {J[1][0],-J[0][0]};
+    CeedScalar nt[2] = {-J[1][0],J[0][0]};
+    CeedScalar ue_x, ue_y;
+    if (i == 0){ // node 1
+      ue_x = ue[0]*nl[0]+ue[1]*nl[1];
+      ue_y = ue[0]*nb[0]+ue[1]*nb[1];
     }
-    // Component 1
-    true_soln[i+0*Q] = ue[0];
-    rhs[i+0*Q] = rhs1[0] * w[i];
-    // Component 2
-    true_soln[i+1*Q] = ue[1];
-    rhs[i+1*Q] = rhs1[1] * w[i];
+    else if (i == 1){ // node 2
+      ue_x = ue[0]*nr[0]+ue[1]*nr[1];
+      ue_y = ue[0]*nb[0]+ue[1]*nb[1];
+    }
+    else if (i == 2){ // node 3
+      ue_x = ue[0]*nl[0]+ue[1]*nl[1];
+      ue_y = ue[0]*nt[0]+ue[1]*nt[1];
+    }
+    else if (i == 3){ // node 4
+      ue_x = ue[0]*nr[0]+ue[1]*nr[1];
+      ue_y = ue[0]*nt[0]+ue[1]*nt[1];
+    }
+    printf("ux %f\n",ue_x);
+    printf("uy %f\n",ue_y);
+
+    // True solution
+    true_soln_Hdiv[i+0*Q] = ue_x;
+    true_soln_Hdiv[i+1*Q] = ue_y;
+
   } // End of Quadrature Point Loop
+
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif //End of POISSON_RHS2D_H
+#endif // End ERROR_H

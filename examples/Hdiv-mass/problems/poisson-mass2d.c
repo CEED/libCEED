@@ -21,6 +21,8 @@
 #include "../include/problems.h"
 #include "../qfunctions/poisson-rhs2d.h"
 #include "../qfunctions/poisson-mass2d.h"
+#include "../qfunctions/poisson-error2d.h"
+#include "../qfunctions/poisson-true2d.h"
 
 // Hdiv_POISSON_MASS2D is registered in cl-option.c
 PetscErrorCode Hdiv_POISSON_MASS2D(ProblemData *problem_data, void *ctx) {
@@ -41,7 +43,10 @@ PetscErrorCode Hdiv_POISSON_MASS2D(ProblemData *problem_data, void *ctx) {
   problem_data->setup_rhs_loc           = SetupRhs_loc;
   problem_data->residual                = SetupMass;
   problem_data->residual_loc            = SetupMass_loc;
-
+  problem_data->setup_error             = SetupError2D;
+  problem_data->setup_error_loc         = SetupError2D_loc;
+  problem_data->setup_true              = SetupTrueSoln2D;
+  problem_data->setup_true_loc          = SetupTrueSoln2D_loc;
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------

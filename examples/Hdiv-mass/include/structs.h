@@ -21,8 +21,8 @@ struct CeedData_ {
   CeedBasis            basis_x, basis_u;
   CeedElemRestriction  elem_restr_x, elem_restr_u, elem_restr_geo_data_i,
                        elem_restr_u_i;
-  CeedQFunction        qf_residual;
-  CeedOperator         op_residual;
+  CeedQFunction        qf_residual, qf_error;
+  CeedOperator         op_residual, op_error;
   CeedVector           x_ceed, y_ceed;
   CeedQFunctionContext pq2d_context;
 };
@@ -54,7 +54,7 @@ struct User_ {
   MPI_Comm     comm;
   Vec          X_loc, Y_loc;
   CeedVector   x_ceed, y_ceed;
-  CeedOperator op;
+  CeedOperator op_apply, op_error;
   DM           dm;
   Ceed         ceed;
   AppCtx       app_ctx;
@@ -63,8 +63,9 @@ struct User_ {
 
 // Problem specific data
 typedef struct {
-  CeedQFunctionUser setup_rhs, residual;
-  const char        *setup_rhs_loc, *residual_loc;
+  CeedQFunctionUser setup_rhs, residual, setup_error, setup_true;
+  const char        *setup_rhs_loc, *residual_loc, *setup_error_loc,
+        *setup_true_loc;
   CeedQuadMode      quadrature_mode;
   CeedInt           geo_data_size, elem_node;
   PetscErrorCode    (*setup_ctx)(Ceed, CeedData, Physics);
