@@ -21,7 +21,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/densitycurrent.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
                                   void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
@@ -72,11 +72,11 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   CeedScalar k      = 0.02638; // W/(m K)
   CeedScalar c_tau  = 0.5;     // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
-  PetscScalar lx    = 8000.;   // m
-  PetscScalar ly    = 8000.;   // m
-  PetscScalar lz    = 4000.;   // m
   CeedScalar rc     = 1000.;   // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -114,18 +114,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) center[i] = .5*domain_size[i];
   PetscInt n = problem->dim;
-  center[0] = 0.5 * lx;
-  center[1] = 0.5 * ly;
-  center[2] = 0.5 * lz;
   ierr = PetscOptionsRealArray("-center", "Location of bubble center",
                                NULL, center, &n, NULL); CHKERRQ(ierr);
   n = problem->dim;
@@ -203,11 +195,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
-  lx     = fabs(lx) * meter;
-  ly     = fabs(ly) * meter;
-  lz     = fabs(lz) * meter;
   rc     = fabs(rc) * meter;
+  for (int i=0; i<3; i++) domain_size[i] *= meter;
   for (int i=0; i<3; i++) center[i] *= meter;
+  problem->dm_scale = meter;
 
   // -- Setup Context
   setup_context->theta0     = theta0;
@@ -218,9 +209,9 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->cp         = cp;
   setup_context->g          = g;
   setup_context->rc         = rc;
-  setup_context->lx         = lx;
-  setup_context->ly         = ly;
-  setup_context->lz         = lz;
+  setup_context->lx         = domain_size[0];
+  setup_context->ly         = domain_size[1];
+  setup_context->lz         = domain_size[2];
   setup_context->center[0]  = center[0];
   setup_context->center[1]  = center[1];
   setup_context->center[2]  = center[2];

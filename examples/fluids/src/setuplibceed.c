@@ -267,6 +267,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   Vec               X_loc;
   const PetscScalar *X_loc_array;
   ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
+  ierr = VecScale(X_loc, problem->dm_scale); CHKERRQ(ierr);
   ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
   CeedVectorSetArray(ceed_data->x_coord, CEED_MEM_HOST, CEED_COPY_VALUES,
                      (PetscScalar *)X_loc_array);

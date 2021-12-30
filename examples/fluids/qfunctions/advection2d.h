@@ -120,15 +120,14 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
   const CeedScalar rc    = context->rc;
   const CeedScalar lx    = context->lx;
   const CeedScalar ly    = context->ly;
-  const CeedScalar lz    = context->lz;
   const CeedScalar *wind = context->wind;
 
   // Setup
-  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[2] = {0.5*lx, 0.5*ly};
   const CeedScalar theta[] = {M_PI, -M_PI/3, M_PI/3};
-  const CeedScalar x0[3] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time), center[2]};
-  const CeedScalar x1[3] = {center[0] + .25*lx*cos(theta[1] + time), center[1] + .25*ly*sin(theta[1] + time), center[2]};
-  const CeedScalar x2[3] = {center[0] + .25*lx*cos(theta[2] + time), center[1] + .25*ly*sin(theta[2] + time), center[2]};
+  const CeedScalar x0[2] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time)};
+  const CeedScalar x1[2] = {center[0] + .25*lx*cos(theta[1] + time), center[1] + .25*ly*sin(theta[1] + time)};
+  const CeedScalar x2[2] = {center[0] + .25*lx*cos(theta[2] + time), center[1] + .25*ly*sin(theta[2] + time)};
 
   const CeedScalar x = X[0], y = X[1];
 

@@ -19,32 +19,18 @@
 
 #include "../navierstokes.h"
 
-// Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
-                                   SetupContext setup_ctx, DM *dm) {
-  DM               dist_mesh = NULL;
-  PetscPartitioner part;
-  PetscInt         dim = problem->dim, faces[3] = {3, 3, 3};
-  const PetscReal  scale[3] = {setup_ctx->lx, setup_ctx->ly, setup_ctx->lz};
+// Create mesh
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm) {
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
-
-  ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
-                                 faces, &dim, NULL); CHKERRQ(ierr);
-  if (!dim) dim = problem->dim;
-  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, scale,
-                             NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
-
-  // Distribute DM in parallel
-  ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
-  ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(*dm, 0, NULL, &dist_mesh); CHKERRQ(ierr);
-  if (dist_mesh) {
-    ierr = DMDestroy(dm); CHKERRQ(ierr);
-    *dm  = dist_mesh;
-  }
+  // Create DMPLEX
+  ierr = DMCreate(comm, dm); CHKERRQ(ierr);
+  ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  // Set Tensor elements
+  ierr = PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"); CHKERRQ(ierr);
+  // Set CL options
+  ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
-
   PetscFunctionReturn(0);
 }
 

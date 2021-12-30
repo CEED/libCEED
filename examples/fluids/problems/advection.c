@@ -21,7 +21,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+                            void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
@@ -63,14 +64,15 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  PetscScalar lx         = 8000.;      // m
-  PetscScalar ly         = 8000.;      // m
-  PetscScalar lz         = 4000.;      // m
   CeedScalar rc          = 1000.;      // m (Radius of bubble)
   CeedScalar CtauS       = 0.;         // dimensionless
   CeedScalar strong_form = 0.;         // [0,1]
   CeedScalar E_wind      = 1.e6;       // J
   PetscReal wind[3]      = {1., 0, 0}; // m/s
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -86,12 +88,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscBool translation;
@@ -180,17 +176,18 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   // ------------------------------------------------------
   // -- Scale variables to desired units
   E_wind *= Joule;
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
   rc = fabs(rc) * meter;
-  for (int i=0; i<3; i++) wind[i] = wind[i] * (meter/second);
+  for (int i=0; i<3; i++) {
+    wind[i] *= (meter/second);
+    domain_size[i] *= meter;
+  }
+  problem->dm_scale = meter;
 
   // -- Setup Context
   setup_context->rc                     = rc;
-  setup_context->lx                     = lx;
-  setup_context->ly                     = ly;
-  setup_context->lz                     = lz;
+  setup_context->lx                     = domain_size[0];
+  setup_context->ly                     = domain_size[1];
+  setup_context->lz                     = domain_size[2];
   setup_context->wind[0]                = wind[0];
   setup_context->wind[1]                = wind[1];
   setup_context->wind[2]                = wind[2];

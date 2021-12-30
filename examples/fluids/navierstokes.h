@@ -276,6 +276,7 @@ struct Physics_private {
 // *INDENT-OFF*
 typedef struct {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedScalar        dm_scale;
   CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
                     apply_sur;
   const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
@@ -293,17 +294,14 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
-    void *ctx);
-
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
-                                      void *ctx);
-
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
+    void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
+                                      void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
                                    void *ctx);
-
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
-                                     void *ctx);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
+                                     void *setup_ctx, void *ctx);
 
 // Set up context for each problem
 extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
@@ -397,9 +395,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
-// Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
-                                   SetupContext setup_ctx, DM *dm);
+// Create mesh
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
