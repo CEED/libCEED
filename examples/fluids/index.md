@@ -50,11 +50,16 @@ where the flux and the source terms, respectively, are given by
 $$
 \begin{aligned}
 \bm{F}(\bm{q}) &=
-\begin{pmatrix}
+\underbrace{\begin{pmatrix}
     \bm{U}\\
-    {(\bm{U} \otimes \bm{U})}/{\rho} + P \bm{I}_3 -  \bm{\sigma} \\
-    {(E + P)\bm{U}}/{\rho} - \bm{u}  \cdot \bm{\sigma} - k \nabla T
-\end{pmatrix} ,\\
+    {(\bm{U} \otimes \bm{U})}/{\rho} + P \bm{I}_3 \\
+    {(E + P)\bm{U}}/{\rho}
+\end{pmatrix}}_{\bm F_{\text{adv}}} +
+\underbrace{\begin{pmatrix}
+0 \\
+-  \bm{\sigma} \\
+ - \bm{u}  \cdot \bm{\sigma} - k \nabla T
+\end{pmatrix}}_{\bm F_{\text{diff}}},\\
 S(\bm{q}) &=
 - \begin{pmatrix}
     0\\
@@ -62,7 +67,7 @@ S(\bm{q}) &=
     0
 \end{pmatrix}.
 \end{aligned}
-$$
+$$ (eq-ns-flux)
 
 Let the discrete solution be
 
@@ -185,21 +190,80 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \bm{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
+  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
   & = 0 \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
   $$ (eq-weak-vector-ns-su)
 
   This stabilization technique can be selected using the option `-stab su`.
 
-In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\bm{P} \,$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
+In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
 It is defined as
 
 $$
-\bm{P}(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F} \, (\bm{q}_N)}{\partial \bm{q}_N} \right)^T \, \nabla \bm v\,,
+\mathcal P(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right)^T \, \nabla \bm v\,,
 $$
 
-where parameter $\bm{\tau} \in \mathbb R^{3\times 3}$ is an intrinsic time/space scale matrix.
+where parameter $\bm{\tau} \in \mathbb R^{3\times 3}$ (spatial indices) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+This expression contains the flux Jacobian, which we express in variational notation by differentiating the advective flux $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
+
+$$
+\begin{aligned}
+\diff\bm F_{\text{adv}}(\diff\bm q; \bm q) &= \frac{\partial \bm F_{\text{adv}}}{\partial \bm q} \diff\bm q \\
+&= \begin{pmatrix}
+\diff\bm U \\
+(\diff\bm U \otimes \bm U + \bm U \otimes \diff\bm U)/\rho - (\bm U \otimes \bm U)/\rho^2 \diff\rho + \diff P \bm I_3 \\
+(E + P)\diff\bm U/\rho + (\diff E + \diff P)\bm U/\rho - (E + P) \bm U/\rho^2 \diff\rho
+\end{pmatrix},
+\end{aligned}
+$$
+
+where $\diff P$ is defined by differentiating {eq}`eq-state`.
+In this notation, we may equivalently write the stabilization term as
+
+$$
+\mathcal P(\bm v)^T \bm r = \nabla \bm v \bm\tau \diff\bm F_{\text{adv}}(\bm r),
+$$
+
+where $\bm r$ is the strong form residual.
+Note that both $\nabla \bm v$ and $\diff \bm F$ are $5\times 3$ matrices and that $\bm\tau$ can be defined with spatial indices, or field indices, leading to a stabilization term of $(\nabla \bm v)_{\alpha i} \tau_{ij} \diff \bm F_{\alpha j}$ for spatial or $(\nabla \bm v)_{\alpha i} \tau_{\alpha \beta} \diff \bm F_{\beta i}$ for field, where $\alpha,\beta$ are field indices and $i,j$ are spatial indices.
+
+:::{dropdown} Stabilization scale $\bm\tau$
+A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
+To build intuition, consider a boundary layer element of dimension $(1, \epsilon)$, for which $\nabla_{\bm x} \bm X = \bigl(\begin{smallmatrix} 2 & \\ & 2/\epsilon \end{smallmatrix}\bigr)$.
+So a small normal component of velocity will be amplified (by a factor of the aspect ratio $1/\epsilon$) in this transformation.
+The ratio $\lVert \bm u \rVert / \lVert \bm u_{\bm X} \rVert = \lVert \bigl(\nabla_{\bm X} \bm x\bigr)^T \hat{\bm u} \rVert$ measures the element length in the direction of the velocity.
+Note that while $\nabla_{\bm X} \bm x$ is readily computable, its (transposed) inverse $\nabla_{\bm x} \bm X$ is needed directly in finite element methods and thus more convenient for this definition.
+
+The cell Péclet number is classically defined by $\mathrm{Pe}_h = \lVert \bm u \rVert h / (2 \kappa)$ where $\kappa$ is the diffusivity (units of $m^2/s$).
+This can be generalized to arbitrary grids by defining the local Péclet number
+
+$$
+\mathrm{Pe} = \frac{\lVert \bm u \rVert^2}{\lVert \bm u_{\bm X} \rVert \kappa}.
+$$ (eq-peclet)
+
+For scalar advection-diffusion, the stabilization is a scalar
+
+$$
+\tau = \frac{\xi(\mathrm{Pe})}{\lVert \bm u_{\bm X} \rVert},
+$$ (eq-tau-advdiff)
+
+where $\xi(\mathrm{Pe}) = \coth \mathrm{Pe} - 1/\mathrm{Pe}$ approaches 1 at large local Péclet number.
+Note that $\tau$ has units of time and, in the transport-dominated limit, is proportional to element transit time in the direction of the propagating wave.
+For advection-diffusion, $\bm F(q) = \bm u q$, and thus the perturbed test function is
+
+$$
+\mathcal P(v) = \tau \bm u \cdot \nabla v = \tau \bm u_{\bm X} \nabla_{\bm X} v.
+$$ (eq-test-perturbation-advdiff)
+
+See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
+
+For the Navier-Stokes and Euler equations, we follow {cite}`whiting2003hierarchical` in defining a $5\times 5$ diagonal stabilization consisting of
+1. continuity stabilization $\tau_c$
+2. momentum stabilization $\tau_m$
+3. energy stabilization $\tau_E$
+
+:::
 
 Currently, this demo provides three types of problems/physical models that can be selected at run time via the option `-problem`.
 {ref}`problem-advection`, the problem of the transport of energy in a uniform vector velocity field, {ref}`problem-euler-vortex`, the exact solution to the Euler equations, and the so called {ref}`problem-density-current` problem.
