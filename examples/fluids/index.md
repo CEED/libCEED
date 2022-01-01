@@ -258,7 +258,8 @@ $$ (eq-test-perturbation-advdiff)
 
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
-For the Navier-Stokes and Euler equations, we follow {cite}`whiting2003hierarchical` in defining a $5\times 5$ diagonal stabilization consisting of
+For the Navier-Stokes and Euler equations in conservative variables, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization
+according to spatial criterion 2 (equation 27), whereas in the case of primitive variables, we follow {cite}`whiting2003hierarchical` in defining a $5\times 5$ diagonal stabilization consisting of
 1. continuity stabilization $\tau_c$
 2. momentum stabilization $\tau_m$
 3. energy stabilization $\tau_E$

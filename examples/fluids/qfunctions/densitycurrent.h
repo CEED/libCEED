@@ -65,6 +65,7 @@ struct DCContext_ {
   CeedScalar cv;
   CeedScalar cp;
   CeedScalar g;
+  CeedScalar c_tau;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -196,6 +197,35 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
 }
 
 // *****************************************************************************
+// Helper function for computing Tau elements (stabilization constant)
+//   Model from:
+//     Stabilized Methods for Compressible Flows, Hughes et al 2010
+//
+//   Spatial criterion #2 - Tau is a 3x3 diagonal matrix
+//   Tau[i] = c_tau h[i] Xi(Pe) / rho(A[i]) (no sum)
+//
+// Where
+//   c_tau     = stabilization constant (0.5 is reported as "optimal")
+//   h[i]      = 2 length(dxdX[i])
+//   Pe        = Peclet number ( Pe = sqrt(u u) / dot(dXdx,u) diffusivity )
+//   Xi(Pe)    = coth Pe - 1. / Pe (1. at large local Peclet number )
+//   rho(A[i]) = spectral radius of the convective flux Jacobian i,
+//               wave speed in direction i
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
+                                       const CeedScalar dXdx[3][3], const CeedScalar u[3],
+                                       const CeedScalar sound_speed, const CeedScalar c_tau) {
+  for (int i=0; i<3; i++) {
+    // length of element in direction i
+    CeedScalar h = 2 / sqrt(dXdx[0][i]*dXdx[0][i] + dXdx[1][i]*dXdx[1][i] +
+                            dXdx[2][i]*dXdx[2][i]);
+    // fastest wave in direction i
+    CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
+    Tau_x[i] = c_tau * h / fastest_wave;
+  }
+}
+
+// *****************************************************************************
 // This QFunction sets the initial conditions for density current
 // *****************************************************************************
 CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
@@ -293,6 +323,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
+  const CeedScalar c_tau  = context->c_tau;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -469,19 +500,13 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * body_force[j];
 
-    //Stabilization
-    CeedScalar uX[3];
-    for (int j=0; j<3; j++)
-      uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
-    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
-    const CeedScalar Cc      = 1.;
-    const CeedScalar Ce      = 1.;
-    const CeedScalar f1      = rho * sqrt(uiujgij);
-    const CeedScalar TauC   = (Cc * f1) /
-                              (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-    const CeedScalar TauM   = 1. / (f1>1. ? f1 : 1.);
-    const CeedScalar TauE   = TauM / (Ce * cv);
-    const CeedScalar Tau[5]  = {TauC, TauM, TauM, TauM, TauE};
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+
+    // -- Stabilization method: none or SU
     CeedScalar stab[5][3];
     switch (context->stabilization) {
     case 0:        // Galerkin
@@ -490,7 +515,7 @@ CEED_QFUNCTION(DC)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_conv[l];
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -539,6 +564,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
+  const CeedScalar c_tau  = context->c_tau;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -722,20 +748,13 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] -= wdetJ*body_force[j];
 
-    //Stabilization
-    CeedScalar uX[3];
-    for (int j=0; j<3; j++)
-      uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
-    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
-    const CeedScalar Cc      = 1.;
-    const CeedScalar Ce      = 1.;
-    const CeedScalar f1      = rho * sqrt(uiujgij);
-    const CeedScalar TauC   = (Cc * f1) /
-                              (8 * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-    const CeedScalar TauM   = 1. / (f1>1. ? f1 : 1.);
-    const CeedScalar TauE   = TauM / (Ce * cv);
-    const CeedScalar Tau[5]  = {TauC, TauM, TauM, TauM, TauE};
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
 
+    // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3];
     switch (context->stabilization) {
     case 0:        // Galerkin
@@ -744,7 +763,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_conv[l];
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -756,7 +775,7 @@ CEED_QFUNCTION(IFunction_DC)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_res[l];
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_res[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)

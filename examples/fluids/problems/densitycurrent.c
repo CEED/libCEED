@@ -70,6 +70,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k      = 0.02638; // W/(m K)
+  CeedScalar c_tau  = 0.25;    // -
+  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscScalar lx    = 8000.;   // m
   PetscScalar ly    = 8000.;   // m
   PetscScalar lz    = 4000.;   // m
@@ -140,7 +142,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
-
+  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
+                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -236,6 +239,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->cv       = cv;
   user->phys->dc_ctx->cp       = cp;
   user->phys->dc_ctx->g        = g;
+  user->phys->dc_ctx->c_tau    = c_tau;
   user->phys->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);

@@ -230,6 +230,7 @@ struct DCContext_ {
   CeedScalar cv;
   CeedScalar cp;
   CeedScalar g;
+  CeedScalar c_tau;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -242,6 +243,7 @@ struct EulerContext_ {
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;
+  CeedScalar c_tau;
   CeedScalar mean_velocity[3];
   bool implicit;
   int euler_test;

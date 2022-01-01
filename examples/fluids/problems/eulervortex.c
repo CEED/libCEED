@@ -64,6 +64,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   //             Create the libCEED context
   // ------------------------------------------------------
   CeedScalar vortex_strength = 5.;    // -
+  CeedScalar c_tau           = 0.25;  // -
+  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscScalar lx             = 1000.; // m
   PetscScalar ly             = 1000.; // m
   PetscScalar lz             = 1.;    // m
@@ -110,6 +112,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
+                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
                             NULL, meter, &meter, NULL); CHKERRQ(ierr);
@@ -170,6 +174,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   user->phys->euler_ctx->center[1]        = center[1];
   user->phys->euler_ctx->center[2]        = center[2];
   user->phys->euler_ctx->vortex_strength  = vortex_strength;
+  user->phys->euler_ctx->c_tau            = c_tau;
   user->phys->euler_ctx->mean_velocity[0] = mean_velocity[0];
   user->phys->euler_ctx->mean_velocity[1] = mean_velocity[1];
   user->phys->euler_ctx->mean_velocity[2] = mean_velocity[2];
