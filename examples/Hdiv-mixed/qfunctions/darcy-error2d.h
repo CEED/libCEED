@@ -15,66 +15,64 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Compute true solution of the H(div) example using PETSc
+/// Compute pointwise error of the H(div) example using PETSc
 
-#ifndef TRUE_H
-#define TRUE_H
+#ifndef DARCY_ERROR2D_H
+#define DARCY_ERROR2D_H
 
 #include <math.h>
+#include "utils.h"
 
 // -----------------------------------------------------------------------------
-// Compuet true solution
+// Compuet error
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupTrueSoln2D)(void *ctx, const CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
+#ifndef DARCY_CTX
+#define DARCY_CTX
+typedef struct DARCYContext_ *DARCYContext;
+struct DARCYContext_ {
+  CeedScalar kappa;
+  CeedScalar g;
+  CeedScalar rho_a0;
+  CeedScalar alpha_a, b_a;
+};
+#endif
+CEED_QFUNCTION(DarcyError2D)(void *ctx, const CeedInt Q,
+                             const CeedScalar *const *in,
+                             CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*coords) = in[0],
-                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
+  const CeedScalar (*w) = in[0],
+                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
+                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*p) = (const CeedScalar(*))in[3],
+                   (*true_soln) = in[4];
   // Outputs
-  CeedScalar (*true_soln_Hdiv) = out[0];
+  CeedScalar (*error) = out[0];
+  // Context
+  DARCYContext  context = (DARCYContext)ctx;
+  //const CeedScalar kappa    = context->kappa;
+  const CeedScalar rho_a0   = context->rho_a0;
+  const CeedScalar g        = context->g;
   // Quadrature Point Loop
-  printf("True solution projected into H(div) space;Qfunction poisson-true2d.h\n");
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // Setup, J = dx/dX
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
-    CeedScalar ue[2] = {x-y, x+y};
-    CeedScalar nl[2] = {-J[1][1],J[0][1]};
-    CeedScalar nr[2] = {J[1][1],-J[0][1]};
-    CeedScalar nb[2] = {J[1][0],-J[0][0]};
-    CeedScalar nt[2] = {-J[1][0],J[0][0]};
-    CeedScalar ue_x, ue_y;
-    if (i == 0){ // node 1
-      ue_x = ue[0]*nl[0]+ue[1]*nl[1];
-      ue_y = ue[0]*nb[0]+ue[1]*nb[1];
-    }
-    else if (i == 1){ // node 2
-      ue_x = ue[0]*nr[0]+ue[1]*nr[1];
-      ue_y = ue[0]*nb[0]+ue[1]*nb[1];
-    }
-    else if (i == 2){ // node 3
-      ue_x = ue[0]*nl[0]+ue[1]*nl[1];
-      ue_y = ue[0]*nt[0]+ue[1]*nt[1];
-    }
-    else if (i == 3){ // node 4
-      ue_x = ue[0]*nr[0]+ue[1]*nr[1];
-      ue_y = ue[0]*nt[0]+ue[1]*nt[1];
-    }
-    printf("ux %f\n",ue_x);
-    printf("uy %f\n",ue_y);
+    const CeedScalar det_J = MatDet2x2(J);             
+    // Compute Piola map:uh = J*u/detJ
+    CeedScalar u1[2] = {u[0][i], u[1][i]}, uh[2];
+    AlphaMatVecMult2x2(1/det_J, J, u1, uh);
 
-    // True solution
-    true_soln_Hdiv[i+0*Q] = ue_x;
-    true_soln_Hdiv[i+1*Q] = ue_y;
-
+    // Error
+    CeedScalar psi = p[i] / (rho_a0 * g);
+    error[i+0*Q] = (psi - true_soln[i+0*Q])*(psi - true_soln[i+0*Q])*w[i]*det_J;
+    error[i+1*Q] = (uh[0] - true_soln[i+1*Q])*(uh[0] - true_soln[i+1*Q])*w[i]*det_J;
+    error[i+2*Q] = (uh[1] - true_soln[i+2*Q])*(uh[1] - true_soln[i+2*Q])*w[i]*det_J;
   } // End of Quadrature Point Loop
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // End ERROR_H
+#endif // End DARCY_ERROR2D_H

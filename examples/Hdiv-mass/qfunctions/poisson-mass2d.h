@@ -35,8 +35,8 @@
 // Note we need to apply Piola map on the basis, which is J*u/detJ
 // So (v,u) = \int (v^T * u detJ*w) ==> \int (v^T J^T*J*u*w/detJ)
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMass2D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
+                            CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*w) = in[0],
@@ -68,7 +68,7 @@ CEED_QFUNCTION(SetupMass)(void *ctx, CeedInt Q, const CeedScalar *const *in,
           JTJ[j][k] += J[m][j] * J[m][k];
       }
     }
-    // 2) Compute Piola map J^T*J*u * w /detJ
+    // 2) Compute J^T*J*u * w /detJ
     for (CeedInt k = 0; k < 2; k++) {
       v[k][i] = 0;
       for (CeedInt m = 0; m < 2; m++)

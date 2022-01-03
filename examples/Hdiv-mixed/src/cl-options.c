@@ -18,56 +18,39 @@
 /// Command line option processing for H(div) example using PETSc
 
 #include "../include/cl-options.h"
-#include "../include/problems.h"
-
-// Register problems to be available on the command line
-PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx) {
-  app_ctx->problems = NULL;
-  PetscErrorCode   ierr;
-  PetscFunctionBeginUser;
-  // 1) poisson-quad2d (Hdiv_POISSON_QUAD2D is created in poisson-quad2d.c)
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "poisson_quad2d",
-                              Hdiv_POISSON_QUAD2D); CHKERRQ(ierr);
-  // 2) poisson-hex3d
-
-  // 3) poisson-prism3d
-
-  // 4) richard
-
-  PetscFunctionReturn(0);
-}
 
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
+PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx) {
 
   PetscBool problem_flag = PETSC_FALSE;
-  PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "H(div) examples in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(app_ctx->comm, NULL, "H(div) examples in PETSc with libCEED",
+                    NULL);
 
-  ierr = PetscOptionsFList("-problem", "Problem to solve", NULL,
-                           app_ctx->problems,
-                           app_ctx->problem_name, app_ctx->problem_name, sizeof(app_ctx->problem_name),
-                           &problem_flag); CHKERRQ(ierr);
-
-  app_ctx->degree = 1;
-  ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
-                         NULL, app_ctx->degree, &app_ctx->degree, NULL); CHKERRQ(ierr);
-
-  app_ctx->q_extra = 0;
-  ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
-                         NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL); CHKERRQ(ierr);
-
+  PetscCall( PetscOptionsFList("-problem", "Problem to solve", NULL,
+                               app_ctx->problems,
+                               app_ctx->problem_name, app_ctx->problem_name, sizeof(app_ctx->problem_name),
+                               &problem_flag) );
   // Provide default problem if not specified
   if (!problem_flag) {
-    const char *problem_name = "poisson_quad2d";
+    const char *problem_name = "darcy2d";
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
+  app_ctx->degree = 1;
+  PetscCall( PetscOptionsInt("-degree", "Polynomial degree of finite elements",
+                             NULL, app_ctx->degree, &app_ctx->degree, NULL) );
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  app_ctx->q_extra = 0;
+  PetscCall( PetscOptionsInt("-q_extra", "Number of extra quadrature points",
+                             NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL) );
+  app_ctx->bc_pressure_count = 16;
+  // we can set one face by: -bc_faces 1 OR multiple faces by :-bc_faces 1,2,3
+  PetscCall( PetscOptionsIntArray("-bc_faces",
+                                  "Face IDs to apply pressure BC",
+                                  NULL, app_ctx->bc_faces, &app_ctx->bc_pressure_count, NULL) );
+
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }

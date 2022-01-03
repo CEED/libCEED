@@ -17,8 +17,8 @@
 COMMON ?= ../../common.mk
 -include $(COMMON)
 
-
-
+# Note: PETSC_ARCH can be undefined or empty for installations which do not use
+#       PETSC_ARCH - for example when using PETSc installed through Spack.
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
@@ -38,16 +38,12 @@ OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
+src.c := main.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
+src.o = $(src.c:%.c=$(OBJDIR)/%.o)
+
 all: main
 
-utils.c := $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
-utils.o = $(utils.c:%.c=$(OBJDIR)/%.o)
-libutils.a: $(utils.o)
-	$(call quiet,AR) $(ARFLAGS) $@ $^
-
-main.c := main.c
-main.o = $(main.c:%.c=$(OBJDIR)/%.o)
-main: $(main.o) libutils.a | $(PETSc.pc) $(ceed.pc)
+main: $(src.o) | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
@@ -73,7 +69,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) *.vtu main libutils.a
+	$(RM) -r $(OBJDIR) main *.vtu
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

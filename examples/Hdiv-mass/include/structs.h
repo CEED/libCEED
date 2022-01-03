@@ -19,7 +19,7 @@ struct AppCtx_ {
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   CeedBasis            basis_x, basis_u;
-  CeedElemRestriction  elem_restr_x, elem_restr_u, elem_restr_geo_data_i,
+  CeedElemRestriction  elem_restr_x, elem_restr_u,
                        elem_restr_u_i;
   CeedQFunction        qf_residual, qf_error;
   CeedOperator         op_residual, op_error;
@@ -37,6 +37,13 @@ struct PQ2DContext_ {
 #endif
 
 // 2) poisson-hex3d
+#ifndef PHYSICS_POISSONHEX3D_STRUCT
+#define PHYSICS_POISSONHEX3D_STRUCT
+typedef struct PH3DContext_ *PH3DContext;
+struct PH3DContext_ {
+  CeedScalar kappa;
+};
+#endif
 
 // 3) poisson-prism3d
 
@@ -46,6 +53,7 @@ struct PQ2DContext_ {
 typedef struct Physics_ *Physics;
 struct Physics_ {
   PQ2DContext            pq2d_ctx;
+  PH3DContext            ph3d_ctx;
 };
 
 // PETSc user data
@@ -63,11 +71,10 @@ struct User_ {
 
 // Problem specific data
 typedef struct {
-  CeedQFunctionUser setup_rhs, residual, setup_error, setup_true;
-  const char        *setup_rhs_loc, *residual_loc, *setup_error_loc,
-        *setup_true_loc;
+  CeedQFunctionUser setup_rhs, residual, setup_error;
+  const char        *setup_rhs_loc, *residual_loc, *setup_error_loc;
   CeedQuadMode      quadrature_mode;
-  CeedInt           geo_data_size, elem_node;
+  CeedInt           elem_node, dim;
   PetscErrorCode    (*setup_ctx)(Ceed, CeedData, Physics);
 
 } ProblemData;

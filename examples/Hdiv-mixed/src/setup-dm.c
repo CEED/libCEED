@@ -1,44 +1,59 @@
 #include "../include/setup-dm.h"
+#include "petscerror.h"
 
 // ---------------------------------------------------------------------------
-// Set-up DM
+// Setup DM
 // ---------------------------------------------------------------------------
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, DM *dm) {
-  PetscErrorCode  ierr;
-  PetscSection   sec;
-  PetscBool      interpolate = PETSC_TRUE;
-  PetscInt       nx = 2, ny = 1;
-  PetscInt       faces[2] = {nx, ny};
-  PetscInt       dim = 2, num_comp_u = dim;
-  PetscInt       p_start, p_end;
-  PetscInt       c_start, c_end; // cells
-  PetscInt       e_start, e_end, e; // edges
-  PetscInt       v_start, v_end; // vertices
+PetscErrorCode CreateDM(MPI_Comm comm, VecType vec_type, DM *dm) {
 
   PetscFunctionBeginUser;
 
-  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
-                             NULL, NULL, interpolate, dm); CHKERRQ(ierr);
-  // Get plex limits
-  ierr = DMPlexGetChart(*dm, &p_start, &p_end); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(*dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(*dm, 1, &e_start, &e_end); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(*dm, 0, &v_start, &v_end); CHKERRQ(ierr);
-  // Create section
-  ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
-  ierr = PetscSectionSetNumFields(sec,1); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec,0,"Velocity"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec,0,1); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,p_start,p_end); CHKERRQ(ierr);
-  // Setup dofs
-  for (e = e_start; e < e_end; e++) {
-    ierr = PetscSectionSetFieldDof(sec, e, 0, num_comp_u); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof     (sec, e, num_comp_u); CHKERRQ(ierr);
-  }
-  ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(*dm,sec); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
-  ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
+  // Create DMPLEX
+  PetscCall( DMCreate(comm, dm) );
+  PetscCall( DMSetType(*dm, DMPLEX) );
+  PetscCall( DMSetVecType(*dm, vec_type) );
+  // Set Tensor elements
+  PetscCall( PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0") );
+  // Set CL options
+  PetscCall( DMSetFromOptions(*dm) );
+  PetscCall( DMViewFromOptions(*dm, NULL, "-dm_view") );
 
   PetscFunctionReturn(0);
 };
+
+PetscErrorCode PerturbVerticesSmooth(DM dm) {
+
+  Vec          coordinates;
+  PetscSection coordSection;
+  PetscScalar *coords;
+  PetscInt     v,vStart,vEnd,offset,dim;
+  PetscReal    x,y,z;
+
+  PetscFunctionBeginUser;
+
+  PetscCall( DMGetDimension(dm, &dim) );
+  PetscCall( DMGetCoordinateSection(dm, &coordSection) );
+  PetscCall( DMGetCoordinatesLocal(dm, &coordinates) );
+  PetscCall( DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd) );
+  PetscCall( VecGetArray(coordinates,&coords) );
+  for(v=vStart; v<vEnd; v++) {
+    PetscCall( PetscSectionGetOffset(coordSection,v,&offset) );
+    if(dim==2) {
+      x = coords[offset]; y = coords[offset+1];
+      coords[offset]   = x + 0.06*PetscSinReal(2.0*PETSC_PI*x)*PetscSinReal(
+                           2.0*PETSC_PI*y);
+      coords[offset+1] = y - 0.05*PetscSinReal(2.0*PETSC_PI*x)*PetscSinReal(
+                           2.0*PETSC_PI*y);
+    } else {
+      x = coords[offset]; y = coords[offset+1]; z = coords[offset+2];
+      coords[offset]   = x + 0.03*PetscSinReal(3*PETSC_PI*x)*PetscCosReal(
+                           3*PETSC_PI*y)*PetscCosReal(3*PETSC_PI*z);
+      coords[offset+1] = y - 0.04*PetscCosReal(3*PETSC_PI*x)*PetscSinReal(
+                           3*PETSC_PI*y)*PetscCosReal(3*PETSC_PI*z);
+      coords[offset+2] = z + 0.05*PetscCosReal(3*PETSC_PI*x)*PetscCosReal(
+                           3*PETSC_PI*y)*PetscSinReal(3*PETSC_PI*z);
+    }
+  }
+  PetscCall( VecRestoreArray(coordinates,&coords) );
+  PetscFunctionReturn(0);
+}

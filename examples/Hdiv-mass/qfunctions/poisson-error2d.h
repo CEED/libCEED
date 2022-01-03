@@ -15,10 +15,10 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Compute error of the H(div) example using PETSc
+/// Compute pointwise error of the H(div) example using PETSc
 
-#ifndef ERROR_H
-#define ERROR_H
+#ifndef ERROR2D_H
+#define ERROR2D_H
 
 #include <math.h>
 
@@ -30,10 +30,9 @@ CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q,
                              CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*w) = in[0],
-                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
-                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*target) = in[3];
+  const CeedScalar (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0],
+                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*target) = in[2], (*w) = in[3];
   // Outputs
   CeedScalar (*error) = out[0];
   // Quadrature Point Loop
@@ -42,10 +41,17 @@ CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q,
     // Setup, J = dx/dX
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
-    const CeedScalar detJ = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+    const CeedScalar detJ = J[0][0]*J[1][1] - J[0][1]*J[1][0];             
+    // Compute Piola map:uh = J*u/detJ
+    CeedScalar uh[2];
+    for (CeedInt k = 0; k < 2; k++) {
+      uh[k] = 0;
+      for (CeedInt m = 0; m < 2; m++)
+        uh[k] += J[k][m] * u[m][i]/detJ;
+    }
     // Error
-    error[i+0*Q] = fabs(u[0][i] - target[i+0*Q]) * w[i] * detJ;
-    error[i+1*Q] = fabs(u[1][i] - target[i+1*Q]) * w[i] * detJ;
+    error[i+0*Q] = (uh[0] - target[i+0*Q])*(uh[0] - target[i+0*Q])*w[i]*detJ;
+    error[i+1*Q] = (uh[1] - target[i+1*Q])*(uh[1] - target[i+1*Q])*w[i]*detJ;
 
   } // End of Quadrature Point Loop
 
@@ -53,4 +59,4 @@ CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q,
 }
 // -----------------------------------------------------------------------------
 
-#endif // End ERROR_H
+#endif // End ERROR2D_H

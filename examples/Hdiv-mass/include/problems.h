@@ -10,6 +10,7 @@
 PetscErrorCode Hdiv_POISSON_MASS2D(ProblemData *problem_data, void *ctx);
 
 // 2) poisson-hex3d
+PetscErrorCode Hdiv_POISSON_MASS3D(ProblemData *problem_data, void *ctx);
 
 // 3) poisson-prism3d
 

@@ -26,9 +26,11 @@ PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx) {
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
   // 1) poisson-quad2d (Hdiv_POISSON_MASS2D is created in poisson-mass2d.c)
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "poisson_mass2d",
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "mass2d",
                               Hdiv_POISSON_MASS2D); CHKERRQ(ierr);
   // 2) poisson-hex3d
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "mass3d",
+                              Hdiv_POISSON_MASS3D); CHKERRQ(ierr);
 
   // 3) poisson-prism3d
 
@@ -44,9 +46,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "H(div) examples in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL,
+                    "H(div) examples in PETSc with libCEED", NULL);
 
   ierr = PetscOptionsFList("-problem", "Problem to solve", NULL,
                            app_ctx->problems,
@@ -57,17 +58,17 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
                          NULL, app_ctx->degree, &app_ctx->degree, NULL); CHKERRQ(ierr);
 
-  app_ctx->q_extra = 2;
+  app_ctx->q_extra = 0;
   ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
                          NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL); CHKERRQ(ierr);
 
   // Provide default problem if not specified
   if (!problem_flag) {
-    const char *problem_name = "poisson_mass2d";
+    const char *problem_name = "mass2d";
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }
