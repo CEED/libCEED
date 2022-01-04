@@ -263,7 +263,26 @@ For the Navier-Stokes and Euler equations in primitive variables, {cite}`whiting
 2. momentum stabilization $\tau_m$
 3. energy stabilization $\tau_E$
 
-while we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27), since our equations are in conservative form.
+However, since our equations are in conservative form, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
+
+$$
+\bm \tau = \frac{ 2 c_{\tau} \xi(\mathrm{Pe})}{\rho(\diff \bm F) \lVert \nabla_{\bm x} \bm X \rVert}
+$$ (eq-tau-conservative)
+
+where $c_{\tau}$ is a multiplicative constant, reported to be optimal at 0.5, and $\rho(\diff\bm F_{\text{adv}})$ is the spectral radii of the flux Jacobian matrices which represents the wave speeds. {cite}`toro2009` derives the eigenvalues of $\diff\bm F_{\text{adv}}$, $\bm \Lambda$, as following
+
+$$
+\bm \Lambda = (u-a, u, u+a)
+$$ (eq-eigval-advdiff)
+
+where the middle eigenvalue has multiplicity 3, $u = \bm u \cdot \hat n$ is the velocity component in direction $\hat n$, and $a = \sqrt{\gamma P/\rho}$ is the sound speed for ideal gasses. We imply that the wave speed is
+
+$$
+\rho(\diff\bm F_{\text{adv}}) = \bm u + a
+$$ (eq-wavespeed)
+
+Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas parameter.
+
 :::
 
 Currently, this demo provides three types of problems/physical models that can be selected at run time via the option `-problem`.
