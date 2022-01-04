@@ -65,13 +65,13 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
 
   // CEED restrictions
+  ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, topo_dim, 0, 0, 0,
-                                   &elem_restr_x);
+  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 0, 0, 0, &elem_restr_x);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm, P, topo_dim, 0, 0, 0, &elem_restr_u);
+  ierr = CreateRestrictionFromPlex(ceed, dm, 0, 0, 0, &elem_restr_u);
   CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);

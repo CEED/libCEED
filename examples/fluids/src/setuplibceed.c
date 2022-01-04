@@ -25,138 +25,28 @@ PetscInt Involute(PetscInt i) {
 }
 
 // Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt height, DMLabel domain_label,
-    CeedInt value, CeedElemRestriction *elem_restr) {
-  PetscSection   section;
-  PetscInt       p, num_elem, num_dofs, *elem_restrict, elem_offset, num_fields,
-                 dim, depth;
-  DMLabel        depth_label;
-  IS             depth_IS, iter_IS;
-  Vec            U_loc;
-  const PetscInt *iter_indices;
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
+    DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
+  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
   PetscErrorCode ierr;
+
   PetscFunctionBeginUser;
-
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  dim -= height;
-  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-  ierr = PetscSectionGetNumFields(section, &num_fields); CHKERRQ(ierr);
-  PetscInt num_comp[num_fields], field_off[num_fields+1];
-  field_off[0] = 0;
-  for (PetscInt f=0; f<num_fields; f++) {
-    ierr = PetscSectionGetFieldComponents(section, f, &num_comp[f]); CHKERRQ(ierr);
-    field_off[f+1] = field_off[f] + num_comp[f];
-  }
-
-  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthLabel(dm, &depth_label); CHKERRQ(ierr);
-  ierr = DMLabelGetStratumIS(depth_label, depth - height, &depth_IS);
+  ierr = DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem,
+                               &elem_size, &num_comp, &num_dof, &elem_restr_offsets);
   CHKERRQ(ierr);
-  if (domain_label) {
-    IS domain_IS;
-    ierr = DMLabelGetStratumIS(domain_label, value, &domain_IS); CHKERRQ(ierr);
-    if (domain_IS) { // domain_IS is non-empty
-      ierr = ISIntersect(depth_IS, domain_IS, &iter_IS); CHKERRQ(ierr);
-      ierr = ISDestroy(&domain_IS); CHKERRQ(ierr);
-    } else { // domain_IS is NULL (empty)
-      iter_IS = NULL;
-    }
-    ierr = ISDestroy(&depth_IS); CHKERRQ(ierr);
-  } else {
-    iter_IS = depth_IS;
-  }
-  if (iter_IS) {
-    ierr = ISGetLocalSize(iter_IS, &num_elem); CHKERRQ(ierr);
-    ierr = ISGetIndices(iter_IS, &iter_indices); CHKERRQ(ierr);
-  } else {
-    num_elem = 0;
-    iter_indices = NULL;
-  }
-  ierr = PetscMalloc1(num_elem*PetscPowInt(P, dim), &elem_restrict);
-  CHKERRQ(ierr);
-  for (p=0, elem_offset=0; p<num_elem; p++) {
-    PetscInt c = iter_indices[p];
-    PetscInt num_indices, *indices, num_nodes;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                   &num_indices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
-    bool flip = false;
-    if (height > 0) {
-      PetscInt num_cells, num_faces, start = -1;
-      const PetscInt *orients, *faces, *cells;
-      ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
-      ierr = DMPlexGetSupportSize(dm, c, &num_cells); CHKERRQ(ierr);
-      if (num_cells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                                     "Expected one cell in support of exterior face, but got %D cells",
-                                     num_cells);
-      ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
-      ierr = DMPlexGetConeSize(dm, cells[0], &num_faces); CHKERRQ(ierr);
-      for (PetscInt i=0; i<num_faces; i++) {if (faces[i] == c) start = i;}
-      if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT,
-                                "Could not find face %D in cone of its support",
-                                c);
-      ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
-      if (orients[start] < 0) flip = true;
-    }
-    if (num_indices % field_off[num_fields]) SETERRQ1(PETSC_COMM_SELF,
-          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
-          c);
-    num_nodes = num_indices / field_off[num_fields];
-    for (PetscInt i=0; i<num_nodes; i++) {
-      PetscInt ii = i;
-      if (flip) {
-        if (P == num_nodes) ii = num_nodes - 1 - i;
-        else if (P*P == num_nodes) {
-          PetscInt row = i / P, col = i % P;
-          ii = row + col * P;
-        } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                          "No support for flipping point with %D nodes != P (%D) or P^2",
-                          num_nodes, P);
-      }
-      // Check that indices are blocked by node and thus can be coalesced as a single field with
-      // field_off[num_fields] = sum(num_comp) components.
-      for (PetscInt f=0; f<num_fields; f++) {
-        for (PetscInt j=0; j<num_comp[f]; j++) {
-          if (Involute(indices[field_off[f]*num_nodes + ii*num_comp[f] + j])
-              != Involute(indices[ii*num_comp[0]]) + field_off[f] + j)
-            SETERRQ4(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                     "Cell %D closure indices not interlaced for node %D field %D component %D",
-                     c, ii, f, j);
-        }
-      }
-      // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
-      PetscInt loc = Involute(indices[ii*num_comp[0]]);
-      elem_restrict[elem_offset++] = loc;
-    }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                       &num_indices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
-  }
-  if (elem_offset != num_elem*PetscPowInt(P, dim))
-    SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
-             "ElemRestriction of size (%D,%D) initialized %D nodes", num_elem,
-             PetscPowInt(P, dim),elem_offset);
-  if (iter_IS) {
-    ierr = ISRestoreIndices(iter_IS, &iter_indices); CHKERRQ(ierr);
-  }
-  ierr = ISDestroy(&iter_IS); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm, &U_loc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(U_loc, &num_dofs); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &U_loc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, num_elem, PetscPowInt(P, dim),
-                            field_off[num_fields],
-                            1, num_dofs, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restrict,
-                            elem_restr);
-  ierr = PetscFree(elem_restrict); CHKERRQ(ierr);
+  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp,
+                            1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
+                            elem_restr_offsets, elem_restr);
+  ierr = PetscFree(elem_restr_offsets); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
                                        DMLabel domain_label, PetscInt value,
-                                       CeedInt P, CeedInt Q, CeedInt q_data_size,
+                                       CeedInt Q, CeedInt q_data_size,
                                        CeedElemRestriction *elem_restr_q,
                                        CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
@@ -172,10 +62,12 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domain_label, value,
-                                   elem_restr_q); CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, height, domain_label, value,
-                                   elem_restr_x); CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dm, height, domain_label, value,
+                                   elem_restr_q);
+  CHKERRQ(ierr);
+  ierr = CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, value,
+                                   elem_restr_x);
+  CHKERRQ(ierr);
   CeedElemRestrictionGetNumElements(*elem_restr_q, &loc_num_elem);
   CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim,
                                    q_data_size, q_data_size*loc_num_elem*Q_dim,
@@ -220,7 +112,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                           elem_restr_qd_i_sur;
 
       // ---- CEED Restriction
-      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1, P_sur,
+      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, i+1,
                                      Q_sur, q_data_size_sur, &elem_restr_q_sur,
                                      &elem_restr_x_sur, &elem_restr_qd_i_sur);
       CHKERRQ(ierr);
@@ -301,8 +193,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED Restrictions
   // -----------------------------------------------------------------------------
   // -- Create restriction
-  ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, P, Q,
-                                 q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
+  ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, q_data_size_vol,
+                                 &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                  &ceed_data->elem_restr_qd_i); CHKERRQ(ierr);
   // -- Create E vectors
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);

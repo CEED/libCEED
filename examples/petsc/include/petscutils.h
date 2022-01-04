@@ -15,8 +15,7 @@ typedef PetscErrorCode (*BCFunction)(PetscInt dim, PetscReal time,
 PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
                                PetscInt topo_dim,
                                bool enforce_bc,  BCFunction bc_func);
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt topo_dim, CeedInt height, DMLabel domain_label, CeedInt value,
-    CeedElemRestriction *elem_restr);
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
+    DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
 
 #endif // petscutils_h
