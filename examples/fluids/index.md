@@ -232,8 +232,10 @@ Note that both $\nabla \bm v$ and $\diff \bm F$ are $5\times 3$ matrices and tha
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
 To build intuition, consider a boundary layer element of dimension $(1, \epsilon)$, for which $\nabla_{\bm x} \bm X = \bigl(\begin{smallmatrix} 2 & \\ & 2/\epsilon \end{smallmatrix}\bigr)$.
 So a small normal component of velocity will be amplified (by a factor of the aspect ratio $1/\epsilon$) in this transformation.
-The ratio $\lVert \bm u \rVert / \lVert \bm u_{\bm X} \rVert = \lVert \bigl(\nabla_{\bm X} \bm x\bigr)^T \hat{\bm u} \rVert$ measures the element length in the direction of the velocity.
-Note that while $\nabla_{\bm X} \bm x$ is readily computable, its (transposed) inverse $\nabla_{\bm x} \bm X$ is needed directly in finite element methods and thus more convenient for this definition.
+The ratio $\lVert \bm u \rVert / \lVert \bm u_{\bm X} \rVert$ is a covariant measure of (half) the element length in the direction of the velocity.
+A contravariant measure of element length in the direction of a unit vector $\hat{\bm u}$ is given by $\lVert \bigl(\nabla_{\bm X} \bm x\bigr)^T \hat{\bm n} \rVert$.
+While $\nabla_{\bm X} \bm x$ is readily computable, its inverse $\nabla_{\bm x} \bm X$ is needed directly in finite element methods and thus more convenient for our use.
+If we consider a parallelogram, the covariant measure is larger than the contravariant measure for vectors pointing between acute corners and the opposite holds for vectors between oblique corners.
 
 The cell Péclet number is classically defined by $\mathrm{Pe}_h = \lVert \bm u \rVert h / (2 \kappa)$ where $\kappa$ is the diffusivity (units of $m^2/s$).
 This can be generalized to arbitrary grids by defining the local Péclet number
@@ -266,22 +268,26 @@ For the Navier-Stokes and Euler equations in primitive variables, {cite}`whiting
 However, since our equations are in conservative form, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
 
 $$
-\bm \tau = \frac{ 2 c_{\tau} \xi(\mathrm{Pe})}{\rho(\diff \bm F) \lVert \nabla_{\bm x} \bm X \rVert}
+\tau_{ii} = c_{\tau} \frac{2 \xi(\mathrm{Pe})}{(\lambda_{\max \text{abs}})_i \lVert \nabla_{x_i} \bm X \rVert}
 $$ (eq-tau-conservative)
 
-where $c_{\tau}$ is a multiplicative constant, reported to be optimal at 0.5, and $\rho(\diff\bm F_{\text{adv}})$ is the spectral radii of the flux Jacobian matrices which represents the wave speeds. {cite}`toro2009` derives the eigenvalues of $\diff\bm F_{\text{adv}}$, $\bm \Lambda$, as following
+where $c_{\tau}$ is a multiplicative constant reported to be optimal at 0.5 for linear elements, $\hat{\bm n}_i$ is a unit vector in direction $i$, and $\nabla_{x_i} = \hat{\bm n}_i \cdot \nabla_{\bm x}$ is the derivative in direction $i$.
+The flux Jacobian $\frac{\partial \bm F_{\text{adv}}}{\partial \bm q} \cdot \hat{\bm n}_i$ in each direction $i$ is a $5\times 5$ matrix with spectral radius $(\lambda_{\max \text{abs}})_i$ equal to the fastest wave speed.
+The complete set of eigenvalues of the Euler flux Jacobian in direction $i$ are (e.g., {cite}`toro2009`)
 
 $$
-\bm \Lambda = (u-a, u, u+a)
+\Lambda_i = [u_i - a, u_i, u_i, u_i, u_i+a],
 $$ (eq-eigval-advdiff)
 
-where the middle eigenvalue has multiplicity 3, $u = \bm u \cdot \hat n$ is the velocity component in direction $\hat n$, and $a = \sqrt{\gamma P/\rho}$ is the sound speed for ideal gasses. We imply that the wave speed is
+where $u_i = \bm u \cdot \hat{\bm n}_i$ is the velocity component in direction $i$ and $a = \sqrt{\gamma P/\rho}$ is the sound speed for ideal gasses.
+Note that the first and last eigenvalues represent nonlinear acoustic waves while the middle three are linearly degenerate, carrying a contact wave (temperature) and transverse components of momentum.
+The fastest wave speed in direction $i$ is thus
 
 $$
-\rho(\diff\bm F_{\text{adv}}) = \bm u + a
+\lambda_{\max \text{abs}} \Bigl( \frac{\partial \bm F_{\text{adv}}}{\partial \bm q} \cdot \hat{\bm n}_i \Bigr) = |u_i| + a
 $$ (eq-wavespeed)
 
-Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas parameter.
+Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas parameter; other equations of state will yield a different acoustic wave speed.
 
 :::
 
