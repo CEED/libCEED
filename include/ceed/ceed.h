@@ -136,6 +136,13 @@ typedef enum {
   /// Double precision
   CEED_SCALAR_FP64
 } CeedScalarType;
+/// Total number of allowed scalar precision types (size of CeedScalarType enum)
+#define CEED_NUM_PRECISIONS 2
+/// Struct for holding data in multiple precisions for mixed-precision-enabled
+/// backends
+typedef struct {
+  void *values[CEED_NUM_PRECISIONS];
+} CeedScalarArray;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.
 #include "ceed-f64.h"
@@ -336,16 +343,30 @@ CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedCopyMode copy_mode, CeedScalar *array);
+CEED_EXTERN int CeedVectorSetArrayTyped(CeedVector vec, CeedMemType mem_type,
+                                        CeedScalarType prec_type,
+                                        CeedCopyMode copy_type, void *);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
 CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
+CEED_EXTERN int CeedVectorSyncArrayTyped(CeedVector vec, CeedMemType mem_type,
+                                         CeedScalarType prec_type);
 CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
                                     CeedScalar **array);
+CEED_EXTERN int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type,
+                                         CeedScalarType prec_type, void **array);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayTyped(CeedVector vec, CeedMemType mem_type,
+                                        CeedScalarType prec_type, void **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
                                        const CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayReadTyped(CeedVector vec, CeedMemType mem_type,
+                                            CeedScalarType prec_type,
+                                            const void **array);
 CEED_EXTERN int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
                                         CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayWriteTyped(CeedVector vec, CeedMemType mem_type,
+                                             CeedScalarType prec_type, void **array);
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);

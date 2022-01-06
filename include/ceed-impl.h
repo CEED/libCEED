@@ -130,14 +130,25 @@ struct Ceed_private {
 struct CeedVector_private {
   Ceed ceed;
   int (*HasValidArray)(CeedVector, bool *);
+  int (*HasValidArrayOfPrecision)(CeedVector, CeedScalarType, bool *);
   int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
+  int (*HasBorrowedArrayOfTypeAndPrecision)(CeedVector, CeedMemType,
+                                            CeedScalarType, bool *);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
+  int (*SetArrayTyped)(CeedVector, CeedMemType, CeedScalarType, CeedCopyMode,
+                       void *);
   int (*SetValue)(CeedVector, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);
+  int (*SyncArrayTyped)(CeedVector, CeedMemType, CeedScalarType);
   int (*TakeArray)(CeedVector, CeedMemType, CeedScalar **);
+  int (*TakeArrayTyped)(CeedVector, CeedMemType, CeedScalarType, void *);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
+  int (*GetArrayTyped)(CeedVector, CeedMemType, CeedScalarType, void *);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
+  int (*GetArrayReadTyped)(CeedVector, CeedMemType, CeedScalarType,
+                           const void **);
   int (*GetArrayWrite)(CeedVector, CeedMemType, CeedScalar **);
+  int (*GetArrayWriteTyped)(CeedVector, CeedMemType, CeedScalarType, void *);
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
