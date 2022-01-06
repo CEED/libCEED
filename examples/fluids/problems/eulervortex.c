@@ -63,13 +63,14 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar vortex_strength = 5.;    // -
-  CeedScalar c_tau           = 0.25;  // -
+  CeedScalar vortex_strength = 5.;          // -
+  CeedScalar c_tau           = 0.25;        // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
-  PetscScalar lx             = 1000.; // m
-  PetscScalar ly             = 1000.; // m
-  PetscScalar lz             = 1.;    // m
-  PetscReal center[3], mean_velocity[3] = {1., 1., 0};
+  PetscScalar lx             = 1000.;       // m
+  PetscScalar ly             = 1000.;       // m
+  PetscScalar lz             = 1.;          // m
+  PetscReal center[3],                      // m
+            mean_velocity[3] = {1., 1., 0}; // m/s
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -150,7 +151,10 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   lx = fabs(lx) * meter;
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
-  for (int i=0; i<3; i++) center[i] *= meter;
+  for (int i=0; i<3; i++) {
+    center[i] *= meter;
+    mean_velocity[i] = mean_velocity[i] * (meter/second);
+  }
 
   // -- Setup Context
   setup_context->lx        = lx;

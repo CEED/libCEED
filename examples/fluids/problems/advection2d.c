@@ -167,6 +167,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
   ly = fabs(ly) * meter;
   lz = fabs(lz) * meter;
   rc = fabs(rc) * meter;
+  for (int i=0; i<2; i++) wind[i] = wind[i] * (meter/second);
 
   // -- Setup Context
   setup_context->rc        = rc;
