@@ -44,6 +44,60 @@ extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedInt length,
 }
 
 //------------------------------------------------------------------------------
+// Kernel for converting double to single 
+//------------------------------------------------------------------------------
+__global__ static void convertFp64Fp32(CeedInt length, double* double_data,
+                                       float* float_data) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= length)
+    return;
+  float_data[idx] = (float) double_data[idx];
+}
+
+//------------------------------------------------------------------------------
+// Convert a double-precision array to single precision
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceConvertArray_Cuda_Fp64_Fp32(CeedInt length,
+                                                     double* double_data,
+                                                     float* float_data) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  convertFp64Fp32<<<gridsize,bsize>>>(length, double_data, float_data);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Kernel for converting single to double
+//------------------------------------------------------------------------------
+__global__ static void convertFp32Fp64(CeedInt length, float* float_data,
+                                       double* double_data) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= length)
+    return;
+  double_data[idx] = (double) float_data[idx];
+}
+
+//------------------------------------------------------------------------------
+// Convert a single-precision array to double precision
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceConvertArray_Cuda_Fp32_Fp64(CeedInt length,
+                                                     float* float_data,
+                                                     double* double_data) {
+  const int bsize = 512;
+  const int vecsize = length;
+  int gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize)
+    gridsize += 1;
+  convertFp32Fp64<<<gridsize,bsize>>>(length, float_data, double_data);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Kernel for taking reciprocal
 //------------------------------------------------------------------------------
 __global__ static void rcpValueK(CeedScalar * __restrict__ vec, CeedInt size) {
