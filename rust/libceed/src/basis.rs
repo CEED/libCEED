@@ -144,7 +144,7 @@ impl<'a> fmt::Display for Basis<'a> {
 impl<'a> Basis<'a> {
     // Constructors
     pub fn create_tensor_H1(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         dim: usize,
         ncomp: usize,
         P1d: usize,
@@ -183,7 +183,7 @@ impl<'a> Basis<'a> {
     }
 
     pub fn create_tensor_H1_Lagrange(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         dim: usize,
         ncomp: usize,
         P: usize,
@@ -209,7 +209,7 @@ impl<'a> Basis<'a> {
     }
 
     pub fn create_H1(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         topo: crate::ElemTopology,
         ncomp: usize,
         nnodes: usize,

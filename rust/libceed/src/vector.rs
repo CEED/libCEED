@@ -253,7 +253,7 @@ impl<'a> fmt::Display for Vector<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> Vector<'a> {
     // Constructors
-    pub fn create(ceed: &'a crate::Ceed, n: usize) -> crate::Result<Self> {
+    pub fn create(ceed: &crate::Ceed, n: usize) -> crate::Result<Self> {
         let n = i32::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
@@ -293,7 +293,7 @@ impl<'a> Vector<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn from_slice(ceed: &'a crate::Ceed, v: &[crate::Scalar]) -> crate::Result<Self> {
+    pub fn from_slice(ceed: &crate::Ceed, v: &[crate::Scalar]) -> crate::Result<Self> {
         let mut x = Self::create(ceed, v.len())?;
         x.set_slice(v)?;
         Ok(x)
@@ -316,7 +316,7 @@ impl<'a> Vector<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn from_array(ceed: &'a crate::Ceed, v: &mut [crate::Scalar]) -> crate::Result<Self> {
+    pub fn from_array(ceed: &crate::Ceed, v: &mut [crate::Scalar]) -> crate::Result<Self> {
         let x = Self::create(ceed, v.len())?;
         let (host, user_pointer) = (
             crate::MemType::Host as bind_ceed::CeedMemType,

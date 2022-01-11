@@ -583,7 +583,7 @@ unsafe extern "C" fn trampoline(
 impl<'a> QFunction<'a> {
     // Constructor
     pub fn create(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         vlength: usize,
         user_f: Box<QFunctionUserClosure>,
     ) -> crate::Result<Self> {
@@ -877,7 +877,7 @@ impl<'a> QFunction<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> QFunctionByName<'a> {
     // Constructor
-    pub fn create(ceed: &'a crate::Ceed, name: &str) -> crate::Result<Self> {
+    pub fn create(ceed: &crate::Ceed, name: &str) -> crate::Result<Self> {
         let name_c = CString::new(name).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe {

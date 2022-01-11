@@ -514,7 +514,7 @@ impl<'a> OperatorCore<'a> {
 impl<'a> Operator<'a> {
     // Constructor
     pub fn create<'b>(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         qf: impl Into<QFunctionOpt<'b>>,
         dqf: impl Into<QFunctionOpt<'b>>,
         dqfT: impl Into<QFunctionOpt<'b>>,
@@ -1617,12 +1617,12 @@ impl<'a> Operator<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_multigrid_level(
+    pub fn create_multigrid_level<'b>(
         &self,
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
-    ) -> crate::Result<(Operator, Operator, Operator)> {
+    ) -> crate::Result<(Operator<'b>, Operator<'b>, Operator<'b>)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -1806,13 +1806,13 @@ impl<'a> Operator<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_multigrid_level_tensor_H1(
+    pub fn create_multigrid_level_tensor_H1<'b>(
         &self,
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
         interpCtoF: &Vec<Scalar>,
-    ) -> crate::Result<(Operator, Operator, Operator)> {
+    ) -> crate::Result<(Operator<'b>, Operator<'b>, Operator<'b>)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -1997,13 +1997,13 @@ impl<'a> Operator<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_multigrid_level_H1(
+    pub fn create_multigrid_level_H1<'b>(
         &self,
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
         interpCtoF: &[Scalar],
-    ) -> crate::Result<(Operator, Operator, Operator)> {
+    ) -> crate::Result<(Operator<'b>, Operator<'b>, Operator<'b>)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
@@ -2032,7 +2032,7 @@ impl<'a> Operator<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> CompositeOperator<'a> {
     // Constructor
-    pub fn create(ceed: &'a crate::Ceed) -> crate::Result<Self> {
+    pub fn create(ceed: &crate::Ceed) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
         ceed.check_error(ierr)?;

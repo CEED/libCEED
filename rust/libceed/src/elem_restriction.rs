@@ -163,7 +163,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
 impl<'a> ElemRestriction<'a> {
     // Constructors
     pub fn create(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -203,7 +203,7 @@ impl<'a> ElemRestriction<'a> {
     }
 
     pub fn create_strided(
-        ceed: &'a crate::Ceed,
+        ceed: &crate::Ceed,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
@@ -265,7 +265,7 @@ impl<'a> ElemRestriction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_lvector(&self) -> crate::Result<Vector> {
+    pub fn create_lvector<'b>(&self) -> crate::Result<Vector<'b>> {
         let mut ptr_lvector = std::ptr::null_mut();
         let null = std::ptr::null_mut() as *mut _;
         let ierr =
@@ -294,7 +294,7 @@ impl<'a> ElemRestriction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_evector(&self) -> crate::Result<Vector> {
+    pub fn create_evector<'b>(&self) -> crate::Result<Vector<'b>> {
         let mut ptr_evector = std::ptr::null_mut();
         let null = std::ptr::null_mut() as *mut _;
         let ierr =
@@ -324,7 +324,7 @@ impl<'a> ElemRestriction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_vectors(&self) -> crate::Result<(Vector, Vector)> {
+    pub fn create_vectors<'b, 'c>(&self) -> crate::Result<(Vector<'b>, Vector<'c>)> {
         let mut ptr_lvector = std::ptr::null_mut();
         let mut ptr_evector = std::ptr::null_mut();
         let ierr = unsafe {
