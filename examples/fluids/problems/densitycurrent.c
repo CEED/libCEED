@@ -52,7 +52,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_ifunction_loc = IFunction_DC_loc;
   problem->bc                      = Exact_DC;
   problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
-  problem->bc_func                 = BC_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_DENSITY_CURRENT;
 
@@ -237,10 +236,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 }
 
 PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx,
-    Physics phys) {
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
@@ -253,102 +250,6 @@ PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
     CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
   if (ceed_data->qf_ifunction_vol)
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->dc_context);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-                                  void *setup_ctx) {
-
-  PetscInt       len;
-  PetscBool      flg;
-  MPI_Comm       comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  // Default boundary conditions
-  //   slip bc on all faces and no wall bc
-  bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
-  bc->slips[0][0] = 5;
-  bc->slips[0][1] = 6;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
-
-  // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
-                           NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsIntArray("-bc_wall",
-                              "Use wall boundary conditions on this list of faces",
-                              NULL, bc->walls,
-                              (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
-                               &len), &flg); CHKERRQ(ierr);
-  if (flg) {
-    bc->num_wall = len;
-    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
-  }
-  for (PetscInt j=0; j<3; j++) {
-    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-    ierr = PetscOptionsIntArray(flags[j],
-                                "Use slip boundary conditions on this list of faces",
-                                NULL, bc->slips[j],
-                                (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
-                                 &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc->num_slip[j] = len;
-      bc->user_bc = PETSC_TRUE;
-    }
-  }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-
-  {
-    // Set slip boundary conditions
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
-                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
-                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
-                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-  }
-
-  if (bc->user_bc) {
-    for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
-        for (PetscInt w = 0; w < bc->num_wall; w++) {
-          if (bc->slips[c][s] == bc->walls[w])
-            SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                     "Boundary condition already set on face %D!\n",
-                     bc->walls[w]);
-        }
-      }
-    }
-  }
-
-  // Set wall boundary conditions
-  //   zero velocity and zero flux for mass density and energy density
-  {
-    DMLabel  label;
-    PetscInt comps[3] = {1, 2, 3};
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
-                         bc->num_wall, bc->walls, 0, 3, comps,
-                         (void(*)(void))Exact_DC, NULL,
-                         setup_ctx, NULL); CHKERRQ(ierr);
-  }
-
   PetscFunctionReturn(0);
 }
 

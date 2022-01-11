@@ -51,11 +51,10 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_rhs_loc       = Advection2d_loc;
   problem->apply_vol_ifunction     = IFunction_Advection2d;
   problem->apply_vol_ifunction_loc = IFunction_Advection2d_loc;
-  problem->apply_sur               = Advection2d_Sur;
-  problem->apply_sur_loc           = Advection2d_Sur_loc;
+  problem->apply_inflow            = Advection2d_InOutFlow;
+  problem->apply_inflow_loc        = Advection2d_InOutFlow_loc;
   problem->bc                      = Exact_Advection2d;
   problem->setup_ctx               = SetupContext_ADVECTION2D;
-  problem->bc_func                 = BC_ADVECTION2D;
   problem->non_zero_time           = PETSC_TRUE;
   problem->print_info              = PRINT_ADVECTION2D;
 
@@ -191,7 +190,6 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
 PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
                                         AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
@@ -205,35 +203,9 @@ PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
   if (ceed_data->qf_ifunction_vol)
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
                             ceed_data->advection_context);
-  if (ceed_data->qf_apply_sur)
-    CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->advection_context);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
-                              void *setup_ctx) {
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  // Define boundary conditions
-  if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_wall = 0;
-  } else {
-    bc->num_wall = 6;
-    bc->walls[0] = 1; bc->walls[1] = 2;
-    bc->walls[2] = 3; bc->walls[3] = 4;
-  }
-
-  // Set boundary conditions
-  //   zero energy density and zero flux
-  DMLabel  label;
-  PetscInt comps[1] = {4};
-  ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-  ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
-                       bc->num_wall, bc->walls, 0, 1, comps,
-                       (void(*)(void))Exact_Advection2d, NULL,
-                       setup_ctx, NULL); CHKERRQ(ierr);
+  if (ceed_data->qf_apply_inflow)
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
+                            ceed_data->advection_context);
   PetscFunctionReturn(0);
 }
 

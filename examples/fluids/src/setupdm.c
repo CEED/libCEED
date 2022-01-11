@@ -59,7 +59,42 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
       ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
       ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
     }
-    ierr = problem->bc_func(dm, bc, phys, setup_ctx);
+    // Set wall BCs
+    if (bc->num_wall > 0) {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
+                           bc->num_wall, bc->walls, 0, bc->num_comps,
+                           bc->wall_comps, (void(*)(void))problem->bc,
+                           NULL, setup_ctx, NULL);  CHKERRQ(ierr);
+    }
+    // Set slip BCs in the x direction
+    if (bc->num_slip[0] > 0) {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      PetscInt comps[1] = {1};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
+                           bc->num_slip[0], bc->slips[0], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
+    // Set slip BCs in the y direction
+    if (bc->num_slip[1] > 0) {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      PetscInt comps[1] = {2};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
+                           bc->num_slip[1], bc->slips[1], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
+    // Set slip BCs in the z direction
+    if (bc->num_slip[2] > 0) {
+      DMLabel label;
+      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      PetscInt comps[1] = {3};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
+                           bc->num_slip[2], bc->slips[2], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);

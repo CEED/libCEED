@@ -432,9 +432,9 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 //    A prescribed Total Energy (E_wind) is applied weakly.
 //
 // *****************************************************************************
-CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
+CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
