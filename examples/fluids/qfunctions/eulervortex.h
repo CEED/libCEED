@@ -179,6 +179,20 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time,
     q[3] = rho * u[2];
     q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
     break;
+  case 5: // non-smooth thermal bubble - cylinder
+    P    = 1.;
+    T = 1. - (r < 1. ? S_bubble : 0.);
+    rho  = P / (R*T);
+    u[0] = mean_velocity[0];
+    u[1] = mean_velocity[1];
+
+    // Assign exact solution
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
+    break;
   }
   // Return
   return 0;

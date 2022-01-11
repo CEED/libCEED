@@ -90,6 +90,7 @@ typedef enum {
   EULER_TEST_2 = 2,
   EULER_TEST_3 = 3,
   EULER_TEST_4 = 4,
+  EULER_TEST_5 = 5,
 } EulerTestType;
 static const char *const EulerTestTypes[] = {
   "isentropic_vortex",
@@ -97,6 +98,7 @@ static const char *const EulerTestTypes[] = {
   "test_2",
   "test_3",
   "test_4",
+  "test_5",
   "EulerTestType", "EULER_TEST_", NULL
 };
 
