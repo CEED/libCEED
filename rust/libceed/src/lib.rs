@@ -361,7 +361,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn vector(&self, n: usize) -> Result<Vector> {
+    pub fn vector<'a>(&self, n: usize) -> Result<Vector<'a>> {
         Vector::create(self, n)
     }
 
@@ -380,7 +380,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn vector_from_slice(&self, slice: &[crate::Scalar]) -> Result<Vector> {
+    pub fn vector_from_slice<'a>(&self, slice: &[crate::Scalar]) -> Result<Vector<'a>> {
         Vector::from_slice(self, slice)
     }
 
@@ -420,7 +420,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn elem_restriction(
+    pub fn elem_restriction<'a>(
         &self,
         nelem: usize,
         elemsize: usize,
@@ -429,7 +429,7 @@ impl Ceed {
         lsize: usize,
         mtype: MemType,
         offsets: &[i32],
-    ) -> Result<ElemRestriction> {
+    ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create(
             self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets,
         )
@@ -466,14 +466,14 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn strided_elem_restriction(
+    pub fn strided_elem_restriction<'a>(
         &self,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
         lsize: usize,
         strides: [i32; 3],
-    ) -> Result<ElemRestriction> {
+    ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
@@ -515,7 +515,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn basis_tensor_H1(
+    pub fn basis_tensor_H1<'a>(
         &self,
         dim: usize,
         ncomp: usize,
@@ -525,7 +525,7 @@ impl Ceed {
         grad1d: &[crate::Scalar],
         qref1d: &[crate::Scalar],
         qweight1d: &[crate::Scalar],
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_tensor_H1(
             self, dim, ncomp, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d,
         )
@@ -551,14 +551,14 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn basis_tensor_H1_Lagrange(
+    pub fn basis_tensor_H1_Lagrange<'a>(
         &self,
         dim: usize,
         ncomp: usize,
         P: usize,
         Q: usize,
         qmode: QuadMode,
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
@@ -677,7 +677,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn basis_H1(
+    pub fn basis_H1<'a>(
         &self,
         topo: ElemTopology,
         ncomp: usize,
@@ -687,7 +687,7 @@ impl Ceed {
         grad: &[crate::Scalar],
         qref: &[crate::Scalar],
         qweight: &[crate::Scalar],
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_H1(
             self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
         )
@@ -719,11 +719,11 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn q_function_interior(
+    pub fn q_function_interior<'a>(
         &self,
         vlength: usize,
         f: Box<qfunction::QFunctionUserClosure>,
-    ) -> Result<QFunction> {
+    ) -> Result<QFunction<'a>> {
         QFunction::create(self, vlength, f)
     }
 
@@ -738,7 +738,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn q_function_interior_by_name(&self, name: &str) -> Result<QFunctionByName> {
+    pub fn q_function_interior_by_name<'a>(&self, name: &str) -> Result<QFunctionByName<'a>> {
         QFunctionByName::create(self, name)
     }
 
@@ -762,12 +762,12 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn operator<'b>(
+    pub fn operator<'a, 'b>(
         &self,
         qf: impl Into<QFunctionOpt<'b>>,
         dqf: impl Into<QFunctionOpt<'b>>,
         dqfT: impl Into<QFunctionOpt<'b>>,
-    ) -> Result<Operator> {
+    ) -> Result<Operator<'a>> {
         Operator::create(self, qf, dqf, dqfT)
     }
 
@@ -781,7 +781,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn composite_operator(&self) -> Result<CompositeOperator> {
+    pub fn composite_operator<'a>(&self) -> Result<CompositeOperator<'a>> {
         CompositeOperator::create(self)
     }
 }
