@@ -329,7 +329,7 @@ For the Isentropic Vortex problem, the following additional command-line options
 
 * - `-c_tau`
   - Stabilization constant
-  - `0.25`
+  - `0.5`
   -
 :::
 
@@ -426,7 +426,7 @@ For the Density Current problem, the following additional command-line options a
 
 * - `-c_tau`
   - Stabilization constant
-  - `0.25`
+  - `0.5`
   -
 
 * - `-theta0`

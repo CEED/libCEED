@@ -70,7 +70,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k      = 0.02638; // W/(m K)
-  CeedScalar c_tau  = 0.25;    // -
+  CeedScalar c_tau  = 0.5;     // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscScalar lx    = 8000.;   // m
   PetscScalar ly    = 8000.;   // m

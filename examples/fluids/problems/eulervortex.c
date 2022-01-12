@@ -64,7 +64,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
   //             Create the libCEED context
   // ------------------------------------------------------
   CeedScalar vortex_strength = 5.;          // -
-  CeedScalar c_tau           = 0.25;        // -
+  CeedScalar c_tau           = 0.5;         // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscScalar lx             = 1000.;       // m
   PetscScalar ly             = 1000.;       // m
