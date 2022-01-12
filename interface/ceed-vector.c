@@ -72,32 +72,6 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
 }
 
 /**
-  @brief Check for valid data in a particular precision in a CeedVector
-
-  @param vec                   CeedVector to check validity
-  @param prec_type             Scalar type to check validity
-  @param[out] has_valid_array  Variable to store validity
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedVectorHasValidArrayOfPrecision(CeedVector vec, CeedScalarType prec_type, 
-                                       bool *has_valid_array) {
-  int ierr;
-
-  if (!vec->HasValidArrayOfPrecision)
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support HasValidArrayOfPrecision");
-  // LCOV_EXCL_STOP
-
-  ierr = vec->HasValidArrayOfPrecision(vec, prec_type, has_valid_array); CeedChk(ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Check for borrowed array of a specific CeedMemType in a CeedVector
 
   @param vec                              CeedVector to check
@@ -137,9 +111,10 @@ int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type,
 
   @ref Backend
 **/
-int CeedVectorHasBorrowedArrayOfTypeAndPrecision(CeedVector vec, CeedMemType mem_type,
-                                                 CeedScalarType prec_type, 
-                                                 bool *has_borrowed_array_of_type) {
+int CeedVectorHasBorrowedArrayOfTypeAndPrecision(CeedVector vec,
+    CeedMemType mem_type,
+    CeedScalarType prec_type,
+    bool *has_borrowed_array_of_type) {
   int ierr;
 
   if (!vec->HasBorrowedArrayOfTypeAndPrecision)
@@ -149,7 +124,7 @@ int CeedVectorHasBorrowedArrayOfTypeAndPrecision(CeedVector vec, CeedMemType mem
   // LCOV_EXCL_STOP
 
   ierr = vec->HasBorrowedArrayOfTypeAndPrecision(vec, mem_type, prec_type,
-                                                 has_borrowed_array_of_type);
+         has_borrowed_array_of_type);
   CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -379,7 +354,8 @@ int CeedVectorSetArrayTyped(CeedVector vec, CeedMemType mem_type,
                      "Cannot grant CeedVector array access, a "
                      "process has read access");
 
-  ierr = vec->SetArrayTyped(vec, mem_type, prec_type, copy_mode, array); CeedChk(ierr);
+  ierr = vec->SetArrayTyped(vec, mem_type, prec_type, copy_mode, array);
+  CeedChk(ierr);
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -469,7 +445,8 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
 
   @ref User
 **/
-int CeedVectorSyncArrayTyped(CeedVector vec, CeedMemType mem_type, CeedScalarType prec_type) {
+int CeedVectorSyncArrayTyped(CeedVector vec, CeedMemType mem_type,
+                             CeedScalarType prec_type) {
   int ierr;
 
   if (vec->state % 2 == 1)
@@ -481,9 +458,11 @@ int CeedVectorSyncArrayTyped(CeedVector vec, CeedMemType mem_type, CeedScalarTyp
     ierr = vec->SyncArrayTyped(vec, mem_type, prec_type); CeedChk(ierr);
   } else {
     const void *array;
-    ierr = CeedVectorGetArrayReadTyped(vec, mem_type, prec_type, &array); CeedChk(ierr);
+    ierr = CeedVectorGetArrayReadTyped(vec, mem_type, prec_type, &array);
+    CeedChk(ierr);
     // TODO: restore versions/types
-    ierr = CeedVectorRestoreArrayRead(vec, (const CeedScalar **) &array); CeedChk(ierr);
+    ierr = CeedVectorRestoreArrayRead(vec, (const CeedScalar **) &array);
+    CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -566,7 +545,8 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
 
   @ref User
 **/
-int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type, CeedScalarType prec_type,
+int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type,
+                             CeedScalarType prec_type,
                              void **array) {
   int ierr;
 
@@ -585,7 +565,7 @@ int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type, CeedScalarTyp
 
   bool has_borrowed_array_of_type_prec = true;
   ierr = CeedVectorHasBorrowedArrayOfTypeAndPrecision(vec, mem_type, prec_type,
-                                                      &has_borrowed_array_of_type_prec);
+         &has_borrowed_array_of_type_prec);
   CeedChk(ierr);
   if (!has_borrowed_array_of_type_prec)
     // LCOV_EXCL_START
@@ -595,16 +575,17 @@ int CeedVectorTakeArrayTyped(CeedVector vec, CeedMemType mem_type, CeedScalarTyp
   // LCOV_EXCL_STOP
 
   bool has_valid_array = true;
-  ierr = CeedVectorHasValidArrayOfPrecision(vec, prec_type, &has_valid_array); CeedChk(ierr);
+  ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChk(ierr);
   if (!has_valid_array)
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has no valid data to take in the requested precision, "
+                     "CeedVector has no valid data to take, "
                      "must set data with CeedVectorSetValue or CeedVectorSetArray");
   // LCOV_EXCL_STOP
 
   void *temp_array = NULL;
-  ierr = vec->TakeArrayTyped(vec, mem_type, prec_type, &temp_array); CeedChk(ierr);
+  ierr = vec->TakeArrayTyped(vec, mem_type, prec_type, &temp_array);
+  CeedChk(ierr);
   if (array) (*array) = temp_array;
   return CEED_ERROR_SUCCESS;
 }
@@ -664,14 +645,14 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
 /**
   @brief Get read/write access to a CeedVector via the specified memory type and
            scalar type. After a call to this function, only the data of the specified
-           memory/scalar type combination will be valid. 
+           memory/scalar type combination will be valid.
            Restore access with @ref CeedVectorRestoreArray().
 
   @param vec         CeedVector to access
   @param mem_type    Memory type on which to access the array. If the backend
                        uses a different memory type, this will perform a copy.
   @param prec_type   Scalar type on which to access the array.  If the vector does
-                       not currently have valid data in this precision, the values 
+                       not currently have valid data in this precision, the values
                        will be copied from the highest-precision data currently valid.
   @param[out] array  Array on memory type mem_type
 
@@ -771,10 +752,10 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
   @param mem_type    Memory type on which to access the array.  If the backend
                        uses a different memory type, this will perform a copy
                        (possibly cached).
-  @param prec_type   Scalar type on which to access the array.  If the backend 
+  @param prec_type   Scalar type on which to access the array.  If the backend
                        does not currently have valid data in this type, the data
                        will be converted from the highest-precision data that is
-                       currently valid. 
+                       currently valid.
   @param[out] array  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure

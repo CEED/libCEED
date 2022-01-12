@@ -130,10 +130,9 @@ struct Ceed_private {
 struct CeedVector_private {
   Ceed ceed;
   int (*HasValidArray)(CeedVector, bool *);
-  int (*HasValidArrayOfPrecision)(CeedVector, CeedScalarType, bool *);
   int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
   int (*HasBorrowedArrayOfTypeAndPrecision)(CeedVector, CeedMemType,
-                                            CeedScalarType, bool *);
+      CeedScalarType, bool *);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetArrayTyped)(CeedVector, CeedMemType, CeedScalarType, CeedCopyMode,
                        void *);
