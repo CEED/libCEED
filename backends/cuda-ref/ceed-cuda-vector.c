@@ -29,7 +29,7 @@ static inline size_t bytes(const CeedVector vec, CeedScalarType prec) {
   int ierr;
   CeedInt length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  CeedInt mem_size;
+  CeedInt mem_size = 0;
   if (prec == CEED_SCALAR_FP64) {
     mem_size = length * sizeof(double);
   } else if (prec == CEED_SCALAR_FP32) {
@@ -205,13 +205,13 @@ static int CeedVectorConvertArrayHost_Cuda(CeedVector vec,
 //------------------------------------------------------------------------------
 // Convert a double-precision array to single precision
 //------------------------------------------------------------------------------
-static int CeedDeviceConvertArray_Cuda_Fp64_Fp32(CeedInt length,
+int CeedDeviceConvertArray_Cuda_Fp64_Fp32(CeedInt length,
     double *double_data, float *float_data);
 
 //------------------------------------------------------------------------------
 // Convert a single-precision array to double precision
 //------------------------------------------------------------------------------
-static int CeedDeviceConvertArray_Cuda_Fp32_Fp64(CeedInt length,
+int CeedDeviceConvertArray_Cuda_Fp32_Fp64(CeedInt length,
     float *float_data, double *double_data);
 
 //------------------------------------------------------------------------------
@@ -371,9 +371,8 @@ static inline int CeedVectorHasValidArrayOfPrecision_Cuda(const CeedVector vec,
 
   *has_valid_array = !!impl->h_array.values[prec_type] ||
                      !!impl->d_array.values[prec_type];
-}
 
-return CEED_ERROR_SUCCESS;
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -483,7 +482,7 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec,
   bool has_valid_array = false;
   ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChkBackend(ierr);
   bool has_valid_array_of_type = false;
-  ierr = CeedVectorHasValidArrayOfType(vec, mem_type, &has_valid_array_of_type);
+  ierr = CeedVectorHasValidArrayOfType_Cuda(vec, mem_type, &has_valid_array_of_type);
   CeedChkBackend(ierr);
 
   // Check if we have a valid array, but not for the correct memory type
@@ -496,8 +495,10 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec,
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
-                                       const CeedScalarType prec_type, const CeedCopyMode copy_mode, void *array) {
+    const CeedScalarType prec_type, const CeedCopyMode copy_mode, void *array) {
   int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
@@ -606,9 +607,9 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec,
   ierr = CeedVectorSetAllInvalid_Cuda(vec); CeedChkBackend(ierr);
   switch (mem_type) {
   case CEED_MEM_HOST:
-    return CeedVectorSetArrayHost_Cuda(vec, copy_mode, array, CEED_SCALAR_TYPE);
+    return CeedVectorSetArrayHost_Cuda(vec, CEED_SCALAR_TYPE, copy_mode, array);
   case CEED_MEM_DEVICE:
-    return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array, CEED_SCALAR_TYPE);
+    return CeedVectorSetArrayDevice_Cuda(vec, CEED_SCALAR_TYPE, copy_mode, array);
   }
 
   return CEED_ERROR_UNSUPPORTED;
@@ -632,9 +633,9 @@ static int CeedVectorSetArrayTyped_Cuda(const CeedVector vec,
   ierr = CeedVectorSetAllInvalid_Cuda(vec); CeedChkBackend(ierr);
   switch (mem_type) {
   case CEED_MEM_HOST:
-    return CeedVectorSetArrayHost_Cuda(vec, copy_mode, array, prec_type);
+    return CeedVectorSetArrayHost_Cuda(vec, prec_type, copy_mode, array);
   case CEED_MEM_DEVICE:
-    return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array, prec_type);
+    return CeedVectorSetArrayDevice_Cuda(vec, prec_type, copy_mode, array);
   }
 
   return CEED_ERROR_UNSUPPORTED;
@@ -818,16 +819,16 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
 //------------------------------------------------------------------------------
 static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type,
                                     CeedScalar **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, CEED_SCALR_TYPE,
+  return CeedVectorTakeArrayCore_Cuda(vec, mem_type, CEED_SCALAR_TYPE,
                                      (void **) array);
 }
 
 //------------------------------------------------------------------------------
 // Vector Take Array in a specific parameter
 //------------------------------------------------------------------------------
-static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type,
-                                    CeedScalarType prec_type, void **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, prec_type, array);
+static int CeedVectorTakeArrayTyped_Cuda(CeedVector vec, CeedMemType mem_type,
+                                         CeedScalarType prec_type, void **array) {
+  return CeedVectorTakeArrayCore_Cuda(vec, mem_type, prec_type, array);
 }
 
 //------------------------------------------------------------------------------
@@ -1265,16 +1266,16 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
                                 CeedVectorGetArray_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayTyped",
-                                CeedVectorGetArrayTyped_Cuda); CeedChkBackend(ierr);
+//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayTyped",
+ //                               CeedVectorGetArrayTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
                                 CeedVectorGetArrayRead_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadTyped",
-                                CeedVectorGetArrayReadTyped_Cuda); CeedChkBackend(ierr);
+//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadTyped",
+//                                CeedVectorGetArrayReadTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
                                 CeedVectorGetArrayWrite_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteTyped",
-                                CeedVectorGetArrayWriteTyped_Cuda); CeedChkBackend(ierr);
+//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteTyped",
+//                                CeedVectorGetArrayWriteTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
                                 CeedVectorRestoreArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
