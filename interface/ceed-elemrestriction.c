@@ -866,7 +866,7 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   int ierr;
   CeedVector e_vec;
 
-  // Create and set l_vec, e_vec
+  // Create e_vec to hold intermediate computation in E^T (E 1)
   ierr = CeedElemRestrictionCreateVector(rstr, NULL, &e_vec); CeedChk(ierr);
   ierr = CeedVectorSetValue(mult, 1.0); CeedChk(ierr);
 
