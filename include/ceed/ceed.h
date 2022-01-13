@@ -141,7 +141,7 @@ typedef enum {
 /// Struct for holding data in multiple precisions for mixed-precision-enabled
 /// backends
 typedef struct {
-  void *values[CEED_NUM_PRECISIONS];
+  void *values[2]; // Size equals CEED_NUM_PRECISIONS
 } CeedScalarArray;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.

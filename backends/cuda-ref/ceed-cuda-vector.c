@@ -145,18 +145,17 @@ static inline int CeedVectorSync_Cuda(const CeedVector vec,
 // convert values only in owned??
 
 //------------------------------------------------------------------------------
-// Convert host array to new precision
+// Convert host array to new precision. from_array and to_array *must* be
+//   on host already.
 //------------------------------------------------------------------------------
 static int CeedVectorConvertArrayHost_Cuda(CeedVector vec,
-    const CeedScalarType from_prec, const CeedScalarType to_prec) {
+    const CeedScalarType from_prec, const CeedScalarType to_prec,
+    CeedScalarArray *from_array, CeedScalarArray *to_array) {
   CeedInt length, ierr;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
   CeedVector_Cuda *data;
   ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
 
-  // Pointers to access data from multiprecision container
-  float *float_data = (float *) data->h_array.values[CEED_SCALAR_FP32];
-  double *double_data = (double *) data->h_array.values[CEED_SCALAR_FP64];
   switch (from_prec) {
 
   case CEED_SCALAR_FP64:
@@ -165,13 +164,18 @@ static int CeedVectorConvertArrayHost_Cuda(CeedVector vec,
       // No conversion needed
       break;
     case CEED_SCALAR_FP32:
-      if (!data->h_array_owned.values[CEED_SCALAR_FP32]) {
-        ierr = CeedMalloc(length,
-                          (float **) &data->h_array_owned.values[CEED_SCALAR_FP32]);
-        CeedChkBackend(ierr);
-        data->h_array.values[CEED_SCALAR_FP32] =
+      if (!to_array->values[CEED_SCALAR_FP32]) {
+        if (!data->h_array_owned.values[CEED_SCALAR_FP32]) {
+          ierr = CeedMalloc(length,
+                            (float **) &data->h_array_owned.values[CEED_SCALAR_FP32]);
+          CeedChkBackend(ierr);
+        }
+        // Use owned memory
+        to_array->values[CEED_SCALAR_FP32] =
           data->h_array_owned.values[CEED_SCALAR_FP32];
       }
+      float *float_data = (float *) to_array->values[CEED_SCALAR_FP32];
+      double *double_data = (double *) from_array->values[CEED_SCALAR_FP64];
       for (int i = 0; i < length; i++)
         float_data[i] = (float) double_data[i];
       break;
@@ -181,14 +185,18 @@ static int CeedVectorConvertArrayHost_Cuda(CeedVector vec,
   case CEED_SCALAR_FP32:
     switch (to_prec) {
     case CEED_SCALAR_FP64:
-      if (!data->h_array_owned.values[CEED_SCALAR_FP64]) {
-        ierr = CeedMalloc(length,
-                          (double **) &data->h_array_owned.values[CEED_SCALAR_FP64]);
-        CeedChkBackend(ierr);
-        data->h_array.values[CEED_SCALAR_FP64] =
+      if (!to_array->values[CEED_SCALAR_FP64]) {
+        if (!data->h_array_owned.values[CEED_SCALAR_FP64]) {
+          ierr = CeedMalloc(length,
+                            (double **) &data->h_array_owned.values[CEED_SCALAR_FP64]);
+          CeedChkBackend(ierr);
+        }
+        // Use owned memory
+        to_array->values[CEED_SCALAR_FP64] =
           data->h_array_owned.values[CEED_SCALAR_FP64];
       }
-
+      float *float_data = (float *) from_array->values[CEED_SCALAR_FP32];
+      double *double_data = (double *) to_array->values[CEED_SCALAR_FP64];
       for (int i = 0; i < length; i++)
         double_data[i] = (double) float_data[i];
       break;
@@ -219,7 +227,8 @@ int CeedDeviceConvertArray_Cuda_Fp32_Fp64(CeedInt length,
 // .cu file)
 //------------------------------------------------------------------------------
 static int CeedVectorConvertArrayDevice_Cuda(CeedVector vec,
-    const CeedScalarType from_prec, const CeedScalarType to_prec) {
+    const CeedScalarType from_prec, const CeedScalarType to_prec,
+    CeedScalarArray *from_array, CeedScalarArray *to_array) {
 
   CeedInt length, ierr;
   Ceed ceed;
@@ -235,16 +244,19 @@ static int CeedVectorConvertArrayDevice_Cuda(CeedVector vec,
       // No conversion needed
       break;
     case CEED_SCALAR_FP32:
-      if (data->d_array.values[CEED_SCALAR_FP32]==NULL) {
-        ierr = cudaMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP32],
-                          bytes(vec, CEED_SCALAR_FP32));
-        CeedChk_Cu(ceed, ierr);
-        data->d_array.values[CEED_SCALAR_FP32] =
+      if (!to_array->values[CEED_SCALAR_FP32]) {
+        if (!data->d_array_owned.values[CEED_SCALAR_FP32]) {
+          ierr = cudaMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP32],
+                            bytes(vec, CEED_SCALAR_FP32));
+          CeedChk_Cu(ceed, ierr);
+        }
+        // Use owned memory
+        to_array->values[CEED_SCALAR_FP32] =
           data->d_array_owned.values[CEED_SCALAR_FP32];
       }
       ierr = CeedDeviceConvertArray_Cuda_Fp64_Fp32(length,
-             data->d_array.values[CEED_SCALAR_FP64],
-             data->d_array.values[CEED_SCALAR_FP32]);
+             (double *) data->d_array.values[CEED_SCALAR_FP64],
+             (float *) data->d_array.values[CEED_SCALAR_FP32]);
       CeedChkBackend(ierr);
       break;
     }
@@ -253,16 +265,19 @@ static int CeedVectorConvertArrayDevice_Cuda(CeedVector vec,
   case CEED_SCALAR_FP32:
     switch (to_prec) {
     case CEED_SCALAR_FP64:
-      if (data->d_array.values[CEED_SCALAR_FP64]==NULL) {
-        ierr = cudaMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP64],
-                          bytes(vec, CEED_SCALAR_FP64));
-        CeedChk_Cu(ceed, ierr);
-        data->d_array.values[CEED_SCALAR_FP64] =
+      if (!to_array->values[CEED_SCALAR_FP64]) {
+        if (!data->d_array_owned.values[CEED_SCALAR_FP64]) {
+          ierr = cudaMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP64],
+                            bytes(vec, CEED_SCALAR_FP64));
+          CeedChk_Cu(ceed, ierr);
+        }
+        // Use owned memory
+        to_array->values[CEED_SCALAR_FP64] =
           data->d_array_owned.values[CEED_SCALAR_FP64];
       }
       ierr = CeedDeviceConvertArray_Cuda_Fp32_Fp64(length,
-             data->d_array.values[CEED_SCALAR_FP32],
-             data->d_array.values[CEED_SCALAR_FP64]);
+             (float *) data->d_array.values[CEED_SCALAR_FP32],
+             (double *) data->d_array.values[CEED_SCALAR_FP64]);
       CeedChkBackend(ierr);
       break;
     case CEED_SCALAR_FP32:
@@ -278,14 +293,15 @@ static int CeedVectorConvertArrayDevice_Cuda(CeedVector vec,
 // Convert data array from one precision to another (through copy/cast).
 //------------------------------------------------------------------------------
 static int CeedVectorConvertArray_Cuda(CeedVector vec,
-                                       const CeedMemType mem_type,
-                                       const CeedScalarType from_prec, const CeedScalarType to_prec) {
+                                       const CeedMemType mem_type, const CeedScalarType from_prec,
+                                       const CeedScalarType to_prec, CeedScalarArray *from_array,
+                                       CeedScalarArray *to_array) {
 
   switch (mem_type) {
   case CEED_MEM_HOST: return CeedVectorConvertArrayHost_Cuda(vec, from_prec,
-                               to_prec);
+                               to_prec, from_array, to_array);
   case CEED_MEM_DEVICE: return CeedVectorConvertArrayDevice_Cuda(vec, from_prec,
-                                 to_prec);
+                                 to_prec, from_array, to_array);
   }
   return CEED_ERROR_UNSUPPORTED;
 }
@@ -339,7 +355,7 @@ static inline int CeedVectorGetPrecision_Cuda(const CeedVector vec,
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
   *preferred_precision = CEED_SCALAR_TYPE;
-  // Check for valid precisions, from least precise to most precise (we want
+  // Check for valid precisions, from most to least precise precise (we want
   // the most precision if multiple arrays are valid)
   switch (mem_type) {
   case CEED_MEM_HOST:
@@ -392,6 +408,30 @@ static inline int CeedVectorHasArrayOfType_Cuda(const CeedVector vec,
   case CEED_MEM_DEVICE:
     *has_array_of_type = !!impl->d_array_borrowed.values[CEED_SCALAR_TYPE] ||
                          !!impl->d_array_owned.values[CEED_SCALAR_TYPE];
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Check if has array of given memory and precision type
+//------------------------------------------------------------------------------
+static inline int CeedVectorHasArrayOfTypeAndPrecision_Cuda(
+  const CeedVector vec,
+  CeedMemType mem_type, CeedScalarType prec_type, bool *has_array_of_type) {
+  int ierr;
+  CeedVector_Cuda *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  switch (mem_type) {
+  case CEED_MEM_HOST:
+    *has_array_of_type = !!impl->h_array_borrowed.values[prec_type] ||
+                         !!impl->h_array_owned.values[prec_type];
+    break;
+  case CEED_MEM_DEVICE:
+    *has_array_of_type = !!impl->d_array_borrowed.values[prec_type] ||
+                         !!impl->d_array_owned.values[prec_type];
     break;
   }
 
@@ -482,7 +522,8 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec,
   bool has_valid_array = false;
   ierr = CeedVectorHasValidArray(vec, &has_valid_array); CeedChkBackend(ierr);
   bool has_valid_array_of_type = false;
-  ierr = CeedVectorHasValidArrayOfType_Cuda(vec, mem_type, &has_valid_array_of_type);
+  ierr = CeedVectorHasValidArrayOfType_Cuda(vec, mem_type,
+         &has_valid_array_of_type);
   CeedChkBackend(ierr);
 
   // Check if we have a valid array, but not for the correct memory type
@@ -495,7 +536,7 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec,
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
-    const CeedScalarType prec_type, const CeedCopyMode copy_mode, void *array) {
+                                       const CeedScalarType prec_type, const CeedCopyMode copy_mode, void *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -733,8 +774,9 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
         // Check for device array in matching precision
         if (!impl->d_array.values[CEED_SCALAR_FP32]) {
           // Convert on device
-          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_DEVICE, CEED_SCALAR_FP64,
-                                             CEED_SCALAR_FP32);
+          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_DEVICE,
+                                             CEED_SCALAR_FP64, CEED_SCALAR_FP32,
+                                             &impl->d_array, &impl->d_array);
           CeedChkBackend(ierr);
         }
         // Sync array
@@ -746,6 +788,10 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
           // Sync first, then convert on host
           ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP32);
           CeedChkBackend(ierr);
+        } else {
+          // Sync double precision
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP64);
+          CeedChkBackend(ierr);
         }
       }
     }
@@ -756,7 +802,7 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
       ierr = CeedVectorGetPrecision_Cuda(vec, CEED_MEM_HOST, &cur_prec);
       CeedChkBackend(ierr);
       ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_HOST, cur_prec,
-                                         prec_type);
+                                         prec_type, &impl->h_array, &impl->h_array);
       CeedChkBackend(ierr);
     }
     break;
@@ -768,8 +814,9 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
         // Check for host array in matching precision
         if (!impl->h_array.values[CEED_SCALAR_FP32]) {
           // Convert on host
-          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_HOST, CEED_SCALAR_FP64,
-                                             CEED_SCALAR_FP32);
+          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_HOST,
+                                             CEED_SCALAR_FP64, CEED_SCALAR_FP32,
+                                             &impl->h_array, &impl->h_array);
           CeedChkBackend(ierr);
         }
         // Sync array
@@ -781,6 +828,10 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
           // Sync first, then convert on host
           ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP32);
           CeedChkBackend(ierr);
+        } else {
+          // Sync double precision
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP64);
+          CeedChkBackend(ierr);
         }
       }
     }
@@ -791,7 +842,7 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
       ierr = CeedVectorGetPrecision_Cuda(vec, CEED_MEM_DEVICE, &cur_prec);
       CeedChkBackend(ierr);
       ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_DEVICE, cur_prec,
-                                         prec_type);
+                                         prec_type, &impl->d_array, &impl->d_array);
       CeedChkBackend(ierr);
     }
     break;
@@ -820,14 +871,14 @@ static int CeedVectorTakeArrayCore_Cuda(CeedVector vec, CeedMemType mem_type,
 static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type,
                                     CeedScalar **array) {
   return CeedVectorTakeArrayCore_Cuda(vec, mem_type, CEED_SCALAR_TYPE,
-                                     (void **) array);
+                                      (void **) array);
 }
 
 //------------------------------------------------------------------------------
 // Vector Take Array in a specific parameter
 //------------------------------------------------------------------------------
 static int CeedVectorTakeArrayTyped_Cuda(CeedVector vec, CeedMemType mem_type,
-                                         CeedScalarType prec_type, void **array) {
+    CeedScalarType prec_type, void **array) {
   return CeedVectorTakeArrayCore_Cuda(vec, mem_type, prec_type, array);
 }
 
@@ -836,31 +887,105 @@ static int CeedVectorTakeArrayTyped_Cuda(CeedVector vec, CeedMemType mem_type,
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayCore_Cuda(const CeedVector vec,
-                                       const CeedMemType mem_type, CeedScalar **array) {
+                                       const CeedMemType mem_type, const CeedScalarType prec_type, void **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  bool need_sync = false, has_array_of_type = true;
+  bool need_sync = false;
   ierr = CeedVectorNeedSync_Cuda(vec, mem_type, &need_sync);
   CeedChkBackend(ierr);
-  ierr = CeedVectorHasArrayOfType_Cuda(vec, mem_type, &has_array_of_type);
-  CeedChkBackend(ierr);
-  if (need_sync) {
-    // Sync array to requested mem_type
-    ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_TYPE);
-    CeedChkBackend(ierr);
+  switch (mem_type) {
+  case CEED_MEM_HOST:
+    // Do we need to sync from the device?
+    if (need_sync) {
+      if (prec_type == CEED_SCALAR_FP32) {
+        // Check for device array in matching precision
+        if (!impl->d_array.values[CEED_SCALAR_FP32]) {
+          // Convert on device
+          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_DEVICE,
+                                             CEED_SCALAR_FP64, CEED_SCALAR_FP32,
+                                             &impl->d_array, &impl->d_array);
+          CeedChkBackend(ierr);
+        }
+        // Sync array
+        ierr = CeedVectorSync_Cuda(vec, mem_type, prec_type);
+        CeedChkBackend(ierr);
+      } else {
+        // Check for device array in matching precision
+        if (!impl->d_array.values[CEED_SCALAR_FP64]) {
+          // Sync first, then convert on host
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP32);
+          CeedChkBackend(ierr);
+        } else {
+          // Sync double precision
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP64);
+          CeedChkBackend(ierr);
+        }
+      }
+    }
+    // Convert host array to new precision, if required
+    if (!impl->h_array.values[prec_type]) {
+      // Get current precision to convert from
+      CeedScalarType cur_prec;
+      ierr = CeedVectorGetPrecision_Cuda(vec, CEED_MEM_HOST, &cur_prec);
+      CeedChkBackend(ierr);
+      ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_HOST, cur_prec,
+                                         prec_type, &impl->h_array, &impl->h_array);
+      CeedChkBackend(ierr);
+    }
+    break;
+
+  case CEED_MEM_DEVICE:
+    // Do we need to sync to the device?
+    if (need_sync) {
+      if (prec_type == CEED_SCALAR_FP32) {
+        // Check for host array in matching precision
+        if (!impl->h_array.values[CEED_SCALAR_FP32]) {
+          // Convert on host
+          ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_HOST,
+                                             CEED_SCALAR_FP64, CEED_SCALAR_FP32,
+                                             &impl->h_array, &impl->h_array);
+          CeedChkBackend(ierr);
+        }
+        // Sync array
+        ierr = CeedVectorSync_Cuda(vec, mem_type, prec_type);
+        CeedChkBackend(ierr);
+      } else {
+        // Check for host array in matching precision
+        if (!impl->h_array.values[CEED_SCALAR_FP64]) {
+          // Sync first, then convert on host
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP32);
+          CeedChkBackend(ierr);
+        } else {
+          // Sync double precision
+          ierr = CeedVectorSync_Cuda(vec, mem_type, CEED_SCALAR_FP64);
+          CeedChkBackend(ierr);
+        }
+      }
+    }
+    // Convert device array to new precision, if required
+    if (!impl->d_array.values[prec_type]) {
+      // Get current precision to convert from
+      CeedScalarType cur_prec;
+      ierr = CeedVectorGetPrecision_Cuda(vec, CEED_MEM_DEVICE, &cur_prec);
+      CeedChkBackend(ierr);
+      ierr = CeedVectorConvertArray_Cuda(vec, CEED_MEM_DEVICE, cur_prec,
+                                         prec_type, &impl->d_array, &impl->d_array);
+      CeedChkBackend(ierr);
+    }
+    break;
   }
 
   // Update pointer
   switch (mem_type) {
   case CEED_MEM_HOST:
-    *array = (CeedScalar *) impl->h_array.values[CEED_SCALAR_TYPE];
+    *array = impl->h_array.values[prec_type];
     break;
   case CEED_MEM_DEVICE:
-    *array = (CeedScalar *) impl->d_array.values[CEED_SCALAR_TYPE];
+    *array = impl->d_array.values[prec_type];
     break;
   }
 
@@ -871,7 +996,8 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec,
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
                                        const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array);
+  return CeedVectorGetArrayCore_Cuda(vec, mem_type, CEED_SCALAR_TYPE,
+                                     (void **)array);
 }
 
 //------------------------------------------------------------------------------
@@ -880,9 +1006,7 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec,
 static int CeedVectorGetArrayReadTyped_Cuda(const CeedVector vec,
     const CeedMemType mem_type, const CeedScalarType prec_type,
     const void **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array);
-
-
+  return CeedVectorGetArrayCore_Cuda(vec, mem_type, prec_type, (void **)array);
 }
 
 //------------------------------------------------------------------------------
@@ -894,7 +1018,9 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  ierr = CeedVectorGetArrayCore_Cuda(vec, mem_type, array); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayCore_Cuda(vec, mem_type, CEED_SCALAR_TYPE,
+                                     (void **) array);
+  CeedChkBackend(ierr);
 
   ierr = CeedVectorSetAllInvalid_Cuda(vec); CeedChkBackend(ierr);
   switch (mem_type) {
@@ -903,6 +1029,31 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec,
     break;
   case CEED_MEM_DEVICE:
     impl->d_array.values[CEED_SCALAR_TYPE] = (void *) *array;
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Get read/write access to a vector via the specified mem_type and precision
+//------------------------------------------------------------------------------
+static int CeedVectorGetArrayTyped_Cuda(const CeedVector vec,
+                                        const CeedMemType mem_type, const CeedScalarType prec_type, void **array) {
+  int ierr;
+  CeedVector_Cuda *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  ierr = CeedVectorGetArrayCore_Cuda(vec, mem_type, prec_type, array);
+  CeedChkBackend(ierr);
+
+  ierr = CeedVectorSetAllInvalid_Cuda(vec); CeedChkBackend(ierr);
+  switch (mem_type) {
+  case CEED_MEM_HOST:
+    impl->h_array.values[prec_type] = (void *) *array;
+    break;
+  case CEED_MEM_DEVICE:
+    impl->d_array.values[prec_type] = (void *) *array;
     break;
   }
 
@@ -947,6 +1098,48 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec,
   }
 
   return CeedVectorGetArray_Cuda(vec, mem_type, array);
+}
+
+//------------------------------------------------------------------------------
+// Get write access to a vector via the specified mem_type and precision
+//------------------------------------------------------------------------------
+static int CeedVectorGetArrayWriteTyped_Cuda(const CeedVector vec,
+    const CeedMemType mem_type, const CeedScalarType prec_type, void **array) {
+  int ierr;
+  CeedVector_Cuda *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  bool has_array_of_type = true;
+  ierr = CeedVectorHasArrayOfTypeAndPrecision_Cuda(vec, mem_type, prec_type,
+         &has_array_of_type);
+  CeedChkBackend(ierr);
+  if (!has_array_of_type) {
+    // Allocate if array is not yet allocated
+    ierr = CeedVectorSetArrayTyped(vec, mem_type, prec_type, CEED_COPY_VALUES,
+                                   NULL);
+    CeedChkBackend(ierr);
+  } else {
+    // Select dirty array
+    switch (mem_type) {
+    case CEED_MEM_HOST:
+      if (impl->h_array_borrowed.values[prec_type])
+        impl->h_array.values[prec_type] =
+          impl->h_array_borrowed.values[prec_type];
+      else
+        impl->h_array.values[prec_type] =
+          impl->h_array_owned.values[prec_type];
+      break;
+    case CEED_MEM_DEVICE:
+      if (impl->d_array_borrowed.values[prec_type])
+        impl->d_array.values[prec_type] =
+          impl->d_array_borrowed.values[prec_type];
+      else
+        impl->d_array.values[prec_type] =
+          impl->d_array_owned.values[prec_type];
+    }
+  }
+
+  return CeedVectorGetArrayTyped_Cuda(vec, mem_type, prec_type, (void **) array);
 }
 
 //------------------------------------------------------------------------------
@@ -1266,16 +1459,16 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
                                 CeedVectorGetArray_Cuda); CeedChkBackend(ierr);
-//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayTyped",
- //                               CeedVectorGetArrayTyped_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayTyped",
+                                CeedVectorGetArrayTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
                                 CeedVectorGetArrayRead_Cuda); CeedChkBackend(ierr);
-//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadTyped",
-//                                CeedVectorGetArrayReadTyped_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadTyped",
+                                CeedVectorGetArrayReadTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
                                 CeedVectorGetArrayWrite_Cuda); CeedChkBackend(ierr);
-//  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteTyped",
-//                                CeedVectorGetArrayWriteTyped_Cuda); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteTyped",
+                                CeedVectorGetArrayWriteTyped_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
                                 CeedVectorRestoreArray_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",

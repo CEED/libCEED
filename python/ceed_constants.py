@@ -27,6 +27,7 @@ mem_types = {MEM_HOST: "host",
              MEM_DEVICE: "device"}
 
 # CeedScalarType
+CEED_NUM_PRECISIONS = 2
 SCALAR_FP32 = lib.CEED_SCALAR_FP32
 SCALAR_FP64 = lib.CEED_SCALAR_FP64
 scalar_types = {SCALAR_FP32: "float32",
