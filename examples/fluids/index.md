@@ -447,3 +447,57 @@ no-penetration, no-heat flux condition. The top of the domain is treated as an
 outflow and is tilted at a downward angle to ensure that flow is always exiting
 it.
 
+## Flat Plate Boundary Layer
+
+### Synthetic Turbulence Generation (STG) Boundary Condition
+
+#### Equation Formulation
+
+$$
+\bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \sum^N_{n=1} q^n(\bm{x}) \bm{\sigma}^n \cos(\kappa^n \bm{d}^n \cdot \bm{\hat{x}}^n(\bm{x}, t) + \phi^n )
+$$
+
+$$
+\bm{\hat{x}}^n = \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
+$$
+
+defining the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$, the Cholesky decomposition of the Reynolds stress
+tensor $\bm{C}$ (such that $\bm{R} = \bm{CC}^T$ ), bulk velocity $U_0$,
+wavemode amplitude $q^n$, wavemode frequency $\kappa^n$, and $\kappa_{\min} =
+\min_{\bm{x}} (\kappa_e)$.
+
+$$
+\kappa_e = \frac{2\pi}{\min(2d_w, 3.0 l_t)}
+$$
+
+where $l_t$ is the turbulence length scale.
+
+
+The set of wavemode frequencies is defined by a geometric distribution:
+
+$$
+\kappa^n = \kappa_{\min} (1 + \alpha)^{n-1} \ , \quad \forall n=1, 2, ... , N
+$$
+
+The wavemode amplitudes $q^n$ are defined by a model energy spectrum $E(\kappa)$:
+
+$$
+q^n = \frac{E(\kappa^n) \Delta \kappa^n}{\sum^N_{n=1} E(\kappa^n)\Delta \kappa^n} \ ,\quad \Delta \kappa^n = \kappa^n - \kappa^{n-1}
+$$
+
+$$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa^e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
+
+$$
+f_\eta = \exp \left[-(12\kappa_\eta /(2\pi))^2 \right], \quad
+f_\mathrm{cut} = \exp \left( - \left [ \frac{4\max(\kappa-0.9\kappa_\mathrm{cut}, 0)}{\kappa_\mathrm{cut}} \right]^3 \right)
+$$
+
+$\kappa_\eta$ represents turbulent dissipation frequency, and is given as $2\pi
+(\nu^3/\varepsilon)^{-1/4}$. $\kappa_\mathrm{cut}$ approximates the effective
+cutoff frequency of the mesh (viewing the mesh as a filter on solution over
+$\Omega$) and is given by:
+
+$$
+\kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
+$$
