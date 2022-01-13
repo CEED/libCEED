@@ -501,3 +501,61 @@ $\Omega$) and is given by:
 $$
 \kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
 $$
+
+#### Algorithm Architecture
+
+Data flow for initializing function (which creates the context data struct):
+```{mermaid}
+flowchart LR
+    subgraph User Input Data
+    rand[RN Set];
+    u0[U0];
+    eps
+    lt[l_t]
+    Rij[R_ij]
+    ubar
+    end
+
+    init{{Init Func}}
+
+    subgraph Grid Data
+    gridsize[h_i]
+    end
+    gridsize --> Ek
+
+    subgraph init[Init Func Data]
+    Ek[Ek]
+    ke[k_e]
+    N;
+    end
+    eps --> Ek;
+    ke --> Ek;
+    lt --> ke --> kn
+    Ek --> qn
+
+    subgraph context[Context Data]
+    qn[q^n]
+    randC[RN Set]
+    Cij[C_ij]
+    u0 --> u0C[U0]
+    kn[k^n];
+    ubarC[ubar]
+    end
+    ubar --> ubarC;
+    rand --> randC;
+    rand --> N --> kn;
+    Rij --Cholesky Decomposition--> Cij[C_ij]
+```
+
+| Math            | Label  | $f(\bm{x})$? | $f(n)$? |
+|-----------------|--------|--------------|---------|
+| $ \{\bm{\sigma}^n, \bm{d}^n, \phi^n\}_{n=1}^N$        | RN Set | No           | Yes     |
+| $\bm{\overline{u}}$ | ubar | Yes | No |
+| $U_0$           | U0     | No           | No      |
+| $l_t$           | l_t    | Yes          | No   |
+| $\varepsilon$   | eps    | Yes          | No   |
+| $\bm{R}$        | R_ij   | Yes          | No      |
+| $\bm{C}$        | C_ij   | Yes          | No      |
+| $q^n$           | q^n    | Yes           | Yes     |
+| $\{\kappa^n\}_{n=1}^N$ | k^n  | No           | Yes      |
+| $h_i$           | h_i    | Yes          | No   |
