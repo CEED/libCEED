@@ -869,7 +869,6 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   // Create and set l_vec, e_vec
   ierr = CeedElemRestrictionCreateVector(rstr, NULL, &e_vec); CeedChk(ierr);
   ierr = CeedVectorSetValue(mult, 1.0); CeedChk(ierr);
-  ierr = CeedVectorSetValue(e_vec, 0.0); CeedChk(ierr);
 
   // Apply to get multiplicity
   ierr = CeedElemRestrictionApply(rstr, CEED_NOTRANSPOSE, mult, e_vec,
