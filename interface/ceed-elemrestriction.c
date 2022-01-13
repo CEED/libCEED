@@ -866,15 +866,17 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   int ierr;
   CeedVector e_vec;
 
-  // Create and set e_vec
+  // Create e_vec to hold intermediate computation in E^T (E 1)
   ierr = CeedElemRestrictionCreateVector(rstr, NULL, &e_vec); CeedChk(ierr);
-  ierr = CeedVectorSetValue(e_vec, 1.0); CeedChk(ierr);
-  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
 
-  // Apply to get multiplicity
+  // Compute e_vec = E * 1
+  ierr = CeedVectorSetValue(mult, 1.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstr, CEED_NOTRANSPOSE, mult, e_vec,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  // Compute multiplicity, mult = E^T * e_vec = E^T (E 1)
+  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
   ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, e_vec, mult,
                                   CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
-
   // Cleanup
   ierr = CeedVectorDestroy(&e_vec); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
