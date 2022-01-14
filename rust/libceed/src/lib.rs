@@ -714,7 +714,12 @@ impl Ceed {
         )
     }
 
+    #[cfg_attr(doc, katexit::katexit)]
     /// Returns a CeedQFunction for evaluating interior (volumetric) terms
+    ///
+    /// $$
+    /// v^T F(u) \sim \int_\Omega v^T f_0(u, \nabla u) + (\nabla v)^T f_1(u, \nabla u)
+    /// $$
     ///
     /// # arguments
     ///
