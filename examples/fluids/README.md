@@ -326,6 +326,11 @@ For the Isentropic Vortex problem, the following additional command-line options
   - Strength of vortex < 10
   - `5`
   -
+
+* - `-c_tau`
+  - Stabilization constant
+  - `0.5`
+  -
 :::
 
 This problem can be run with:
@@ -417,6 +422,11 @@ For the Density Current problem, the following additional command-line options a
 * - `-stab`
   - Stabilization method (`none`, `su`, or `supg`)
   - `none`
+  -
+
+* - `-c_tau`
+  - Stabilization constant
+  - `0.5`
   -
 
 * - `-theta0`

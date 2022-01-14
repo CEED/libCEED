@@ -181,8 +181,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER,
                      (PetscScalar *)q);
   CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type),
-                     CEED_USE_POINTER,
-                     (PetscScalar *)q_dot);
+                     CEED_USE_POINTER, (PetscScalar *)q_dot);
   CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
 
   // Apply CEED operator
@@ -251,12 +250,11 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
     ierr = DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc);
     CHKERRQ(ierr);
     ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
-                         "%s/nsrefined-%03D.vtu",
-                         user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
+                         "%s/nsrefined-%03D.vtu", user->app_ctx->output_dir,
+                         step_no + user->app_ctx->cont_steps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
-                              file_path_refined,
-                              FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
+                              file_path_refined, FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
     ierr = VecView(Q_refined_loc, viewer_refined); CHKERRQ(ierr);
     ierr = DMRestoreLocalVector(user->dm_viz, &Q_refined_loc); CHKERRQ(ierr);
     ierr = DMRestoreGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
@@ -293,7 +291,6 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
 // TS: Create, setup, and solve
 PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
                           Vec *Q, PetscScalar *f_time, TS *ts) {
-
   MPI_Comm       comm = user->comm;
   TSAdapt        adapt;
   PetscScalar    final_time;

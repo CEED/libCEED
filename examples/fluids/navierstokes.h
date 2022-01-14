@@ -90,6 +90,7 @@ typedef enum {
   EULER_TEST_2 = 2,
   EULER_TEST_3 = 3,
   EULER_TEST_4 = 4,
+  EULER_TEST_5 = 5,
 } EulerTestType;
 static const char *const EulerTestTypes[] = {
   "isentropic_vortex",
@@ -97,6 +98,7 @@ static const char *const EulerTestTypes[] = {
   "test_2",
   "test_3",
   "test_4",
+  "test_5",
   "EulerTestType", "EULER_TEST_", NULL
 };
 
@@ -122,7 +124,6 @@ typedef struct CeedData_private  *CeedData;
 typedef struct User_private      *User;
 typedef struct Units_private     *Units;
 typedef struct SimpleBC_private  *SimpleBC;
-typedef struct SetupContext_     *SetupContext;
 typedef struct Physics_private   *Physics;
 
 // Application context from user command line options
@@ -152,8 +153,7 @@ struct CeedData_private {
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_sur;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur,
-                       basis_q_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
@@ -206,7 +206,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -233,7 +232,7 @@ struct DCContext_ {
   CeedScalar cv;
   CeedScalar cp;
   CeedScalar g;
-  CeedScalar Rd;
+  CeedScalar c_tau;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -246,9 +245,11 @@ struct EulerContext_ {
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;
+  CeedScalar c_tau;
   CeedScalar mean_velocity[3];
-  int euler_test;
   bool implicit;
+  int euler_test;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 

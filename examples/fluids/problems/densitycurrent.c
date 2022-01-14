@@ -70,12 +70,13 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k      = 0.02638; // W/(m K)
+  CeedScalar c_tau  = 0.5;     // -
+  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscScalar lx    = 8000.;   // m
   PetscScalar ly    = 8000.;   // m
   PetscScalar lz    = 4000.;   // m
   CeedScalar rc     = 1000.;   // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
-  CeedScalar Rd;
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -141,7 +142,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
-
+  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
+                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -198,7 +200,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  Rd     = cp - cv;
   g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
@@ -215,7 +216,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->N          = N;
   setup_context->cv         = cv;
   setup_context->cp         = cp;
-  setup_context->Rd         = Rd;
   setup_context->g          = g;
   setup_context->rc         = rc;
   setup_context->lx         = lx;
@@ -239,7 +239,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->cv       = cv;
   user->phys->dc_ctx->cp       = cp;
   user->phys->dc_ctx->g        = g;
-  user->phys->dc_ctx->Rd       = Rd;
+  user->phys->dc_ctx->c_tau    = c_tau;
   user->phys->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
@@ -333,7 +333,7 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     CHKERRQ(ierr);
   }
 
-  if (bc->user_bc == PETSC_TRUE) {
+  if (bc->user_bc) {
     for (PetscInt c = 0; c < 3; c++) {
       for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
         for (PetscInt w = 0; w < bc->num_wall; w++) {
