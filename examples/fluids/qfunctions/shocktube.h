@@ -333,15 +333,14 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
     CeedScalar vel_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
     CeedScalar rho_sq = rho*rho;
     for (int j=0; j<3; j++) {
-      jacob_F_conv[j][4][0] = (gamma-1.) * (-u[j]*P/rho - u[j]/rho*(E-vel_sq/
-                                            (2.*rho)) + u[j]*(vel_sq/(2.*rho)));
+      jacob_F_conv[j][4][0] =  u[j]*((gamma-1.)*vel_sq - E*gamma/rho);
       jacob_F_conv[j][4][4] =  u[j] * gamma;
       for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0] = -u[j]*u[k] + (j==k?((gamma-1.)*vel_sq/(2*rho_sq)):0.);
+        jacob_F_conv[j][k+1][0] = -u[j]*u[k] + (j==k?((gamma-1.)*vel_sq/2.):0.);
         jacob_F_conv[j][k+1][4] = (j==k?(gamma-1.):0.);
         jacob_F_conv[j][0][k+1] = (j==k?1.:0.);
-        jacob_F_conv[j][4][k+1] = (j==k?(E/rho + (gamma-1.)/rho*(E-vel_sq/
-                                         (2*rho))):0.) - (gamma-1.)*u[j]*u[k];
+        jacob_F_conv[j][4][k+1] = jacob_F_conv[j][4][k+1] = (j==k?(E*gamma/rho -
+                                  (gamma-1.)*vel_sq/2.):0.) - (gamma-1.)*u[j]*u[k];
         jacob_F_conv[j][j+1][k+1] = -(gamma-1.)*u[k];
         jacob_F_conv[j][k+1][k+1] += (j==k?(2*u[j]):(u[j]));
       }
