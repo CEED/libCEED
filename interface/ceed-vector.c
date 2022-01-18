@@ -564,18 +564,13 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   int ierr;
 
-  if (!vec->RestoreArray)
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support RestoreArray");
-  // LCOV_EXCL_STOP
-
   if (vec->state % 2 != 1)
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
                      "Cannot restore CeedVector array access, "
                      "access was not granted");
-
-  ierr = vec->RestoreArray(vec); CeedChk(ierr);
+  if (vec->RestoreArray) {
+    ierr = vec->RestoreArray(vec); CeedChk(ierr);
+  }
   *array = NULL;
   vec->state += 1;
   return CEED_ERROR_SUCCESS;
@@ -594,12 +589,6 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   int ierr;
 
-  if (!vec->RestoreArrayRead)
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support RestoreArrayRead");
-  // LCOV_EXCL_STOP
-
   if (vec->num_readers == 0)
     // LCOV_EXCL_START
     return CeedError(vec->ceed, CEED_ERROR_ACCESS,
@@ -607,7 +596,9 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
                      "access was not granted");
   // LCOV_EXCL_STOP
 
-  ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
+  if (vec->RestoreArrayRead) {
+    ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
+  }
   *array = NULL;
   vec->num_readers--;
   return CEED_ERROR_SUCCESS;

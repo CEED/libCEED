@@ -496,20 +496,6 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Restore an array obtained using CeedVectorGetArrayRead()
-//------------------------------------------------------------------------------
-static int CeedVectorRestoreArrayRead_Cuda(const CeedVector vec) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Restore an array obtained using CeedVectorGetArray()
-//------------------------------------------------------------------------------
-static int CeedVectorRestoreArray_Cuda(const CeedVector vec) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Get the norm of a CeedVector
 //------------------------------------------------------------------------------
 static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
@@ -786,10 +772,6 @@ int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
                                 CeedVectorGetArrayRead_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
                                 CeedVectorGetArrayWrite_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
-                                CeedVectorRestoreArray_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
-                                CeedVectorRestoreArrayRead_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
                                 CeedVectorNorm_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",

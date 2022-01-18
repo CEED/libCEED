@@ -352,14 +352,6 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Restore data obtained using CeedQFunctionContextGetData()
-//------------------------------------------------------------------------------
-static int CeedQFunctionContextRestoreData_Cuda(
-  const CeedQFunctionContext ctx) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Destroy the user context
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Cuda(const CeedQFunctionContext ctx) {
@@ -398,9 +390,6 @@ int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextTakeData_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
-                                CeedQFunctionContextRestoreData_Cuda);
-  CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Cuda); CeedChkBackend(ierr);
 
