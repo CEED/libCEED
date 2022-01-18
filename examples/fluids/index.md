@@ -504,19 +504,24 @@ $$
 
 #### Algorithm Architecture
 
-Data flow for initializing function (which creates the context data struct):
+Data flow for initializing function (which creates the context data struct) is
+given below:
 ```{mermaid}
 flowchart LR
-    subgraph User Input Data
-    rand[RN Set];
-    u0[U0];
+    subgraph STGInflow.dat
     eps
     lt[l_t]
     Rij[R_ij]
     ubar
     end
 
-    init{{Init Func}}
+    subgraph STGRand.dat
+    rand[RN Set];
+    end
+
+    subgraph User Input
+    u0[U0];
+    end
 
     subgraph Grid Data
     gridsize[h_i]
@@ -528,23 +533,41 @@ flowchart LR
     ke[k_e]
     N;
     end
-    eps --> Ek;
-    ke --> Ek;
-    lt --> ke --> kn
-    Ek --> qn
+    eps --Calc--> Ek;
+    ke --Calc-->Ek;
+    lt --Calc-->ke --Calc-->kn
+    Ek --Calc--> qn
 
     subgraph context[Context Data]
     qn[q^n]
     randC[RN Set]
     Cij[C_ij]
-    u0 --> u0C[U0]
+    u0 --Copy--> u0C[U0]
     kn[k^n];
     ubarC[ubar]
     end
-    ubar --> ubarC;
-    rand --> randC;
-    rand --> N --> kn;
-    Rij --Cholesky Decomposition--> Cij[C_ij]
+    ubar --Interp--> ubarC;
+    rand --> N --Calc--> kn;
+    rand --Copy--> randC;
+    Rij --Calc and Interp--> Cij[C_ij]
+```
+
+The `STGInflow.dat` file is a table of values at given distances from the wall.
+These values are then interpolated to a physical location (node or quadrature
+point). It has the following format:
+```
+[Total number of locations]
+[d_w] [u_1] [u_2] [u_3] [R_11] [R_22] [R_33] [R_12] [R_13] [R_23] [sclr_1] [sclr_2] [l_t] [eps]
+```
+where each `[  ]` item is a number in scientific notation (ie. `3.1415E0`), and `sclr_1` and
+`sclr_2` are reserved for turbulence modeling variables. They are not used in
+this example.
+
+The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$. It has the format:
+```
+[Number of wavemodes]
+[d_1] [d_2] [d_3] [phi] [sigma_1] [sigma_2] [sigma_3]
 ```
 
 | Math            | Label  | $f(\bm{x})$? | $f(n)$? |
