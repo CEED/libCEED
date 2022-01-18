@@ -219,6 +219,27 @@ impl Drop for Ceed {
 }
 
 // -----------------------------------------------------------------------------
+// Cloning
+// -----------------------------------------------------------------------------
+impl Clone for Ceed {
+    /// Perform a shallow clone of a Ceed context
+    ///
+    /// ```
+    /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ceed_clone = ceed.clone();
+    ///
+    /// println!("{}", ceed);
+    /// println!("{}", ceed_clone);
+    /// ```
+    fn clone(&self) -> Self {
+        let mut ptr_clone = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) };
+        self.check_error(ierr).expect("failed to clone Ceed");
+        Self { ptr: ptr_clone }
+    }
+}
+
+// -----------------------------------------------------------------------------
 // Display
 // -----------------------------------------------------------------------------
 impl fmt::Display for Ceed {
