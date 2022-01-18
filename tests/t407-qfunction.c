@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetInt32(ctx, "count", 43);
   if (ctx_data.count != 43)
     // LCOV_EXCL_START
-    printf("Incorrect context data for time: %d != 43", ctx_data.count);
+    printf("Incorrect context data for count: %d != 43", ctx_data.count);
   // LCOV_EXCL_STOP
 
   CeedQFunctionContextDestroy(&ctx);

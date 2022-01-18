@@ -712,6 +712,10 @@ CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
     CeedInt *num_qpts);
+CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op, const char *field_name,
+    double value);
+CEED_EXTERN int CeedOperatorContextSetInt32(CeedOperator op, const char *field_name,
+    int value);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,
