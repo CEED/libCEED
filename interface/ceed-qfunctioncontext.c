@@ -106,51 +106,6 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   return CEED_ERROR_SUCCESS;
 }
 
-/**
-  @brief Set QFunctionContext field holding a double precision value
-
-  @param ctx        CeedQFunctionContext
-  @param field_name Name of field to set
-  @param field_type Type of field to set
-  @param value      Value to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
-                                   const char *field_name,
-                                   CeedContextFieldType field_type, void *value) {
-  int ierr;
-
-  // Check field index
-  CeedInt field_index = -1;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
-  if (field_index == -1)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" not registered",
-                     field_name);
-  // LCOV_EXCL_STOP
-
-  if (ctx->field_descriptions[field_index].type != field_type)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" registered as %s, "
-                     "not registered as %s", field_name,
-                     CeedContextFieldTypes[ctx->field_descriptions[field_index].type],
-                     CeedContextFieldTypes[field_type]);
-  // LCOV_EXCL_STOP
-
-  char *data;
-  ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data); CeedChk(ierr);
-  memcpy(&data[ctx->field_descriptions[field_index].offset], value,
-         ctx->field_descriptions[field_index].size);
-  ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -269,6 +224,52 @@ int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data) {
 **/
 int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
   ctx->data = data;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field
+
+  @param ctx        CeedQFunctionContext
+  @param field_name Name of field to set
+  @param field_type Type of field to set
+  @param is_set     Boolean flag if value was set
+  @param value      Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
+                                   const char *field_name,
+                                   CeedContextFieldType field_type,
+                                   bool *is_set, void *value) {
+  int ierr;
+
+  // Check field index
+  *is_set = false;
+  CeedInt field_index = -1;
+  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
+  CeedChk(ierr);
+  if (field_index == -1)
+    return CEED_ERROR_SUCCESS;
+
+  if (ctx->field_descriptions[field_index].type != field_type)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunctionContext field with name \"%s\" registered as %s, "
+                     "not registered as %s", field_name,
+                     CeedContextFieldTypes[ctx->field_descriptions[field_index].type],
+                     CeedContextFieldTypes[field_type]);
+  // LCOV_EXCL_STOP
+
+  char *data;
+  ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data); CeedChk(ierr);
+  memcpy(&data[ctx->field_descriptions[field_index].offset], value,
+         ctx->field_descriptions[field_index].size);
+  ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+  *is_set = true;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -599,13 +600,24 @@ int CeedQFunctionContextGetFieldDescriptions(CeedQFunctionContext ctx,
 **/
 int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
                                   const char *field_name, double value) {
-  return CeedQFunctionContextSetGeneric(ctx, field_name,
+  int ierr;
+  bool is_set = false;
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_name,
                                         CEED_CONTEXT_FIELD_DOUBLE,
-                                        &value);
+                                        &is_set, &value); CeedChk(ierr);
+  if (!is_set)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunctionContext field with name \"%s\" not registered",
+                     field_name);
+  // LCOV_EXCL_STOP
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Set QFunctionContext field holding a int32 value
+  @brief Set QFunctionContext field holding an int32 value
 
   @param ctx        CeedQFunctionContext
   @param field_name Name of field to set
@@ -617,8 +629,20 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 **/
 int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
                                  const char *field_name, int value) {
-  return CeedQFunctionContextSetGeneric(ctx, field_name, CEED_CONTEXT_FIELD_INT32,
-                                        &value);
+  int ierr;
+  bool is_set = false;
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_name,
+                                        CEED_CONTEXT_FIELD_INT32,
+                                        &is_set, &value); CeedChk(ierr);
+  if (!is_set)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunctionContext field with name \"%s\" not registered",
+                     field_name);
+  // LCOV_EXCL_STOP
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

@@ -264,6 +264,68 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Set QFunctionContext field value of the specified type.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+           A non-zero error code is returned for single operators
+           that do not have a matching field of the same type or composite
+           operators that do not have any field of a matching type.
+
+  @param op         CeedOperator
+  @param field_name Name of field to set
+  @param field_type Type of field to set
+  @param value      Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+static int CeedOperatorContextSetGeneric(CeedOperator op,
+    const char *field_name, CeedContextFieldType field_type, void *value) {
+  int ierr;
+  bool is_set = false, is_composite = false;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+
+  if (is_composite) {
+    CeedInt num_sub;
+    CeedOperator *sub_operators;
+
+    ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+
+    for (CeedInt i = 0; i < num_sub; i++) {
+      // Try every sub-operator, ok if some sub-operators do not have field
+      if (sub_operators[i]->qf->ctx) {
+        bool is_set_i = false;
+        ierr = CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx, field_name,
+                                              field_type, &is_set_i, value);
+        CeedChk(ierr);
+        is_set = is_set || is_set_i;
+      }
+    }
+  } else {
+    if (!op->qf->ctx)
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "QFunction does not have context data");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedQFunctionContextSetGeneric(op->qf->ctx, field_name,
+                                          field_type, &is_set, value); CeedChk(ierr);
+  }
+
+  if (!is_set)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "QFunctionContext field with name \"%s\" not registered",
+                     field_name);
+  // LCOV_EXCL_STOP
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -1024,6 +1086,45 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
   // LCOV_EXCL_STOP
 
   *num_qpts = op->num_qpts;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field holding a double precision value.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param op         CeedOperator
+  @param field_name Name of field to register
+  @param value      Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextSetDouble(CeedOperator op, const char *field_name,
+                                 double value) {
+  return CeedOperatorContextSetGeneric(op, field_name, CEED_CONTEXT_FIELD_DOUBLE,
+                                       &value);
+}
+
+/**
+  @brief Set QFunctionContext field holding an int32 value.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param op         CeedOperator
+  @param field_name Name of field to set
+  @param value      Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextSetInt32(CeedOperator op, const char *field_name,
+                                int value) {
+  return CeedOperatorContextSetGeneric(op, field_name, CEED_CONTEXT_FIELD_INT32,
+                                       &value);
   return CEED_ERROR_SUCCESS;
 }
 
