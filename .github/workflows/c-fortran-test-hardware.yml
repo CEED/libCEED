@@ -18,7 +18,7 @@ jobs:
     - name: Environment setup
       uses: actions/checkout@v2
     - name: Hardware setup and test libCEED
-      uses: uraimo/run-on-arch-action@v2
+      uses: uraimo/run-on-arch-action@v2.0.7
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-9
