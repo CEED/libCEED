@@ -451,6 +451,11 @@ it.
 
 ### Synthetic Turbulence Generation (STG) Boundary Condition
 
+To form the inflow boundary condition for the flat plate, we use the synthetic
+turbulence generation (STG) method described in {cite}`shurSTG2014`. Below
+follows a re-description of the formulation to match the present notation, and
+then a description of the implementation and usage.
+
 #### Equation Formulation
 
 $$
@@ -461,7 +466,7 @@ $$
 \bm{\hat{x}}^n = \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
 $$
 
-defining the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
+Here, we define the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
 \bm{d}^n, \phi^n\}_{n=1}^N$, the Cholesky decomposition of the Reynolds stress
 tensor $\bm{C}$ (such that $\bm{R} = \bm{CC}^T$ ), bulk velocity $U_0$,
 wavemode amplitude $q^n$, wavemode frequency $\kappa^n$, and $\kappa_{\min} =
@@ -471,7 +476,8 @@ $$
 \kappa_e = \frac{2\pi}{\min(2d_w, 3.0 l_t)}
 $$
 
-where $l_t$ is the turbulence length scale.
+where $l_t$ is the turbulence length scale, and $d_w$ is the distance to the
+nearest wall.
 
 
 The set of wavemode frequencies is defined by a geometric distribution:
@@ -494,9 +500,10 @@ f_\mathrm{cut} = \exp \left( - \left [ \frac{4\max(\kappa-0.9\kappa_\mathrm{cut}
 $$
 
 $\kappa_\eta$ represents turbulent dissipation frequency, and is given as $2\pi
-(\nu^3/\varepsilon)^{-1/4}$. $\kappa_\mathrm{cut}$ approximates the effective
-cutoff frequency of the mesh (viewing the mesh as a filter on solution over
-$\Omega$) and is given by:
+(\nu^3/\varepsilon)^{-1/4}$ with $\nu$ the kinematic viscosity and
+$\varepsilon$ the turbulent dissipation. $\kappa_\mathrm{cut}$ approximates the
+effective cutoff frequency of the mesh (viewing the mesh as a filter on
+solution over $\Omega$) and is given by:
 
 $$
 \kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
