@@ -18,7 +18,10 @@ categories = ["science"]
 
 [dependencies]
 libceed-sys = { version = "0.9", path = "../libceed-sys" }
-katexit = "0.1.1"
+katexit = { version = "0.1.1", optional = true }
 
 [dev-dependencies]
 version-sync = "0.9.2"
+
+[package.metadata.docs.rs]
+features = ["katexit"]

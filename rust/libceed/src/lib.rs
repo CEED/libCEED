@@ -714,7 +714,7 @@ impl Ceed {
         )
     }
 
-    #[cfg_attr(doc, katexit::katexit)]
+    #[cfg_attr(feature = "katexit", katexit::katexit)]
     /// Returns a CeedQFunction for evaluating interior (volumetric) terms
     ///
     /// $$
