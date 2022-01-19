@@ -57,16 +57,14 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   P = degree + 1;
   Q = P + q_extra;
   CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_u, P, Q,
-                                  bp_data.q_mode,
-                                  &basis_u);
+                                  bp_data.q_mode, &basis_u);
   CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_x, 2, Q,
-                                  bp_data.q_mode,
-                                  &basis_x);
+                                  bp_data.q_mode, &basis_x);
   CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
 
   // CEED restrictions
   ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
-  ierr = DMLocalizeCoordinates(dm);CHKERRQ(ierr); /* needed for periodic */
+  ierr = DMLocalizeCoordinates(dm); CHKERRQ(ierr); /* needed for periodic */
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
