@@ -21,5 +21,8 @@ Macros
 .. doxygendefine:: CEED_QFUNCTION
    :project: libCEED
 
+.. doxygendefine:: CEED_QFUNCTION_HELPER
+   :project: libCEED
+
 .. doxygendefine:: CEED_Q_VLA
    :project: libCEED
