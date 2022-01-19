@@ -62,7 +62,8 @@
   @ingroup CeedQFunction
   This macro populates the correct function annotations for User QFunction
     source for code generation backends or populates default values for CPU
-    backends.
+    backends. It also creates a variable `name_loc` populated with the correct
+    source path for creating the respective User QFunction.
 **/
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
