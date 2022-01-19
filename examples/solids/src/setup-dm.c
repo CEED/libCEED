@@ -40,7 +40,8 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
                                NULL, NULL, interpolate, dm); CHKERRQ(ierr);
   } else {
-    ierr = DMPlexCreateFromFile(comm, filename, interpolate, dm); CHKERRQ(ierr);
+    ierr = DMPlexCreateFromFile(comm, filename, NULL, interpolate, dm);
+    CHKERRQ(ierr);
   }
 
   // Distribute DM in parallel
@@ -78,6 +79,16 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  {
+    /* create FE field for coordinates */
+    PetscFE fe_coords;
+    PetscInt num_comp_coord;
+    ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
+    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, PETSC_FALSE, 1, 1,
+                                 &fe_coords); CHKERRQ(ierr);
+    ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
+    ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
+  }
 
   // Add Dirichlet (Essential) boundary
   if (boundary) {
@@ -110,10 +121,10 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
       }
     } else {
-      // -- ExodusII mesh with user specified BCs
-      // -- Clamp BCs
+      // -- Mesh with user specified BCs
       DMLabel label;
       ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      // -- Clamp BCs
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
         snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
