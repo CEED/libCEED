@@ -511,12 +511,6 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
 int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
   int ierr;
 
-  if (!ctx->RestoreData)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support RestoreData");
-  // LCOV_EXCL_STOP
-
   if (ctx->state % 2 != 1)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, 1,
@@ -524,7 +518,9 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
                      "access was not granted");
   // LCOV_EXCL_STOP
 
-  ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+  if (ctx->RestoreData) {
+    ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+  }
   *(void **)data = NULL;
   ctx->state += 1;
   return CEED_ERROR_SUCCESS;

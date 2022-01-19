@@ -352,13 +352,6 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Restore data obtained using CeedQFunctionContextGetData()
-//------------------------------------------------------------------------------
-static int CeedQFunctionContextRestoreData_Hip(const CeedQFunctionContext ctx) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Destroy the user context
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Hip(const CeedQFunctionContext ctx) {
@@ -397,8 +390,6 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextTakeData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Hip); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
-                                CeedQFunctionContextRestoreData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Hip); CeedChkBackend(ierr);
 

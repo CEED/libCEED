@@ -65,13 +65,6 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A,
 }
 
 //------------------------------------------------------------------------------
-// Tensor Contract Destroy
-//------------------------------------------------------------------------------
-static int CeedTensorContractDestroy_Opt(CeedTensorContract contract) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract) {
@@ -81,8 +74,6 @@ int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract) {
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
                                 CeedTensorContractApply_Opt); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
-                                CeedTensorContractDestroy_Opt); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
