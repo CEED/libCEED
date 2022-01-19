@@ -12,6 +12,7 @@
 #define advection_h
 
 #include <math.h>
+#include <ceed.h>
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
