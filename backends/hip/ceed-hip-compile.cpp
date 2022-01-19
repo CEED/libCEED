@@ -39,9 +39,21 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   hipFree(0); // Make sure a Context exists for hiprtc 
   hiprtcProgram prog;
 
-  // Add hip runtime include to string for generation
   std::ostringstream code;
-  code << "\n#include <hip/hip_runtime.h>\n";
+  // Add hip runtime include statement for generation if runtime < 40400000
+  // (implies ROCm < 4.5)
+  int runtime_version;
+  CeedChk_Hip(ceed, hipRuntimeGetVersion(&runtime_version));
+  if (runtime_version < 40400000) {
+    code << "\n#include <hip/hip_runtime.h>\n";
+  }
+  // With ROCm 4.5, need to include these definitions specifically for hiprtc
+  // (but cannot include the runtime header)
+  else {
+    code << "#include <stddef.h>\n";
+    code << "#define __forceinline__ inline __attribute__((always_inline))\n";
+    code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
+  }
 
   // Macro definitions
   // Get kernel specific options, such as kernel constants
