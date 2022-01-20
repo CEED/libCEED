@@ -21,6 +21,7 @@
 // -----------------------------------------------------------------------------
 #![allow(non_snake_case)]
 
+#[cfg_attr(feature = "katexit", katexit::katexit)]
 // -----------------------------------------------------------------------------
 // Crate prelude
 // -----------------------------------------------------------------------------
@@ -230,8 +231,7 @@ impl Clone for Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// let ceed_clone = ceed.clone();
     ///
-    /// println!("{}", ceed);
-    /// println!("{}", ceed_clone);
+    /// println!(" original:{} \n clone:{}", ceed, ceed_clone);
     /// ```
     fn clone(&self) -> Self {
         let mut ptr_clone = std::ptr::null_mut();
@@ -407,7 +407,10 @@ impl Ceed {
         Vector::from_slice(self, slice)
     }
 
-    /// Returns an ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, which extracts the degrees of
+    ///   freedom for each element from the local vector into the element vector
+    ///   or assembles contributions from each element in the element vector to
+    ///   the local vector
     ///
     /// # arguments
     ///
@@ -458,7 +461,8 @@ impl Ceed {
         )
     }
 
-    /// Returns an ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, from an local vector to
+    ///   an element vector where data can be indexed from the `strides` array
     ///
     /// # arguments
     ///
@@ -466,10 +470,6 @@ impl Ceed {
     /// * `elemsize`   - Size (number of "nodes") per element
     /// * `ncomp`      - Number of field components per interpolation node (1
     ///                    for scalar fields)
-    /// * `compstride` - Stride between components for the same Lvector "node".
-    ///                    Data for node `i`, component `j`, element `k` can be
-    ///                    found in the Lvector at index
-    ///                    `offsets[i + k*elemsize] + j*compstride`.
     /// * `lsize`      - The size of the Lvector. This vector may be larger
     ///   than the elements and fields given by this restriction.
     /// * `strides`   - Array for strides between `[nodes, components, elements]`.
@@ -500,7 +500,7 @@ impl Ceed {
         ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
-    /// Returns a tensor-product Basis
+    /// Returns an $H^1$ tensor-product Basis
     ///
     /// # arguments
     ///
@@ -554,7 +554,7 @@ impl Ceed {
         )
     }
 
-    /// Returns a tensor-product Lagrange Basis
+    /// Returns an $H^1$ Lagrange tensor-product Basis
     ///
     /// # arguments
     ///
@@ -585,7 +585,7 @@ impl Ceed {
         Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
-    /// Returns a tensor-product Basis
+    /// Returns an $H-1$ Basis
     ///
     /// # arguments
     ///
@@ -716,7 +716,6 @@ impl Ceed {
         )
     }
 
-    #[cfg_attr(feature = "katexit", katexit::katexit)]
     /// Returns a QFunction for evaluating interior (volumetric) terms
     ///   of a weak form corresponding to the $L^2$ inner product
     ///
@@ -760,7 +759,7 @@ impl Ceed {
     }
 
     /// Returns a QFunction for evaluating interior (volumetric) terms
-    /// created by name
+    ///   created by name
     ///
     /// # arguments
     ///
@@ -779,8 +778,8 @@ impl Ceed {
     }
 
     /// Returns an Operator and associate a QFunction. A Basis and
-    /// ElemRestriction can be associated with QFunction fields via
-    /// set_field().
+    ///   ElemRestriction can be associated with QFunction fields via
+    ///   set_field().
     ///
     /// # arguments
     ///
