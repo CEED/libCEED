@@ -151,7 +151,7 @@ typedef struct {
   const char *setup_geo_loc, *residual_loc, *jacobian_loc, *energy_loc,
         *diagnostic_loc, *true_soln_loc;
   CeedQuadMode quadrature_mode;
-  CeedInt geo_data_size, number_fields_stored;
+  CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
   const char *const *field_names;
 } ProblemData;

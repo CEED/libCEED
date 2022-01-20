@@ -89,7 +89,7 @@
      &SOURCE_DIR&
      &//'t531-operator.h:setup'//char(0),qf_setup,err)
       call ceedqfunctionaddinput(qf_setup,'dx',d*d,ceed_eval_grad,err)
-      call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup,'qdata',d*(d+1)/2,ceed_eval_none,err)
 
 ! Operator - setup 
@@ -97,7 +97,7 @@
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
+      call ceedoperatorsetfield(op_setup,'weight',ceed_elemrestriction_none,&
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)

@@ -10,7 +10,7 @@
 ProblemData linear_elasticity = {
   .setup_geo = SetupGeo,
   .setup_geo_loc = SetupGeo_loc,
-  .geo_data_size = 10,
+  .q_data_size = 10,
   .quadrature_mode = CEED_GAUSS,
   .residual = ElasLinearF,
   .residual_loc = ElasLinearF_loc,

@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
   // -- QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup_tet);
-  CeedQFunctionAddInput(qf_setup_tet, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup_tet, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup_tet, "dx", dim*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup_tet, "rho", 1, CEED_EVAL_NONE);
 
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
   // ---- Setup Tet
   CeedOperatorCreate(ceed, qf_setup_tet, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setup_tet);
-  CeedOperatorSetField(op_setup_tet, "_weight", CEED_ELEMRESTRICTION_NONE,
+  CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x_tet,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restr_x_tet, basis_x_tet,

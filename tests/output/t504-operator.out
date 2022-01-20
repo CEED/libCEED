@@ -2,7 +2,7 @@ CeedOperator
   3 Fields
   2 Input Fields:
     Input Field [0]:
-      Name: "_weight"
+      Name: "weight"
       No vector
     Input Field [1]:
       Name: "dx"

@@ -85,13 +85,13 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX");
+    ierr = PetscSectionSetComponentName(section, 0, 1, "Momentum X");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY");
+    ierr = PetscSectionSetComponentName(section, 0, 2, "Momentum Y");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ");
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Momentum Z");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity");
+    ierr = PetscSectionSetComponentName(section, 0, 4, "Energy Density");
     CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);

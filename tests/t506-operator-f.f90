@@ -77,7 +77,7 @@
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t502-operator.h:setup'//char(0),qf_setup,err)
-      call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'x',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
@@ -101,7 +101,7 @@
 
       call ceedvectorcreate(ceed,nelem*q,qdata_small,err)
 
-      call ceedoperatorsetfield(op_setup_small,'_weight',&
+      call ceedoperatorsetfield(op_setup_small,'weight',&
      & ceed_elemrestriction_none,bx_small,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_small,'x',erestrictx,&
      & bx_small,ceed_vector_active,err)
@@ -123,7 +123,7 @@
 
       call ceedvectorcreate(ceed,nelem*q*scale,qdata_large,err)
 
-      call ceedoperatorsetfield(op_setup_large,'_weight',&
+      call ceedoperatorsetfield(op_setup_large,'weight',&
      & ceed_elemrestriction_none,bx_large,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_large,'x',erestrictx,&
      & bx_large,ceed_vector_active,err)

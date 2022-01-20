@@ -118,7 +118,7 @@
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t522-operator.h:setup'//char(0),qf_setuptet,err)
-      call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setuptet,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',d*(d+1)/2,ceed_eval_none,&
      & err)
@@ -134,7 +134,7 @@
 ! ---- Setup Tet
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
-      call ceedoperatorsetfield(op_setuptet,'_weight',&
+      call ceedoperatorsetfield(op_setuptet,'weight',&
      & ceed_elemrestriction_none,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
