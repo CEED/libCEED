@@ -1,5 +1,8 @@
 # libceed: efficient, extensible discretization
 
+[![GitHub Actions](https://github.com/CEED/libCEED/actions/workflows/rust-test-with-style.yml/badge.svg)](https://github.com/CEED/libCEED/actions/workflows/rust-test-with-style.yml)
+[![Documentation](https://docs.rs/libceed/badge.svg)](https://docs.rs/libceed)
+
 This crate provides an interface to [libCEED](https://libceed.readthedocs.io),
 which is a performance-portable library for extensible element-based
 discretization for partial differential equations and related computational
