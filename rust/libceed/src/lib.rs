@@ -153,6 +153,8 @@ impl EvalMode {
 // -----------------------------------------------------------------------------
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// libCEED error messages - returning an Error without painc!ing indicates
+///   the function call failed but the data is not corrupted
 #[derive(Debug)]
 pub struct Error {
     pub message: String,
