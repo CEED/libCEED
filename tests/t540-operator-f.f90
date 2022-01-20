@@ -70,7 +70,7 @@
      &SOURCE_DIR&
      &//'t540-operator.h:setup_mass'//char(0),qf_setup_mass,err)
       call ceedqfunctionaddinput(qf_setup_mass,'dx',d*d,ceed_eval_grad,err)
-      call ceedqfunctionaddinput(qf_setup_mass,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup_mass,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup_mass,'qdata',1,ceed_eval_none,err)
 
 ! Operator - setup mass
@@ -78,7 +78,7 @@
      & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictxi,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_mass,'_weight',&
+      call ceedoperatorsetfield(op_setup_mass,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)
@@ -92,7 +92,7 @@
      &SOURCE_DIR&
      &//'t540-operator.h:apply'//char(0),qf_apply,err)
       call ceedqfunctionaddinput(qf_apply,'u',1,ceed_eval_interp,err)
-      call ceedqfunctionaddinput(qf_apply,'qdata_mass',1,ceed_eval_none,err)
+      call ceedqfunctionaddinput(qf_apply,'mass qdata',1,ceed_eval_none,err)
       call ceedqfunctionaddoutput(qf_apply,'v',1,ceed_eval_interp,err)
 
 ! Operator - apply
@@ -100,7 +100,7 @@
      & ceed_qfunction_none,op_apply,err)
       call ceedoperatorsetfield(op_apply,'u',erestrictui,&
      & bu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_apply,'qdata_mass',erestrictqi,&
+      call ceedoperatorsetfield(op_apply,'mass qdata',erestrictqi,&
      & ceed_basis_collocated,qdata_mass,err)
       call ceedoperatorsetfield(op_apply,'v',erestrictui,&
      & bu,ceed_vector_active,err)

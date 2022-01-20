@@ -90,7 +90,7 @@
      &SOURCE_DIR&
      &//'t532-operator.h:setup_mass'//char(0),qf_setup_mass,err)
       call ceedqfunctionaddinput(qf_setup_mass,'dx',d*d,ceed_eval_grad,err)
-      call ceedqfunctionaddinput(qf_setup_mass,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup_mass,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup_mass,'qdata',1,ceed_eval_none,err)
 
 ! Operator - setup mass
@@ -98,7 +98,7 @@
      & ceed_qfunction_none,op_setup_mass,err)
       call ceedoperatorsetfield(op_setup_mass,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_mass,'_weight',&
+      call ceedoperatorsetfield(op_setup_mass,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictui,&
      & ceed_basis_collocated,ceed_vector_active,err)
@@ -108,7 +108,7 @@
      &SOURCE_DIR&
      &//'t532-operator.h:setup_diff'//char(0),qf_setup_diff,err)
       call ceedqfunctionaddinput(qf_setup_diff,'dx',d*d,ceed_eval_grad,err)
-      call ceedqfunctionaddinput(qf_setup_diff,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup_diff,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup_diff,'qdata',&
      & d*(d+1)/2,ceed_eval_none,err)
 
@@ -117,7 +117,7 @@
      & ceed_qfunction_none,op_setup_diff,err)
       call ceedoperatorsetfield(op_setup_diff,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_setup_diff,'_weight',&
+      call ceedoperatorsetfield(op_setup_diff,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_diff,'qdata',erestrictqi,&
      & ceed_basis_collocated,ceed_vector_active,err)
@@ -133,8 +133,8 @@
      &SOURCE_DIR&
      &//'t532-operator.h:apply'//char(0),qf_apply,err)
       call ceedqfunctionaddinput(qf_apply,'du',d,ceed_eval_grad,err)
-      call ceedqfunctionaddinput(qf_apply,'qdata_mass',1,ceed_eval_none,err)
-      call ceedqfunctionaddinput(qf_apply,'qdata_diff',&
+      call ceedqfunctionaddinput(qf_apply,'mass qdata',1,ceed_eval_none,err)
+      call ceedqfunctionaddinput(qf_apply,'diff qdata',&
      & d*(d+1)/2,ceed_eval_none,err)
       call ceedqfunctionaddinput(qf_apply,'u',1,ceed_eval_interp,err)
       call ceedqfunctionaddoutput(qf_apply,'v',1,ceed_eval_interp,err)
@@ -145,9 +145,9 @@
      & ceed_qfunction_none,op_apply,err)
       call ceedoperatorsetfield(op_apply,'du',erestrictu,&
      & bu,ceed_vector_active,err)
-      call ceedoperatorsetfield(op_apply,'qdata_mass',erestrictui,&
+      call ceedoperatorsetfield(op_apply,'mass qdata',erestrictui,&
      & ceed_basis_collocated,qdata_mass,err)
-      call ceedoperatorsetfield(op_apply,'qdata_diff',erestrictqi,&
+      call ceedoperatorsetfield(op_apply,'diff qdata',erestrictqi,&
      & ceed_basis_collocated,qdata_diff,err)
       call ceedoperatorsetfield(op_apply,'u',erestrictu,&
      & bu,ceed_vector_active,err)
