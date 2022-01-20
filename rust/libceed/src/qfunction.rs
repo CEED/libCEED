@@ -25,7 +25,7 @@ pub type QFunctionInputs<'a> = [&'a [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 pub type QFunctionOutputs<'a> = [&'a mut [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 
 // -----------------------------------------------------------------------------
-// CeedQFunction Field context wrapper
+// QFunction Field context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct QFunctionField<'a> {
@@ -119,7 +119,7 @@ impl<'a> QFunctionField<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedQFunction option
+// QFunction option
 // -----------------------------------------------------------------------------
 pub enum QFunctionOpt<'a> {
     SomeQFunction(&'a QFunction<'a>),
@@ -328,7 +328,7 @@ impl<'a> QFunctionOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedQFunction context wrapper
+// QFunction context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub(crate) struct QFunctionCore<'a> {

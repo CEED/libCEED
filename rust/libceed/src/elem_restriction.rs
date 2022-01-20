@@ -20,7 +20,7 @@
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
-// CeedElemRestriction option
+// ElemRestriction option
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub enum ElemRestrictionOpt<'a> {
@@ -102,7 +102,7 @@ impl<'a> ElemRestrictionOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedElemRestriction context wrapper
+// ElemRestriction context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct ElemRestriction<'a> {

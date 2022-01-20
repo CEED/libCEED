@@ -368,7 +368,7 @@ impl Ceed {
         c_str.to_string_lossy().to_string()
     }
 
-    /// Returns a CeedVector of the specified length (does not allocate memory)
+    /// Returns a Vector of the specified length (does not allocate memory)
     ///
     /// # arguments
     ///
@@ -405,7 +405,7 @@ impl Ceed {
         Vector::from_slice(self, slice)
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction
     ///
     /// # arguments
     ///
@@ -456,7 +456,7 @@ impl Ceed {
         )
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction
     ///
     /// # arguments
     ///
@@ -498,7 +498,7 @@ impl Ceed {
         ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns a tensor-product Basis
     ///
     /// # arguments
     ///
@@ -552,7 +552,7 @@ impl Ceed {
         )
     }
 
-    /// Returns a tensor-product Lagrange basis
+    /// Returns a tensor-product Lagrange Basis
     ///
     /// # arguments
     ///
@@ -583,7 +583,7 @@ impl Ceed {
         Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns a tensor-product Basis
     ///
     /// # arguments
     ///
@@ -715,17 +715,21 @@ impl Ceed {
     }
 
     #[cfg_attr(feature = "katexit", katexit::katexit)]
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
+    /// Returns a QFunction for evaluating interior (volumetric) terms
+    ///   of a weak form corresponding to the $L^2$ inner product
     ///
     /// $$
-    /// v^T F(u) \sim \int_\Omega v^T f_0(u, \nabla u) + (\nabla v)^T f_1(u, \nabla u)
+    /// \langle v, F(u) \rangle = \int_\Omega v \cdot f_0 \left( u, \nabla u \right) + \left( \nabla v \right) : f_1 \left( u, \nabla u \right),
     /// $$
+    ///
+    /// where $v \cdot f_0$ represents contraction over fields and $\nabla v : f_1$
+    ///   represents contraction over both fields and spatial dimensions.
     ///
     /// # arguments
     ///
     /// * `vlength` - Vector length. Caller must ensure that number of
     ///                 quadrature points is a multiple of vlength.
-    /// * `f`       - Boxed closure to evaluate action at quadrature points.
+    /// * `f`       - Boxed closure to evaluate weak form at quadrature points.
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -753,8 +757,12 @@ impl Ceed {
         QFunction::create(self, vlength, f)
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
+    /// Returns a QFunction for evaluating interior (volumetric) terms
     /// created by name
+    ///
+    /// # arguments
+    ///
+    /// * `name` - name of QFunction from libCEED gallery
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -768,9 +776,11 @@ impl Ceed {
         QFunctionByName::create(self, name)
     }
 
-    /// Returns a Operator and associate a QFunction. A Basis and
-    /// ElemRestriction can be   associated with QFunction fields with
+    /// Returns an Operator and associate a QFunction. A Basis and
+    /// ElemRestriction can be associated with QFunction fields via
     /// set_field().
+    ///
+    /// # arguments
     ///
     /// * `qf`   - QFunction defining the action of the operator at quadrature
     ///              points
