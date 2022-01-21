@@ -628,7 +628,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
 
   @param ceed        A Ceed object where the CeedBasis will be created
   @param topo        Topology of element (`CEED_QUAD`, `CEED_PRISM`, etc.), dimension of which is used in some array sizes below
-  @param num_comp    Number of componenet, we have 1 vector componenet in H(div)
+  @param num_comp    Number of components (usually 1 for vectors in H(div) bases)
   @param num_nodes   Total number of nodes (dofs per element)
   @param num_qpts    Total number of quadrature points
   @param interp      Row-major (dim*num_qpts * num_nodes) matrix expressing the values of
