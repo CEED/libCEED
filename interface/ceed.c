@@ -196,8 +196,6 @@ bool CeedDebugFlagEnv(void) {
   @param color   Color to print
   @param format  Printing format
 
-  @return None
-
   @ref Backend
 **/
 // LCOV_EXCL_START

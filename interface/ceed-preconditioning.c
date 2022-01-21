@@ -98,8 +98,6 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   @param[in] grad        Pointer to gradient matrix
   @param[out] basis_ptr  Basis pointer to set
 
-  @return none
-
   @ref Developer
 **/
 static inline void CeedOperatorGetBasisPointer(CeedEvalMode eval_mode,
