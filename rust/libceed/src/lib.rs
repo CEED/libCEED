@@ -21,7 +21,6 @@
 // -----------------------------------------------------------------------------
 #![allow(non_snake_case)]
 
-#[cfg_attr(feature = "katexit", katexit::katexit)]
 // -----------------------------------------------------------------------------
 // Crate prelude
 // -----------------------------------------------------------------------------
@@ -270,6 +269,7 @@ static REGISTER: Once = Once::new();
 // Object constructors
 // -----------------------------------------------------------------------------
 impl Ceed {
+    #[cfg_attr(feature = "katexit", katexit::katexit)]
     /// Returns a Ceed context initialized with the specified resource
     ///
     /// # arguments
