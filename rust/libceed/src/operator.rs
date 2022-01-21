@@ -21,7 +21,7 @@
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
-// CeedOperator Field context wrapper
+// Operator Field context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct OperatorField<'a> {
@@ -275,7 +275,7 @@ impl<'a> OperatorField<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedOperator context wrapper
+// Operator context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub(crate) struct OperatorCore<'a> {

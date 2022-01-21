@@ -153,6 +153,8 @@ impl EvalMode {
 // -----------------------------------------------------------------------------
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// libCEED error messages - returning an Error without painc!ing indicates
+///   the function call failed but the data is not corrupted
 #[derive(Debug)]
 pub struct Error {
     pub message: String,
@@ -228,8 +230,7 @@ impl Clone for Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// let ceed_clone = ceed.clone();
     ///
-    /// println!("{}", ceed);
-    /// println!("{}", ceed_clone);
+    /// println!(" original:{} \n clone:{}", ceed, ceed_clone);
     /// ```
     fn clone(&self) -> Self {
         let mut ptr_clone = std::ptr::null_mut();
@@ -268,6 +269,7 @@ static REGISTER: Once = Once::new();
 // Object constructors
 // -----------------------------------------------------------------------------
 impl Ceed {
+    #[cfg_attr(feature = "katexit", katexit::katexit)]
     /// Returns a Ceed context initialized with the specified resource
     ///
     /// # arguments
@@ -368,7 +370,7 @@ impl Ceed {
         c_str.to_string_lossy().to_string()
     }
 
-    /// Returns a CeedVector of the specified length (does not allocate memory)
+    /// Returns a Vector of the specified length (does not allocate memory)
     ///
     /// # arguments
     ///
@@ -405,7 +407,10 @@ impl Ceed {
         Vector::from_slice(self, slice)
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, which extracts the degrees of
+    ///   freedom for each element from the local vector into the element vector
+    ///   or assembles contributions from each element in the element vector to
+    ///   the local vector
     ///
     /// # arguments
     ///
@@ -456,7 +461,8 @@ impl Ceed {
         )
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, from an local vector to
+    ///   an element vector where data can be indexed from the `strides` array
     ///
     /// # arguments
     ///
@@ -464,10 +470,6 @@ impl Ceed {
     /// * `elemsize`   - Size (number of "nodes") per element
     /// * `ncomp`      - Number of field components per interpolation node (1
     ///                    for scalar fields)
-    /// * `compstride` - Stride between components for the same Lvector "node".
-    ///                    Data for node `i`, component `j`, element `k` can be
-    ///                    found in the Lvector at index
-    ///                    `offsets[i + k*elemsize] + j*compstride`.
     /// * `lsize`      - The size of the Lvector. This vector may be larger
     ///   than the elements and fields given by this restriction.
     /// * `strides`   - Array for strides between `[nodes, components, elements]`.
@@ -498,7 +500,7 @@ impl Ceed {
         ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns an $H^1$ tensor-product Basis
     ///
     /// # arguments
     ///
@@ -552,7 +554,7 @@ impl Ceed {
         )
     }
 
-    /// Returns a tensor-product Lagrange basis
+    /// Returns an $H^1$ Lagrange tensor-product Basis
     ///
     /// # arguments
     ///
@@ -583,7 +585,7 @@ impl Ceed {
         Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns an $H-1$ Basis
     ///
     /// # arguments
     ///
@@ -714,13 +716,21 @@ impl Ceed {
         )
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
+    /// Returns a QFunction for evaluating interior (volumetric) terms
+    ///   of a weak form corresponding to the $L^2$ inner product
+    ///
+    /// $$
+    /// \langle v, F(u) \rangle = \int_\Omega v \cdot f_0 \left( u, \nabla u \right) + \left( \nabla v \right) : f_1 \left( u, \nabla u \right),
+    /// $$
+    ///
+    /// where $v \cdot f_0$ represents contraction over fields and $\nabla v : f_1$
+    ///   represents contraction over both fields and spatial dimensions.
     ///
     /// # arguments
     ///
     /// * `vlength` - Vector length. Caller must ensure that number of
     ///                 quadrature points is a multiple of vlength.
-    /// * `f`       - Boxed closure to evaluate action at quadrature points.
+    /// * `f`       - Boxed closure to evaluate weak form at quadrature points.
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -748,8 +758,12 @@ impl Ceed {
         QFunction::create(self, vlength, f)
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
-    /// created by name
+    /// Returns a QFunction for evaluating interior (volumetric) terms
+    ///   created by name
+    ///
+    /// # arguments
+    ///
+    /// * `name` - name of QFunction from libCEED gallery
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -763,9 +777,11 @@ impl Ceed {
         QFunctionByName::create(self, name)
     }
 
-    /// Returns a Operator and associate a QFunction. A Basis and
-    /// ElemRestriction can be   associated with QFunction fields with
-    /// set_field().
+    /// Returns an Operator and associate a QFunction. A Basis and
+    ///   ElemRestriction can be associated with QFunction fields via
+    ///   set_field().
+    ///
+    /// # arguments
     ///
     /// * `qf`   - QFunction defining the action of the operator at quadrature
     ///              points

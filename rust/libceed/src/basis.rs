@@ -20,7 +20,7 @@
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
-// CeedBasis option
+// Basis option
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub enum BasisOpt<'a> {
@@ -89,7 +89,7 @@ impl<'a> BasisOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedBasis context wrapper
+// Basis context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Basis<'a> {
@@ -340,7 +340,7 @@ impl<'a> Basis<'a> {
         self.check_error(ierr)
     }
 
-    /// Returns the dimension for given CeedBasis
+    /// Returns the dimension for given Basis
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -360,7 +360,7 @@ impl<'a> Basis<'a> {
         usize::try_from(dim).unwrap()
     }
 
-    /// Returns number of components for given CeedBasis
+    /// Returns number of components for given Basis
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -380,7 +380,7 @@ impl<'a> Basis<'a> {
         usize::try_from(ncomp).unwrap()
     }
 
-    /// Returns total number of nodes (in dim dimensions) of a CeedBasis
+    /// Returns total number of nodes (in dim dimensions) of a Basis
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -401,7 +401,7 @@ impl<'a> Basis<'a> {
     }
 
     /// Returns total number of quadrature points (in dim dimensions) of a
-    /// CeedBasis
+    /// Basis
     ///
     /// ```
     /// # use libceed::prelude::*;

@@ -25,7 +25,7 @@ use std::{
 use crate::prelude::*;
 
 // -----------------------------------------------------------------------------
-// CeedVector option
+// Vector option
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub enum VectorOpt<'a> {
@@ -131,7 +131,7 @@ impl<'a> VectorOpt<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedVector borrowed slice wrapper
+// Vector borrowed slice wrapper
 // -----------------------------------------------------------------------------
 pub struct VectorSliceWrapper<'a> {
     pub(crate) vector: crate::Vector<'a>,
@@ -184,7 +184,7 @@ impl<'a> VectorSliceWrapper<'a> {
 }
 
 // -----------------------------------------------------------------------------
-// CeedVector context wrapper
+// Vector context wrapper
 // -----------------------------------------------------------------------------
 #[derive(Debug)]
 pub struct Vector<'a> {
@@ -338,7 +338,7 @@ impl<'a> Vector<'a> {
         crate::check_error(ptr, ierr)
     }
 
-    /// Returns the length of a CeedVector
+    /// Returns the length of a Vector
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -357,7 +357,7 @@ impl<'a> Vector<'a> {
         usize::try_from(n).unwrap()
     }
 
-    /// Returns the length of a CeedVector
+    /// Returns the length of a Vector
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -372,7 +372,7 @@ impl<'a> Vector<'a> {
         self.length()
     }
 
-    /// Set the CeedVector to a constant value
+    /// Set the Vector to a constant value
     ///
     /// # arguments
     ///
@@ -487,7 +487,7 @@ impl<'a> Vector<'a> {
         crate::VectorSliceWrapper::from_vector_and_slice_mut(self, slice)
     }
 
-    /// Sync the CeedVector to a specified memtype
+    /// Sync the Vector to a specified memtype
     ///
     /// # arguments
     ///
@@ -559,7 +559,7 @@ impl<'a> Vector<'a> {
         VectorViewMut::new(self)
     }
 
-    /// Return the norm of a CeedVector
+    /// Return the norm of a Vector
     ///
     /// # arguments
     ///
@@ -591,7 +591,7 @@ impl<'a> Vector<'a> {
         Ok(res)
     }
 
-    /// Compute x = alpha x for a CeedVector
+    /// Compute x = alpha x for a Vector
     ///
     /// # arguments
     ///
@@ -617,7 +617,7 @@ impl<'a> Vector<'a> {
         Ok(self)
     }
 
-    /// Compute y = alpha x + y for a pair of CeedVectors
+    /// Compute y = alpha x + y for a pair of Vectors
     ///
     /// # arguments
     ///
@@ -645,7 +645,7 @@ impl<'a> Vector<'a> {
         Ok(self)
     }
 
-    /// Compute the pointwise multiplication w = x .* y for CeedVectors
+    /// Compute the pointwise multiplication w = x .* y for Vectors
     ///
     /// # arguments
     ///
@@ -674,7 +674,7 @@ impl<'a> Vector<'a> {
         Ok(self)
     }
 
-    /// Compute the pointwise multiplication w = w .* x for CeedVectors
+    /// Compute the pointwise multiplication w = w .* x for Vectors
     ///
     /// # arguments
     ///
@@ -701,7 +701,7 @@ impl<'a> Vector<'a> {
         Ok(self)
     }
 
-    /// Compute the pointwise multiplication w = w .* w for a CeedVector
+    /// Compute the pointwise multiplication w = w .* w for a Vector
     ///
     /// ```
     /// # use libceed::prelude::*;
