@@ -631,7 +631,6 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   @param num_comp    Number of componenet, we have 1 vector componenet in H(div)
   @param num_nodes   Total number of nodes (dofs per element)
   @param num_qpts    Total number of quadrature points
-  @param basis_space 2 for H(div) discretization (1 for H^1, 3 for H(curl))
   @param interp      Row-major (dim*num_qpts * num_nodes) matrix expressing the values of
                        nodal basis functions at quadrature points
   @param div        Row-major (num_qpts * num_nodes) matrix expressing
