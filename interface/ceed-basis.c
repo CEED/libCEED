@@ -391,7 +391,6 @@ int CeedMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
   @param num_comp    Number of field components (1 for scalar fields)
   @param P_1d        Number of nodes in one dimension
   @param Q_1d        Number of quadrature points in one dimension
-  @param basis_space 1 for H^1 discretization (2 for H(div), 3 for H(curl))
   @param interp_1d   Row-major (Q_1d * P_1d) matrix expressing the values of nodal
                        basis functions at quadrature points
   @param grad_1d     Row-major (Q_1d * P_1d) matrix expressing derivatives of nodal
