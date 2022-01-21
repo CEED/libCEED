@@ -559,7 +559,6 @@ cleanup:
   @param num_comp    Number of field components (1 for scalar fields)
   @param num_nodes   Total number of nodes
   @param num_qpts    Total number of quadrature points
-  @param basis_space 1 for H^1 discretization (2 for H(div), 3 for H(curl))
   @param interp      Row-major (num_qpts * num_nodes) matrix expressing the values of
                        nodal basis functions at quadrature points
   @param grad        Row-major (num_qpts * dim * num_nodes) matrix expressing
