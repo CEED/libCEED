@@ -38,6 +38,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
                                 CeedBasisCreateTensorH1_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
                                 CeedBasisCreateH1_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv",
+                                CeedBasisCreateHdiv_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
                                 CeedTensorContractCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",

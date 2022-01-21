@@ -82,6 +82,14 @@ CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo,
                                       const CeedScalar *q_weight,
                                       CeedBasis basis);
 
+CEED_INTERN int CeedBasisCreateHdiv_Ref(CeedElemTopology topo,
+                                        CeedInt dim, CeedInt num_dof, CeedInt num_qpts,
+                                        const CeedScalar *interp,
+                                        const CeedScalar *div,
+                                        const CeedScalar *q_ref,
+                                        const CeedScalar *q_weight,
+                                        CeedBasis basis);
+
 CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis,
     CeedTensorContract contract);
 

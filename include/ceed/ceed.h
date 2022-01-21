@@ -526,6 +526,13 @@ CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo,
                                   const CeedScalar *grad,
                                   const CeedScalar *q_ref,
                                   const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo,
+                                    CeedInt num_comp,
+                                    CeedInt num_nodes, CeedInt nqpts,
+                                    const CeedScalar *interp,
+                                    const CeedScalar *div,
+                                    const CeedScalar *q_ref,
+                                    const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem,
@@ -548,6 +555,7 @@ CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis,
                                      const CeedScalar **interp_1d);
 CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
 CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
+CEED_EXTERN int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,

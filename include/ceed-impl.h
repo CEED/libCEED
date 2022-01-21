@@ -114,6 +114,10 @@ struct Ceed_private {
                        const CeedScalar *,
                        const CeedScalar *, const CeedScalar *,
                        const CeedScalar *, CeedBasis);
+  int (*BasisCreateHdiv)(CeedElemTopology, CeedInt, CeedInt, CeedInt,
+                         const CeedScalar *,
+                         const CeedScalar *, const CeedScalar *,
+                         const CeedScalar *, CeedBasis);
   int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
   int (*QFunctionContextCreate)(CeedQFunctionContext);
@@ -198,7 +202,8 @@ struct CeedBasis_private {
                                the reference element */
   CeedScalar
   *interp;    /* row-major matrix of shape [Q, P] expressing the values of
-                   nodal basis functions at quadrature points */
+                   nodal basis functions at quadrature points for H1 discretizations.
+                For H(div) discretizations, it is a matrix of shape [dim*Q,P] */
   CeedScalar
   *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of
                    nodal basis functions at quadrature points */
@@ -209,6 +214,10 @@ struct CeedBasis_private {
   *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing
                    derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract; /* tensor contraction object */
+  CeedInt basis_space;  /* Initialize with 1 for H^1, 2 for H(div), 3 for H(curl) */
+  CeedScalar *div;  /* row-major matrix of shape [Q, P] expressing
+                        the divergence of nodal basis functions
+                        at quadrature points for H(div) discretizations */
   void *data;                  /* place for the backend to store any data */
 };
 
