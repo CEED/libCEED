@@ -660,7 +660,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
     if (!delegate)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support BasisCreateHdiv");
+                       "Backend does not implement BasisCreateHdiv");
     // LCOV_EXCL_STOP
 
     ierr = CeedBasisCreateHdiv(delegate, topo, num_comp, num_nodes,
