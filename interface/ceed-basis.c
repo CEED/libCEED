@@ -564,7 +564,7 @@ cleanup:
   @param grad        Row-major (num_qpts * dim * num_nodes) matrix expressing
                        derivatives of nodal basis functions at quadrature points
   @param q_ref       Array of length num_qpts holding the locations of quadrature
-                       points on the reference element [-1, 1]
+                       points on the reference element
   @param q_weight    Array of length num_qpts holding the quadrature weights on the
                        reference element
   @param[out] basis  Address of the variable where the newly created
@@ -636,7 +636,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   @param div        Row-major (num_qpts * num_nodes) matrix expressing
                        divergence of nodal basis functions at quadrature points
   @param q_ref       Array of length num_qpts holding the locations of quadrature
-                       points on the reference element [-1, 1]
+                       points on the reference element
   @param q_weight    Array of length num_qpts holding the quadrature weights on the
                        reference element
   @param[out] basis  Address of the variable where the newly created
