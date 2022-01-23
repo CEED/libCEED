@@ -730,8 +730,10 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
-  switch (basis->basis_space) {
-  case 1: // H^1 discretization
+  CeedFESpace FE_space = basis->basis_space;
+  switch (FE_space) {
+  case CEED_L2: // L^2 discretization
+  case CEED_H1: // H^1 discretization
     if (basis->tensor_basis) { // H^1 tensor basis
       fprintf(stream, "CeedBasis (H^1 discretization): dim=%d P=%d Q=%d\n",
               basis->dim, basis->P_1d, basis->Q_1d);
@@ -757,7 +759,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
                             basis->grad, stream); CeedChk(ierr);
     }
     break;
-  case 2: // H(div) discretization
+  case CEED_Hdiv: // H(div) discretization
     fprintf(stream, "CeedBasis (H(div) discretization): dim=%d P=%d Q=%d\n",
             basis->dim, basis->P, basis->Q);
     ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
@@ -769,6 +771,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
                           basis->interp, stream); CeedChk(ierr);
     ierr = CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P,
                           basis->div, stream); CeedChk(ierr);
+    break;
+  case CEED_Hcurl: // H(curl) discretization
     break;
   }
   return CEED_ERROR_SUCCESS;
@@ -1156,7 +1160,21 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
   @ref Advanced
 **/
 int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
-  *div = basis->div;
+
+  CeedFESpace FE_space = basis->basis_space;
+  switch (FE_space) {
+  case CEED_L2: // L^2 discretization
+  case CEED_H1: // H^1 discretization
+  case CEED_Hcurl: // H(curl) discretization
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, CEED_ERROR_MINOR,
+                     "CeedBasis does not have divergence.");
+    // LCOV_EXCL_STOP
+    break;
+  case CEED_Hdiv: // H(div) discretization
+    *div = basis->div;
+    break;
+  }
   return CEED_ERROR_SUCCESS;
 }
 

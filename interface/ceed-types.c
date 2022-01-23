@@ -74,3 +74,10 @@ const char *const CeedContextFieldTypes[] = {
   [CEED_CONTEXT_FIELD_DOUBLE] = "double",
   [CEED_CONTEXT_FIELD_INT32] = "int32",
 };
+
+const char *const CeedFESpaces[] = {
+  [CEED_L2] = "FE L^2 space",
+  [CEED_H1] = "FE H^1 space",
+  [CEED_Hdiv] = "FE H(div) space",
+  [CEED_Hcurl] = "FE H(curl) space",
+};
