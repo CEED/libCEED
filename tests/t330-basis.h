@@ -27,24 +27,24 @@
 // To see how the nodal basis is constructed visit:
 // https://github.com/rezgarshakeri/H-div-Tests
 int NodalHdivBasisQuad(CeedScalar *X, CeedScalar *Bx, CeedScalar *By) {
-  CeedScalar xhat = X[0];
-  CeedScalar yhat = X[1];
-  Bx[0] = -0.125 + 0.125*xhat*xhat;
-  By[0] = -0.25 + 0.25*xhat + 0.25*yhat + -0.25*xhat*yhat;
-  Bx[1] = 0.125 + -0.125*xhat*xhat;
-  By[1] = -0.25 + -0.25*xhat + 0.25*yhat + 0.25*xhat*yhat;
-  Bx[2] = 0.25 + 0.25*xhat + -0.25*yhat + -0.25*xhat*yhat;
-  By[2] = -0.125 + 0.125*yhat*yhat;
-  Bx[3] = 0.25 + 0.25*xhat + 0.25*yhat + 0.25*xhat*yhat;
-  By[3] = 0.125 + -0.125*yhat*yhat;
-  Bx[4] = -0.125 + 0.125*xhat*xhat;
-  By[4] = 0.25 + -0.25*xhat + 0.25*yhat + -0.25*xhat*yhat;
-  Bx[5] = 0.125 + -0.125*xhat*xhat;
-  By[5] = 0.25 + 0.25*xhat + 0.25*yhat + 0.25*xhat*yhat;
-  Bx[6] = -0.25 + 0.25*xhat + 0.25*yhat + -0.25*xhat*yhat;
-  By[6] = -0.125 + 0.125*yhat*yhat;
-  Bx[7] = -0.25 + 0.25*xhat + -0.25*yhat + 0.25*xhat*yhat;
-  By[7] = 0.125 + -0.125*yhat*yhat;
+  CeedScalar x_hat = X[0];
+  CeedScalar y_hat = X[1];
+  Bx[0] = -0.125 + 0.125*x_hat*x_hat;
+  By[0] = -0.25 + 0.25*x_hat + 0.25*y_hat + -0.25*x_hat*y_hat;
+  Bx[1] = 0.125 + -0.125*x_hat*x_hat;
+  By[1] = -0.25 + -0.25*x_hat + 0.25*y_hat + 0.25*x_hat*y_hat;
+  Bx[2] = 0.25 + 0.25*x_hat + -0.25*y_hat + -0.25*x_hat*y_hat;
+  By[2] = -0.125 + 0.125*y_hat*y_hat;
+  Bx[3] = 0.25 + 0.25*x_hat + 0.25*y_hat + 0.25*x_hat*y_hat;
+  By[3] = 0.125 + -0.125*y_hat*y_hat;
+  Bx[4] = -0.125 + 0.125*x_hat*x_hat;
+  By[4] = 0.25 + -0.25*x_hat + 0.25*y_hat + -0.25*x_hat*y_hat;
+  Bx[5] = 0.125 + -0.125*x_hat*x_hat;
+  By[5] = 0.25 + 0.25*x_hat + 0.25*y_hat + 0.25*x_hat*y_hat;
+  Bx[6] = -0.25 + 0.25*x_hat + 0.25*y_hat + -0.25*x_hat*y_hat;
+  By[6] = -0.125 + 0.125*y_hat*y_hat;
+  Bx[7] = -0.25 + 0.25*x_hat + -0.25*y_hat + 0.25*x_hat*y_hat;
+  By[7] = 0.125 + -0.125*y_hat*y_hat;
   return 0;
 }
 static void HdivBasisQuad(CeedInt Q, CeedScalar *q_ref, CeedScalar *q_weights,
@@ -65,7 +65,7 @@ static void HdivBasisQuad(CeedInt Q, CeedScalar *q_ref, CeedScalar *q_weights,
   CeedScalar D[8] = {0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25};
   // Loop over quadrature points
   CeedScalar Bx[8], By[8];
-  CeedScalar xhat[2];
+  CeedScalar X[2];
 
   for (CeedInt i=0; i<Q; i++) {
     for (CeedInt j=0; j<Q; j++) {
@@ -73,9 +73,9 @@ static void HdivBasisQuad(CeedInt Q, CeedScalar *q_ref, CeedScalar *q_weights,
       q_ref[k1] = q_ref_1d[j];
       q_ref[k1 + Q*Q] = q_ref_1d[i];
       q_weights[k1] = q_weight_1d[j]*q_weight_1d[i];
-      xhat[0] = q_ref_1d[j];
-      xhat[1] = q_ref_1d[i];
-      NodalHdivBasisQuad(xhat, Bx, By);
+      X[0] = q_ref_1d[j];
+      X[1] = q_ref_1d[i];
+      NodalHdivBasisQuad(X, Bx, By);
       for (CeedInt k=0; k<8; k++) {
         interp[k1*8+k] = Bx[k];
         interp[k1*8+k+8*Q*Q] = By[k];
