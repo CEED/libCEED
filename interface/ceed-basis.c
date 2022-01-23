@@ -731,12 +731,22 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
   CeedFESpace FE_space = basis->basis_space;
+  CeedElemTopology topo = basis->topo;
+  // Print FE space and element topology of the basis
+  if (basis->tensor_basis) {
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%d P=%d Q=%d\n",
+            CeedFESpaces[FE_space], CeedElemTopologies[topo],
+            basis->dim, basis->P_1d, basis->Q_1d);
+  } else {
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%d P=%d Q=%d\n",
+            CeedFESpaces[FE_space], CeedElemTopologies[topo],
+            basis->dim, basis->P, basis->Q);
+  }
+  // Print quadrature data, interpolation/gradient/divergene/curl of the basis
   switch (FE_space) {
   case CEED_FE_SPACE_L2: // L^2 discretization
   case CEED_FE_SPACE_H1: // H^1 discretization
     if (basis->tensor_basis) { // H^1 tensor basis
-      fprintf(stream, "CeedBasis (H^1 discretization): dim=%d P=%d Q=%d\n",
-              basis->dim, basis->P_1d, basis->Q_1d);
       ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d,
                             stream); CeedChk(ierr);
       ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d,
@@ -746,8 +756,6 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
       ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
                             basis->grad_1d, stream); CeedChk(ierr);
     } else { // H^1 non-tensor basis
-      fprintf(stream, "CeedBasis (H^1 discretization): dim=%d P=%d Q=%d\n",
-              basis->dim, basis->P, basis->Q);
       ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
                             basis->q_ref_1d,
                             stream); CeedChk(ierr);
@@ -760,8 +768,6 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     }
     break;
   case CEED_FE_SPACE_HDIV: // H(div) discretization
-    fprintf(stream, "CeedBasis (H(div) discretization): dim=%d P=%d Q=%d\n",
-            basis->dim, basis->P, basis->Q);
     ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
                           basis->q_ref_1d,
                           stream); CeedChk(ierr);
