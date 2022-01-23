@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
   CeedBasisGetGrad1D(basis_temp, &grad);
   CeedBasisGetQRef(basis_temp, &q_ref);
   CeedBasisGetQWeights(basis_temp, &q_weight);
-  CeedBasisCreateH1(ceed, CEED_FE_TOPO_LINE, num_comp, P_c, Q, interp, grad, q_ref,
-                    q_weight, &basis_c);
+  CeedBasisCreateH1(ceed, CEED_FE_TOPO_LINE, num_comp, P_c, Q, interp, grad,
+                    q_ref, q_weight, &basis_c);
   CeedBasisDestroy(&basis_temp);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, P_f, Q, CEED_GAUSS,
                                   &basis_temp);
@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
   CeedBasisGetGrad1D(basis_temp, &grad);
   CeedBasisGetQRef(basis_temp, &q_ref);
   CeedBasisGetQWeights(basis_temp, &q_weight);
-  CeedBasisCreateH1(ceed, CEED_FE_TOPO_LINE, num_comp, P_f, Q, interp, grad, q_ref,
-                    q_weight, &basis_f);
+  CeedBasisCreateH1(ceed, CEED_FE_TOPO_LINE, num_comp, P_f, Q, interp, grad,
+                    q_ref, q_weight, &basis_f);
   CeedBasisDestroy(&basis_temp);
 
   // QFunctions
