@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   }
 
   HdivBasisQuad(Q, q_ref, q_weights, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_QUAD, num_comp, P, num_qpts, interp,
+  CeedBasisCreateHdiv(ceed, CEED_FE_TOPO_QUAD, num_comp, P, num_qpts, interp,
                       div, q_ref, q_weights, &b);
   // interp[0]--.interp[num_qpts-1] ==> basis in x-direction
   // interp[num_qpts]--.interp[dim*num_qpts-1] ==> basis in y-direction

@@ -100,13 +100,13 @@ The dimension can be extracted with bitshift:
     dim = Int(topology) >> 16
 """
 const Topology = C.CeedElemTopology
-const LINE = C.CEED_LINE
-const TRIANGLE = C.CEED_TRIANGLE
-const QUAD = C.CEED_QUAD
-const TET = C.CEED_TET
-const PYRAMID = C.CEED_PYRAMID
-const PRISM = C.CEED_PRISM
-const HEX = C.CEED_HEX
+const LINE = C.CEED_FE_TOPO_LINE
+const TRIANGLE = C.CEED_FE_TOPO_TRIANGLE
+const QUAD = C.CEED_FE_TOPO_QUAD
+const TET = C.CEED_FE_TOPO_TET
+const PYRAMID = C.CEED_FE_TOPO_PYRAMID
+const PRISM = C.CEED_FE_TOPO_PRISM
+const HEX = C.CEED_FE_TOPO_HEX
 
 function set_globals()
     @doc """

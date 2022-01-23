@@ -307,13 +307,13 @@ end
 end
 
 @cenum CeedElemTopology::UInt32 begin
-    CEED_LINE = 65536
-    CEED_TRIANGLE = 131073
-    CEED_QUAD = 131074
-    CEED_TET = 196611
-    CEED_PYRAMID = 196612
-    CEED_PRISM = 196613
-    CEED_HEX = 196614
+    CEED_FE_TOPO_LINE = 65536
+    CEED_FE_TOPO_TRIANGLE = 131073
+    CEED_FE_TOPO_QUAD = 131074
+    CEED_FE_TOPO_TET = 196611
+    CEED_FE_TOPO_PYRAMID = 196612
+    CEED_FE_TOPO_PRISM = 196613
+    CEED_FE_TOPO_HEX = 196614
 end
 
 function CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P, Q, quad_mode, basis)

@@ -494,33 +494,33 @@ CEED_EXTERN const char *const CeedQuadModes[];
 /// @ingroup CeedBasis
 typedef enum {
   /// Line
-  CEED_LINE = 1 << 16 | 0,
+  CEED_FE_TOPO_LINE = 1 << 16 | 0,
   /// Triangle - 2D shape
-  CEED_TRIANGLE = 2 << 16 | 1,
+  CEED_FE_TOPO_TRIANGLE = 2 << 16 | 1,
   /// Quadralateral - 2D shape
-  CEED_QUAD = 2 << 16 | 2,
+  CEED_FE_TOPO_QUAD = 2 << 16 | 2,
   /// Tetrahedron - 3D shape
-  CEED_TET = 3 << 16 | 3,
+  CEED_FE_TOPO_TET = 3 << 16 | 3,
   /// Pyramid - 3D shape
-  CEED_PYRAMID = 3 << 16 | 4,
+  CEED_FE_TOPO_PYRAMID = 3 << 16 | 4,
   /// Prism - 3D shape
-  CEED_PRISM = 3 << 16 | 5,
+  CEED_FE_TOPO_PRISM = 3 << 16 | 5,
   /// Hexehedron - 3D shape
-  CEED_HEX = 3 << 16 | 6,
+  CEED_FE_TOPO_HEX = 3 << 16 | 6,
 } CeedElemTopology;
 CEED_EXTERN const char *const CeedElemTopologies[];
 
 /// Type of FE space;
 /// @ingroup CeedBasis
 typedef enum {
-  /// L2 space
-  CEED_L2 = 0,
-  /// H1 space
-  CEED_H1 = 1,
-  /// H(div) space
-  CEED_Hdiv = 2,
-  /// H(curl) space
-  CEED_Hcurl = 3,
+  /// L2 FE space
+  CEED_FE_SPACE_L2 = 0,
+  /// H1 FE space
+  CEED_FE_SPACE_H1 = 1,
+  /// H(div) FE space
+  CEED_FE_SPACE_HDIV = 2,
+  /// H(curl) FE space
+  CEED_FE_SPACE_HCURL = 3,
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 

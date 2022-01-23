@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+  CeedBasisCreateH1(ceed, CEED_FE_TOPO_TRIANGLE, 1, P, Q, interp, grad, q_ref,
                     q_weight, &b);
 
   // Interpolate function to quadrature points

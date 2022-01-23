@@ -61,13 +61,13 @@ const char *const CeedQuadModes[] = {
 };
 
 const char *const CeedElemTopologies[] = {
-  [CEED_LINE] = "line",
-  [CEED_TRIANGLE] = "triangle",
-  [CEED_QUAD] = "quadrilateral",
-  [CEED_TET] = "tetrahedron",
-  [CEED_PYRAMID] = "pyramid",
-  [CEED_PRISM] = "prism",
-  [CEED_HEX] = "hexahedron",
+  [CEED_FE_TOPO_LINE] = "line",
+  [CEED_FE_TOPO_TRIANGLE] = "triangle",
+  [CEED_FE_TOPO_QUAD] = "quadrilateral",
+  [CEED_FE_TOPO_TET] = "tetrahedron",
+  [CEED_FE_TOPO_PYRAMID] = "pyramid",
+  [CEED_FE_TOPO_PRISM] = "prism",
+  [CEED_FE_TOPO_HEX] = "hexahedron",
 };
 
 const char *const CeedContextFieldTypes[] = {
@@ -76,8 +76,8 @@ const char *const CeedContextFieldTypes[] = {
 };
 
 const char *const CeedFESpaces[] = {
-  [CEED_L2] = "FE L^2 space",
-  [CEED_H1] = "FE H^1 space",
-  [CEED_Hdiv] = "FE H(div) space",
-  [CEED_Hcurl] = "FE H(curl) space",
+  [CEED_FE_SPACE_L2] = "L^2 FE space",
+  [CEED_FE_SPACE_H1] = "H^1 FE space",
+  [CEED_FE_SPACE_HDIV] = "H(div) FE space",
+  [CEED_FE_SPACE_HCURL] = "H(curl) FE space",
 };

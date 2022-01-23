@@ -434,9 +434,9 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "Basis dimension must be a positive value");
   // LCOV_EXCL_STOP
-  CeedElemTopology topo = dim == 1 ? CEED_LINE
-                          : dim == 2 ? CEED_QUAD
-                          : CEED_HEX;
+  CeedElemTopology topo = dim == 1 ? CEED_FE_TOPO_LINE
+                          : dim == 2 ? CEED_FE_TOPO_QUAD
+                          : CEED_FE_TOPO_HEX;
 
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
@@ -627,7 +627,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   @brief Create a non tensor-product basis for H(div) discretizations
 
   @param ceed        A Ceed object where the CeedBasis will be created
-  @param topo        Topology of element (`CEED_QUAD`, `CEED_PRISM`, etc.), dimension of which is used in some array sizes below
+  @param topo        Topology of element (`CEED_FE_TOPO_QUAD`, `CEED_FE_TOPO_PRISM`, etc.), dimension of which is used in some array sizes below
   @param num_comp    Number of components (usually 1 for vectors in H(div) bases)
   @param num_nodes   Total number of nodes (dofs per element)
   @param num_qpts    Total number of quadrature points
@@ -732,8 +732,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   int ierr;
   CeedFESpace FE_space = basis->basis_space;
   switch (FE_space) {
-  case CEED_L2: // L^2 discretization
-  case CEED_H1: // H^1 discretization
+  case CEED_FE_SPACE_L2: // L^2 discretization
+  case CEED_FE_SPACE_H1: // H^1 discretization
     if (basis->tensor_basis) { // H^1 tensor basis
       fprintf(stream, "CeedBasis (H^1 discretization): dim=%d P=%d Q=%d\n",
               basis->dim, basis->P_1d, basis->Q_1d);
@@ -759,7 +759,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
                             basis->grad, stream); CeedChk(ierr);
     }
     break;
-  case CEED_Hdiv: // H(div) discretization
+  case CEED_FE_SPACE_HDIV: // H(div) discretization
     fprintf(stream, "CeedBasis (H(div) discretization): dim=%d P=%d Q=%d\n",
             basis->dim, basis->P, basis->Q);
     ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
@@ -772,7 +772,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     ierr = CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P,
                           basis->div, stream); CeedChk(ierr);
     break;
-  case CEED_Hcurl: // H(curl) discretization
+  case CEED_FE_SPACE_HCURL: // H(curl) discretization
     break;
   }
   return CEED_ERROR_SUCCESS;
@@ -1163,15 +1163,15 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
 
   CeedFESpace FE_space = basis->basis_space;
   switch (FE_space) {
-  case CEED_L2: // L^2 discretization
-  case CEED_H1: // H^1 discretization
-  case CEED_Hcurl: // H(curl) discretization
+  case CEED_FE_SPACE_L2: // L^2 discretization
+  case CEED_FE_SPACE_H1: // H^1 discretization
+  case CEED_FE_SPACE_HCURL: // H(curl) discretization
     // LCOV_EXCL_START
     return CeedError(basis->ceed, CEED_ERROR_MINOR,
                      "CeedBasis does not have divergence.");
     // LCOV_EXCL_STOP
     break;
-  case CEED_Hdiv: // H(div) discretization
+  case CEED_FE_SPACE_HDIV: // H(div) discretization
     *div = basis->div;
     break;
   }
