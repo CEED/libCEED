@@ -434,9 +434,9 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "Basis dimension must be a positive value");
   // LCOV_EXCL_STOP
-  CeedElemTopology topo = dim == 1 ? CEED_FE_TOPO_LINE
-                          : dim == 2 ? CEED_FE_TOPO_QUAD
-                          : CEED_FE_TOPO_HEX;
+  CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE
+                          : dim == 2 ? CEED_TOPOLOGY_QUAD
+                          : CEED_TOPOLOGY_HEX;
 
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
   (*basis)->ceed = ceed;
@@ -627,7 +627,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   @brief Create a non tensor-product basis for H(div) discretizations
 
   @param ceed        A Ceed object where the CeedBasis will be created
-  @param topo        Topology of element (`CEED_FE_TOPO_QUAD`, `CEED_FE_TOPO_PRISM`, etc.), dimension of which is used in some array sizes below
+  @param topo        Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
   @param num_comp    Number of components (usually 1 for vectors in H(div) bases)
   @param num_nodes   Total number of nodes (dofs per element)
   @param num_qpts    Total number of quadrature points

@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  CeedBasisCreateH1(ceed, CEED_FE_TOPO_TRIANGLE, num_comp, P, Q, interp, grad,
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, num_comp, P, Q, interp, grad,
                     q_ref, q_weight, &b);
 
   CeedVectorCreate(ceed, Q*dim*num_comp, &In);

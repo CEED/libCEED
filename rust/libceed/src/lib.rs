@@ -115,13 +115,13 @@ pub enum QuadMode {
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of basis shape to create non-tensor H1 element basis
 pub enum ElemTopology {
-    Line = bind_ceed::CeedElemTopology_CEED_FE_TOPO_LINE as isize,
-    Triangle = bind_ceed::CeedElemTopology_CEED_FE_TOPO_TRIANGLE as isize,
-    Quad = bind_ceed::CeedElemTopology_CEED_FE_TOPO_QUAD as isize,
-    Tet = bind_ceed::CeedElemTopology_CEED_FE_TOPO_TET as isize,
-    Pyramid = bind_ceed::CeedElemTopology_CEED_FE_TOPO_PYRAMID as isize,
-    Prism = bind_ceed::CeedElemTopology_CEED_FE_TOPO_PRISM as isize,
-    Hex = bind_ceed::CeedElemTopology_CEED_FE_TOPO_HEX as isize,
+    Line = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_LINE as isize,
+    Triangle = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_TRIANGLE as isize,
+    Quad = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_QUAD as isize,
+    Tet = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_TET as isize,
+    Pyramid = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_PYRAMID as isize,
+    Prism = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_PRISM as isize,
+    Hex = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_HEX as isize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

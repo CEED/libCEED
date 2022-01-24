@@ -19,8 +19,8 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   HdivBasisQuad(Q, q_ref, q_weights, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_FE_TOPO_QUAD, num_comp, P, num_qpts, interp, div,
-                      q_ref, q_weights, &b);
+  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, P, num_qpts, interp,
+                      div, q_ref, q_weights, &b);
 
   // Test GetInterp for H(div)
   const CeedScalar *interp2;
