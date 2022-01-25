@@ -657,7 +657,7 @@ distclean : clean
 
 DOXYGEN ?= doxygen
 doxygen :
-	$(DOXYGEN) Doxyfile
+	$(DOXYGEN) -q Doxyfile
 
 doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 	make -C doc/sphinx $*
