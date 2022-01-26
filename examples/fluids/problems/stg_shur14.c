@@ -74,21 +74,23 @@ int SetupSTG_Rand(STGShur14Context stg_ctx){
   //TODO Read STGInflow.dat to get nprof
   int nprofs = 5;
 
-  int total_num_scalars = nmodes*(3 + 3 + 1) + nprofs*(1 + 3 + 6 + 1 + 1) ;
-  stg_ctx = malloc(sizeof(STGShur14Context) + total_num_scalars*sizeof(CeedScalar) );
-
-  stg_ctx->nmodes = nmodes;
-  stg_ctx->nprofs = nprofs;
-
-  stg_ctx->offsets.sigma = 0;
-  stg_ctx->offsets.d       = nmodes*3;
-  stg_ctx->offsets.phi     = stg_ctx->offsets.d       + nmodes*3;
-  stg_ctx->offsets.kappa   = stg_ctx->offsets.phi     + nmodes;
-  stg_ctx->offsets.prof_dw = stg_ctx->offsets.kappa   + nmodes;
-  stg_ctx->offsets.ubar    = stg_ctx->offsets.prof_dw + nprofs;
-  stg_ctx->offsets.cij     = stg_ctx->offsets.ubar    + nprofs*3;
-  stg_ctx->offsets.eps     = stg_ctx->offsets.ubar    + nprofs*6;
-  stg_ctx->offsets.lt      = stg_ctx->offsets.eps     + nprofs;
+  {
+    STGShur14Context s;
+    s.nmodes = nmodes;
+    s.nprofs = nprofs;
+    s.offsets.sigma = 0;
+    s.offsets.d       = nmodes*3;
+    s.offsets.phi     = stg_ctx->offsets.d       + nmodes*3;
+    s.offsets.kappa   = stg_ctx->offsets.phi     + nmodes;
+    s.offsets.prof_dw = stg_ctx->offsets.kappa   + nmodes;
+    s.offsets.ubar    = stg_ctx->offsets.prof_dw + nprofs;
+    s.offsets.cij     = stg_ctx->offsets.ubar    + nprofs*3;
+    s.offsets.eps     = stg_ctx->offsets.ubar    + nprofs*6;
+    s.offsets.lt      = stg_ctx->offsets.eps     + nprofs;
+    int total_num_scalars = stg_ctx->offsets.lt + nprofs;
+    stg_ctx = malloc(sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]));
+    *stg_ctx = s;
+  }
 
   //TODO Set sigma, d, and phi from STGRand.dat
   CeedScalar (*sigma)[nmodes] = (CeedScalar (*)[nmodes])&stg_ctx->data[stg_ctx->offsets.sigma];
