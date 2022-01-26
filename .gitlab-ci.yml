@@ -20,8 +20,8 @@ noether-rocm:
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
-# -- LIBXSMM v1.16.1
-    - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+# -- LIBXSMM v1.17
+    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
 # -- OCCA v1.1.0
     - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
@@ -100,8 +100,8 @@ noether-float:
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
-# -- LIBXSMM v1.16.1
-    - cd .. && export XSMM_VERSION=libxsmm-1.16.1 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.16.1 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+# -- LIBXSMM v1.17
+    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
 # libCEED
 # First change to single precision
