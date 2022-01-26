@@ -470,7 +470,7 @@ Here, we define the number of wavemodes $N$, set of random numbers $ \{\bm{\sigm
 \bm{d}^n, \phi^n\}_{n=1}^N$, the Cholesky decomposition of the Reynolds stress
 tensor $\bm{C}$ (such that $\bm{R} = \bm{CC}^T$ ), bulk velocity $U_0$,
 wavemode amplitude $q^n$, wavemode frequency $\kappa^n$, and $\kappa_{\min} =
-\min_{\bm{x}} (\kappa_e)$.
+0.5 \min_{\bm{x}} (\kappa_e)$.
 
 $$
 \kappa_e = \frac{2\pi}{\min(2d_w, 3.0 l_t)}
