@@ -1191,7 +1191,16 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
 int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
 
   CeedFESpace FE_space = basis->basis_space;
-  switch (FE_space) {
+int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
+  if (!basis->div)
+      // LCOV_EXCL_START
+     return CeedError(basis->ceed, CEED_ERROR_MINOR,
+                     "CeedBasis does not have divergence matrix.");
+  // LCOV_EXCL_STOP
+ 
+   *div = basis->div;
+   return CEED_ERROR_SUCCESS;
+ }
   case CEED_FE_SPACE_L2: // L^2 discretization
   case CEED_FE_SPACE_H1: // H^1 discretization
   case CEED_FE_SPACE_HCURL: // H(curl) discretization
