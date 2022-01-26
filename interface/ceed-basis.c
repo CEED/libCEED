@@ -450,6 +450,8 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
   (*basis)->Q_1d = Q_1d;
   (*basis)->P = CeedIntPow(P_1d, dim);
   (*basis)->Q = CeedIntPow(Q_1d, dim);
+  (*basis)->Q_comp = 1;
+  (*basis)->basis_space = 1; // 1 for H^1 space
   ierr = CeedCalloc(Q_1d, &(*basis)->q_ref_1d); CeedChk(ierr);
   ierr = CeedCalloc(Q_1d, &(*basis)->q_weight_1d); CeedChk(ierr);
   if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d*sizeof(q_ref_1d[0]));
@@ -610,6 +612,8 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   (*basis)->num_comp = num_comp;
   (*basis)->P = P;
   (*basis)->Q = Q;
+  (*basis)->Q_comp = 1;
+  (*basis)->basis_space = 1; // 1 for H^1 space
   ierr = CeedCalloc(Q*dim, &(*basis)->q_ref_1d); CeedChk(ierr);
   ierr = CeedCalloc(Q, &(*basis)->q_weight_1d); CeedChk(ierr);
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
@@ -680,6 +684,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   (*basis)->num_comp = num_comp;
   (*basis)->P = P;
   (*basis)->Q = Q;
+  (*basis)->Q_comp = dim;
   (*basis)->basis_space = 2; // 2 for H(div) space
   ierr = CeedMalloc(Q*dim,&(*basis)->q_ref_1d); CeedChk(ierr);
   ierr = CeedMalloc(Q,&(*basis)->q_weight_1d); CeedChk(ierr);
@@ -921,6 +926,21 @@ int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
 **/
 int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
   *topo = basis->topo;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get number of Q-vector components for given CeedBasis
+
+  @param basis          CeedBasis
+  @param[out] Q_comp  Variable to store number of Q-vector components of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedInt *Q_comp) {
+  *Q_comp = basis->Q_comp;
   return CEED_ERROR_SUCCESS;
 }
 

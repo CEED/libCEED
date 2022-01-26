@@ -190,6 +190,7 @@ struct CeedBasis_private {
   CeedInt dim;             /* topological dimension */
   CeedElemTopology topo;   /* element topology */
   CeedInt num_comp;        /* number of field components (1 for scalar fields) */
+  CeedInt Q_comp;        /* number of Q-vector components (1 for H^1, dim for H(div)) */
   CeedInt P_1d;            /* number of nodes in one dimension */
   CeedInt Q_1d;            /* number of quadrature points in one dimension */
   CeedInt P;               /* total number of nodes */
@@ -201,20 +202,20 @@ struct CeedBasis_private {
   *q_weight_1d; /* array of length Q1d holding the quadrature weights on
                                the reference element */
   CeedScalar
-  *interp;    /* row-major matrix of shape [Q, P] expressing the values of
-                   nodal basis functions at quadrature points for H1 discretizations.
-                For H(div) discretizations, it is a matrix of shape [dim*Q,P] */
+  *interp;    /* row-major matrix of shape [Q_com*Q, P] expressing the values of
+                   nodal basis functions at quadrature points.*/
   CeedScalar
   *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of
                    nodal basis functions at quadrature points */
   CeedScalar
-  *grad;      /* row-major matrix of shape [dim*Q, P] matrix expressing
+  *grad;      /* row-major matrix of shape [dim*Q_comp*Q, P] matrix expressing
                    derivatives of nodal basis functions at quadrature points */
   CeedScalar
   *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing
                    derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract; /* tensor contraction object */
-  CeedInt basis_space;  /* Initialize with 1 for H^1, 2 for H(div), 3 for H(curl) */
+  CeedInt basis_space;  /* Initialize in basis constructor
+                        with 0,1,2,3 for L^2, H^1, H(div), and H(curl) FE space */
   CeedScalar *div;  /* row-major matrix of shape [Q, P] expressing
                         the divergence of nodal basis functions
                         at quadrature points for H(div) discretizations */
