@@ -48,7 +48,7 @@
  * @param[in] Rij Array of the symmetric matrices [6,nprofs]
  * @param[out] Cij Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-static inline int CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]){
+static inline void CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]){
 
   CeedPragmaSIMD
   for(int i=0; i<nprofs; i++){
@@ -59,11 +59,10 @@ static inline int CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs]
     Cij[5][i] = (Rij[5][i] - Cij[3][i]*Cij[4][i]) / Cij[1][i];
     Cij[2][i] = sqrt(Rij[2][i] - pow(Cij[4][i], 2) - pow(Cij[5][i], 2));
   }
-return 1;
 }
 
 
-int SetupSTG_Rand(STGShur14Context stg_ctx){
+void SetupSTG_Rand(STGShur14Context stg_ctx){
 
   //TODO will probably want to have the paths to the STGRand.dat and
   // STGInflow.dat as inputs for this function.
@@ -125,12 +124,9 @@ int SetupSTG_Rand(STGShur14Context stg_ctx){
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa
-
-  return 1;
 }
 
-int TearDownSTG(STGShur14Context stg_ctx){
+void TearDownSTG(STGShur14Context stg_ctx){
 
   free(stg_ctx);
-  return 1;
 }

@@ -56,7 +56,7 @@ CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
                                 CeedScalar *const *out){
   // Calculate qn on the fly
   // Use STGShur14_Calc to actually calculate u
-  return 1;
+  return 0;
 }
 
 

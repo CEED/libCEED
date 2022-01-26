@@ -47,5 +47,5 @@ struct STGShur14Context_ {
 #endif
 
 
-int SetupSTG_Rand(STGShur14Context stg_ctx);
+void SetupSTG_Rand(STGShur14Context stg_ctx);
 
