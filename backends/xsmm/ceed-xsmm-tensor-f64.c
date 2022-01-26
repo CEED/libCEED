@@ -72,7 +72,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A,
   // Run kernel or fallback to default implementation
   if (C != 1)
     for (CeedInt a=0; a<A; a++)
-      kernel(&u[a*B*C], &t[0], &v[a*J*C], NULL, NULL, NULL);
+      LIBXSMM_MMFUNCTION_KERNEL(&u[a*B*C], &t[0], &v[a*J*C]);
   else
     CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, t_mode, add, u, v);
 
