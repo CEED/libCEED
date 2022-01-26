@@ -39,8 +39,9 @@
  * @param[out] u Velocity at x and t
  */
 void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar x[3],
-    const CeedScalar t, const CeedScalar qn, CeedScalar *u[3], const STGShur14Context stg_ctx){
-  for (CeedInt i=0; i<3; i++){
+    const CeedScalar t, const CeedScalar qn, CeedScalar *u[3],
+    const STGShur14Context stg_ctx) {
+  for (CeedInt i=0; i<3; i++) {
     *u[i] = (CeedScalar)i;
   }
 }
@@ -52,8 +53,8 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar x[3],
  * at each location, then calculate the actual velocity.
  */
 CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out){
+                                 const CeedScalar *const *in,
+                                 CeedScalar *const *out) {
   // Calculate qn on the fly
   // Use STGShur14_Calc to actually calculate u
   return 0;

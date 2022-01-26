@@ -48,10 +48,11 @@
  * @param[in] Rij Array of the symmetric matrices [6,nprofs]
  * @param[out] Cij Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-static inline void CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]){
+static inline void CalcCholeskyDecomp(int nprofs,
+                                      const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
   CeedPragmaSIMD
-  for(int i=0; i<nprofs; i++){
+  for(int i=0; i<nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
     Cij[3][i] = Rij[3][i] / Cij[0][i];
     Cij[1][i] = sqrt(Rij[1][i] - pow(Cij[3][i], 2) );
@@ -62,7 +63,7 @@ static inline void CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs
 }
 
 
-void SetupSTG_Rand(STGShur14Context stg_ctx){
+void SetupSTG_Rand(STGShur14Context stg_ctx) {
 
   //TODO will probably want to have the paths to the STGRand.dat and
   // STGInflow.dat as inputs for this function.
@@ -92,13 +93,15 @@ void SetupSTG_Rand(STGShur14Context stg_ctx){
   }
 
   //TODO Set sigma, d, and phi from STGRand.dat
-  CeedScalar (*sigma)[nmodes] = (CeedScalar (*)[nmodes])&stg_ctx->data[stg_ctx->offsets.sigma];
+  CeedScalar (*sigma)[nmodes] = (CeedScalar (*)[nmodes])
+                                &stg_ctx->data[stg_ctx->offsets.sigma];
   // or just pass &stg_ctx->data[stg_ctx->offsets.sigma]; to function that reads it in
 
   //TODO Read rest of STGInflow.dat and assign to data
-  CeedScalar (*cij)[6][nprofs] = (CeedScalar (*)[6][nprofs])&stg_ctx->data[stg_ctx->offsets.cij];
+  CeedScalar (*cij)[6][nprofs] = (CeedScalar (*)[6][nprofs])
+                                 &stg_ctx->data[stg_ctx->offsets.cij];
   CeedScalar (*rij)[6][nprofs]; // Read from file
-  
+
   CalcCholeskyDecomp(nprofs, *rij, *cij);
 
   stg_ctx->alpha = 1.01; //TODO Get from CLI, yaml/toml, etc.
@@ -111,22 +114,23 @@ void SetupSTG_Rand(STGShur14Context stg_ctx){
     CeedScalar le, le_max=0;
 
     CeedPragmaSIMD
-    for(int i=0; i<stg_ctx->nprofs; i++){
-      le = max(2*prof_dw[i], 3*lt[i]); //TODO safe guard against negative prof_dw or lt?
-      if (le_max < le){
+    for(int i=0; i<stg_ctx->nprofs; i++) {
+      le = max(2*prof_dw[i],
+               3*lt[i]); //TODO safe guard against negative prof_dw or lt?
+      if (le_max < le) {
         le_max = le;
       }
     }
     CeedScalar kmin = M_PI/le_max;
 
     CeedPragmaSIMD
-    for(int i=0; i<stg_ctx->nmodes; i++){
+    for(int i=0; i<stg_ctx->nmodes; i++) {
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa
 }
 
-void TearDownSTG(STGShur14Context stg_ctx){
+void TearDownSTG(STGShur14Context stg_ctx) {
 
   free(stg_ctx);
 }
