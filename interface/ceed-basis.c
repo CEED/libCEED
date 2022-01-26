@@ -1180,9 +1180,12 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
 
 /**
   @brief Get divergence matrix of a CeedBasisHdiv
-  @param basis        CeedBasisHdiv
+  
+  @param basis     CeedBasisHdiv
   @param[out] div  Variable to store divergence matrix
+  
   @return An error code: 0 - success, otherwise - failure
+  
   @ref Advanced
 **/
 int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
