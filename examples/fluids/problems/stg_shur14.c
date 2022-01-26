@@ -38,6 +38,31 @@
 
 #endif  /* NOMINMAX */
 
+/*
+ * @brief Perform Cholesky decomposition on array of symmetric 3x3 matrices
+ *
+ * This assumes the input matrices are in order [11,22,33,12,13,23]. This
+ * format is also used for the output.
+ *
+ * @param[in] nprofs Number of matrices in Rij
+ * @param[in] Rij Array of the symmetric matrices [6,nprofs]
+ * @param[out] Cij Array of the Cholesky Decomposition matrices, [6,nprofs]
+ */
+static inline int CalcCholeskyDecomp(int nprofs, const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]){
+
+  CeedPragmaSIMD
+  for(int i=0; i<nprofs; i++){
+    Cij[0][i] = sqrt(Rij[0][i]);
+    Cij[3][i] = Rij[3][i] / Cij[0][i];
+    Cij[1][i] = sqrt(Rij[1][i] - pow(Cij[3][i], 2) );
+    Cij[4][i] = Rij[4][i] / Cij[0][i];
+    Cij[5][i] = (Rij[5][i] - Cij[3][i]*Cij[4][i]) / Cij[1][i];
+    Cij[2][i] = sqrt(Rij[2][i] - pow(Cij[4][i], 2) - pow(Cij[5][i], 2));
+  }
+return 1;
+}
+
+
 int SetupSTG_Rand(STGShur14Context stg_ctx){
 
   //TODO will probably want to have the paths to the STGRand.dat and
@@ -70,6 +95,10 @@ int SetupSTG_Rand(STGShur14Context stg_ctx){
   // or just pass &stg_ctx->data[stg_ctx->offsets.sigma]; to function that reads it in
 
   //TODO Read rest of STGInflow.dat and assign to data
+  CeedScalar (*cij)[6][nprofs] = (CeedScalar (*)[6][nprofs])&stg_ctx->data[stg_ctx->offsets.cij];
+  CeedScalar (*rij)[6][nprofs]; // Read from file
+  
+  CalcCholeskyDecomp(nprofs, *rij, *cij);
 
   stg_ctx->alpha = 1.01; //TODO Get from CLI, yaml/toml, etc.
 
