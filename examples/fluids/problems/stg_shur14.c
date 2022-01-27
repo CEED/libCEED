@@ -22,6 +22,7 @@
 #include <math.h>
 #include <petsc.h>
 #include "../qfunctions/stg_shur14.h"
+#include "setupstg_shur14.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -84,20 +85,21 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
 
   {
     STGShur14Context s;
-    s.nmodes = nmodes;
-    s.nprofs = nprofs;
-    s.offsets.sigma = 0;
-    s.offsets.d       = nmodes*3;
-    s.offsets.phi     = stg_ctx->offsets.d       + nmodes*3;
-    s.offsets.kappa   = stg_ctx->offsets.phi     + nmodes;
-    s.offsets.prof_dw = stg_ctx->offsets.kappa   + nmodes;
-    s.offsets.ubar    = stg_ctx->offsets.prof_dw + nprofs;
-    s.offsets.cij     = stg_ctx->offsets.ubar    + nprofs*3;
-    s.offsets.eps     = stg_ctx->offsets.ubar    + nprofs*6;
-    s.offsets.lt      = stg_ctx->offsets.eps     + nprofs;
-    int total_num_scalars = stg_ctx->offsets.lt + nprofs;
+    ierr = PetscCalloc1(1, &s); CHKERRQ(ierr);
+    s->nmodes = nmodes;
+    s->nprofs = nprofs;
+    s->offsets.sigma = 0;
+    s->offsets.d       = nmodes*3;
+    s->offsets.phi     = s->offsets.d       + nmodes*3;
+    s->offsets.kappa   = s->offsets.phi     + nmodes;
+    s->offsets.prof_dw = s->offsets.kappa   + nmodes;
+    s->offsets.ubar    = s->offsets.prof_dw + nprofs;
+    s->offsets.cij     = s->offsets.ubar    + nprofs*3;
+    s->offsets.eps     = s->offsets.cij     + nprofs*6;
+    s->offsets.lt      = s->offsets.eps     + nprofs;
+    int total_num_scalars = s->offsets.lt + nprofs;
     stg_ctx = malloc(sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]));
-    *stg_ctx = s;
+    *stg_ctx = *s;
   }
 
   //TODO Set sigma, d, and phi from STGRand.dat

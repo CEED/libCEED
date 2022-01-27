@@ -35,15 +35,15 @@ struct STGShur14Context_ {
   CeedScalar alpha; // !< Geometric growth rate of kappa
 
   struct {
-    CeedInt sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
-    CeedInt kappa;   // !< Wavemode frequencies in increasing order, [nmodes]
-    CeedInt prof_dw; // !< Distance to wall for Inflow Profie, [nprof]
-    CeedInt ubar;    // !< Mean velocity, [nprof, 3]
-    CeedInt cij;     // !< Cholesky decomposition [nprof, 6]
-    CeedInt eps;     // !< Turbulent Disspation [nprof, 6]
-    CeedInt lt;      // !< Tubulent Length Scale [nprof, 6]
-  } offsets;       // !< Holds offsets for each array in data
-  CeedScalar data[]; //!< Holds concatenated scalar array data
+    size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
+    size_t kappa;    // !< Wavemode frequencies in increasing order, [nmodes]
+    size_t prof_dw;  // !< Distance to wall for Inflow Profie, [nprof]
+    size_t ubar;     // !< Mean velocity, [nprof, 3]
+    size_t cij;      // !< Cholesky decomposition [nprof, 6]
+    size_t eps;      // !< Turbulent Disspation [nprof, 6]
+    size_t lt;       // !< Tubulent Length Scale [nprof, 6]
+  } offsets;         // !< Holds offsets for each array in data
+  CeedScalar data[]; // !< Holds concatenated scalar array data
 };
 #endif
 
