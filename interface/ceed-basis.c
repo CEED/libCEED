@@ -450,14 +450,16 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
   (*basis)->Q_1d = Q_1d;
   (*basis)->P = CeedIntPow(P_1d, dim);
   (*basis)->Q = CeedIntPow(Q_1d, dim);
-  ierr = CeedMalloc(Q_1d,&(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q_1d,&(*basis)->q_weight_1d); CeedChk(ierr);
-  memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d*sizeof(q_ref_1d[0]));
-  memcpy((*basis)->q_weight_1d, q_weight_1d, Q_1d*sizeof(q_weight_1d[0]));
-  ierr = CeedMalloc(Q_1d*P_1d,&(*basis)->interp_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q_1d*P_1d,&(*basis)->grad_1d); CeedChk(ierr);
-  memcpy((*basis)->interp_1d, interp_1d, Q_1d*P_1d*sizeof(interp_1d[0]));
-  memcpy((*basis)->grad_1d, grad_1d, Q_1d*P_1d*sizeof(grad_1d[0]));
+  ierr = CeedCalloc(Q_1d, &(*basis)->q_ref_1d); CeedChk(ierr);
+  ierr = CeedCalloc(Q_1d, &(*basis)->q_weight_1d); CeedChk(ierr);
+  if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d*sizeof(q_ref_1d[0]));
+  if (q_weight_1d) memcpy((*basis)->q_weight_1d, q_weight_1d,
+                            Q_1d*sizeof(q_weight_1d[0]));
+  ierr = CeedCalloc(Q_1d*P_1d, &(*basis)->interp_1d); CeedChk(ierr);
+  ierr = CeedCalloc(Q_1d*P_1d, &(*basis)->grad_1d); CeedChk(ierr);
+  if (interp_1d) memcpy((*basis)->interp_1d, interp_1d,
+                          Q_1d*P_1d*sizeof(interp_1d[0]));
+  if (grad_1d) memcpy((*basis)->grad_1d, grad_1d, Q_1d*P_1d*sizeof(grad_1d[0]));
   ierr = ceed->BasisCreateTensorH1(dim, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d,
                                    q_weight_1d, *basis); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -595,7 +597,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1,basis); CeedChk(ierr);
+  ierr = CeedCalloc(1, basis); CeedChk(ierr);
 
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
 
@@ -608,14 +610,14 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   (*basis)->num_comp = num_comp;
   (*basis)->P = P;
   (*basis)->Q = Q;
-  ierr = CeedMalloc(Q*dim,&(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q,&(*basis)->q_weight_1d); CeedChk(ierr);
-  memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
-  memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
-  ierr = CeedMalloc(Q*P, &(*basis)->interp); CeedChk(ierr);
-  ierr = CeedMalloc(dim*Q*P, &(*basis)->grad); CeedChk(ierr);
-  memcpy((*basis)->interp, interp, Q*P*sizeof(interp[0]));
-  memcpy((*basis)->grad, grad, dim*Q*P*sizeof(grad[0]));
+  ierr = CeedCalloc(Q*dim, &(*basis)->q_ref_1d); CeedChk(ierr);
+  ierr = CeedCalloc(Q, &(*basis)->q_weight_1d); CeedChk(ierr);
+  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
+  if(q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
+  ierr = CeedCalloc(Q*P, &(*basis)->interp); CeedChk(ierr);
+  ierr = CeedCalloc(dim*Q*P, &(*basis)->grad); CeedChk(ierr);
+  if(interp) memcpy((*basis)->interp, interp, Q*P*sizeof(interp[0]));
+  if(grad) memcpy((*basis)->grad, grad, dim*Q*P*sizeof(grad[0]));
   ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref,
                              q_weight, *basis); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
