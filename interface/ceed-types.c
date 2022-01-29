@@ -76,8 +76,6 @@ const char *const CeedContextFieldTypes[] = {
 };
 
 const char *const CeedFESpaces[] = {
-  [CEED_FE_SPACE_L2] = "L^2 space",
   [CEED_FE_SPACE_H1] = "H^1 space",
   [CEED_FE_SPACE_HDIV] = "H(div) space",
-  [CEED_FE_SPACE_HCURL] = "H(curl) space",
 };

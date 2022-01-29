@@ -215,7 +215,7 @@ struct CeedBasis_private {
                    derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract; /* tensor contraction object */
   CeedInt basis_space;  /* Initialize in basis constructor
-                        with 0,1,2,3 for L^2, H^1, H(div), and H(curl) FE space */
+                        with 1,2 for H^1, H(div) FE space */
   CeedScalar *div;  /* row-major matrix of shape [Q, P] expressing
                         the divergence of nodal basis functions
                         at quadrature points for H(div) discretizations */

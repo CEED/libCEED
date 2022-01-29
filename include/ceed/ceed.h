@@ -513,14 +513,10 @@ CEED_EXTERN const char *const CeedElemTopologies[];
 /// Type of FE space;
 /// @ingroup CeedBasis
 typedef enum {
-  /// L2 FE space
-  CEED_FE_SPACE_L2 = 0,
   /// H1 FE space
   CEED_FE_SPACE_H1 = 1,
   /// H(div) FE space
   CEED_FE_SPACE_HDIV = 2,
-  /// H(curl) FE space
-  CEED_FE_SPACE_HCURL = 3,
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
