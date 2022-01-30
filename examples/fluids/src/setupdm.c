@@ -43,6 +43,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     // Configure the finite element space and boundary conditions
     PetscFE  fe;
     PetscInt num_comp_q = 5;
+    DMLabel label;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
                                  &fe); CHKERRQ(ierr);
@@ -59,10 +60,9 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
       ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
       ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
     }
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     // Set wall BCs
     if (bc->num_wall > 0) {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
                            bc->num_wall, bc->walls, 0, bc->num_comps,
                            bc->wall_comps, (void(*)(void))problem->bc,
@@ -70,8 +70,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     }
     // Set slip BCs in the x direction
     if (bc->num_slip[0] > 0) {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       PetscInt comps[1] = {1};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
                            bc->num_slip[0], bc->slips[0], 0, 1, comps,
@@ -79,8 +77,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     }
     // Set slip BCs in the y direction
     if (bc->num_slip[1] > 0) {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       PetscInt comps[1] = {2};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
                            bc->num_slip[1], bc->slips[1], 0, 1, comps,
@@ -88,8 +84,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     }
     // Set slip BCs in the z direction
     if (bc->num_slip[2] > 0) {
-      DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
       PetscInt comps[1] = {3};
       ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
                            bc->num_slip[2], bc->slips[2], 0, 1, comps,

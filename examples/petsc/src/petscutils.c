@@ -113,7 +113,6 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
   ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
   ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
