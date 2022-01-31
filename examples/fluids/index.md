@@ -373,7 +373,7 @@ $$
 \tau_{SHOCK} = \frac{h_{SHOCK}}{2u_{cha}} \left( \frac{ \,|\, \nabla \rho \,|\, h_{SHOCK}}{\rho_{ref}} \right)^{\beta}
 $$
 
-The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
+$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
 
 $$
 h_{SHOCK} = 2 \left( C_{YZB} \,|\, \bm p \,|\, \right)^{-1}
