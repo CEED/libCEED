@@ -53,7 +53,7 @@ struct ShockTubeContext_ {
 //     T   = P / (rho * R)
 //   Density:
 //     rho = 1.0        if x <= mid_point
-//         =            if x >  mid_point
+//         = 0.125      if x >  mid_point
 //   Pressure:
 //     P   = 1.0        if x <= mid_point
 //         = 0.1        if x >  mid_point
