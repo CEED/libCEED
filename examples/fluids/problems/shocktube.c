@@ -89,14 +89,12 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem",
                            NULL); CHKERRQ(ierr);
   // -- Geometry
-  PetscInt n = problem->dim;
   ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
                             NULL, lx, &lx, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
                             NULL, ly, &ly, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
                             NULL, lz, &lz, NULL); CHKERRQ(ierr);
-  n = problem->dim;
 
   // -- Numerical formulation options
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
