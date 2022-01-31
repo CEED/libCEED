@@ -70,8 +70,8 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   // Driven section initial conditions
   CeedScalar P_low           = 0.1;     // Pa
   CeedScalar rho_low         = 0.125;   // kg/m^3
-  // Gas properties
-  CeedScalar cv              = 50.0;    // J/(kg K)
+  // Stabilization parameter
+  CeedScalar c_tau           = 0.5;     // -, based on Hughes et al (2010)
   // Tuning parameters for the YZB shock capturing
   CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
   CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks
@@ -104,6 +104,8 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
+                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-yzb", "Use YZB discontinuity capturing",
                           NULL, yzb=PETSC_FALSE, &yzb, NULL); CHKERRQ(ierr);
 
@@ -149,9 +151,9 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   user->phys->shocktube_ctx->implicit       = implicit;
   user->phys->shocktube_ctx->stabilization  = stab;
   user->phys->shocktube_ctx->yzb            = yzb;
-  user->phys->shocktube_ctx->cv             = cv;
   user->phys->shocktube_ctx->Cyzb           = Cyzb;
   user->phys->shocktube_ctx->Byzb           = Byzb;
+  user->phys->shocktube_ctx->c_tau          = c_tau;
 
   PetscFunctionReturn(0);
 }

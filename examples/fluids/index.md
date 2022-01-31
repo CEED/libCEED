@@ -351,6 +351,40 @@ $$
 where $(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)$, $(x_c, \, y_c)$ represents the center of the domain, $r^2=\bar{x}^2 + \bar{y}^2$, and $\epsilon$ is the vortex strength ($\epsilon$ < 10).
 There is no perturbation in the entropy $S=P/\rho^\gamma$ ($\delta S=0)$.
 
+(problem-shock-tube)=
+
+## Shock Tube
+
+This test problem is based on Sod's Shock Tube (from{cite}`sodshocktubewiki`), a canonical test case for discontinuity capturing in one dimension. For this problem, the three-dimensional Euler equations are formulated exactly as in the Isentropic Vortex problem. The default initial conditions are $P=1$, $\rho=1$ for the driver section and $P=0.1$, $\rho=0.125$ for the driven section. The initial velocity is zero in both sections. Slip boundary conditions are applied to the side walls and wall boundary conditions are applied at the end walls.
+
+SU upwinding and discontinuity capturing have been implemented into the explicit timestepping operator for this problem. Discontinuity capturing is accomplished using a modified version of the YZB operator described in {cite}`tezduyar2007yzb`. This discontinuity capturing scheme involves the introduction of a dissipation term of the form
+
+$$
+\int_{\Omega} \nu_{SHOCK} \nabla \bm v \!:\! \nabla \bm q dV
+$$
+
+The shock capturing viscosity is implemented following the first formulation described in {cite} `tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
+
+$$
+\nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
+$$
+where,
+$$
+\tau_{SHOCK} = \frac{h_{SHOCK}}{2u_{cha}} \left( \frac{|\nabla \rho| h_{SHOCK}}{\rho_{ref}} \right)^{\beta}
+$$
+
+The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
+
+$$
+h_{SHOCK} = 2 \left( C_{YZB} |\bm p| \right)^{-1}
+$$
+where
+$$
+p_k = \hat{j}_i \frac{\partial \xi_i}{x_k}
+$$
+
+The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the current implementation. Larger values approaching unity are expected with more robust stabilization and implicit timestepping.
+
 (problem-density-current)=
 
 ## Density Current
