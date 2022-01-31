@@ -1,4 +1,4 @@
-CeedBasis: dim=2 P=2 Q=3
+CeedBasis (H^1 space on a quadrilateral element): dim=2 P=2 Q=3
       qref1d:	 -1.00000000	  0.00000000	  1.00000000
    qweight1d:	  0.33333333	  1.33333333	  0.33333333
     interp1d[0]:	  1.00000000	  0.00000000
