@@ -51,8 +51,8 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
 #include "bps.h"
 #include "include/bpsproblemdata.h"
-#include "include/petscmacros.h"
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 #include "include/matops.h"
 #include "include/structs.h"
 #include "include/libceedsetup.h"

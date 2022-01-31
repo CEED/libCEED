@@ -55,8 +55,8 @@ static const char help[] =
 
 #include "area.h"
 #include "include/areaproblemdata.h"
-#include "include/petscmacros.h"
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 #include "include/matops.h"
 #include "include/structs.h"
 #include "include/libceedsetup.h"

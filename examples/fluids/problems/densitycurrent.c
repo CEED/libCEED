@@ -317,17 +317,17 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
                          bc->num_slip[0], bc->slips[0], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
     comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
                          bc->num_slip[1], bc->slips[1], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
     comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
                          bc->num_slip[2], bc->slips[2], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
@@ -352,9 +352,9 @@ PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
     DMLabel  label;
     PetscInt comps[3] = {1, 2, 3};
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                         bc->num_wall, bc->walls, 0,
-                         3, comps, (void(*)(void))Exact_DC, NULL,
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
+                         bc->num_wall, bc->walls, 0, 3, comps,
+                         (void(*)(void))Exact_DC, NULL,
                          setup_ctx, NULL); CHKERRQ(ierr);
   }
 
