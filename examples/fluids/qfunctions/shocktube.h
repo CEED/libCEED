@@ -37,9 +37,9 @@
 #define shocktube_context_struct
 typedef struct ShockTubeContext_ *ShockTubeContext;
 struct ShockTubeContext_ {
-  CeedScalar cv;
   CeedScalar Cyzb;
   CeedScalar Byzb;
+  CeedScalar c_tau;
   bool implicit;
   bool yzb;
   int stabilization;
@@ -115,6 +115,60 @@ CEED_QFUNCTION_HELPER int Exact_ShockTube(CeedInt dim, CeedScalar time,
 }
 
 // *****************************************************************************
+// Helper function for computing flux Jacobian
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5],
+    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
+    const CeedScalar gamma) {
+  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
+  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
+    for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
+      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2.)) : 0.) - u[i]*u[j];
+      for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
+        dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
+        dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
+                          ((i==k) ? u[j] : 0.) -
+                          ((i==j) ? u[k] : 0.) * (gamma-1.);
+        dF[i][4][k+1]   = ((i==k) ? (E*gamma/rho - (gamma-1.)*u_sq/2.) : 0.) -
+                          (gamma-1.)*u[i]*u[k];
+      }
+      dF[i][j+1][4] = ((i==j) ? (gamma-1.) : 0.);
+    }
+    dF[i][4][0] = u[i] * ((gamma-1.)*u_sq - E*gamma/rho);
+    dF[i][4][4] = u[i] * gamma;
+  }
+}
+
+// *****************************************************************************
+// Helper function for computing Tau elements (stabilization constant)
+//   Model from:
+//     Stabilized Methods for Compressible Flows, Hughes et al 2010
+//
+//   Spatial criterion #2 - Tau is a 3x3 diagonal matrix
+//   Tau[i] = c_tau h[i] Xi(Pe) / rho(A[i]) (no sum)
+//
+// Where
+//   c_tau     = stabilization constant (0.5 is reported as "optimal")
+//   h[i]      = 2 length(dxdX[i])
+//   Pe        = Peclet number ( Pe = sqrt(u u) / dot(dXdx,u) diffusivity )
+//   Xi(Pe)    = coth Pe - 1. / Pe (1. at large local Peclet number )
+//   rho(A[i]) = spectral radius of the convective flux Jacobian i,
+//               wave speed in direction i
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
+                                       const CeedScalar dXdx[3][3], const CeedScalar u[3],
+                                       const CeedScalar sound_speed, const CeedScalar c_tau) {
+  for (int i=0; i<3; i++) {
+    // length of element in direction i
+    CeedScalar h = 2 / sqrt(dXdx[0][i]*dXdx[0][i] + dXdx[1][i]*dXdx[1][i] +
+                            dXdx[2][i]*dXdx[2][i]);
+    // fastest wave in direction i
+    CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
+    Tau_x[i] = c_tau * h / fastest_wave;
+  }
+}
+
+// *****************************************************************************
 // This QFunction sets the initial conditions for shock tube
 // *****************************************************************************
 CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q,
@@ -182,9 +236,9 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
   const CeedScalar gamma = 1.4;
 
   ShockTubeContext context = (ShockTubeContext)ctx;
-  const CeedScalar cv = context->cv;
-  const CeedScalar Cyzb = context->Cyzb;
-  const CeedScalar Byzb = context->Byzb;
+  const CeedScalar Cyzb  = context->Cyzb;
+  const CeedScalar Byzb  = context->Byzb;
+  const CeedScalar c_tau = context->c_tau;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -287,8 +341,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
       CeedScalar j_gradn[3] = {0.0};      // j * grad(N)
       CeedScalar h_shock = 0.0;           // element lengthscale
-      CeedScalar acoustic_vel =
-        0.0;      // characteristic velocity, set to acoustic speed
+      CeedScalar acoustic_vel = 0.0;      // characteristic velocity, acoustic speed
       CeedScalar tau_shock = 0.0;         // timescale
       CeedScalar nu_shock = 0.0;          // artificial diffusion
 
@@ -301,8 +354,8 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       // Approximate dot(j_vec,grad(N)) using the metric tensor
       for (int j=0; j<3; j++)
         j_gradn[j] = j_vec[0] * dXdx[0][j]
-                     + j_vec[1] * dXdx[1][j]
-                     + j_vec[2] * dXdx[2][j];
+                   + j_vec[1] * dXdx[1][j]
+                   + j_vec[2] * dXdx[2][j];
 
       if (drho_norm == 0.0) {
         nu_shock = 0.0;
@@ -325,32 +378,11 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
         dv[j][4][i] -= wdetJ * nu_shock * dEdx[j];
     }
 
-    // Stabilization
-
+    // Stabilizatio
     // Need the Jacobian for the advective fluxes for stabilization
     //    indexed as: jacob_F_conv[direction][flux component][solution component]
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
-    CeedScalar vel_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
-    CeedScalar rho_sq = rho*rho;
-    for (int j=0; j<3; j++) {
-      jacob_F_conv[j][4][0] =  u[j]*((gamma-1.)*vel_sq - E*gamma/rho);
-      jacob_F_conv[j][4][4] =  u[j] * gamma;
-      for (int k=0; k<3; k++) {
-        jacob_F_conv[j][k+1][0] = -u[j]*u[k] + (j==k?((gamma-1.)*vel_sq/2.):0.);
-        jacob_F_conv[j][k+1][4] = (j==k?(gamma-1.):0.);
-        jacob_F_conv[j][0][k+1] = (j==k?1.:0.);
-        jacob_F_conv[j][4][k+1] = jacob_F_conv[j][4][k+1] = (j==k?(E*gamma/rho -
-                                  (gamma-1.)*vel_sq/2.):0.) - (gamma-1.)*u[j]*u[k];
-        jacob_F_conv[j][j+1][k+1] = -(gamma-1.)*u[k];
-        jacob_F_conv[j][k+1][k+1] += (j==k?(2*u[j]):(u[j]));
-      }
-    }
-    jacob_F_conv[0][2][1] = u[1];
-    jacob_F_conv[0][3][1] = u[2];
-    jacob_F_conv[1][1][2] = u[0];
-    jacob_F_conv[1][3][2] = u[2];
-    jacob_F_conv[2][1][3] = u[0];
-    jacob_F_conv[2][2][3] = u[1];
+    ConvectiveFluxJacobian_Euler(jacob_F_conv, rho, u, E, gamma);
 
     // Transpose of the Jacobian
     CeedScalar jacob_F_conv_T[3][5][5];
@@ -375,20 +407,11 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
         for (int l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
-    // Tau elements
-    CeedScalar uX[3];
-    for (int j=0; j<3;
-         j++) uX[j] = dXdx[j][0]*u[0] + dXdx[j][1]*u[1] + dXdx[j][2]*u[2];
-    const CeedScalar uiujgij = uX[0]*uX[0] + uX[1]*uX[1] + uX[2]*uX[2];
-    const CeedScalar Cc      = 1.;
-    const CeedScalar Ce      = 1.;
-    const CeedScalar f1      = rho * sqrt(uiujgij);
-    const CeedScalar TauC    = (Cc * f1) /
-                               (8. * (dXdxdXdxT[0][0] + dXdxdXdxT[1][1] + dXdxdXdxT[2][2]));
-    const CeedScalar TauM    = 1. / (f1>1. ? f1 : 1.);
-    const CeedScalar TauE    = TauM / (Ce * cv);
-
-    const CeedScalar Tau[5]  = {TauC, TauM, TauM, TauM, TauE};
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
 
     CeedScalar stab[5][3];
     switch (context->stabilization) {
@@ -398,7 +421,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++) {
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau[l] * strong_conv[l];
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
           }
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
