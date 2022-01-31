@@ -353,9 +353,9 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
 
       // Approximate dot(j_vec,grad(N)) using the metric tensor
       for (int j=0; j<3; j++)
-        j_gradn[j] = j_vec[0] * dXdx[0][j]
-                     + j_vec[1] * dXdx[1][j]
-                     + j_vec[2] * dXdx[2][j];
+        j_gradn[j] = j_vec[0] * dXdx[0][j] +
+                     j_vec[1] * dXdx[1][j] +
+                     j_vec[2] * dXdx[2][j];
 
       if (drho_norm == 0.0) {
         nu_shock = 0.0;
