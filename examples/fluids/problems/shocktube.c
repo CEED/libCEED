@@ -115,6 +115,19 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
                             NULL, second, &second, NULL); CHKERRQ(ierr);
   second = fabs(second);
 
+  // -- Warnings
+  if (stab == STAB_SUPG) {
+    ierr = PetscPrintf(comm,
+                       "Warning! -stab supg not implemented for the shocktube problem. \n");
+    CHKERRQ(ierr);
+  }
+  if (yzb && implicit) {
+    ierr = PetscPrintf(comm,
+                       "Warning! -yzb only implemented for explicit timestepping. \n");
+    CHKERRQ(ierr);
+  }
+
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // ------------------------------------------------------
