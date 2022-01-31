@@ -674,7 +674,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1,basis); CeedChk(ierr);
+  ierr = CeedCalloc(1, basis); CeedChk(ierr);
 
   (*basis)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
@@ -687,14 +687,14 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
   (*basis)->Q = Q;
   (*basis)->Q_comp = dim;
   (*basis)->basis_space = 2; // 2 for H(div) space
-  ierr = CeedMalloc(Q*dim,&(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q,&(*basis)->q_weight_1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q*dim, &(*basis)->q_ref_1d); CeedChk(ierr);
+  ierr = CeedMalloc(Q, &(*basis)->q_weight_1d); CeedChk(ierr);
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
-  if(q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
+  if (q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
   ierr = CeedMalloc(dim*Q*P, &(*basis)->interp); CeedChk(ierr);
   ierr = CeedMalloc(Q*P, &(*basis)->div); CeedChk(ierr);
-  if(interp) memcpy((*basis)->interp, interp, dim*Q*P*sizeof(interp[0]));
-  if(div) memcpy((*basis)->div, div, Q*P*sizeof(div[0]));
+  if (interp) memcpy((*basis)->interp, interp, dim*Q*P*sizeof(interp[0]));
+  if (div) memcpy((*basis)->div, div, Q*P*sizeof(div[0]));
   ierr = ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref,
                                q_weight, *basis); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
