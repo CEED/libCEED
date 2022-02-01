@@ -36,6 +36,9 @@ typedef struct {
 typedef struct {
   const CeedInt *offsets;
   CeedInt *offsets_allocated;
+  // Orientation, if it exists, is true when the face must be flipped (multiplies by -1.).
+  const bool *orient;
+  bool *orient_allocated;
   int (*Apply)(CeedElemRestriction, const CeedInt, const CeedInt,
                const CeedInt, CeedInt, CeedInt, CeedTransposeMode, CeedVector,
                CeedVector, CeedRequest *);
@@ -69,6 +72,10 @@ CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type,
     CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
+
+CEED_INTERN int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type,
+    CeedCopyMode copy_mode, const CeedInt *indices,
+    const bool *orient, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d,
     CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,

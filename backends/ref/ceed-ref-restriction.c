@@ -91,7 +91,8 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
           CeedPragmaSIMD
           for (CeedInt i = 0; i < elem_size*blk_size; i++)
             vv[elem_size*(k*blk_size+num_comp*e) + i - v_offset]
-              = uu[impl->offsets[i+elem_size*e] + k*comp_stride];
+              = uu[impl->offsets[i+elem_size*e] + k*comp_stride] *
+                (impl->orient && impl->orient[i+elem_size*e] ? -1. : 1.);
     }
   } else {
     // Restriction from E-vector to L-vector
@@ -137,7 +138,8 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
             // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i+CeedIntMin(blk_size, num_elem-e); j++)
               vv[impl->offsets[j+e*elem_size] + k*comp_stride]
-              += uu[elem_size*(k*blk_size+num_comp*e) + j - v_offset];
+              += uu[elem_size*(k*blk_size+num_comp*e) + j - v_offset] *
+                 (impl->orient && impl->orient[j+e*elem_size] ? -1. : 1.);
     }
   }
   ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChkBackend(ierr);
@@ -454,6 +456,42 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode,
     break;
   }
 
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// ElemRestriction Create Oriented
+//------------------------------------------------------------------------------
+int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type,
+    CeedCopyMode copy_mode,
+    const CeedInt *offsets, const bool *orient,
+    CeedElemRestriction r) {
+  int ierr;
+  CeedElemRestriction_Ref *impl;
+  CeedInt num_elem, elem_size;
+  // Set up for normal restriction with explicit offsets. This sets up dispatch to
+  // CeedElemRestrictionApply_Ref_* and manages the impl->offsets array copy/allocation.
+  ierr = CeedElemRestrictionCreate_Ref(mem_type, copy_mode, offsets, r);
+  CeedChkBackend(ierr);
+
+  ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumElements(r, &num_elem); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetElementSize(r, &elem_size); CeedChkBackend(ierr);
+  switch (copy_mode) {
+  case CEED_COPY_VALUES:
+    ierr = CeedMalloc(num_elem * elem_size, &impl->orient_allocated);
+    CeedChkBackend(ierr);
+    memcpy(impl->orient_allocated, orient,
+           num_elem * elem_size * sizeof(orient[0]));
+    impl->orient = impl->orient_allocated;
+    break;
+  case CEED_OWN_POINTER:
+    impl->orient_allocated = (bool *)orient;
+    impl->orient = impl->orient_allocated;
+    break;
+  case CEED_USE_POINTER:
+    impl->orient = orient;
+  }
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

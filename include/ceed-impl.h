@@ -105,6 +105,9 @@ struct Ceed_private {
   int (*VectorCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode,
+                                       const CeedInt *, const bool *,
+                                       CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
                                       const CeedInt *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *,

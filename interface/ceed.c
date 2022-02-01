@@ -836,6 +836,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(Ceed, Destroy),
     CEED_FTABLE_ENTRY(Ceed, VectorCreate),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreate),
+    CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateOriented),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateBlocked),
     CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
     CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
