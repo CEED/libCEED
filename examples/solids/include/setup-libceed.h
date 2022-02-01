@@ -1,5 +1,5 @@
-#ifndef setuplibceed_h
-#define setuplibceed_h
+#ifndef libceed_solids_examples_setup_libceed_h
+#define libceed_solids_examples_setup_libceed_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -43,4 +43,4 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx app_ctx,
                                  PetscInt U_loc_size, CeedVector fine_mult,
                                  CeedData *data);
 
-#endif // setuplibceed_h
+#endif // libceed_solids_examples_setup_libceed_h

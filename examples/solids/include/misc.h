@@ -1,5 +1,5 @@
-#ifndef misc_h
-#define misc_h
+#ifndef libceed_solids_examples_misc_h
+#define libceed_solids_examples_misc_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -42,4 +42,4 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dm_U,
 // -----------------------------------------------------------------------------
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
-#endif // misc_h
+#endif // libceed_solids_examples_misc_h

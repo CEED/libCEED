@@ -1,5 +1,5 @@
-#ifndef sphereproblemdata_h
-#define sphereproblemdata_h
+#ifndef libceed_petsc_examples_sphere_problem_data_h
+#define libceed_petsc_examples_sphere_problem_data_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -131,4 +131,4 @@ static BPData bp_options[6] = {
   }
 };
 
-#endif // sphereproblemdata_h
+#endif // libceed_petsc_examples_sphere_problem_data_h

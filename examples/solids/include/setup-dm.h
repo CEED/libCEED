@@ -1,5 +1,5 @@
-#ifndef setupdm_h
-#define setupdm_h
+#ifndef libceed_solids_examples_setup_dm_h
+#define libceed_solids_examples_setup_dm_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -19,4 +19,4 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm);
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
                                PetscBool boundary, PetscInt num_comp_u);
 
-#endif // setupdm_h
+#endif // libceed_solids_examples_setup_dm_h
