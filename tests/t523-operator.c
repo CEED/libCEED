@@ -87,12 +87,12 @@ int main(int argc, char **argv) {
 
   // -- Bases
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P_tet, Q_tet, interp, grad, q_ref,
-                    q_weight, &basis_x_tet);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, dim, P_tet, Q_tet, interp, grad,
+                    q_ref, q_weight, &basis_x_tet);
 
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P_tet, Q_tet, interp, grad, q_ref,
-                    q_weight, &basis_u_tet);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, P_tet, Q_tet, interp, grad,
+                    q_ref, q_weight, &basis_u_tet);
 
   // -- QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup_tet);

@@ -79,11 +79,11 @@ int main(int argc, char **argv) {
 
   // Bases
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P, Q, interp, grad, q_ref,
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, dim, P, Q, interp, grad, q_ref,
                     q_weight, &basis_x);
 
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, P, Q, interp, grad, q_ref,
                     q_weight, &basis_u);
 
   // QFunction - setup mass
