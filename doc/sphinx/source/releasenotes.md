@@ -31,6 +31,7 @@ for each release of libCEED.
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
 - Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 - Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
+- Added {c:func}`CeedBasisCreateHdiv` convenience constructor and CPU backend support for non-tensor H(div) elements.
 
 ### Maintainability
 
@@ -38,6 +39,7 @@ for each release of libCEED.
 - `Include-what-you-use` makefile target added as `make iwyu`.
 - Create backend constant `CEED_FIELD_MAX` to reduce magic numbers in codebase.
 - Put GPU JiTed kernel source code into separate files.
+- Dropped legacy version support in PETSc based examples to better utilize PETSc DMPlex and Mat updates to support libCEED; current minimum PETSc version for the examples is v3.17.
 
 (v0-9)=
 
