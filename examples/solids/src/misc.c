@@ -87,12 +87,13 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat J_pre, void *ctx) {
   }
 
   // Form coarse assembled matrix
-  ierr = VecZeroEntries(form_jacob_ctx->u_coarse); CHKERRQ(ierr);
-  ierr = SNESComputeJacobianDefaultColor(form_jacob_ctx->snes_coarse,
-                                         form_jacob_ctx->u_coarse,
-                                         form_jacob_ctx->jacob_mat[0],
-                                         form_jacob_ctx->jacob_mat_coarse, NULL);
+  CeedOperatorLinearAssemble(form_jacob_ctx->op_coarse,
+                             form_jacob_ctx->coo_values);
+  const CeedScalar *values;
+  CeedVectorGetArrayRead(form_jacob_ctx->coo_values, CEED_MEM_HOST, &values);
+  ierr = MatSetValuesCOO(form_jacob_ctx->jacob_mat_coarse, values, ADD_VALUES);
   CHKERRQ(ierr);
+  CeedVectorRestoreArrayRead(form_jacob_ctx->coo_values, &values);
 
   // J_pre might be AIJ (e.g., when using coloring), so we need to assemble it
   ierr = MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);

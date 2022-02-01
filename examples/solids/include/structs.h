@@ -109,9 +109,9 @@ typedef struct FormJacobCtx_ *FormJacobCtx;
 struct FormJacobCtx_ {
   UserMult     *jacob_ctx;
   PetscInt     num_levels;
-  SNES         snes_coarse;
   Mat          *jacob_mat, jacob_mat_coarse;
-  Vec          u_coarse;
+  CeedVector   coo_values;
+  CeedOperator op_coarse;
 };
 
 // Data for PETSc Prolongation/Restriction Matshell

@@ -74,8 +74,8 @@ int main(int argc, char **argv) {
   PetscScalar eps = 1.0;
   PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
   PetscLogStage solve_stage;
+  PetscLogEvent assemble_event;
   DM  *dm, dm_orig;
-  SNES snes_dummy;
   KSP ksp;
   PC pc;
   Mat *mat_O, *mat_pr, mat_coarse;
@@ -430,24 +430,37 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Setup dummy SNES for AMG coarse solve
-  ierr = SNESCreate(comm, &snes_dummy); CHKERRQ(ierr);
-  ierr = SNESSetDM(snes_dummy, dm[0]); CHKERRQ(ierr);
-  ierr = SNESSetSolution(snes_dummy, X[0]); CHKERRQ(ierr);
-
-  // -- Jacobian matrix
-  ierr = DMSetMatType(dm[0], MATAIJ); CHKERRQ(ierr);
+  // Assemble coarse grid Jacobian for AMG (or other sparse matrix) solve
   ierr = DMCreateMatrix(dm[0], &mat_coarse); CHKERRQ(ierr);
-  ierr = SNESSetJacobian(snes_dummy, mat_coarse, mat_coarse, NULL,
-                         NULL); CHKERRQ(ierr);
 
-  // -- Residual evaluation function
-  ierr = SNESSetFunction(snes_dummy, X[0], FormResidual_Ceed,
-                         user_O[0]); CHKERRQ(ierr);
-
-  // -- Form Jacobian
-  ierr = SNESComputeJacobianDefaultColor(snes_dummy, X[0], mat_O[0],
-                                         mat_coarse, NULL); CHKERRQ(ierr);
+  ierr = PetscLogEventRegister("AssembleMatrix", MAT_CLASSID, &assemble_event);
+  CHKERRQ(ierr);
+  {
+    // Assemble matrix analytically
+    CeedInt num_entries, *rows, *cols;
+    CeedVector coo_values;
+    CeedOperatorLinearAssembleSymbolic(user_O[0]->op, &num_entries, &rows, &cols);
+    ISLocalToGlobalMapping ltog_row, ltog_col;
+    ierr = MatGetLocalToGlobalMapping(mat_coarse, &ltog_row, &ltog_col);
+    CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingApply(ltog_row, num_entries, rows, rows);
+    CHKERRQ(ierr);
+    ierr = ISLocalToGlobalMappingApply(ltog_col, num_entries, cols, cols);
+    CHKERRQ(ierr);
+    ierr = MatSetPreallocationCOO(mat_coarse, num_entries, rows, cols);
+    CHKERRQ(ierr);
+    free(rows);
+    free(cols);
+    CeedVectorCreate(ceed, num_entries, &coo_values);
+    ierr = PetscLogEventBegin(assemble_event, mat_coarse, 0, 0, 0); CHKERRQ(ierr);
+    CeedOperatorLinearAssemble(user_O[0]->op, coo_values);
+    const CeedScalar *values;
+    CeedVectorGetArrayRead(coo_values, CEED_MEM_HOST, &values);
+    ierr = MatSetValuesCOO(mat_coarse, values, ADD_VALUES); CHKERRQ(ierr);
+    CeedVectorRestoreArrayRead(coo_values, &values);
+    ierr = PetscLogEventEnd(assemble_event, mat_coarse, 0, 0, 0); CHKERRQ(ierr);
+    CeedVectorDestroy(&coo_values);
+  }
 
   // Set up KSP
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -650,7 +663,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&rhs_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_coarse); CHKERRQ(ierr);
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
-  ierr = SNESDestroy(&snes_dummy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qf_error);
