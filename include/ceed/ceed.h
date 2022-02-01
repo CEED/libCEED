@@ -510,16 +510,6 @@ typedef enum {
 } CeedElemTopology;
 CEED_EXTERN const char *const CeedElemTopologies[];
 
-/// Type of FE space;
-/// @ingroup CeedBasis
-typedef enum {
-  /// H1 FE space
-  CEED_FE_SPACE_H1 = 1,
-  /// H(div) FE space
-  CEED_FE_SPACE_HDIV = 2,
-} CeedFESpace;
-CEED_EXTERN const char *const CeedFESpaces[];
-
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim,
     CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
