@@ -160,6 +160,16 @@ CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,
     void *data);
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);
 
+/// Type of FE space;
+/// @ingroup CeedBasis
+typedef enum {
+  /// H1 FE space
+  CEED_FE_SPACE_H1   = 1,
+  /// H(div) FE space
+  CEED_FE_SPACE_HDIV = 2,
+} CeedFESpace;
+CEED_EXTERN const char *const CeedFESpaces[];
+
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis,
     CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
