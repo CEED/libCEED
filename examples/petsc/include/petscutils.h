@@ -1,5 +1,5 @@
-#ifndef ceed_petscutils_h
-#define ceed_petscutils_h
+#ifndef libceed_petsc_examples_utils_h
+#define libceed_petsc_examples_utils_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -18,4 +18,4 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
     DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
 
-#endif // petscutils_h
+#endif // libceed_petsc_examples_utils_h

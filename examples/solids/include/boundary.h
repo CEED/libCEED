@@ -1,5 +1,5 @@
-#ifndef boundary_h
-#define boundary_h
+#ifndef libceed_solids_examples_boundary_h
+#define libceed_solids_examples_boundary_h
 
 #include <petsc.h>
 
@@ -26,4 +26,4 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal load_increment,
                        const PetscReal coords[], PetscInt num_comp_u,
                        PetscScalar *u, void *ctx);
 
-#endif //boundary_h
+#endif // libceed_solids_examples_boundary_h

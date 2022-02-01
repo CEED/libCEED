@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef navierstokes_h
-#define navierstokes_h
+#ifndef libceed_fluids_examples_navier_stokes_h
+#define libceed_fluids_examples_navier_stokes_h
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -447,4 +447,5 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // -----------------------------------------------------------------------------
-#endif
+
+#endif // libceed_fluids_examples_navier_stokes_h

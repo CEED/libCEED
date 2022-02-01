@@ -1,5 +1,5 @@
-#ifndef structs_h
-#define structs_h
+#ifndef libceed_petsc_examples_structs_h
+#define libceed_petsc_examples_structs_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -57,4 +57,4 @@ typedef struct {
                             PetscInt, PetscScalar *, void *);
 } BPData;
 
-#endif // structs_h
+#endif // libceed_petsc_examples_structs_h

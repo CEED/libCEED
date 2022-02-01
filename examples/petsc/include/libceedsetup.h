@@ -1,5 +1,5 @@
-#ifndef libceedsetup_h
-#define libceedsetup_h
+#ifndef libceed_petsc_examples_setup_h
+#define libceed_petsc_examples_setup_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -18,4 +18,4 @@ PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt num_levels,
                                       CeedInt num_comp_u, CeedData *data, CeedInt *leveldegrees,
                                       CeedQFunction qf_restrict, CeedQFunction qf_prolong);
 
-#endif // libceedsetup_h
+#endif // libceed_petsc_examples_setup_h

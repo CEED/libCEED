@@ -1,5 +1,5 @@
-#ifndef bpsproblemdata_h
-#define bpsproblemdata_h
+#ifndef libceed_petsc_examples_bps_problem_data_h
+#define libceed_petsc_examples_bps_problem_data_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -144,4 +144,4 @@ BPData bp_options[6] = {
   }
 };
 
-#endif // bpsproblemdata_h
+#endif // libceed_petsc_examples_bps_problem_data_h

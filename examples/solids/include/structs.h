@@ -1,5 +1,5 @@
-#ifndef structs_h
-#define structs_h
+#ifndef libceed_solids_examples_structs_h
+#define libceed_solids_examples_structs_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -156,4 +156,4 @@ typedef struct {
   const char *const *field_names;
 } ProblemData;
 
-#endif // structs_h
+#endif // libceed_solids_examples_structs_h

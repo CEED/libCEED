@@ -1,5 +1,5 @@
-#ifndef setup_h
-#define setup_h
+#ifndef libceed_solids_examples_setup_h
+#define libceed_solids_examples_setup_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -21,4 +21,4 @@
 #error "PETSc v3.17 or later is required"
 #endif
 
-#endif // setup_h
+#endif // libceed_solids_examples_setup_h

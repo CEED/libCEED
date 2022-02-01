@@ -1,5 +1,5 @@
-#ifndef areaproblemdata_h
-#define areaproblemdata_h
+#ifndef libceed_petsc_examples_area_problem_data_h
+#define libceed_petsc_examples_area_problem_data_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -49,4 +49,4 @@ static BPData problem_options[6] = {
   }
 };
 
-#endif // areaproblemdata_h
+#endif // libceed_petsc_examples_area_problem_data_h
