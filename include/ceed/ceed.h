@@ -269,23 +269,23 @@ CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 /// @ingroup Ceed
 typedef enum {
   /// Success error code
-  CEED_ERROR_SUCCESS     = 0,
+  CEED_ERROR_SUCCESS      = 0,
   /// Minor error, generic
-  CEED_ERROR_MINOR       = 1,
+  CEED_ERROR_MINOR        = 1,
   /// Minor error, dimension mismatch in inputs
-  CEED_ERROR_DIMENSION   = 2,
+  CEED_ERROR_DIMENSION    = 2,
   /// Minor error, incomplete object setup
-  CEED_ERROR_INCOMPLETE  = 3,
+  CEED_ERROR_INCOMPLETE   = 3,
   /// Minor error, incompatible arguments/configuration
   CEED_ERROR_INCOMPATIBLE = 4,
   /// Minor error, access lock problem
-  CEED_ERROR_ACCESS      = 5,
+  CEED_ERROR_ACCESS       = 5,
   /// Major error, generic
-  CEED_ERROR_MAJOR       = -1,
+  CEED_ERROR_MAJOR        = -1,
   /// Major error, internal backend error
-  CEED_ERROR_BACKEND     = -2,
+  CEED_ERROR_BACKEND      = -2,
   /// Major error, operation unsupported by current backend
-  CEED_ERROR_UNSUPPORTED = -3,
+  CEED_ERROR_UNSUPPORTED  = -3,
 } CeedErrorType;
 CEED_EXTERN const char *const *CeedErrorTypes;
 
@@ -481,7 +481,7 @@ CEED_EXTERN const char *const CeedEvalModes[];
 /// @ingroup CeedBasis
 typedef enum {
   /// Gauss-Legendre quadrature
-  CEED_GAUSS = 0,
+  CEED_GAUSS         = 0,
   /// Gauss-Legendre-Lobatto quadrature
   CEED_GAUSS_LOBATTO = 1,
 } CeedQuadMode;
@@ -494,19 +494,19 @@ CEED_EXTERN const char *const CeedQuadModes[];
 /// @ingroup CeedBasis
 typedef enum {
   /// Line
-  CEED_TOPOLOGY_LINE = 1 << 16 | 0,
+  CEED_TOPOLOGY_LINE     = 1 << 16 | 0,
   /// Triangle - 2D shape
   CEED_TOPOLOGY_TRIANGLE = 2 << 16 | 1,
   /// Quadralateral - 2D shape
-  CEED_TOPOLOGY_QUAD = 2 << 16 | 2,
+  CEED_TOPOLOGY_QUAD     = 2 << 16 | 2,
   /// Tetrahedron - 3D shape
-  CEED_TOPOLOGY_TET = 3 << 16 | 3,
+  CEED_TOPOLOGY_TET      = 3 << 16 | 3,
   /// Pyramid - 3D shape
-  CEED_TOPOLOGY_PYRAMID = 3 << 16 | 4,
+  CEED_TOPOLOGY_PYRAMID  = 3 << 16 | 4,
   /// Prism - 3D shape
-  CEED_TOPOLOGY_PRISM = 3 << 16 | 5,
+  CEED_TOPOLOGY_PRISM    = 3 << 16 | 5,
   /// Hexehedron - 3D shape
-  CEED_TOPOLOGY_HEX = 3 << 16 | 6,
+  CEED_TOPOLOGY_HEX      = 3 << 16 | 6,
 } CeedElemTopology;
 CEED_EXTERN const char *const CeedElemTopologies[];
 
