@@ -274,7 +274,7 @@ struct CeedQFunctionContext_private {
   int (*Destroy)(CeedQFunctionContext);
   CeedInt num_fields;
   CeedInt max_fields;
-  CeedQFunctionContextFieldDescription *field_descriptions;
+  CeedContextFieldLabel *field_labels;
   uint64_t state;
   size_t ctx_size;
   void *data;
@@ -301,6 +301,16 @@ struct CeedFortranContext_private {
             CeedScalar *v15, int *err);
 };
 typedef struct CeedFortranContext_private *CeedFortranContext;
+
+struct CeedContextFieldLabel_private {
+  const char *name;
+  const char *description;
+  CeedContextFieldType type;
+  size_t size;
+  size_t offset;
+  CeedInt num_sub_labels;
+  CeedContextFieldLabel *sub_labels;
+};
 
 struct CeedOperatorField_private {
   CeedElemRestriction elem_restr; /* Restriction from L-vector */
@@ -355,6 +365,9 @@ struct CeedOperator_private {
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;
+  CeedInt num_context_labels;
+  CeedInt max_context_labels;
+  CeedContextFieldLabel *context_labels;
 };
 
 #endif

@@ -553,8 +553,11 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode,
   (*qf)->is_identity = true;
 
   CeedQFunctionContext ctx;
+  CeedContextFieldLabel size_label;
   ierr = CeedQFunctionGetContext(*qf, &ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextSetInt32(ctx, "size", size); CeedChk(ierr);
+  ierr = CeedQFunctionContextGetFieldLabel(ctx, "size", &size_label);
+  CeedChk(ierr);
+  ierr = CeedQFunctionContextSetInt32(ctx, size_label, size); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

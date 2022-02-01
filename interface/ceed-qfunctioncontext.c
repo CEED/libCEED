@@ -45,7 +45,7 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx,
                                       const char *field_name, CeedInt *field_index) {
   *field_index = -1;
   for (CeedInt i=0; i<ctx->num_fields; i++)
-    if (!strcmp(ctx->field_descriptions[i].name, field_name))
+    if (!strcmp(ctx->field_labels[i]->name, field_name))
       *field_index = i;
   return CEED_ERROR_SUCCESS;
 }
@@ -84,24 +84,25 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
 
   // Allocate space for field data
   if (ctx->num_fields == 0) {
-    ierr = CeedCalloc(1, &ctx->field_descriptions); CeedChk(ierr);
+    ierr = CeedCalloc(1, &ctx->field_labels); CeedChk(ierr);
     ctx->max_fields = 1;
   } else if (ctx->num_fields == ctx->max_fields) {
-    ierr = CeedRealloc(2*ctx->max_fields, &ctx->field_descriptions);
+    ierr = CeedRealloc(2*ctx->max_fields, &ctx->field_labels);
     CeedChk(ierr);
     ctx->max_fields *= 2;
   }
+  ierr = CeedCalloc(1, &ctx->field_labels[ctx->num_fields]); CeedChk(ierr);
 
   // Copy field data
   ierr = CeedStringAllocCopy(field_name,
-                             (char **)&ctx->field_descriptions[ctx->num_fields].name);
+                             (char **)&ctx->field_labels[ctx->num_fields]->name);
   CeedChk(ierr);
   ierr = CeedStringAllocCopy(field_description,
-                             (char **)&ctx->field_descriptions[ctx->num_fields].description);
+                             (char **)&ctx->field_labels[ctx->num_fields]->description);
   CeedChk(ierr);
-  ctx->field_descriptions[ctx->num_fields].type = field_type;
-  ctx->field_descriptions[ctx->num_fields].offset = field_offset;
-  ctx->field_descriptions[ctx->num_fields].size = field_size;
+  ctx->field_labels[ctx->num_fields]->type = field_type;
+  ctx->field_labels[ctx->num_fields]->offset = field_offset;
+  ctx->field_labels[ctx->num_fields]->size = field_size;
   ctx->num_fields++;
   return CEED_ERROR_SUCCESS;
 }
@@ -230,45 +231,35 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 /**
   @brief Set QFunctionContext field
 
-  @param ctx        CeedQFunctionContext
-  @param field_name Name of field to set
-  @param field_type Type of field to set
-  @param is_set     Boolean flag if value was set
-  @param value      Value to set
+  @param ctx         CeedQFunctionContext
+  @param field_label Label of field to set
+  @param field_type  Type of field to set
+  @param value       Value to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
-                                   const char *field_name,
+                                   CeedContextFieldLabel field_label,
                                    CeedContextFieldType field_type,
-                                   bool *is_set, void *value) {
+                                   void *value) {
   int ierr;
 
-  // Check field index
-  *is_set = false;
-  CeedInt field_index = -1;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
-  if (field_index == -1)
-    return CEED_ERROR_SUCCESS;
-
-  if (ctx->field_descriptions[field_index].type != field_type)
+  // Check field type
+  if (field_label->type != field_type)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
                      "QFunctionContext field with name \"%s\" registered as %s, "
-                     "not registered as %s", field_name,
-                     CeedContextFieldTypes[ctx->field_descriptions[field_index].type],
+                     "not registered as %s", field_label->name,
+                     CeedContextFieldTypes[field_label->type],
                      CeedContextFieldTypes[field_type]);
   // LCOV_EXCL_STOP
 
   char *data;
   ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data); CeedChk(ierr);
-  memcpy(&data[ctx->field_descriptions[field_index].offset], value,
-         ctx->field_descriptions[field_index].size);
+  memcpy(&data[field_label->offset], value, field_label->size);
   ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
-  *is_set = true;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -565,49 +556,76 @@ int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
 }
 
 /**
-  @brief Get descriptions for registered QFunctionContext fields
+  @brief Get labels for all registered QFunctionContext fields
 
-  @param ctx                     CeedQFunctionContext
-  @param[out] field_descriptions Variable to hold array of field descriptions
-  @param[out] num_fields         Length of field descriptions array
+  @param ctx                CeedQFunctionContext
+  @param[out] field_labels  Variable to hold array of field labels
+  @param[out] num_fields    Length of field descriptions array
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedQFunctionContextGetFieldDescriptions(CeedQFunctionContext ctx,
-    const CeedQFunctionContextFieldDescription **field_descriptions,
-    CeedInt *num_fields) {
-  *field_descriptions = ctx->field_descriptions;
+int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
+    const CeedContextFieldLabel **field_labels, CeedInt *num_fields) {
+  *field_labels = ctx->field_labels;
   *num_fields = ctx->num_fields;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get label for a registered QFunctionContext field, or `NULL` if no
+           field has been registered with this `field_name`
+
+  @param[in] ctx           CeedQFunctionContext
+  @param[in] field_name    Name of field to retrieve label
+  @param[out] field_label  Variable to field label
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+                                      const char *field_name, CeedContextFieldLabel *field_label) {
+  int ierr;
+
+  CeedInt field_index;
+  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
+  CeedChk(ierr);
+
+  if (field_index != -1) {
+    *field_label = ctx->field_labels[field_index];
+  } else {
+    *field_label = NULL;
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Set QFunctionContext field holding a double precision value
 
-  @param ctx        CeedQFunctionContext
-  @param field_name Name of field to register
-  @param value      Value to set
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param value       Value to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-                                  const char *field_name, double value) {
+                                  CeedContextFieldLabel field_label, double value) {
   int ierr;
-  bool is_set = false;
 
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_name,
-                                        CEED_CONTEXT_FIELD_DOUBLE,
-                                        &is_set, &value); CeedChk(ierr);
-  if (!is_set)
+  if (!field_label)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" not registered",
-                     field_name);
+                     "Invalid field label");
   // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_DOUBLE,
+                                        &value); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -615,28 +633,27 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 /**
   @brief Set QFunctionContext field holding an int32 value
 
-  @param ctx        CeedQFunctionContext
-  @param field_name Name of field to set
-  @param value      Value to set
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param value       Value to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-                                 const char *field_name, int value) {
+                                 CeedContextFieldLabel field_label, int value) {
   int ierr;
-  bool is_set = false;
 
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_name,
-                                        CEED_CONTEXT_FIELD_INT32,
-                                        &is_set, &value); CeedChk(ierr);
-  if (!is_set)
+  if (!field_label)
     // LCOV_EXCL_START
     return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" not registered",
-                     field_name);
+                     "Invalid field label");
   // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_INT32,
+                                        &value); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -671,6 +688,13 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
 int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
   fprintf(stream, "CeedQFunctionContext\n");
   fprintf(stream, "  Context Data Size: %ld\n", ctx->ctx_size);
+  for (CeedInt i = 0; i < ctx->num_fields; i++) {
+    // LCOV_EXCL_START
+    fprintf(stream, "  Labeled %s field: %s\n",
+            CeedContextFieldTypes[ctx->field_labels[i]->type],
+            ctx->field_labels[i]->name);
+    // LCOV_EXCL_STOP
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -700,10 +724,11 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
     ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
   }
   for (CeedInt i=0; i<(*ctx)->num_fields; i++) {
-    ierr = CeedFree(&(*ctx)->field_descriptions[i].name); CeedChk(ierr);
-    ierr = CeedFree(&(*ctx)->field_descriptions[i].description); CeedChk(ierr);
+    ierr = CeedFree(&(*ctx)->field_labels[i]->name); CeedChk(ierr);
+    ierr = CeedFree(&(*ctx)->field_labels[i]->description); CeedChk(ierr);
+    ierr = CeedFree(&(*ctx)->field_labels[i]); CeedChk(ierr);
   }
-  ierr = CeedFree(&(*ctx)->field_descriptions); CeedChk(ierr);
+  ierr = CeedFree(&(*ctx)->field_labels); CeedChk(ierr);
   ierr = CeedDestroy(&(*ctx)->ceed); CeedChk(ierr);
   ierr = CeedFree(ctx); CeedChk(ierr);
 

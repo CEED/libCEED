@@ -18,8 +18,10 @@ typedef struct {
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunctionContext qf_ctx_sub_1, qf_ctx_sub_2;
+  CeedContextFieldLabel count_label, other_label, time_label;
   CeedQFunction qf_sub_1, qf_sub_2;
   CeedOperator op_sub_1, op_sub_2, op_composite;
+
   TestContext1 ctx_data_1 = {
     .count = 42,
     .other = -3.0,
@@ -47,7 +49,8 @@ int main(int argc, char **argv) {
                      &op_sub_1);
 
   // Check setting field in operator
-  CeedOperatorContextSetInt32(op_sub_1, "count", 43);
+  CeedOperatorContextGetFieldLabel(op_sub_1, "count", &count_label);
+  CeedOperatorContextSetInt32(op_sub_1, count_label, 43);
   if (ctx_data_1.count != 43)
     // LCOV_EXCL_START
     printf("Incorrect context data for count: %d != 43", ctx_data_1.count);
@@ -74,14 +77,16 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_composite, op_sub_2);
 
   // Check setting field in context of single sub-operator for composite operator
-  CeedOperatorContextSetDouble(op_composite, "time", 2.0);
+  CeedOperatorContextGetFieldLabel(op_composite, "time", &time_label);
+  CeedOperatorContextSetDouble(op_composite, time_label, 2.0);
   if (ctx_data_2.time != 2.0)
     // LCOV_EXCL_START
     printf("Incorrect context data for time: %f != 2.0", ctx_data_2.time);
   // LCOV_EXCL_STOP
 
   // Check setting field in context of multiple sub-operators for composite operator
-  CeedOperatorContextSetDouble(op_composite, "other", 9000.);
+  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  CeedOperatorContextSetDouble(op_composite, other_label, 9000.);
   if (ctx_data_1.other != 9000.0)
     // LCOV_EXCL_START
     printf("Incorrect context data for other: %f != 2.0", ctx_data_1.other);
