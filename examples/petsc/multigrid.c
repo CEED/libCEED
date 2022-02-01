@@ -435,7 +435,8 @@ int main(int argc, char **argv) {
 
   ierr = PetscLogEventRegister("AssembleMatrix", MAT_CLASSID, &assemble_event);
   CHKERRQ(ierr);
-  if (PETSC_VERSION_GE(3,16,0)) { // Assemble matrix analytically
+  {
+    // Assemble matrix analytically
     CeedInt num_entries, *rows, *cols;
     CeedVector coo_values;
     CeedOperatorLinearAssembleSymbolic(user_O[0]->op, &num_entries, &rows, &cols);
@@ -459,20 +460,6 @@ int main(int argc, char **argv) {
     CeedVectorRestoreArrayRead(coo_values, &values);
     ierr = PetscLogEventEnd(assemble_event, mat_coarse, 0, 0, 0); CHKERRQ(ierr);
     CeedVectorDestroy(&coo_values);
-  } else { // Assemble matrix using coloring. Our interfaces match SNES so it's convenient
-    SNES snes_dummy;
-
-    // Setup dummy SNES for AMG coarse solve
-    ierr = SNESCreate(comm, &snes_dummy); CHKERRQ(ierr);
-    ierr = SNESSetDM(snes_dummy, dm[0]); CHKERRQ(ierr);
-    ierr = SNESSetSolution(snes_dummy, X[0]); CHKERRQ(ierr);
-    ierr = SNESSetFunction(snes_dummy, X[0], FormResidual_Ceed,
-                           user_O[0]); CHKERRQ(ierr);
-    ierr = SNESSetJacobian(snes_dummy, mat_coarse, mat_coarse, NULL,
-                           NULL); CHKERRQ(ierr);
-    ierr = SNESComputeJacobianDefaultColor(snes_dummy, X[0], mat_O[0],
-                                           mat_coarse, NULL); CHKERRQ(ierr);
-    ierr = SNESDestroy(&snes_dummy); CHKERRQ(ierr);
   }
 
   // Set up KSP
