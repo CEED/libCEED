@@ -21,6 +21,7 @@ for each release of libCEED.
 - Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
 - Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {c:struct}`CeedQFunctionContext` data by user defined field names.
 - Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
+- Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
 
 ### New features
 
@@ -31,7 +32,7 @@ for each release of libCEED.
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
 - Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 - Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
-- Added {c:func}`CeedBasisCreateHdiv` convenience constructor and CPU backend support for non-tensor H(div) elements.
+- Added support for non-tensor H(div) elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
 
 ### Maintainability
 
