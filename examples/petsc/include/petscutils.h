@@ -1,5 +1,5 @@
-#ifndef petscutils_h
-#define petscutils_h
+#ifndef ceed_petscutils_h
+#define ceed_petscutils_h
 
 #include <ceed.h>
 #include <petsc.h>

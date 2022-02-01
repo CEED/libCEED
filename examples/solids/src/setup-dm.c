@@ -3,7 +3,6 @@
 
 #include "../include/boundary.h"
 #include "../include/setup-dm.h"
-#include "../include/petsc-macros.h"
 
 // -----------------------------------------------------------------------------
 // Setup DM
@@ -103,7 +102,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         }
         DMLabel label;
         ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "marker", 1, marker_ids,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, 1, marker_ids,
                              0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
         CHKERRQ(ierr);
       } else {
@@ -113,7 +112,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
         DMLabel label;
         ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label,
                              num_face_sets, face_set_ids, 0, 0, NULL,
                              (void(*)(void))BCMMS, NULL, NULL, NULL);
         CHKERRQ(ierr);
@@ -128,7 +127,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
         snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, "Face Sets", 1,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, 1,
                              &app_ctx->bc_clamp_faces[i], 0, 0,
                              NULL, (void(*)(void))BCClamp, NULL,
                              (void *)&app_ctx->bc_clamp_max[i], NULL);

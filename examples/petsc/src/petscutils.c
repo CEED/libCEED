@@ -1,5 +1,4 @@
 #include "../include/petscutils.h"
-#include "../include/petscmacros.h"
 
 // -----------------------------------------------------------------------------
 // Convert PETSc MemType to libCEED MemType
@@ -155,10 +154,9 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
     if (!has_label) {CreateBCLabel(dm, "marker");}
     DMLabel label;
     ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "marker", 1,
-                         marker_ids, 0, 0, NULL,
-                         (void(*)(void))bc_func, NULL, NULL, NULL);
-    CHKERRQ(ierr);
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, 1,
+                         marker_ids, 0, 0, NULL, (void(*)(void))bc_func,
+                         NULL, NULL, NULL); CHKERRQ(ierr);
   }
   ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);

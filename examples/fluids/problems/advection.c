@@ -264,7 +264,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {3};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
                          bc->num_slip[2], bc->slips[2], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
@@ -276,7 +276,7 @@ PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
     DMLabel  label;
     PetscInt comps[1] = {4};
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
                          bc->num_wall, bc->walls, 0,
                          1, comps, (void(*)(void))Exact_Advection, NULL,
                          setup_ctx, NULL); CHKERRQ(ierr);
