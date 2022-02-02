@@ -56,10 +56,12 @@ static void HdivBasisQuad(CeedInt Q, CeedScalar *q_ref, CeedScalar *q_weights,
   case CEED_GAUSS:
     CeedGaussQuadrature(Q, q_ref_1d, q_weight_1d);
     break;
+  // LCOV_EXCL_START
   case CEED_GAUSS_LOBATTO:
     CeedLobattoQuadrature(Q, q_ref_1d, q_weight_1d);
     break;
   }
+  // LCOV_EXCL_STOP
 
   // Divergence operator; Divergence of nodal basis for ref element
   CeedScalar D[8] = {0.25,0.25,0.25,0.25,0.25,0.25,0.25,0.25};

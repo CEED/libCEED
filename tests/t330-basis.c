@@ -16,10 +16,11 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   // Test skipped if using single precision
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
+  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32)
+    // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "Test not implemented in single precision");
-  }
+  // LCOV_EXCL_STOP
 
   HdivBasisQuad(Q, q_ref, q_weights, interp, div, CEED_GAUSS);
   CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, P, num_qpts, interp,
