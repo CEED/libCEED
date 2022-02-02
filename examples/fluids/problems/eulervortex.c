@@ -20,7 +20,6 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/eulervortex.h"
-#include "../qfunctions/euler-outflow.h"
 
 PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
                                void *ctx) {
