@@ -380,7 +380,6 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
                         [0, @a l_size - 1].
   @param orient       Array of shape [@a num_elem, @a elem_size] with bool false
                         for positively oriented and true to flip the orientation.
-  @param scale        An scalar value that scales the dofs in assembly.
   @param[out] rstr    Address of the variable where the newly created
                         CeedElemRestriction will be stored
 
@@ -408,9 +407,9 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size,
-           num_comp,
-           comp_stride, l_size, mem_type, copy_mode,
-           offsets, orient, rstr); CeedChk(ierr);
+           num_comp, comp_stride, l_size,
+           mem_type, copy_mode, offsets,
+           orient, rstr); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
 
@@ -425,9 +424,8 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
-  ierr = ceed->ElemRestrictionCreateOriented(mem_type, copy_mode, offsets, orient,
-         *rstr);
-  CeedChk(ierr);
+  ierr = ceed->ElemRestrictionCreateOriented(mem_type, copy_mode,
+         offsets, orient, *rstr); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
