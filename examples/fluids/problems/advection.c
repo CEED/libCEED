@@ -21,7 +21,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+                            void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
@@ -52,25 +53,25 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   problem->apply_vol_rhs_loc       = Advection_loc;
   problem->apply_vol_ifunction     = IFunction_Advection;
   problem->apply_vol_ifunction_loc = IFunction_Advection_loc;
-  problem->apply_sur               = Advection_Sur;
-  problem->apply_sur_loc           = Advection_Sur_loc;
+  problem->apply_inflow            = Advection_InOutFlow;
+  problem->apply_inflow_loc        = Advection_InOutFlow_loc;
   problem->bc                      = Exact_Advection;
   problem->setup_ctx               = SetupContext_ADVECTION;
-  problem->bc_func                 = BC_ADVECTION;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_ADVECTION;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  PetscScalar lx         = 8000.;      // m
-  PetscScalar ly         = 8000.;      // m
-  PetscScalar lz         = 4000.;      // m
   CeedScalar rc          = 1000.;      // m (Radius of bubble)
   CeedScalar CtauS       = 0.;         // dimensionless
   CeedScalar strong_form = 0.;         // [0,1]
   CeedScalar E_wind      = 1.e6;       // J
   PetscReal wind[3]      = {1., 0, 0}; // m/s
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -86,12 +87,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
   PetscBool translation;
@@ -180,17 +175,18 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
   // ------------------------------------------------------
   // -- Scale variables to desired units
   E_wind *= Joule;
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
   rc = fabs(rc) * meter;
-  for (int i=0; i<3; i++) wind[i] = wind[i] * (meter/second);
+  for (int i=0; i<3; i++) {
+    wind[i] *= (meter/second);
+    domain_size[i] *= meter;
+  }
+  problem->dm_scale = meter;
 
   // -- Setup Context
   setup_context->rc                     = rc;
-  setup_context->lx                     = lx;
-  setup_context->ly                     = ly;
-  setup_context->lz                     = lz;
+  setup_context->lx                     = domain_size[0];
+  setup_context->ly                     = domain_size[1];
+  setup_context->lz                     = domain_size[2];
   setup_context->wind[0]                = wind[0];
   setup_context->wind[1]                = wind[1];
   setup_context->wind[2]                = wind[2];
@@ -219,7 +215,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx, void *ctx) {
 PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
                                       AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
@@ -233,55 +228,9 @@ PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
   if (ceed_data->qf_ifunction_vol)
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
                             ceed_data->advection_context);
-  if (ceed_data->qf_apply_sur)
-    CeedQFunctionSetContext(ceed_data->qf_apply_sur, ceed_data->advection_context);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
-                            void *setup_ctx) {
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  // Define boundary conditions
-  if (phys->wind_type == WIND_TRANSLATION) {
-    bc->num_wall = bc->num_slip[2] = 0;
-  } else if (phys->wind_type == WIND_ROTATION &&
-             phys->bubble_type == BUBBLE_CYLINDER) {
-    bc->num_slip[2] = 2; bc->slips[2][0] = 1; bc->slips[2][1] = 2;
-    bc->num_wall = 4;
-    bc->walls[0] = 3; bc->walls[1] = 4; bc->walls[2] = 5; bc->walls[3] = 6;
-  } else {
-    bc->num_slip[2] = 0;
-    bc->num_wall = 6;
-    bc->walls[0] = 1; bc->walls[1] = 2; bc->walls[2] = 3;
-    bc->walls[3] = 4; bc->walls[4] = 5; bc->walls[5] = 6;
-  }
-
-  {
-    // Set slip boundary conditions
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {3};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
-                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-  }
-
-  // Set wall boundary conditions
-  //   zero energy density and zero flux
-  {
-    DMLabel  label;
-    PetscInt comps[1] = {4};
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
-                         bc->num_wall, bc->walls, 0,
-                         1, comps, (void(*)(void))Exact_Advection, NULL,
-                         setup_ctx, NULL); CHKERRQ(ierr);
-  }
-
+  if (ceed_data->qf_apply_inflow)
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
+                            ceed_data->advection_context);
   PetscFunctionReturn(0);
 }
 

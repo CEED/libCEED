@@ -143,7 +143,7 @@ struct CeedData_private {
   CeedQFunctionContext setup_context, dc_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur, qf_apply_sur;
+                       qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
@@ -181,8 +181,13 @@ struct Units_private {
 
 // Boundary conditions
 struct SimpleBC_private {
-  PetscInt  num_wall, num_slip[3];
-  PetscInt  walls[6], slips[3][6];
+  PetscInt  num_wall,    // Number of faces with wall BCs
+            wall_comps[5], // An array of constrained component numbers
+            num_comps,
+            num_slip[3], // Number of faces with slip BCs
+            num_inflow,
+            num_outflow;
+  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16];
   PetscBool user_bc;
 };
 
@@ -276,15 +281,15 @@ struct Physics_private {
 // *INDENT-OFF*
 typedef struct {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedScalar        dm_scale;
   CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_sur;
+                    apply_inflow, apply_outflow;
   const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
+                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_inflow_loc, *apply_outflow_loc;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   PetscErrorCode    (*setup_ctx)(Ceed, CeedData, AppCtx, SetupContext, Physics);
-  PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
   PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
 } ProblemData;
 // *INDENT-ON*
@@ -293,17 +298,14 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
-    void *ctx);
-
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
-                                      void *ctx);
-
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
+    void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
+                                      void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
                                    void *ctx);
-
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
-                                     void *ctx);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
+                                     void *setup_ctx, void *ctx);
 
 // Set up context for each problem
 extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
@@ -397,9 +399,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
-// Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
-                                   SetupContext setup_ctx, DM *dm);
+// Create mesh
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
@@ -416,7 +417,8 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
 PetscErrorCode RegisterProblems_NS(AppCtx app_ctx);
 
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
+    SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions

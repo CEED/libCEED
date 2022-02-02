@@ -43,7 +43,8 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 }
 
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
+    SimpleBC bc) {
 
   PetscBool ceed_flag = PETSC_FALSE;
   PetscBool problem_flag = PETSC_FALSE;
@@ -113,6 +114,48 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
     const char *problem_name = "density_current";
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
+
+  // Wall Boundary Conditions
+  bc->num_wall = 16;
+  PetscBool flg;
+  ierr = PetscOptionsIntArray("-bc_wall",
+                              "Face IDs to apply wall BC",
+                              NULL, bc->walls, &bc->num_wall, NULL); CHKERRQ(ierr);
+  bc->num_comps = 5;
+  ierr = PetscOptionsIntArray("-wall_comps",
+                              "An array of constrained component numbers",
+                              NULL, bc->wall_comps, &bc->num_comps, &flg); CHKERRQ(ierr);
+  // Slip Boundary Conditions
+  for (PetscInt j=0; j<3; j++) {
+    bc->num_slip[j] = 16;
+    PetscBool flg;
+    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+    ierr = PetscOptionsIntArray(flags[j],
+                                "Face IDs to apply slip BC",
+                                NULL, bc->slips[j], &bc->num_slip[j], &flg); CHKERRQ(ierr);
+    if (flg) bc->user_bc = PETSC_TRUE;
+  }
+
+  // Error if wall and slip BCs are set on the same face
+  if (bc->user_bc)
+    for (PetscInt c = 0; c < 3; c++)
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++)
+        for (PetscInt w = 0; w < bc->num_wall; w++)
+          if (bc->slips[c][s] == bc->walls[w])
+            SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
+                     "Boundary condition already set on face %D!\n",
+                     bc->walls[w]);
+
+  // Inflow BCs
+  bc->num_inflow = 16;
+  ierr = PetscOptionsIntArray("-bc_inflow",
+                              "Face IDs to apply inflow BC",
+                              NULL, bc->inflows, &bc->num_inflow, NULL); CHKERRQ(ierr);
+  // Outflow BCs
+  bc->num_outflow = 16;
+  ierr = PetscOptionsIntArray("-bc_outflow",
+                              "Face IDs to apply outflow BC",
+                              NULL, bc->outflows, &bc->num_outflow, NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
