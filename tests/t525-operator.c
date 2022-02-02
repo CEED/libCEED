@@ -92,6 +92,8 @@ int main(int argc, char **argv) {
 
   // Check setting field in context of multiple sub-operators for composite operator
   CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  // No issue requesting same label twice
+  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
   double value_other = 9000.;
   CeedOperatorContextSetDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0)
