@@ -1142,6 +1142,31 @@ int CeedOperatorContextGetFieldLabel(CeedOperator op,
           new_field_label->sub_labels[i] = new_field_label_i;
           new_field_label->name = new_field_label_i->name;
           new_field_label->description = new_field_label_i->description;
+          if (new_field_label->type &&
+              new_field_label->type != new_field_label_i->type) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field types on sub-operator contexts. "
+                             "%s != %s",
+                             CeedContextFieldTypes[new_field_label->type],
+                             CeedContextFieldTypes[new_field_label_i->type]);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->type = new_field_label_i->type;
+          }
+          if (new_field_label->num_values != 0 &&
+              new_field_label->num_values != new_field_label_i->num_values) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field number of values on sub-operator"
+                             " contexts. %ld != %ld",
+                             new_field_label->num_values, new_field_label_i->num_values);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->num_values = new_field_label_i->num_values;
+          }
         }
       }
     }
@@ -1178,7 +1203,7 @@ int CeedOperatorContextGetFieldLabel(CeedOperator op,
 
   @param op          CeedOperator
   @param field_label Label of field to register
-  @param value       Value to set
+  @param values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1186,9 +1211,9 @@ int CeedOperatorContextGetFieldLabel(CeedOperator op,
 **/
 int CeedOperatorContextSetDouble(CeedOperator op,
                                  CeedContextFieldLabel field_label,
-                                 double value) {
+                                 double *values) {
   return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_DOUBLE,
-                                       &value);
+                                       values);
 }
 
 /**
@@ -1198,7 +1223,7 @@ int CeedOperatorContextSetDouble(CeedOperator op,
 
   @param op          CeedOperator
   @param field_label Label of field to set
-  @param value       Value to set
+  @param values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1206,9 +1231,9 @@ int CeedOperatorContextSetDouble(CeedOperator op,
 **/
 int CeedOperatorContextSetInt32(CeedOperator op,
                                 CeedContextFieldLabel field_label,
-                                int value) {
+                                int *values) {
   return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32,
-                                       &value);
+                                       values);
 }
 
 /**

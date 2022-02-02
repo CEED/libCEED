@@ -37,10 +37,12 @@ int main(int argc, char **argv) {
   CeedQFunctionContextCreate(ceed, &qf_ctx_sub_1);
   CeedQFunctionContextSetData(qf_ctx_sub_1, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(TestContext1), &ctx_data_1);
-  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count", offsetof(TestContext1,
-                                    count), "some sort of counter");
-  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other", offsetof(TestContext1,
-                                     other), "some other value");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count",
+                                    offsetof(TestContext1, count),
+                                    1, "some sort of counter");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other",
+                                     offsetof(TestContext1, other),
+                                     1, "some other value");
 
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_sub_1);
   CeedQFunctionSetContext(qf_sub_1, qf_ctx_sub_1);
@@ -50,7 +52,8 @@ int main(int argc, char **argv) {
 
   // Check setting field in operator
   CeedOperatorContextGetFieldLabel(op_sub_1, "count", &count_label);
-  CeedOperatorContextSetInt32(op_sub_1, count_label, 43);
+  int value_count = 43;
+  CeedOperatorContextSetInt32(op_sub_1, count_label, &value_count);
   if (ctx_data_1.count != 43)
     // LCOV_EXCL_START
     printf("Incorrect context data for count: %d != 43", ctx_data_1.count);
@@ -60,10 +63,12 @@ int main(int argc, char **argv) {
   CeedQFunctionContextCreate(ceed, &qf_ctx_sub_2);
   CeedQFunctionContextSetData(qf_ctx_sub_2, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(TestContext2), &ctx_data_2);
-  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "time", offsetof(TestContext2,
-                                     time), "current time");
-  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "other", offsetof(TestContext2,
-                                     other), "some other value");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "time",
+                                     offsetof(TestContext2, time),
+                                     1, "current time");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "other",
+                                     offsetof(TestContext2, other),
+                                     1, "some other value");
 
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_sub_2);
   CeedQFunctionSetContext(qf_sub_2, qf_ctx_sub_2);
@@ -78,7 +83,8 @@ int main(int argc, char **argv) {
 
   // Check setting field in context of single sub-operator for composite operator
   CeedOperatorContextGetFieldLabel(op_composite, "time", &time_label);
-  CeedOperatorContextSetDouble(op_composite, time_label, 2.0);
+  double value_time = 2.0;
+  CeedOperatorContextSetDouble(op_composite, time_label, &value_time);
   if (ctx_data_2.time != 2.0)
     // LCOV_EXCL_START
     printf("Incorrect context data for time: %f != 2.0", ctx_data_2.time);
@@ -86,7 +92,8 @@ int main(int argc, char **argv) {
 
   // Check setting field in context of multiple sub-operators for composite operator
   CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
-  CeedOperatorContextSetDouble(op_composite, other_label, 9000.);
+  double value_other = 9000.;
+  CeedOperatorContextSetDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0)
     // LCOV_EXCL_START
     printf("Incorrect context data for other: %f != 2.0", ctx_data_1.other);

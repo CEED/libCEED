@@ -307,6 +307,7 @@ struct CeedContextFieldLabel_private {
   const char *description;
   CeedContextFieldType type;
   size_t size;
+  size_t num_values;
   size_t offset;
   CeedInt num_sub_labels;
   CeedContextFieldLabel *sub_labels;

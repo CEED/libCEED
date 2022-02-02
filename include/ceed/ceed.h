@@ -631,9 +631,9 @@ CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field,
 /// @ingroup CeedQFunction
 typedef enum {
   /// Double precision value
-  CEED_CONTEXT_FIELD_DOUBLE,
+  CEED_CONTEXT_FIELD_DOUBLE = 1,
   /// 32 bit integer value
-  CEED_CONTEXT_FIELD_INT32
+  CEED_CONTEXT_FIELD_INT32  = 2,
 } CeedContextFieldType;
 CEED_EXTERN const char *const CeedContextFieldTypes[];
 
@@ -650,20 +650,22 @@ CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
-    const char *field_name, size_t field_offset, const char *field_description);
+    const char *field_name, size_t field_offset, size_t num_values,
+    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
-    const char *field_name, size_t field_offset, const char *field_description);
+    const char *field_name, size_t field_offset, size_t num_values,
+    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
     const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
     const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
-    const char **field_name, const char **field_description,
+    const char **field_name, const char **field_description, size_t *num_values,
     CeedContextFieldType *field_type);
 CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, double value);
+    CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, int value);
+    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
@@ -723,9 +725,9 @@ CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
 CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op,
     const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op,
-    CeedContextFieldLabel field_label, double value);
+    CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedOperatorContextSetInt32(CeedOperator op,
-    CeedContextFieldLabel field_label, int value);
+    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,

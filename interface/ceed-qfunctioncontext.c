@@ -59,6 +59,7 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx,
   @param field_description Description of field, or NULL for none
   @param field_type        Field data type, such as double or int32
   @param field_size        Size of field, in bytes
+  @param num_values        Number of values to register, must be contiguous in memory
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -68,7 +69,7 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
                                         const char *field_name, size_t field_offset,
                                         const char *field_description,
                                         CeedContextFieldType field_type,
-                                        size_t field_size) {
+                                        size_t field_size, size_t num_values) {
   int ierr;
 
   // Check for duplicate
@@ -102,7 +103,8 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   CeedChk(ierr);
   ctx->field_labels[ctx->num_fields]->type = field_type;
   ctx->field_labels[ctx->num_fields]->offset = field_offset;
-  ctx->field_labels[ctx->num_fields]->size = field_size;
+  ctx->field_labels[ctx->num_fields]->size = field_size * num_values;
+  ctx->field_labels[ctx->num_fields]->num_values = num_values;
   ctx->num_fields++;
   return CEED_ERROR_SUCCESS;
 }
@@ -523,6 +525,7 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
   @param ctx               CeedQFunctionContext
   @param field_name        Name of field to register
   @param field_offset      Offset of field to register
+  @param num_values        Number of values to register, must be contiguous in memory
   @param field_description Description of field, or NULL for none
 
   @return An error code: 0 - success, otherwise - failure
@@ -531,9 +534,10 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
 **/
 int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
                                        const char *field_name, size_t field_offset,
+                                       size_t num_values,
                                        const char *field_description) {
   return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset,
-         field_description, CEED_CONTEXT_FIELD_DOUBLE, sizeof(double));
+         field_description, CEED_CONTEXT_FIELD_DOUBLE, sizeof(double), num_values);
 }
 
 /**
@@ -542,6 +546,7 @@ int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
   @param ctx               CeedQFunctionContext
   @param field_name        Name of field to register
   @param field_offset      Offset of field to register
+  @param num_values        Number of values to register, must be contiguous in memory
   @param field_description Description of field, or NULL for none
 
   @return An error code: 0 - success, otherwise - failure
@@ -550,9 +555,10 @@ int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
 **/
 int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
                                       const char *field_name, size_t field_offset,
+                                      size_t num_values,
                                       const char *field_description) {
   return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset,
-         field_description, CEED_CONTEXT_FIELD_INT32, sizeof(int));
+         field_description, CEED_CONTEXT_FIELD_INT32, sizeof(int), num_values);
 }
 
 /**
@@ -586,7 +592,8 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
   @ref User
 **/
 int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-                                      const char *field_name, CeedContextFieldLabel *field_label) {
+                                      const char *field_name,
+                                      CeedContextFieldLabel *field_label) {
   int ierr;
 
   CeedInt field_index;
@@ -608,6 +615,7 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
   @param[in] label              CeedContextFieldLabel
   @param[out] field_name        Name of labeled field
   @param[out] field_description Description of field, or NULL for none
+  @param[out] num_values        Number of values registered
   @param[out] field_type        CeedContextFieldType
 
   @return An error code: 0 - success, otherwise - failure
@@ -617,9 +625,11 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
 int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
                                         const char **field_name,
                                         const char **field_description,
+                                        size_t *num_values,
                                         CeedContextFieldType *field_type) {
   if (field_name) *field_name = label->name;
   if (field_description) *field_description = label->description;
+  if (num_values) *num_values = label->num_values;
   if (field_type) *field_type = label->type;
   return CEED_ERROR_SUCCESS;
 }
@@ -629,14 +639,14 @@ int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
 
   @param ctx         CeedQFunctionContext
   @param field_label Label for field to register
-  @param value       Value to set
+  @param values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-                                  CeedContextFieldLabel field_label, double value) {
+                                  CeedContextFieldLabel field_label, double *values) {
   int ierr;
 
   if (!field_label)
@@ -647,7 +657,7 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 
   ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
                                         CEED_CONTEXT_FIELD_DOUBLE,
-                                        &value); CeedChk(ierr);
+                                        values); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -657,14 +667,14 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 
   @param ctx         CeedQFunctionContext
   @param field_label Label for field to register
-  @param value       Value to set
+  @param values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-                                 CeedContextFieldLabel field_label, int value) {
+                                 CeedContextFieldLabel field_label, int *values) {
   int ierr;
 
   if (!field_label)
@@ -675,7 +685,7 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
 
   ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
                                         CEED_CONTEXT_FIELD_INT32,
-                                        &value); CeedChk(ierr);
+                                        values); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
