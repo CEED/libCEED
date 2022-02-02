@@ -80,9 +80,33 @@ The following options are common among all problem types:
   - Output directory
   - `.`
 
-* - `-dm_plex_box_faces`
-  - Number of faces in each linear direction
-  - `3,3,3`
+* - `-bc_wall`
+  - Use wall boundary conditions on this list of faces
+  -
+
+* - `-wall_comps`
+  - An array of constrained component numbers for wall BCs
+  -
+
+* - `-bc_slip_x`
+  - Use slip boundary conditions, for the x component, on this list of faces
+  -
+
+* - `-bc_slip_y`
+  - Use slip boundary conditions, for the y component, on this list of faces
+  -
+
+* - `-bc_slip_z`
+  - Use slip boundary conditions, for the z component, on this list of faces
+  -
+
+* - `-bc_inflow`
+  - Use inflow boundary conditions on this list of faces
+  -
+
+* - `-bc_outflow`
+  - Use outflow boundary conditions on this list of faces
+  -
 
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
@@ -97,6 +121,21 @@ The following options are common among all problem types:
   -
 :::
 
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+
+* 2D:
+  - faceMarkerBottom = 1
+  - faceMarkerRight  = 2
+  - faceMarkerTop    = 3
+  - faceMarkerLeft   = 4
+* 3D:
+  - faceMarkerBottom = 1
+  - faceMarkerTop    = 2
+  - faceMarkerFront  = 3
+  - faceMarkerBack   = 4
+  - faceMarkerRight  = 5
+  - faceMarkerLeft   = 6
+
 For the 2D advection problem, the following additional command-line options are available:
 
 :::{list-table} Advection2D Runtime Options
@@ -106,16 +145,6 @@ For the 2D advection problem, the following additional command-line options are 
   - Description
   - Default value
   - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `8000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `8000`
-  - `m`
 
 * - `-rc`
   - Characteristic radius of thermal bubble
@@ -171,14 +200,15 @@ For the 2D advection problem, the following additional command-line options are 
 An example of the `rotation` mode can be run with:
 
 ```
-./navierstokes -problem advection2d -wind_type rotation -implicit -stab supg
+./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -bc_wall 1,2,3,4 -wall_comps 4 -wind_type rotation -implicit -stab supg
 ```
 
 and the `translation` mode with:
 
 ```
-./navierstokes -problem advection2d -wind_type translation -wind_translation 1,-.5
+./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
 ```
+Note the lengths in `-dm_plex_box_upper` are given in meters, and will be nondimensionalized according to `-units_meter`.
 
 For the 3D advection problem, the following additional command-line options are available:
 
@@ -189,21 +219,6 @@ For the 3D advection problem, the following additional command-line options are 
   - Description
   - Default value
   - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `8000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `8000`
-  - `m`
-
-* - `-lz`
-  - Length scale in z direction
-  - `4000`
-  - `m`
 
 * - `-rc`
   - Characteristic radius of thermal bubble
@@ -269,13 +284,13 @@ For the 3D advection problem, the following additional command-line options are 
 An example of the `rotation` mode can be run with:
 
 ```
-./navierstokes -problem advection -wind_type rotation -implicit -stab supg
+./navierstokes -problem advection -dm_plex_box_faces 10,10,10 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 8000,8000,8000 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -wind_type rotation -implicit -stab su
 ```
 
 and the `translation` mode with:
 
 ```
-./navierstokes -problem advection -wind_type translation -wind_translation .5,-1,0
+./navierstokes -problem advection -dm_plex_box_faces 10,10,10 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 8000,8000,8000 -wind_type translation -wind_translation .5,-1,0 -bc_inflow 1,2,3,4,5,6
 ```
 
 For the Isentropic Vortex problem, the following additional command-line options are available:
@@ -287,21 +302,6 @@ For the Isentropic Vortex problem, the following additional command-line options
   - Description
   - Default value
   - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `1000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `1000`
-  - `m`
-
-* - `-lz`
-  - Length scale in z direction
-  - `1`
-  - `m`
 
 * - `-center`
   - Location of vortex center
@@ -337,7 +337,7 @@ For the Isentropic Vortex problem, the following additional command-line options
 This problem can be run with:
 
 ```
-./navierstokes -problem euler_vortex -mean_velocity .5,-.8,0.
+./navierstokes -problem euler_vortex -dm_plex_box_faces 20,20,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,1000,50 -dm_plex_dim 3 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -mean_velocity .5,-.8,0.
 ```
 
 For the Density Current problem, the following additional command-line options are available:
@@ -349,21 +349,6 @@ For the Density Current problem, the following additional command-line options a
   - Description
   - Default value
   - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `8000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `8000`
-  - `m`
-
-* - `-lz`
-  - Length scale in z direction
-  - `4000`
-  - `m`
 
 * - `-center`
   - Location of bubble center
@@ -379,26 +364,6 @@ For the Density Current problem, the following additional command-line options a
   - Characteristic radius of thermal bubble
   - `1000`
   - `m`
-
-* - `-bc_wall`
-  - Use wall boundary conditions on this list of faces
-  - `-`
-  -
-
-* - `-bc_slip_x`
-  - Use slip boundary conditions, for the x component, on this list of faces
-  - `5,6`
-  -
-
-* - `-bc_slip_y`
-  - Use slip boundary conditions, for the y component, on this list of faces
-  - `3,4`
-  -
-
-* - `-bc_slip_z`
-  - Use slip boundary conditions, for the z component, on this list of faces
-  - `1,2`
-  -
 
 * - `-units_meter`
   - 1 meter in scaled length units
@@ -481,23 +446,8 @@ For the Density Current problem, the following additional command-line options a
   - `W/(m K)`
 :::
 
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
-
-* 2D:
-  - faceMarkerBottom = 1
-  - faceMarkerRight  = 2
-  - faceMarkerTop    = 3
-  - faceMarkerLeft   = 4
-* 3D:
-  - faceMarkerBottom = 1
-  - faceMarkerTop    = 2
-  - faceMarkerFront  = 3
-  - faceMarkerBack   = 4
-  - faceMarkerRight  = 5
-  - faceMarkerLeft   = 6
-
 This problem can be run with:
 
 ```
-./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -lx 2000 -ly 125 -lz 1000 -rc 400. -bc_wall 1,2,5,6 -bc_slip_y 3,4 -viz_refine 2
+./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_slip_y 3,4 -viz_refine 2
 ```
