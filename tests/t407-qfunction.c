@@ -38,6 +38,30 @@ int main(int argc, char **argv) {
     // LCOV_EXCL_START
     printf("Incorrect number of fields set: %d != 2", num_fields);
   // LCOV_EXCL_STOP
+  const char *name;
+  CeedContextFieldType type;
+  CeedContextFieldLabelGetDescription(field_labels[0], &name, NULL, &type);
+  if (strcmp(name, "time"))
+    // LCOV_EXCL_START
+    printf("Incorrect context field description for time: \"%s\" != \"time\"",
+           name);
+  // LCOV_EXCL_STOP
+  if (type != CEED_CONTEXT_FIELD_DOUBLE)
+    // LCOV_EXCL_START
+    printf("Incorrect context field type for time: \"%s\" != \"%s\"",
+           CeedContextFieldTypes[type], CeedContextFieldTypes[CEED_CONTEXT_FIELD_DOUBLE]);
+  // LCOV_EXCL_STOP
+  CeedContextFieldLabelGetDescription(field_labels[1], &name, NULL, &type);
+  if (strcmp(name, "count"))
+    // LCOV_EXCL_START
+    printf("Incorrect context field description for count: \"%s\" != \"count\"",
+           name);
+  // LCOV_EXCL_STOP
+  if (type != CEED_CONTEXT_FIELD_INT32)
+    // LCOV_EXCL_START
+    printf("Incorrect context field type for count: \"%s\" != \"%s\"",
+           CeedContextFieldTypes[type], CeedContextFieldTypes[CEED_CONTEXT_FIELD_INT32]);
+  // LCOV_EXCL_STOP
 
   CeedQFunctionContextGetFieldLabel(ctx, "time", &time_label);
   CeedQFunctionContextSetDouble(ctx, time_label, 2.0);
