@@ -32,7 +32,6 @@ int main(int argc, char **argv) {
                             CEED_MEM_HOST,
                             CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, 2*(num_elem*2), &y);
-  CeedVectorSetValue(y, 0); // Allocates array
 
   // Restrict
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);

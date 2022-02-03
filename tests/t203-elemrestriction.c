@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
                                    num_elem+1, num_comp*(num_elem+1), CEED_MEM_HOST,
                                    CEED_USE_POINTER, ind, &r);
   CeedVectorCreate(ceed, num_comp*num_blk*blk_size*elem_size, &y);
-  CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
