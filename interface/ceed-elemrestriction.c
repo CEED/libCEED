@@ -403,7 +403,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
     if (!delegate)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support ElemRestrictionCreateOriented");
+                       "Backend does not implement ElemRestrictionCreateOriented");
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size,
