@@ -169,6 +169,9 @@ typedef struct CeedOperatorField_private *CeedOperatorField;
 /// Handle for object describing context data for CeedQFunctions
 /// @ingroup CeedQFunctionUser
 typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
+/// Handle for object describing registered fields for CeedQFunctionContext
+/// @ingroup CeedQFunctionUser
+typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Handle for object describing FE-type operators acting on vectors
 ///
 /// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and
@@ -628,21 +631,11 @@ CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field,
 /// @ingroup CeedQFunction
 typedef enum {
   /// Double precision value
-  CEED_CONTEXT_FIELD_DOUBLE,
+  CEED_CONTEXT_FIELD_DOUBLE = 1,
   /// 32 bit integer value
-  CEED_CONTEXT_FIELD_INT32
+  CEED_CONTEXT_FIELD_INT32  = 2,
 } CeedContextFieldType;
 CEED_EXTERN const char *const CeedContextFieldTypes[];
-
-/// Handle for object describing CeedQFunctionContext fields
-/// @ingroup CeedQFunction
-typedef struct {
-  const char *name;
-  const char *description;
-  CeedContextFieldType type;
-  size_t size;
-  size_t offset;
-} CeedQFunctionContextFieldDescription;
 
 CEED_EXTERN int CeedQFunctionContextCreate(Ceed ceed,
     CeedQFunctionContext *ctx);
@@ -657,15 +650,22 @@ CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
-    const char *field_name, size_t field_offset, const char *field_description);
+    const char *field_name, size_t field_offset, size_t num_values,
+    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
-    const char *field_name, size_t field_offset, const char *field_description);
-CEED_EXTERN int CeedQFunctionContextGetFieldDescriptions(CeedQFunctionContext ctx,
-    const CeedQFunctionContextFieldDescription **field_descriptions, CeedInt *num_fields);
+    const char *field_name, size_t field_offset, size_t num_values,
+    const char *field_description);
+CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+    const char *field_name, CeedContextFieldLabel *field_label);
+CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
+    const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
+CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
+    const char **field_name, const char **field_description, size_t *num_values,
+    CeedContextFieldType *field_type);
 CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-    const char *field_name, double value);
+    CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-    const char *field_name, int value);
+    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
@@ -722,10 +722,12 @@ CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
     CeedInt *num_qpts);
-CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op, const char *field_name,
-    double value);
-CEED_EXTERN int CeedOperatorContextSetInt32(CeedOperator op, const char *field_name,
-    int value);
+CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op,
+    const char *field_name, CeedContextFieldLabel *field_label);
+CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op,
+    CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int CeedOperatorContextSetInt32(CeedOperator op,
+    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in,
                                   CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in,

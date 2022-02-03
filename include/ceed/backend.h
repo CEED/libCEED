@@ -241,9 +241,8 @@ CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
-                                   const char *field_name,
-                                   CeedContextFieldType field_type,
-                                   bool *is_set, void *value);
+                                   CeedContextFieldLabel field_label,
+                                   CeedContextFieldType field_type, void *value);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);

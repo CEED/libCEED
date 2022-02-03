@@ -272,37 +272,47 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
            that do not have a matching field of the same type or composite
            operators that do not have any field of a matching type.
 
-  @param op         CeedOperator
-  @param field_name Name of field to set
-  @param field_type Type of field to set
-  @param value      Value to set
+  @param op          CeedOperator
+  @param field_label Label of field to set
+  @param field_type  Type of field to set
+  @param value       Value to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 static int CeedOperatorContextSetGeneric(CeedOperator op,
-    const char *field_name, CeedContextFieldType field_type, void *value) {
+    CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+    void *value) {
   int ierr;
-  bool is_set = false, is_composite = false;
 
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  bool is_composite = false;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
-
   if (is_composite) {
     CeedInt num_sub;
     CeedOperator *sub_operators;
 
     ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
     ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+    if (num_sub != field_label->num_sub_labels)
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "ContextLabel does not correspond to composite operator.\n"
+                       "Use CeedOperatorGetContextFieldLabel().");
+    // LCOV_EXCL_STOP
 
     for (CeedInt i = 0; i < num_sub; i++) {
       // Try every sub-operator, ok if some sub-operators do not have field
-      if (sub_operators[i]->qf->ctx) {
-        bool is_set_i = false;
-        ierr = CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx, field_name,
-                                              field_type, &is_set_i, value);
-        CeedChk(ierr);
-        is_set = is_set || is_set_i;
+      if (field_label->sub_labels[i] && sub_operators[i]->qf->ctx) {
+        ierr = CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx,
+                                              field_label->sub_labels[i],
+                                              field_type, value); CeedChk(ierr);
       }
     }
   } else {
@@ -312,16 +322,9 @@ static int CeedOperatorContextSetGeneric(CeedOperator op,
                        "QFunction does not have context data");
     // LCOV_EXCL_STOP
 
-    ierr = CeedQFunctionContextSetGeneric(op->qf->ctx, field_name,
-                                          field_type, &is_set, value); CeedChk(ierr);
+    ierr = CeedQFunctionContextSetGeneric(op->qf->ctx, field_label,
+                                          field_type, value); CeedChk(ierr);
   }
-
-  if (!is_set)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" not registered",
-                     field_name);
-  // LCOV_EXCL_STOP
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1090,22 +1093,127 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
 }
 
 /**
-  @brief Set QFunctionContext field holding a double precision value.
-           For composite operators, the value is set in all
-           sub-operator QFunctionContexts that have a matching `field_name`.
+  @brief Get label for a registered QFunctionContext field, or `NULL` if no
+           field has been registered with this `field_name`.
 
-  @param op         CeedOperator
-  @param field_name Name of field to register
-  @param value      Value to set
+  @param[in] op            CeedOperator
+  @param[in] field_name    Name of field to retrieve label
+  @param[out] field_label  Variable to field label
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorContextSetDouble(CeedOperator op, const char *field_name,
-                                 double value) {
-  return CeedOperatorContextSetGeneric(op, field_name, CEED_CONTEXT_FIELD_DOUBLE,
-                                       &value);
+int CeedOperatorContextGetFieldLabel(CeedOperator op,
+                                     const char *field_name,
+                                     CeedContextFieldLabel *field_label) {
+  int ierr;
+
+  bool is_composite;
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    // Check if composite label already created
+    for (CeedInt i=0; i<op->num_context_labels; i++) {
+      if (!strcmp(op->context_labels[i]->name, field_name)) {
+        *field_label = op->context_labels[i];
+        return CEED_ERROR_SUCCESS;
+      }
+    }
+
+    // Create composite label if needed
+    CeedInt num_sub;
+    CeedOperator *sub_operators;
+    CeedContextFieldLabel new_field_label;
+
+    ierr = CeedCalloc(1, &new_field_label); CeedChk(ierr);
+    ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+    ierr = CeedCalloc(num_sub, &new_field_label->sub_labels); CeedChk(ierr);
+    new_field_label->num_sub_labels = num_sub;
+
+    bool label_found = false;
+    for (CeedInt i=0; i<num_sub; i++) {
+      if (sub_operators[i]->qf->ctx) {
+        CeedContextFieldLabel new_field_label_i;
+        ierr = CeedQFunctionContextGetFieldLabel(sub_operators[i]->qf->ctx, field_name,
+               &new_field_label_i); CeedChk(ierr);
+        if (new_field_label_i) {
+          label_found = true;
+          new_field_label->sub_labels[i] = new_field_label_i;
+          new_field_label->name = new_field_label_i->name;
+          new_field_label->description = new_field_label_i->description;
+          if (new_field_label->type &&
+              new_field_label->type != new_field_label_i->type) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field types on sub-operator contexts. "
+                             "%s != %s",
+                             CeedContextFieldTypes[new_field_label->type],
+                             CeedContextFieldTypes[new_field_label_i->type]);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->type = new_field_label_i->type;
+          }
+          if (new_field_label->num_values != 0 &&
+              new_field_label->num_values != new_field_label_i->num_values) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field number of values on sub-operator"
+                             " contexts. %ld != %ld",
+                             new_field_label->num_values, new_field_label_i->num_values);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->num_values = new_field_label_i->num_values;
+          }
+        }
+      }
+    }
+    if (!label_found) {
+      // LCOV_EXCL_START
+      ierr = CeedFree(&new_field_label); CeedChk(ierr);
+      *field_label = NULL;
+      // LCOV_EXCL_STOP
+    } else {
+      // Move new composite label to operator
+      if (op->num_context_labels == 0) {
+        ierr = CeedCalloc(1, &op->context_labels); CeedChk(ierr);
+        op->max_context_labels = 1;
+      } else if (op->num_context_labels == op->max_context_labels) {
+        ierr = CeedRealloc(2*op->num_context_labels, &op->context_labels);
+        CeedChk(ierr);
+        op->max_context_labels *= 2;
+      }
+      op->context_labels[op->num_context_labels] = new_field_label;
+      *field_label = new_field_label;
+      op->num_context_labels++;
+    }
+
+    return CEED_ERROR_SUCCESS;
+  } else {
+    return CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label);
+  }
+}
+
+/**
+  @brief Set QFunctionContext field holding a double precision value.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param op          CeedOperator
+  @param field_label Label of field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextSetDouble(CeedOperator op,
+                                 CeedContextFieldLabel field_label,
+                                 double *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_DOUBLE,
+                                       values);
 }
 
 /**
@@ -1113,19 +1221,19 @@ int CeedOperatorContextSetDouble(CeedOperator op, const char *field_name,
            For composite operators, the value is set in all
            sub-operator QFunctionContexts that have a matching `field_name`.
 
-  @param op         CeedOperator
-  @param field_name Name of field to set
-  @param value      Value to set
+  @param op          CeedOperator
+  @param field_label Label of field to set
+  @param values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorContextSetInt32(CeedOperator op, const char *field_name,
-                                int value) {
-  return CeedOperatorContextSetGeneric(op, field_name, CEED_CONTEXT_FIELD_INT32,
-                                       &value);
-  return CEED_ERROR_SUCCESS;
+int CeedOperatorContextSetInt32(CeedOperator op,
+                                CeedContextFieldLabel field_label,
+                                int *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32,
+                                       values);
 }
 
 /**
@@ -1270,7 +1378,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   }
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
-  for (int i=0; i<(*op)->num_fields; i++)
+  for (CeedInt i=0; i<(*op)->num_fields; i++)
     if ((*op)->input_fields[i]) {
       if ((*op)->input_fields[i]->elem_restr != CEED_ELEMRESTRICTION_NONE) {
         ierr = CeedElemRestrictionDestroy(&(*op)->input_fields[i]->elem_restr);
@@ -1286,7 +1394,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
       ierr = CeedFree(&(*op)->input_fields[i]->field_name); CeedChk(ierr);
       ierr = CeedFree(&(*op)->input_fields[i]); CeedChk(ierr);
     }
-  for (int i=0; i<(*op)->num_fields; i++)
+  for (CeedInt i=0; i<(*op)->num_fields; i++)
     if ((*op)->output_fields[i]) {
       ierr = CeedElemRestrictionDestroy(&(*op)->output_fields[i]->elem_restr);
       CeedChk(ierr);
@@ -1301,13 +1409,19 @@ int CeedOperatorDestroy(CeedOperator *op) {
       ierr = CeedFree(&(*op)->output_fields[i]); CeedChk(ierr);
     }
   // Destroy sub_operators
-  for (int i=0; i<(*op)->num_suboperators; i++)
+  for (CeedInt i=0; i<(*op)->num_suboperators; i++)
     if ((*op)->sub_operators[i]) {
       ierr = CeedOperatorDestroy(&(*op)->sub_operators[i]); CeedChk(ierr);
     }
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
+  // Destroy any composite labels
+  for (CeedInt i=0; i<(*op)->num_context_labels; i++) {
+    ierr = CeedFree(&(*op)->context_labels[i]->sub_labels); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->context_labels[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*op)->context_labels); CeedChk(ierr);
 
   // Destroy fallback
   if ((*op)->op_fallback) {
