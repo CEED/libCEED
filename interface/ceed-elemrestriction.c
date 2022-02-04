@@ -395,7 +395,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
                                       CeedElemRestriction *rstr) {
   int ierr;
 
-  if (!ceed->ElemRestrictionCreate) {
+  if (!ceed->ElemRestrictionCreateOriented) {
     Ceed delegate;
     ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
     CeedChk(ierr);
@@ -407,8 +407,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
     // LCOV_EXCL_STOP
 
     ierr = CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size,
-           num_comp, comp_stride, l_size,
-           mem_type, copy_mode, offsets,
+           num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
            orient, rstr); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
