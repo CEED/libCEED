@@ -153,6 +153,21 @@ int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
 }
 
 /**
+  @brief Get oriented status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] is_oriented  Variable to store oriented status, 1 if oriented else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionIsOriented(CeedElemRestriction rstr, bool *is_oriented) {
+  *is_oriented = rstr->is_oriented;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr                      CeedElemRestriction
@@ -352,6 +367,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, *rstr);
   CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -423,6 +439,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 1;
   ierr = ceed->ElemRestrictionCreateOriented(mem_type, copy_mode,
          offsets, orient, *rstr); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
@@ -485,6 +502,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
@@ -571,6 +589,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          (const CeedInt *) blk_offsets, *rstr); CeedChk(ierr);
   if (copy_mode == CEED_OWN_POINTER) {
@@ -636,6 +655,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];

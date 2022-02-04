@@ -180,6 +180,7 @@ struct CeedElemRestriction_private {
   CeedInt *strides;      /* strides between [nodes, components, elements] */
   CeedInt layout[3];     /* E-vector layout [nodes, components, elements] */
   uint64_t num_readers;  /* number of instances of offset read only access */
+  bool is_oriented;       /* flag for oriented restriction */
   void *data;            /* place for the backend to store any data */
 };
 
