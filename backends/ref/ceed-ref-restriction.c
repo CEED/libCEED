@@ -87,24 +87,14 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
       // Offsets provided, standard or blocked restriction
       // vv has shape [elem_size, num_comp, num_elem], row-major
       // uu has shape [nnodes, num_comp]
-      if (!is_oriented) {
-        for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
+      for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
+        CeedPragmaSIMD
+        for (CeedInt k = 0; k < num_comp; k++)
           CeedPragmaSIMD
-          for (CeedInt k = 0; k < num_comp; k++)
-            CeedPragmaSIMD
-            for (CeedInt i = 0; i < elem_size*blk_size; i++)
-              vv[elem_size*(k*blk_size+num_comp*e) + i - v_offset]
-                = uu[impl->offsets[i+elem_size*e] + k*comp_stride];
-      } else {
-        for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
-          CeedPragmaSIMD
-          for (CeedInt k = 0; k < num_comp; k++)
-            CeedPragmaSIMD
-            for (CeedInt i = 0; i < elem_size*blk_size; i++)
-              vv[elem_size*(k*blk_size+num_comp*e) + i - v_offset]
-                = uu[impl->offsets[i+elem_size*e] + k*comp_stride] *
-                  (impl->orient && impl->orient[i+elem_size*e] ? -1. : 1.);
-      }
+          for (CeedInt i = 0; i < elem_size*blk_size; i++)
+            vv[elem_size*(k*blk_size+num_comp*e) + i - v_offset]
+              = uu[impl->offsets[i+elem_size*e] + k*comp_stride] *
+                (is_oriented && impl->orient[i+elem_size*e] ? -1. : 1.);
     }
   } else {
     // Restriction from E-vector to L-vector
@@ -144,24 +134,14 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r,
       // Offsets provided, standard or blocked restriction
       // uu has shape [elem_size, num_comp, num_elem]
       // vv has shape [nnodes, num_comp]
-      if (!is_oriented) {
-        for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
-          for (CeedInt k = 0; k < num_comp; k++)
-            for (CeedInt i = 0; i < elem_size*blk_size; i+=blk_size)
-              // Iteration bound set to discard padding elements
-              for (CeedInt j = i; j < i+CeedIntMin(blk_size, num_elem-e); j++)
-                vv[impl->offsets[j+e*elem_size] + k*comp_stride]
-                += uu[elem_size*(k*blk_size+num_comp*e) + j - v_offset];
-      } else {
-        for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
-          for (CeedInt k = 0; k < num_comp; k++)
-            for (CeedInt i = 0; i < elem_size*blk_size; i+=blk_size)
-              // Iteration bound set to discard padding elements
-              for (CeedInt j = i; j < i+CeedIntMin(blk_size, num_elem-e); j++)
-                vv[impl->offsets[j+e*elem_size] + k*comp_stride]
-                += uu[elem_size*(k*blk_size+num_comp*e) + j - v_offset] *
-                   (impl->orient && impl->orient[j+e*elem_size] ? -1. : 1.);
-      }
+      for (CeedInt e = start*blk_size; e < stop*blk_size; e+=blk_size)
+        for (CeedInt k = 0; k < num_comp; k++)
+          for (CeedInt i = 0; i < elem_size*blk_size; i+=blk_size)
+            // Iteration bound set to discard padding elements
+            for (CeedInt j = i; j < i+CeedIntMin(blk_size, num_elem-e); j++)
+              vv[impl->offsets[j+e*elem_size] + k*comp_stride]
+              += uu[elem_size*(k*blk_size+num_comp*e) + j - v_offset] *
+                 (is_oriented && impl->orient[j+e*elem_size] ? -1. : 1.);
     }
   }
   ierr = CeedVectorRestoreArrayRead(u, &uu); CeedChkBackend(ierr);
