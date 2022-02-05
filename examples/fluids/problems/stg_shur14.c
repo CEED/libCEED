@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <petsc.h>
 #include "../qfunctions/stg_shur14.h"
 
 #ifndef M_PI
@@ -63,10 +64,17 @@ static inline void CalcCholeskyDecomp(int nprofs,
 }
 
 
-void SetupSTG_Rand(STGShur14Context stg_ctx) {
+PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
 
-  //TODO will probably want to have the paths to the STGRand.dat and
-  // STGInflow.dat as inputs for this function.
+  PetscErrorCode ierr;
+
+  // Get paths for files
+  char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
+  char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
+  ierr = PetscOptionsGetString(NULL, NULL, "-stg_inflow_path", stg_inflow_path,
+                               sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-stg_rand_path", stg_rand_path,
+                               sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
 
 
   //TODO Read STGRand.dat to get nmodes
@@ -128,6 +136,7 @@ void SetupSTG_Rand(STGShur14Context stg_ctx) {
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa
+  PetscFunctionReturn(0);
 }
 
 void TearDownSTG(STGShur14Context stg_ctx) {

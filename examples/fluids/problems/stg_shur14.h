@@ -19,6 +19,7 @@
 /// presented in Shur et al. 2014
 
 #include <ceed.h>
+#include <petsc.h>
 
 #ifndef stg_shur14_struct
 #define stg_shur14_struct
@@ -47,5 +48,4 @@ struct STGShur14Context_ {
 #endif
 
 
-void SetupSTG_Rand(STGShur14Context stg_ctx);
-
+PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx);
