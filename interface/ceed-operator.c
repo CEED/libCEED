@@ -1172,6 +1172,7 @@ int CeedOperatorContextGetFieldLabel(CeedOperator op,
     }
     if (!label_found) {
       // LCOV_EXCL_START
+      ierr = CeedFree(&new_field_label->sub_labels); CeedChk(ierr);
       ierr = CeedFree(&new_field_label); CeedChk(ierr);
       *field_label = NULL;
       // LCOV_EXCL_STOP
