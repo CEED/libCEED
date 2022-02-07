@@ -45,6 +45,9 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
                                 CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
+                                "ElemRestrictionCreateOriented",
+                                CeedElemRestrictionCreateOriented_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
                                 "ElemRestrictionCreateBlocked",
                                 CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",

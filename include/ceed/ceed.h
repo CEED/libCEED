@@ -415,6 +415,10 @@ CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem,
     CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
     CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
     CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
+    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
+    CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
+    const bool *orient, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
     CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt l_size,
     const CeedInt strides[3], CeedElemRestriction *rstr);

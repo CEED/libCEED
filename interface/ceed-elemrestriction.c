@@ -153,6 +153,21 @@ int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
 }
 
 /**
+  @brief Get oriented status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] is_oriented  Variable to store oriented status, 1 if oriented else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionIsOriented(CeedElemRestriction rstr, bool *is_oriented) {
+  *is_oriented = rstr->is_oriented;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the backend stride status of a CeedElemRestriction
 
   @param rstr                      CeedElemRestriction
@@ -352,8 +367,81 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, *rstr);
   CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a CeedElemRestriction with orientation sign
+
+  @param ceed         A Ceed object where the CeedElemRestriction will be created
+  @param num_elem     Number of elements described in the @a offsets array
+  @param elem_size    Size (number of "nodes") per element
+  @param num_comp     Number of field components per interpolation node
+                        (1 for scalar fields)
+  @param comp_stride  Stride between components for the same L-vector "node".
+                        Data for node i, component j, element k can be found in
+                        the L-vector at index
+                        offsets[i + k*elem_size] + j*comp_stride.
+  @param l_size       The size of the L-vector. This vector may be larger than
+                        the elements and fields given by this restriction.
+  @param mem_type     Memory type of the @a offsets array, see CeedMemType
+  @param copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
+  @param offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the
+                        ordered list of the offsets (into the input CeedVector)
+                        for the unknowns corresponding to element i, where
+                        0 <= i < @a num_elem. All offsets must be in the range
+                        [0, @a l_size - 1].
+  @param orient       Array of shape [@a num_elem, @a elem_size] with bool false
+                        for positively oriented and true to flip the orientation.
+  @param[out] rstr    Address of the variable where the newly created
+                        CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
+                                      CeedInt elem_size, CeedInt num_comp,
+                                      CeedInt comp_stride, CeedInt l_size,
+                                      CeedMemType mem_type, CeedCopyMode copy_mode,
+                                      const CeedInt *offsets, const bool *orient,
+                                      CeedElemRestriction *rstr) {
+  int ierr;
+
+  if (!ceed->ElemRestrictionCreateOriented) {
+    Ceed delegate;
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
+
+    if (!delegate)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not implement ElemRestrictionCreateOriented");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size,
+           num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
+           orient, rstr); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
+
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
+  (*rstr)->ceed = ceed;
+  ierr = CeedReference(ceed); CeedChk(ierr);
+  (*rstr)->ref_count = 1;
+  (*rstr)->num_elem = num_elem;
+  (*rstr)->elem_size = elem_size;
+  (*rstr)->num_comp = num_comp;
+  (*rstr)->comp_stride = comp_stride;
+  (*rstr)->l_size = l_size;
+  (*rstr)->num_blk = num_elem;
+  (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 1;
+  ierr = ceed->ElemRestrictionCreateOriented(mem_type, copy_mode,
+         offsets, orient, *rstr); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -414,6 +502,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
@@ -500,6 +589,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          (const CeedInt *) blk_offsets, *rstr); CeedChk(ierr);
   if (copy_mode == CEED_OWN_POINTER) {
@@ -565,6 +655,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
