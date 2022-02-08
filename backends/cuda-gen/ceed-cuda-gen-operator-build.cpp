@@ -22,6 +22,8 @@
 #include <iostream>
 #include <sstream>
 #include "ceed-cuda-gen.h"
+#include "../cuda/ceed-cuda-compile.h"
+#include "../cuda-ref/ceed-cuda-ref.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
 
 static const char *atomicAdd = QUOTE(
@@ -785,17 +787,15 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
-  CeedInt Q, P1d, Q1d = 0, numelements, elemsize, numinputfields,
+  CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
           numoutputfields, ncomp, dim = 0, lsize;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
   CeedBasis basis;
@@ -823,9 +823,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   // Add atomicAdd function for old NVidia architectures
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
-  ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr);
-  ierr = cudaGetDeviceProperties(&prop, ceed_data->deviceId);
-  if ((prop.major<6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)){
+  ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr); CeedChkBackend(ierr);
+  ierr = cudaGetDeviceProperties(&prop, ceed_data->device_id); CeedChkBackend(ierr);
+  if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)){
     code << atomicAdd;
   }
 
@@ -852,7 +852,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedChkBackend(ierr);
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
@@ -892,7 +892,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         }
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
     }
   }
   data->dim = dim;
@@ -966,21 +966,21 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ double s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       if (useCollograd) {
-        data->G.in[i] = basis_data->d_collograd1d;
+        data->G.in[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ double s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
-        data->G.in[i] = basis_data->d_grad1d;
+        data->G.in[i] = basis_data->d_grad_1d;
         code << "  __shared__ double s_G_in_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       }
@@ -1024,21 +1024,21 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break; // No action
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ double s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       if (useCollograd) {
-        data->G.out[i] = basis_data->d_collograd1d;
+        data->G.out[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ double s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
-        data->G.out[i] = basis_data->d_grad1d;
+        data->G.out[i] = basis_data->d_grad_1d;
         code << "  __shared__ double s_G_out_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       }
@@ -1135,7 +1135,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "    double r_t"<<i<<"[Q1d];\n";
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->W = basis_data->d_qweight1d;
+      data->W = basis_data->d_q_weight_1d;
       code << "    weight"<<dim<<"d<Q1d>(data, W, r_t"<<i<<");\n";
       break; // No action
     case CEED_EVAL_DIV:
@@ -1408,7 +1408,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug(code.str().c_str());
+  CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
+  CeedDebug(ceed, code.str().c_str());
 
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));

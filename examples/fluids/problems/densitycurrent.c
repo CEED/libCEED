@@ -21,7 +21,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/densitycurrent.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
                                   void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
@@ -52,7 +52,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   problem->apply_vol_ifunction_loc = IFunction_DC_loc;
   problem->bc                      = Exact_DC;
   problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
-  problem->bc_func                 = BC_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_DENSITY_CURRENT;
 
@@ -70,12 +69,13 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k      = 0.02638; // W/(m K)
-  PetscScalar lx    = 8000.;   // m
-  PetscScalar ly    = 8000.;   // m
-  PetscScalar lz    = 4000.;   // m
+  CeedScalar c_tau  = 0.5;     // -
+  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   CeedScalar rc     = 1000.;   // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
-  CeedScalar Rd;
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -113,18 +113,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
                             NULL, mu, &mu, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) center[i] = .5*domain_size[i];
   PetscInt n = problem->dim;
-  center[0] = 0.5 * lx;
-  center[1] = 0.5 * ly;
-  center[2] = 0.5 * lz;
   ierr = PetscOptionsRealArray("-center", "Location of bubble center",
                                NULL, center, &n, NULL); CHKERRQ(ierr);
   n = problem->dim;
@@ -141,7 +133,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
-
+  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
+                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -198,15 +191,13 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  Rd     = cp - cv;
   g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
-  lx     = fabs(lx) * meter;
-  ly     = fabs(ly) * meter;
-  lz     = fabs(lz) * meter;
   rc     = fabs(rc) * meter;
+  for (int i=0; i<3; i++) domain_size[i] *= meter;
   for (int i=0; i<3; i++) center[i] *= meter;
+  problem->dm_scale = meter;
 
   // -- Setup Context
   setup_context->theta0     = theta0;
@@ -215,12 +206,11 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   setup_context->N          = N;
   setup_context->cv         = cv;
   setup_context->cp         = cp;
-  setup_context->Rd         = Rd;
   setup_context->g          = g;
   setup_context->rc         = rc;
-  setup_context->lx         = lx;
-  setup_context->ly         = ly;
-  setup_context->lz         = lz;
+  setup_context->lx         = domain_size[0];
+  setup_context->ly         = domain_size[1];
+  setup_context->lz         = domain_size[2];
   setup_context->center[0]  = center[0];
   setup_context->center[1]  = center[1];
   setup_context->center[2]  = center[2];
@@ -239,17 +229,15 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
   user->phys->dc_ctx->cv       = cv;
   user->phys->dc_ctx->cp       = cp;
   user->phys->dc_ctx->g        = g;
-  user->phys->dc_ctx->Rd       = Rd;
+  user->phys->dc_ctx->c_tau    = c_tau;
   user->phys->dc_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx,
-    Physics phys) {
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
@@ -262,102 +250,6 @@ PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
     CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
   if (ceed_data->qf_ifunction_vol)
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->dc_context);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-                                  void *setup_ctx) {
-
-  PetscInt       len;
-  PetscBool      flg;
-  MPI_Comm       comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  // Default boundary conditions
-  //   slip bc on all faces and no wall bc
-  bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 2;
-  bc->slips[0][0] = 5;
-  bc->slips[0][1] = 6;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
-
-  // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT BCs ",
-                           NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsIntArray("-bc_wall",
-                              "Use wall boundary conditions on this list of faces",
-                              NULL, bc->walls,
-                              (len = sizeof(bc->walls) / sizeof(bc->walls[0]),
-                               &len), &flg); CHKERRQ(ierr);
-  if (flg) {
-    bc->num_wall = len;
-    // Using a no-slip wall disables automatic slip walls (they must be set explicitly)
-    bc->num_slip[0] = bc->num_slip[1] = bc->num_slip[2] = 0;
-  }
-  for (PetscInt j=0; j<3; j++) {
-    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-    ierr = PetscOptionsIntArray(flags[j],
-                                "Use slip boundary conditions on this list of faces",
-                                NULL, bc->slips[j],
-                                (len = sizeof(bc->slips[j]) / sizeof(bc->slips[j][0]),
-                                 &len), &flg); CHKERRQ(ierr);
-    if (flg) {
-      bc->num_slip[j] = len;
-      bc->user_bc = PETSC_TRUE;
-    }
-  }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-
-  {
-    // Set slip boundary conditions
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
-                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
-                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
-                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-  }
-
-  if (bc->user_bc == PETSC_TRUE) {
-    for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
-        for (PetscInt w = 0; w < bc->num_wall; w++) {
-          if (bc->slips[c][s] == bc->walls[w])
-            SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                     "Boundary condition already set on face %D!\n",
-                     bc->walls[w]);
-        }
-      }
-    }
-  }
-
-  // Set wall boundary conditions
-  //   zero velocity and zero flux for mass density and energy density
-  {
-    DMLabel  label;
-    PetscInt comps[3] = {1, 2, 3};
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
-                         bc->num_wall, bc->walls, 0,
-                         3, comps, (void(*)(void))Exact_DC, NULL,
-                         setup_ctx, NULL); CHKERRQ(ierr);
-  }
-
   PetscFunctionReturn(0);
 }
 

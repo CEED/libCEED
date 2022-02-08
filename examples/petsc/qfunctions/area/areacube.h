@@ -20,9 +20,7 @@
 #ifndef areacube_h
 #define areacube_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factor required for integration when

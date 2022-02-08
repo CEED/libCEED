@@ -39,6 +39,9 @@ namespace ceed {
 
       ~QFunctionContext();
 
+      static QFunctionContext* getQFunctionContext(CeedQFunctionContext ctx,
+                                                   const bool assertValid = true);
+
       static QFunctionContext* from(CeedQFunctionContext ctx);
 
       ::occa::memory dataToMemory(const void *data) {

@@ -48,6 +48,9 @@ ASAN ?=
 LDFLAGS ?=
 UNDERSCORE ?= 1
 
+# Verbose mode, V or VERBOSE
+V ?= $(VERBOSE)
+
 # MFEM_DIR env variable should point to sibling directory
 ifneq ($(wildcard ../mfem/libmfem.*),)
   MFEM_DIR ?= ../mfem
@@ -222,8 +225,9 @@ opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
-cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
-cuda.cu        := $(sort $(wildcard backends/cuda/kernels/*.cu))
+cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
+cuda-ref.cpp   := $(sort $(wildcard backends/cuda-ref/*.cpp))
+cuda-ref.cu    := $(sort $(wildcard backends/cuda-ref/kernels/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
@@ -235,7 +239,9 @@ magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
 magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
-hip.hip        := $(sort $(wildcard backends/hip/kernels/*.hip.cpp))
+hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
+hip-ref.cpp    := $(sort $(wildcard backends/hip-ref/*.cpp))
+hip-ref.hip    := $(sort $(wildcard backends/hip-ref/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
@@ -276,7 +282,7 @@ info:
 	$(info OPT           = $(OPT))
 	$(info AFLAGS        = $(AFLAGS))
 	$(info ASAN          = $(or $(ASAN),(empty)))
-	$(info V             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
+	$(info VERBOSE       = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info ------------------------------------)
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
@@ -382,9 +388,9 @@ ifneq ($(CUDA_LIB_DIR),)
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
-  libceed.c     += $(cuda.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp   += $(cuda.cpp) $(cuda-gen.cpp)
-  libceed.cu    += $(cuda.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  libceed.c     += $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
+  libceed.cpp   += $(cuda-ref.cpp) $(cuda-gen.cpp)
+  libceed.cu    += $(cuda-ref.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
 
@@ -401,9 +407,9 @@ ifneq ($(HIP_LIB_DIR),)
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-hip.c
-  libceed.c     += $(hip.c) $(hip-shared.c) $(hip-gen.c)
-  libceed.cpp   += $(hip.cpp) $(hip-gen.cpp)
-  libceed.hip   += $(hip.hip)
+  libceed.c     += $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+  libceed.cpp   += $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
+  libceed.hip   += $(hip-ref.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 
@@ -637,11 +643,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-backend.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-hash.h "$(DESTDIR)$(includedir)/"
-	$(INSTALL_DATA) include/ceed-khash.h "$(DESTDIR)$(includedir)/"
 
-.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy info info-backends info-backends-all
+.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy iwyu info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
@@ -654,7 +657,7 @@ distclean : clean
 
 DOXYGEN ?= doxygen
 doxygen :
-	$(DOXYGEN) Doxyfile
+	$(DOXYGEN) -q Doxyfile
 
 doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 	make -C doc/sphinx $*
@@ -686,6 +689,14 @@ tidy_c   : $(libceed.c:%=%.tidy)
 tidy_cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy_c tidy_cpp
+
+ifneq ($(wildcard ../iwyu/*),)
+  IWYU_DIR ?= ../iwyu
+  IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
+endif
+
+iwyu : CC=$(IWYU_CC)
+iwyu : lib
 
 print :
 	@echo $(VAR)=$($(VAR))

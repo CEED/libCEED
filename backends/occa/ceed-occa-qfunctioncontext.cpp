@@ -29,16 +29,30 @@ namespace ceed {
       freeHostCtxBuffer();
     }
 
-    QFunctionContext* QFunctionContext::from(CeedQFunctionContext ctx) {
+    QFunctionContext* QFunctionContext::getQFunctionContext(CeedQFunctionContext ctx,
+                                                            const bool assertValid) {
       if (!ctx) {
         return NULL;
       }
 
       int ierr;
-
       QFunctionContext *ctx_ = NULL;
-      ierr = CeedQFunctionContextGetBackendData(ctx, &ctx_); CeedOccaFromChk(ierr);
 
+      ierr = CeedQFunctionContextGetBackendData(ctx, &ctx_);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
+
+      return ctx_;
+    }
+
+    QFunctionContext* QFunctionContext::from(CeedQFunctionContext ctx) {
+      QFunctionContext *ctx_ = getQFunctionContext(ctx);
+      if (!ctx_) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_->ctxSize);
       CeedOccaFromChk(ierr);
 
@@ -283,7 +297,7 @@ namespace ceed {
     }
 
     int QFunctionContext::ceedDestroy(CeedQFunctionContext ctx) {
-      delete QFunctionContext::from(ctx);
+      delete getQFunctionContext(ctx, false);
       return CEED_ERROR_SUCCESS;
     }
   }

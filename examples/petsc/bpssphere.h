@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef sphere_h
-#define sphere_h
+#ifndef libceed_petsc_examples_sphere_h
+#define libceed_petsc_examples_sphere_h
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -25,4 +25,4 @@ static const char *const bp_types[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6",
                                        "BPType", "CEED_BP", 0
                                       };
 
-#endif // sphere_h
+#endif // libceed_petsc_examples_sphere_h

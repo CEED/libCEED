@@ -26,11 +26,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, num_comp, P, Q, interp, grad, q_ref,
-                    q_weight, &b);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, num_comp, P, Q, interp, grad,
+                    q_ref, q_weight, &b);
 
   CeedVectorCreate(ceed, Q*dim*num_comp, &In);
-  CeedVectorGetArray(In, CEED_MEM_HOST, &in);
+  CeedVectorGetArrayWrite(In, CEED_MEM_HOST, &in);
   for (int d=0; d<dim; d++)
     for (int n=0; n<num_comp; n++)
       for (int q=0; q<Q; q++)

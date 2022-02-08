@@ -1,5 +1,7 @@
 ## libCEED + PETSc Examples
 
+PETSc v3.17 or a development version of PETSc at commit 0e95d842 or later is required.
+
 ### CEED bakeoff problems with raw mesh management - bpsraw
 
 This code solves the CEED bakeoff problems on a structured grid generated and referenced using only low-level communication primitives.

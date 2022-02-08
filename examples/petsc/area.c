@@ -55,8 +55,8 @@ static const char help[] =
 
 #include "area.h"
 #include "include/areaproblemdata.h"
-#include "include/petscmacros.h"
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 #include "include/matops.h"
 #include "include/structs.h"
 #include "include/libceedsetup.h"
@@ -129,7 +129,8 @@ int main(int argc, char **argv) {
 
   // Setup DM
   if (read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE,
+                                &dm);
     CHKERRQ(ierr);
   } else {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
@@ -223,8 +224,8 @@ int main(int argc, char **argv) {
   // Setup libCEED's objects and apply setup operator
   ierr = PetscMalloc1(1, &ceed_data); CHKERRQ(ierr);
   ierr = SetupLibceedByDegree(dm, ceed, degree, topo_dim, q_extra, num_comp_x,
-                              num_comp_u,
-                              g_size, xl_size, problem_options[problem_choice], ceed_data,
+                              num_comp_u, g_size, xl_size,
+                              problem_options[problem_choice], ceed_data,
                               false, (CeedVector)NULL, (CeedVector *)NULL);
   CHKERRQ(ierr);
 

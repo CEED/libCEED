@@ -31,18 +31,20 @@ pub mod prelude {
     pub use crate::{
         basis::{self, Basis, BasisOpt},
         elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
-        operator::{self, CompositeOperator, Operator},
+        operator::{self, CompositeOperator, Operator, OperatorField},
         qfunction::{
-            self, QFunction, QFunctionByName, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
+            self, QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt,
+            QFunctionOutputs,
         },
-        vector::{self, Vector, VectorOpt},
+        vector::{self, Vector, VectorOpt, VectorSliceWrapper},
         ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
         CEED_STRIDES_BACKEND, EPSILON, MAX_QFUNCTION_FIELDS,
     };
     pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
-    pub(crate) use std::ffi::CString;
+    pub(crate) use std::ffi::{CStr, CString};
     pub(crate) use std::fmt;
+    pub(crate) use std::marker::PhantomData;
 }
 
 // -----------------------------------------------------------------------------
@@ -113,16 +115,16 @@ pub enum QuadMode {
 #[derive(Clone, Copy, PartialEq, Eq)]
 /// Type of basis shape to create non-tensor H1 element basis
 pub enum ElemTopology {
-    Line = bind_ceed::CeedElemTopology_CEED_LINE as isize,
-    Triangle = bind_ceed::CeedElemTopology_CEED_TRIANGLE as isize,
-    Quad = bind_ceed::CeedElemTopology_CEED_QUAD as isize,
-    Tet = bind_ceed::CeedElemTopology_CEED_TET as isize,
-    Pyramid = bind_ceed::CeedElemTopology_CEED_PYRAMID as isize,
-    Prism = bind_ceed::CeedElemTopology_CEED_PRISM as isize,
-    Hex = bind_ceed::CeedElemTopology_CEED_HEX as isize,
+    Line = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_LINE as isize,
+    Triangle = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_TRIANGLE as isize,
+    Quad = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_QUAD as isize,
+    Tet = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_TET as isize,
+    Pyramid = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_PYRAMID as isize,
+    Prism = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_PRISM as isize,
+    Hex = bind_ceed::CeedElemTopology_CEED_TOPOLOGY_HEX as isize,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 /// Basis evaluation mode
 pub enum EvalMode {
     None = bind_ceed::CeedEvalMode_CEED_EVAL_NONE as isize,
@@ -132,27 +134,65 @@ pub enum EvalMode {
     Curl = bind_ceed::CeedEvalMode_CEED_EVAL_CURL as isize,
     Weight = bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT as isize,
 }
+impl EvalMode {
+    pub(crate) fn from_u32(value: u32) -> EvalMode {
+        match value {
+            bind_ceed::CeedEvalMode_CEED_EVAL_NONE => EvalMode::None,
+            bind_ceed::CeedEvalMode_CEED_EVAL_INTERP => EvalMode::Interp,
+            bind_ceed::CeedEvalMode_CEED_EVAL_GRAD => EvalMode::Grad,
+            bind_ceed::CeedEvalMode_CEED_EVAL_DIV => EvalMode::Div,
+            bind_ceed::CeedEvalMode_CEED_EVAL_CURL => EvalMode::Curl,
+            bind_ceed::CeedEvalMode_CEED_EVAL_WEIGHT => EvalMode::Weight,
+            _ => panic!("Unknown value: {}", value),
+        }
+    }
+}
 
 // -----------------------------------------------------------------------------
 // Ceed error
 // -----------------------------------------------------------------------------
-type Result<T> = std::result::Result<T, CeedError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
+/// libCEED error messages - returning an Error without painc!ing indicates
+///   the function call failed but the data is not corrupted
 #[derive(Debug)]
-pub struct CeedError {
+pub struct Error {
     pub message: String,
 }
 
-impl fmt::Display for CeedError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.message)
     }
 }
 
 // -----------------------------------------------------------------------------
+// Internal error checker
+// -----------------------------------------------------------------------------
+#[doc(hidden)]
+pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
+    // Return early if code is clean
+    if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        return Ok(ierr);
+    }
+    // Retrieve error message
+    let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
+    let c_str = unsafe {
+        bind_ceed::CeedGetErrorMessage(ceed_ptr, &mut ptr);
+        std::ffi::CStr::from_ptr(ptr)
+    };
+    let message = c_str.to_string_lossy().to_string();
+    // Panic if negative code, otherwise return error
+    if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
+        panic!("{}", message);
+    }
+    Err(Error { message })
+}
+
+// -----------------------------------------------------------------------------
 // Ceed error handler
 // -----------------------------------------------------------------------------
-pub enum CeedErrorHandler {
+pub enum ErrorHandler {
     ErrorAbort,
     ErrorExit,
     ErrorReturn,
@@ -177,6 +217,26 @@ impl Drop for Ceed {
         unsafe {
             bind_ceed::CeedDestroy(&mut self.ptr);
         }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Cloning
+// -----------------------------------------------------------------------------
+impl Clone for Ceed {
+    /// Perform a shallow clone of a Ceed context
+    ///
+    /// ```
+    /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
+    /// let ceed_clone = ceed.clone();
+    ///
+    /// println!(" original:{} \n clone:{}", ceed, ceed_clone);
+    /// ```
+    fn clone(&self) -> Self {
+        let mut ptr_clone = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) };
+        self.check_error(ierr).expect("failed to clone Ceed");
+        Self { ptr: ptr_clone }
     }
 }
 
@@ -209,6 +269,7 @@ static REGISTER: Once = Once::new();
 // Object constructors
 // -----------------------------------------------------------------------------
 impl Ceed {
+    #[cfg_attr(feature = "katexit", katexit::katexit)]
     /// Returns a Ceed context initialized with the specified resource
     ///
     /// # arguments
@@ -219,7 +280,7 @@ impl Ceed {
     /// let ceed = libceed::Ceed::init("/cpu/self/ref/serial");
     /// ```
     pub fn init(resource: &str) -> Self {
-        Ceed::init_with_error_handler(resource, CeedErrorHandler::ErrorStore)
+        Ceed::init_with_error_handler(resource, ErrorHandler::ErrorStore)
     }
 
     /// Returns a Ceed context initialized with the specified resource
@@ -231,10 +292,10 @@ impl Ceed {
     /// ```
     /// let ceed = libceed::Ceed::init_with_error_handler(
     ///     "/cpu/self/ref/serial",
-    ///     libceed::CeedErrorHandler::ErrorAbort,
+    ///     libceed::ErrorHandler::ErrorAbort,
     /// );
     /// ```
-    pub fn init_with_error_handler(resource: &str, handler: CeedErrorHandler) -> Self {
+    pub fn init_with_error_handler(resource: &str, handler: ErrorHandler) -> Self {
         REGISTER.call_once(|| unsafe {
             bind_ceed::CeedRegisterAll();
             bind_ceed::CeedQFunctionRegisterAll();
@@ -245,10 +306,10 @@ impl Ceed {
 
         // Get error handler pointer
         let eh = match handler {
-            CeedErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
-            CeedErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
-            CeedErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
-            CeedErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
+            ErrorHandler::ErrorAbort => bind_ceed::CeedErrorAbort,
+            ErrorHandler::ErrorExit => bind_ceed::CeedErrorExit,
+            ErrorHandler::ErrorReturn => bind_ceed::CeedErrorReturn,
+            ErrorHandler::ErrorStore => bind_ceed::CeedErrorStore,
         };
 
         // Call to libCEED
@@ -289,7 +350,7 @@ impl Ceed {
         if ierr < bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
             panic!("{}", message);
         }
-        Err(CeedError { message })
+        Err(Error { message })
     }
 
     /// Returns full resource name for a Ceed context
@@ -309,7 +370,7 @@ impl Ceed {
         c_str.to_string_lossy().to_string()
     }
 
-    /// Returns a CeedVector of the specified length (does not allocate memory)
+    /// Returns a Vector of the specified length (does not allocate memory)
     ///
     /// # arguments
     ///
@@ -317,10 +378,13 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector(10).unwrap();
+    /// let vec = ceed.vector(10)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn vector(&self, n: usize) -> Result<Vector> {
+    pub fn vector<'a>(&self, n: usize) -> Result<Vector<'a>> {
         Vector::create(self, n)
     }
 
@@ -332,15 +396,21 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = ceed.vector_from_slice(&[1., 2., 3.]).unwrap();
+    /// let vec = ceed.vector_from_slice(&[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3);
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn vector_from_slice(&self, slice: &[crate::Scalar]) -> Result<Vector> {
+    pub fn vector_from_slice<'a>(&self, slice: &[crate::Scalar]) -> Result<Vector<'a>> {
         Vector::from_slice(self, slice)
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, which extracts the degrees of
+    ///   freedom for each element from the local vector into the element vector
+    ///   or assembles contributions from each element in the element vector to
+    ///   the local vector
     ///
     /// # arguments
     ///
@@ -364,6 +434,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
@@ -371,11 +442,11 @@ impl Ceed {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
     /// }
-    /// let r = ceed
-    ///     .elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)
-    ///     .unwrap();
+    /// let r = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn elem_restriction(
+    pub fn elem_restriction<'a>(
         &self,
         nelem: usize,
         elemsize: usize,
@@ -384,13 +455,14 @@ impl Ceed {
         lsize: usize,
         mtype: MemType,
         offsets: &[i32],
-    ) -> Result<ElemRestriction> {
+    ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create(
             self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets,
         )
     }
 
-    /// Returns a ElemRestriction
+    /// Returns an ElemRestriction, $\mathcal{E}$, from an local vector to
+    ///   an element vector where data can be indexed from the `strides` array
     ///
     /// # arguments
     ///
@@ -398,10 +470,6 @@ impl Ceed {
     /// * `elemsize`   - Size (number of "nodes") per element
     /// * `ncomp`      - Number of field components per interpolation node (1
     ///                    for scalar fields)
-    /// * `compstride` - Stride between components for the same Lvector "node".
-    ///                    Data for node `i`, component `j`, element `k` can be
-    ///                    found in the Lvector at index
-    ///                    `offsets[i + k*elemsize] + j*compstride`.
     /// * `lsize`      - The size of the Lvector. This vector may be larger
     ///   than the elements and fields given by this restriction.
     /// * `strides`   - Array for strides between `[nodes, components, elements]`.
@@ -413,25 +481,26 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let strides: [i32; 3] = [1, 2, 2];
-    /// let r = ceed
-    ///     .strided_elem_restriction(nelem, 2, 1, nelem * 2, strides)
-    ///     .unwrap();
+    /// let r = ceed.strided_elem_restriction(nelem, 2, 1, nelem * 2, strides)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn strided_elem_restriction(
+    pub fn strided_elem_restriction<'a>(
         &self,
         nelem: usize,
         elemsize: usize,
         ncomp: usize,
         lsize: usize,
         strides: [i32; 3],
-    ) -> Result<ElemRestriction> {
+    ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create_strided(self, nelem, elemsize, ncomp, lsize, strides)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns an $H^1$ tensor-product Basis
     ///
     /// # arguments
     ///
@@ -452,6 +521,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp1d  = [ 0.62994317,  0.47255875, -0.14950343,  0.04700152,
     ///                  -0.07069480,  0.97297619,  0.13253993, -0.03482132,
@@ -464,9 +534,11 @@ impl Ceed {
     /// let qref1d    = [-0.86113631, -0.33998104,  0.33998104,  0.86113631];
     /// let qweight1d = [ 0.34785485,  0.65214515,  0.65214515,  0.34785485];
     /// let b = ceed.
-    /// basis_tensor_H1(2, 1, 4, 4, &interp1d, &grad1d, &qref1d, &qweight1d).unwrap();
+    /// basis_tensor_H1(2, 1, 4, 4, &interp1d, &grad1d, &qref1d, &qweight1d)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn basis_tensor_H1(
+    pub fn basis_tensor_H1<'a>(
         &self,
         dim: usize,
         ncomp: usize,
@@ -476,13 +548,13 @@ impl Ceed {
         grad1d: &[crate::Scalar],
         qref1d: &[crate::Scalar],
         qweight1d: &[crate::Scalar],
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_tensor_H1(
             self, dim, ncomp, P1d, Q1d, interp1d, grad1d, qref1d, qweight1d,
         )
     }
 
-    /// Returns a tensor-product Lagrange basis
+    /// Returns an $H^1$ Lagrange tensor-product Basis
     ///
     /// # arguments
     ///
@@ -496,23 +568,24 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let b = ceed
-    ///     .basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)
-    ///     .unwrap();
+    /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn basis_tensor_H1_Lagrange(
+    pub fn basis_tensor_H1_Lagrange<'a>(
         &self,
         dim: usize,
         ncomp: usize,
         P: usize,
         Q: usize,
         qmode: QuadMode,
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_tensor_H1_Lagrange(self, dim, ncomp, P, Q, qmode)
     }
 
-    /// Returns a tensor-product basis
+    /// Returns an $H-1$ Basis
     ///
     /// # arguments
     ///
@@ -531,6 +604,7 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
     ///     0.12000000,
@@ -613,20 +687,20 @@ impl Ceed {
     ///     0.60000000,
     /// ];
     /// let qweight = [0.26041667, 0.26041667, -0.28125000, 0.26041667];
-    /// let b = ceed
-    ///     .basis_H1(
-    ///         ElemTopology::Triangle,
-    ///         1,
-    ///         6,
-    ///         4,
-    ///         &interp,
-    ///         &grad,
-    ///         &qref,
-    ///         &qweight,
-    ///     )
-    ///     .unwrap();
+    /// let b = ceed.basis_H1(
+    ///     ElemTopology::Triangle,
+    ///     1,
+    ///     6,
+    ///     4,
+    ///     &interp,
+    ///     &grad,
+    ///     &qref,
+    ///     &qweight,
+    /// )?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn basis_H1(
+    pub fn basis_H1<'a>(
         &self,
         topo: ElemTopology,
         ncomp: usize,
@@ -636,22 +710,31 @@ impl Ceed {
         grad: &[crate::Scalar],
         qref: &[crate::Scalar],
         qweight: &[crate::Scalar],
-    ) -> Result<Basis> {
+    ) -> Result<Basis<'a>> {
         Basis::create_H1(
             self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
         )
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
+    /// Returns a QFunction for evaluating interior (volumetric) terms
+    ///   of a weak form corresponding to the $L^2$ inner product
+    ///
+    /// $$
+    /// \langle v, F(u) \rangle = \int_\Omega v \cdot f_0 \left( u, \nabla u \right) + \left( \nabla v \right) : f_1 \left( u, \nabla u \right),
+    /// $$
+    ///
+    /// where $v \cdot f_0$ represents contraction over fields and $\nabla v : f_1$
+    ///   represents contraction over both fields and spatial dimensions.
     ///
     /// # arguments
     ///
     /// * `vlength` - Vector length. Caller must ensure that number of
     ///                 quadrature points is a multiple of vlength.
-    /// * `f`       - Boxed closure to evaluate action at quadrature points.
+    /// * `f`       - Boxed closure to evaluate weak form at quadrature points.
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
     ///     // Iterate over quadrature points
@@ -663,31 +746,42 @@ impl Ceed {
     ///     0
     /// };
     ///
-    /// let qf = ceed.q_function_interior(1, Box::new(user_f)).unwrap();
+    /// let qf = ceed.q_function_interior(1, Box::new(user_f))?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn q_function_interior(
+    pub fn q_function_interior<'a>(
         &self,
         vlength: usize,
         f: Box<qfunction::QFunctionUserClosure>,
-    ) -> Result<QFunction> {
+    ) -> Result<QFunction<'a>> {
         QFunction::create(self, vlength, f)
     }
 
-    /// Returns a CeedQFunction for evaluating interior (volumetric) terms
-    /// created by name
+    /// Returns a QFunction for evaluating interior (volumetric) terms
+    ///   created by name
+    ///
+    /// # arguments
+    ///
+    /// * `name` - name of QFunction from libCEED gallery
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn q_function_interior_by_name(&self, name: &str) -> Result<QFunctionByName> {
+    pub fn q_function_interior_by_name<'a>(&self, name: &str) -> Result<QFunctionByName<'a>> {
         QFunctionByName::create(self, name)
     }
 
-    /// Returns a Operator and associate a QFunction. A Basis and
-    /// ElemRestriction can be   associated with QFunction fields with
-    /// set_field().
+    /// Returns an Operator and associate a QFunction. A Basis and
+    ///   ElemRestriction can be associated with QFunction fields via
+    ///   set_field().
+    ///
+    /// # arguments
     ///
     /// * `qf`   - QFunction defining the action of the operator at quadrature
     ///              points
@@ -698,18 +792,19 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild").unwrap();
-    /// let op = ceed
-    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)
-    ///     .unwrap();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    /// let op = ceed.operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn operator<'b>(
+    pub fn operator<'a, 'b>(
         &self,
         qf: impl Into<QFunctionOpt<'b>>,
         dqf: impl Into<QFunctionOpt<'b>>,
         dqfT: impl Into<QFunctionOpt<'b>>,
-    ) -> Result<Operator> {
+    ) -> Result<Operator<'a>> {
         Operator::create(self, qf, dqf, dqfT)
     }
 
@@ -717,10 +812,13 @@ impl Ceed {
     ///
     /// ```
     /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let op = ceed.composite_operator().unwrap();
+    /// let op = ceed.composite_operator()?;
+    /// # Ok(())
+    /// # }
     /// ```
-    pub fn composite_operator(&self) -> Result<CompositeOperator> {
+    pub fn composite_operator<'a>(&self) -> Result<CompositeOperator<'a>> {
         CompositeOperator::create(self)
     }
 }
@@ -732,7 +830,7 @@ impl Ceed {
 mod tests {
     use super::*;
 
-    fn ceed_t501() -> Result<i32> {
+    fn ceed_t501() -> Result<()> {
         let resource = "/cpu/self/ref/blocked";
         let ceed = Ceed::init(resource);
         let nelem = 4;
@@ -784,18 +882,19 @@ mod tests {
             .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
             .field("u", &ru, &bu, VectorOpt::Active)?
             .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
-            .field("v", &ru, &bu, VectorOpt::Active)?;
+            .field("v", &ru, &bu, VectorOpt::Active)?
+            .check()?;
 
         v.set_value(0.0)?;
         op_mass.apply(&u, &mut v)?;
 
         // Check
-        let sum: Scalar = v.view().iter().sum();
+        let sum: Scalar = v.view()?.iter().sum();
         assert!(
             (sum - 2.0).abs() < 1e-15,
             "Incorrect interval length computed"
         );
-        Ok(0)
+        Ok(())
     }
 
     #[test]

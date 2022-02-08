@@ -38,12 +38,12 @@ mod transform;
 // Example 1
 // ----------------------------------------------------------------------------
 #[cfg(not(tarpaulin_include))]
-fn main() -> Result<(), libceed::CeedError> {
+fn main() -> libceed::Result<()> {
     let options = opt::Opt::from_args();
     example_1(options)
 }
 
-fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
+fn example_1(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
         ceed_spec,
@@ -87,12 +87,10 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh = ceed
-        .basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
-    let basis_solution = ceed
-        .basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
+    let basis_mesh =
+        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_solution =
+        ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)?;
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
@@ -124,7 +122,7 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
-    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords);
+    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords)?;
 
     // QFunction that builds the quadrature data for the mass operator
     // -- QFunction from user closure
@@ -201,7 +199,8 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
-        )?;
+        )?
+        .check()?;
 
     // Compute the quadrature data for the mass operator
     let elem_qpts = num_qpts.pow(dim as u32);
@@ -238,7 +237,8 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
         .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
         .field("u", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
-        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?;
+        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .check()?;
 
     // Solution vectors
     let u = ceed.vector_from_slice(&vec![1.0; solution_size])?;
@@ -248,7 +248,7 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: Scalar = v.view().iter().sum();
+    let volume: Scalar = v.view()?.iter().sum();
 
     // Output results
     if !quiet {
@@ -266,7 +266,7 @@ fn example_1(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let error = (volume - exact_volume).abs();
     if error > tolerance {
         println!("Volume error too large: {:.12e}", error);
-        return Err(libceed::CeedError {
+        return Err(libceed::Error {
             message: format!(
                 "Volume error too large - expected: {:.12e}, actual: {:.12e}",
                 tolerance, error

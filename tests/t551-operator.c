@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
   CeedBasisGetGrad1D(basis_temp, &grad);
   CeedBasisGetQRef(basis_temp, &q_ref);
   CeedBasisGetQWeights(basis_temp, &q_weight);
-  CeedBasisCreateH1(ceed, CEED_LINE, num_comp, P_c, Q, interp, grad, q_ref,
-                    q_weight, &basis_c);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_LINE, num_comp, P_c, Q, interp, grad,
+                    q_ref, q_weight, &basis_c);
   CeedBasisDestroy(&basis_temp);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, P_f, Q, CEED_GAUSS,
                                   &basis_temp);
@@ -78,13 +78,13 @@ int main(int argc, char **argv) {
   CeedBasisGetGrad1D(basis_temp, &grad);
   CeedBasisGetQRef(basis_temp, &q_ref);
   CeedBasisGetQWeights(basis_temp, &q_weight);
-  CeedBasisCreateH1(ceed, CEED_LINE, num_comp, P_f, Q, interp, grad, q_ref,
-                    q_weight, &basis_f);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_LINE, num_comp, P_f, Q, interp, grad,
+                    q_ref, q_weight, &basis_f);
   CeedBasisDestroy(&basis_temp);
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "weights", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "dx", 1*1, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_NONE);
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
   CeedVectorCreate(ceed, num_elem*Q, &q_data);
 
-  CeedOperatorSetField(op_setup, "weights", CEED_ELEMRESTRICTION_NONE, basis_x,
+  CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED,

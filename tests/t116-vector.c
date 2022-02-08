@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
 
   n = 10;
   CeedVectorCreate(ceed, n, &x);
+  CeedVectorSetValue(x, 0.0);
   CeedVectorGetArray(x, CEED_MEM_HOST, &a);
 
   // Write access not restored should generate an error

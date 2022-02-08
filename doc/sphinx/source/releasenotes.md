@@ -7,9 +7,40 @@ for each release of libCEED.
 
 ## Current `main` branch
 
+### Interface changes
+
+- Update {c:func}`CeedQFunctionGetFields` and {c:func}`CeedOperatorGetFields` to include number of fields.
+- Promote to the public API: QFunction and Operator field objects, `CeedQFunctionField` and `CeedOperatorField`, and associated getters, {c:func}`CeedQFunctionGetFields`; {c:func}`CeedQFunctionFieldGetName`; {c:func}`CeedQFunctionFieldGetSize`; {c:func}`CeedQFunctionFieldGetEvalMode`; {c:func}`CeedOperatorGetFields`; {c:func}`CeedOperatorFieldGetElemRestriction`; {c:func}`CeedOperatorFieldGetBasis`; and {c:func}`CeedOperatorFieldGetVector`.
+- Clarify and document conditions where `CeedQFunction` and `CeedOperator` become immutable and no further fields or suboperators can be added.
+- Add {c:func}`CeedOperatorLinearAssembleQFunctionBuildOrUpdate` to reduce object creation overhead in assembly of CeedOperator preconditioning ingredients.
+- Promote {c:func}`CeedOperatorCheckReady`to the public API to facilitate interactive interfaces.
+- Warning added when compiling OCCA backend to alert users that this backend is experimental.
+- `ceed-backend.h`, `ceed-hash.h`, and `ceed-khash.h` removed. Users should use `ceed/backend.h`, `ceed/hash.h`, and `ceed/khash.h`.
+- Added {c:func}`CeedQFunctionGetKernelName`; refactored {c:func}`CeedQFunctionGetSourcePath` to exclude function kernel name.
+- Clarify documentation for {c:func}`CeedVectorTakeArray`; this function will error if {c:func}`CeedVectorSetArray` with `copy_mode == CEED_USE_POINTER` was not previously called for the corresponding `CeedMemType`.
+- Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
+- Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {c:struct}`CeedQFunctionContext` data by user defined field names.
+- Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
+- Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
+
+### New features
+
+- `CeedScalar` can now be set as `float` or `double` at compile time.
+- Added JiT utilities in `ceed/jit-tools.h` to reduce duplicated code in GPU backends.
+- Added support for JiT of QFunctions with `#include "relative/path/local-file.h"` statements for additional local files. Note that files included with `""` are searched relative to the current file first, then by compiler paths (as with `<>` includes). To use this feature, one should adhere to relative paths only, not compiler flags like `-I`, which the JiT will not be aware of.
+- Remove need to guard library headers in QFunction source for code generation backends.
+- `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
+- Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
+- Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
+- Added support for non-tensor H(div) elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
+
 ### Maintainability
 
 - Refactored preconditioner support internally to facilitate future development and improve GPU completeness/test coverage.
+- `Include-what-you-use` makefile target added as `make iwyu`.
+- Create backend constant `CEED_FIELD_MAX` to reduce magic numbers in codebase.
+- Put GPU JiTed kernel source code into separate files.
+- Dropped legacy version support in PETSc based examples to better utilize PETSc DMPlex and Mat updates to support libCEED; current minimum PETSc version for the examples is v3.17.
 
 (v0-9)=
 

@@ -36,6 +36,9 @@ namespace ceed {
 
       virtual ~Basis();
 
+      static Basis* getBasis(CeedBasis basis,
+                             const bool assertValid = true);
+
       static Basis* from(CeedBasis basis);
       static Basis* from(CeedOperatorField operatorField);
 

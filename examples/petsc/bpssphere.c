@@ -52,8 +52,8 @@ static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 
 #include "bpssphere.h"
 #include "include/sphereproblemdata.h"
-#include "include/petscmacros.h"
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 #include "include/matops.h"
 #include "include/libceedsetup.h"
 
@@ -137,7 +137,8 @@ int main(int argc, char **argv) {
 
   // Setup DM
   if (read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, &dm);
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE,
+                                &dm);
     CHKERRQ(ierr);
   } else {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box

@@ -83,146 +83,29 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   PetscFunctionReturn(0);
 };
 
-// Utility function - essential BC dofs are encoded in closure indices as -(i+1)
-PetscInt Involute(PetscInt i) {
-  return i >= 0 ? i : -(i + 1);
-};
-
 // Utility function to create local CEED restriction from DMPlex
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt height, DMLabel domain_label, CeedInt value,
-    CeedElemRestriction *elem_restr) {
-
-  PetscSection section;
-  PetscInt p, num_elem, num_dof, *restr_indices, elem_offset, num_fields, dim,
-           depth;
-  DMLabel depth_label;
-  IS depth_is, iter_is;
-  Vec U_loc;
-  const PetscInt *iter_indices;
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
+    DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
+  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
   PetscErrorCode ierr;
 
   PetscFunctionBeginUser;
-
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  dim -= height;
-  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-  ierr = PetscSectionGetNumFields(section, &num_fields); CHKERRQ(ierr);
-  PetscInt num_comp[num_fields], field_offsets[num_fields+1];
-  field_offsets[0] = 0;
-  for (PetscInt f = 0; f < num_fields; f++) {
-    ierr = PetscSectionGetFieldComponents(section, f, &num_comp[f]); CHKERRQ(ierr);
-    field_offsets[f+1] = field_offsets[f] + num_comp[f];
-  }
-
-  ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthLabel(dm, &depth_label); CHKERRQ(ierr);
-  ierr = DMLabelGetStratumIS(depth_label, depth - height, &depth_is);
+  ierr = DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem,
+                               &elem_size, &num_comp, &num_dof, &elem_restr_offsets);
   CHKERRQ(ierr);
-  if (domain_label) {
-    IS domain_is;
-    ierr = DMLabelGetStratumIS(domain_label, value, &domain_is); CHKERRQ(ierr);
-    if (domain_is) { // domainIS is non-empty
-      ierr = ISIntersect(depth_is, domain_is, &iter_is); CHKERRQ(ierr);
-      ierr = ISDestroy(&domain_is); CHKERRQ(ierr);
-    } else { // domainIS is NULL (empty)
-      iter_is = NULL;
-    }
-    ierr = ISDestroy(&depth_is); CHKERRQ(ierr);
-  } else {
-    iter_is = depth_is;
-  }
-  if (iter_is) {
-    ierr = ISGetLocalSize(iter_is, &num_elem); CHKERRQ(ierr);
-    ierr = ISGetIndices(iter_is, &iter_indices); CHKERRQ(ierr);
-  } else {
-    num_elem = 0;
-    iter_indices = NULL;
-  }
-  ierr = PetscMalloc1(num_elem*PetscPowInt(P, dim), &restr_indices);
-  CHKERRQ(ierr);
-  for (p = 0, elem_offset = 0; p < num_elem; p++) {
-    PetscInt c = iter_indices[p];
-    PetscInt num_indices, *indices, num_nodes;
-    ierr = DMPlexGetClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                   &num_indices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
-    bool flip = false;
-    if (height > 0) {
-      PetscInt num_cells, num_faces, start = -1;
-      const PetscInt *orients, *faces, *cells;
-      ierr = DMPlexGetSupport(dm, c, &cells); CHKERRQ(ierr);
-      ierr = DMPlexGetSupportSize(dm, c, &num_cells); CHKERRQ(ierr);
-      if (num_cells != 1) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                                     "Expected one cell in support of exterior face, but got %D cells",
-                                     num_cells);
-      ierr = DMPlexGetCone(dm, cells[0], &faces); CHKERRQ(ierr);
-      ierr = DMPlexGetConeSize(dm, cells[0], &num_faces); CHKERRQ(ierr);
-      for (PetscInt i=0; i<num_faces; i++) {if (faces[i] == c) start = i;}
-      if (start < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_ARG_CORRUPT,
-                                "Could not find face %D in cone of its support",
-                                c);
-      ierr = DMPlexGetConeOrientation(dm, cells[0], &orients); CHKERRQ(ierr);
-      if (orients[start] < 0) flip = true;
-    }
-    if (num_indices % field_offsets[num_fields]) SETERRQ1(PETSC_COMM_SELF,
-          PETSC_ERR_ARG_INCOMP, "Number of closure indices not compatible with Cell %D",
-          c);
-    num_nodes = num_indices / field_offsets[num_fields];
-    for (PetscInt i = 0; i < num_nodes; i++) {
-      PetscInt ii = i;
-      if (flip) {
-        if (P == num_nodes) ii = num_nodes - 1 - i;
-        else if (P*P == num_nodes) {
-          PetscInt row = i / P, col = i % P;
-          ii = row + col * P;
-        } else SETERRQ2(PETSC_COMM_SELF, PETSC_ERR_SUP,
-                          "No support for flipping point with %D nodes != P (%D) or P^2",
-                          num_nodes, P);
-      }
-      // Check that indices are blocked by node and thus can be coalesced as a single field with
-      // field_offsets[num_fields] = sum(num_comp) components.
-      for (PetscInt f = 0; f < num_fields; f++) {
-        for (PetscInt j = 0; j < num_comp[f]; j++) {
-          if (Involute(indices[field_offsets[f]*num_nodes + ii*num_comp[f] + j])
-              != Involute(indices[ii*num_comp[0]]) + field_offsets[f] + j)
-            SETERRQ4(PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
-                     "Cell %D closure indices not interlaced for node %D field %D component %D",
-                     c, ii, f, j);
-        }
-      }
-      // Essential boundary conditions are encoded as -(loc+1), but we don't care so we decode.
-      PetscInt loc = Involute(indices[ii*num_comp[0]]);
-      restr_indices[elem_offset++] = loc;
-    }
-    ierr = DMPlexRestoreClosureIndices(dm, section, section, c, PETSC_TRUE,
-                                       &num_indices, &indices, NULL, NULL);
-    CHKERRQ(ierr);
-  }
-  if (elem_offset != num_elem*PetscPowInt(P, dim))
-    SETERRQ3(PETSC_COMM_SELF, PETSC_ERR_LIB,
-             "ElemRestriction of size (%D,%D) initialized %D nodes", num_elem,
-             PetscPowInt(P, dim),elem_offset);
-  if (iter_is) {
-    ierr = ISRestoreIndices(iter_is, &iter_indices); CHKERRQ(ierr);
-  }
-  ierr = ISDestroy(&iter_is); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm, &U_loc); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(U_loc, &num_dof); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &U_loc); CHKERRQ(ierr);
-  CeedElemRestrictionCreate(ceed, num_elem, PetscPowInt(P, dim),
-                            field_offsets[num_fields],
-                            1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, restr_indices,
-                            elem_restr);
-  ierr = PetscFree(restr_indices); CHKERRQ(ierr);
+  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp,
+                            1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
+                            elem_restr_offsets, elem_restr);
+  ierr = PetscFree(elem_restr_offsets); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 };
 
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
                                        DMLabel domain_label, PetscInt value,
-                                       CeedInt P, CeedInt Q, CeedInt q_data_size,
+                                       CeedInt Q, CeedInt q_data_size,
                                        CeedElemRestriction *elem_restr_q,
                                        CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
@@ -241,11 +124,11 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
   if (elem_restr_q) {
-    ierr = CreateRestrictionFromPlex(ceed, dm, P, height, domain_label, value,
+    ierr = CreateRestrictionFromPlex(ceed, dm, height, domain_label, value,
                                      elem_restr_q); CHKERRQ(ierr);
   }
   if (elem_restr_x) {
-    ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, height, domain_label,
+    ierr = CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label,
                                      value, elem_restr_x); CHKERRQ(ierr);
   }
   if (elem_restr_qd_i) {
@@ -272,7 +155,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedInt       Q = app_ctx->level_degrees[fine_level] + 1 + app_ctx->q_extra;
   CeedInt       dim, num_comp_x, num_comp_e = 1, num_comp_d = 5;
   CeedInt       num_qpts;
-  CeedInt       geo_data_size = problem_data.geo_data_size;
+  CeedInt       q_data_size = problem_data.q_data_size;
   forcingType   forcing_choice = app_ctx->forcing_choice;
   DM            dm_coord;
   Vec           coords;
@@ -313,19 +196,19 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CHKERRQ(ierr);
 
   // -- Coordinate restriction
-  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, 0, 0, 0,
+  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 0, 0, 0,
                                    &(data[fine_level]->elem_restr_x));
   CHKERRQ(ierr);
   // -- Solution restriction
-  ierr = CreateRestrictionFromPlex(ceed, dm, P, 0, 0, 0,
+  ierr = CreateRestrictionFromPlex(ceed, dm, 0, 0, 0,
                                    &data[fine_level]->elem_restr_u);
   CHKERRQ(ierr);
   // -- Energy restriction
-  ierr = CreateRestrictionFromPlex(ceed, dm_energy, P, 0, 0, 0,
+  ierr = CreateRestrictionFromPlex(ceed, dm_energy, 0, 0, 0,
                                    &data[fine_level]->elem_restr_energy);
   CHKERRQ(ierr);
   // -- Diagnostic data restriction
-  ierr = CreateRestrictionFromPlex(ceed, dm_diagnostic, P, 0, 0, 0,
+  ierr = CreateRestrictionFromPlex(ceed, dm_diagnostic, 0, 0, 0,
                                    &data[fine_level]->elem_restr_diagnostic);
   CHKERRQ(ierr);
 
@@ -334,8 +217,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   num_elem = c_end - c_start;
   CeedBasisGetNumQuadraturePoints(data[fine_level]->basis_u, &num_qpts);
   // ---- Geometric data restriction, residual and Jacobian operators
-  CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, geo_data_size,
-                                   num_elem*num_qpts*geo_data_size,
+  CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, q_data_size,
+                                   num_elem*num_qpts*q_data_size,
                                    CEED_STRIDES_BACKEND,
                                    &data[fine_level]->elem_restr_geo_data_i);
   // ---- Stored field restrictions
@@ -347,8 +230,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      &data[fine_level]->elem_restr_stored_fields_i[i]);
   }
   // ---- Geometric data restriction, diagnostic operator
-  CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, geo_data_size,
-                                   num_elem*P*P*P*geo_data_size,
+  CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,
+                                   num_elem*P*P*P*q_data_size,
                                    CEED_STRIDES_BACKEND,
                                    &data[fine_level]->elem_restr_geo_data_diagnostic_i);
 
@@ -370,7 +253,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedVectorCreate(ceed, U_loc_size, &data[fine_level]->x_ceed);
   CeedVectorCreate(ceed, U_loc_size, &data[fine_level]->y_ceed);
   // -- Geometric data vector
-  CeedVectorCreate(ceed, num_elem*num_qpts*geo_data_size,
+  CeedVectorCreate(ceed, num_elem*num_qpts*q_data_size,
                    &data[fine_level]->geo_data);
   // -- Stored field vectors
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
@@ -378,7 +261,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &data[fine_level]->stored_fields[i]);
   }
   // -- Collocated geometric data vector
-  CeedVectorCreate(ceed, num_elem*P*P*P*geo_data_size,
+  CeedVectorCreate(ceed, num_elem*P*P*P*q_data_size,
                    &data[fine_level]->geo_data_diagnostic);
 
   // ---------------------------------------------------------------------------
@@ -392,7 +275,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                               problem_data.setup_geo_loc, &qf_setup_geo);
   CeedQFunctionAddInput(qf_setup_geo, "dx", num_comp_x*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup_geo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup_geo, "geo_data", geo_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup_geo, "qdata", q_data_size, CEED_EVAL_NONE);
   // -- Operator
   CeedOperatorCreate(ceed, qf_setup_geo, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setup_geo);
@@ -400,7 +283,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                        data[fine_level]->basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE,
                        data[fine_level]->basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "geo_data",
+  CeedOperatorSetField(op_setup_geo, "qdata",
                        data[fine_level]->elem_restr_geo_data_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   // -- Compute the quadrature data
@@ -420,7 +303,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedQFunctionCreateInterior(ceed, 1, problem_data.residual,
                               problem_data.residual_loc, &qf_residual);
   CeedQFunctionAddInput(qf_residual, "du", num_comp_u*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_residual, "geo_data", geo_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_residual, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_residual, "dv", num_comp_u*dim, CEED_EVAL_GRAD);
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
     CeedQFunctionAddOutput(qf_residual, problem_data.field_names[i],
@@ -432,7 +315,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &op_residual);
   CeedOperatorSetField(op_residual, "du", data[fine_level]->elem_restr_u,
                        data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_residual, "geo_data",
+  CeedOperatorSetField(op_residual, "qdata",
                        data[fine_level]->elem_restr_geo_data_i,
                        CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
   CeedOperatorSetField(op_residual, "dv", data[fine_level]->elem_restr_u,
@@ -456,23 +339,23 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   // -- QFunction
   CeedQFunctionCreateInterior(ceed, 1, problem_data.jacobian,
                               problem_data.jacobian_loc, &qf_jacobian);
-  CeedQFunctionAddInput(qf_jacobian, "deltadu", num_comp_u*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_jacobian, "geo_data", geo_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_jacobian, "delta du", num_comp_u*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_jacobian, "qdata", q_data_size, CEED_EVAL_NONE);
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
     CeedQFunctionAddInput(qf_jacobian, problem_data.field_names[i],
                           problem_data.field_sizes[i], CEED_EVAL_NONE);
   }
-  CeedQFunctionAddOutput(qf_jacobian, "deltadv", num_comp_u*dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddOutput(qf_jacobian, "delta dv", num_comp_u*dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qf_jacobian, phys_ctx);
   // -- Operator
   CeedOperatorCreate(ceed, qf_jacobian, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_jacobian);
-  CeedOperatorSetField(op_jacobian, "deltadu", data[fine_level]->elem_restr_u,
+  CeedOperatorSetField(op_jacobian, "delta du", data[fine_level]->elem_restr_u,
                        data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_jacobian, "geo_data",
+  CeedOperatorSetField(op_jacobian, "qdata",
                        data[fine_level]->elem_restr_geo_data_i,
                        CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
-  CeedOperatorSetField(op_jacobian, "deltadv", data[fine_level]->elem_restr_u,
+  CeedOperatorSetField(op_jacobian, "delta dv", data[fine_level]->elem_restr_u,
                        data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
     CeedOperatorSetField(op_jacobian, problem_data.field_names[i],
@@ -520,8 +403,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                   3 * sizeof(CeedScalar),
                                   app_ctx->bc_traction_vector[i]);
       // Setup restriction
-      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label,
-                                     app_ctx->bc_traction_faces[i], P, Q,
+      ierr = GetRestrictionForDomain(ceed, dm, 1, domain_label,
+                                     app_ctx->bc_traction_faces[i], Q,
                                      0, &elem_restr_u_face, &elem_restr_x_face, NULL);
       CHKERRQ(ierr);
       // ---- Create boundary Operator
@@ -563,7 +446,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                 forcing_options[forcing_choice].setup_forcing_loc,
                                 &qf_setup_force);
     CeedQFunctionAddInput(qf_setup_force, "x", num_comp_x, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setup_force, "geo_data", geo_data_size,
+    CeedQFunctionAddInput(qf_setup_force, "qdata", q_data_size,
                           CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setup_force, "force", num_comp_u, CEED_EVAL_INTERP);
     if (forcing_choice == FORCE_MMS) {
@@ -582,7 +465,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                        CEED_QFUNCTION_NONE, &op_setup_force);
     CeedOperatorSetField(op_setup_force, "x", data[fine_level]->elem_restr_x,
                          data[fine_level]->basis_x, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setup_force, "geo_data",
+    CeedOperatorSetField(op_setup_force, "qdata",
                          data[fine_level]->elem_restr_geo_data_i,
                          CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
     CeedOperatorSetField(op_setup_force, "force", data[fine_level]->elem_restr_u,
@@ -617,13 +500,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionCreateInterior(ceed, 1, problem_data.true_soln,
                                 problem_data.true_soln_loc, &qf_true);
     CeedQFunctionAddInput(qf_true, "x", num_comp_x, CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(qf_true, "true_soln", num_comp_u, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_true, "true solution", num_comp_u, CEED_EVAL_NONE);
     // Operator
     CeedOperatorCreate(ceed, qf_true, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                        &op_true);
     CeedOperatorSetField(op_true, "x", data[fine_level]->elem_restr_x, basis_x_true,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_true, "true_soln", data[fine_level]->elem_restr_u,
+    CeedOperatorSetField(op_true, "true solution", data[fine_level]->elem_restr_u,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
     // -- Compute true solution
     CeedOperatorApply(op_true, x_coord, data[fine_level]->true_soln,
@@ -656,7 +539,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedQFunctionCreateInterior(ceed, 1, problem_data.energy,
                               problem_data.energy_loc, &qf_energy);
   CeedQFunctionAddInput(qf_energy, "du", num_comp_u*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_energy, "geo_data", geo_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_energy, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_energy, "energy", num_comp_e, CEED_EVAL_INTERP);
   CeedQFunctionSetContext(qf_energy, phys_ctx);
   // -- Operator
@@ -664,7 +547,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                      &op_energy);
   CeedOperatorSetField(op_energy, "du", data[fine_level]->elem_restr_u,
                        data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_energy, "geo_data",
+  CeedOperatorSetField(op_energy, "qdata",
                        data[fine_level]->elem_restr_geo_data_i,
                        CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
   CeedOperatorSetField(op_energy, "energy", data[fine_level]->elem_restr_energy,
@@ -688,7 +571,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                               problem_data.setup_geo_loc, &qf_setup_geo);
   CeedQFunctionAddInput(qf_setup_geo, "dx", num_comp_x*dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup_geo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup_geo, "geo_data", geo_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup_geo, "qdata", q_data_size, CEED_EVAL_NONE);
   // -- Operator
   CeedOperatorCreate(ceed, qf_setup_geo, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setup_geo);
@@ -696,7 +579,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                        basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "geo_data",
+  CeedOperatorSetField(op_setup_geo, "qdata",
                        data[fine_level]->elem_restr_geo_data_diagnostic_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   // -- Compute the quadrature data
@@ -713,9 +596,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                               problem_data.diagnostic_loc, &qf_diagnostic);
   CeedQFunctionAddInput(qf_diagnostic, "u", num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_diagnostic, "du", num_comp_u*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_diagnostic, "geo_data", geo_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_diagnostic, "diagnostic", num_comp_u + num_comp_d,
-                         CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_diagnostic, "qdata", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_diagnostic, "diagnostic values",
+                         num_comp_u + num_comp_d, CEED_EVAL_NONE);
   CeedQFunctionSetContext(qf_diagnostic, phys_ctx);
   // -- Operator
   CeedOperatorCreate(ceed, qf_diagnostic, CEED_QFUNCTION_NONE,
@@ -724,10 +607,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                        data[fine_level]->basis_diagnostic, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diagnostic, "du", data[fine_level]->elem_restr_u,
                        data[fine_level]->basis_diagnostic, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diagnostic, "geo_data",
+  CeedOperatorSetField(op_diagnostic, "qdata",
                        data[fine_level]->elem_restr_geo_data_diagnostic_i,
                        CEED_BASIS_COLLOCATED, data[fine_level]->geo_data_diagnostic);
-  CeedOperatorSetField(op_diagnostic, "diagnostic",
+  CeedOperatorSetField(op_diagnostic, "diagnostic values",
                        data[fine_level]->elem_restr_diagnostic,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   // -- Save libCEED data
@@ -764,7 +647,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx app_ctx,
   // libCEED restrictions
   // ---------------------------------------------------------------------------
   // -- Solution restriction
-  ierr = CreateRestrictionFromPlex(ceed, dm, P, 0, 0, 0,
+  ierr = CreateRestrictionFromPlex(ceed, dm, 0, 0, 0,
                                    &data[level]->elem_restr_u);
   CHKERRQ(ierr);
 

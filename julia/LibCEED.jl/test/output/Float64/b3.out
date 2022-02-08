@@ -1,4 +1,4 @@
-CeedBasis: dim=1 P=2 Q=3
+CeedBasis (H^1 space on a line element): dim=1 P=2 Q=3
         qref:	 -1.00000000	  0.00000000	  1.00000000
      qweight:	  0.33333333	  1.33333333	  0.33333333
       interp[0]:	  1.00000000	  0.00000000

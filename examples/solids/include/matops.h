@@ -1,5 +1,5 @@
-#ifndef matops_h
-#define matops_h
+#ifndef libceed_solids_examples_matops_h
+#define libceed_solids_examples_matops_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -34,4 +34,4 @@ PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
 // this function checks to see if the computed energy is close enough to reference file energy.
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
-#endif // matopts_h
+#endif // libceed_solids_examples_matopts_h

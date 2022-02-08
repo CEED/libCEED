@@ -27,19 +27,30 @@ namespace ceed {
 
     Basis::~Basis() {}
 
-    Basis* Basis::from(CeedBasis basis) {
+    Basis* Basis::getBasis(CeedBasis basis,
+                           const bool assertValid) {
       if (!basis) {
         return NULL;
       }
 
       int ierr;
-      Basis *basis_;
+      Basis *basis_ = NULL;
 
-      ierr = CeedBasisGetData(basis, &basis_); CeedOccaFromChk(ierr);
+      ierr = CeedBasisGetData(basis, &basis_);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
+
+      return basis_;
+    }
+
+    Basis* Basis::from(CeedBasis basis) {
+      Basis *basis_ = getBasis(basis);
       if (!basis_) {
         return NULL;
       }
 
+      int ierr;
       ierr = basis_->setCeedFields(basis); CeedOccaFromChk(ierr);
 
       return basis_;
@@ -86,7 +97,7 @@ namespace ceed {
     }
 
     int Basis::ceedDestroy(CeedBasis basis) {
-      delete Basis::from(basis);
+      delete getBasis(basis, false);
       return CEED_ERROR_SUCCESS;
     }
   }

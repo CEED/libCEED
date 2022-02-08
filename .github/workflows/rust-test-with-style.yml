@@ -27,11 +27,11 @@ jobs:
         CC: ${{ matrix.compiler }}
         FC: gfortran-9
       with:
-        args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/*'
+        args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/* --out Xml'
     - name: Codecov upload
-      uses: codecov/codecov-action@v1.0.2
+      uses: codecov/codecov-action@v2
       with:
-        directory: target/tarpaulin
+        files: ./cobertura.xml
         token: ${{secrets.CODECOV_TOKEN}}
 
   style:

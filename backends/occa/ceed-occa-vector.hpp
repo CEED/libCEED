@@ -54,6 +54,9 @@ namespace ceed {
 
       ~Vector();
 
+      static Vector* getVector(CeedVector vec,
+                               const bool assertValid = true);
+
       static Vector* from(CeedVector vec);
 
       void resize(const CeedInt length_);

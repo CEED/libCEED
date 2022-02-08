@@ -68,21 +68,6 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets,
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedElemRestriction
-
-  @param rstr       CeedElemRestriction
-  @param[out] ceed  Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
-  *ceed = rstr->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
 
   @brief Get the strides of a strided CeedElemRestriction
 
@@ -164,6 +149,21 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr,
 **/
 int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
   *is_strided = rstr->strides ? true : false;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get oriented status of a CeedElemRestriction
+
+  @param rstr             CeedElemRestriction
+  @param[out] is_oriented  Variable to store oriented status, 1 if oriented else 0
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionIsOriented(CeedElemRestriction rstr, bool *is_oriented) {
+  *is_oriented = rstr->is_oriented;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -367,8 +367,81 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, *rstr);
   CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a CeedElemRestriction with orientation sign
+
+  @param ceed         A Ceed object where the CeedElemRestriction will be created
+  @param num_elem     Number of elements described in the @a offsets array
+  @param elem_size    Size (number of "nodes") per element
+  @param num_comp     Number of field components per interpolation node
+                        (1 for scalar fields)
+  @param comp_stride  Stride between components for the same L-vector "node".
+                        Data for node i, component j, element k can be found in
+                        the L-vector at index
+                        offsets[i + k*elem_size] + j*comp_stride.
+  @param l_size       The size of the L-vector. This vector may be larger than
+                        the elements and fields given by this restriction.
+  @param mem_type     Memory type of the @a offsets array, see CeedMemType
+  @param copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
+  @param offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the
+                        ordered list of the offsets (into the input CeedVector)
+                        for the unknowns corresponding to element i, where
+                        0 <= i < @a num_elem. All offsets must be in the range
+                        [0, @a l_size - 1].
+  @param orient       Array of shape [@a num_elem, @a elem_size] with bool false
+                        for positively oriented and true to flip the orientation.
+  @param[out] rstr    Address of the variable where the newly created
+                        CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
+                                      CeedInt elem_size, CeedInt num_comp,
+                                      CeedInt comp_stride, CeedInt l_size,
+                                      CeedMemType mem_type, CeedCopyMode copy_mode,
+                                      const CeedInt *offsets, const bool *orient,
+                                      CeedElemRestriction *rstr) {
+  int ierr;
+
+  if (!ceed->ElemRestrictionCreateOriented) {
+    Ceed delegate;
+    ierr = CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction");
+    CeedChk(ierr);
+
+    if (!delegate)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not implement ElemRestrictionCreateOriented");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size,
+           num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
+           orient, rstr); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  }
+
+  ierr = CeedCalloc(1, rstr); CeedChk(ierr);
+  (*rstr)->ceed = ceed;
+  ierr = CeedReference(ceed); CeedChk(ierr);
+  (*rstr)->ref_count = 1;
+  (*rstr)->num_elem = num_elem;
+  (*rstr)->elem_size = elem_size;
+  (*rstr)->num_comp = num_comp;
+  (*rstr)->comp_stride = comp_stride;
+  (*rstr)->l_size = l_size;
+  (*rstr)->num_blk = num_elem;
+  (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 1;
+  ierr = ceed->ElemRestrictionCreateOriented(mem_type, copy_mode,
+         offsets, orient, *rstr); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -429,6 +502,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_elem;
   (*rstr)->blk_size = 1;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
@@ -515,6 +589,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          (const CeedInt *) blk_offsets, *rstr); CeedChk(ierr);
   if (copy_mode == CEED_OWN_POINTER) {
@@ -580,6 +655,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->l_size = l_size;
   (*rstr)->num_blk = num_blk;
   (*rstr)->blk_size = blk_size;
+  (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
   for (int i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
@@ -739,6 +815,21 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 }
 
 /**
+  @brief Get the Ceed associated with a CeedElemRestriction
+
+  @param rstr       CeedElemRestriction
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
+  *ceed = rstr->ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the L-vector component stride
 
   @param rstr              CeedElemRestriction
@@ -746,7 +837,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
                                      CeedInt *comp_stride) {
@@ -762,7 +853,7 @@ int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
                                       CeedInt *num_elem) {
@@ -778,7 +869,7 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
                                       CeedInt *elem_size) {
@@ -794,7 +885,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
                                       CeedInt *l_size) {
@@ -811,7 +902,7 @@ int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
                                         CeedInt *num_comp) {
@@ -827,7 +918,7 @@ int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
                                     CeedInt *num_block) {
@@ -843,7 +934,7 @@ int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr,
                                     CeedInt *blk_size) {
@@ -866,15 +957,17 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
   int ierr;
   CeedVector e_vec;
 
-  // Create and set e_vec
+  // Create e_vec to hold intermediate computation in E^T (E 1)
   ierr = CeedElemRestrictionCreateVector(rstr, NULL, &e_vec); CeedChk(ierr);
-  ierr = CeedVectorSetValue(e_vec, 1.0); CeedChk(ierr);
-  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
 
-  // Apply to get multiplicity
+  // Compute e_vec = E * 1
+  ierr = CeedVectorSetValue(mult, 1.0); CeedChk(ierr);
+  ierr = CeedElemRestrictionApply(rstr, CEED_NOTRANSPOSE, mult, e_vec,
+                                  CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+  // Compute multiplicity, mult = E^T * e_vec = E^T (E 1)
+  ierr = CeedVectorSetValue(mult, 0.0); CeedChk(ierr);
   ierr = CeedElemRestrictionApply(rstr, CEED_TRANSPOSE, e_vec, mult,
                                   CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
-
   // Cleanup
   ierr = CeedVectorDestroy(&e_vec); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;

@@ -2,6 +2,7 @@
 
 This page provides a description of the solid mechanics example for the
 libCEED library, based on PETSc.
+PETSc v3.17 or a development version of PETSc at commit 0e95d842 or later is required.
 
 This code solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
@@ -23,7 +24,7 @@ and run with:
 
 % inclusion-solids-marker
 
-The elasticity min-app is controlled via command-line options, the following of which are mandatory.
+The elasticity mini-app is controlled via command-line options, the following of which are mandatory.
 
 :::{list-table} Mandatory Runtime Options
 :header-rows: 1

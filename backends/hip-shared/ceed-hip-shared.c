@@ -19,15 +19,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include "ceed-hip-shared.h"
-#include "../hip/ceed-hip.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   int ierr;
-  const int nrc = 8; // number of characters in resource
-  if (strncmp(resource, "/gpu/hip/shared", nrc))
+
+  if (strcmp(resource, "/gpu/hip/shared"))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
@@ -37,11 +36,11 @@ static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedHipInit(ceed, resource, nrc); CeedChkBackend(ierr);
+  ierr = CeedHipInit(ceed, resource); CeedChkBackend(ierr);
 
-  Ceed ceedref;
-  CeedInit("/gpu/hip/ref", &ceedref);
-  ierr = CeedSetDelegate(ceed, ceedref); CeedChkBackend(ierr);
+  Ceed ceed_ref;
+  CeedInit("/gpu/hip/ref", &ceed_ref);
+  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
                                 CeedBasisCreateTensorH1_Hip_shared);

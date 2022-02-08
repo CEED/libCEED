@@ -20,18 +20,18 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
-#include "../hip/ceed-hip.h"
+#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   hipModule_t module;
-  hipFunction_t interp;
-  hipFunction_t grad;
-  hipFunction_t weight;
-  CeedInt blksizes[3]; // interp, grad, weight thread block sizes
-  CeedScalar *d_interp1d;
-  CeedScalar *d_grad1d;
-  CeedScalar *d_collograd1d;
-  CeedScalar *d_qweight1d;
+  hipFunction_t Interp;
+  hipFunction_t Grad;
+  hipFunction_t Weight;
+  CeedInt block_sizes[3]; // interp, grad, weight thread block sizes
+  CeedScalar *d_interp_1d;
+  CeedScalar *d_grad_1d;
+  CeedScalar *d_collo_grad_1d;
+  CeedScalar *d_q_weight_1d;
 } CeedBasis_Hip_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d,

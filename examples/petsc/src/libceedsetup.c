@@ -65,13 +65,13 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
 
   // CEED restrictions
+  ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 2, topo_dim, 0, 0, 0,
-                                   &elem_restr_x);
+  ierr = CreateRestrictionFromPlex(ceed, dm_coord, 0, 0, 0, &elem_restr_x);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm, P, topo_dim, 0, 0, 0, &elem_restr_u);
+  ierr = CreateRestrictionFromPlex(ceed, dm, 0, 0, 0, &elem_restr_u);
   CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
@@ -104,7 +104,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunctionAddInput(qf_setup_geo, "x", num_comp_x, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup_geo, "dx", num_comp_x*topo_dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_setup_geo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup_geo, "q_data", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_setup_geo, "qdata", q_data_size, CEED_EVAL_NONE);
 
   // Create the operator that builds the quadrature data
   CeedOperatorCreate(ceed, qf_setup_geo, NULL, NULL, &op_setup_geo);
@@ -114,7 +114,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
                        CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x,
                        CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "q_data", elem_restr_qd_i,
+  CeedOperatorSetField(op_setup_geo, "qdata", elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Setup q_data
@@ -126,13 +126,13 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunctionCreateInterior(ceed, 1, bp_data.apply, bp_data.apply_loc,
                               &qf_apply);
   CeedQFunctionAddInput(qf_apply, "u", num_comp_u*in_scale, bp_data.in_mode);
-  CeedQFunctionAddInput(qf_apply, "q_data", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_apply, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_apply, "v", num_comp_u*out_scale, bp_data.out_mode);
 
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "q_data", elem_restr_qd_i, CEED_BASIS_COLLOCATED,
+  CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED,
                        q_data);
   CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
@@ -146,18 +146,18 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
     CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_rhs, bp_data.setup_rhs_loc,
                                 &qf_setup_rhs);
     CeedQFunctionAddInput(qf_setup_rhs, "x", num_comp_x, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_setup_rhs, "q_data", q_data_size, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_setup_rhs, "true_soln", num_comp_u, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_setup_rhs, "qdata", q_data_size, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_setup_rhs, "true solution", num_comp_u,
+                           CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_setup_rhs, "rhs", num_comp_u, CEED_EVAL_INTERP);
 
     // Create the operator that builds the RHS and true solution
     CeedOperatorCreate(ceed, qf_setup_rhs, NULL, NULL, &op_setup_rhs);
     CeedOperatorSetField(op_setup_rhs, "x", elem_restr_x, basis_x,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setup_rhs, "q_data", elem_restr_qd_i,
-                         CEED_BASIS_COLLOCATED,
-                         q_data);
-    CeedOperatorSetField(op_setup_rhs, "true_soln", elem_restr_u_i,
+    CeedOperatorSetField(op_setup_rhs, "qdata", elem_restr_qd_i,
+                         CEED_BASIS_COLLOCATED, q_data);
+    CeedOperatorSetField(op_setup_rhs, "true solution", elem_restr_u_i,
                          CEED_BASIS_COLLOCATED, *target);
     CeedOperatorSetField(op_setup_rhs, "rhs", elem_restr_u, basis_u,
                          CEED_VECTOR_ACTIVE);

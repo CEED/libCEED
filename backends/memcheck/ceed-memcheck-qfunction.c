@@ -47,7 +47,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
     CeedChkBackend(ierr);
   }
   for (int i = 0; i<num_out; i++) {
-    ierr = CeedVectorGetArray(V[i], CEED_MEM_HOST, &impl->outputs[i]);
+    ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_HOST, &impl->outputs[i]);
     CeedChkBackend(ierr);
     CeedInt len;
     ierr = CeedVectorGetLength(V[i], &len); CeedChkBackend(ierr);
@@ -94,8 +94,8 @@ int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
 
   CeedQFunction_Memcheck *impl;
   ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->inputs); CeedChkBackend(ierr);
-  ierr = CeedCalloc(16, &impl->outputs); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->inputs); CeedChkBackend(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &impl->outputs); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, impl); CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",

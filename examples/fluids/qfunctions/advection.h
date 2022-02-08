@@ -20,9 +20,7 @@
 #ifndef advection_h
 #define advection_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef setup_context_struct
 #define setup_context_struct
@@ -34,7 +32,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -196,7 +193,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5] = {};
+    CeedScalar q[5] = {0.};
 
     Exact_Advection(3, 0., x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
@@ -484,9 +481,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q,
 //    A prescribed Total Energy (E_wind) is applied weakly.
 //
 // *****************************************************************************
-CEED_QFUNCTION(Advection_Sur)(void *ctx, CeedInt Q,
-                              const CeedScalar *const *in,
-                              CeedScalar *const *out) {
+CEED_QFUNCTION(Advection_InOutFlow)(void *ctx, CeedInt Q,
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],

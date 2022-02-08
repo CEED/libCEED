@@ -1,5 +1,5 @@
-#ifndef structs_h
-#define structs_h
+#ifndef libceed_solids_examples_structs_h
+#define libceed_solids_examples_structs_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -82,17 +82,6 @@ struct AppCtx_ {
   PetscReal     expect_final_strain;
 };
 
-// Problem specific data
-// *INDENT-OFF*
-typedef struct {
-  CeedInt           geo_data_size;
-  CeedQFunctionUser setup_geo, apply, jacob, energy, diagnostic;
-  const char        *setup_geo_loc, *apply_loc, *jacob_loc, *energy_loc,
-                    *diagnostic_loc;
-  CeedQuadMode      quad_mode;
-} problemData;
-// *INDENT-ON*
-
 // Forcing function data
 typedef struct {
   CeedQFunctionUser setup_forcing;
@@ -120,9 +109,9 @@ typedef struct FormJacobCtx_ *FormJacobCtx;
 struct FormJacobCtx_ {
   UserMult     *jacob_ctx;
   PetscInt     num_levels;
-  SNES         snes_coarse;
   Mat          *jacob_mat, jacob_mat_coarse;
-  Vec          u_coarse;
+  CeedVector   coo_values;
+  CeedOperator op_coarse;
 };
 
 // Data for PETSc Prolongation/Restriction Matshell
@@ -162,9 +151,9 @@ typedef struct {
   const char *setup_geo_loc, *residual_loc, *jacobian_loc, *energy_loc,
         *diagnostic_loc, *true_soln_loc;
   CeedQuadMode quadrature_mode;
-  CeedInt geo_data_size, number_fields_stored;
+  CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
   const char *const *field_names;
 } ProblemData;
 
-#endif // structs_h
+#endif // libceed_solids_examples_structs_h

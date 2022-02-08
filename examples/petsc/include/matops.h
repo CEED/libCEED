@@ -1,5 +1,5 @@
-#ifndef matops_h
-#define matops_h
+#ifndef libceed_petsc_examples_matops_h
+#define libceed_petsc_examples_matops_h
 
 #include <ceed.h>
 #include <petsc.h>
@@ -16,4 +16,4 @@ PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y);
 PetscErrorCode ComputeErrorMax(UserO user, CeedOperator op_error,
                                Vec X, CeedVector target, PetscReal *max_error);
 
-#endif // matops_h
+#endif // libceed_petsc_examples_matops_h

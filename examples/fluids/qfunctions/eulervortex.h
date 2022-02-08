@@ -25,9 +25,7 @@
 #ifndef eulervortex_h
 #define eulervortex_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -40,9 +38,11 @@ struct EulerContext_ {
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;
+  CeedScalar c_tau;
   CeedScalar mean_velocity[3];
-  int euler_test;
   bool implicit;
+  int euler_test;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
@@ -98,8 +98,8 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time,
   const CeedScalar y0       = y - yc;
   const CeedScalar r        = sqrt( x0*x0 + y0*y0 );
   const CeedScalar C        = vortex_strength * exp((1. - r*r)/2.) / (2. * M_PI);
-  const CeedScalar delta_T  = - (gamma - 1) * vortex_strength * vortex_strength *
-                              exp(1 - r*r) / (8 * gamma * M_PI * M_PI);
+  const CeedScalar delta_T  = - (gamma - 1.) * vortex_strength * vortex_strength *
+                              exp(1 - r*r) / (8. * gamma * M_PI * M_PI);
   const CeedScalar S_vortex = 1; // no perturbation in the entropy P / rho^gamma
   const CeedScalar S_bubble = (gamma - 1.) * vortex_strength * vortex_strength /
                               (8.*gamma*M_PI*M_PI);
@@ -112,7 +112,7 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time,
     // P = rho * T
     // P = S * rho^gamma
     // Solve for rho, then substitute for P
-    rho  = pow(T/S_vortex, 1 / (gamma - 1));
+    rho  = pow(T/S_vortex, 1 / (gamma - 1.));
     P    = rho * T;
     u[0] = mean_velocity[0] - C*y0;
     u[1] = mean_velocity[1] + C*x0;
@@ -179,9 +179,77 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time,
     q[3] = rho * u[2];
     q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
     break;
+  case 5: // non-smooth thermal bubble - cylinder
+    P    = 1.;
+    T = 1. - (r < 1. ? S_bubble : 0.);
+    rho  = P / (R*T);
+    u[0] = mean_velocity[0];
+    u[1] = mean_velocity[1];
+
+    // Assign exact solution
+    q[0] = rho;
+    q[1] = rho * u[0];
+    q[2] = rho * u[1];
+    q[3] = rho * u[2];
+    q[4] = rho * (cv * T + (u[0]*u[0] + u[1]*u[1])/2.);
+    break;
   }
   // Return
   return 0;
+}
+
+// *****************************************************************************
+// Helper function for computing flux Jacobian
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5],
+    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
+    const CeedScalar gamma) {
+  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
+  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
+    for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
+      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2.)) : 0.) - u[i]*u[j];
+      for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
+        dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
+        dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
+                          ((i==k) ? u[j] : 0.) -
+                          ((i==j) ? u[k] : 0.) * (gamma-1.);
+        dF[i][4][k+1]   = ((i==k) ? (E*gamma/rho - (gamma-1.)*u_sq/2.) : 0.) -
+                          (gamma-1.)*u[i]*u[k];
+      }
+      dF[i][j+1][4] = ((i==j) ? (gamma-1.) : 0.);
+    }
+    dF[i][4][0] = u[i] * ((gamma-1.)*u_sq - E*gamma/rho);
+    dF[i][4][4] = u[i] * gamma;
+  }
+}
+
+// *****************************************************************************
+// Helper function for computing Tau elements (stabilization constant)
+//   Model from:
+//     Stabilized Methods for Compressible Flows, Hughes et al 2010
+//
+//   Spatial criterion #2 - Tau is a 3x3 diagonal matrix
+//   Tau[i] = c_tau h[i] Xi(Pe) / rho(A[i]) (no sum)
+//
+// Where
+//   c_tau     = stabilization constant (0.5 is reported as "optimal")
+//   h[i]      = 2 length(dxdX[i])
+//   Pe        = Peclet number ( Pe = sqrt(u u) / dot(dXdx,u) diffusivity )
+//   Xi(Pe)    = coth Pe - 1. / Pe (1. at large local Peclet number )
+//   rho(A[i]) = spectral radius of the convective flux Jacobian i,
+//               wave speed in direction i
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
+                                       const CeedScalar dXdx[3][3], const CeedScalar u[3],
+                                       const CeedScalar sound_speed, const CeedScalar c_tau) {
+  for (int i=0; i<3; i++) {
+    // length of element in direction i
+    CeedScalar h = 2 / sqrt(dXdx[0][i]*dXdx[0][i] + dXdx[1][i]*dXdx[1][i] +
+                            dXdx[2][i]*dXdx[2][i]);
+    // fastest wave in direction i
+    CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
+    Tau_x[i] = c_tau * h / fastest_wave;
+  }
 }
 
 // *****************************************************************************
@@ -200,7 +268,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5];
+    CeedScalar q[5] = {0.};
 
     Exact_Euler(3, context->curr_time, x, 5, q, ctx);
 
@@ -244,12 +312,15 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  const CeedScalar gamma     = 1.4;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar c_tau = context->c_tau;
+  const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -263,7 +334,24 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     q[3][i] / rho
                                    };
     const CeedScalar E          =   q[4][i];
-
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
+    const CeedScalar dU[3][3]   = {{dq[0][1][i],
+                                    dq[1][1][i],
+                                    dq[2][1][i]},
+                                   {dq[0][2][i],
+                                    dq[1][2][i],
+                                    dq[2][2][i]},
+                                   {dq[0][3][i],
+                                    dq[1][3][i],
+                                    dq[2][3][i]}
+                                  };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ      =   q_data[0][i];
     // -- Interp-to-Grad q_data
@@ -280,17 +368,33 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
                                     q_data[9][i]}
                                   };
     // *INDENT-ON*
+    // dU/dx
+    CeedScalar drhodx[3] = {0.};
+    CeedScalar dEdx[3] = {0.};
+    CeedScalar dUdx[3][3] = {{0.}};
+    CeedScalar dXdxdXdxT[3][3] = {{0.}};
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
+        drhodx[j] += drho[k] * dXdx[k][j];
+        dEdx[j] += dE[k] * dXdx[k][j];
+        for (int l=0; l<3; l++) {
+          dUdx[j][k] += dU[j][l] * dXdx[l][k];
+          dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
+        }
+      }
+    }
+    // Pressure
     const CeedScalar
     E_kinetic  = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
     E_internal = E - E_kinetic,
-    P          = E_internal * (gamma - 1); // P = pressure
+    P          = E_internal * (gamma - 1.); // P = pressure
 
     // The Physics
     // Zero v and dv so all future terms can safely sum into it
     for (int j=0; j<5; j++) {
-      v[j][i] = 0;
+      v[j][i] = 0.;
       for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+        dv[k][j][i] = 0.;
     }
 
     // -- Density
@@ -302,14 +406,70 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
-        dv[k][j+1][i]  += wdetJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
-                                 (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
-                                 (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
+        dv[k][j+1][i]  += wdetJ*((rho*u[j]*u[0] + (j==0?P:0.))*dXdx[k][0] +
+                                 (rho*u[j]*u[1] + (j==1?P:0.))*dXdx[k][1] +
+                                 (rho*u[j]*u[2] + (j==2?P:0.))*dXdx[k][2]);
     // -- Total Energy Density
     // ---- (E + P) u
     for (int j=0; j<3; j++)
       dv[j][4][i]  += wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                          u[2]*dXdx[j][2]);
+
+    // --Stabilization terms
+    // ---- jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
+    ConvectiveFluxJacobian_Euler(jacob_F_conv, rho, u, E, gamma);
+
+    // ---- Transpose of the Jacobian
+    CeedScalar jacob_F_conv_T[3][5][5];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          jacob_F_conv_T[j][k][l] = jacob_F_conv[j][l][k];
+
+    // ---- dqdx collects drhodx, dUdx and dEdx in one vector
+    CeedScalar dqdx[5][3];
+    for (int j=0; j<3; j++) {
+      dqdx[0][j] = drhodx[j];
+      dqdx[4][j] = dEdx[j];
+      for (int k=0; k<3; k++)
+        dqdx[k+1][j] = dUdx[k][j];
+    }
+
+    // ---- strong_conv = dF/dq * dq/dx    (Strong convection)
+    CeedScalar strong_conv[5] = {0.};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+
+    // -- Stabilization method: none or SU
+    CeedScalar stab[5][3];
+    switch (context->stabilization) {
+    case 0:        // Galerkin
+      break;
+    case 1:        // SU
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
+      break;
+    case 2:        // SUPG is not implemented for explicit scheme
+      break;
+    }
+
   } // End Quadrature Point Loop
 
   // Return
@@ -326,13 +486,16 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  const CeedScalar gamma     = 1.4;
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar c_tau = context->c_tau;
+  const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -346,7 +509,24 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
                                     q[3][i] / rho
                                    };
     const CeedScalar E          =   q[4][i];
-
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
+    const CeedScalar dU[3][3]   = {{dq[0][1][i],
+                                    dq[1][1][i],
+                                    dq[2][1][i]},
+                                   {dq[0][2][i],
+                                    dq[1][2][i],
+                                    dq[2][2][i]},
+                                   {dq[0][3][i],
+                                    dq[1][3][i],
+                                    dq[2][3][i]}
+                                  };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ      =   q_data[0][i];
     // -- Interp-to-Grad q_data
@@ -363,17 +543,32 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
                                     q_data[9][i]}
                                   };
     // *INDENT-ON*
+    // dU/dx
+    CeedScalar drhodx[3] = {0.};
+    CeedScalar dEdx[3] = {0.};
+    CeedScalar dUdx[3][3] = {{0.}};
+    CeedScalar dXdxdXdxT[3][3] = {{0.}};
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
+        drhodx[j] += drho[k] * dXdx[k][j];
+        dEdx[j] += dE[k] * dXdx[k][j];
+        for (int l=0; l<3; l++) {
+          dUdx[j][k] += dU[j][l] * dXdx[l][k];
+          dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
+        }
+      }
+    }
     const CeedScalar
     E_kinetic  = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
     E_internal = E - E_kinetic,
-    P          = E_internal * (gamma - 1); // P = pressure
+    P          = E_internal * (gamma - 1.); // P = pressure
 
     // The Physics
     // Zero v and dv so all future terms can safely sum into it
     for (int j=0; j<5; j++) {
-      v[j][i] = 0;
+      v[j][i] = 0.;
       for (int k=0; k<3; k++)
-        dv[k][j][i] = 0;
+        dv[k][j][i] = 0.;
     }
     //-----mass matrix
     for (int j=0; j<5; j++)
@@ -388,44 +583,103 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     // ---- rho (u x u) + P I3
     for (int j=0; j<3; j++)
       for (int k=0; k<3; k++)
-        dv[k][j+1][i]  -= wdetJ*((rho*u[j]*u[0] + (j==0?P:0))*dXdx[k][0] +
-                                 (rho*u[j]*u[1] + (j==1?P:0))*dXdx[k][1] +
-                                 (rho*u[j]*u[2] + (j==2?P:0))*dXdx[k][2]);
+        dv[k][j+1][i]  -= wdetJ*((rho*u[j]*u[0] + (j==0?P:0.))*dXdx[k][0] +
+                                 (rho*u[j]*u[1] + (j==1?P:0.))*dXdx[k][1] +
+                                 (rho*u[j]*u[2] + (j==2?P:0.))*dXdx[k][2]);
     // -- Total Energy Density
     // ---- (E + P) u
     for (int j=0; j<3; j++)
       dv[j][4][i]  -= wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                          u[2]*dXdx[j][2]);
+
+    // -- Stabilization terms
+    // ---- jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
+    ConvectiveFluxJacobian_Euler(jacob_F_conv, rho, u, E, gamma);
+
+    // ---- Transpose of the Jacobian
+    CeedScalar jacob_F_conv_T[3][5][5];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          jacob_F_conv_T[j][k][l] = jacob_F_conv[j][l][k];
+
+    // ---- dqdx collects drhodx, dUdx and dEdx in one vector
+    CeedScalar dqdx[5][3];
+    for (int j=0; j<3; j++) {
+      dqdx[0][j] = drhodx[j];
+      dqdx[4][j] = dEdx[j];
+      for (int k=0; k<3; k++)
+        dqdx[k+1][j] = dUdx[k][j];
+    }
+
+    // ---- strong_conv = dF/dq * dq/dx    (Strong convection)
+    CeedScalar strong_conv[5] = {0.};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+
+    // ---- Strong residual
+    CeedScalar strong_res[5];
+    for (int j=0; j<5; j++)
+      strong_res[j] = q_dot[j][i] + strong_conv[j];
+
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+
+    // -- Stabilization method: none, SU, or SUPG
+    CeedScalar stab[5][3];
+    switch (context->stabilization) {
+    case 0:        // Galerkin
+      break;
+    case 1:        // SU
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
+      break;
+    case 2:        // SUPG
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_res[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
+      break;
+    }
   } // End Quadrature Point Loop
 
   // Return
   return 0;
 }
 // *****************************************************************************
-// This QFunction sets the boundary conditions
-//   In this problem, only in/outflow BCs are implemented
+// This QFunction sets the inflow boundary conditions for
+//   the traveling vortex problem.
 //
-//  Inflow and outflow faces are determined based on
-//    sign(dot(mean_velocity, normal)):
-//      sign(dot(mean_velocity, normal)) > 0 : outflow BCs
-//      sign(dot(mean_velocity, normal)) < 0 : inflow BCs
-//
-//  Outflow BCs:
-//    The validity of the weak form of the governing equations is
-//      extended to the outflow.
-//
-//  Inflow BCs:
-//    Prescribed T_inlet and P_inlet are converted to conservative variables
+//  Prescribed T_inlet and P_inlet are converted to conservative variables
 //      and applied weakly.
 //
 // *****************************************************************************
-CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
-                          const CeedScalar *const *in,
-                          CeedScalar *const *out) {
+CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q,
+                                       const CeedScalar *const *in,
+                                       CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -433,8 +687,6 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   const int euler_test      = context->euler_test;
   const bool implicit       = context->implicit;
   CeedScalar *mean_velocity = context->mean_velocity;
-
-  const CeedScalar gamma = 1.4;
   const CeedScalar cv    = 2.5;
   const CeedScalar R     = 1.;
   CeedScalar T_inlet;
@@ -447,6 +699,80 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
   else T_inlet = P_inlet = 1.;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    // face_normal = Normal vector of the face
+    const CeedScalar face_normal = norm[0]*mean_velocity[0] +
+                                   norm[1]*mean_velocity[1] +
+                                   norm[2]*mean_velocity[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (int j=0; j<5; j++) v[j][i] = 0.;
+
+    // Implementing in/outflow BCs
+    if (face_normal > 0) {
+    } else { // inflow
+      const CeedScalar rho_inlet = P_inlet/(R*T_inlet);
+      const CeedScalar E_kinetic_inlet = (mean_velocity[0]*mean_velocity[0] +
+                                          mean_velocity[1]*mean_velocity[1]) / 2.;
+      // incoming total energy
+      const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
+
+      // The Physics
+      // -- Density
+      v[0][i] -= wdetJb * rho_inlet * face_normal;
+
+      // -- Momentum
+      for (int j=0; j<3; j++)
+        v[j+1][i] -= wdetJb *(rho_inlet * face_normal * mean_velocity[j] +
+                              norm[j] * P_inlet);
+
+      // -- Total Energy Density
+      v[4][i] -= wdetJb * face_normal * (E_inlet + P_inlet);
+    }
+
+  } // End Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction sets the outflow boundary conditions for
+//   the Euler solver.
+//
+//  Outflow BCs:
+//    The validity of the weak form of the governing equations is
+//      extended to the outflow.
+//
+// *****************************************************************************
+CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q,
+                              const CeedScalar *const *in,
+                              CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  EulerContext context = (EulerContext)ctx;
+  const bool implicit       = context->implicit;
+  CeedScalar *mean_velocity = context->mean_velocity;
+
+  const CeedScalar gamma = 1.4;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -495,27 +821,7 @@ CEED_QFUNCTION(Euler_Sur)(void *ctx, CeedInt Q,
 
       // -- Total Energy Density
       v[4][i] -= wdetJb * u_normal * (E + P);
-
-    } else { // inflow
-      const CeedScalar rho_inlet = P_inlet/(R*T_inlet);
-      const CeedScalar E_kinetic_inlet = (mean_velocity[0]*mean_velocity[0] +
-                                          mean_velocity[1]*mean_velocity[1]) / 2.;
-      // incoming total energy
-      const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
-
-      // The Physics
-      // -- Density
-      v[0][i] -= wdetJb * rho_inlet * face_normal;
-
-      // -- Momentum
-      for (int j=0; j<3; j++)
-        v[j+1][i] -= wdetJb *(rho_inlet * face_normal * mean_velocity[j] +
-                              norm[j] * P_inlet);
-
-      // -- Total Energy Density
-      v[4][i] -= wdetJb * face_normal * (E_inlet + P_inlet);
     }
-
   } // End Quadrature Point Loop
   return 0;
 }

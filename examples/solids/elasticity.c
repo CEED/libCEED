@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
   Vec            U, *U_g, *U_loc;          // U: solution, R: residual, F: forcing
   Vec            R, R_loc, F, F_loc;       // g: global, loc: local
   Vec            neumann_bcs = NULL, bcs_loc = NULL;
-  SNES           snes, snes_coarse = NULL;
+  SNES           snes;
   Mat            *jacob_mat, jacob_mat_coarse, *prolong_restr_mat;
   // PETSc data
   UserMult       res_ctx, jacob_coarse_ctx = NULL, *jacob_ctx;
@@ -314,12 +314,12 @@ int main(int argc, char **argv) {
     // Note: use high order ceed, if specified and degree > 4
     PetscErrorCode (*SetupLibceedLevel)(DM, Ceed, AppCtx, PetscInt,
                                         PetscInt, PetscInt, PetscInt, CeedVector, CeedData *);
-    if (!SetupLibceedLevel)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
-               app_ctx->name);
     ierr = PetscFunctionListFind(problem_functions->setupLibceedLevel,
                                  app_ctx->name, &SetupLibceedLevel);
     CHKERRQ(ierr);
+    if (!SetupLibceedLevel)
+      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
+               app_ctx->name);
     ierr = (*SetupLibceedLevel)(level_dms[level], ceed, app_ctx,
                                 level, num_comp_u, U_g_size[level],
                                 U_loc_size[level], ceed_data[level+1]->x_ceed,
@@ -510,32 +510,34 @@ int main(int argc, char **argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // Setup dummy SNES for AMG coarse solve
+  // Setup for AMG coarse solve
   // ---------------------------------------------------------------------------
   if (app_ctx->multigrid_choice != MULTIGRID_NONE) {
     // -- Jacobian Matrix
-    ierr = DMSetMatType(level_dms[0], MATAIJ); CHKERRQ(ierr);
     ierr = DMCreateMatrix(level_dms[0], &jacob_mat_coarse); CHKERRQ(ierr);
 
     if (app_ctx->degree > 1) {
-      ierr = SNESCreate(comm, &snes_coarse); CHKERRQ(ierr);
-      ierr = SNESSetDM(snes_coarse, level_dms[0]); CHKERRQ(ierr);
-      ierr = SNESSetSolution(snes_coarse, U_g[0]); CHKERRQ(ierr);
-
-      // -- Jacobian function
-      ierr = SNESSetJacobian(snes_coarse, jacob_mat_coarse, jacob_mat_coarse, NULL,
-                             NULL); CHKERRQ(ierr);
-
-      // -- Residual evaluation function
-      ierr = PetscMalloc1(1, &jacob_coarse_ctx); CHKERRQ(ierr);
-      ierr = PetscMemcpy(jacob_coarse_ctx, jacob_ctx[0], sizeof(*jacob_ctx[0]));
+      // -- Assemble sparsity pattern
+      CeedInt num_entries, *rows, *cols;
+      CeedVector coo_values;
+      CeedOperatorLinearAssembleSymbolic(ceed_data[0]->op_jacobian, &num_entries,
+                                         &rows, &cols);
+      ISLocalToGlobalMapping ltog_row, ltog_col;
+      ierr = MatGetLocalToGlobalMapping(jacob_mat_coarse, &ltog_row, &ltog_col);
       CHKERRQ(ierr);
-      ierr = SNESSetFunction(snes_coarse, U_g[0], ApplyJacobianCoarse_Ceed,
-                             jacob_coarse_ctx); CHKERRQ(ierr);
+      ierr = ISLocalToGlobalMappingApply(ltog_row, num_entries, rows, rows);
+      CHKERRQ(ierr);
+      ierr = ISLocalToGlobalMappingApply(ltog_col, num_entries, cols, cols);
+      CHKERRQ(ierr);
+      ierr = MatSetPreallocationCOO(jacob_mat_coarse, num_entries, rows, cols);
+      CHKERRQ(ierr);
+      free(rows);
+      free(cols);
+      CeedVectorCreate(ceed, num_entries, &coo_values);
 
       // -- Update form_jacob_ctx
-      form_jacob_ctx->u_coarse = U_g[0];
-      form_jacob_ctx->snes_coarse = snes_coarse;
+      form_jacob_ctx->coo_values = coo_values;
+      form_jacob_ctx->op_coarse = ceed_data[0]->op_jacobian;
       form_jacob_ctx->jacob_mat_coarse = jacob_mat_coarse;
     }
   }
@@ -957,6 +959,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);
 
   // libCEED objects
+  CeedVectorDestroy(&form_jacob_ctx->coo_values);
   CeedQFunctionContextDestroy(&ctx_phys);
   CeedQFunctionContextDestroy(&ctx_phys_smoother);
   CeedDestroy(&ceed);
@@ -971,7 +974,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&bcs_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&jacob_mat_coarse); CHKERRQ(ierr);
   ierr = SNESDestroy(&snes); CHKERRQ(ierr);
-  ierr = SNESDestroy(&snes_coarse); CHKERRQ(ierr);
   ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
   ierr = DMDestroy(&dm_energy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm_diagnostic); CHKERRQ(ierr);

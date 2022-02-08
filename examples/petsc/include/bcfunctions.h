@@ -1,5 +1,5 @@
-#ifndef bcfunctions_h
-#define bcfunctions_h
+#ifndef libceed_petsc_examples_bc_functions_h
+#define libceed_petsc_examples_bc_functions_h
 
 #include <petsc.h>
 
@@ -8,4 +8,4 @@ PetscErrorCode BCsDiff(PetscInt dim, PetscReal time, const PetscReal x[],
 PetscErrorCode BCsMass(PetscInt dim, PetscReal time, const PetscReal x[],
                        PetscInt num_comp_u, PetscScalar *u, void *ctx);
 
-#endif // bcfunctions_h
+#endif // libceed_petsc_examples_bc_functions_h

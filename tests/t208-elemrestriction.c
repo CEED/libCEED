@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
                                    num_elem+1, CEED_MEM_HOST, CEED_USE_POINTER,
                                    ind, &r);
   CeedVectorCreate(ceed, blk_size*elem_size, &y);
-  CeedVectorSetValue(y, 0); // Allocates array
 
   // NoTranspose
   CeedElemRestrictionApplyBlock(r, 1, CEED_NOTRANSPOSE, x, y,

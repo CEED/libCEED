@@ -30,20 +30,32 @@ namespace ceed {
       freeHostBuffer();
     }
 
-    Vector* Vector::from(CeedVector vec) {
+    Vector* Vector::getVector(CeedVector vec,
+                              const bool assertValid) {
       if (!vec || vec == CEED_VECTOR_NONE) {
         return NULL;
       }
 
       int ierr;
-
       Vector *vector = NULL;
-      ierr = CeedVectorGetData(vec, &vector); CeedOccaFromChk(ierr);
 
-      if (vector != NULL) {
-        ierr = CeedVectorGetCeed(vec, &vector->ceed); CeedOccaFromChk(ierr);
-        ierr = CeedVectorGetLength(vec, &vector->length); CeedOccaFromChk(ierr);
+      ierr = CeedVectorGetData(vec, &vector);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
       }
+
+      return vector;
+    }
+
+    Vector* Vector::from(CeedVector vec) {
+      Vector *vector = getVector(vec);
+      if (!vector) {
+        return NULL;
+      }
+
+      int ierr;
+      ierr = CeedVectorGetCeed(vec, &vector->ceed); CeedOccaFromChk(ierr);
+      ierr = CeedVectorGetLength(vec, &vector->length); CeedOccaFromChk(ierr);
 
       return vector;
     }
@@ -408,7 +420,7 @@ namespace ceed {
     }
 
     int Vector::ceedDestroy(CeedVector vec) {
-      delete Vector::from(vec);
+      delete getVector(vec, false);
       return CEED_ERROR_SUCCESS;
     }
   }

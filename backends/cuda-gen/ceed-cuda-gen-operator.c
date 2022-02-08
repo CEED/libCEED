@@ -19,7 +19,7 @@
 #include <stddef.h>
 #include "ceed-cuda-gen.h"
 #include "ceed-cuda-gen-operator-build.h"
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-compile.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
@@ -129,16 +129,15 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
   CeedInt nelem, numinputfields, numoutputfields;
   ierr = CeedOperatorGetNumElements(op, &nelem); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
+                               &numoutputfields, &opoutputfields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
-  CeedVector vec, outvecs[16] = {};
+  CeedVector vec, outvecs[CEED_FIELD_MAX] = {};
 
   // Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChkBackend(ierr);
@@ -208,9 +207,10 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
              &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
   int block[3] = {thread1d, dim < 2 ? 1 : thread1d, -1,}, grid;
   CeedChkBackend(BlockGridCalculate(nelem,
-                                    min_grid_size/ cuda_data->deviceProp.multiProcessorCount, max_threads_per_block,
-                                    cuda_data->deviceProp.maxThreadsDim[2],
-                                    cuda_data->deviceProp.warpSize, block, &grid));
+                                    min_grid_size/ cuda_data->device_prop.multiProcessorCount,
+                                    max_threads_per_block,
+                                    cuda_data->device_prop.maxThreadsDim[2],
+                                    cuda_data->device_prop.warpSize, block, &grid));
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(double);
   ierr = CeedRunKernelDimSharedCuda(ceed, data->op, grid, block[0], block[1],
                                     block[2], shared_mem, opargs);

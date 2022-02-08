@@ -4,4 +4,4 @@ JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 Tokenize = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 
 [compat]
-JuliaFormatter = "= 0.12.0"
+JuliaFormatter = "= 0.22.2"

@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef area_h
-#define area_h
+#ifndef libceed_petsc_examples_area_h
+#define libceed_petsc_examples_area_h
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -25,4 +25,4 @@ static const char *const problem_types[] = {"cube", "sphere",
                                             "ProblemType", "AREA", NULL
                                            };
 
-#endif // area_h
+#endif // libceed_petsc_examples_area_h

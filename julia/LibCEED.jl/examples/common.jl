@@ -86,8 +86,7 @@ function build_cartesian_restriction(
             scalar_size,
             ncomp*scalar_size,
             el_nodes,
-        ) :
-        nothing
+        ) : nothing
     restr_i =
         form_strided ?
         create_elem_restriction_strided(
@@ -97,8 +96,7 @@ function build_cartesian_restriction(
             ncomp,
             ncomp*elem_qpts*num_elem,
             STRIDES_BACKEND,
-        ) :
-        nothing
+        ) : nothing
 
     return size, restr, restr_i
 end

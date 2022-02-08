@@ -24,7 +24,7 @@ if run_dev_tests
     include("rundevtests.jl")
 end
 
-if LibCEED.minimum_libceed_version > ceedversion() && !run_dev_tests
+if !LibCEED.ceedversion_ge(LibCEED.minimum_libceed_version) && !run_dev_tests
     @warn "Skipping tests because of incompatible libCEED versions."
 else
     @testset "LibCEED Release Tests" begin
@@ -238,7 +238,7 @@ else
                       Size: 3
                       EvalMode: "gradient\""""
 
-            @interior_qf id2 = (c, (a, :in, EVAL_INTERP), (b, :out, EVAL_INTERP), b.=a)
+            @interior_qf id2 = (c, (a, :in, EVAL_INTERP), (b, :out, EVAL_INTERP), b .= a)
             v2[] = 0.0
             apply!(id2, Q, [v1], [v2])
             @test @witharray(a = v2, a == v)

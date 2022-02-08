@@ -105,6 +105,9 @@ struct Ceed_private {
   int (*VectorCreate)(CeedInt, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode,
+                                       const CeedInt *, const bool *,
+                                       CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode,
                                       const CeedInt *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *,
@@ -114,27 +117,34 @@ struct Ceed_private {
                        const CeedScalar *,
                        const CeedScalar *, const CeedScalar *,
                        const CeedScalar *, CeedBasis);
+  int (*BasisCreateHdiv)(CeedElemTopology, CeedInt, CeedInt, CeedInt,
+                         const CeedScalar *,
+                         const CeedScalar *, const CeedScalar *,
+                         const CeedScalar *, CeedBasis);
   int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
   int (*QFunctionContextCreate)(CeedQFunctionContext);
   int (*OperatorCreate)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int ref_count;
-  bool is_deterministic;
   void *data;
-  bool debug;
+  bool is_debug;
+  bool is_deterministic;
   char err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset *f_offsets;
 };
 
 struct CeedVector_private {
   Ceed ceed;
+  int (*HasValidArray)(CeedVector, bool *);
+  int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);
   int (*TakeArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArrayRead)(CeedVector, CeedMemType, const CeedScalar **);
+  int (*GetArrayWrite)(CeedVector, CeedMemType, CeedScalar **);
   int (*RestoreArray)(CeedVector);
   int (*RestoreArrayRead)(CeedVector);
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
@@ -170,6 +180,7 @@ struct CeedElemRestriction_private {
   CeedInt *strides;      /* strides between [nodes, components, elements] */
   CeedInt layout[3];     /* E-vector layout [nodes, components, elements] */
   uint64_t num_readers;  /* number of instances of offset read only access */
+  bool is_oriented;       /* flag for oriented restriction */
   void *data;            /* place for the backend to store any data */
 };
 
@@ -183,6 +194,7 @@ struct CeedBasis_private {
   CeedInt dim;             /* topological dimension */
   CeedElemTopology topo;   /* element topology */
   CeedInt num_comp;        /* number of field components (1 for scalar fields) */
+  CeedInt Q_comp;        /* number of Q-vector components (1 for H^1, dim for H(div)) */
   CeedInt P_1d;            /* number of nodes in one dimension */
   CeedInt Q_1d;            /* number of quadrature points in one dimension */
   CeedInt P;               /* total number of nodes */
@@ -194,18 +206,23 @@ struct CeedBasis_private {
   *q_weight_1d; /* array of length Q1d holding the quadrature weights on
                                the reference element */
   CeedScalar
-  *interp;    /* row-major matrix of shape [Q, P] expressing the values of
+  *interp;    /* row-major matrix of shape [Q_comp*Q, P] expressing the values of
                    nodal basis functions at quadrature points */
   CeedScalar
   *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of
                    nodal basis functions at quadrature points */
   CeedScalar
-  *grad;      /* row-major matrix of shape [dim*Q, P] matrix expressing
+  *grad;      /* row-major matrix of shape [dim*Q_comp*Q, P] matrix expressing
                    derivatives of nodal basis functions at quadrature points */
   CeedScalar
   *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing
                    derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract; /* tensor contraction object */
+  CeedInt basis_space;  /* Initialize in basis constructor
+                        with 1,2 for H^1, H(div) FE space */
+  CeedScalar *div;  /* row-major matrix of shape [Q, P] expressing
+                        the divergence of nodal basis functions
+                        at quadrature points for H(div) discretizations */
   void *data;                  /* place for the backend to store any data */
 };
 
@@ -239,10 +256,12 @@ struct CeedQFunction_private {
   CeedInt num_input_fields, num_output_fields;
   CeedQFunctionUser function;
   const char *source_path;
-  const char *qf_name;
-  bool identity;
-  bool fortran_status;
-  CeedInt operators_set;
+  const char *kernel_name;
+  const char *gallery_name;
+  bool is_gallery;
+  bool is_identity;
+  bool is_fortran;
+  bool is_immutable;
   CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
@@ -250,11 +269,16 @@ struct CeedQFunction_private {
 struct CeedQFunctionContext_private {
   Ceed ceed;
   int ref_count;
+  int (*HasValidData)(CeedQFunctionContext, bool *);
+  int (*HasBorrowedDataOfType)(CeedQFunctionContext, CeedMemType, bool *);
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
   int (*TakeData)(CeedQFunctionContext, CeedMemType, void *);
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedInt num_fields;
+  CeedInt max_fields;
+  CeedContextFieldLabel *field_labels;
   uint64_t state;
   size_t ctx_size;
   void *data;
@@ -263,7 +287,7 @@ struct CeedQFunctionContext_private {
 /// Struct to handle the context data to use the Fortran QFunction stub
 /// @ingroup CeedQFunction
 struct CeedFortranContext_private {
-  CeedQFunctionContext innerctx;
+  CeedQFunctionContext inner_ctx;
   void (*f)(void *ctx, int *nq,
             const CeedScalar *u,const CeedScalar *u1,
             const CeedScalar *u2,const CeedScalar *u3,
@@ -282,6 +306,17 @@ struct CeedFortranContext_private {
 };
 typedef struct CeedFortranContext_private *CeedFortranContext;
 
+struct CeedContextFieldLabel_private {
+  const char *name;
+  const char *description;
+  CeedContextFieldType type;
+  size_t size;
+  size_t num_values;
+  size_t offset;
+  CeedInt num_sub_labels;
+  CeedContextFieldLabel *sub_labels;
+};
+
 struct CeedOperatorField_private {
   CeedElemRestriction elem_restr; /* Restriction from L-vector */
   CeedBasis basis;                /* Basis or CEED_BASIS_COLLOCATED for
@@ -298,6 +333,8 @@ struct CeedOperator_private {
   int ref_count;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
+  int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector,
+                                       CeedElemRestriction, CeedRequest *);
   int (*LinearAssembleDiagonal)(CeedOperator, CeedVector, CeedRequest *);
   int (*LinearAssembleAddDiagonal)(CeedOperator, CeedVector, CeedRequest *);
   int (*LinearAssemblePointBlockDiagonal)(CeedOperator, CeedVector,
@@ -322,13 +359,20 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
-  bool interface_setup;
-  bool backend_setup;
-  bool composite;
+  bool is_immutable;
+  bool is_interface_setup;
+  bool is_backend_setup;
+  bool is_composite;
   bool has_restriction;
+  bool has_qf_assembled;
+  CeedVector qf_assembled;
+  CeedElemRestriction qf_assembled_rstr;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;
+  CeedInt num_context_labels;
+  CeedInt max_context_labels;
+  CeedContextFieldLabel *context_labels;
 };
 
 #endif
