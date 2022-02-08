@@ -23,6 +23,7 @@
 #include "../hip/ceed-hip-common.h"
 
 typedef struct { const CeedScalar *in[CEED_FIELD_MAX]; CeedScalar *out[CEED_FIELD_MAX]; } HipFields;
+typedef struct { const double *in[CEED_FIELD_MAX]; double *out[CEED_FIELD_MAX]; } HipFields_double;
 typedef struct { CeedInt *in[CEED_FIELD_MAX]; CeedInt *out[CEED_FIELD_MAX]; } HipFieldsInt;
 
 typedef struct {
@@ -33,9 +34,9 @@ typedef struct {
   hipFunction_t op;
   HipFieldsInt indices;
   HipFields fields;
-  HipFields B;
-  HipFields G;
-  CeedScalar *W;
+  HipFields_double B;
+  HipFields_double G;
+  double *W;
 } CeedOperator_Hip_gen;
 
 typedef struct {

@@ -126,21 +126,21 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
     elemsPerBlock = elemsPerBlock>0?elemsPerBlock:1;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(CeedScalar);
+    CeedInt sharedMem = elemsPerBlock*thread1d*sizeof(double);
     ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, thread1d, 1,
                                      elemsPerBlock, sharedMem, opargs);
   } else if (dim==2) {
     const CeedInt elemsPerBlock = thread1d<4? 16 : 2;
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
+    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(double);
     ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, thread1d, thread1d,
                                      elemsPerBlock, sharedMem, opargs);
   } else if (dim==3) {
     const CeedInt elemsPerBlock = thread1d<6? 4 : (thread1d<8? 2 : 1);
     CeedInt grid = nelem/elemsPerBlock + ( (nelem/elemsPerBlock*elemsPerBlock<nelem)
                                            ? 1 : 0 );
-    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(CeedScalar);
+    CeedInt sharedMem = elemsPerBlock*thread1d*thread1d*sizeof(double);
     ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, thread1d, thread1d,
                                      elemsPerBlock, sharedMem, opargs);
   }
