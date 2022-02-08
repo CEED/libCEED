@@ -966,21 +966,21 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ float s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ float s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       if (useCollograd) {
-        data->G.in[i] = basis_data->d_collograd1d;
+        data->G.in[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ float s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
-        data->G.in[i] = basis_data->d_grad1d;
+        data->G.in[i] = basis_data->d_grad_1d;
         code << "  __shared__ float s_G_in_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       }
@@ -1024,21 +1024,21 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break; // No action
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ float s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ float s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       if (useCollograd) {
-        data->G.out[i] = basis_data->d_collograd1d;
+        data->G.out[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ float s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
-        data->G.out[i] = basis_data->d_grad1d;
+        data->G.out[i] = basis_data->d_grad_1d;
         code << "  __shared__ float s_G_out_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       }

@@ -24,13 +24,13 @@
 
 typedef struct {
   CUmodule module;
-  CUfunction interp;
-  CUfunction grad;
-  CUfunction weight;
+  CUfunction Interp;
+  CUfunction Grad;
+  CUfunction Weight;
   float *d_interp_1d;
   float *d_grad_1d;
   float *d_collo_grad_1d;
-  float *d_qweight_1d;
+  float *d_q_weight_1d;
   float *c_B;
   float *c_G;
 } CeedBasis_Cuda_shared;

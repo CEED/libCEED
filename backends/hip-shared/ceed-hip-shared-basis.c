@@ -312,19 +312,19 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   }
 
   // Copy basis data to GPU
-  const CeedInt qBytes = Q_1d * sizeof(float);
-  ierr = hipMalloc((void **)&data->d_q_weight_1d, qBytes);
+  const CeedInt q_bytes = Q_1d * sizeof(float);
+  ierr = hipMalloc((void **)&data->d_q_weight_1d, q_bytes);
   CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_q_weight_1d, q_weight_1d_flt, qBytes,
+  ierr = hipMemcpy(data->d_q_weight_1d, q_weight_1d_flt, q_bytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
-  const CeedInt iBytes = qBytes * P_1d;
-  ierr = hipMalloc((void **)&data->d_interp_1d, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_interp_1d, interp_1d_flt, iBytes,
+  const CeedInt interp_bytes = q_bytes * P_1d;
+  ierr = hipMalloc((void **)&data->d_interp_1d, interp_bytes); CeedChk_Hip(ceed, ierr);
+  ierr = hipMemcpy(data->d_interp_1d, interp_1d_flt, interp_bytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
-  ierr = hipMalloc((void **)&data->d_grad_1d, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_grad_1d, grad_1d_flt, iBytes,
+  ierr = hipMalloc((void **)&data->d_grad_1d, interp_bytes); CeedChk_Hip(ceed, ierr);
+  ierr = hipMemcpy(data->d_grad_1d, grad_1d_flt, interp_bytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   free(interp_1d_flt);
@@ -342,9 +342,9 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
     for (CeedInt i = 0; i < Q_1d * Q_1d; i++) {
       collo_grad_1d_flt[i] = (float) collo_grad_1d[i];
     }
-    ierr = hipMalloc((void **)&data->d_collo_grad_1d, qBytes * Q_1d);
+    ierr = hipMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d);
     CeedChk_Hip(ceed, ierr);
-    ierr = hipMemcpy(data->d_collo_grad_1d, collo_grad_1d_flt, qBytes * Q_1d,
+    ierr = hipMemcpy(data->d_collo_grad_1d, collo_grad_1d_flt, q_bytes * Q_1d,
                      hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
     ierr = CeedFree(&collo_grad_1d); CeedChkBackend(ierr);
     free(collo_grad_1d_flt);
