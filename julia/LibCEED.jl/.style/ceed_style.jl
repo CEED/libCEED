@@ -2,30 +2,32 @@ using JuliaFormatter, CSTParser, Tokenize
 
 for name in names(JuliaFormatter, all=true)
     if name != :include && name != :eval && name != Base.Docs.META
-        @eval import JuliaFormatter: $name
+        @eval using JuliaFormatter: $name
     end
 end
 
 # Same as DefaultStyle, but no space in between operators with precedence CSTParser.TimesOp
 struct CeedStyle <: AbstractStyle end
+@inline JuliaFormatter.getstyle(s::CeedStyle) = s
 
-getstyle(s::CeedStyle) = s
-
-function p_binaryopcall(
-    style::CeedStyle,
+function JuliaFormatter.p_binaryopcall(
+    ds::CeedStyle,
     cst::CSTParser.EXPR,
     s::State;
     nonest=false,
     nospace=false,
 )
-    t = FST(cst, nspaces(s))
+    style = getstyle(ds)
+    t = FST(Binary, cst, nspaces(s))
     op = cst[2]
-    nonest = nonest || op.kind === Tokens.COLON
-    if cst.parent.typ === CSTParser.Curly &&
-       op.kind in (Tokens.ISSUBTYPE, Tokens.ISSUPERTYPE) &&
+
+    nonest = nonest || CSTParser.is_colon(op)
+
+    if CSTParser.iscurly(cst.parent) &&
+       (op.val == "<:" || op.val == ">:") &&
        !s.opts.whitespace_typedefs
         nospace = true
-    elseif op.kind === Tokens.COLON
+    elseif CSTParser.is_colon(op)
         nospace = true
     end
     nospace_args = s.opts.whitespace_ops_in_indices ? false : nospace
@@ -36,14 +38,14 @@ function p_binaryopcall(
         n = pretty(style, cst[1], s)
     end
 
-    if op.kind === Tokens.COLON &&
+    if CSTParser.is_colon(op) &&
        s.opts.whitespace_ops_in_indices &&
        !is_leaf(cst[1]) &&
        !is_iterable(cst[1])
-        paren = FST(CSTParser.PUNCTUATION, -1, n.startline, n.startline, "(")
+        paren = FST(PUNCTUATION, -1, n.startline, n.startline, "(")
         add_node!(t, paren, s)
         add_node!(t, n, s, join_lines=true)
-        paren = FST(CSTParser.PUNCTUATION, -1, n.startline, n.startline, ")")
+        paren = FST(PUNCTUATION, -1, n.startline, n.startline, ")")
         add_node!(t, paren, s, join_lines=true)
     else
         add_node!(t, n, s)
@@ -51,22 +53,21 @@ function p_binaryopcall(
 
     nrhs = nest_rhs(cst)
     nrhs && (t.nest_behavior = AlwaysNest)
-    nest = (nestable(style, cst) && !nonest) || nrhs
+    nest = (is_binaryop_nestable(style, cst) && !nonest) || nrhs
 
     if op.fullspan == 0
         # Do nothing - represents a binary op with no textual representation.
         # For example: `2a`, which is equivalent to `2 * a`.
-    elseif op.kind === Tokens.EX_OR
-        add_node!(t, Whitespace(1), s)
+    elseif CSTParser.is_exor(op)
         add_node!(t, pretty(style, op, s), s, join_lines=true)
-    elseif (is_number(cst[1]) || op.kind === Tokens.CIRCUMFLEX_ACCENT) && op.dot
+    elseif (CSTParser.isnumber(cst[1]) || is_circumflex_accent(op)) &&
+           CSTParser.isdotted(op)
         add_node!(t, Whitespace(1), s)
         add_node!(t, pretty(style, op, s), s, join_lines=true)
         nest ? add_node!(t, Placeholder(1), s) : add_node!(t, Whitespace(1), s)
-    elseif op.kind !== Tokens.IN && (
+    elseif !(CSTParser.is_in(op) || CSTParser.is_elof(op)) && (
         nospace || (
-            op.kind !== Tokens.ANON_FUNC && CSTParser.precedence(op) in (
-                CSTParser.ColonOp,
+            !CSTParser.is_anon_func(op) && precedence(op) in (
                 CSTParser.PowerOp,
                 CSTParser.DeclarationOp,
                 CSTParser.DotOp,
@@ -74,6 +75,8 @@ function p_binaryopcall(
             )
         )
     )
+        add_node!(t, pretty(style, op, s), s, join_lines=true)
+    elseif op.val in RADICAL_OPS
         add_node!(t, pretty(style, op, s), s, join_lines=true)
     else
         add_node!(t, Whitespace(1), s)
@@ -87,17 +90,17 @@ function p_binaryopcall(
         n = pretty(style, cst[3], s)
     end
 
-    if op.kind === Tokens.COLON &&
+    if CSTParser.is_colon(op) &&
        s.opts.whitespace_ops_in_indices &&
        !is_leaf(cst[3]) &&
        !is_iterable(cst[3])
-        paren = FST(CSTParser.PUNCTUATION, -1, n.startline, n.startline, "(")
+        paren = FST(PUNCTUATION, -1, n.startline, n.startline, "(")
         add_node!(t, paren, s, join_lines=true)
-        add_node!(t, n, s, join_lines=true)
-        paren = FST(CSTParser.PUNCTUATION, -1, n.startline, n.startline, ")")
+        add_node!(t, n, s, join_lines=true, override_join_lines_based_on_source=!nest)
+        paren = FST(PUNCTUATION, -1, n.startline, n.startline, ")")
         add_node!(t, paren, s, join_lines=true)
     else
-        add_node!(t, n, s, join_lines=true)
+        add_node!(t, n, s, join_lines=true, override_join_lines_based_on_source=!nest)
     end
 
     if nest
@@ -108,20 +111,21 @@ function p_binaryopcall(
     t
 end
 
-function p_chainopcall(
-    style::CeedStyle,
+function JuliaFormatter.p_chainopcall(
+    ds::CeedStyle,
     cst::CSTParser.EXPR,
     s::State;
     nonest=false,
     nospace=false,
 )
-    t = FST(cst, nspaces(s))
+    style = getstyle(ds)
+    t = FST(Chain, cst, nspaces(s))
 
     # Check if there's a number literal on the LHS of a dot operator.
     # In this case we need to surround the dot operator with whitespace
     # in order to avoid ambiguity.
     for (i, a) in enumerate(cst)
-        if a.typ === CSTParser.OPERATOR && a.dot && is_number(cst[i-1])
+        if CSTParser.isoperator(a) && CSTParser.isdotted(a) && CSTParser.isnumber(cst[i-1])
             nospace = false
             break
         end
@@ -129,8 +133,8 @@ function p_chainopcall(
 
     nws = nospace ? 0 : 1
     for (i, a) in enumerate(cst)
-        if a.typ === CSTParser.OPERATOR
-            nws_op = (CSTParser.precedence(a) == CSTParser.TimesOp) ? 0 : nws
+        nws_op = precedence(a) == CSTParser.TimesOp ? 0 : nws
+        if CSTParser.isoperator(a)
             add_node!(t, Whitespace(nws_op), s)
             add_node!(t, pretty(style, a, s), s, join_lines=true)
             if nonest

@@ -84,8 +84,8 @@ function generate_kernel(qf_name, kf, dims_in, dims_out)
     end
 
     def_outs = [
-        :($(f_outs[i]) = LibCEED.MArray{Tuple{$(dims_out[i]...)},CeedScalar}(undef))
-        for i = 1:noutputs
+        :($(f_outs[i]) = LibCEED.MArray{Tuple{$(dims_out[i]...)},CeedScalar}(undef)) for
+        i = 1:noutputs
     ]
 
     device_ptr_type = Core.LLVMPtr{CeedScalar,LibCEED.AS.Global}

@@ -238,7 +238,7 @@ else
                       Size: 3
                       EvalMode: "gradient\""""
 
-            @interior_qf id2 = (c, (a, :in, EVAL_INTERP), (b, :out, EVAL_INTERP), b.=a)
+            @interior_qf id2 = (c, (a, :in, EVAL_INTERP), (b, :out, EVAL_INTERP), b .= a)
             v2[] = 0.0
             apply!(id2, Q, [v1], [v2])
             @test @witharray(a = v2, a == v)
