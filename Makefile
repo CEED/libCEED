@@ -136,7 +136,7 @@ NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
-HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
+HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
   HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
 endif

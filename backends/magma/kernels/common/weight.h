@@ -24,7 +24,7 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_1D)) __global__ void
 magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
 {
     MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
@@ -58,7 +58,7 @@ magma_weight_1d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_2D)) __global__ void
 magma_weight_2d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
 {
     MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
@@ -94,7 +94,7 @@ magma_weight_2d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template<typename T, int Q>
-static __global__ void
+static __launch_bounds__(MAGMA_BASIS_BOUNDS(Q*Q, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
 {
     MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
