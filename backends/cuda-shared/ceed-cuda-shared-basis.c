@@ -27,11 +27,11 @@
 //------------------------------------------------------------------------------
 // Device initalization
 //------------------------------------------------------------------------------
-int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
-                       CeedScalar **c_B);
-int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d,
-                           CeedInt Q_1d, CeedScalar **c_B_ptr,
-                           CeedScalar **c_G_ptr);
+int CeedCudaInitInterp(double *d_B, CeedInt P_1d, CeedInt Q_1d,
+                       double **c_B);
+int CeedCudaInitInterpGrad(double *d_B, double *d_G, CeedInt P_1d,
+                           CeedInt Q_1d, double **c_B_ptr,
+                           double **c_G_ptr);
 
 //------------------------------------------------------------------------------
 // Apply basis
@@ -251,7 +251,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   }
   double *q_weight_1d_dbl = (double*)(malloc(Q_1d*sizeof(double)));
   for (CeedInt i = 0; i < Q_1d; i++) {
-    q_weight1d_dbl[i] = (double) q_weight1d[i];
+    q_weight_1d_dbl[i] = (double) q_weight_1d[i];
   }
 
   // Copy basis data to GPU
