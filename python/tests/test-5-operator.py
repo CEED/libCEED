@@ -111,11 +111,13 @@ def test_500(ceed_resource):
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
     op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
                        libceed.VECTOR_ACTIVE)
+    op_setup.check()
 
     op_mass = ceed.Operator(qf_mass)
     op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
+    op_mass.check()
 
     # Setup
     op_setup.apply(x, qdata)
@@ -298,6 +300,7 @@ def test_502(ceed_resource):
     op_setup.apply(x, qdata)
 
     # Apply mass matrix
+    u.set_value(0.0)
     with u.array() as u_array:
         for i in range(nu):
             u_array[2 * i] = 1.

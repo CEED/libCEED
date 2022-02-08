@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+ #warning "libCEED OCCA backend is experimental; for best performance, use device native backends"
+
 #include <map>
 #include <vector>
 #include <occa.hpp>

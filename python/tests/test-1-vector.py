@@ -88,6 +88,7 @@ def test_102(ceed_resource):
 
     n = 10
     x = ceed.Vector(n)
+    x.set_value(0)
 
     # Two read accesses should not generate an error
     a = x.get_array_read()
@@ -312,6 +313,26 @@ def test_123(ceed_resource, capsys):
         assert np.allclose(-.5 * a, b)
 
 # -------------------------------------------------------------------------------
+# Test getArrayWrite to modify array
+# -------------------------------------------------------------------------------
+
+
+def test_124(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+
+    x = ceed.Vector(n)
+
+    with x.array_write() as a:
+        for i in range(len(a)):
+            a[i] = 3 * i
+
+    with x.array_read() as a:
+        for i in range(len(a)):
+            assert a[i] == 3 * i
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 
@@ -321,6 +342,7 @@ def test_199(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     vec = ceed.Vector(12)
+    vec.set_value(0.0)
     with vec.array(4, 3) as x:
         x[...] = np.eye(4, 3)
 

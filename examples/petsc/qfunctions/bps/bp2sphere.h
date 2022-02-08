@@ -20,9 +20,7 @@
 #ifndef bp2sphere_h
 #define bp2sphere_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem

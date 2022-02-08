@@ -66,7 +66,7 @@
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t502-operator.h:setup'//char(0),qf_setup,err)
-      call ceedqfunctionaddinput(qf_setup,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setup,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setup,'dx',1,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setup,'rho',1,ceed_eval_none,err)
 
@@ -87,7 +87,7 @@
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
       call ceedvectorcreate(ceed,nelem*q,qdata,err)
 
-      call ceedoperatorsetfield(op_setup,'_weight',ceed_elemrestriction_none,&
+      call ceedoperatorsetfield(op_setup,'weight',ceed_elemrestriction_none,&
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,bx,&
      & ceed_vector_active,err)
@@ -103,7 +103,7 @@
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
 
       call ceedvectorcreate(ceed,2*nu,u,err)
-      call ceedvectorgetarray(u,ceed_mem_host,hu,voffset,err)
+      call ceedvectorgetarraywrite(u,ceed_mem_host,hu,voffset,err)
       do i=1,nu
         hu(voffset+2*i-1)=1.
         hu(voffset+2*i)=2.

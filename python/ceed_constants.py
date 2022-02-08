@@ -77,13 +77,13 @@ quad_modes = {GAUSS: "Gauss",
               GAUSS_LOBATTO: "Gauss Lobatto"}
 
 # CeedElemTopology
-LINE = lib.CEED_LINE
-TRIANGLE = lib.CEED_TRIANGLE
-QUAD = lib.CEED_QUAD
-TET = lib.CEED_TET
-PYRAMID = lib.CEED_PYRAMID
-PRISM = lib.CEED_PRISM
-HEX = lib.CEED_HEX
+LINE = lib.CEED_TOPOLOGY_LINE
+TRIANGLE = lib.CEED_TOPOLOGY_TRIANGLE
+QUAD = lib.CEED_TOPOLOGY_QUAD
+TET = lib.CEED_TOPOLOGY_TET
+PYRAMID = lib.CEED_TOPOLOGY_PYRAMID
+PRISM = lib.CEED_TOPOLOGY_PRISM
+HEX = lib.CEED_TOPOLOGY_HEX
 elem_topologies = {LINE: "line",
                    TRIANGLE: "triangle",
                    QUAD: "quadrilateral",

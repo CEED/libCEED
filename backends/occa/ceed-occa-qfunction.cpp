@@ -30,17 +30,28 @@ namespace ceed {
       qFunctionName = source.substr(colonIndex + 1);
     }
 
-    QFunction* QFunction::from(CeedQFunction qf) {
+    QFunction* QFunction::getQFunction(CeedQFunction qf,
+                                       const bool assertValid) {
       if (!qf) {
         return NULL;
       }
 
       int ierr;
-      QFunction *qFunction;
+      QFunction *qFunction = NULL;
 
       ierr = CeedQFunctionGetData(qf, &qFunction);
       CeedOccaFromChk(ierr);
 
+      return qFunction;
+    }
+
+    QFunction* QFunction::from(CeedQFunction qf) {
+      QFunction *qFunction = getQFunction(qf);
+      if (!qFunction) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedQFunctionGetCeed(qf, &qFunction->ceed);
       CeedOccaFromChk(ierr);
 
@@ -252,7 +263,7 @@ namespace ceed {
     }
 
     int QFunction::ceedDestroy(CeedQFunction qf) {
-      delete QFunction::from(qf);
+      delete getQFunction(qf, false);
       return CEED_ERROR_SUCCESS;
     }
   }

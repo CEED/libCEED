@@ -21,12 +21,12 @@
 //------------------------------------------------------------------------------
 // Tensor Contract Apply
 //------------------------------------------------------------------------------
-int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
-                                CeedInt B, CeedInt C, CeedInt J,
-                                const CeedScalar *restrict t,
-                                CeedTransposeMode t_mode, const CeedInt add,
-                                const CeedScalar *restrict u,
-                                CeedScalar *restrict v) {
+static int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A,
+                                       CeedInt B, CeedInt C, CeedInt J,
+                                       const CeedScalar *restrict t,
+                                       CeedTransposeMode t_mode, const CeedInt add,
+                                       const CeedScalar *restrict u,
+                                       CeedScalar *restrict v) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1; t_stride_1 = J;

@@ -112,12 +112,9 @@ end
 function get_field_sizes(qf::AbstractQFunction)
     ninputs = Ref{CeedInt}()
     noutputs = Ref{CeedInt}()
-
-    C.CeedQFunctionGetNumArgs(qf[], ninputs, noutputs)
-
     inputs = Ref{Ptr{C.CeedQFunctionField}}()
     outputs = Ref{Ptr{C.CeedQFunctionField}}()
-    C.CeedQFunctionGetFields(qf[], inputs, outputs)
+    C.CeedQFunctionGetFields(qf[], ninputs, inputs, noutputs, outputs)
 
     input_sizes = zeros(CeedInt, ninputs[])
     output_sizes = zeros(CeedInt, noutputs[])

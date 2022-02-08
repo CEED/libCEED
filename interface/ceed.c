@@ -121,6 +121,37 @@ int CeedRequestWait(CeedRequest *req) {
 /// @addtogroup CeedDeveloper
 /// @{
 
+/**
+  @brief Register a Ceed backend internally.
+           Note: Backends should call `CeedRegister` instead.
+
+  @param prefix    Prefix of resources for this backend to respond to.  For
+                     example, the reference backend responds to "/cpu/self".
+  @param init      Initialization function called by CeedInit() when the backend
+                     is selected to drive the requested resource.
+  @param priority  Integer priority.  Lower values are preferred in case the
+                     resource requested by CeedInit() has non-unique best prefix
+                     match.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed),
+                     unsigned int priority) {
+  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
+    // LCOV_EXCL_START
+    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
+  // LCOV_EXCL_STOP
+
+  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
+  backends[num_backends].init = init;
+  backends[num_backends].priority = priority;
+  num_backends++;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -130,46 +161,53 @@ int CeedRequestWait(CeedRequest *req) {
 /// @{
 
 /**
-  @brief Print Ceed debugging information
+  @brief Return value of CEED_DEBUG environment variable
 
   @param ceed    Ceed context
-  @param format  Printing format
 
-  @return None
+  @return boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
 
   @ref Backend
 **/
 // LCOV_EXCL_START
-void CeedDebugImpl(const Ceed ceed, const char *format,...) {
-  if (!ceed->debug) return;
-  va_list args;
-  va_start(args, format);
-  CeedDebugImpl256(ceed, 0, format, args);
-  va_end(args);
+bool CeedDebugFlag(const Ceed ceed) {
+  return ceed->is_debug;
 }
 // LCOV_EXCL_STOP
 
 /**
-  @brief Print Ceed debugging information in color
+  @brief Return value of CEED_DEBUG environment variable
 
-  @param ceed    Ceed context
-  @param color   Color to print
-  @param format  Printing format
-
-  @return None
+  @return boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
 
   @ref Backend
 **/
 // LCOV_EXCL_START
-void CeedDebugImpl256(const Ceed ceed, const unsigned char color,
-                      const char *format,...) {
-  if (!ceed->debug) return;
+bool CeedDebugFlagEnv(void) {
+  return !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG");
+}
+// LCOV_EXCL_STOP
+
+/**
+  @brief Print debugging information in color
+
+  @param color   Color to print
+  @param format  Printing format
+
+  @ref Backend
+**/
+// LCOV_EXCL_START
+void CeedDebugImpl256(const unsigned char color, const char *format,...) {
   va_list args;
   va_start(args, format);
   fflush(stdout);
-  fprintf(stdout, "\033[38;5;%dm", color);
+  if (color != CEED_DEBUG_COLOR_NONE)
+    fprintf(stdout, "\033[38;5;%dm", color);
   vfprintf(stdout, format, args);
-  fprintf(stdout, "\033[m");
+  if (color != CEED_DEBUG_COLOR_NONE)
+    fprintf(stdout, "\033[m");
   fprintf(stdout, "\n");
   fflush(stdout);
   va_end(args);
@@ -255,6 +293,28 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Allocate a cleared string buffer on the host
+
+  Memory usage can be tracked by the library.
+
+  @param source Pointer to string to be copied
+  @param copy   Pointer to variable to hold newly allocated string copy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @sa CeedFree()
+
+  @ref Backend
+**/
+int CeedStringAllocCopy(const char *source, char **copy) {
+  int ierr;
+  size_t len = strlen(source);
+  ierr = CeedCalloc(len + 1, copy); CeedChk(ierr);
+  memcpy(*copy, source, len + 1);
+  return CEED_ERROR_SUCCESS;
+}
+
 /** Free memory allocated using CeedMalloc() or CeedCalloc()
 
   @param p  address of pointer to memory.  This argument is of type void* to
@@ -284,16 +344,8 @@ int CeedFree(void *p) {
 **/
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
                  unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
-  // LCOV_EXCL_STOP
-
-  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
-  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN-1] = 0;
-  backends[num_backends].init = init;
-  backends[num_backends].priority = priority;
-  num_backends++;
+  CeedDebugEnv("Backend Register: %s", prefix);
+  CeedRegisterImpl(prefix, init, priority);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -308,7 +360,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed),
   @ref Backend
 **/
 int CeedIsDebug(Ceed ceed, bool *is_debug) {
-  *is_debug = ceed->debug;
+  *is_debug = ceed->is_debug;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -411,7 +463,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
   @ref Backend
 **/
 int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
-  CeedInt ierr;
+  int ierr;
   CeedInt count = ceed->obj_delegate_count;
 
   // Malloc or Realloc
@@ -424,9 +476,8 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 
   // Set object delegate
   ceed->obj_delegates[count].delegate = delegate;
-  size_t slen = strlen(obj_name) + 1;
-  ierr = CeedMalloc(slen, &ceed->obj_delegates[count].obj_name); CeedChk(ierr);
-  memcpy(ceed->obj_delegates[count].obj_name, obj_name, slen);
+  ierr = CeedStringAllocCopy(obj_name, &ceed->obj_delegates[count].obj_name);
+  CeedChk(ierr);
 
   // Set delegate parent
   delegate->parent = ceed;
@@ -469,11 +520,8 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   ierr = CeedFree(&ceed->op_fallback_resource); CeedChk(ierr);
 
   // Set new
-  size_t len = strlen(resource);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, resource, len+1);
-  ceed->op_fallback_resource = tmp;
+  ierr = CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource);
+  CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -674,7 +722,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources,
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   int ierr;
-  size_t match_len = 0, match_idx = UINT_MAX,
+  size_t match_len = 0, match_index = UINT_MAX,
          match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
@@ -705,8 +753,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     match_help = 0;
   }
 
-  // Find best match, currently computed as number of matching characters
-  //   from requested resource stem but may use Levenshtein in future
+  // Find best match, computed as number of matching characters
+  //   from requested resource stem
   size_t stem_length;
   for (stem_length=0; resource[stem_length+match_help]
        && resource[stem_length+match_help] != ':'; stem_length++) {}
@@ -718,18 +766,51 @@ int CeedInit(const char *resource, Ceed *ceed) {
     if (n > match_len || (n == match_len && match_priority > priority)) {
       match_len = n;
       match_priority = priority;
-      match_idx = i;
+      match_index = i;
     }
   }
-  if (match_len <= 1) {
+  // Using Levenshtein distance to find closest match
+  if (match_len <= 1 || match_len != stem_length) {
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
-                     resource);
-    // LCOV_EXCL_STOP
-  } else if (match_len != stem_length) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
-                     "Closest match: %s", resource, backends[match_idx].prefix);
+    size_t lev_dis = UINT_MAX;
+    size_t lev_index = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+    for (size_t i=0; i<num_backends; i++) {
+      const char *prefix = backends[i].prefix;
+      size_t prefix_length = strlen(backends[i].prefix);
+      size_t min_len = (prefix_length < stem_length) ? prefix_length : stem_length;
+      size_t column[min_len+1];
+      for (size_t j=0; j<=min_len; j++) column[j] = j;
+      for (size_t j=1; j<=min_len; j++) {
+        column[0] = j;
+        for (size_t k=1, last_diag=j-1; k<=min_len; k++) {
+          size_t old_diag = column[k];
+          size_t min_1 = (column[k] < column[k-1]) ? column[k]+1 : column[k-1]+1;
+          size_t min_2 = last_diag + (resource[k-1] == prefix[j-1] ? 0 : 1);
+          column[k] = (min_1 < min_2) ? min_1 : min_2;
+          last_diag = old_diag;
+        }
+      }
+      size_t n = column[min_len];
+      priority = backends[i].priority;
+      if (n < lev_dis || (n == lev_dis
+                          && lev_priority > priority)) {
+        lev_dis = n;
+        lev_priority = priority;
+        lev_index = i;
+      }
+    }
+    const char *prefix_lev = backends[lev_index].prefix;
+    size_t lev_length;
+    for (lev_length=0; prefix_lev[lev_length]
+         && prefix_lev[lev_length] != '\0'; lev_length++) {}
+    size_t m = (lev_length < stem_length) ? lev_length : stem_length;
+    if (lev_dis+1 >= m) {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s",
+                       resource);
+    } else {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\n"
+                       "Closest match: %s", resource, backends[lev_index].prefix);
+    }
     // LCOV_EXCL_STOP
   }
 
@@ -755,19 +836,24 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(Ceed, Destroy),
     CEED_FTABLE_ENTRY(Ceed, VectorCreate),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreate),
+    CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateOriented),
     CEED_FTABLE_ENTRY(Ceed, ElemRestrictionCreateBlocked),
     CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
     CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
+    CEED_FTABLE_ENTRY(Ceed, BasisCreateHdiv),
     CEED_FTABLE_ENTRY(Ceed, TensorContractCreate),
     CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
     CEED_FTABLE_ENTRY(Ceed, QFunctionContextCreate),
     CEED_FTABLE_ENTRY(Ceed, OperatorCreate),
     CEED_FTABLE_ENTRY(Ceed, CompositeOperatorCreate),
+    CEED_FTABLE_ENTRY(CeedVector, HasValidArray),
+    CEED_FTABLE_ENTRY(CeedVector, HasBorrowedArrayOfType),
     CEED_FTABLE_ENTRY(CeedVector, SetArray),
     CEED_FTABLE_ENTRY(CeedVector, TakeArray),
     CEED_FTABLE_ENTRY(CeedVector, SetValue),
     CEED_FTABLE_ENTRY(CeedVector, GetArray),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayRead),
+    CEED_FTABLE_ENTRY(CeedVector, GetArrayWrite),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArray),
     CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
     CEED_FTABLE_ENTRY(CeedVector, Norm),
@@ -788,12 +874,15 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunction, SetCUDAUserFunction),
     CEED_FTABLE_ENTRY(CeedQFunction, SetHIPUserFunction),
     CEED_FTABLE_ENTRY(CeedQFunction, Destroy),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, HasValidData),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, HasBorrowedDataOfType),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, SetData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, TakeData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunction),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunctionUpdate),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemblePointBlockDiagonal),
@@ -819,17 +908,16 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedChk(ierr);
 
   // Record env variables CEED_DEBUG or DBG
-  (*ceed)->debug = !!getenv("CEED_DEBUG") || !!getenv("DBG");
+  (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") ||
+                      !!getenv("DBG");
 
   // Backend specific setup
-  ierr = backends[match_idx].init(&resource[match_help], *ceed); CeedChk(ierr);
+  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
 
   // Copy resource prefix, if backend setup successful
-  size_t len = strlen(backends[match_idx].prefix);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, backends[match_idx].prefix, len+1);
-  (*ceed)->resource = tmp;
+  ierr = CeedStringAllocCopy(backends[match_index].prefix,
+                             (char **)&(*ceed)->resource);
+  CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

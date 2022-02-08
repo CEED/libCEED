@@ -20,7 +20,6 @@ declare -A run_flags
     run_flags[problem]=euler_vortex
     run_flags[degree]=2
     run_flags[dm_plex_box_faces]=20,20,1
-    run_flags[euler_test]=none
     run_flags[lx]=1e3
     run_flags[ly]=1e3
     run_flags[lz]=1
@@ -32,7 +31,7 @@ declare -A run_flags
 declare -A test_flags
     test_flags[degree_start]=1
     test_flags[degree_stride]=1
-    test_flags[degree_end]=3
+    test_flags[degree_end]=2
     test_flags[res_start]=6
     test_flags[res_stride]=2
     test_flags[res_end]=10

@@ -1,4 +1,4 @@
-User CeedQFunction 
+User CeedQFunction setup_mass
   2 Input Fields:
     Input Field [0]:
       Name: "w"
@@ -14,7 +14,7 @@ User CeedQFunction
       Size: 1
       EvalMode: "none"
 
-User CeedQFunction 
+User CeedQFunction apply_mass
   2 Input Fields:
     Input Field [0]:
       Name: "qdata"

@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &vv);
 
+  CeedVectorDestroy(&J);
   CeedVectorDestroy(&W);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);

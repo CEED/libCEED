@@ -53,7 +53,7 @@ pub fn build_cartesian_restriction(
     degree: usize,
     num_comp: usize,
     num_qpts: usize,
-) -> Result<(ElemRestriction, ElemRestriction), libceed::CeedError> {
+) -> libceed::Result<(ElemRestriction, ElemRestriction)> {
     let p = degree + 1;
     let num_nodes = p.pow(dim as u32); // number of nodes per element
     let elem_qpts = num_qpts.pow(dim as u32); // number of quadrature pts per element
@@ -124,7 +124,7 @@ pub fn cartesian_mesh_coords(
     num_xyz: [usize; 3],
     mesh_degree: usize,
     mesh_size: usize,
-) -> Result<Vector, libceed::CeedError> {
+) -> libceed::Result<Vector> {
     let p = mesh_degree + 1;
     let mut num_d = [0; 3];
     let mut scalar_size = 1;
@@ -134,9 +134,7 @@ pub fn cartesian_mesh_coords(
     }
 
     // Lobatto points
-    let lobatto_basis = ceed
-        .basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto)
-        .unwrap();
+    let lobatto_basis = ceed.basis_tensor_H1_Lagrange(1, 1, 2, p, QuadMode::GaussLobatto)?;
     let nodes_corners = ceed.vector_from_slice(&[0.0, 1.0])?;
     let mut nodes_full = ceed.vector(p)?;
     lobatto_basis.apply(
@@ -149,9 +147,10 @@ pub fn cartesian_mesh_coords(
 
     // Coordinates for mesh
     let mut mesh_coords = ceed.vector(mesh_size)?;
+    mesh_coords.set_value(0.0)?;
     {
-        let mut coords = mesh_coords.view_mut();
-        let nodes = nodes_full.view();
+        let mut coords = mesh_coords.view_mut()?;
+        let nodes = nodes_full.view()?;
         for gs_nodes in 0..scalar_size {
             let mut r_nodes = gs_nodes;
             for d in 0..dim {

@@ -24,7 +24,7 @@ if run_dev_tests
     include("rundevtests.jl")
 end
 
-if LibCEED.minimum_libceed_version > ceedversion() && !run_dev_tests
+if !LibCEED.ceedversion_ge(LibCEED.minimum_libceed_version) && !run_dev_tests
     @warn "Skipping tests because of incompatible libCEED versions."
 else
     @testset "LibCEED Release Tests" begin

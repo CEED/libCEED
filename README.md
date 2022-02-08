@@ -500,4 +500,4 @@ See files LICENSE and NOTICE for details.
 [joss-badge]: https://joss.theoj.org/papers/10.21105/joss.02945/status.svg
 [joss-link]: https://doi.org/10.21105/joss.02945
 [binder-badge]: http://mybinder.org/badge_logo.svg
-[binder-link]: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/tutorials/tutorial-0-ceed.ipynb
+[binder-link]: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/python/tutorial-0-ceed.ipynb

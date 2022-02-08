@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "x", 1, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
   CeedVectorCreate(ceed, num_elem*Q, &q_data_small);
 
-  CeedOperatorSetField(op_setup_small, "_weight", CEED_ELEMRESTRICTION_NONE,
+  CeedOperatorSetField(op_setup_small, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x_small, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_small, "x", elem_restr_x,
                        basis_x_small, CEED_VECTOR_ACTIVE);
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 
   CeedVectorCreate(ceed, num_elem*Q*scale, &q_data_large);
 
-  CeedOperatorSetField(op_setup_large, "_weight", CEED_ELEMRESTRICTION_NONE,
+  CeedOperatorSetField(op_setup_large, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x_large, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_large, "x", elem_restr_x,
                        basis_x_large, CEED_VECTOR_ACTIVE);
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup_large, X, q_data_large, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorCreate(ceed, 2*num_nodes_u, &U);
-  CeedVectorGetArray(U, CEED_MEM_HOST, &hu);
+  CeedVectorGetArrayWrite(U, CEED_MEM_HOST, &hu);
   for (int i = 0; i < num_nodes_u; i++) {
     hu[2*i] = 1.0;
     hu[2*i+1] = 2.0;

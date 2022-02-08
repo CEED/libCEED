@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   // QFunction - apply
   CeedQFunctionCreateInterior(ceed, 1, apply, apply_loc, &qf_apply);
   CeedQFunctionAddInput(qf_apply, "u", 1, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_apply, "qdata_mass", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_apply, "mass qdata", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_apply, "v", 1, CEED_EVAL_INTERP);
 
   // Operator - apply
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
                      &op_apply);
   CeedOperatorSetField(op_apply, "u", elem_restr_u_i, basis_u,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata_mass", elem_restr_qd_i,
+  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, q_data_mass);
   CeedOperatorSetField(op_apply, "v", elem_restr_u_i, basis_u,
                        CEED_VECTOR_ACTIVE);

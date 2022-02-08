@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "dx", 1*1, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
   CeedVectorCreate(ceed, num_elem*Q, &q_data);
 
-  CeedOperatorSetField(op_setup, "_weight", CEED_ELEMRESTRICTION_NONE, bx,
+  CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, bx,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", elem_restr_x, bx, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", elem_restr_qd_i, CEED_BASIS_COLLOCATED,

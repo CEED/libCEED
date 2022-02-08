@@ -107,7 +107,7 @@ def run(test, backends):
                     case.add_skipped_info('occa mode not supported {} {}'.format(test, ceed_resource))
                 elif 'Backend does not implement' in proc.stderr:
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
-                elif 'Can only provide to HOST memory' in proc.stderr:
+                elif 'Can only provide HOST memory for this backend' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
                 elif 'Test not implemented in single precision' in proc.stderr:
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
@@ -164,11 +164,19 @@ if __name__ == '__main__':
         backends = os.environ['BACKENDS'].split()
 
         result = run(args.test, backends)
-        output = (os.path.join('build', args.test + '.junit')
+
+        junit_batch = ''
+        try:
+            junit_batch = '-' + os.environ['JUNIT_BATCH']
+        except:
+            pass
+        output = (os.path.join('build', args.test + junit_batch + '.junit')
                   if args.output is None
                   else args.output)
+
         with open(output, 'w') as fd:
             TestSuite.to_file(fd, [result])
+
         for t in result.test_cases:
             failures = len([c for c in result.test_cases if c.is_failure()])
             errors = len([c for c in result.test_cases if c.is_error()])

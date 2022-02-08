@@ -194,17 +194,30 @@ namespace ceed {
       );
     }
 
-    ElemRestriction* ElemRestriction::from(CeedElemRestriction r) {
+    ElemRestriction* ElemRestriction::getElemRestriction(CeedElemRestriction r,
+                                                         const bool assertValid) {
       if (!r || r == CEED_ELEMRESTRICTION_NONE) {
         return NULL;
       }
 
       int ierr;
-      ElemRestriction *elemRestriction;
+      ElemRestriction *elemRestriction = NULL;
 
       ierr = CeedElemRestrictionGetData(r, (void**) &elemRestriction);
-      CeedOccaFromChk(ierr);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
 
+      return elemRestriction;
+    }
+
+    ElemRestriction* ElemRestriction::from(CeedElemRestriction r) {
+      ElemRestriction *elemRestriction = getElemRestriction(r);
+      if (!elemRestriction) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedElemRestrictionGetCeed(r, &elemRestriction->ceed);
       CeedOccaFromChk(ierr);
 
@@ -429,7 +442,7 @@ namespace ceed {
     }
 
     int ElemRestriction::ceedDestroy(CeedElemRestriction r) {
-      delete ElemRestriction::from(r);
+      delete getElemRestriction(r, false);
       return CEED_ERROR_SUCCESS;
     }
   }

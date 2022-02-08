@@ -121,7 +121,7 @@ for ((i=0;i<${#backends[@]};++i)); do
     fi
 
     # grep to skip test if Device memory is not supported
-    if grep -F -q -e 'Can only provide to HOST memory' \
+    if grep -F -q -e 'Can only provide HOST memory for this backend' \
             ${output}.err ; then
         printf "ok $i0 # SKIP - not supported $1 $backend\n"
         printf "ok $i1 # SKIP - not supported $1 $backend stdout\n"
@@ -165,9 +165,9 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass tests t300 and t320 for single precision
+    # grep to pass tests t300, t320, t330 for single precision
     if grep -F -q -e 'Test not implemented in single precision' ${output}.err \
-            && [[ "$1" = "t300"* || "$1" = "t320"* ]] ; then
+            && [[ "$1" = "t300"* || "$1" = "t320"* || "$1" = "t330"* ]] ; then
         printf "ok $i0 PASS - not implemented $1 $backend\n"
         printf "ok $i1 PASS - not implemented $1 $backend stdout\n"
         printf "ok $i2 PASS - not implemented $1 $backend stderr\n"

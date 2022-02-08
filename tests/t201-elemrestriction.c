@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
 
   CeedElemRestrictionCreateStrided(ceed, num_elem, 2, 1, num_elem*2, strides, &r);
   CeedVectorCreate(ceed, num_elem*2, &y);
-  CeedVectorSetValue(y, 0); // Allocates array
   CeedElemRestrictionApply(r, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);

@@ -3,7 +3,6 @@
 
 #include "../include/boundary.h"
 #include "../include/setup-dm.h"
-#include "../include/petsc-macros.h"
 
 // -----------------------------------------------------------------------------
 // Setup DM
@@ -17,7 +16,6 @@ PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
   ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
   ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete(dm, label); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
@@ -36,10 +34,12 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
     PetscInt dim = 3, faces[3] = {3, 3, 3};
     ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
                                    faces, &dim, NULL); CHKERRQ(ierr);
+    if (!dim) dim = 3;
     ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
                                NULL, NULL, interpolate, dm); CHKERRQ(ierr);
   } else {
-    ierr = DMPlexCreateFromFile(comm, filename, interpolate, dm); CHKERRQ(ierr);
+    ierr = DMPlexCreateFromFile(comm, filename, NULL, interpolate, dm);
+    CHKERRQ(ierr);
   }
 
   // Distribute DM in parallel
@@ -55,77 +55,11 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
   PetscFunctionReturn(0);
 };
 
-// Create FE by degree
-PetscErrorCode PetscFECreateByDegree(DM dm, PetscInt dim, PetscInt Nc,
-                                     PetscBool isSimplex, const char prefix[],
-                                     PetscInt order, PetscFE *fem) {
-  PetscQuadrature q, fq;
-  DM              K;
-  PetscSpace      P;
-  PetscDualSpace  Q;
-  PetscInt        quadPointsPerEdge;
-  PetscBool       tensor = isSimplex ? PETSC_FALSE : PETSC_TRUE;
-  PetscErrorCode  ierr;
-
-  PetscFunctionBeginUser;
-  /* Create space */
-  ierr = PetscSpaceCreate(PetscObjectComm((PetscObject) dm), &P); CHKERRQ(ierr);
-  ierr = PetscObjectSetOptionsPrefix((PetscObject) P, prefix); CHKERRQ(ierr);
-  ierr = PetscSpacePolynomialSetTensor(P, tensor); CHKERRQ(ierr);
-  ierr = PetscSpaceSetFromOptions(P); CHKERRQ(ierr);
-  ierr = PetscSpaceSetNumComponents(P, Nc); CHKERRQ(ierr);
-  ierr = PetscSpaceSetNumVariables(P, dim); CHKERRQ(ierr);
-  ierr = PetscSpaceSetDegree(P, order, order); CHKERRQ(ierr);
-  ierr = PetscSpaceSetUp(P); CHKERRQ(ierr);
-  ierr = PetscSpacePolynomialGetTensor(P, &tensor); CHKERRQ(ierr);
-  /* Create dual space */
-  ierr = PetscDualSpaceCreate(PetscObjectComm((PetscObject) dm), &Q);
-  CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetType(Q,PETSCDUALSPACELAGRANGE); CHKERRQ(ierr);
-  ierr = PetscObjectSetOptionsPrefix((PetscObject) Q, prefix); CHKERRQ(ierr);
-  ierr = PetscDualSpaceCreateReferenceCell(Q, dim, isSimplex, &K); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetDM(Q, K); CHKERRQ(ierr);
-  ierr = DMDestroy(&K); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetNumComponents(Q, Nc); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetOrder(Q, order); CHKERRQ(ierr);
-  ierr = PetscDualSpaceLagrangeSetTensor(Q, tensor); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetFromOptions(Q); CHKERRQ(ierr);
-  ierr = PetscDualSpaceSetUp(Q); CHKERRQ(ierr);
-  /* Create element */
-  ierr = PetscFECreate(PetscObjectComm((PetscObject) dm), fem); CHKERRQ(ierr);
-  ierr = PetscObjectSetOptionsPrefix((PetscObject) *fem, prefix); CHKERRQ(ierr);
-  ierr = PetscFESetFromOptions(*fem); CHKERRQ(ierr);
-  ierr = PetscFESetBasisSpace(*fem, P); CHKERRQ(ierr);
-  ierr = PetscFESetDualSpace(*fem, Q); CHKERRQ(ierr);
-  ierr = PetscFESetNumComponents(*fem, Nc); CHKERRQ(ierr);
-  ierr = PetscFESetUp(*fem); CHKERRQ(ierr);
-  ierr = PetscSpaceDestroy(&P); CHKERRQ(ierr);
-  ierr = PetscDualSpaceDestroy(&Q); CHKERRQ(ierr);
-  /* Create quadrature */
-  quadPointsPerEdge = PetscMax(order + 1,1);
-  if (isSimplex) {
-    ierr = PetscDTStroudConicalQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
-                                          &q); CHKERRQ(ierr);
-    ierr = PetscDTStroudConicalQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
-                                          &fq); CHKERRQ(ierr);
-  } else {
-    ierr = PetscDTGaussTensorQuadrature(dim,   1, quadPointsPerEdge, -1.0, 1.0,
-                                        &q); CHKERRQ(ierr);
-    ierr = PetscDTGaussTensorQuadrature(dim-1, 1, quadPointsPerEdge, -1.0, 1.0,
-                                        &fq); CHKERRQ(ierr);
-  }
-  ierr = PetscFESetQuadrature(*fem, q); CHKERRQ(ierr);
-  ierr = PetscFESetFaceQuadrature(*fem, fq); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&q); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&fq); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Setup DM with FE space of appropriate degree
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
                                PetscBool boundary, PetscInt num_comp_u) {
   PetscErrorCode  ierr;
+  MPI_Comm        comm;
   PetscInt        dim;
   PetscFE         fe;
   IS              face_set_is;         // Index Set for Face Sets
@@ -137,12 +71,22 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
 
   // Setup DM
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  ierr = PetscFECreateByDegree(dm, dim, num_comp_u, PETSC_FALSE, NULL, order,
-                               &fe);
-  CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+  ierr = PetscFECreateLagrange(comm, dim, num_comp_u, PETSC_FALSE, order, order,
+                               &fe); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  {
+    /* create FE field for coordinates */
+    PetscFE fe_coords;
+    PetscInt num_comp_coord;
+    ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
+    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, PETSC_FALSE, 1, 1,
+                                 &fe_coords); CHKERRQ(ierr);
+    ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
+    ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
+  }
 
   // Add Dirichlet (Essential) boundary
   if (boundary) {
@@ -157,7 +101,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         }
         DMLabel label;
         ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "marker", 1, marker_ids,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, 1, marker_ids,
                              0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
         CHKERRQ(ierr);
       } else {
@@ -167,7 +111,7 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
         DMLabel label;
         ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, "Face Sets",
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label,
                              num_face_sets, face_set_ids, 0, 0, NULL,
                              (void(*)(void))BCMMS, NULL, NULL, NULL);
         CHKERRQ(ierr);
@@ -175,14 +119,14 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
         ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
       }
     } else {
-      // -- ExodusII mesh with user specified BCs
-      // -- Clamp BCs
+      // -- Mesh with user specified BCs
       DMLabel label;
       ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      // -- Clamp BCs
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
         snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, "Face Sets", 1,
+        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, 1,
                              &app_ctx->bc_clamp_faces[i], 0, 0,
                              NULL, (void(*)(void))BCClamp, NULL,
                              (void *)&app_ctx->bc_clamp_max[i], NULL);

@@ -4,4 +4,6 @@ members = [
         "rust/libceed-sys",
         "examples/rust/ex1-volume",
         "examples/rust/ex2-surface",
+        "examples/rust/ex3-vector-volume",
+        "examples/rust/ex4-vector-surface",
 ]

@@ -20,23 +20,23 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <cuda.h>
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
   CUmodule module;
   CUfunction interp;
   CUfunction grad;
   CUfunction weight;
-  float *d_interp1d;
-  float *d_grad1d;
-  float *d_collograd1d;
-  float *d_qweight1d;
+  float *d_interp_1d;
+  float *d_grad_1d;
+  float *d_collo_grad_1d;
+  float *d_qweight_1d;
   float *c_B;
   float *c_G;
 } CeedBasis_Cuda_shared;
 
-CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d,
+    CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+    const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
 #endif // _ceed_cuda_shared_h

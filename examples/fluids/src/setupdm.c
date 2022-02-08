@@ -19,31 +19,18 @@
 
 #include "../navierstokes.h"
 
-// Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
-                                   SetupContext setup_ctx, DM *dm) {
-  DM               dist_mesh = NULL;
-  PetscPartitioner part;
-  PetscInt         dim = problem->dim, faces[3] = {3, 3, 3};
-  const PetscReal  scale[3] = {setup_ctx->lx, setup_ctx->ly, setup_ctx->lz};
+// Create mesh
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm) {
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
-
-  ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
-                                 faces, &dim, NULL); CHKERRQ(ierr);
-  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, scale,
-                             NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
-
-  // Distribute DM in parallel
-  ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
-  ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(*dm, 0, NULL, &dist_mesh); CHKERRQ(ierr);
-  if (dist_mesh) {
-    ierr = DMDestroy(dm); CHKERRQ(ierr);
-    *dm  = dist_mesh;
-  }
+  // Create DMPLEX
+  ierr = DMCreate(comm, dm); CHKERRQ(ierr);
+  ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  // Set Tensor elements
+  ierr = PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"); CHKERRQ(ierr);
+  // Set CL options
+  ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
-
   PetscFunctionReturn(0);
 }
 
@@ -56,13 +43,52 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     // Configure the finite element space and boundary conditions
     PetscFE  fe;
     PetscInt num_comp_q = 5;
+    DMLabel label;
     ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q,
                                  PETSC_FALSE, degree, PETSC_DECIDE,
                                  &fe); CHKERRQ(ierr);
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    ierr = problem->bc_func(dm, bc, phys, setup_ctx);
+    {
+      /* create FE field for coordinates */
+      PetscFE fe_coords;
+      PetscInt num_comp_coord;
+      ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
+      ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord,
+                                   PETSC_FALSE, 1, 1, &fe_coords); CHKERRQ(ierr);
+      ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
+      ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
+    }
+    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+    // Set wall BCs
+    if (bc->num_wall > 0) {
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
+                           bc->num_wall, bc->walls, 0, bc->num_comps,
+                           bc->wall_comps, (void(*)(void))problem->bc,
+                           NULL, setup_ctx, NULL);  CHKERRQ(ierr);
+    }
+    // Set slip BCs in the x direction
+    if (bc->num_slip[0] > 0) {
+      PetscInt comps[1] = {1};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
+                           bc->num_slip[0], bc->slips[0], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
+    // Set slip BCs in the y direction
+    if (bc->num_slip[1] > 0) {
+      PetscInt comps[1] = {2};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
+                           bc->num_slip[1], bc->slips[1], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
+    // Set slip BCs in the z direction
+    if (bc->num_slip[2] > 0) {
+      PetscInt comps[1] = {3};
+      ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
+                           bc->num_slip[2], bc->slips[2], 0, 1, comps,
+                           (void(*)(void))NULL, NULL, setup_ctx, NULL); CHKERRQ(ierr);
+    }
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
@@ -74,13 +100,13 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 1, "MomentumX");
+    ierr = PetscSectionSetComponentName(section, 0, 1, "Momentum X");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 2, "MomentumY");
+    ierr = PetscSectionSetComponentName(section, 0, 2, "Momentum Y");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 3, "MomentumZ");
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Momentum Z");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetComponentName(section, 0, 4, "EnergyDensity");
+    ierr = PetscSectionSetComponentName(section, 0, 4, "Energy Density");
     CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);

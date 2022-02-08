@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <ceed/ceed.h>
+#include <ceed/backend.h>
 
 const char *const CeedErrorTypesShifted[] = {
   [CEED_ERROR_SUCCESS - CEED_ERROR_UNSUPPORTED] = "success",
@@ -61,11 +62,21 @@ const char *const CeedQuadModes[] = {
 };
 
 const char *const CeedElemTopologies[] = {
-  [CEED_LINE] = "line",
-  [CEED_TRIANGLE] = "triangle",
-  [CEED_QUAD] = "quadrilateral",
-  [CEED_TET] = "tetrahedron",
-  [CEED_PYRAMID] = "pyramid",
-  [CEED_PRISM] = "prism",
-  [CEED_HEX] = "hexahedron",
+  [CEED_TOPOLOGY_LINE] = "line",
+  [CEED_TOPOLOGY_TRIANGLE] = "triangle",
+  [CEED_TOPOLOGY_QUAD] = "quadrilateral",
+  [CEED_TOPOLOGY_TET] = "tetrahedron",
+  [CEED_TOPOLOGY_PYRAMID] = "pyramid",
+  [CEED_TOPOLOGY_PRISM] = "prism",
+  [CEED_TOPOLOGY_HEX] = "hexahedron",
+};
+
+const char *const CeedContextFieldTypes[] = {
+  [CEED_CONTEXT_FIELD_DOUBLE] = "double",
+  [CEED_CONTEXT_FIELD_INT32] = "int32",
+};
+
+const char *const CeedFESpaces[] = {
+  [CEED_FE_SPACE_H1] = "H^1 space",
+  [CEED_FE_SPACE_HDIV] = "H(div) space",
 };

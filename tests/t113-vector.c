@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
 
   n = 10;
   CeedVectorCreate(ceed, n, &x);
+  CeedVectorSetValue(x, 0.0);
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);
 
   // Write access with read access generate an error

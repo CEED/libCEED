@@ -39,12 +39,12 @@ mod transform;
 // Example 2
 // ----------------------------------------------------------------------------
 #[cfg(not(tarpaulin_include))]
-fn main() -> Result<(), libceed::CeedError> {
+fn main() -> libceed::Result<()> {
     let options = opt::Opt::from_args();
     example_2(options)
 }
 
-fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
+fn example_2(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
         ceed_spec,
@@ -92,12 +92,10 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh = ceed
-        .basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
-    let basis_solution = ceed
-        .basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)
-        .unwrap();
+    let basis_mesh =
+        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_solution =
+        ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)?;
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
@@ -138,7 +136,7 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
-    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords);
+    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords)?;
 
     // QFunction that builds the quadrature data for the diff operator
     // -- QFunction from user closure
@@ -243,7 +241,8 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
             &restr_qdata,
             BasisOpt::Collocated,
             VectorOpt::Active,
-        )?;
+        )?
+        .check()?;
 
     // Compute the quadrature data for the diff operator
     let elem_qpts = num_qpts.pow(dim as u32);
@@ -317,23 +316,25 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
         .operator(qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
         .field("du", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
-        .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?;
+        .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .check()?;
 
     // Solution vectors
     let mut u = ceed.vector(solution_size)?;
     let mut v = ceed.vector(solution_size)?;
 
     // Initialize u with sum of node coordinates
-    let coords = mesh_coords.view();
-    u.view_mut().iter_mut().enumerate().for_each(|(i, u)| {
+    let coords = mesh_coords.view()?;
+    u.set_value(0.0)?;
+    for (i, u) in u.view_mut()?.iter_mut().enumerate() {
         *u = (0..dim).map(|d| coords[i + d * solution_size]).sum();
-    });
+    }
 
     // Apply the diff operator
     op_diff.apply(&u, &mut v)?;
 
     // Compute the mesh surface area
-    let area: Scalar = v.view().iter().map(|v| (*v).abs()).sum();
+    let area: Scalar = v.view()?.iter().map(|v| (*v).abs()).sum();
 
     // Output results
     if !quiet {
@@ -348,7 +349,7 @@ fn example_2(options: opt::Opt) -> Result<(), libceed::CeedError> {
     let error = (area - exact_area).abs();
     if error > tolerance {
         println!("Volume error too large: {:.12e}", error);
-        return Err(libceed::CeedError {
+        return Err(libceed::Error {
             message: format!(
                 "Volume error too large - expected: {:.12e}, actual: {:.12e}",
                 tolerance, error

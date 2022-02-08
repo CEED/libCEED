@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "ceed-cuda-gen.h"
-#include "../cuda/ceed-cuda.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
@@ -50,6 +49,7 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
 }
 
 //------------------------------------------------------------------------------
+<<<<<<< HEAD
 // Load QFunction
 //------------------------------------------------------------------------------
 static int loadCudaFunction(CeedQFunction qf, char *c_src_file) {
@@ -126,15 +126,18 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
-  char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChkBackend(ierr);
-  const char *funname = strrchr(source, ':') + 1;
-  data->qFunctionName = (char *)funname;
-  const int filenamelen = funname - source;
-  char filename[filenamelen];
-  memcpy(filename, source, filenamelen - 1);
-  filename[filenamelen - 1] = '\0';
-  ierr = loadCudaFunction(qf, filename); CeedChkBackend(ierr);
+  // Read QFunction source
+  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
+  if (!data->qFunctionSource)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                     "/gpu/cuda/gen backend requires QFunction source code file");
+  // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
                                 CeedQFunctionApply_Cuda_gen); CeedChkBackend(ierr);

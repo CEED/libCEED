@@ -20,7 +20,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <cuda.h>
-#include "../cuda/ceed-cuda.h"
+#include "../cuda/ceed-cuda-common.h"
 
 typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } CudaFields;
 typedef struct { const float *in[16]; float *out[16]; } CudaFields_float;

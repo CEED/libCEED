@@ -20,9 +20,7 @@
 #ifndef ELAS_FSCurrentNH2_H
 #define ELAS_FSCurrentNH2_H
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
@@ -47,7 +45,7 @@ struct Physics_private {
 CEED_QFUNCTION_HELPER CeedScalar log1p_series_shifted(CeedScalar x) {
   const CeedScalar left = sqrt(2.)/2 - 1, right = sqrt(2.) - 1;
   CeedScalar sum = 0;
-  if (1) { // Disable if the smaller range sqrt(2) < J < sqrt(2) is sufficient
+  if (1) { // Disable if the smaller range sqrt(2)/2 < J < sqrt(2) is sufficient
     if (x < left) { // Replace if with while for arbitrary range (may hurt vectorization)
       sum -= log(2.) / 2;
       x = 1 + 2 * x;

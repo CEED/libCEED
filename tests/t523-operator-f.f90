@@ -106,7 +106,7 @@
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t510-operator.h:setup'//char(0),qf_setuptet,err)
-      call ceedqfunctionaddinput(qf_setuptet,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setuptet,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuptet,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuptet,'rho',1,ceed_eval_none,err)
 
@@ -121,7 +121,7 @@
 ! ---- Setup Tet
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
-      call ceedoperatorsetfield(op_setuptet,'_weight',&
+      call ceedoperatorsetfield(op_setuptet, 'weight',&
      & ceed_elemrestriction_none,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
@@ -169,7 +169,7 @@
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t510-operator.h:setup'//char(0),qf_setuphex,err)
-      call ceedqfunctionaddinput(qf_setuphex,'_weight',1,ceed_eval_weight,err)
+      call ceedqfunctionaddinput(qf_setuphex,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddinput(qf_setuphex,'dx',d*d,ceed_eval_grad,err)
       call ceedqfunctionaddoutput(qf_setuphex,'rho',1,ceed_eval_none,err)
 
@@ -184,7 +184,7 @@
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
-      call ceedoperatorsetfield(op_setuphex,'_weight',&
+      call ceedoperatorsetfield(op_setuphex,'weight',&
      & ceed_elemrestriction_none,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
      & bxhex,ceed_vector_active,err)

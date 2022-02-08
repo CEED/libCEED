@@ -239,7 +239,7 @@ namespace ceed {
 
       const std::string kernelSource = ss.str();
 
-      CeedDebug(kernelSource.c_str());
+      CeedDebug(ceed, kernelSource.c_str());
 
       // TODO: Store a kernel per Q
       return getDevice().buildKernelFromString(kernelSource,

@@ -20,9 +20,7 @@
 #ifndef advection2d_h
 #define advection2d_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -38,7 +36,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -123,15 +120,14 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
   const CeedScalar rc    = context->rc;
   const CeedScalar lx    = context->lx;
   const CeedScalar ly    = context->ly;
-  const CeedScalar lz    = context->lz;
   const CeedScalar *wind = context->wind;
 
   // Setup
-  const CeedScalar center[3] = {0.5*lx, 0.5*ly, 0.5*lz};
+  const CeedScalar center[2] = {0.5*lx, 0.5*ly};
   const CeedScalar theta[] = {M_PI, -M_PI/3, M_PI/3};
-  const CeedScalar x0[3] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time), center[2]};
-  const CeedScalar x1[3] = {center[0] + .25*lx*cos(theta[1] + time), center[1] + .25*ly*sin(theta[1] + time), center[2]};
-  const CeedScalar x2[3] = {center[0] + .25*lx*cos(theta[2] + time), center[1] + .25*ly*sin(theta[2] + time), center[2]};
+  const CeedScalar x0[2] = {center[0] + .25*lx*cos(theta[0] + time), center[1] + .25*ly*sin(theta[0] + time)};
+  const CeedScalar x1[2] = {center[0] + .25*lx*cos(theta[1] + time), center[1] + .25*ly*sin(theta[1] + time)};
+  const CeedScalar x2[2] = {center[0] + .25*lx*cos(theta[2] + time), center[1] + .25*ly*sin(theta[2] + time)};
 
   const CeedScalar x = X[0], y = X[1];
 
@@ -185,7 +181,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i]};
-    CeedScalar q[5] = {};
+    CeedScalar q[5] = {0.};
 
     Exact_Advection2d(2, context->time, x, 5, q, ctx);
     for (CeedInt j=0; j<5; j++) q0[j][i] = q[j];
@@ -436,9 +432,9 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q,
 //    A prescribed Total Energy (E_wind) is applied weakly.
 //
 // *****************************************************************************
-CEED_QFUNCTION(Advection2d_Sur)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
+CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q,
+                                      const CeedScalar *const *in,
+                                      CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],

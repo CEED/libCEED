@@ -79,18 +79,18 @@ int main(int argc, char **argv) {
 
   // Bases
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, dim, P, Q, interp, grad, q_ref,
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, dim, P, Q, interp, grad, q_ref,
                     q_weight, &basis_x);
 
   buildmats(q_ref, q_weight, interp, grad);
-  CeedBasisCreateH1(ceed, CEED_TRIANGLE, 1, P, Q, interp, grad, q_ref,
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, P, Q, interp, grad, q_ref,
                     q_weight, &basis_u);
 
   // QFunction - setup mass
   CeedQFunctionCreateInterior(ceed, 1, setup_mass, setup_mass_loc,
                               &qf_setup_mass);
   CeedQFunctionAddInput(qf_setup_mass, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setup_mass, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup_mass, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup_mass, "qdata", 1, CEED_EVAL_NONE);
 
   // Operator - setup mass
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", elem_restr_x, basis_x,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_mass, "_weight", CEED_ELEMRESTRICTION_NONE,
+  CeedOperatorSetField(op_setup_mass, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_mass, "qdata", elem_restr_qd_mass_i,
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, setup_diff, setup_diff_loc,
                               &qf_setup_diff);
   CeedQFunctionAddInput(qf_setup_diff, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setup_diff, "_weight", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddInput(qf_setup_diff, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup_diff, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
 
   // Operator - setup diff
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
                      CEED_QFUNCTION_NONE, &op_setup_diff);
   CeedOperatorSetField(op_setup_diff, "dx", elem_restr_x, basis_x,
                        CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_diff, "_weight", CEED_ELEMRESTRICTION_NONE,
+  CeedOperatorSetField(op_setup_diff, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x,
                        CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_diff, "qdata", elem_restr_qd_diff_i,
@@ -129,8 +129,8 @@ int main(int argc, char **argv) {
   // QFunction - apply
   CeedQFunctionCreateInterior(ceed, 1, apply, apply_loc, &qf_apply);
   CeedQFunctionAddInput(qf_apply, "du", dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_apply, "qdata_mass", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_apply, "qdata_diff", dim*(dim+1)/2, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_apply, "mass qdata", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_apply, "diff qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_apply, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_apply, "v", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_apply, "dv", dim, CEED_EVAL_GRAD);
@@ -139,9 +139,9 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_apply);
   CeedOperatorSetField(op_apply, "du", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata_mass", elem_restr_qd_mass_i,
+  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_qd_mass_i,
                        CEED_BASIS_COLLOCATED, q_data_mass);
-  CeedOperatorSetField(op_apply, "qdata_diff", elem_restr_qd_diff_i,
+  CeedOperatorSetField(op_apply, "diff qdata", elem_restr_qd_diff_i,
                        CEED_BASIS_COLLOCATED, q_data_diff);
   CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);

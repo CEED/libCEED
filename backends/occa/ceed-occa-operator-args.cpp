@@ -40,7 +40,7 @@ namespace ceed {
         return;
       }
 
-      ierr = CeedOperatorGetFields(op, &ceedInputFields, &ceedOutputFields);
+      ierr = CeedOperatorGetFields(op, NULL, &ceedInputFields, NULL, &ceedOutputFields);
       CeedOccaValidChk(_isValid, ierr);
 
       for (int i = 0; i < _inputCount; ++i) {

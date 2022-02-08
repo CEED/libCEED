@@ -51,8 +51,8 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 
 #include "bps.h"
 #include "include/bpsproblemdata.h"
-#include "include/petscmacros.h"
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 #include "include/matops.h"
 #include "include/structs.h"
 #include "include/libceedsetup.h"
@@ -386,7 +386,8 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
   PetscFunctionBeginUser;
   // Setup DM
   if (rp->read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, rp->filename, PETSC_TRUE, &dm);
+    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, rp->filename, NULL, PETSC_TRUE,
+                                &dm);
     CHKERRQ(ierr);
   } else {
     if (rp->user_l_nodes) {

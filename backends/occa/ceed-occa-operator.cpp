@@ -31,15 +31,30 @@ namespace ceed {
 
     Operator::~Operator() {}
 
-    Operator* Operator::from(CeedOperator op) {
+    Operator* Operator::getOperator(CeedOperator op,
+                                    const bool assertValid) {
       if (!op) {
         return NULL;
       }
 
       int ierr;
-      Operator *operator_;
+      Operator *operator_ = NULL;
 
-      ierr = CeedOperatorGetData(op, (void**) &operator_); CeedOccaFromChk(ierr);
+      ierr = CeedOperatorGetData(op, (void**) &operator_);
+      if (assertValid) {
+        CeedOccaFromChk(ierr);
+      }
+
+      return operator_;
+    }
+
+    Operator* Operator::from(CeedOperator op) {
+      Operator *operator_ = getOperator(op);
+      if (!operator_) {
+        return NULL;
+      }
+
+      int ierr;
       ierr = CeedOperatorGetCeed(op, &operator_->ceed); CeedOccaFromChk(ierr);
 
       operator_->qfunction = QFunction::from(op);
@@ -154,7 +169,7 @@ namespace ceed {
     }
 
     int Operator::ceedDestroy(CeedOperator op) {
-      delete Operator::from(op);
+      delete getOperator(op, false);
       return CEED_ERROR_SUCCESS;
     }
   }

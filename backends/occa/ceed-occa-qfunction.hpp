@@ -36,6 +36,9 @@ namespace ceed {
 
       QFunction(const std::string &source);
 
+      static QFunction* getQFunction(CeedQFunction qf,
+                                     const bool assertValid = true);
+
       static QFunction* from(CeedQFunction qf);
       static QFunction* from(CeedOperator op);
 

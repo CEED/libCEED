@@ -14,8 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-#ifndef navierstokes_h
-#define navierstokes_h
+#ifndef libceed_fluids_examples_navier_stokes_h
+#define libceed_fluids_examples_navier_stokes_h
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -25,19 +25,10 @@
 #include <stdbool.h>
 
 // -----------------------------------------------------------------------------
-// PETSc Macros
+// PETSc Version
 // -----------------------------------------------------------------------------
-#if PETSC_VERSION_LT(3,14,0)
-#  define DMPlexGetClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexGetClosureIndices(a,b,c,d,f,g,i)
-#  define DMPlexRestoreClosureIndices(a,b,c,d,e,f,g,h,i) DMPlexRestoreClosureIndices(a,b,c,d,f,g,i)
-#endif
-
-#if PETSC_VERSION_LT(3,14,0)
-#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,e,h,i,j,k,f,g,m)
-#elif PETSC_VERSION_LT(3,16,0)
-#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,e,h,i,j,k,l,f,g,m)
-#else
-#  define DMAddBoundary(a,b,c,d,e,f,g,h,i,j,k,l,m,n) DMAddBoundary(a,b,c,d,f,g,h,i,j,k,l,m,n)
+#if PETSC_VERSION_LT(3,17,0)
+#error "PETSc v3.17 or later is required"
 #endif
 
 // -----------------------------------------------------------------------------
@@ -85,18 +76,20 @@ static const char *const BubbleContinuityTypes[] = {
 
 // Euler - test cases
 typedef enum {
-  EULER_TEST_NONE = 0,
-  EULER_TEST_1    = 1,
-  EULER_TEST_2    = 2,
-  EULER_TEST_3    = 3,
-  EULER_TEST_4    = 4,
+  EULER_TEST_ISENTROPIC_VORTEX = 0,
+  EULER_TEST_1 = 1,
+  EULER_TEST_2 = 2,
+  EULER_TEST_3 = 3,
+  EULER_TEST_4 = 4,
+  EULER_TEST_5 = 5,
 } EulerTestType;
 static const char *const EulerTestTypes[] = {
-  "none",
-  "t1",
-  "t2",
-  "t3",
-  "t4",
+  "isentropic_vortex",
+  "test_1",
+  "test_2",
+  "test_3",
+  "test_4",
+  "test_5",
   "EulerTestType", "EULER_TEST_", NULL
 };
 
@@ -122,7 +115,6 @@ typedef struct CeedData_private  *CeedData;
 typedef struct User_private      *User;
 typedef struct Units_private     *Units;
 typedef struct SimpleBC_private  *SimpleBC;
-typedef struct SetupContext_     *SetupContext;
 typedef struct Physics_private   *Physics;
 
 // Application context from user command line options
@@ -151,9 +143,8 @@ struct CeedData_private {
   CeedQFunctionContext setup_context, dc_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur, qf_apply_sur;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_xc_sur,
-                       basis_q_sur;
+                       qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
@@ -190,8 +181,13 @@ struct Units_private {
 
 // Boundary conditions
 struct SimpleBC_private {
-  PetscInt  num_wall, num_slip[3];
-  PetscInt  walls[6], slips[3][6];
+  PetscInt  num_wall,    // Number of faces with wall BCs
+            wall_comps[5], // An array of constrained component numbers
+            num_comps,
+            num_slip[3], // Number of faces with slip BCs
+            num_inflow,
+            num_outflow;
+  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16];
   PetscBool user_bc;
 };
 
@@ -206,7 +202,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar Rd;
   CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
@@ -233,7 +228,7 @@ struct DCContext_ {
   CeedScalar cv;
   CeedScalar cp;
   CeedScalar g;
-  CeedScalar Rd;
+  CeedScalar c_tau;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
@@ -246,9 +241,11 @@ struct EulerContext_ {
   CeedScalar center[3];
   CeedScalar curr_time;
   CeedScalar vortex_strength;
+  CeedScalar c_tau;
   CeedScalar mean_velocity[3];
-  int euler_test;
   bool implicit;
+  int euler_test;
+  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 #endif
 
@@ -284,15 +281,15 @@ struct Physics_private {
 // *INDENT-OFF*
 typedef struct {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedScalar        dm_scale;
   CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_sur;
+                    apply_inflow, apply_outflow;
   const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_sur_loc;
+                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_inflow_loc, *apply_outflow_loc;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   PetscErrorCode    (*setup_ctx)(Ceed, CeedData, AppCtx, SetupContext, Physics);
-  PetscErrorCode    (*bc_func)(DM, SimpleBC, Physics, void *);
   PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
 } ProblemData;
 // *INDENT-ON*
@@ -301,17 +298,14 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, void *setup_ctx,
-    void *ctx);
-
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, void *setup_ctx,
-                                      void *ctx);
-
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, void *setup_ctx,
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
+    void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
+                                      void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
                                    void *ctx);
-
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, void *setup_ctx,
-                                     void *ctx);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
+                                     void *setup_ctx, void *ctx);
 
 // Set up context for each problem
 extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
@@ -359,14 +353,13 @@ extern PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
 PetscInt Involute(PetscInt i);
 
 // Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt P,
-    CeedInt height, DMLabel domain_label,
-    CeedInt value, CeedElemRestriction *elem_restr);
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
+    DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
 
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
                                        DMLabel domain_label, PetscInt value,
-                                       CeedInt P, CeedInt Q, CeedInt q_data_size,
+                                       CeedInt Q, CeedInt q_data_size,
                                        CeedElemRestriction *elem_restr_q,
                                        CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i);
@@ -406,9 +399,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
-// Read mesh and distribute DM in parallel
-PetscErrorCode CreateDistributedDM(MPI_Comm comm, ProblemData *problem,
-                                   SetupContext setup_ctx, DM *dm);
+// Create mesh
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
@@ -425,7 +417,8 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
 PetscErrorCode RegisterProblems_NS(AppCtx app_ctx);
 
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
+PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
+    SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
@@ -456,4 +449,5 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // -----------------------------------------------------------------------------
-#endif
+
+#endif // libceed_fluids_examples_navier_stokes_h

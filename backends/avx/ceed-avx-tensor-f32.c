@@ -298,13 +298,6 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A,
 }
 
 //------------------------------------------------------------------------------
-// Tensor Contract Destroy
-//------------------------------------------------------------------------------
-static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_f32_Avx(CeedBasis basis,
@@ -315,8 +308,6 @@ int CeedTensorContractCreate_f32_Avx(CeedBasis basis,
 
   ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply",
                                 CeedTensorContractApply_Avx); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy",
-                                CeedTensorContractDestroy_Avx); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

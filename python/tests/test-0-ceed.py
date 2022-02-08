@@ -71,6 +71,7 @@ def test_005(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
     vec = ceed.Vector(5)
+    vec.set_value(0.0)
     array1 = vec.get_array()
 
     exception_raised = False

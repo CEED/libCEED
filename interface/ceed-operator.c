@@ -17,7 +17,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <ceed-impl.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -129,68 +128,6 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // Not implemented
     break;
   }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Check if a CeedOperator is ready to be used.
-
-  @param[in] op  CeedOperator to check
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorCheckReady(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
-
-  if (op->interface_setup)
-    return CEED_ERROR_SUCCESS;
-
-  CeedQFunction qf = op->qf;
-  if (op->composite) {
-    if (!op->num_suboperators)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
-    // LCOV_EXCL_STOP
-  } else {
-    if (op->num_fields == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
-    // LCOV_EXCL_STOP
-    if (op->num_fields < qf->num_input_fields + qf->num_output_fields)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
-    // LCOV_EXCL_STOP
-    if (!op->has_restriction)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                       "At least one restriction required");
-    // LCOV_EXCL_STOP
-    if (op->num_qpts == 0)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                       "At least one non-collocated basis is required "
-                       "or the number of quadrature points must be set");
-    // LCOV_EXCL_STOP
-  }
-
-  // Flag as immutable and ready
-  op->interface_setup = true;
-  if (op->qf && op->qf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->qf->operators_set++;
-  // LCOV_EXCL_STOP
-  if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->dqf->operators_set++;
-  // LCOV_EXCL_STOP
-  if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    op->dqfT->operators_set++;
-  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 
@@ -327,6 +264,71 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Set QFunctionContext field value of the specified type.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+           A non-zero error code is returned for single operators
+           that do not have a matching field of the same type or composite
+           operators that do not have any field of a matching type.
+
+  @param op          CeedOperator
+  @param field_label Label of field to set
+  @param field_type  Type of field to set
+  @param value       Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+static int CeedOperatorContextSetGeneric(CeedOperator op,
+    CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+    void *value) {
+  int ierr;
+
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  bool is_composite = false;
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    CeedInt num_sub;
+    CeedOperator *sub_operators;
+
+    ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+    if (num_sub != field_label->num_sub_labels)
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "ContextLabel does not correspond to composite operator.\n"
+                       "Use CeedOperatorGetContextFieldLabel().");
+    // LCOV_EXCL_STOP
+
+    for (CeedInt i = 0; i < num_sub; i++) {
+      // Try every sub-operator, ok if some sub-operators do not have field
+      if (field_label->sub_labels[i] && sub_operators[i]->qf->ctx) {
+        ierr = CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx,
+                                              field_label->sub_labels[i],
+                                              field_type, value); CeedChk(ierr);
+      }
+    }
+  } else {
+    if (!op->qf->ctx)
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "QFunction does not have context data");
+    // LCOV_EXCL_STOP
+
+    ierr = CeedQFunctionContextSetGeneric(op->qf->ctx, field_label,
+                                          field_type, value); CeedChk(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -334,66 +336,6 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedOperatorBackend
 /// @{
-
-/**
-  @brief Get the Ceed associated with a CeedOperator
-
-  @param op         CeedOperator
-  @param[out] ceed  Variable to store Ceed
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
-  *ceed = op->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the number of elements associated with a CeedOperator
-
-  @param op             CeedOperator
-  @param[out] num_elem  Variable to store number of elements
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *num_elem = op->num_elem;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the number of quadrature points associated with a CeedOperator
-
-  @param op             CeedOperator
-  @param[out] num_qpts  Variable to store vector number of quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  *num_qpts = op->num_qpts;
-  return CEED_ERROR_SUCCESS;
-}
 
 /**
   @brief Get the number of arguments associated with a CeedOperator
@@ -407,7 +349,7 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
 **/
 
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operators");
@@ -429,7 +371,7 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 **/
 
 int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
-  *is_setup_done = op->backend_setup;
+  *is_setup_done = op->is_backend_setup;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -445,7 +387,7 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 **/
 
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -467,7 +409,7 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 **/
 
 int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
-  *is_composite = op->composite;
+  *is_composite = op->is_composite;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -483,7 +425,7 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 **/
 
 int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
-  if (!op->composite)
+  if (!op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
@@ -504,7 +446,7 @@ int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 **/
 
 int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
-  if (!op->composite)
+  if (!op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
   // LCOV_EXCL_STOP
@@ -570,81 +512,7 @@ int CeedOperatorReference(CeedOperator op) {
 **/
 
 int CeedOperatorSetSetupDone(CeedOperator op) {
-  op->backend_setup = true;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedOperatorFields of a CeedOperator
-
-  @param op                  CeedOperator
-  @param[out] input_fields   Variable to store input_fields
-  @param[out] output_fields  Variable to store output_fields
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetFields(CeedOperator op, CeedOperatorField **input_fields,
-                          CeedOperatorField **output_fields) {
-  if (op->composite)
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR,
-                     "Not defined for composite operator");
-  // LCOV_EXCL_STOP
-
-  if (input_fields) *input_fields = op->input_fields;
-  if (output_fields) *output_fields = op->output_fields;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedElemRestriction of a CeedOperatorField
-
-  @param op_field   CeedOperatorField
-  @param[out] rstr  Variable to store CeedElemRestriction
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
-                                        CeedElemRestriction *rstr) {
-  *rstr = op_field->elem_restr;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedBasis of a CeedOperatorField
-
-  @param op_field    CeedOperatorField
-  @param[out] basis  Variable to store CeedBasis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
-  *basis = op_field->basis;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the CeedVector of a CeedOperatorField
-
-  @param op_field  CeedOperatorField
-  @param[out] vec  Variable to store CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
-  *vec = op_field->vec;
+  op->is_backend_setup = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -711,8 +579,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     (*op)->dqfT = dqfT;
     ierr = CeedQFunctionReference(dqfT); CeedChk(ierr);
   }
-  ierr = CeedCalloc(16, &(*op)->input_fields); CeedChk(ierr);
-  ierr = CeedCalloc(16, &(*op)->output_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields); CeedChk(ierr);
+  ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -744,8 +612,8 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
-  (*op)->composite = true;
-  ierr = CeedCalloc(16, &(*op)->sub_operators); CeedChk(ierr);
+  (*op)->is_composite = true;
+  ierr = CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators); CeedChk(ierr);
 
   if (ceed->CompositeOperatorCreate) {
     ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
@@ -805,10 +673,15 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
 int CeedOperatorSetField(CeedOperator op, const char *field_name,
                          CeedElemRestriction r, CeedBasis b, CeedVector v) {
   int ierr;
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
                      "Cannot add field to composite operator.");
+  // LCOV_EXCL_STOP
+  if (op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
   if (!r)
     // LCOV_EXCL_START
@@ -896,11 +769,105 @@ found:
   }
 
   op->num_fields += 1;
-  size_t len = strlen(field_name);
-  char *tmp;
-  ierr = CeedCalloc(len+1, &tmp); CeedChk(ierr);
-  memcpy(tmp, field_name, len+1);
-  (*op_field)->field_name = tmp;
+  ierr = CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name);
+  CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedOperatorFields of a CeedOperator
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
+
+  @param op                      CeedOperator
+  @param[out] num_input_fields   Variable to store number of input fields
+  @param[out] input_fields       Variable to store input_fields
+  @param[out] num_output_fields  Variable to store number of output fields
+  @param[out] output_fields      Variable to store output_fields
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields,
+                          CeedOperatorField **input_fields,
+                          CeedInt *num_output_fields,
+                          CeedOperatorField **output_fields) {
+  int ierr;
+
+  if (op->is_composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+  ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
+
+  if (num_input_fields) *num_input_fields = op->qf->num_input_fields;
+  if (input_fields) *input_fields = op->input_fields;
+  if (num_output_fields) *num_output_fields = op->qf->num_output_fields;
+  if (output_fields) *output_fields = op->output_fields;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the name of a CeedOperatorField
+
+  @param op_field         CeedOperatorField
+  @param[out] field_name  Variable to store the field name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
+  *field_name = (char *)op_field->field_name;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedElemRestriction of a CeedOperatorField
+
+  @param op_field   CeedOperatorField
+  @param[out] rstr  Variable to store CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field,
+                                        CeedElemRestriction *rstr) {
+  *rstr = op_field->elem_restr;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedBasis of a CeedOperatorField
+
+  @param op_field    CeedOperatorField
+  @param[out] basis  Variable to store CeedBasis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
+  *basis = op_field->basis;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the CeedVector of a CeedOperatorField
+
+  @param op_field  CeedOperatorField
+  @param[out] vec  Variable to store CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
+  *vec = op_field->vec;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -918,7 +885,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
                                 CeedOperator sub_op) {
   int ierr;
 
-  if (!composite_op->composite)
+  if (!composite_op->is_composite)
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_MINOR,
                      "CeedOperator is not a composite operator");
@@ -929,10 +896,80 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
     return CeedError(composite_op->ceed, CEED_ERROR_UNSUPPORTED,
                      "Cannot add additional sub_operators");
   // LCOV_EXCL_STOP
+  if (composite_op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(composite_op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
+  // LCOV_EXCL_STOP
 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
   ierr = CeedOperatorReference(sub_op); CeedChk(ierr);
   composite_op->num_suboperators++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Check if a CeedOperator is ready to be used.
+
+  @param[in] op  CeedOperator to check
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorCheckReady(CeedOperator op) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
+
+  if (op->is_interface_setup)
+    return CEED_ERROR_SUCCESS;
+
+  CeedQFunction qf = op->qf;
+  if (op->is_composite) {
+    if (!op->num_suboperators)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
+    // LCOV_EXCL_STOP
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+    }
+  } else {
+    if (op->num_fields == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
+    // LCOV_EXCL_STOP
+    if (op->num_fields < qf->num_input_fields + qf->num_output_fields)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
+    // LCOV_EXCL_STOP
+    if (!op->has_restriction)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one restriction required");
+    // LCOV_EXCL_STOP
+    if (op->num_qpts == 0)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPLETE,
+                       "At least one non-collocated basis is required "
+                       "or the number of quadrature points must be set");
+    // LCOV_EXCL_STOP
+  }
+
+  // Flag as immutable and ready
+  op->is_interface_setup = true;
+  if (op->qf && op->qf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->qf->is_immutable = true;
+  // LCOV_EXCL_STOP
+  if (op->dqf && op->dqf != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqf->is_immutable = true;
+  // LCOV_EXCL_STOP
+  if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE)
+    // LCOV_EXCL_START
+    op->dqfT->is_immutable = true;
+  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 
@@ -947,11 +984,10 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
-
 int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
-  if (op->composite)
+  if (op->is_composite)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Not defined for composite operator");
@@ -960,6 +996,11 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_MINOR,
                      "Number of quadrature points already defined");
+  // LCOV_EXCL_STOP
+  if (op->is_immutable)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MAJOR,
+                     "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
 
   op->num_qpts = num_qpts;
@@ -979,7 +1020,7 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
 int CeedOperatorView(CeedOperator op, FILE *stream) {
   int ierr;
 
-  if (op->composite) {
+  if (op->is_composite) {
     fprintf(stream, "Composite CeedOperator\n");
 
     for (CeedInt i=0; i<op->num_suboperators; i++) {
@@ -995,11 +1036,215 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
 }
 
 /**
+  @brief Get the Ceed associated with a CeedOperator
+
+  @param op         CeedOperator
+  @param[out] ceed  Variable to store Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
+  *ceed = op->ceed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of elements associated with a CeedOperator
+
+  @param op             CeedOperator
+  @param[out] num_elem  Variable to store number of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
+  if (op->is_composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *num_elem = op->num_elem;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of quadrature points associated with a CeedOperator
+
+  @param op             CeedOperator
+  @param[out] num_qpts  Variable to store vector number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
+  if (op->is_composite)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR,
+                     "Not defined for composite operator");
+  // LCOV_EXCL_STOP
+
+  *num_qpts = op->num_qpts;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get label for a registered QFunctionContext field, or `NULL` if no
+           field has been registered with this `field_name`.
+
+  @param[in] op            CeedOperator
+  @param[in] field_name    Name of field to retrieve label
+  @param[out] field_label  Variable to field label
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextGetFieldLabel(CeedOperator op,
+                                     const char *field_name,
+                                     CeedContextFieldLabel *field_label) {
+  int ierr;
+
+  bool is_composite;
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    // Check if composite label already created
+    for (CeedInt i=0; i<op->num_context_labels; i++) {
+      if (!strcmp(op->context_labels[i]->name, field_name)) {
+        *field_label = op->context_labels[i];
+        return CEED_ERROR_SUCCESS;
+      }
+    }
+
+    // Create composite label if needed
+    CeedInt num_sub;
+    CeedOperator *sub_operators;
+    CeedContextFieldLabel new_field_label;
+
+    ierr = CeedCalloc(1, &new_field_label); CeedChk(ierr);
+    ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+    ierr = CeedCalloc(num_sub, &new_field_label->sub_labels); CeedChk(ierr);
+    new_field_label->num_sub_labels = num_sub;
+
+    bool label_found = false;
+    for (CeedInt i=0; i<num_sub; i++) {
+      if (sub_operators[i]->qf->ctx) {
+        CeedContextFieldLabel new_field_label_i;
+        ierr = CeedQFunctionContextGetFieldLabel(sub_operators[i]->qf->ctx, field_name,
+               &new_field_label_i); CeedChk(ierr);
+        if (new_field_label_i) {
+          label_found = true;
+          new_field_label->sub_labels[i] = new_field_label_i;
+          new_field_label->name = new_field_label_i->name;
+          new_field_label->description = new_field_label_i->description;
+          if (new_field_label->type &&
+              new_field_label->type != new_field_label_i->type) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field types on sub-operator contexts. "
+                             "%s != %s",
+                             CeedContextFieldTypes[new_field_label->type],
+                             CeedContextFieldTypes[new_field_label_i->type]);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->type = new_field_label_i->type;
+          }
+          if (new_field_label->num_values != 0 &&
+              new_field_label->num_values != new_field_label_i->num_values) {
+            // LCOV_EXCL_START
+            ierr = CeedFree(&new_field_label); CeedChk(ierr);
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field number of values on sub-operator"
+                             " contexts. %ld != %ld",
+                             new_field_label->num_values, new_field_label_i->num_values);
+            // LCOV_EXCL_STOP
+          } else {
+            new_field_label->num_values = new_field_label_i->num_values;
+          }
+        }
+      }
+    }
+    if (!label_found) {
+      // LCOV_EXCL_START
+      ierr = CeedFree(&new_field_label); CeedChk(ierr);
+      *field_label = NULL;
+      // LCOV_EXCL_STOP
+    } else {
+      // Move new composite label to operator
+      if (op->num_context_labels == 0) {
+        ierr = CeedCalloc(1, &op->context_labels); CeedChk(ierr);
+        op->max_context_labels = 1;
+      } else if (op->num_context_labels == op->max_context_labels) {
+        ierr = CeedRealloc(2*op->num_context_labels, &op->context_labels);
+        CeedChk(ierr);
+        op->max_context_labels *= 2;
+      }
+      op->context_labels[op->num_context_labels] = new_field_label;
+      *field_label = new_field_label;
+      op->num_context_labels++;
+    }
+
+    return CEED_ERROR_SUCCESS;
+  } else {
+    return CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label);
+  }
+}
+
+/**
+  @brief Set QFunctionContext field holding a double precision value.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param op          CeedOperator
+  @param field_label Label of field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextSetDouble(CeedOperator op,
+                                 CeedContextFieldLabel field_label,
+                                 double *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_DOUBLE,
+                                       values);
+}
+
+/**
+  @brief Set QFunctionContext field holding an int32 value.
+           For composite operators, the value is set in all
+           sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param op          CeedOperator
+  @param field_label Label of field to set
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextSetInt32(CeedOperator op,
+                                CeedContextFieldLabel field_label,
+                                int *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32,
+                                       values);
+}
+
+/**
   @brief Apply CeedOperator to a vector
 
   This computes the action of the operator on the specified (active) input,
   yielding its (active) output.  All inputs and outputs must be specified using
   CeedOperatorSetField().
+
+  Note: Calling this function asserts that setup is complete
+          and sets the CeedOperator as immutable.
 
   @param op        CeedOperator to apply
   @param[in] in    CeedVector containing input state or @ref CEED_VECTOR_NONE if
@@ -1037,7 +1282,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out,
       // Apply
       ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
     }
-  } else if (op->composite) {
+  } else if (op->is_composite) {
     // Composite Operator
     if (op->ApplyComposite) {
       ierr = op->ApplyComposite(op, in, out, request); CeedChk(ierr);
@@ -1096,7 +1341,7 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out,
   if (op->num_elem)  {
     // Standard Operator
     ierr = op->ApplyAdd(op, in, out, request); CeedChk(ierr);
-  } else if (op->composite) {
+  } else if (op->is_composite) {
     // Composite Operator
     if (op->ApplyAddComposite) {
       ierr = op->ApplyAddComposite(op, in, out, request); CeedChk(ierr);
@@ -1133,7 +1378,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   }
   ierr = CeedDestroy(&(*op)->ceed); CeedChk(ierr);
   // Free fields
-  for (int i=0; i<(*op)->num_fields; i++)
+  for (CeedInt i=0; i<(*op)->num_fields; i++)
     if ((*op)->input_fields[i]) {
       if ((*op)->input_fields[i]->elem_restr != CEED_ELEMRESTRICTION_NONE) {
         ierr = CeedElemRestrictionDestroy(&(*op)->input_fields[i]->elem_restr);
@@ -1149,7 +1394,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
       ierr = CeedFree(&(*op)->input_fields[i]->field_name); CeedChk(ierr);
       ierr = CeedFree(&(*op)->input_fields[i]); CeedChk(ierr);
     }
-  for (int i=0; i<(*op)->num_fields; i++)
+  for (CeedInt i=0; i<(*op)->num_fields; i++)
     if ((*op)->output_fields[i]) {
       ierr = CeedElemRestrictionDestroy(&(*op)->output_fields[i]->elem_restr);
       CeedChk(ierr);
@@ -1164,33 +1409,34 @@ int CeedOperatorDestroy(CeedOperator *op) {
       ierr = CeedFree(&(*op)->output_fields[i]); CeedChk(ierr);
     }
   // Destroy sub_operators
-  for (int i=0; i<(*op)->num_suboperators; i++)
+  for (CeedInt i=0; i<(*op)->num_suboperators; i++)
     if ((*op)->sub_operators[i]) {
       ierr = CeedOperatorDestroy(&(*op)->sub_operators[i]); CeedChk(ierr);
     }
-  if ((*op)->qf)
-    // LCOV_EXCL_START
-    (*op)->qf->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->qf); CeedChk(ierr);
-  if ((*op)->dqf && (*op)->dqf != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    (*op)->dqf->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqf); CeedChk(ierr);
-  if ((*op)->dqfT && (*op)->dqfT != CEED_QFUNCTION_NONE)
-    // LCOV_EXCL_START
-    (*op)->dqfT->operators_set--;
-  // LCOV_EXCL_STOP
   ierr = CeedQFunctionDestroy(&(*op)->dqfT); CeedChk(ierr);
+  // Destroy any composite labels
+  for (CeedInt i=0; i<(*op)->num_context_labels; i++) {
+    ierr = CeedFree(&(*op)->context_labels[i]->sub_labels); CeedChk(ierr);
+    ierr = CeedFree(&(*op)->context_labels[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*op)->context_labels); CeedChk(ierr);
 
   // Destroy fallback
   if ((*op)->op_fallback) {
     ierr = (*op)->qf_fallback->Destroy((*op)->qf_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->qf_fallback); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&(*op)->op_fallback->qf_assembled); CeedChk(ierr);
+    ierr = CeedElemRestrictionDestroy(&(*op)->op_fallback->qf_assembled_rstr);
+    CeedChk(ierr);
     ierr = (*op)->op_fallback->Destroy((*op)->op_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->op_fallback); CeedChk(ierr);
   }
+
+  // Destroy QF assembly cache
+  ierr = CeedVectorDestroy(&(*op)->qf_assembled); CeedChk(ierr);
+  ierr = CeedElemRestrictionDestroy(&(*op)->qf_assembled_rstr); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->input_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->output_fields); CeedChk(ierr);

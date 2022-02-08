@@ -20,10 +20,10 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
-#include "../hip/ceed-hip.h"
+#include "../hip/ceed-hip-common.h"
 
-typedef struct { const CeedScalar *in[16]; CeedScalar *out[16]; } HipFields;
-typedef struct { CeedInt *in[16]; CeedInt *out[16]; } HipFieldsInt;
+typedef struct { const CeedScalar *in[CEED_FIELD_MAX]; CeedScalar *out[CEED_FIELD_MAX]; } HipFields;
+typedef struct { CeedInt *in[CEED_FIELD_MAX]; CeedInt *out[CEED_FIELD_MAX]; } HipFieldsInt;
 
 typedef struct {
   CeedInt dim;

@@ -22,7 +22,7 @@
 #include <string>
 #include <sstream>
 #include "ceed-hip-gen.h"
-#include "../hip/ceed-hip.h"
+#include "../hip-ref/ceed-hip-ref.h"
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 
@@ -750,13 +750,11 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
           numoutputfields, ncomp, dim = 0, lsize;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetNumArgs(qf, &numinputfields, &numoutputfields);
-  CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &opinputfields, &opoutputfields);
+  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields);
   CeedChkBackend(ierr);
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, &qfinputfields, &qfoutputfields);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
   CeedBasis basis;
@@ -803,7 +801,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       CeedChkBackend(ierr);
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
@@ -843,7 +841,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
         }
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collograd1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
     }
   }
   data->dim = dim;
@@ -917,21 +915,21 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       break;
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.in[i] = basis_data->d_interp1d;
+      data->B.in[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B_in_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, B.in["<<i<<"], s_B_in_"<<i<<");\n";
       if (useCollograd) {
-        data->G.in[i] = basis_data->d_collograd1d;
+        data->G.in[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
-        data->G.in[i] = basis_data->d_grad1d;
+        data->G.in[i] = basis_data->d_grad_1d;
         code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_in_"<<i<<",Q1d>(data, G.in["<<i<<"], s_G_in_"<<i<<");\n";
       }
@@ -975,21 +973,21 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       break; // No action
     case CEED_EVAL_INTERP:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->B.out[i] = basis_data->d_interp1d;
+      data->B.out[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B_out_"<<i<<"["<<P1d*Q1d<<"];\n";
       code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, B.out["<<i<<"], s_B_out_"<<i<<");\n";
       if (useCollograd) {
-        data->G.out[i] = basis_data->d_collograd1d;
+        data->G.out[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<Q1d*Q1d<<"];\n";
         code << "  loadMatrix<Q1d,Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
-        data->G.out[i] = basis_data->d_grad1d;
+        data->G.out[i] = basis_data->d_grad_1d;
         code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<P1d*Q1d<<"];\n";
         code << "  loadMatrix<P_out_"<<i<<",Q1d>(data, G.out["<<i<<"], s_G_out_"<<i<<");\n";
       }
@@ -1086,7 +1084,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
       code << "    CeedScalar r_t"<<i<<"[Q1d];\n";
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
-      data->W = basis_data->d_qweight1d;
+      data->W = basis_data->d_q_weight_1d;
       code << "    weight"<<dim<<"d<Q1d>(data, W, r_t"<<i<<");\n";
       break; // No action
     case CEED_EVAL_DIV:
@@ -1359,7 +1357,8 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug(code.str().c_str());
+  CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
+  CeedDebug(ceed, code.str().c_str());
 
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 1,
                          "T1d", CeedIntMax(Q1d, data->maxP1d));

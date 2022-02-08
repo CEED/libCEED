@@ -52,6 +52,13 @@ class _OperatorBase(ABC):
 
         return out_string
 
+    # Check Operator setup
+    def check(self):
+        """Check if a CeedOperator is ready to be used"""
+        # libCEED call
+        err_code = lib.CeedOperatorCheckReady(self._pointer[0])
+        self._ceed._check_error(err_code)
+
     # Assemble linear diagonal
     def linear_assemble_diagonal(self, d, request=REQUEST_IMMEDIATE):
         """Assemble the diagonal of a square linear Operator
