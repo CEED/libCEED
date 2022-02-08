@@ -26,6 +26,35 @@
 #include "../hip-shared/ceed-hip-shared.h"
 #include "../hip/ceed-hip-compile.h"
 
+
+//------------------------------------------------------------------------------
+// Calculate the block size used for launching the operator kernel 
+//------------------------------------------------------------------------------
+CEED_INTERN int BlockGridCalculate(const CeedInt dim, const CeedInt nelem,
+		                   const CeedInt P1d, const CeedInt Q1d,
+				   CeedInt *block_sizes) {
+  
+  const CeedInt thread1d = CeedIntMax(Q1d, P1d);
+  if (dim==1) {
+    CeedInt elemsPerBlock = 64*thread1d > 256? 256/thread1d : 64;
+    elemsPerBlock = elemsPerBlock>0?elemsPerBlock:1;
+    block_sizes[0] = thread1d;
+    block_sizes[1] = 1;
+    block_sizes[2] = elemsPerBlock;
+  } else if (dim==2) {
+    const CeedInt elemsPerBlock = thread1d<4? 16 : 2;
+    block_sizes[0] = thread1d;
+    block_sizes[1] = thread1d;
+    block_sizes[2] = elemsPerBlock;
+  } else if (dim==3) {
+    const CeedInt elemsPerBlock = thread1d<6? 4 : (thread1d<8? 2 : 1);
+    block_sizes[0] = thread1d;
+    block_sizes[1] = thread1d;
+    block_sizes[2] = elemsPerBlock;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 static const char *deviceFunctions = QUOTE(
 
 //------------------------------------------------------------------------------
@@ -880,7 +909,8 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
 
   // Setup
   code << "\n// -----------------------------------------------------------------------------\n";
-  code << "\nextern \"C\" __global__ void "<<oper<<"(CeedInt nelem, void* ctx, HipFieldsInt indices, HipFields fields, HipFields_double B, HipFields_double G, double* W) {\n";
+  code << "\nextern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
+  code << "__global__ void "<<oper<<"(CeedInt nelem, void* ctx, HipFieldsInt indices, HipFields fields, HipFields_double B, HipFields_double G, double* W) {\n";
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChkBackend(ierr);
@@ -1382,8 +1412,12 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
-  ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 1,
-                         "T1d", CeedIntMax(Q1d, data->maxP1d));
+  CeedInt block_sizes[3];
+  ierr = BlockGridCalculate(dim, numelements, data->maxP1d, Q1d, block_sizes); 
+  CeedChkBackend(ierr);
+  ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 2,
+                         "T1d", block_sizes[0],
+			 "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, oper.c_str(), &data->op);
   CeedChkBackend(ierr);

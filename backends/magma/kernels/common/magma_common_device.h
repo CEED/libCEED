@@ -23,6 +23,16 @@
 #define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
 #endif
 
+#define MAGMA_MAXTHREADS_1D 128
+#define MAGMA_MAXTHREADS_2D 128
+#define MAGMA_MAXTHREADS_3D 64
+// Define macro for determining number of threads in y-direction
+// for basis kernels
+#define MAGMA_BASIS_NTCOL(x, maxt) (((maxt) < (x)) ? 1 : ((maxt) / (x)))
+// Define macro for computing the total threads in a block
+// for use with __launch_bounds__()
+#define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // init scalar to zero
 template<typename T>
