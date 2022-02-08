@@ -297,21 +297,39 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedBasis_Hip_shared *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
+  // Create float versions of basis data
+  float *interp_1d_flt = (float*)(malloc(Q_1d*P_1d*sizeof(float)));
+  for (CeedInt i = 0; i < Q_1d * P_1d; i++) {
+    interp_1d_flt[i] = (float) interp_1d[i];
+  }
+  float *grad_1d_flt = (float*)(malloc(Q_1d*P_1d*sizeof(float)));
+  for (CeedInt i = 0; i < Q_1d * P_1d; i++) {
+    grad_1d_flt[i] = (float) grad_1d[i];
+  }
+  float *q_weight_1d_flt = (float*)(malloc(Q_1d*sizeof(float)));
+  for (CeedInt i = 0; i < Q_1d; i++) {
+    q_weight_1d_flt[i] = (float) q_weight_1d[i];
+  }
+
   // Copy basis data to GPU
-  const CeedInt qBytes = Q_1d * sizeof(CeedScalar);
+  const CeedInt qBytes = Q_1d * sizeof(float);
   ierr = hipMalloc((void **)&data->d_q_weight_1d, qBytes);
   CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_q_weight_1d, q_weight_1d, qBytes,
+  ierr = hipMemcpy(data->d_q_weight_1d, q_weight_1d_flt, qBytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   const CeedInt iBytes = qBytes * P_1d;
   ierr = hipMalloc((void **)&data->d_interp_1d, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_interp_1d, interp_1d, iBytes,
+  ierr = hipMemcpy(data->d_interp_1d, interp_1d_flt, iBytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   ierr = hipMalloc((void **)&data->d_grad_1d, iBytes); CeedChk_Hip(ceed, ierr);
-  ierr = hipMemcpy(data->d_grad_1d, grad_1d, iBytes,
+  ierr = hipMemcpy(data->d_grad_1d, grad_1d_flt, iBytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+
+  free(interp_1d_flt);
+  free(grad_1d_flt);
+  free(q_weight_1d_flt);
 
   // Compute collocated gradient and copy to GPU
   data->d_collo_grad_1d = NULL;
@@ -319,11 +337,17 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
     CeedScalar *collo_grad_1d;
     ierr = CeedMalloc(Q_1d*Q_1d, &collo_grad_1d); CeedChkBackend(ierr);
     ierr = CeedBasisGetCollocatedGrad(basis, collo_grad_1d); CeedChkBackend(ierr);
+    // Again, create float version to copy to GPU
+    float *collo_grad_1d_flt = (float*)(malloc(Q_1d*Q_1d*sizeof(float)));
+    for (CeedInt i = 0; i < Q_1d * Q_1d; i++) {
+      collo_grad_1d_flt[i] = (float) collo_grad_1d[i];
+    }
     ierr = hipMalloc((void **)&data->d_collo_grad_1d, qBytes * Q_1d);
     CeedChk_Hip(ceed, ierr);
-    ierr = hipMemcpy(data->d_collo_grad_1d, collo_grad_1d, qBytes * Q_1d,
+    ierr = hipMemcpy(data->d_collo_grad_1d, collo_grad_1d_flt, qBytes * Q_1d,
                      hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
     ierr = CeedFree(&collo_grad_1d); CeedChkBackend(ierr);
+    free(collo_grad_1d_flt);
   }
 
   // Set number of threads per block for basis kernels
