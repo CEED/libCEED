@@ -241,34 +241,37 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
 
   // Create double versions of basis data
-  double *interp_1d_dbl = (double*)(malloc(Q_1d*P_1d*sizeof(double)));
+  double *interp_1d_dbl = (double *)(malloc(Q_1d*P_1d*sizeof(double)));
   for (CeedInt i = 0; i < Q_1d * P_1d; i++) {
     interp_1d_dbl[i] = (double) interp_1d[i];
   }
-  double *grad_1d_dbl = (double*)(malloc(Q_1d*P_1d*sizeof(double)));
+  double *grad_1d_dbl = (double *)(malloc(Q_1d*P_1d*sizeof(double)));
   for (CeedInt i = 0; i < Q_1d * P_1d; i++) {
     grad_1d_dbl[i] = (double) grad_1d[i];
   }
-  double *q_weight_1d_dbl = (double*)(malloc(Q_1d*sizeof(double)));
+  double *q_weight_1d_dbl = (double *)(malloc(Q_1d*sizeof(double)));
   for (CeedInt i = 0; i < Q_1d; i++) {
     q_weight_1d_dbl[i] = (double) q_weight_1d[i];
   }
 
   // Copy basis data to GPU
   const CeedInt q_bytes = Q_1d * sizeof(double);
-  ierr = cudaMalloc((void **)&data->d_q_weight_1d, q_bytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMalloc((void **)&data->d_q_weight_1d, q_bytes);
+  CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_q_weight_1d, q_weight_1d_dbl, q_bytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   const CeedInt interp_bytes = q_bytes * P_1d;
-  ierr = cudaMalloc((void **)&data->d_interp_1d, interp_bytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMalloc((void **)&data->d_interp_1d, interp_bytes);
+  CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_interp_1d, interp_1d_dbl, interp_bytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
-  ierr = cudaMalloc((void **)&data->d_grad_1d, interp_bytes); CeedChk_Cu(ceed, ierr);
+  ierr = cudaMalloc((void **)&data->d_grad_1d, interp_bytes);
+  CeedChk_Cu(ceed, ierr);
   ierr = cudaMemcpy(data->d_grad_1d, grad_1d_dbl, interp_bytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
- 
+
   free(interp_1d_dbl);
   free(grad_1d_dbl);
   free(q_weight_1d_dbl);
@@ -280,7 +283,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
     ierr = CeedMalloc(Q_1d*Q_1d, &collo_grad_1d); CeedChkBackend(ierr);
     ierr = CeedBasisGetCollocatedGrad(basis, collo_grad_1d); CeedChkBackend(ierr);
     // Again, create double version to copy to GPU
-    double *collo_grad_1d_dbl = (double*)(malloc(Q_1d*Q_1d*sizeof(double)));
+    double *collo_grad_1d_dbl = (double *)(malloc(Q_1d*Q_1d*sizeof(double)));
     for (CeedInt i = 0; i < Q_1d * Q_1d; i++) {
       collo_grad_1d_dbl[i] = (double) collo_grad_1d[i];
     }
