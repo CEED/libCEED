@@ -18,7 +18,7 @@ typedef struct {
 int main(int argc, char **argv) {
   Ceed ceed;
   CeedQFunctionContext qf_ctx_sub_1, qf_ctx_sub_2;
-  CeedContextFieldLabel count_label, other_label, time_label;
+  CeedContextFieldLabel count_label, other_label, time_label, bad_label;
   CeedQFunction qf_sub_1, qf_sub_2;
   CeedOperator op_sub_1, op_sub_2, op_composite;
 
@@ -103,6 +103,13 @@ int main(int argc, char **argv) {
   if (ctx_data_2.other != 9000.0)
     // LCOV_EXCL_START
     printf("Incorrect context data for other: %f != 2.0", ctx_data_2.other);
+  // LCOV_EXCL_STOP
+
+  // Check requesting label for field that doesn't exist returns NULL
+  CeedOperatorContextGetFieldLabel(op_composite, "bad", &bad_label);
+  if (bad_label)
+    // LCOV_EXCL_START
+    printf("Incorrect context label returned");
   // LCOV_EXCL_STOP
 
   CeedQFunctionContextDestroy(&qf_ctx_sub_1);
