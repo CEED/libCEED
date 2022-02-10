@@ -438,7 +438,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     return CEED_ERROR_SUCCESS;
   }
 
-  if (strlen(source) && !strrchr(source, ':'))\
+  if (strlen(source) && !strrchr(source, ':'))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_INCOMPLETE,
                      "Provided path to source does not include function name. "
