@@ -10,6 +10,7 @@ int main(int argc, char **argv) {
   const CeedInt n = 10;
   CeedScalar a[n];
   CeedScalar *b, *c;
+  const CeedScalar *d;
 
   CeedInit(argv[1], &ceed);
 
@@ -38,6 +39,17 @@ int main(int argc, char **argv) {
 
 // Note: We do not need to free c because c == a was stack allocated.
   CeedVectorDestroy(&x);
+
+  // Test with a size zero vector
+  CeedVectorCreate(ceed, 0, &x);
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, NULL);
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &d);
+  if (b) printf("CeedVectorGetArrayRead returned non-NULL for zero-sized Vector");
+  CeedVectorRestoreArrayRead(x, &d);
+  CeedVectorTakeArray(x, CEED_MEM_HOST, &c);
+  if (c) printf("CeedVectorTakeArray returned non-NULL for zero-sized Vector");
+  CeedVectorDestroy(&x);
+
   CeedDestroy(&ceed);
   return 0;
 }
