@@ -33,6 +33,7 @@ struct STGShur14Context_ {
   CeedInt nmodes;   // !< Number of wavemodes
   CeedInt nprofs;   // !< Number of profile points in STGInflow.dat
   CeedScalar alpha; // !< Geometric growth rate of kappa
+  CeedScalar u0;    // !< Convective velocity
 
   struct {
     size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
