@@ -302,6 +302,65 @@ int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 }
 
 /**
+  @brief Get context data of a CeedQFunction
+
+  @param qf         CeedQFunction
+  @param mem_type   Memory type on which to access the data. If the backend
+                      uses a different memory type, this will perform a copy.
+  @param[out] data  Data on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type,
+                                void *data) {
+  int ierr;
+  bool is_writable;
+  CeedQFunctionContext ctx;
+
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionIsContextWritable(qf, &is_writable); CeedChk(ierr);
+    if (is_writable) {
+      ierr = CeedQFunctionContextGetData(ctx, mem_type, data); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionContextGetDataRead(ctx, mem_type, data); CeedChk(ierr);
+    }
+  } else {
+    *(void **)data = NULL;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore context data of a CeedQFunction
+
+  @param qf    CeedQFunction
+  @param data  Data to restore
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data) {
+  int ierr;
+  bool is_writable;
+  CeedQFunctionContext ctx;
+
+  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionIsContextWritable(qf, &is_writable); CeedChk(ierr);
+    if (is_writable) {
+      ierr = CeedQFunctionContextRestoreData(ctx, data); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionContextRestoreDataRead(ctx, data); CeedChk(ierr);
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get true user context for a CeedQFunction
            Note: For all QFunctions this function will return the user
              CeedQFunctionContext and not interface context
@@ -329,6 +388,65 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 }
 
 /**
+  @brief Get inner context data of a CeedQFunction
+
+  @param qf         CeedQFunction
+  @param mem_type   Memory type on which to access the data. If the backend
+                      uses a different memory type, this will perform a copy.
+  @param[out] data  Data on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetInnerContextData(CeedQFunction qf, CeedMemType mem_type,
+                                     void *data) {
+  int ierr;
+  bool is_writable;
+  CeedQFunctionContext ctx;
+
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionIsContextWritable(qf, &is_writable); CeedChk(ierr);
+    if (is_writable) {
+      ierr = CeedQFunctionContextGetData(ctx, mem_type, data); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionContextGetDataRead(ctx, mem_type, data); CeedChk(ierr);
+    }
+  } else {
+    *(void **)data = NULL;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore inner context data of a CeedQFunction
+
+  @param qf    CeedQFunction
+  @param data  Data to restore
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionRestoreInnerContextData(CeedQFunction qf, void *data) {
+  int ierr;
+  bool is_writable;
+  CeedQFunctionContext ctx;
+
+  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionIsContextWritable(qf, &is_writable); CeedChk(ierr);
+    if (is_writable) {
+      ierr = CeedQFunctionContextRestoreData(ctx, data); CeedChk(ierr);
+    } else {
+      ierr = CeedQFunctionContextRestoreDataRead(ctx, data); CeedChk(ierr);
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Determine if QFunction is identity
 
   @param qf                CeedQFunction
@@ -340,6 +458,21 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 **/
 int CeedQFunctionIsIdentity(CeedQFunction qf, bool *is_identity) {
   *is_identity = qf->is_identity;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if QFunctionContext is writable
+
+  @param qf                CeedQFunction
+  @param[out] is_writable  Variable to store context writeable staus
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionIsContextWritable(CeedQFunction qf, bool *is_writable) {
+  *is_writable = qf->is_context_writable;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -452,6 +585,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->ref_count = 1;
   (*qf)->vec_length = vec_length;
   (*qf)->is_identity = false;
+  (*qf)->is_context_writable = true;
   (*qf)->function = f;
   if (strlen(source)) {
     const char *kernel_name = strrchr(source, ':') + 1;
@@ -745,6 +879,32 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   ierr = CeedQFunctionContextDestroy(&qf->ctx); CeedChk(ierr);
   qf->ctx = ctx;
   ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set writability of CeedQFunctionContext when calling the `CeedQFunctionUser`.
+           The default value is 'is_writable == true'.
+
+           Setting `is_writable == true` indicates the `CeedQFunctionUser` writes
+           into the CeedQFunctionContextData and requires memory syncronization
+           after calling `CeedQFunctionApply()`.
+
+           Setting 'is_writable == false' asserts that `CeedQFunctionUser` does not
+           modify the CeedQFunctionContextData. Violating this assertion may lead
+           to inconsistent data.
+
+           Setting `is_writable == false` may offer a performance improvement on GPU backends.
+
+  @param qf           CeedQFunction
+  @param is_writable  Writability status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
+  qf->is_context_writable = is_writable;
   return CEED_ERROR_SUCCESS;
 }
 

@@ -223,9 +223,14 @@ CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf,
     CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf,
                                         CeedQFunctionContext *ctx);
+CEED_EXTERN int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type, void *data);
+CEED_EXTERN int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionGetInnerContext(CeedQFunction qf,
     CeedQFunctionContext *ctx);
+CEED_EXTERN int CeedQFunctionGetInnerContextData(CeedQFunction qf, CeedMemType mem_type, void *data);
+CEED_EXTERN int CeedQFunctionRestoreInnerContextData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionIsIdentity(CeedQFunction qf, bool *is_identity);
+CEED_EXTERN int CeedQFunctionIsContextWritable(CeedQFunction qf, bool *is_writable);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);

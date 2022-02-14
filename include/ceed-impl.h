@@ -262,6 +262,7 @@ struct CeedQFunction_private {
   bool is_identity;
   bool is_fortran;
   bool is_immutable;
+  bool is_context_writable;
   CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
