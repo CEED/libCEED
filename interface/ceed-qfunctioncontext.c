@@ -478,6 +478,13 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
                      "access lock is already in use");
   // LCOV_EXCL_STOP
 
+  if (ctx->num_readers > 0)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Cannot grant CeedQFunctionContext data access, a "
+                     "process has read access");
+  // LCOV_EXCL_STOP
+
   bool has_valid_data = true;
   ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
   if (!has_valid_data)
@@ -487,7 +494,55 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
   // LCOV_EXCL_STOP
 
   ierr = ctx->GetData(ctx, mem_type, data); CeedChk(ierr);
-  ctx->state += 1;
+  ctx->state++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get read only access to a CeedQFunctionContext via the specified memory type.
+           Restore access with @ref CeedQFunctionContextRestoreData().
+
+  @param ctx        CeedQFunctionContext to access
+  @param mem_type   Memory type on which to access the data. If the backend
+                      uses a different memory type, this will perform a copy.
+  @param[out] data  Data on memory type mem_type
+
+  @note The CeedQFunctionContextGetDataRead() and @ref CeedQFunctionContextRestoreDataRead()
+    functions provide access to array pointers in the desired memory space. Pairing
+    get/restore allows the Context to track access.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx,
+                                    CeedMemType mem_type,
+                                    void *data) {
+  int ierr;
+
+  if (!ctx->GetDataRead)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support GetDataRead");
+  // LCOV_EXCL_STOP
+
+  if (ctx->state % 2 == 1)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Cannot grant CeedQFunctionContext data access, the "
+                     "access lock is already in use");
+  // LCOV_EXCL_STOP
+
+  bool has_valid_data = true;
+  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
+  if (!has_valid_data)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
+                     "CeedQFunctionContext has no valid data to get, must set data");
+  // LCOV_EXCL_STOP
+
+  ierr = ctx->GetDataRead(ctx, mem_type, data); CeedChk(ierr);
+  ctx->num_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -515,7 +570,35 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
     ierr = ctx->RestoreData(ctx); CeedChk(ierr);
   }
   *(void **)data = NULL;
-  ctx->state += 1;
+  ctx->state++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore data obtained using @ref CeedQFunctionContextGetDataRead()
+
+  @param ctx   CeedQFunctionContext to restore
+  @param data  Data to restore
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
+  int ierr;
+
+  if (ctx->num_readers == 0)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Cannot restore CeedQFunctionContext array access, "
+                     "access was not granted");
+  // LCOV_EXCL_STOP
+
+  if (ctx->RestoreDataRead) {
+    ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+  }
+  *(void **)data = NULL;
+  ctx->num_readers--;
   return CEED_ERROR_SUCCESS;
 }
 

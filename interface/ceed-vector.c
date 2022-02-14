@@ -463,7 +463,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
   // LCOV_EXCL_STOP
 
   ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -552,7 +552,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
   // LCOV_EXCL_STOP
 
   ierr = vec->GetArrayWrite(vec, mem_type, array); CeedChk(ierr);
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -577,7 +577,7 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
     ierr = vec->RestoreArray(vec); CeedChk(ierr);
   }
   *array = NULL;
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 

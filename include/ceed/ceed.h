@@ -651,7 +651,11 @@ CEED_EXTERN int CeedQFunctionContextTakeData(CeedQFunctionContext ctx,
     CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
     CeedMemType mem_type, void *data);
+CEED_EXTERN int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx,
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
+    void *data);
+CEED_EXTERN int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
     const char *field_name, size_t field_offset, size_t num_values,
