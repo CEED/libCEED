@@ -216,7 +216,7 @@ lv-cuda:
     - ulimit -v $[1024*1024*32] # 32 GiB in units of 1024 bytes
     - . /opt/rh/gcc-toolset-10/enable
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
-    - export CUDA_DIR=/usr/local/cuda-11.4
+    - export CUDA_DIR=/usr/local/cuda-11.6
     - export CUDA_VISIBLE_DEVICES=GPU-c4529365-8229-f689-b43d-ccd7f1677079 # our RTX 2080 Super via nvidia-smi -L
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=1 && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
