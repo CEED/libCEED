@@ -264,14 +264,24 @@ static inline PetscErrorCode ReadSTGRand(const char path[PETSC_MAX_PATH_LEN],
 
 PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
   PetscErrorCode ierr;
-
-  // Get paths for files
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
-  ierr = PetscOptionsGetString(NULL, NULL, "-stg_inflow_path", stg_inflow_path,
-                               sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL, NULL, "-stg_rand_path", stg_rand_path,
-                               sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
+  CeedScalar u0=0.0, alpha=1.01;
+  PetscFunctionBeginUser;
+
+  // Get options
+  PetscOptionsBegin(comm, NULL, "STG Boundary Condition Options", NULL);
+  ierr = PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL,
+                            stg_inflow_path, stg_inflow_path,
+                            sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL,
+                            stg_rand_path,stg_rand_path,
+                            sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-stg_alpha", "Growth rate of the wavemodes", NULL,
+                          alpha, &alpha, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
+                          NULL, u0, &u0, NULL); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   int nmodes, nprofs;
   GetNRows(stg_rand_path, &nmodes);
@@ -295,6 +305,8 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
     stg_ctx = malloc(sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]));
     *stg_ctx = *s;
   }
+  stg_ctx->alpha = alpha;
+  stg_ctx->u0 = u0;
 
   stg_ctx->alpha = 1.01;
   ierr = PetscOptionsGetReal(NULL, NULL, "-stg_alpha", &stg_ctx->alpha, NULL);
