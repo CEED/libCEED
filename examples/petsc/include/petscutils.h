@@ -16,5 +16,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
                                bool enforce_bc,  BCFunction bc_func);
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
     DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
-
+PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label,
+                                   CeedInt label_value, CeedInt height,
+                                   CeedInt dm_field, CeedBasis *basis);
 #endif // libceed_petsc_examples_utils_h

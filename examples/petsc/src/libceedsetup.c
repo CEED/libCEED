@@ -49,11 +49,12 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunction qf_setup_geo, qf_apply;
   CeedOperator op_setup_geo, op_apply;
   CeedVector x_coord, q_data, x_ceed, y_ceed;
-  CeedInt P, Q, num_qpts, c_start, c_end, num_elem,
+  CeedInt num_qpts, c_start, c_end, num_elem,
           q_data_size = bp_data.q_data_size;
   CeedScalar R = 1,                      // radius of the sphere
              l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
+<<<<<<< HEAD
   PetscFunctionBeginUser;
   // CEED bases
   P = degree + 1;
@@ -67,8 +68,16 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
 
   // CEED restrictions
+=======
+>>>>>>> 158419b6 (example/petsc: added CreateBasisFromPlex and tested with tensor basis)
   ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+
+  // CEED bases
+  ierr = CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &basis_x); CHKERRQ(ierr);
+  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &basis_u); CHKERRQ(ierr);
+
+  // CEED restrictions
   ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
   CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm_coord, 0, 0, 0, &elem_restr_x);
@@ -78,6 +87,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
   num_elem = c_end - c_start;
+  CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
 
   CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, num_comp_u,
                                    num_comp_u*num_elem*num_qpts,

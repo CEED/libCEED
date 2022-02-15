@@ -99,27 +99,52 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
   PetscInt ierr, marker_ids[1] = {1};
   PetscFE fe;
   MPI_Comm comm;
+  PetscBool      is_simplex = PETSC_TRUE;
 
   PetscFunctionBeginUser;
 
+  // Check if simplex or tensor-product mesh
+  ierr = DMPlexIsSimplex(dm, &is_simplex); CHKERRQ(ierr);
   // Setup FE
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-  ierr = PetscFECreateLagrange(comm, dim, num_comp_u, PETSC_FALSE, degree, degree,
+  ierr = PetscFECreateLagrange(comm, dim, num_comp_u, is_simplex, degree, degree,
                                &fe); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
+  ierr = DMCreateDS(dm); CHKERRQ(ierr);
   {
-    /* create FE field for coordinates */
+    DM             dm_coord;
+    PetscDS        ds_coord;
+    PetscFE        fe_coord_current, fe_coord_new;
+    PetscDualSpace fe_coord_dual_space;
+    PetscInt       fe_coord_order, num_comp_coord;
+
+    ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
+    ierr = DMGetRegionDS(dm_coord, NULL, NULL, &ds_coord); CHKERRQ(ierr);
+    ierr = PetscDSGetDiscretization(ds_coord, 0, (PetscObject *)&fe_coord_current); CHKERRQ(ierr);
+    ierr = PetscFEGetDualSpace(fe_coord_current, &fe_coord_dual_space); CHKERRQ(ierr);
+    ierr = PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order); CHKERRQ(ierr);
+
+    // Create FE for coordinates
+    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, degree, &fe_coord_new);
+    CHKERRQ(ierr);
+    ierr = DMProjectCoordinates(dm, fe_coord_new); CHKERRQ(ierr);
+    ierr = PetscFEDestroy(&fe_coord_new); CHKERRQ(ierr);
+  }
+  /*
+  {
+    // create FE field for coordinates
     PetscFE fe_coords;
     PetscInt num_comp_coord;
     ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
-    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, PETSC_FALSE, 1, 1,
+    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, 1, degree,
                                  &fe_coords); CHKERRQ(ierr);
     ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
   }
-
+  */
   // Setup DM
-  ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  //ierr = DMCreateDS(dm); CHKERRQ(ierr);
   if (enforce_bc) {
     PetscBool has_label;
     DMHasLabel(dm, "marker", &has_label);
@@ -130,8 +155,13 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
                          marker_ids, 0, 0, NULL, (void(*)(void))bc_func,
                          NULL, NULL, NULL); CHKERRQ(ierr);
   }
-  ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
+
+  if (!is_simplex) {
+    DM dm_coord;
+    ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL); CHKERRQ(ierr);
+    ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL); CHKERRQ(ierr);
+  }
   ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -162,6 +192,142 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
                             1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
                             elem_restr_offsets, elem_restr);
   ierr = PetscFree(elem_restr_offsets); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+};
+
+// -----------------------------------------------------------------------------
+// Utility function - convert from DMPolytopeType to CeedElemTopology
+// -----------------------------------------------------------------------------
+static inline CeedElemTopology ElemTopologyP2C(DMPolytopeType cell_type) {
+  switch (cell_type) {
+  case DM_POLYTOPE_TRIANGLE:      return CEED_TOPOLOGY_TRIANGLE;
+  case DM_POLYTOPE_QUADRILATERAL: return CEED_TOPOLOGY_QUAD;
+  case DM_POLYTOPE_TETRAHEDRON:   return CEED_TOPOLOGY_TET;
+  case DM_POLYTOPE_HEXAHEDRON:    return CEED_TOPOLOGY_HEX;
+  default:                        return 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Get CEED Basis from DMPlex
+// -----------------------------------------------------------------------------
+PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label,
+                                   CeedInt label_value, CeedInt height,
+                                   CeedInt dm_field, CeedBasis *basis) {
+  PetscErrorCode   ierr;
+  PetscDS          ds;
+  PetscFE          fe;
+  PetscQuadrature  quadrature;
+  PetscBool        is_simplex = PETSC_TRUE;
+  PetscInt         dim, ds_field = -1, num_comp, P, Q;
+
+  PetscFunctionBeginUser;
+
+  // Get basis information
+  {
+    IS             field_is;
+    const PetscInt *fields;
+    PetscInt       num_fields;
+
+    ierr = DMGetRegionDS(dm, domain_label, &field_is, &ds); CHKERRQ(ierr);
+    // Translate dm_field to ds_field
+    ierr = ISGetIndices(field_is, &fields); CHKERRQ(ierr);
+    ierr = ISGetSize(field_is, &num_fields); CHKERRQ(ierr);
+    for (PetscInt i = 0; i < num_fields; i++) {
+      if (dm_field == fields[i]) {
+        ds_field = i;
+        break;
+      }
+    }
+    ierr = ISRestoreIndices(field_is, &fields); CHKERRQ(ierr);
+  }
+  if (ds_field == -1) {
+    // LCOV_EXCL_START
+    SETERRQ1(PetscObjectComm((PetscObject) dm), PETSC_ERR_SUP,
+             "Could not find dm_field %D in DS", dm_field);
+    // LCOV_EXCL_STOP
+  }
+
+  // Get element information
+  {
+    PetscDualSpace dual_space;
+    PetscInt       num_dual_basis_vectors;
+
+    ierr = PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe);
+    CHKERRQ(ierr);
+    ierr = PetscFEGetHeightSubspace(fe, height, &fe); CHKERRQ(ierr);
+    ierr = PetscFEGetSpatialDimension(fe, &dim); CHKERRQ(ierr);
+    ierr = PetscFEGetNumComponents(fe, &num_comp); CHKERRQ(ierr);
+    ierr = PetscFEGetDualSpace(fe, &dual_space); CHKERRQ(ierr);
+    ierr = PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors);
+    CHKERRQ(ierr);
+    P = num_dual_basis_vectors / num_comp;
+    ierr = PetscFEGetQuadrature(fe, &quadrature); CHKERRQ(ierr);
+    ierr = PetscQuadratureGetData(quadrature, NULL, NULL, &Q, NULL, NULL);
+    CHKERRQ(ierr);
+  }
+
+  // Check if simplex or tensor-product mesh
+  ierr = DMPlexIsSimplex(dm, &is_simplex); CHKERRQ(ierr);
+  // Build libCEED basis
+  if (is_simplex) {
+    PetscInt          num_derivatives = 1, first_point;
+    PetscInt          ids[1] = {label_value};
+    PetscTabulation   basis_tabulation;
+    const PetscScalar *q_points, *q_weights;
+    DMLabel           depth_label;
+    DMPolytopeType    cell_type;
+    CeedElemTopology  elem_topo;
+    PetscScalar       *interp, *grad;
+
+    // Use depth label if no domain label present
+    if (!domain_label) {
+      PetscInt depth;
+
+      ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
+      ierr = DMPlexGetDepthLabel(dm, &depth_label); CHKERRQ(ierr);
+      ids[0] = depth - height;
+    }
+    // Get cell interp, grad, and quadrature data
+    ierr = PetscFEGetCellTabulation(fe, num_derivatives, &basis_tabulation);
+    CHKERRQ(ierr);
+    ierr = PetscQuadratureGetData(quadrature, NULL, NULL, NULL, &q_points,
+                                  &q_weights); CHKERRQ(ierr);
+    ierr = DMGetFirstLabeledPoint(dm, dm, domain_label ? domain_label : depth_label,
+                                  1, ids, height, &first_point, NULL);
+    CHKERRQ(ierr);
+    ierr = DMPlexGetCellType(dm, first_point, &cell_type); CHKERRQ(ierr);
+    elem_topo = ElemTopologyP2C(cell_type);
+    if (!elem_topo) SETERRQ(PetscObjectComm((PetscObject) dm), PETSC_ERR_SUP,
+                              "DMPlex topology not supported");
+    // Convert to libCEED orientation
+    ierr = PetscCalloc(P * Q * sizeof(PetscScalar), &interp); CHKERRQ(ierr);
+    ierr = PetscCalloc(P * Q * dim * sizeof(PetscScalar), &grad); CHKERRQ(ierr);
+    const CeedInt c = 0;
+    for (CeedInt q = 0; q < Q; q++) {
+      for (CeedInt p = 0; p < P; p++) {
+        interp[q*P + p] = basis_tabulation->T[0][(q*P + p)*num_comp*num_comp + c];
+        for (CeedInt d = 0; d < dim; d++) {
+          grad[(d*Q + q)*P + p] = basis_tabulation->T[1][((q*P + p)*num_comp*num_comp + c)
+                                  *dim + d];
+        }
+      }
+    }
+    // Finaly, create libCEED basis
+    ierr = CeedBasisCreateH1(ceed, elem_topo, num_comp, P, Q, interp, grad,
+                             q_points, q_weights, basis);
+    CHKERRQ(ierr);
+    ierr = PetscFree(interp); CHKERRQ(ierr);
+    ierr = PetscFree(grad); CHKERRQ(ierr);
+  } else {
+    CeedInt P_1d = (CeedInt) round(pow(P, 1.0 / dim));
+    CeedInt Q_1d = (CeedInt) round(pow(Q, 1.0 / dim));
+
+    ierr = CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d,
+                                           CEED_GAUSS, basis);
+    CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 };
