@@ -49,4 +49,4 @@ struct STGShur14Context_ {
 #endif
 
 
-PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx);
+PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx);

@@ -38,8 +38,8 @@
  * @param[in] Rij Array of the symmetric matrices [6,nprofs]
  * @param[out] Cij Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-static inline void CalcCholeskyDecomp(int nprofs,
-                                      const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
+static void CalcCholeskyDecomp(int nprofs,
+                               const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
   CeedPragmaSIMD
   for(int i=0; i<nprofs; i++) {
@@ -54,39 +54,63 @@ static inline void CalcCholeskyDecomp(int nprofs,
 
 
 /*
+ * @brief Open a PHASTA *.dat file, grabbing dimensions and file pointer
+ *
+ * This function opens the file specified by `path` using `PetscFOpen` and
+ * passes the file pointer in `fp`. It is not closed in this function, thus
+ * `fp` must be closed sometime after this function has been called (using
+ * `PetscFClose` for example).
+ *
+ * Assumes that the first line of the file has the number of rows and columns
+ * as the only two entries, separated by a single space
+ *
+ * @param[in] comm MPI_Comm for the program
+ * @param[in] path Path to the file
+ * @param[in] char_array_len Length of the character array that should contain each line
+ * @param[out] dims Dimensions of the file, taken from the first line of the file
+ * @param[out] fp File pointer to the opened file
+ */
+static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
+                                        const char path[PETSC_MAX_PATH_LEN], const int char_array_len, int dims[2],
+                                        FILE **fp) {
+  PetscErrorCode ierr;
+  int ndims;
+  char line[char_array_len];
+  char **array;
+
+  PetscFunctionBeginUser;
+  ierr = PetscFOpen(comm, path, "r", fp); CHKERRQ(ierr);
+  ierr = PetscSynchronizedFGets(comm, *fp, char_array_len, line); CHKERRQ(ierr);
+  ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
+  if(ndims != 2) SETERRQ2(comm, -1,
+                            "Found %d dimensions instead of 2 on the first line of %s",
+                            ndims, path);
+
+  for (int i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
+  ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/*
  * @brief Get the number of rows for the PHASTA file at path
  *
  * Assumes that the first line of the file has the number of rows and columns
  * as the only two entries, separated by a single space
  *
+ * @param[in] comm MPI_Comm for the program
  * @param[in] path Path to the file
  * @param[out] nrows Number of rows
  */
-static inline PetscErrorCode GetNRows(const char path[PETSC_MAX_PATH_LEN],
-                                      int *nrows) {
-
+static PetscErrorCode GetNRows(const MPI_Comm comm,
+                               const char path[PETSC_MAX_PATH_LEN], int *nrows) {
   PetscErrorCode ierr;
-  int ndims;
-  FILE *fp;
   const int char_array_len = 512;
-  char line[char_array_len];
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  char **array;
+  int dims[2];
+  FILE *fp;
 
   PetscFunctionBeginUser;
-  ierr = PetscFOpen(comm, path, "r", &fp); CHKERRQ(ierr);
-
-  if ( fgets(line, char_array_len, fp) != NULL) {
-    ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if (ndims > 1) {
-      *nrows = atoi(array[0]);
-    } else {
-      printf("%s does not contain shape of contained data in the first line", path);
-      PetscFunctionReturn(-1);
-    }
-    ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
-  }
-
+  ierr = OpenPHASTADatFile(comm, path, char_array_len, dims, &fp); CHKERRQ(ierr);
+  *nrows = dims[0];
   ierr = PetscFClose(comm, fp);
   PetscFunctionReturn(0);
 }
@@ -101,83 +125,64 @@ static inline PetscErrorCode GetNRows(const char path[PETSC_MAX_PATH_LEN],
  * Function calculates the Cholesky decomposition from the Reynolds stress
  * profile found in the file
  *
+ * @param[in] comm MPI_Comm for the program
  * @param[in] path Path to the STGInflow.dat file
  * @param[inout] stg_ctx STGShur14Context where the data will be loaded into
  */
-static inline PetscErrorCode ReadSTGInflow(const char path[PETSC_MAX_PATH_LEN],
-    STGShur14Context stg_ctx) {
-
+static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
+                                    const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
   PetscErrorCode ierr;
   int ndims, dims[2];
   FILE *fp;
-  const int char_array_len = 512;
+  const int char_array_len=512;
   char line[char_array_len];
-  MPI_Comm comm = PETSC_COMM_WORLD;
   char **array;
 
   PetscFunctionBeginUser;
-  ierr = PetscFOpen(comm, path, "r", &fp); CHKERRQ(ierr);
 
-  // Get shape of the contained data array
-  if ( fgets(line, char_array_len, fp) != NULL) {
+  ierr = OpenPHASTADatFile(comm, path, char_array_len, dims, &fp); CHKERRQ(ierr);
+
+  CeedScalar rij[6][stg_ctx->nprofs];
+  CeedScalar *prof_dw = &stg_ctx->data[stg_ctx->offsets.prof_dw];
+  CeedScalar *eps = &stg_ctx->data[stg_ctx->offsets.eps];
+  CeedScalar *lt = &stg_ctx->data[stg_ctx->offsets.lt];
+  CeedScalar (*ubar)[stg_ctx->nprofs] = (CeedScalar (*)[stg_ctx->nprofs])
+                                        &stg_ctx->data[stg_ctx->offsets.ubar];
+
+  for (int i=0; i<stg_ctx->nprofs; i++) {
+    ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims != 2) {
-      printf("Found %d dimensions instead of 2 on the first line of %s", ndims, path);
-      PetscFunctionReturn(-1);
-    }
-    for (int i=0; i<ndims; i++) {
-      dims[i] = atoi(array[i]);
-    }
-  } else {
-    printf("%s does not contain shape of contained data in the first line", path);
-    PetscFunctionReturn(-1);
-  }
-  ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
+    if(ndims < dims[1]) SETERRQ4(comm, -1,
+                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   path, ndims, dims[1]);
 
-  {
-    CeedScalar rij[6][stg_ctx->nprofs];
-    CeedScalar *prof_dw = &stg_ctx->data[stg_ctx->offsets.prof_dw];
-    CeedScalar *eps = &stg_ctx->data[stg_ctx->offsets.eps];
-    CeedScalar *lt = &stg_ctx->data[stg_ctx->offsets.lt];
-    CeedScalar (*ubar)[stg_ctx->nprofs] = (CeedScalar (*)[stg_ctx->nprofs])
-                                          &stg_ctx->data[stg_ctx->offsets.ubar];
+    prof_dw[i] = (CeedScalar) atof(array[0]);
+    ubar[0][i] = (CeedScalar) atof(array[1]);
+    ubar[1][i] = (CeedScalar) atof(array[2]);
+    ubar[2][i] = (CeedScalar) atof(array[3]);
+    rij[0][i]  = (CeedScalar) atof(array[4]);
+    rij[1][i]  = (CeedScalar) atof(array[5]);
+    rij[2][i]  = (CeedScalar) atof(array[6]);
+    rij[3][i]  = (CeedScalar) atof(array[7]);
+    rij[4][i]  = (CeedScalar) atof(array[8]);
+    rij[5][i]  = (CeedScalar) atof(array[9]);
+    eps[i]     = (CeedScalar) atof(array[12]);
+    lt[i]      = (CeedScalar) atof(array[13]);
 
-    for (int i=0; i<stg_ctx->nprofs; i++) {
-      if ( fgets(line, char_array_len, fp) != NULL) {
-        ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-        if(ndims < dims[1]) {
-          printf("Line %d of %s does not contain enough columns (%d instead of %d)", i,
-                 path, ndims, dims[1]);
-          PetscFunctionReturn(-1);
-        }
-        prof_dw[i] = (CeedScalar) atof(array[0]);
-        ubar[0][i] = (CeedScalar) atof(array[1]);
-        ubar[1][i] = (CeedScalar) atof(array[2]);
-        ubar[2][i] = (CeedScalar) atof(array[3]);
-        rij[0][i]  = (CeedScalar) atof(array[4]);
-        rij[1][i]  = (CeedScalar) atof(array[5]);
-        rij[2][i]  = (CeedScalar) atof(array[6]);
-        rij[3][i]  = (CeedScalar) atof(array[7]);
-        rij[4][i]  = (CeedScalar) atof(array[8]);
-        rij[5][i]  = (CeedScalar) atof(array[9]);
-        eps[i]     = (CeedScalar) atof(array[12]);
-        lt[i]      = (CeedScalar) atof(array[13]);
-      } else {
-        printf("Error reading line %d in %s", i, path);
-        PetscFunctionReturn(-1);
-      }
-    }
+    if(prof_dw[i] < 0) SETERRQ1(comm, -1,
+                                  "Distance to wall in %s cannot be negative", path);
+    if(lt[i] < 0) SETERRQ1(comm, -1,
+                             "Turbulent length scale in %s cannot be negative", path);
+    if(eps[i] < 0) SETERRQ1(comm, -1,
+                              "Turbulent dissipation in %s cannot be negative", path);
     CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
                                           &stg_ctx->data[stg_ctx->offsets.cij];
 
     CalcCholeskyDecomp(stg_ctx->nprofs, rij, cij);
-
   }
-
   ierr = PetscFClose(comm, fp);
   PetscFunctionReturn(0);
 }
-
 
 /*
  * @brief Read the STGRand file and load the contents into stg_ctx
@@ -186,38 +191,23 @@ static inline PetscErrorCode ReadSTGInflow(const char path[PETSC_MAX_PATH_LEN],
  * as the only two entries, separated by a single space.
  * Assumes there are 7 columns in the file
  *
+ * @param[in] comm MPI_Comm for the program
  * @param[in] path Path to the STGRand.dat file
  * @param[inout] stg_ctx STGShur14Context where the data will be loaded into
  */
-static inline PetscErrorCode ReadSTGRand(const char path[PETSC_MAX_PATH_LEN],
-    STGShur14Context stg_ctx) {
+static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
+                                  const char path[PETSC_MAX_PATH_LEN],
+                                  STGShur14Context stg_ctx) {
 
   PetscErrorCode ierr;
   int ndims, dims[2];
   FILE *fp;
   const int char_array_len = 512;
   char line[char_array_len];
-  MPI_Comm comm = PETSC_COMM_WORLD;
   char **array;
 
   PetscFunctionBeginUser;
-  ierr = PetscFOpen(comm, path, "r", &fp); CHKERRQ(ierr);
-
-  // Get shape of the contained data array
-  if ( fgets(line, char_array_len, fp) != NULL) {
-    ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims != 2) {
-      printf("Found %d dimensions instead of 2 on the first line of %s", ndims, path);
-      PetscFunctionReturn(-1);
-    }
-    for (int i=0; i<ndims; i++) {
-      dims[i] = atoi(array[i]);
-    }
-  } else {
-    printf("%s does not contain shape of contained data in the first line", path);
-    PetscFunctionReturn(-1);
-  }
-  ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
+  ierr = OpenPHASTADatFile(comm, path, char_array_len, dims, &fp); CHKERRQ(ierr);
 
   CeedScalar *phi = &stg_ctx->data[stg_ctx->offsets.phi];
   CeedScalar (*d)[stg_ctx->nmodes]     = (CeedScalar (*)[stg_ctx->nmodes])
@@ -226,31 +216,26 @@ static inline PetscErrorCode ReadSTGRand(const char path[PETSC_MAX_PATH_LEN],
                                          &stg_ctx->data[stg_ctx->offsets.sigma];
 
   for (int i=0; i<stg_ctx->nmodes; i++) {
-    if ( fgets(line, char_array_len, fp) != NULL) {
-      ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-      if(ndims < dims[1]) {
-        printf("Line %d of %s does not contain enough columns (%d instead of %d)", i,
-               path, ndims, dims[1]);
-        PetscFunctionReturn(-1);
-      }
-      d[0][i]     = (CeedScalar) atof(array[0]);
-      d[1][i]     = (CeedScalar) atof(array[1]);
-      d[2][i]     = (CeedScalar) atof(array[2]);
-      phi[i]      = (CeedScalar) atof(array[3]);
-      sigma[0][i] = (CeedScalar) atof(array[4]);
-      sigma[1][i] = (CeedScalar) atof(array[5]);
-      sigma[2][i] = (CeedScalar) atof(array[6]);
-    } else {
-      printf("Error reading line %d in %s", i, path);
-      PetscFunctionReturn(-1);
-    }
+    ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
+    ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
+    if(ndims < dims[1]) SETERRQ4(comm, -1,
+                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   path, ndims, dims[1]);
+
+    d[0][i]     = (CeedScalar) atof(array[0]);
+    d[1][i]     = (CeedScalar) atof(array[1]);
+    d[2][i]     = (CeedScalar) atof(array[2]);
+    phi[i]      = (CeedScalar) atof(array[3]);
+    sigma[0][i] = (CeedScalar) atof(array[4]);
+    sigma[1][i] = (CeedScalar) atof(array[5]);
+    sigma[2][i] = (CeedScalar) atof(array[6]);
   }
   ierr = PetscFClose(comm, fp);
   PetscFunctionReturn(0);
 }
 
 
-PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
+PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
@@ -272,8 +257,8 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
   PetscOptionsEnd();
 
   int nmodes, nprofs;
-  GetNRows(stg_rand_path, &nmodes);
-  GetNRows(stg_inflow_path, &nprofs);
+  ierr = GetNRows(comm, stg_rand_path, &nmodes); CHKERRQ(ierr);
+  ierr = GetNRows(comm, stg_inflow_path, &nprofs); CHKERRQ(ierr);
 
   {
     STGShur14Context s;
@@ -290,20 +275,16 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
     s->offsets.eps     = s->offsets.cij     + nprofs*6;
     s->offsets.lt      = s->offsets.eps     + nprofs;
     int total_num_scalars = s->offsets.lt + nprofs;
-    stg_ctx = malloc(sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]));
+    size_t bytes = sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]);
+    ierr = PetscMalloc(bytes, &stg_ctx); CHKERRQ(ierr);
     *stg_ctx = *s;
+    PetscFree(s);
   }
   stg_ctx->alpha = alpha;
   stg_ctx->u0 = u0;
 
-  stg_ctx->alpha = 1.01;
-  ierr = PetscOptionsGetReal(NULL, NULL, "-stg_alpha", &stg_ctx->alpha, NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsGetReal(NULL, NULL, "-stg_u0", &stg_ctx->u0, NULL);
-  CHKERRQ(ierr);
-
-  ReadSTGInflow(stg_inflow_path, stg_ctx);
-  ReadSTGRand(stg_rand_path, stg_ctx);
+  ierr = ReadSTGInflow(comm, stg_inflow_path, stg_ctx); CHKERRQ(ierr);
+  ierr = ReadSTGRand(comm, stg_rand_path, stg_ctx); CHKERRQ(ierr);
 
   // -- Calculate kappa
   {
@@ -328,5 +309,5 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
 }
 
 void TearDownSTG(STGShur14Context stg_ctx) {
-  free(stg_ctx);
+  PetscFree(stg_ctx);
 }
