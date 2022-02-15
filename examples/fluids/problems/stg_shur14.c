@@ -28,18 +28,6 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef NOMINMAX
-
-#ifndef max
-#define max(a,b)            (((a) > (b)) ? (a) : (b))
-#endif
-
-#ifndef min
-#define min(a,b)            (((a) < (b)) ? (a) : (b))
-#endif
-
-#endif  /* NOMINMAX */
-
 /*
  * @brief Perform Cholesky decomposition on array of symmetric 3x3 matrices
  *
@@ -326,8 +314,7 @@ PetscErrorCode SetupSTGContext(STGShur14Context stg_ctx) {
 
     CeedPragmaSIMD
     for(int i=0; i<stg_ctx->nprofs; i++) {
-      le = max(2*prof_dw[i],
-               3*lt[i]); //TODO safe guard against negative prof_dw or lt?
+      le = PetscMax(2*prof_dw[i], 3*lt[i]);
       if(le_max < le) le_max = le;
     }
     CeedScalar kmin = M_PI/le_max;
