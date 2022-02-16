@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
            mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree, *level_degrees;
   PetscScalar *r;
   PetscScalar eps = 1.0;
-  PetscBool test_mode, benchmark_mode, read_mesh, write_solution;
+  PetscBool test_mode, benchmark_mode, read_mesh, write_solution, simplex;
   PetscLogStage solve_stage;
   PetscLogEvent assemble_event;
   DM  *dm, dm_orig;
@@ -108,6 +108,11 @@ int main(int argc, char **argv) {
                           "Write solution for visualization",
                           NULL, write_solution, &write_solution, NULL);
   CHKERRQ(ierr);
+  simplex = PETSC_FALSE;
+  ierr = PetscOptionsBool("-simplex",
+                          "Element topology (default:hex)",
+                          NULL, simplex, &simplex, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-eps",
                             "Epsilon parameter for Kershaw mesh transformation",
                             NULL, eps, &eps, NULL);
@@ -151,7 +156,7 @@ int main(int argc, char **argv) {
                                 &dm_orig);
     CHKERRQ(ierr);
   } else {
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, mesh_elem, NULL,
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, simplex, mesh_elem, NULL,
                                NULL, NULL, PETSC_TRUE, &dm_orig); CHKERRQ(ierr);
   }
 
@@ -216,7 +221,7 @@ int main(int argc, char **argv) {
     ierr = DMSetVecType(dm[i], vec_type); CHKERRQ(ierr);
     PetscInt dim;
     ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], level_degrees[i], num_comp_u, dim,
+    ierr = SetupDMByDegree(dm[i], level_degrees[i], q_extra, num_comp_u, dim,
                            bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func);
     CHKERRQ(ierr);
 
@@ -266,21 +271,22 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm,
                        "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc + PCMG --\n"
                        "  PETSc:\n"
-                       "    PETSc Vec Type                     : %s\n"
+                       "    PETSc Vec Type                          : %s\n"
                        "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED Backend                         : %s\n"
+                       "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                       "    Global Nodes                       : %" PetscInt_FMT "\n"
-                       "    Owned Nodes                        : %" PetscInt_FMT "\n"
-                       "    DoF per node                       : %" PetscInt_FMT "\n"
+                       "    Number of 1D Basis Nodes (p)            : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q)      : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                       "    Global Nodes                            : %" PetscInt_FMT "\n"
+                       "    Owned Nodes                             : %" PetscInt_FMT "\n"
+                       "    DoF per node                            : %" PetscInt_FMT "\n"
                        "  Multigrid:\n"
-                       "    Number of Levels                   : %" CeedInt_FMT "\n",
+                       "    Number of Levels                        : %" CeedInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
-                       CeedMemTypes[mem_type_backend],
-                       P, Q, g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
+                       CeedMemTypes[mem_type_backend], P, Q, q_extra,
+                       g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
                        num_comp_u, num_levels); CHKERRQ(ierr);
   }
 
@@ -560,16 +566,16 @@ int main(int argc, char **argv) {
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
-                         "    KSP Type                           : %s\n"
-                         "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
-                         "    Final rnorm                        : %e\n",
+                         "    KSP Type                                : %s\n"
+                         "    KSP Convergence                         : %s\n"
+                         "    Total KSP Iterations                    : %D\n"
+                         "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
       ierr = PetscPrintf(comm,
                          "  PCMG:\n"
-                         "    PCMG Type                          : %s\n"
-                         "    PCMG Cycle Type                    : %s\n",
+                         "    PCMG Type                               : %s\n"
+                         "    PCMG Cycle Type                         : %s\n",
                          PCMGTypes[pcmg_type],
                          PCMGCycleTypes[pcmg_cycle_type]); CHKERRQ(ierr);
     }
@@ -587,8 +593,8 @@ int main(int argc, char **argv) {
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
         CHKERRQ(ierr);
         ierr = PetscPrintf(comm,
-                           "    Pointwise Error (max)              : %e\n"
-                           "    CG Solve Time                      : %g (%g) sec\n",
+                           "    Pointwise Error (max)                   : %e\n"
+                           "    CG Solve Time                           : %g (%g) sec\n",
                            (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }

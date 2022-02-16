@@ -57,4 +57,25 @@ typedef struct {
                             PetscInt, PetscScalar *, void *);
 } BPData;
 
+// BP options
+typedef enum {
+  CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2,
+  CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5
+} BPType;
+
+// -----------------------------------------------------------------------------
+// Parameter structure for running problems
+// -----------------------------------------------------------------------------
+typedef struct RunParams_ *RunParams;
+struct RunParams_ {
+  MPI_Comm comm;
+  PetscBool test_mode, read_mesh, user_l_nodes, write_solution, simplex;
+  char *filename, *hostname;
+  PetscInt local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
+  PetscInt ksp_max_it_clip[2];
+  PetscMPIInt ranks_per_node;
+  BPType bp_choice;
+  PetscLogStage solve_stage;
+};
+
 #endif // libceed_petsc_examples_structs_h

@@ -55,6 +55,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
              l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   PetscFunctionBeginUser;
   // CEED bases
   P = degree + 1;
@@ -71,6 +72,9 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 =======
 >>>>>>> 158419b6 (example/petsc: added CreateBasisFromPlex and tested with tensor basis)
   ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
+=======
+  //ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
+>>>>>>> 0fa86f50 (example/petsc: Added CreateDistributedDM in petscutils.c and some cleanup)
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
 
   // CEED bases
