@@ -17,6 +17,12 @@
 #ifndef _ceed_xsmm_h
 #define _ceed_xsmm_h
 
+#include <ceed/ceed.h>
+#include <ceed/backend.h>
+#include <ceed/hash.h>
+#include <libxsmm.h>
+
+#if !defined(LIBXSMM_VERSION_GE)
 #define LIBXSMM_VERSION_GE(major, minor, update, patch)                           \
   (LIBXSMM_VERSION_MAJOR > major ||                                               \
    (LIBXSMM_VERSION_MAJOR == major &&                                             \
@@ -24,17 +30,13 @@
      (LIBXSMM_VERSION_MINOR == minor &&                                           \
       (LIBXSMM_VERSION_UPDATE > update ||                                         \
        (LIBXSMM_VERSION_UPDATE == update && LIBXSMM_VERSION_PATCH >= patch ))))))
+#endif
 
 #if LIBXSMM_VERSION_GE(1, 17, 0, 0)
 # define LIBXSMM_MMFUNCTION_KERNEL(a, b, c) kernel(a, b, c)
 #else
 # define LIBXSMM_MMFUNCTION_KERNEL(a, b, c) kernel(a, b, c, NULL, NULL, NULL)
 #endif
-
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <ceed/hash.h>
-#include <libxsmm.h>
 
 // Instantiate khash structs and methods
 CeedHashIJKLMInit(f32, libxsmm_smmfunction)
