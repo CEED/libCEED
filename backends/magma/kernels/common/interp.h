@@ -128,10 +128,10 @@ magma_interp_2d_kernel(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, typename TC, int NCOMP, int P, int Q, int MAXPQ>
 static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_interp_3d_kernel(
-    const T *dT, magma_trans_t transT,
+    const TC *dT, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, 
           T *dV, const int estrdV, const int cstrdV, const int nelem)
 {
@@ -143,38 +143,38 @@ magma_interp_3d_kernel(
 
     if (elem_id >= nelem) return;
 
-    T rU[1][NCOMP][P] = { make_zero<T>() };    // for a non fused operator DIM is always 1
-    T rV[1][NCOMP][Q] = { make_zero<T>() };    // for a non fused operator DIM is always 1
-    T rTmp[Q] = { make_zero<T>() };
+    TC rU[1][NCOMP][P] = { make_zero<TC>() };    // for a non fused operator DIM is always 1
+    TC rV[1][NCOMP][Q] = { make_zero<TC>() };    // for a non fused operator DIM is always 1
+    TC rTmp[Q] = { make_zero<TC>() };
 
     // shift global memory pointers by elem stride
     dU += elem_id * estrdU;
     dV += elem_id * estrdV;
 
     // assign shared memory pointers
-    T* sT    = (T*)(shared_data);
-    T* sTmp  = sT + P*Q;
+    TC* sT    = (TC*)(shared_data);
+    TC* sTmp  = sT + P*Q;
     sTmp    += ty * (max(P*P*MAXPQ, P*Q*Q));
 
     // read T
     if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dT, sT);
+        dread_TC_gm2sm<P, Q>(tx, transT, dT, sT);
     }
 
     // read V if transT is magmaTrans
     if (transT == MagmaTrans) {
-        readV_3d<T, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
+        readV_3d<T, TC, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
     }
 
     // read U (idim = 0 for dU, iDIM = 0 for rU, u_dimstride is always 0)
-    readU_3d<T, P, 1, NCOMP, P, 0>(dU, cstrdU, rU, sTmp, tx);
+    readU_3d<T, TC, P, 1, NCOMP, P, 0>(dU, cstrdU, rU, sTmp, tx);
     // there is a sync at the end of this function
 
-    magma_interp_3d_device<T, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU , rV, tx, rTmp, sTmp);
+    magma_interp_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q>(sT, transT, rU , rV, tx, rTmp, sTmp);
     __syncthreads();
 
     // write V
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
+    writeV_3d<T, TC, Q, 1, NCOMP, Q, 0>(dV, cstrdV, rV, tx);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

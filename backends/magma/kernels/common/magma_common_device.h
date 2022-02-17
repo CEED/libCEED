@@ -197,9 +197,9 @@ writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
 // iDIM specifies which dimension is being read into in rU
 // rUsize can be different from P (e.g. MAXPQ)
 // sTmp is a shared memory workspace of size P^3
-template<typename T, int P, int DIMU, int NCOMP, int rUsize, int iDIM>
+template<typename T, typename TC, int P, int DIMU, int NCOMP, int rUsize, int iDIM>
 __device__ __inline__ void 
-readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, const int tx)
+readU_3d(const T* dU, const int compstride, TC rU[DIMU][NCOMP][rUsize], TC* sTmp, const int tx)
 {
     // read U as a batch P^2 of (1xP) vectors
     // vec 0    : [u0, u1, u2, ... u_(P-1)] -- contiguous in memory
@@ -215,7 +215,7 @@ readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, 
         // read from global memory into shared memory
         if (tx < P*P) {
             for(int i = 0; i < P; i++) {
-                sTmp[i*P*P + tx] = dU[icomp * compstride + i*P*P + tx];
+                sTmp[i*P*P + tx] = (TC) dU[icomp * compstride + i*P*P + tx];
             }
         }
         __syncthreads();
@@ -235,14 +235,14 @@ readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP][rUsize], T* sTmp, 
 // register is assumed to be rV[DIMV][NCOMP][rVsize]
 // iDIM specifies which dimension is being read into in rV
 // rVsize can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
+template<typename T, typename TC, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
+readV_3d(const T* dV, const int compstride, TC rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if (tx < Q*Q) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
-                rV[iDIM][icomp][j] = dV[icomp * compstride + j*(Q*Q) + tx];
+                rV[iDIM][icomp][j] = (TC) dV[icomp * compstride + j*(Q*Q) + tx];
             }
         }
     }
@@ -255,14 +255,14 @@ readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int
 // iDIM specifies which dimension is being read from in rV
 // idim specifies which dimension is being written to in dV
 // rVsize can be different from P (e.g. MAXPQ)
-template<typename T, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
+template<typename T, typename TC, int Q, int DIMV, int NCOMP, int rVsize, int iDIM>
 __device__ __inline__ void 
-writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP][rVsize], const int tx)
+writeV_3d(T* dV, const int compstride, TC rV[DIMV][NCOMP][rVsize], const int tx)
 {
     if (tx < (Q*Q)) {
         for(int icomp = 0; icomp < NCOMP; icomp++) {
             for(int j = 0; j < Q; j++) {
-                dV[icomp * compstride + j*(Q*Q) + tx] = rV[iDIM][icomp][j];
+                dV[icomp * compstride + j*(Q*Q) + tx] = (T) rV[iDIM][icomp][j];
             }
         }
     }
@@ -276,6 +276,34 @@ __device__ __inline__ void
 dread_T_gm2sm(
         const int tx, const magma_trans_t transT, 
         const CeedScalar* dT, CeedScalar *sT ) 
+{
+    if ( transT == MagmaNoTrans ) {
+        // T is B x J
+        if (tx < B) {
+            for(int i = 0; i < J; i++) {
+                sT[i * B + tx] = dT[i * B + tx];
+            }
+        }
+    }
+    else {
+        // T is J x B
+        if (tx < J) {
+            for(int i = 0; i < B; i++) {
+                sT[tx * B + i] = dT[i * J + tx];
+            }
+        }
+    }
+    // must sync after call
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// reads T into shared memory
+// must sync after call
+template<int B, int J>
+__device__ __inline__ void
+dread_TC_gm2sm(
+        const int tx, const magma_trans_t transT, 
+        const double* dT, double *sT ) 
 {
     if ( transT == MagmaNoTrans ) {
         // T is B x J

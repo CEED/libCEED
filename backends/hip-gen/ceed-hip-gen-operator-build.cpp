@@ -30,7 +30,7 @@
 //------------------------------------------------------------------------------
 // Calculate the block size used for launching the operator kernel 
 //------------------------------------------------------------------------------
-CEED_INTERN int BlockGridCalculate(const CeedInt dim, const CeedInt nelem,
+extern "C" int BlockGridCalculate(const CeedInt dim, const CeedInt nelem,
 		                   const CeedInt P1d, const CeedInt Q1d,
 				   CeedInt *block_sizes) {
   
@@ -759,7 +759,7 @@ inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, 
 //------------------------------------------------------------------------------
 // Build singe operator kernel
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
+extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
 
   using std::ostringstream;
   using std::string;

@@ -38,4 +38,26 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts,
   }
 }
 
+template <int SIZE>
+//------------------------------------------------------------------------------
+// Read from quadrature points
+//------------------------------------------------------------------------------
+inline __device__ void readQuadsDouble(const CeedInt quad, const CeedInt num_qpts,
+                                 const CeedScalar* d_u, double* r_u) {
+  for(CeedInt comp = 0; comp < SIZE; comp++) {
+    r_u[comp] = (double) d_u[quad + num_qpts * comp];
+  }
+}
+
+//------------------------------------------------------------------------------
+// Write at quadrature points
+//------------------------------------------------------------------------------
+template <int SIZE>
+inline __device__ void writeQuadsDouble(const CeedInt quad, const CeedInt num_qpts,
+                                  const double* r_v, CeedScalar* d_v) {
+  for(CeedInt comp = 0; comp < SIZE; comp++) {
+    d_v[quad + num_qpts * comp] = (CeedScalar) r_v[comp];
+  }
+}
+
 //------------------------------------------------------------------------------

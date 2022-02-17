@@ -23,7 +23,7 @@ CEED_INTERN "C"
 magma_int_t
 magma_grad(
   magma_int_t P, magma_int_t Q, magma_int_t dim, magma_int_t ncomp,
-  const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode,
+  const double *dinterp1d, const double *dgrad1d, CeedTransposeMode tmode,
   const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU,
   magma_int_t dstrdU,
   CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV,
@@ -35,10 +35,12 @@ magma_grad(
   if (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
     if (tmode == CEED_TRANSPOSE) {
       switch(dim) {
-      case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
+      case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, (CeedScalar *) dinterp1d,
+                                               (CeedScalar *) dgrad1d, tmode,
                                                dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem,
                                                queue); break;
-      case 2: launch_failed = magma_gradt_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
+      case 2: launch_failed = magma_gradt_2d(P, Q, ncomp, (CeedScalar *) dinterp1d,
+                                               (CeedScalar *) dgrad1d, tmode,
                                                dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
                                                dstrdV, nelem, queue); break;
       case 3: launch_failed = magma_gradt_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
@@ -48,10 +50,12 @@ magma_grad(
       }
     } else {
       switch(dim) {
-      case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
+      case 1: launch_failed =  magma_grad_1d(P, Q, ncomp, (CeedScalar *) dinterp1d,
+                                               (CeedScalar *) dgrad1d, tmode,
                                                dU, estrdU, cstrdU, dV, estrdV, cstrdV, nelem,
                                                queue); break;
-      case 2: launch_failed = magma_gradn_2d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,
+      case 2: launch_failed = magma_gradn_2d(P, Q, ncomp, (CeedScalar *) dinterp1d,
+                                               (CeedScalar *) dgrad1d, tmode,
                                                dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV,
                                                dstrdV, nelem, queue); break;
       case 3: launch_failed = magma_gradn_3d(P, Q, ncomp, dinterp1d, dgrad1d, tmode,

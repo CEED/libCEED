@@ -86,9 +86,9 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   for (CeedInt i = 0; i < num_input_fields; i++) {
     ierr = CeedQFunctionFieldGetSize(input_fields[i], &size); CeedChkBackend(ierr);
     code << "  const CeedInt size_input_" << i << " = " << size << ";\n";
-    code << "  CeedScalar input_" << i << "[size_input_" << i << "];\n";
+    code << "  double input_" << i << "[size_input_" << i << "];\n";
   }
-  code << "  const CeedScalar* inputs[" << num_input_fields << "];\n";
+  code << "  const double* inputs[" << num_input_fields << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "  inputs[" << i << "] = input_" << i << ";\n";
   }
@@ -99,9 +99,9 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   for (CeedInt i = 0; i < num_output_fields; i++) {
     ierr = CeedQFunctionFieldGetSize(output_fields[i], &size); CeedChkBackend(ierr);
     code << "  const CeedInt size_output_" << i << " = " << size << ";\n";
-    code << "  CeedScalar output_" << i << "[size_output_" << i << "];\n";
+    code << "  double output_" << i << "[size_output_" << i << "];\n";
   }
-  code << "  CeedScalar* outputs[" << num_output_fields << "];\n";
+  code << "  double* outputs[" << num_output_fields << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "  outputs[" << i << "] = output_" << i << ";\n";
   }
@@ -114,7 +114,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Load inputs
   code << "    // -- Load inputs\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    code << "    readQuads<size_input_" << i << ">(q, Q, fields.inputs[" << i << "], input_" << i << ");\n";
+    code << "    readQuadsDouble<size_input_" << i << ">(q, Q, fields.inputs[" << i << "], input_" << i << ");\n";
   }
   code << "\n";
 
@@ -125,7 +125,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Write outputs
   code << "    // -- Write outputs\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "    writeQuads<size_output_" << i << ">(q, Q, output_" << i << ", fields.outputs[" << i << "]);\n";
+    code << "    writeQuadsDouble<size_output_" << i << ">(q, Q, output_" << i << ", fields.outputs[" << i << "]);\n";
   }
   code << "  }\n";
   code << "}\n";

@@ -93,9 +93,9 @@ magma_weight_2d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int Q>
+template<typename T, typename TC, int Q>
 static __launch_bounds__(MAGMA_BASIS_BOUNDS(Q*Q, MAGMA_MAXTHREADS_3D)) __global__ void
-magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int nelem)
+magma_weight_3d_kernel(const TC *dqweight1d, T *dV, const int v_stride, const int nelem)
 {
     MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -105,12 +105,12 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
 
     if (elem_id >= nelem) return;
 
-    T rV[1][1][Q];    // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
+    TC rV[1][1][Q];    // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
     // global memory pointers
     dV += elem_id * v_stride;
 
     // shared memory pointers
-    T* sTweight = (T*)shared_data;
+    TC* sTweight = (TC*)shared_data;
 
     // read dqweight_1d
     if (tx < Q) {
@@ -118,12 +118,12 @@ magma_weight_3d_kernel(const T *dqweight1d, T *dV, const int v_stride, const int
     }
     __syncthreads();
 
-    magma_weight_3d_device<T, 1, 1, Q, 0, 0>(sTweight, rV, tx);
+    magma_weight_3d_device<TC, 1, 1, Q, 0, 0>(sTweight, rV, tx);
 
     // write V
     if (tx < (Q*Q)) {
         for(int j = 0; j < Q; j++) {
-            dV[ j*(Q*Q) + tx ] = rV[0][0][j];
+            dV[ j*(Q*Q) + tx ] = (CeedScalar) rV[0][0][j];
         }
     }
 }

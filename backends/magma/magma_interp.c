@@ -24,7 +24,7 @@ magma_int_t
 magma_interp(
   magma_int_t P, magma_int_t Q,
   magma_int_t dim, magma_int_t ncomp,
-  const CeedScalar *dT, CeedTransposeMode tmode,
+  const double *dT, CeedTransposeMode tmode,
   const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU,
   CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV,
   magma_int_t nelem, magma_kernel_mode_t kernel_mode,
@@ -33,9 +33,11 @@ magma_interp(
 
   if (kernel_mode == MAGMA_KERNEL_DIM_SPECIFIC) {
     switch(dim) {
-    case 1: launch_failed = magma_interp_1d(P, Q, ncomp, dT, tmode, dU, estrdU,
+    case 1: launch_failed = magma_interp_1d(P, Q, ncomp, (CeedScalar *) dT, tmode,
+                                              dU, estrdU,
                                               cstrdU, dV, estrdV, cstrdV, nelem, queue); break;
-    case 2: launch_failed = magma_interp_2d(P, Q, ncomp, dT, tmode, dU, estrdU,
+    case 2: launch_failed = magma_interp_2d(P, Q, ncomp, (CeedScalar *) dT, tmode,
+                                              dU, estrdU,
                                               cstrdU, dV, estrdV, cstrdV, nelem, queue); break;
     case 3: launch_failed = magma_interp_3d(P, Q, ncomp, dT, tmode, dU, estrdU,
                                               cstrdU, dV, estrdV, cstrdV, nelem, queue); break;

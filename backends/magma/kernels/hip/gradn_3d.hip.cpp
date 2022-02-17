@@ -18,10 +18,10 @@
 #include "../common/grad.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int NCOMP, int P, int Q>
+template<typename T, typename TC, int NCOMP, int P, int Q>
 static magma_int_t 
 magma_gradn_3d_kernel_driver(  
-                const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
+                const TC *dinterp1d, const TC *dgrad1d, magma_trans_t transT,
                 const T *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t dstrdU, 
                       T *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t dstrdV, 
                 magma_int_t nelem, magma_queue_t queue)
@@ -34,8 +34,8 @@ magma_gradn_3d_kernel_driver(
     magma_int_t nthreads = MAXPQ*MAXPQ; 
     magma_int_t ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_3D);
     magma_int_t shmem  = 0;
-    shmem += sizeof(T) * 2*P*Q;  // for sTinterp and sTgrad
-    shmem += sizeof(T) * ntcol * max(P*P*P, (P*P*Q) + (P*Q*Q));  // rU needs P^2xP, the intermediate outputs need (P^2.Q + P.Q^2) 
+    shmem += sizeof(TC) * 2*P*Q;  // for sTinterp and sTgrad
+    shmem += sizeof(TC) * ntcol * max(P*P*P, (P*P*Q) + (P*Q*Q));  // rU needs P^2xP, the intermediate outputs need (P^2.Q + P.Q^2) 
 
     hipDeviceGetAttribute (&nthreads_max, hipDeviceAttributeMaxThreadsPerBlock, device);
     hipDeviceGetAttribute (&shmem_max, hipDeviceAttributeMaxSharedMemoryPerBlock, device);
@@ -49,7 +49,7 @@ magma_gradn_3d_kernel_driver(
         dim3 grid(nblocks, 1, 1);
         // IMPORTANT: we instantiate with DIM=1 instead of DIM=3 because the kernel handles one dimension at a time
         // We should instantiate with DIM >= 1 when we fuse the whole operator, because of the q-function
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(magma_gradn_3d_kernel<T,NCOMP,P,Q,MAXPQ>), dim3(grid), dim3(threads), shmem, magma_queue_get_hip_stream(queue), dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV, dstrdV, nelem);
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(magma_gradn_3d_kernel<T,TC,NCOMP,P,Q,MAXPQ>), dim3(grid), dim3(threads), shmem, magma_queue_get_hip_stream(queue), dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV, dstrdV, nelem);
         return (hipPeekAtLastError() == hipSuccess) ? 0 : 1;
     }
 }
@@ -59,7 +59,7 @@ template<int P, int Q>
 static magma_int_t 
 magma_gradn_3d_ncomp(
                 magma_int_t ncomp,
-                const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, magma_trans_t transT,
+                const double *dinterp1d, const double *dgrad1d, magma_trans_t transT,
                 const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t dstrdU,
                       CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t dstrdV,
                 magma_int_t nelem, magma_queue_t queue)
@@ -67,15 +67,15 @@ magma_gradn_3d_ncomp(
     magma_int_t launch_failed = 0;
     switch (ncomp) {
         case 1: 
-          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,1,P,Q>
+          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,double,1,P,Q>
           (dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV, dstrdV, nelem, queue); 
           break;
         case 2: 
-          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,2,P,Q>
+          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,double,2,P,Q>
           (dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV, dstrdV, nelem, queue); 
           break;
         case 3: 
-          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,3,P,Q>
+          launch_failed = magma_gradn_3d_kernel_driver<CeedScalar,double,3,P,Q>
           (dinterp1d, dgrad1d, transT, dU, estrdU, cstrdU, dstrdU, dV, estrdV, cstrdV, dstrdV, nelem, queue); 
           break;
         default: launch_failed = 1;
@@ -88,7 +88,7 @@ template<int P>
 static magma_int_t 
 magma_gradn_3d_ncomp_q(
                 magma_int_t Q, magma_int_t ncomp,
-                const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, magma_trans_t transT,
+                const double *dinterp1d, const double *dgrad1d, magma_trans_t transT,
                 const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t dstrdU,
                       CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t dstrdV,
                 magma_int_t nelem, magma_queue_t queue)
@@ -144,7 +144,7 @@ magma_gradn_3d_ncomp_q(
 static magma_int_t 
 magma_gradn_3d_ncomp_q_p(
                 magma_int_t P, magma_int_t Q, magma_int_t ncomp,
-                const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, magma_trans_t transT,
+                const double *dinterp1d, const double *dgrad1d, magma_trans_t transT,
                const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t dstrdU,
                       CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t dstrdV,
                 magma_int_t nelem, magma_queue_t queue)
@@ -201,7 +201,7 @@ magma_gradn_3d_ncomp_q_p(
 extern "C" magma_int_t 
 magma_gradn_3d( 
     magma_int_t P, magma_int_t Q, magma_int_t ncomp,  
-    const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, CeedTransposeMode tmode, 
+    const double *dinterp1d, const double *dgrad1d, CeedTransposeMode tmode, 
     const CeedScalar *dU, magma_int_t estrdU, magma_int_t cstrdU, magma_int_t dstrdU,
           CeedScalar *dV, magma_int_t estrdV, magma_int_t cstrdV, magma_int_t dstrdV,
     magma_int_t nelem, magma_queue_t queue)

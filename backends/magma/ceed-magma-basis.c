@@ -548,22 +548,37 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                   data->queue);
 
   // Copy interp1d to the GPU
-  ierr = magma_malloc((void **)&impl->dinterp1d, Q1d*P1d*sizeof(interp1d[0]));
+  ierr = magma_malloc((void **)&impl->dinterp1d, Q1d*P1d*sizeof(double));
+  double *interp1d_dbl = (double *)(malloc(Q1d*P1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d*P1d; i++) {
+    interp1d_dbl[i] = (double) interp1d[i];
+  }
   CeedChkBackend(ierr);
-  magma_setvector(Q1d*P1d, sizeof(interp1d[0]), interp1d, 1, impl->dinterp1d, 1,
+  magma_setvector(Q1d*P1d, sizeof(double), interp1d_dbl, 1, impl->dinterp1d, 1,
                   data->queue);
+  free(interp1d_dbl);
 
   // Copy grad1d to the GPU
-  ierr = magma_malloc((void **)&impl->dgrad1d, Q1d*P1d*sizeof(grad1d[0]));
+  ierr = magma_malloc((void **)&impl->dgrad1d, Q1d*P1d*sizeof(double));
+  double *grad1d_dbl = (double *)(malloc(Q1d*P1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d*P1d; i++) {
+    grad1d_dbl[i] = (double) grad1d[i];
+  }
   CeedChkBackend(ierr);
-  magma_setvector(Q1d*P1d, sizeof(grad1d[0]), grad1d, 1, impl->dgrad1d, 1,
+  magma_setvector(Q1d*P1d, sizeof(double), grad1d_dbl, 1, impl->dgrad1d, 1,
                   data->queue);
+  free(grad1d_dbl);
 
   // Copy qweight1d to the GPU
-  ierr = magma_malloc((void **)&impl->dqweight1d, Q1d*sizeof(qweight1d[0]));
+  ierr = magma_malloc((void **)&impl->dqweight1d, Q1d*sizeof(double));
+  double *qweight1d_dbl = (double *)(malloc(Q1d*sizeof(double)));
+  for (CeedInt i = 0; i < Q1d; i++) {
+    qweight1d_dbl[i] = (double) qweight1d[i];
+  }
   CeedChkBackend(ierr);
-  magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1,
+  magma_setvector(Q1d, sizeof(double), qweight1d_dbl, 1, impl->dqweight1d, 1,
                   data->queue);
+  free(qweight1d_dbl);
 
   return CEED_ERROR_SUCCESS;
 }

@@ -205,10 +205,10 @@ magma_gradt_2d_kernel(
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, typename TC, int NCOMP, int P, int Q, int MAXPQ>
 static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_gradn_3d_kernel(
-    const T* dinterp1d, const T* dgrad1d, magma_trans_t transT,
+    const TC* dinterp1d, const TC* dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
           T *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem)
 {
@@ -220,65 +220,65 @@ magma_gradn_3d_kernel(
 
     if (elem_id >= nelem) return;
 
-    T rU[1][NCOMP][P] = {make_zero<T>()};  // here DIMU = 1, but might be different for a fused operator
-    T rV[1][NCOMP][Q] = {make_zero<T>()};  // here DIMV = 1, but might be different for a fused operator
-    T rTmp = make_zero<T>();
+    TC rU[1][NCOMP][P] = {make_zero<TC>()};  // here DIMU = 1, but might be different for a fused operator
+    TC rV[1][NCOMP][Q] = {make_zero<TC>()};  // here DIMV = 1, but might be different for a fused operator
+    TC rTmp = make_zero<TC>();
 
     // shift global memory pointers by elem stride
     dU += elem_id * estrdU;
     dV += elem_id * estrdV;
 
     // assign shared memory pointers
-    T* sTinterp = (T*)(shared_data);
-    T* sTgrad   = sTinterp + P*Q;
-    T* sTmp     = sTgrad   + P*Q;
+    TC* sTinterp = (TC*)(shared_data);
+    TC* sTgrad   = sTinterp + P*Q;
+    TC* sTmp     = sTgrad   + P*Q;
     sTmp       += ty * (max(P*P*P, (P*P*Q) + (P*Q*Q)));
 
     // read T
     if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
-        dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
+        dread_TC_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
+        dread_TC_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
     }
     __syncthreads();
 
     // No need to read V ( required only in transposed grad )
-    const T beta = make_zero<T>();
+    const TC beta = make_zero<T>();
 
     /* read U (idim = 0 for dU, iDIM = 0 for rU) -- 
        there is a sync at the end of this function */
-    readU_3d<T, P, 1, NCOMP, P, 0>
+    readU_3d<T, TC, P, 1, NCOMP, P, 0>
     (dU + (0*dstrdU), cstrdU, rU, sTmp, tx);
 
     /* first call (iDIM = 0, iDIMU = 0, iDIMV = 0) -- 
        output from rV[0][][] into dV (idim = 0) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>
+    writeV_3d<T, TC, Q, 1, NCOMP, Q, 0>
     (dV+ (0*dstrdV), cstrdV, rV, tx);
 
     /* second call (iDIM = 1, iDIMU = 0, iDIMV = 0) -- 
        output from rV[0][][] into dV (idim = 1) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>
+    writeV_3d<T, TC, Q, 1, NCOMP, Q, 0>
     (dV+ (1*dstrdV), cstrdV, rV, tx); 
 
     /* third call (iDIM = 2, iDIMU = 0, iDIMV = 0) -- 
        output from rV[0][][] into dV (idim = 2) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 2, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 2, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>
+    writeV_3d<T, TC, Q, 1, NCOMP, Q, 0>
     (dV+ (2*dstrdV), cstrdV, rV, tx); 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-template<typename T, int NCOMP, int P, int Q, int MAXPQ>
+template<typename T, typename TC, int NCOMP, int P, int Q, int MAXPQ>
 static __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ*MAXPQ, MAGMA_MAXTHREADS_3D)) __global__ void
 magma_gradt_3d_kernel(
-    const T *dinterp1d, const T *dgrad1d, magma_trans_t transT,
+    const TC *dinterp1d, const TC *dgrad1d, magma_trans_t transT,
     const T *dU, const int estrdU, const int cstrdU, const int dstrdU,  
           T *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem)
 {
@@ -290,61 +290,61 @@ magma_gradt_3d_kernel(
 
     if (elem_id >= nelem) return;
 
-    T rU[1][NCOMP][P] = { make_zero<T>() };  // here DIMU = 1, but might be different for a fused operator
-    T rV[1][NCOMP][Q] = { make_zero<T>() };  // here DIMV = 1, but might be different for a fused operator
-    T rTmp = make_zero<T>();
+    TC rU[1][NCOMP][P] = { make_zero<TC>() };  // here DIMU = 1, but might be different for a fused operator
+    TC rV[1][NCOMP][Q] = { make_zero<TC>() };  // here DIMV = 1, but might be different for a fused operator
+    TC rTmp = make_zero<TC>();
 
     // shift global memory pointers by elem stride
     dU += elem_id * estrdU;
     dV += elem_id * estrdV;
 
     // assign shared memory pointers
-    T* sTinterp = (T*)(shared_data);
-    T* sTgrad   = sTinterp + P*Q;
-    T* sTmp     = sTgrad   + P*Q;
+    TC* sTinterp = (TC*)(shared_data);
+    TC* sTgrad   = sTinterp + P*Q;
+    TC* sTmp     = sTgrad   + P*Q;
     sTmp       += ty * (max(P*P*P, (P*P*Q) + (P*Q*Q)));
 
     // read T
     if (ty == 0) {
-        dread_T_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
-        dread_T_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
+        dread_TC_gm2sm<P, Q>(tx, transT, dinterp1d, sTinterp);
+        dread_TC_gm2sm<P, Q>(tx, transT, dgrad1d, sTgrad);
     }
     __syncthreads();
 
     // read V (since this is transposed mode)
-    const T beta = make_one<T>();
-    readV_3d<T, Q, 1, NCOMP, Q, 0>
+    const TC beta = make_one<T>();
+    readV_3d<T, TC, Q, 1, NCOMP, Q, 0>
     (dV + (0*dstrdV), cstrdV, rV, tx);
 
     /* read U (idim = 0 for dU, iDIM = 0 for rU) -- 
        there is a sync at the end of this function */
-    readU_3d<T, P, 1, NCOMP, P, 0>
+    readU_3d<T, TC, P, 1, NCOMP, P, 0>
     (dU + (0 * dstrdU), cstrdU, rU, sTmp, tx); 
     /* then first call (iDIM = 0, iDIMU = 0, iDIMV = 0) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 0, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     /* read U (idim = 1 for dU, iDIM = 0 for rU) -- 
        there is a sync at the end of this function */
-    readU_3d<T, P, 1, NCOMP, P, 0>
+    readU_3d<T, TC, P, 1, NCOMP, P, 0>
     (dU + (1 * dstrdU), cstrdU, rU, sTmp, tx); 
     /* then second call (iDIM = 1, iDIMU = 0, iDIMV = 0) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 1, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     /* read U (idim = 2 for dU, iDIM = 0 for rU) -- 
        there is a sync at the end of this function */
-    readU_3d<T, P, 1, NCOMP, P, 0>
+    readU_3d<T, TC, P, 1, NCOMP, P, 0>
     (dU + (2 * dstrdU), cstrdU, rU, sTmp, tx); 
     /* then third call (iDIM = 2, iDIMU = 0, iDIMV = 0) */
-    magma_grad_3d_device<T, 1, 1, NCOMP, P, Q, P, Q, 2, 0, 0>
+    magma_grad_3d_device<TC, 1, 1, NCOMP, P, Q, P, Q, 2, 0, 0>
     (sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
     /* there is a sync at the end of magma_grad_3d_device */
 
     // write V 
-    writeV_3d<T, Q, 1, NCOMP, Q, 0>
+    writeV_3d<T, TC, Q, 1, NCOMP, Q, 0>
     (dV + (0 * dstrdV), cstrdV, rV, tx);
 }
 

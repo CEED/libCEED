@@ -139,7 +139,7 @@ typedef enum {
 } CeedScalarType;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.
-#include "ceed-f64.h"
+#include "ceed-f32.h"
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
@@ -581,8 +581,8 @@ CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
  @ingroup CeedQFunction
 **/
 typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q,
-                                 const CeedScalar *const *in,
-                                 CeedScalar *const *out);
+                                 const double *const *in,
+                                 double *const *out);
 
 CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     CeedQFunctionUser f, const char *source, CeedQFunction *qf);

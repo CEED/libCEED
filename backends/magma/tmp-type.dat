@@ -1,0 +1,7 @@
+
+typedef enum {
+    MagmaNoTrans       = 111,
+    MagmaTrans         = 112,
+    MagmaConjTrans     = 113,
+    Magma_ConjTrans    = MagmaConjTrans
+} magma_trans_t;
