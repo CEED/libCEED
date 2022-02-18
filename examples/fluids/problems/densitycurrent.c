@@ -20,6 +20,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/densitycurrent.h"
+#include "../qfunctions/newtonian.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
                                   void *ctx) {
@@ -46,10 +47,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
   problem->setup_sur_loc           = SetupBoundary_loc;
   problem->ics                     = ICsDC;
   problem->ics_loc                 = ICsDC_loc;
-  problem->apply_vol_rhs           = DC;
-  problem->apply_vol_rhs_loc       = DC_loc;
-  problem->apply_vol_ifunction     = IFunction_DC;
-  problem->apply_vol_ifunction_loc = IFunction_DC_loc;
+  problem->apply_vol_rhs           = Newtonian;
+  problem->apply_vol_rhs_loc       = Newtonian_loc;
+  problem->apply_vol_ifunction     = IFunction_Newtonian;
+  problem->apply_vol_ifunction_loc = IFunction_Newtonian_loc;
   problem->bc                      = Exact_DC;
   problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
