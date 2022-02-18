@@ -175,9 +175,9 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
                              "Turbulent length scale in %s cannot be negative", path);
     if(eps[i] < 0) SETERRQ1(comm, -1,
                               "Turbulent dissipation in %s cannot be negative", path);
+
     CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
                                           &stg_ctx->data[stg_ctx->offsets.cij];
-
     CalcCholeskyDecomp(stg_ctx->nprofs, rij, cij);
   }
   ierr = PetscFClose(comm, fp);
@@ -298,7 +298,7 @@ PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
       le = PetscMax(2*prof_dw[i], 3*lt[i]);
       if(le_max < le) le_max = le;
     }
-    CeedScalar kmin = M_PI/le_max;
+    CeedScalar kmin = 0.5*M_PI/le_max;
 
     CeedPragmaSIMD
     for(int i=0; i<stg_ctx->nmodes; i++) {
