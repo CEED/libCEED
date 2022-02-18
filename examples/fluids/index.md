@@ -495,7 +495,7 @@ $$
 $$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa^e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
 
 $$
-f_\eta = \exp \left[-(12\kappa_\eta /(2\pi))^2 \right], \quad
+f_\eta = \exp \left[-(12\kappa /\kappa_\eta)^2 \right], \quad
 f_\mathrm{cut} = \exp \left( - \left [ \frac{4\max(\kappa-0.9\kappa_\mathrm{cut}, 0)}{\kappa_\mathrm{cut}} \right]^3 \right)
 $$
 
