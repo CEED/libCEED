@@ -149,7 +149,7 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
 //
 // *****************************************************************************
 CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
-                   const CeedScalar *const *in, CeedScalar *const *out) {
+                          const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -389,8 +389,8 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
-                             const CeedScalar *const *in,
-                             CeedScalar *const *out) {
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
