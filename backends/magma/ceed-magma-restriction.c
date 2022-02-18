@@ -152,7 +152,11 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
 
   // Free if we own the data
   if (impl->own_) {
-    ierr = magma_free_pinned(impl->offsets); CeedChkBackend(ierr);
+    if (impl->own_ == OWNED_PINNED) {
+      ierr = magma_free_pinned(impl->offsets); CeedChkBackend(ierr);
+    } else if (impl->own_ == OWNED_UNPINNED) {
+      free(impl->offsets);
+    }
     ierr = magma_free(impl->doffsets);       CeedChkBackend(ierr);
   } else if (impl->down_) {
     ierr = magma_free(impl->doffsets);       CeedChkBackend(ierr);
@@ -180,14 +184,14 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
 
   impl->doffsets = NULL;
   impl->offsets  = NULL;
-  impl->own_ = 0;
+  impl->own_ = OWNED_NONE;
   impl->down_= 0;
 
   if (mtype == CEED_MEM_HOST) {
     // memory is on the host; own_ = 0
     switch (cmode) {
     case CEED_COPY_VALUES:
-      impl->own_ = 1;
+      impl->own_ = OWNED_PINNED;
 
       if (offsets != NULL) {
 
@@ -202,13 +206,11 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       }
       break;
     case CEED_OWN_POINTER:
-      impl->own_ = 1;
+      impl->own_ = OWNED_UNPINNED;
 
       if (offsets != NULL) {
         ierr = magma_malloc( (void **)&impl->doffsets,
                              size * sizeof(CeedInt)); CeedChkBackend(ierr);
-        // TODO: possible problem here is if we are passed non-pinned memory;
-        //       (as we own it, lter in destroy, we use free for pinned memory).
         impl->offsets = (CeedInt *)offsets;
 
         magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1,
@@ -233,7 +235,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
                            size * sizeof(CeedInt)); CeedChkBackend(ierr);
       ierr = magma_malloc_pinned( (void **)&impl->offsets,
                                   size * sizeof(CeedInt)); CeedChkBackend(ierr);
-      impl->own_ = 1;
+      impl->own_ = OWNED_PINNED;
 
       if (offsets)
         magma_getvector(size, sizeof(CeedInt), impl->doffsets, 1, (void *)offsets, 1,
@@ -243,7 +245,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
       impl->doffsets = (CeedInt *)offsets;
       ierr = magma_malloc_pinned( (void **)&impl->offsets,
                                   size * sizeof(CeedInt)); CeedChkBackend(ierr);
-      impl->own_ = 1;
+      impl->own_ = OWNED_PINNED;
 
       break;
     case CEED_USE_POINTER:
