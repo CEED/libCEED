@@ -94,6 +94,42 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
   }
 }
 
+/*
+ * @brief Calculate spectrum coefficients for STG
+ *
+ * Calculates q_n at a given distance to the wall
+ *
+ * @param[in]  dw      Distance to the nearest wall
+ * @param[in]  eps     Turbulent dissipation w/rt dw
+ * @param[in]  lt      Turbulent length scale w/rt dw
+ * @param[in]  h       Element lengths in coordinate directions
+ * @param[in]  nu      Dynamic Viscosity;
+ * @param[in]  stg_ctx STGShur14Context for the problem
+ * @param[out] qn      Spectrum coefficients, [nmodes]
+ */
+void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
+    const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
+    const CeedScalar nu, CeedScalar qn[], const STGShur14Context stg_ctx) {
+
+  CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
+  CeedScalar ke, fcut, feta, kcut, keta, hmax, Ektot=0.0;
+
+  hmax = PetscMax( PetscMax(h[0], h[1]), h[2]);
+
+  keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
+  kcut = M_PI/ PetscMin( PetscMax(PetscMax(h[1], h[2]), 0.3*hmax) + 0.1*dw,
+                         hmax );
+
+
+  for(CeedInt n=0; n<stg_ctx->nmodes; n++) {
+    feta = exp(-pow(12*kappa[n]/keta, 2));
+    fcut = exp( -pow(4*PetscMax(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
+    qn[n] = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
+    Ektot += qn[n];
+  }
+  for(CeedInt n=0; n<stg_ctx->nmodes; n++) qn[n] /= Ektot;
+}
+
 /******************************************************
  * @brief Calculate u(x,t) for STG inflow condition
  *
