@@ -95,7 +95,7 @@ noether-rocm:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA/install && git -C $MAGMA_DIR describe
   script:
     - rm -f .SUCCESS
 # libCEED
@@ -218,7 +218,7 @@ lv-cuda:
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
     - export CUDA_DIR=/usr/local/cuda-11.6
     - export CUDA_VISIBLE_DEVICES=GPU-c4529365-8229-f689-b43d-ccd7f1677079 # our RTX 2080 Super via nvidia-smi -L
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=1 && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=4 && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version

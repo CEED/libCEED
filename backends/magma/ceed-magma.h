@@ -48,10 +48,16 @@ typedef struct {
   CeedScalar *dqweight;
 } CeedBasisNonTensor_Magma;
 
+typedef enum {
+  OWNED_NONE = 0,
+  OWNED_UNPINNED,
+  OWNED_PINNED,
+} OwnershipMode;
+
 typedef struct {
   CeedInt *offsets;
   CeedInt *doffsets;
-  int  own_;
+  OwnershipMode own_;
   int down_;            // cover a case where we own Device memory
 } CeedElemRestriction_Magma;
 

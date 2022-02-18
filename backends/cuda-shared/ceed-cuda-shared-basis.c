@@ -80,8 +80,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
                            &d_u, &d_v
                           };
     if (dim == 1) {
-      CeedInt elems_per_block = CeedIntMax(512 / thread_1d,
-                                           1); // avoid >512 total threads
+      CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2],
+                                           CeedIntMax(512 / thread_1d,
+                                               1)); // avoid >512 total threads
       CeedInt grid = num_elem/elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*sizeof(CeedScalar);
@@ -125,8 +126,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
                          &data->c_G, &d_u, &d_v
                         };
     if (dim == 1) {
-      CeedInt elems_per_block = CeedIntMax(512 / thread_1d,
-                                           1); // avoid >512 total threads
+      CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2],
+                                           CeedIntMax(512 / thread_1d,
+                                               1)); // avoid >512 total threads
       CeedInt grid = num_elem / elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block<num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*sizeof(CeedScalar);
