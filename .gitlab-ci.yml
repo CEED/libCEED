@@ -95,7 +95,7 @@ noether-rocm:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA/install && git -C $MAGMA_DIR describe
   script:
     - rm -f .SUCCESS
 # libCEED
