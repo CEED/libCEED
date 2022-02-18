@@ -187,12 +187,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   }
 
   // Get context data
-  CeedQFunctionContext ctx;
-  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChkBackend(ierr);
-  if (ctx) {
-    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_DEVICE, &qf_data->d_c);
-    CeedChkBackend(ierr);
-  }
+  ierr = CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c);
+  CeedChkBackend(ierr);
 
   // Apply operator
   void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
@@ -254,10 +250,9 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   }
 
   // Restore context data
-  if (ctx) {
-    ierr = CeedQFunctionContextRestoreData(ctx, &qf_data->d_c);
-    CeedChkBackend(ierr);
-  }
+  ierr = CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c);
+  CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxDataCopy);
   ctxDataCopy[4] = 6;
   CeedQFunctionContextRestoreData(ctx, &ctxDataCopy);
-  if (fabs(ctxData[4] - 6) > 1.e-14)
+  if (ctxData[4] != 6)
     // LCOV_EXCL_START
     printf("error modifying data: %f != 6.0\n", ctxData[4]);
   // LCOV_EXCL_STOP

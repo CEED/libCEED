@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContext ctx;
   CeedInt Q = 8;
   const CeedScalar *vv;
-  CeedScalar w[Q], u[Q], v[Q], ctxData[5] = {1, 2, 3, 4, 5};
+  CeedScalar w[Q], u[Q], v[Q], ctx_data[5] = {1, 2, 3, 4, 5};
 
   CeedInit(argv[1], &ceed);
 
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
   CeedQFunctionContextCreate(ceed, &ctx);
   CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof(ctxData), &ctxData);
+                              sizeof(ctx_data), &ctx_data);
   CeedQFunctionSetContext(qf_mass, ctx);
 
   for (CeedInt i=0; i<Q; i++) {
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
   for (CeedInt i=0; i<Q; i++)
-    if (fabs(ctxData[4] * v[i] - vv[i]) > 100.*CEED_EPSILON)
+    if (fabs(ctx_data[4] * v[i] - vv[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("[%d] v %f != vv %f\n",i, v[i], vv[i]);
   // LCOV_EXCL_STOP

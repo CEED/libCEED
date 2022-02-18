@@ -147,18 +147,9 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to pass test t11* on error
+    # grep to pass test t11*, t215, t408 on error
     if grep -F -q -e 'access' ${output}.err \
-            && [[ "$1" = "t11"* ]] ; then
-        printf "ok $i0 PASS - expected failure $1 $backend\n"
-        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
-        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
-        continue
-    fi
-
-    # grep to pass test t215 on error
-    if grep -F -q -e 'access' ${output}.err \
-            && [[ "$1" = "t215"* ]] ; then
+            && [[ "$1" = "t11"* || "$1" = "t215"* || "$1" = "t408"* ]] ; then
         printf "ok $i0 PASS - expected failure $1 $backend\n"
         printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
         printf "ok $i2 PASS - expected failure $1 $backend stderr\n"

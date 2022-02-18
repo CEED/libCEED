@@ -309,9 +309,10 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Get data
+// Core logic for GetData.
+//   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
-static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
+static int CeedQFunctionContextGetDataCore_Hip(const CeedQFunctionContext ctx,
     const CeedMemType mem_type, void *data) {
   int ierr;
   Ceed ceed;
@@ -336,6 +337,29 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
     *(void **)data = impl->d_data;
     break;
   }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Get read-only access to the data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextGetDataRead_Hip(const CeedQFunctionContext ctx,
+    const CeedMemType mem_type, void *data) {
+  return CeedQFunctionContextGetDataCore_Hip(ctx, mem_type, data);
+}
+
+//------------------------------------------------------------------------------
+// Get read/write access to the data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx,
+    const CeedMemType mem_type, void *data) {
+  int ierr;
+  CeedQFunctionContext_Hip *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
+
+  ierr = CeedQFunctionContextGetDataCore_Hip(ctx, mem_type, data);
+  CeedChkBackend(ierr);
 
   // Mark only pointer for requested memory as valid
   ierr = CeedQFunctionContextSetAllInvalid_Hip(ctx); CeedChkBackend(ierr);
@@ -390,6 +414,8 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextTakeData_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetDataRead",
+                                CeedQFunctionContextGetDataRead_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Hip); CeedChkBackend(ierr);
 

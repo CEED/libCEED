@@ -33,6 +33,7 @@ for each release of libCEED.
 - Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 - Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
 - Added support for non-tensor H(div) elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
+- Added {c:func}`CeedQFunctionSetContextWritable` and read-only access to `CeedQFunctionContext` data as an optional feature to improve GPU performance. By default, calling the `CeedQFunctionUser` during {c:func}`CeedQFunctionApply` is assumed to write into the `CeedQFunctionContext` data, consistent with the previous behavior. Note that if a user asserts that their `CeedQFunctionUser` does not write into the `CeedQFunctionContext` data, they are responsible for the validity of this assertion.
 
 ### Maintainability
 

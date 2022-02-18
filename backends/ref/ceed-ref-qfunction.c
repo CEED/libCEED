@@ -28,13 +28,9 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   CeedQFunction_Ref *impl;
   ierr = CeedQFunctionGetData(qf, &impl); CeedChkBackend(ierr);
 
-  CeedQFunctionContext ctx;
-  ierr = CeedQFunctionGetContext(qf, &ctx); CeedChkBackend(ierr);
-  void *ctxData = NULL;
-  if (ctx) {
-    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctxData);
-    CeedChkBackend(ierr);
-  }
+  void *ctx_data = NULL;
+  ierr = CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx_data);
+  CeedChkBackend(ierr);
 
   CeedQFunctionUser f = NULL;
   ierr = CeedQFunctionGetUserFunction(qf, &f); CeedChkBackend(ierr);
@@ -51,7 +47,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
     CeedChkBackend(ierr);
   }
 
-  ierr = f(ctxData, Q, impl->inputs, impl->outputs); CeedChkBackend(ierr);
+  ierr = f(ctx_data, Q, impl->inputs, impl->outputs); CeedChkBackend(ierr);
 
   for (int i = 0; i<num_in; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChkBackend(ierr);
@@ -59,9 +55,7 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q,
   for (int i = 0; i<num_out; i++) {
     ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChkBackend(ierr);
   }
-  if (ctx) {
-    ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChkBackend(ierr);
-  }
+  ierr = CeedQFunctionRestoreContextData(qf, &ctx_data); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

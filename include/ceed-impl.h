@@ -262,6 +262,7 @@ struct CeedQFunction_private {
   bool is_identity;
   bool is_fortran;
   bool is_immutable;
+  bool is_context_writable;
   CeedQFunctionContext ctx; /* user context for function */
   void *data;          /* place for the backend to store any data */
 };
@@ -274,12 +275,15 @@ struct CeedQFunctionContext_private {
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
   int (*TakeData)(CeedQFunctionContext, CeedMemType, void *);
   int (*GetData)(CeedQFunctionContext, CeedMemType, void *);
+  int (*GetDataRead)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
+  int (*RestoreDataRead)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
   CeedInt num_fields;
   CeedInt max_fields;
   CeedContextFieldLabel *field_labels;
   uint64_t state;
+  uint64_t num_readers;
   size_t ctx_size;
   void *data;
 };

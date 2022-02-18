@@ -618,6 +618,7 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
                                        CeedQFunctionField **output_fields);
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf,
                                         CeedQFunctionContext ctx);
+CEED_EXTERN int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
 CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
@@ -651,7 +652,11 @@ CEED_EXTERN int CeedQFunctionContextTakeData(CeedQFunctionContext ctx,
     CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx,
     CeedMemType mem_type, void *data);
+CEED_EXTERN int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx,
+    CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx,
+    void *data);
+CEED_EXTERN int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
     const char *field_name, size_t field_offset, size_t num_values,

@@ -55,12 +55,8 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   }
 
   // Get context data
-  CeedQFunctionContext ctx;
-  ierr = CeedQFunctionGetInnerContext(qf, &ctx); CeedChkBackend(ierr);
-  if (ctx) {
-    ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_DEVICE, &data->d_c);
-    CeedChkBackend(ierr);
-  }
+  ierr = CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &data->d_c);
+  CeedChkBackend(ierr);
 
   // Run kernel
   void *args[] = {&data->d_c, (void *) &Q, &data->fields};
@@ -78,10 +74,9 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
   }
 
   // Restore context
-  if (ctx) {
-    ierr = CeedQFunctionContextRestoreData(ctx, &data->d_c);
-    CeedChkBackend(ierr);
-  }
+  ierr = CeedQFunctionRestoreInnerContextData(qf, &data->d_c);
+  CeedChkBackend(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

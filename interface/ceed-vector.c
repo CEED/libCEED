@@ -17,6 +17,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <ceed-impl.h>
+#include <assert.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -463,7 +464,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
   // LCOV_EXCL_STOP
 
   ierr = vec->GetArray(vec, mem_type, array); CeedChk(ierr);
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -552,7 +553,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
   // LCOV_EXCL_STOP
 
   ierr = vec->GetArrayWrite(vec, mem_type, array); CeedChk(ierr);
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -577,7 +578,7 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
     ierr = vec->RestoreArray(vec); CeedChk(ierr);
   }
   *array = NULL;
-  vec->state += 1;
+  vec->state++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -682,7 +683,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 **/
 int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   int ierr;
-  CeedScalar *x_array;
+  CeedScalar *x_array = NULL;
   CeedInt n_x;
 
   bool has_valid_array = true;
@@ -722,8 +723,8 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 **/
 int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   int ierr;
-  CeedScalar *y_array;
-  CeedScalar const *x_array;
+  CeedScalar *y_array = NULL;
+  CeedScalar const *x_array = NULL;
   CeedInt n_x, n_y;
 
   ierr = CeedVectorGetLength(y, &n_y); CeedChk(ierr);
@@ -774,6 +775,8 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   ierr = CeedVectorGetArrayWrite(y, CEED_MEM_HOST, &y_array); CeedChk(ierr);
   ierr = CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array); CeedChk(ierr);
 
+  assert(x_array); assert(y_array);
+
   for (CeedInt i=0; i<n_y; i++)
     y_array[i] += alpha * x_array[i];
 
@@ -797,8 +800,8 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
 **/
 int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   int ierr;
-  CeedScalar *w_array;
-  CeedScalar const *x_array, *y_array;
+  CeedScalar *w_array = NULL;
+  CeedScalar const *x_array = NULL, *y_array = NULL;
   CeedInt n_w, n_x, n_y;
 
   ierr = CeedVectorGetLength(w, &n_w); CeedChk(ierr);
@@ -857,6 +860,8 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   } else {
     y_array = x_array;
   }
+
+  assert(w_array); assert(x_array); assert(y_array);
 
   for (CeedInt i=0; i<n_w; i++)
     w_array[i] = x_array[i] * y_array[i];
