@@ -179,8 +179,42 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
 CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in,
                                  CeedScalar *const *out) {
-  // Calculate qn on the fly
-  // Use STGShur14_Calc to actually calculate u
+
+  //*INDENT-OFF*
+  const CeedScalar (*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+                   (*X)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+
+   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+
+  //*INDENT-ON*
+
+  const STGShur14Context stg_ctx = (STGShur14Context) ctx;
+  CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt, h[3];
+  CeedScalar nu; // TODO Calculate nu
+  CeedScalar t; //TODO Get time into the q function (via context?)
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    const CeedScalar rho = q[0][i];
+    const CeedScalar x[] = { X[0][i], X[1][i], X[2][i] };
+    //*INDENT-OFF*
+    const CeedScalar dXdx[3][3] = {{ q_data[1][i], q_data[2][i], q_data[3][i] },
+                                   { q_data[4][i], q_data[5][i], q_data[6][i] },
+                                   { q_data[7][i], q_data[8][i], q_data[9][i] }};
+    //*INDENT-OFF*
+
+    for(CeedInt j=0; j<3; j++){
+      h[j] = 2 / sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j] +
+                      dXdx[2][j]*dXdx[2][j]);
+    }
+
+  InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
+  CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
+  STGShur14_Calc(x, t, ubar, cij, qn, u, stg_ctx);
+
+  }
+
   return 0;
 }
 
