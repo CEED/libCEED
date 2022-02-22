@@ -53,7 +53,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   problem->apply_vol_ifunction_loc = IFunction_EulerShockTube_loc;
   problem->bc                      = Exact_ShockTube;
   problem->setup_ctx               = SetupContext_SHOCKTUBE;
-  problem->bc_func                 = BC_SHOCKTUBE;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_SHOCKTUBE;
 
@@ -213,17 +212,17 @@ PetscErrorCode BC_SHOCKTUBE(DM dm, SimpleBC bc, Physics phys,
     DMLabel label;
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
                          bc->num_slip[0], bc->slips[0], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
     comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
                          bc->num_slip[1], bc->slips[1], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
     comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
                          bc->num_slip[2], bc->slips[2], 0, 1, comps,
                          (void(*)(void))NULL, NULL, setup_ctx, NULL);
     CHKERRQ(ierr);
@@ -235,7 +234,7 @@ PetscErrorCode BC_SHOCKTUBE(DM dm, SimpleBC bc, Physics phys,
     DMLabel  label;
     PetscInt comps[3] = {1, 2, 3};
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, "Face Sets",
+    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
                          bc->num_wall, bc->walls, 0,
                          3, comps, (void(*)(void))Exact_ShockTube, NULL,
                          setup_ctx, NULL); CHKERRQ(ierr);
