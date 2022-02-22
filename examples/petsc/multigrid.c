@@ -120,13 +120,13 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsScalar("-eps",
                             "Epsilon parameter for Kershaw mesh transformation",
                             NULL, eps, &eps, NULL);
-  if (eps > 1 || eps <= 0) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                                      "-eps %D must be (0,1]", eps);
+  if (eps > 1 || eps <= 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
+                                     "-eps %D must be (0,1]", eps);
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  if (degree < 1) SETERRQ1(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                             "-degree %D must be at least 1", degree);
+  if (degree < 1) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
+                            "-degree %D must be at least 1", degree);
   q_extra = bp_options[bp_choice].q_extra;
   ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
                          NULL, q_extra, &q_extra, NULL); CHKERRQ(ierr);

@@ -110,8 +110,8 @@ int main(int argc, char **argv) {
     ierr = PetscFunctionListFind(problem_functions->setupPhysics, app_ctx->name,
                                  &SetupPhysics); CHKERRQ(ierr);
     if (!SetupPhysics)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Physics setup for '%s' not found",
-               app_ctx->name);
+      SETERRQ(PETSC_COMM_SELF, 1, "Physics setup for '%s' not found",
+              app_ctx->name);
     ierr = (*SetupPhysics)(comm, ceed, &units, &ctx_phys); CHKERRQ(ierr);
     PetscErrorCode (*SetupSmootherPhysics)(MPI_Comm, Ceed, CeedQFunctionContext,
                                            CeedQFunctionContext *);
@@ -119,8 +119,8 @@ int main(int argc, char **argv) {
                                  app_ctx->name, &SetupSmootherPhysics);
     CHKERRQ(ierr);
     if (!SetupSmootherPhysics)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Smoother physics setup for '%s' not found",
-               app_ctx->name);
+      SETERRQ(PETSC_COMM_SELF, 1, "Smoother physics setup for '%s' not found",
+              app_ctx->name);
     ierr = (*SetupSmootherPhysics)(comm, ceed, ctx_phys, &ctx_phys_smoother);
     CHKERRQ(ierr);
   }
@@ -282,8 +282,8 @@ int main(int argc, char **argv) {
                                  app_ctx->name, &SetupLibceedFineLevel);
     CHKERRQ(ierr);
     if (!SetupLibceedFineLevel)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Fine grid setup for '%s' not found",
-               app_ctx->name);
+      SETERRQ(PETSC_COMM_SELF, 1, "Fine grid setup for '%s' not found",
+              app_ctx->name);
     ierr = (*SetupLibceedFineLevel)(level_dms[fine_level], dm_energy, dm_diagnostic,
                                     ceed, app_ctx, ctx_phys, fine_level,
                                     num_comp_u, U_g_size[fine_level],
@@ -318,8 +318,8 @@ int main(int argc, char **argv) {
                                  app_ctx->name, &SetupLibceedLevel);
     CHKERRQ(ierr);
     if (!SetupLibceedLevel)
-      SETERRQ1(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
-               app_ctx->name);
+      SETERRQ(PETSC_COMM_SELF, 1, "Coarse grid setup for '%s' not found",
+              app_ctx->name);
     ierr = (*SetupLibceedLevel)(level_dms[level], ceed, app_ctx,
                                 level, num_comp_u, U_g_size[level],
                                 U_loc_size[level], ceed_data[level+1]->x_ceed,

@@ -139,8 +139,8 @@ int main(int argc, char **argv) {
     PetscErrorCode (*p)(ProblemData *, DM, void *, void *);
     ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
     CHKERRQ(ierr);
-    if (!p) SETERRQ1(PETSC_COMM_SELF, 1, "Problem '%s' not found",
-                       app_ctx->problem_name);
+    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found",
+                      app_ctx->problem_name);
     ierr = (*p)(problem, dm, &setup_ctx, &user); CHKERRQ(ierr);
   }
 
