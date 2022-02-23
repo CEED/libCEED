@@ -99,6 +99,56 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
 }
 
 // *****************************************************************************
+// This QFunction sets a "still" initial condition for generic Newtonian IG problems
+// *****************************************************************************
+CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
+                      const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+
+  // Outputs
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q[5] = {0.};
+
+    // Context
+    const SetupContext context = (SetupContext)ctx;
+    const CeedScalar theta0    = context->theta0;
+    const CeedScalar P0        = context->P0;
+    const CeedScalar N         = context->N;
+    const CeedScalar cv        = context->cv;
+    const CeedScalar cp        = context->cp;
+    const CeedScalar g         = context->g;
+    const CeedScalar Rd        = cp - cv;
+
+    // Setup
+    // -- Coordinates
+    const CeedScalar z = X[2][i];
+
+    // -- Exner pressure, hydrostatic balance
+    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+
+    // -- Density
+    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
+
+    // Initial Conditions
+    q[0] = rho;
+    q[1] = 0.0;
+    q[2] = 0.0;
+    q[3] = 0.0;
+    q[4] = rho * (cv*theta0*Pi + g*z);
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with
 //   explicit time stepping method
 //

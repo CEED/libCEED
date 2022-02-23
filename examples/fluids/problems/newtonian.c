@@ -43,6 +43,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   problem->q_data_size_sur         = 4;
   problem->setup_vol               = Setup;
   problem->setup_vol_loc           = Setup_loc;
+  problem->ics                     = ICsNewtonianIG;
+  problem->ics_loc                 = ICsNewtonianIG_loc;
   problem->setup_sur               = SetupBoundary;
   problem->setup_sur_loc           = SetupBoundary_loc;
   problem->apply_vol_rhs           = Newtonian;

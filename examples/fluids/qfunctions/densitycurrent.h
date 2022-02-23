@@ -180,7 +180,6 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
       q0[j][i] = q[j];
   } // End of Quadrature Point Loop
 
-  // Return
   return 0;
 }
 
