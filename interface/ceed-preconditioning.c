@@ -1784,7 +1784,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
   ierr = CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c);
   CeedChk(ierr);
   CeedScalar *q_ref, *q_weight, *grad;
-  ierr = CeedCalloc(num_nodes_f, &q_ref); CeedChk(ierr);
+  ierr = CeedCalloc(num_nodes_f*dim, &q_ref); CeedChk(ierr);
   ierr = CeedCalloc(num_nodes_f, &q_weight); CeedChk(ierr);
   ierr = CeedCalloc(num_nodes_f*num_nodes_c*dim, &grad); CeedChk(ierr);
   CeedBasis basis_c_to_f;
