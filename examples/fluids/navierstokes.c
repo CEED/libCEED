@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->newt_ig_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
