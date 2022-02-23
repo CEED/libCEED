@@ -102,7 +102,7 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems
 // *****************************************************************************
 CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
-                      const CeedScalar *const *in, CeedScalar *const *out) {
+                               const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 

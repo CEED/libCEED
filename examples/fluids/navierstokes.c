@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
 
   // -- Contexts
   CeedQFunctionContextDestroy(&ceed_data->setup_context);
-  CeedQFunctionContextDestroy(&ceed_data->dc_context);
+  CeedQFunctionContextDestroy(&ceed_data->newt_ig_context);
   CeedQFunctionContextDestroy(&ceed_data->advection_context);
   CeedQFunctionContextDestroy(&ceed_data->euler_context);
 

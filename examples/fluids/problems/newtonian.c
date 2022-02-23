@@ -88,7 +88,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for Newtonian Ideal Gas based problem",
+  ierr = PetscOptionsBegin(comm, NULL,
+                           "Options for Newtonian Ideal Gas based problem",
                            NULL); CHKERRQ(ierr);
   // -- Physics
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
@@ -207,5 +208,24 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->newt_ig_ctx->c_tau         = c_tau;
   user->phys->newt_ig_ctx->stabilization = stab;
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+  PetscFunctionBeginUser;
+  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
+  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
+  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
+  CeedQFunctionContextCreate(ceed, &ceed_data->newt_ig_context);
+  CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*phys->newt_ig_ctx), phys->newt_ig_ctx);
+  if (ceed_data->qf_rhs_vol)
+    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->newt_ig_context);
+  if (ceed_data->qf_ifunction_vol)
+    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
+                            ceed_data->newt_ig_context);
   PetscFunctionReturn(0);
 }

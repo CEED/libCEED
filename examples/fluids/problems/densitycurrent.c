@@ -90,18 +90,9 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
-  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
-  CeedQFunctionContextCreate(ceed, &ceed_data->dc_context);
-  CeedQFunctionContextSetData(ceed_data->dc_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*phys->newt_ig_ctx), phys->newt_ig_ctx);
-  if (ceed_data->qf_rhs_vol)
-    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->dc_context);
-  if (ceed_data->qf_ifunction_vol)
-    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol, ceed_data->dc_context);
+  PetscInt ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx,
+                  phys);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
