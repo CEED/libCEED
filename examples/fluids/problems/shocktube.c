@@ -21,11 +21,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/shocktube.h"
 
-<<<<<<< HEAD
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
-=======
 PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
->>>>>>> 30eecbc59a7614d43cc2f2a7df5cfe7935fa6810
                             void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
@@ -63,13 +59,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-<<<<<<< HEAD
-  // Shock tube geometry
-  PetscScalar lx             = 1000.;   // m
-  PetscScalar ly             = 100.;    // m
-  PetscScalar lz             = 100.;    // m
-=======
->>>>>>> 30eecbc59a7614d43cc2f2a7df5cfe7935fa6810
   // Driver section initial conditions
   CeedScalar P_high          = 1.0;     // Pa
   CeedScalar rho_high        = 1.0;     // kg/m^3
@@ -82,12 +71,9 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
   CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks
   //                                          2 for sharp shocks
-<<<<<<< HEAD
-=======
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
   for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
->>>>>>> 30eecbc59a7614d43cc2f2a7df5cfe7935fa6810
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -100,16 +86,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   ierr = PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem",
                            NULL); CHKERRQ(ierr);
-<<<<<<< HEAD
-  // -- Geometry
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
-=======
->>>>>>> 30eecbc59a7614d43cc2f2a7df5cfe7935fa6810
 
   // -- Numerical formulation options
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
@@ -155,28 +131,17 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-<<<<<<< HEAD
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
-  CeedScalar mid_point = 0.5*lx;
-
-  // -- Setup Context
-  setup_context->lx        = lx;
-  setup_context->ly        = ly;
-  setup_context->lz        = lz;
-=======
   for (int i=0; i<3; i++) {
     domain_size[i] *= meter;
+    domain_min[i] *= meter;
   }
   problem->dm_scale = meter;
-  CeedScalar mid_point = 0.5*domain_size[0]*meter;
+  CeedScalar mid_point = 0.5*(domain_size[0]+domain_min[0]);
 
   // -- Setup Context
   setup_context->lx        = domain_size[0];
   setup_context->ly        = domain_size[1];
   setup_context->lz        = domain_size[2];
->>>>>>> 30eecbc59a7614d43cc2f2a7df5cfe7935fa6810
   setup_context->mid_point = mid_point;
   setup_context->time      = 0.0;
   setup_context->P_high    = P_high;
