@@ -122,7 +122,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
   const CeedInt P1d = data->maxP1d;
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
   CeedInt block_sizes[3];
-  ierr = BlockGridCalculate(dim, nelem, P1d, Q1d, block_sizes);
+  ierr = BlockGridCalculate_Hip_gen(dim, nelem, P1d, Q1d, block_sizes);
   CeedChkBackend(ierr);
   if (dim==1) {
     CeedInt grid = nelem/block_sizes[2] + ( (

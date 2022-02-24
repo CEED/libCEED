@@ -30,9 +30,9 @@
 //------------------------------------------------------------------------------
 // Calculate the block size used for launching the operator kernel 
 //------------------------------------------------------------------------------
-CEED_INTERN int BlockGridCalculate(const CeedInt dim, const CeedInt nelem,
-		                   const CeedInt P1d, const CeedInt Q1d,
-				   CeedInt *block_sizes) {
+extern "C" int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt nelem,
+     	                                  const CeedInt P1d, const CeedInt Q1d,
+				          CeedInt *block_sizes) {
   
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
   if (dim==1) {
@@ -759,7 +759,7 @@ inline __device__ void weight3d(BackendData& data, const CeedScalar *qweight1d, 
 //------------------------------------------------------------------------------
 // Build singe operator kernel
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
+extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
 
   using std::ostringstream;
   using std::string;
@@ -1391,7 +1391,7 @@ CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedDebug(ceed, code.str().c_str());
 
   CeedInt block_sizes[3];
-  ierr = BlockGridCalculate(dim, numelements, data->maxP1d, Q1d, block_sizes); 
+  ierr = BlockGridCalculate_Hip_gen(dim, numelements, data->maxP1d, Q1d, block_sizes); 
   CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 2,
                          "T1d", block_sizes[0],
