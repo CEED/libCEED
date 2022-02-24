@@ -361,15 +361,11 @@ typedef struct {
 // -----------------------------------------------------------------------------
 // Set up function for each problem
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
-    void *setup_ctx,
-    void *ctx);
-
+    void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
                                       void *setup_ctx, void *ctx);
-
-extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
+extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
                                    void *ctx);
-
 extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,

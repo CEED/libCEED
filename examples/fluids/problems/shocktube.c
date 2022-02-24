@@ -21,7 +21,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/shocktube.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
+PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
                             void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
@@ -59,10 +59,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  // Shock tube geometry
-  PetscScalar lx             = 1000.;   // m
-  PetscScalar ly             = 100.;    // m
-  PetscScalar lz             = 100.;    // m
   // Driver section initial conditions
   CeedScalar P_high          = 1.0;     // Pa
   CeedScalar rho_high        = 1.0;     // kg/m^3
@@ -75,6 +71,9 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
   CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks
   //                                          2 for sharp shocks
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -87,13 +86,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   // ------------------------------------------------------
   ierr = PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem",
                            NULL); CHKERRQ(ierr);
-  // -- Geometry
-  ierr = PetscOptionsScalar("-lx", "Length scale in x direction",
-                            NULL, lx, &lx, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-ly", "Length scale in y direction",
-                            NULL, ly, &ly, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-lz", "Length scale in z direction",
-                            NULL, lz, &lz, NULL); CHKERRQ(ierr);
 
   // -- Numerical formulation options
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
@@ -139,15 +131,16 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, void *setup_ctx,
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  lx = fabs(lx) * meter;
-  ly = fabs(ly) * meter;
-  lz = fabs(lz) * meter;
-  CeedScalar mid_point = 0.5*lx;
+  for (int i=0; i<3; i++) {
+    domain_size[i] *= meter;
+  }
+  problem->dm_scale = meter;
+  CeedScalar mid_point = 0.5*domain_size[0]*meter;
 
   // -- Setup Context
-  setup_context->lx        = lx;
-  setup_context->ly        = ly;
-  setup_context->lz        = lz;
+  setup_context->lx        = domain_size[0];
+  setup_context->ly        = domain_size[1];
+  setup_context->lz        = domain_size[2];
   setup_context->mid_point = mid_point;
   setup_context->time      = 0.0;
   setup_context->P_high    = P_high;
@@ -185,60 +178,6 @@ PetscErrorCode SetupContext_SHOCKTUBE(Ceed ceed, CeedData ceed_data,
   if (ceed_data->qf_ifunction_vol)
     CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
                             ceed_data->shocktube_context);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode BC_SHOCKTUBE(DM dm, SimpleBC bc, Physics phys,
-                            void *setup_ctx) {
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  // Default boundary conditions
-  //    slip BC on y and z faces
-  bc->num_slip[0] = 0;
-  bc->num_slip[1] = bc->num_slip[2] = 2;
-  bc->slips[1][0] = 3;
-  bc->slips[1][1] = 4;
-  bc->slips[2][0] = 1;
-  bc->slips[2][1] = 2;
-  //    wall BC on x faces
-  bc->num_wall = 2;
-  bc->walls[0] = 5;
-  bc->walls[1] = 6;
-
-  {
-    // Set slip boundary conditions
-    DMLabel label;
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    PetscInt comps[1] = {1};
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label,
-                         bc->num_slip[0], bc->slips[0], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 2;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label,
-                         bc->num_slip[1], bc->slips[1], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-    comps[0] = 3;
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label,
-                         bc->num_slip[2], bc->slips[2], 0, 1, comps,
-                         (void(*)(void))NULL, NULL, setup_ctx, NULL);
-    CHKERRQ(ierr);
-  }
-
-  // Set wall boundary conditions
-  //   zero velocity and zero flux for mass density and energy density
-  {
-    DMLabel  label;
-    PetscInt comps[3] = {1, 2, 3};
-    ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-    ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label,
-                         bc->num_wall, bc->walls, 0,
-                         3, comps, (void(*)(void))Exact_ShockTube, NULL,
-                         setup_ctx, NULL); CHKERRQ(ierr);
-  }
 
   PetscFunctionReturn(0);
 }
