@@ -389,116 +389,12 @@ For the Shock Tube problem, the following additional command-line options are av
 This problem can be run with:
 
 ```
-./navierstokes -problem shocktube -dm_plex_box_faces 200,1,1 -yzb -stab su
-```
-
-For the Shock Tube problem, the following additional command-line options are available:
-
-:::{list-table} Shock Tube Runtime Options
-:header-rows: 1
-
-* - Option
-  - Description
-  - Default value
-  - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `1000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `100`
-  - `m`
-
-* - `-lz`
-  - Length scale in z direction
-  - `100`
-  - `m`
-
-* - `-units_meter`
-  - 1 meter in scaled length units
-  - `1E-2`
-  -
-
-* - `-units_second`
-  - 1 second in scaled time units
-  - `1E-2`
-  -
-
-* - `-yzb`
-  - Use YZB discontinuity capturing
-  - `none`
-  -
-
-* - `-stab`
-  - Stabilization method (`none`, `su`, or `supg`)
-  - `none`
-  -
-:::
-
-This problem can be run with:
-
-```
-./navierstokes -problem shocktube -dm_plex_box_faces 200,1,1 -yzb -stab su
+./navierstokes -problem shocktube -yzb -stab su -bc_slip_z 3,4 -bc_slip_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1 
 ```
 
 For the Density Current problem, the following additional command-line options are available:
 
-:::{list-table} Shock Tube Runtime Options
-:header-rows: 1
-
-* - Option
-  - Description
-  - Default value
-  - Unit
-
-* - `-lx`
-  - Length scale in x direction
-  - `1000`
-  - `m`
-
-* - `-ly`
-  - Length scale in y direction
-  - `100`
-  - `m`
-
-* - `-lz`
-  - Length scale in z direction
-  - `100`
-  - `m`
-
-* - `-units_meter`
-  - 1 meter in scaled length units
-  - `1E-2`
-  -
-
-* - `-units_second`
-  - 1 second in scaled time units
-  - `1E-2`
-  -
-
-* - `-yzb`
-  - Use YZB discontinuity capturing
-  - `none`
-  -
-
-* - `-stab`
-  - Stabilization method (`none`, `su`, or `supg`)
-  - `none`
-  -
-:::
-
-This problem can be run with:
-
-```
-./navierstokes -problem shocktube -dm_plex_box_faces 200,1,1 -yzb -stab su
-```
-
-For the Density Current problem, the following additional command-line options are available:
-
-:::{list-table} Euler Vortex Runtime Options
+:::{list-table} Density Current Runtime Options
 :header-rows: 1
 
 * - Option

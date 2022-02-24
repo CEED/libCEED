@@ -133,9 +133,10 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // -- Scale variables to desired units
   for (int i=0; i<3; i++) {
     domain_size[i] *= meter;
+    domain_min[i] *= meter;
   }
   problem->dm_scale = meter;
-  CeedScalar mid_point = 0.5*domain_size[0]*meter;
+  CeedScalar mid_point = 0.5*(domain_size[0]+domain_min[0]);
 
   // -- Setup Context
   setup_context->lx        = domain_size[0];
