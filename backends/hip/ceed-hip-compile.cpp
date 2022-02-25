@@ -57,7 +57,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
 
   // Macro definitions
   // Get kernel specific options, such as kernel constants
-  const int opts_size = 2;
+  const int opts_size = 3;
   const char *opts[opts_size];
   if (num_opts > 0) {
     va_list args;
@@ -90,6 +90,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   CeedChk_Hip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
   std::string arch_arg = "--gpu-architecture="  + std::string(prop.gcnArchName);
   opts[1] = arch_arg.c_str();
+  opts[2] = "-munsafe-fp-atomics";
 
   // Add string source argument provided in call
   code << source;
