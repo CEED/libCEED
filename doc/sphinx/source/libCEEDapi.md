@@ -307,6 +307,12 @@ specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
 backend implementation is provided in the file
 [ceed-ref.c](https://github.com/CEED/libCEED/blob/main/backends/ref/ceed-ref.c).
 
+(fig-operator-schematic)=
+
+:::{figure} ../../img/libceed_schematic.png
+Flow of data through vector types inside libCEED Operators
+:::
+
 On the frontend, the mapping between the decomposition concepts and the code
 implementation is as follows:
 
