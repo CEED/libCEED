@@ -49,8 +49,8 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   problem->ics_loc                 = ICsShockTube_loc;
   problem->apply_vol_rhs           = EulerShockTube;
   problem->apply_vol_rhs_loc       = EulerShockTube_loc;
-  problem->apply_vol_ifunction     = IFunction_EulerShockTube;
-  problem->apply_vol_ifunction_loc = IFunction_EulerShockTube_loc;
+  problem->apply_vol_ifunction     = NULL;
+  problem->apply_vol_ifunction_loc = NULL;
   problem->bc                      = Exact_ShockTube;
   problem->setup_ctx               = SetupContext_SHOCKTUBE;
   problem->non_zero_time           = PETSC_FALSE;
