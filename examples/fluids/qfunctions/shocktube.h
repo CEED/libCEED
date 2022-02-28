@@ -25,9 +25,7 @@
 #ifndef shocktube_h
 #define shocktube_h
 
-#ifndef __CUDACC__
-#  include <math.h>
-#endif
+#include <math.h>
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
