@@ -19,7 +19,6 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
-#include "../qfunctions/densitycurrent.h"
 #include "../qfunctions/newtonian.h"
 
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
@@ -51,7 +50,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_rhs_loc       = Newtonian_loc;
   problem->apply_vol_ifunction     = IFunction_Newtonian;
   problem->apply_vol_ifunction_loc = IFunction_Newtonian_loc;
-  problem->bc                      = Exact_DC;
   problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_DENSITY_CURRENT;

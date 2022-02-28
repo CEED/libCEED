@@ -112,7 +112,6 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
 
     // Context

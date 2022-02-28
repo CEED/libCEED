@@ -18,7 +18,6 @@
 /// Utility functions for setting up DENSITY_CURRENT
 
 #include "../navierstokes.h"
-#include "../qfunctions/setupgeo.h"
 #include "../qfunctions/densitycurrent.h"
 #include "../qfunctions/newtonian.h"
 
@@ -27,16 +26,17 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscInt ierr;
   ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
-  User              user = *(User *)ctx;
-  MPI_Comm          comm = PETSC_COMM_WORLD;
+  SetupContext setup_context = *(SetupContext *)setup_ctx;
+  User         user          = *(User *)ctx;
+  MPI_Comm     comm          = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->ics                     = ICsDC;
-  problem->ics_loc                 = ICsDC_loc;
+  problem->ics     = ICsDC;
+  problem->ics_loc = ICsDC_loc;
+  problem->bc      = Exact_DC;
 
   // ------------------------------------------------------
   //             Create the libCEED context
