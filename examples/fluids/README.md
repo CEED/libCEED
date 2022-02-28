@@ -350,6 +350,7 @@ For the Shock Tube problem, the following additional command-line options are av
   - Default value
   - Unit
 
+<<<<<<< HEAD
 * - `-lx`
   - Length scale in x direction
   - `1000`
@@ -365,6 +366,8 @@ For the Shock Tube problem, the following additional command-line options are av
   - `100`
   - `m`
 
+=======
+>>>>>>> fcf29583f3b8027209fce770c078fc357d571d83
 * - `-units_meter`
   - 1 meter in scaled length units
   - `1E-2`

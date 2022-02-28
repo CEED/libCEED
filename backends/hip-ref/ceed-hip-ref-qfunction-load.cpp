@@ -32,6 +32,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   using std::string;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
+  Ceed_Hip *ceed_Hip;
+  ierr = CeedGetData(ceed, &ceed_Hip); CeedChkBackend(ierr);
   CeedQFunction_Hip *data;
   ierr = CeedQFunctionGetData(qf, (void **)&data); CeedChkBackend(ierr);
 
@@ -76,7 +78,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << read_write;
   code << qfunction_source;
   code << "\n";
-  code << "extern \"C\" __global__ void " << kernel_name << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
+  code << "extern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
+  code << "__global__ void " << kernel_name << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
   
   // Inputs
   code << "  // Input fields\n";
@@ -132,7 +135,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   CeedDebug(ceed, code.str().c_str());
  
   // Compile kernel
-  ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 0);
+  ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module,
+		        1, "BLOCK_SIZE", ceed_Hip->opt_block_size);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, kernel_name.c_str(), &data->QFunction);
   CeedChkBackend(ierr);

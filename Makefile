@@ -136,7 +136,7 @@ NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
-HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC
+HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
   HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
 endif
@@ -453,11 +453,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   BACKENDS_MAKE += $(MAGMA_BACKENDS)
 endif
 
-BACKENDS_ENV ?= BACKENDS
-ifneq ($(BACKENDS_ENV),)
-  BACKENDS = $(BACKENDS_MAKE)
-  export BACKENDS
-endif
+BACKENDS ?= $(BACKENDS_MAKE)
+export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))

@@ -23,6 +23,7 @@
 #include "../cuda/atomics.cuh"
 #endif
 
+#define MAGMA_ERSTR_THREADS 256
 //////////////////////////////////////////////////////////////////////////////////////////
 // Fastest index listed first
 // i : related to nodes
@@ -31,7 +32,7 @@
 // Go from L-vector (du) to E-vector (dv):
 //
 // dv(i, e, c) = du( offsets(i, e) + compstride * c)  
-static __global__ void 
+static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_readDofsOffset_kernel(const int NCOMP, const int compstride,
                             const int esize, const int nelem, int *offsets, 
                             const CeedScalar *du, CeedScalar *dv)
@@ -56,7 +57,7 @@ magma_readDofsOffset_kernel(const int NCOMP, const int compstride,
 //  to describe the L-vector layout
 //
 // dv(i, e, c) = du( i * strides[0] + c * strides[1] + e * strides[2] )  
-static __global__ void 
+static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_readDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
                              const int *strides, const CeedScalar *du, CeedScalar *dv)
 {
@@ -80,7 +81,7 @@ magma_readDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
 //
 // dv(offsets(i, e) + compstride * c) = du(i, e, c)
 // Double precision version (calls magma_datomic_add)
-static __global__ void 
+static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_writeDofsOffset_kernel_d(const int NCOMP, const int compstride,
                                const int esize, const int nelem, int *offsets, 
                                const double *du, double *dv)
@@ -123,7 +124,7 @@ magma_writeDofsOffset_kernel_s(const int NCOMP, const int compstride,
 //
 // dv( i * strides[0] + c * strides[1] + e * strides[2] ) = du(i, e, c) 
 // Double precision version (calls magma_datomic_add)
-static __global__ void 
+static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_writeDofsStrided_kernel_d(const int NCOMP, const int esize, const int nelem,
                                 const int *strides, const double *du, double *dv)
 {
