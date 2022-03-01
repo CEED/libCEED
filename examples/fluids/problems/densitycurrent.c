@@ -19,7 +19,6 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/densitycurrent.h"
-#include "../qfunctions/newtonian.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
                                   void *ctx) {
