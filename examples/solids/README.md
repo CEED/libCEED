@@ -186,17 +186,17 @@ One can nondimensionalize the model by choosing an alternate system of units, su
   - Description
   - Default value
 
-* - :code:`-units_meter`
+* - `-units_meter`
   - 1 meter in scaled length units
-  - :code:`1`
+  - `1`
 
-* - :code:`-units_second`
+* - `-units_second`
   - 1 second in scaled time units
-  - :code:`1`
+  - `1`
 
-* - :code:`-units_kilogram`
+* - `-units_kilogram`
   - 1 kilogram in scaled mass units
-  - :code:`1`
+  - `1`
 :::
 
 For example, consider a problem involving metals subject to gravity.
