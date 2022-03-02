@@ -138,6 +138,32 @@ CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5],
 }
 
 // *****************************************************************************
+// Helper function for calculating the covariant length scale in the direction
+// of some 3 element input vector
+//
+// Where
+//  vec         = vector that length is measured in the direction of
+//  h           = covariant element length along vec
+// *****************************************************************************
+CEED_QFUNCTION_HELPER CeedScalar Covariant_length_along_vector(
+  CeedScalar vec[3], const CeedScalar dXdx[3][3]) {
+
+  CeedScalar vec_norm = sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
+  CeedScalar vec_dot_jacobian[3] = {0.0};
+  for (CeedInt i=0; i<3; i++) {
+    for (CeedInt j=0; j<3; j++) {
+      vec_dot_jacobian[i] += dXdx[j][i]*vec[i];
+    }
+  }
+  CeedScalar norm_vec_dot_jacobian = sqrt(vec_dot_jacobian[0]*vec_dot_jacobian[0]+
+                                          vec_dot_jacobian[1]*vec_dot_jacobian[1]+
+                                          vec_dot_jacobian[2]*vec_dot_jacobian[2]);
+  CeedScalar h = 2.0 * vec_norm / norm_vec_dot_jacobian;
+  return h;
+}
+
+
+// *****************************************************************************
 // Helper function for computing Tau elements (stabilization constant)
 //   Model from:
 //     Stabilized Methods for Compressible Flows, Hughes et al 2010
@@ -337,7 +363,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
     if (context->yzb) {
       CeedScalar drho_norm = 0.0;         // magnitude of the density gradient
       CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
-      CeedScalar j_gradn[3] = {0.0};      // j * grad(N)
       CeedScalar h_shock = 0.0;           // element lengthscale
       CeedScalar acoustic_vel = 0.0;      // characteristic velocity, acoustic speed
       CeedScalar tau_shock = 0.0;         // timescale
@@ -349,17 +374,11 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         j_vec[j] = drhodx[j] / (drho_norm + 1e-20);
 
-      // Approximate dot(j_vec,grad(N)) using the metric tensor
-      for (int j=0; j<3; j++)
-        j_gradn[j] = j_vec[0] * dXdx[0][j] +
-                     j_vec[1] * dXdx[1][j] +
-                     j_vec[2] * dXdx[2][j];
-
       if (drho_norm == 0.0) {
         nu_shock = 0.0;
       } else {
-        h_shock = 2.0 / (Cyzb * sqrt(j_gradn[0]*j_gradn[0] + j_gradn[1]*j_gradn[1] +
-                                     j_gradn[2]*j_gradn[2]));
+        h_shock = Covariant_length_along_vector(j_vec, dXdx);
+        h_shock /= Cyzb;
         acoustic_vel = sqrt(gamma*P/rho);
         tau_shock = h_shock / (2*acoustic_vel) * pow(drho_norm * h_shock / rho, Byzb);
         nu_shock = fabs(tau_shock * acoustic_vel * acoustic_vel);
