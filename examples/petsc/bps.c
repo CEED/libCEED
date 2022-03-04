@@ -407,20 +407,8 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
                                NULL, NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
 
-  {
-    DM dm_dist = NULL;
-    PetscPartitioner part;
-
-    ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm, 0, NULL, &dm_dist); CHKERRQ(ierr);
-    if (dm_dist) {
-      ierr = DMDestroy(&dm); CHKERRQ(ierr);
-      dm  = dm_dist;
-    }
-  }
-  // Disable default VECSTANDARD *after* distribution (which creates a Vec)
-  ierr = DMSetVecType(dm, NULL); CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   for (PetscInt b = 0; b < num_bp_choices; b++) {
     DM dm_deg;

@@ -136,28 +136,15 @@ int main(int argc, char **argv) {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm);
     CHKERRQ(ierr);
+    if (problem_choice == CUBE) {
+      ierr = DMPlexCreateCoordinateSpace(dm, 1, NULL); CHKERRQ(ierr);
+    }
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, problem_types[problem_choice]);
     CHKERRQ(ierr);
-    // Distribute mesh over processes
-    {
-      DM dm_dist = NULL;
-      PetscPartitioner part;
-
-      ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-      ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-      ierr = DMPlexDistribute(dm, 0, NULL, &dm_dist); CHKERRQ(ierr);
-      if (dm_dist) {
-        ierr = DMDestroy(&dm); CHKERRQ(ierr);
-        dm  = dm_dist;
-      }
-    }
     // Refine DMPlex with uniform refinement using runtime option -dm_refine
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    if (problem_choice == SPHERE) {
-      ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
-    }
     // View DMPlex via runtime option
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
@@ -264,8 +251,7 @@ int main(int argc, char **argv) {
   // Compute the exact surface area and print the result
   CeedScalar exact_surface_area = 4 * M_PI;
   if (problem_choice == CUBE) {
-    PetscScalar l = 1.0/PetscSqrtReal(3.0); // half edge of the cube
-    exact_surface_area = 6 * (2*l) * (2*l);
+    exact_surface_area = 6 * 2 * 2; // surface of [-1, 1]^3
   }
 
   PetscReal error = fabs(area - exact_surface_area);
