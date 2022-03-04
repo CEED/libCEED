@@ -173,6 +173,7 @@ CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
 int  __enzyme_augmentsize(void *, ...);
 void __enzyme_augmentfwd(void *, ...);
 void __enzyme_reverse(void *, ...);
+void __enzyme_fwdsplit(void *, ...);
 int enzyme_dup, enzyme_tape, enzyme_const, enzyme_nofree, enzyme_allocated;
 
 CEED_QFUNCTION_HELPER int getEnzymeSize(void *computeSfwd) {
@@ -468,25 +469,11 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
                           F[n][indj[m]]*graddeltau[n][indk[m]])/2.;
     }
 
-    // J = \partial Swork / \partial E2work
-    CeedScalar J[6][6];
-    for (CeedInt i=0; i<6; i++) for (CeedInt j=0; j<6; j++) J[i][j] = 0.;
-
-    bool no_free = true;
-    for (CeedInt j=0; j<6; j++) {
-      double dSwork[6]  = {0., 0., 0., 0., 0., 0.}; dSwork[j] = 1.;
-      grad_S_rev(dSwork, J[j], lambda, mu, tape[i], no_free);
-    }
-
     CeedScalar deltaSwork[6];
-    for (CeedInt i=0; i<6; i++) {
-      deltaSwork[i] = 0;
-      for (CeedInt j=0; j<6; j++) {
-        // deltaSwork = 2 (\partial Swork / \partial E2work) * deltaEwork
-        deltaSwork[i] += 2. * J[i][j] * deltaEwork[j];
-      }
-    }
-
+    __enzyme_fwdsplit((void*)computeS, enzyme_allocated, sizeof(tape[0]), enzyme_tape, tape,
+                      (double*)NULL, deltaSwork, (double*)NULL, deltaEwork,
+                      enzyme_const, lambda, enzyme_const, mu);
+    for (int j=0; j<6; j++) deltaSwork[j] *= 2.;
     // *INDENT-OFF*
 
     const CeedScalar deltaS[3][3] = {{deltaSwork[0], deltaSwork[5], deltaSwork[4]},

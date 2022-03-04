@@ -42,7 +42,7 @@ src.c := elasticity.c $(filter-out $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PRO
 
 # Enzyme-AD
 ENZYME_LIB ?=
-ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2
+ENZYMEFLAGS = -Xclang -load -Xclang $(ENZYME_LIB) -O2 -flegacy-pass-manager
 ifneq ($(ENZYME_LIB),)
 	CFLAGS += $(ENZYMEFLAGS)
 	src.c += $(filter $(PROBLEMDIR)/%-ad.c, $(sort $(wildcard $(PROBLEMDIR)/*.c)))
