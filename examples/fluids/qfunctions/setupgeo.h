@@ -21,6 +21,7 @@
 #define setup_geo_h
 
 #include <math.h>
+#include <ceed.h>
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and

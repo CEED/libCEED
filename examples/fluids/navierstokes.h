@@ -140,7 +140,7 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedQFunctionContext setup_context, dc_context, advection_context,
+  CeedQFunctionContext setup_context, newt_ig_context, advection_context,
                        euler_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
@@ -262,19 +262,35 @@ struct AdvectionContext_ {
 };
 #endif
 
+// Newtonian Ideal Gas
+#ifndef newtonian_context_struct
+#define newtonian_context_struct
+typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
+struct NewtonianIdealGasContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar c_tau;
+  StabilizationType stabilization;
+};
+#endif
+
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  DCContext            dc_ctx;
-  EulerContext         euler_ctx;
-  AdvectionContext     advection_ctx;
-  WindType             wind_type;
-  BubbleType           bubble_type;
-  BubbleContinuityType bubble_continuity_type;
-  EulerTestType        euler_test;
-  StabilizationType    stab;
-  PetscBool            implicit;
-  PetscBool            has_curr_time;
-  PetscBool            has_neumann;
+  NewtonianIdealGasContext newtonian_ig_ctx;
+  EulerContext             euler_ctx;
+  AdvectionContext         advection_ctx;
+  WindType                 wind_type;
+  BubbleType               bubble_type;
+  BubbleContinuityType     bubble_continuity_type;
+  EulerTestType            euler_test;
+  StabilizationType        stab;
+  PetscBool                implicit;
+  PetscBool                has_curr_time;
+  PetscBool                has_neumann;
 };
 
 // Problem specific data
@@ -298,6 +314,8 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm,
+                                      void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
     void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
@@ -308,6 +326,9 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *setup_ctx, void *ctx);
 
 // Set up context for each problem
+extern PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
 extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
     CeedData ceed_data, AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 

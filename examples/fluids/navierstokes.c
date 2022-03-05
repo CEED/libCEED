@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
 
   // -- Contexts
   CeedQFunctionContextDestroy(&ceed_data->setup_context);
-  CeedQFunctionContextDestroy(&ceed_data->dc_context);
+  CeedQFunctionContextDestroy(&ceed_data->newt_ig_context);
   CeedQFunctionContextDestroy(&ceed_data->advection_context);
   CeedQFunctionContextDestroy(&ceed_data->euler_context);
 
@@ -367,7 +367,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->newtonian_ig_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
