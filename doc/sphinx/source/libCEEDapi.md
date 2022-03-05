@@ -291,6 +291,15 @@ The libCEED API takes an algebraic approach, where the user essentially
 describes in the *frontend* the operators $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, and $\bm{D}$ and the library
 provides *backend* implementations and coordinates their action to the original
 operator on **L-vector** level (i.e. independently on each device / MPI task).
+This is visualized in the schematic below; "active" and "passive" inputs/outputs
+will be discussed in more detail later.
+
+(fig-operator-schematic)=
+
+:::{figure} ../../img/libceed_schematic.svg
+Flow of data through vector types inside libCEED Operators, through backend implementations 
+of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, and $\bm{D}$
+:::
 
 One of the advantages of this purely algebraic description is that it already
 includes all the finite element information, so the backends can operate on
@@ -307,11 +316,6 @@ specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
 backend implementation is provided in the file
 [ceed-ref.c](https://github.com/CEED/libCEED/blob/main/backends/ref/ceed-ref.c).
 
-(fig-operator-schematic)=
-
-:::{figure} ../../img/libceed_schematic.png
-Flow of data through vector types inside libCEED Operators
-:::
 
 On the frontend, the mapping between the decomposition concepts and the code
 implementation is as follows:
@@ -334,6 +338,16 @@ consider the implementation of the action of a simple 1D mass matrix
 :language: c
 :linenos: true
 ```
+In the following figure, we specialize the schematic used above for general operators so that 
+it corresponds to the mass matrix as implemented in the sample code. Notations marked as "L[#]"
+denote the line number in the code where that object or evaluation mode is set for the operator.
+
+(fig-operator-schematic-mass)=
+
+:::{figure} ../../img/libceed_schematic_op_mass.svg
+Specific combination of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, $\bm{D}$, and input/output vectors
+corresponding to t500-operator
+:::
 
 The constructor
 
