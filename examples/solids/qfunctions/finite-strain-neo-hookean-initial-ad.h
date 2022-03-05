@@ -168,7 +168,7 @@ CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
 };
 
 // -----------------------------------------------------------------------------
-// Enzyme-AD to compute J[6][6] = \partial Swork / \partial E2work
+// Compute deltaS with Enzyme-AD
 // -----------------------------------------------------------------------------
 int  __enzyme_augmentsize(void *, ...);
 void __enzyme_augmentfwd(void *, ...);
@@ -176,36 +176,26 @@ void __enzyme_reverse(void *, ...);
 void __enzyme_fwdsplit(void *, ...);
 int enzyme_dup, enzyme_tape, enzyme_const, enzyme_nofree, enzyme_allocated;
 
-CEED_QFUNCTION_HELPER int getEnzymeSize(void *computeSfwd) {
+CEED_QFUNCTION_HELPER int getTapeSize(void *computeSfwd) {
   return __enzyme_augmentsize(computeSfwd, enzyme_dup, enzyme_dup, enzyme_const,
                               enzyme_const);
 }
 
-CEED_QFUNCTION_HELPER void grad_S_fwd(double *S, double *E, const double lambda,
-                                      const double mu, void *tape) {
+CEED_QFUNCTION_HELPER void S_fwd(double *S, double *E, const double lambda,
+                                 const double mu, void *tape) {
   __enzyme_augmentfwd((void *)computeS, enzyme_allocated, sizeof(tape[0]),
                       enzyme_tape, tape, enzyme_nofree, S, (double *)NULL, E, (double *)NULL,
                       enzyme_const, lambda, enzyme_const, mu);
 }
 
-CEED_QFUNCTION_HELPER void grad_S_rev(double *dS, double *dE,
-                                      const double lambda, const double mu, void *tape, bool no_free) {
-  if (no_free)
-    __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
-                     enzyme_tape, tape, enzyme_nofree, (double *)NULL, dS, (double *)NULL, dE,
-                     enzyme_const, lambda, enzyme_const, mu);
-  else
-    __enzyme_reverse((void *)computeS, enzyme_allocated, sizeof(tape[0]),
-                     enzyme_tape, tape, (double *)NULL, dS, (double *)NULL, dE,
-                     enzyme_const, lambda, enzyme_const, mu);
+CEED_QFUNCTION_HELPER void grad_S(double *dS, double *dE, const double lambda,
+                                  const double mu, void *tape) {
+  __enzyme_fwdsplit((void *)computeS, enzyme_allocated, sizeof(tape[0]),
+                    enzyme_tape, tape, (double *)NULL, dS, (double *)NULL, dE,
+                    enzyme_const, lambda, enzyme_const, mu);
 }
 
 CEED_QFUNCTION_HELPER void free_tape(void *tape) {
-  bool no_free = false;
-  CeedScalar dSwork = 1, lambda =1, mu=1;
-  CeedScalar J[6][6];
-  for (CeedInt i=0; i<6; i++) for (CeedInt j=0; j<6; j++) J[i][j] = 0.;
-  grad_S_rev(&dSwork, J[0], lambda, mu, tape, no_free);
   // Free allocated memory for tape
   free(tape);
 }
@@ -244,7 +234,7 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
   //  C     : right Cauchy-Green tensor
-  //  C_inv  : inverse of C
+  //  C_inv : inverse of C
   //  F     : deformation gradient
   //  S     : 2nd Piola-Kirchhoff (in current config)
   //  P     : 1st Piola-Kirchhoff (in referential config)
@@ -330,11 +320,11 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
         E2work[m] += tempgradu[n][indj[m]]*tempgradu[n][indk[m]];
     }
 
-    int size = getEnzymeSize((void *)computeS);
+    // Compute Swork with Enzyme-AD and get tape
+    int size = getTapeSize((void *)computeS);
     tape[i] = malloc(size);
-
     CeedScalar Swork_[6];
-    grad_S_fwd(Swork_, E2work, lambda, mu, tape[i]);
+    S_fwd(Swork_, E2work, lambda, mu, tape[i]);
 
     // *INDENT-OFF*
     const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
@@ -343,7 +333,7 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
                                };
     // *INDENT-ON*
 
-    // Save Swork
+    // Store Swork
     Swork[0][i] = Swork_[0];
     Swork[1][i] = Swork_[1];
     Swork[2][i] = Swork_[2];
@@ -469,11 +459,12 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
                           F[n][indj[m]]*graddeltau[n][indk[m]])/2.;
     }
 
+    // Compute deltaSwork with Enzyme-AD
+    // -- 2E is the input of computeS
+    for (int j=0; j<6; j++) deltaEwork[j] *= 2.;
     CeedScalar deltaSwork[6];
-    __enzyme_fwdsplit((void*)computeS, enzyme_allocated, sizeof(tape[0]), enzyme_tape, tape,
-                      (double*)NULL, deltaSwork, (double*)NULL, deltaEwork,
-                      enzyme_const, lambda, enzyme_const, mu);
-    for (int j=0; j<6; j++) deltaSwork[j] *= 2.;
+    grad_S(deltaSwork, deltaEwork, lambda, mu, tape[i]);
+
     // *INDENT-OFF*
 
     const CeedScalar deltaS[3][3] = {{deltaSwork[0], deltaSwork[5], deltaSwork[4]},
