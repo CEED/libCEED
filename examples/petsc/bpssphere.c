@@ -141,31 +141,18 @@ int main(int argc, char **argv) {
                                 &dm);
     CHKERRQ(ierr);
   } else {
-    // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
+    // Create the mesh as a 0-refined sphere. This will create a cubic surface,
+    // not a box, and will snap to the unit sphere upon refinement.
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm);
     CHKERRQ(ierr);
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
-    // Distribute mesh over processes
-    {
-      DM dm_dist = NULL;
-      PetscPartitioner part;
-
-      ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-      ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-      ierr = DMPlexDistribute(dm, 0, NULL, &dm_dist); CHKERRQ(ierr);
-      if (dm_dist) {
-        ierr = DMDestroy(&dm); CHKERRQ(ierr);
-        dm  = dm_dist;
-      }
-    }
     // Refine DMPlex with uniform refinement using runtime option -dm_refine
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
-    // View DMPlex via runtime option
-    ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  // View DMPlex via runtime option
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   // Create DM
   ierr = SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false,

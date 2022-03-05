@@ -7,7 +7,6 @@
 #include <petscfe.h>
 
 CeedMemType MemTypeP2C(PetscMemType mtype);
-PetscErrorCode ProjectToUnitSphere(DM dm);
 PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps);
 typedef PetscErrorCode (*BCFunction)(PetscInt dim, PetscReal time,
                                      const PetscReal x[],

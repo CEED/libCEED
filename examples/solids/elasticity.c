@@ -147,6 +147,7 @@ int main(int argc, char **argv) {
   }
   }
   ierr = DMSetVecType(dm_orig, vectype); CHKERRQ(ierr);
+  ierr = DMPlexDistributeSetDefault(dm_orig, PETSC_FALSE); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm_orig); CHKERRQ(ierr);
 
   // -- Setup DM by polynomial degree

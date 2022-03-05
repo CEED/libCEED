@@ -164,22 +164,6 @@ int main(int argc, char **argv) {
                                NULL, NULL, PETSC_TRUE, &dm_orig); CHKERRQ(ierr);
   }
 
-  {
-    DM dm_dist = NULL;
-    PetscPartitioner part;
-
-    ierr = DMPlexGetPartitioner(dm_orig, &part); CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm_orig, 0, NULL, &dm_dist); CHKERRQ(ierr);
-    if (dm_dist) {
-      ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
-      dm_orig = dm_dist;
-    }
-  }
-
-  // Apply Kershaw mesh transformation
-  ierr = Kershaw(dm_orig, eps); CHKERRQ(ierr);
-
   VecType vec_type;
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
@@ -195,6 +179,10 @@ int main(int argc, char **argv) {
   }
   ierr = DMSetVecType(dm_orig, vec_type); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm_orig); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(dm_orig, NULL, "-dm_view"); CHKERRQ(ierr);
+
+  // Apply Kershaw mesh transformation
+  ierr = Kershaw(dm_orig, eps); CHKERRQ(ierr);
 
   // Allocate arrays for PETSc objects for each level
   switch (coarsen) {

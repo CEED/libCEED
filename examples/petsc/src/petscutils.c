@@ -8,32 +8,6 @@ CeedMemType MemTypeP2C(PetscMemType mem_type) {
 }
 
 // -----------------------------------------------------------------------------
-// Utility function taken from petsc/src/dm/impls/plex/examples/tutorials/ex7.c
-// -----------------------------------------------------------------------------
-PetscErrorCode ProjectToUnitSphere(DM dm) {
-  Vec            coordinates;
-  PetscScalar   *coords;
-  PetscInt       Nv, v, dim, d;
-  PetscErrorCode ierr;
-
-  PetscFunctionBeginUser;
-  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(coordinates, &Nv); CHKERRQ(ierr);
-  ierr = VecGetBlockSize(coordinates, &dim); CHKERRQ(ierr);
-  Nv  /= dim;
-  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
-  for (v = 0; v < Nv; ++v) {
-    PetscReal r = 0.0;
-
-    for (d = 0; d < dim; ++d) r += PetscSqr(PetscRealPart(coords[v*dim+d]));
-    r = PetscSqrtReal(r);
-    for (d = 0; d < dim; ++d) coords[v*dim+d] /= r;
-  }
-  ierr = VecRestoreArray(coordinates, &coords); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-};
-
-// -----------------------------------------------------------------------------
 // Apply 3D Kershaw mesh transformation
 // -----------------------------------------------------------------------------
 // Transition from a value of "a" for x=0, to a value of "b" for x=1.  Optionally
@@ -132,7 +106,6 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt degree, PetscInt num_comp_u,
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
   ierr = PetscFECreateLagrange(comm, dim, num_comp_u, PETSC_FALSE, degree, degree,
                                &fe); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
   {
     /* create FE field for coordinates */
