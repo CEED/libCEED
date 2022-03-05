@@ -30,6 +30,9 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d",
                               NS_ADVECTION2D); CHKERRQ(ierr);
 
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "blasius",
+                              NS_BLASIUS); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
