@@ -180,7 +180,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q,
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
   //  C     : right Cauchy-Green tensor
-  //  C_inv  : inverse of C
+  //  C_inv : inverse of C
   //  F     : deformation gradient
   //  S     : 2nd Piola-Kirchhoff (in current config)
   //  P     : 1st Piola-Kirchhoff (in referential config)

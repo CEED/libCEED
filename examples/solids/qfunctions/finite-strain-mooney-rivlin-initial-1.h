@@ -186,7 +186,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q,
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
   //  C     : right Cauchy-Green tensor
-  //  C_inv  : inverse of C
+  //  C_inv : inverse of C
   //  F     : deformation gradient
   //  S     : 2nd Piola-Kirchhoff
   //  P     : 1st Piola-Kirchhoff
@@ -398,10 +398,6 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
                           };
     // C : right Cauchy-Green tensor
     // C^(-1) : C-Inverse
-    const CeedScalar C[3][3] = {{Cwork[0], Cwork[5], Cwork[4]},
-                                {Cwork[5], Cwork[1], Cwork[3]},
-                                {Cwork[4], Cwork[3], Cwork[2]}
-                               };
     const CeedScalar C_inv[3][3] = {{Cinvwork[0], Cinvwork[5], Cinvwork[4]},
                                     {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
                                     {Cinvwork[4], Cinvwork[3], Cinvwork[2]}
@@ -412,12 +408,6 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q,
     for (CeedInt j = 0; j < 3; j++)
       for (CeedInt k = 0; k < 3; k++)
         Cinv_contract_dE += C_inv[j][k]*dE[j][k];
-
-    // -- C:dE
-    CeedScalar C_contract_dE = 0;
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
-        C_contract_dE += C[j][k]*dE[j][k];
 
     // -- dE*C_inv
     CeedScalar dE_Cinv[3][3];
