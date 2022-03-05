@@ -280,7 +280,7 @@ struct NewtonianIdealGasContext_ {
 
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  NewtonianIdealGasContext newt_ig_ctx;
+  NewtonianIdealGasContext newtonian_ig_ctx;
   EulerContext             euler_ctx;
   AdvectionContext         advection_ctx;
   WindType                 wind_type;

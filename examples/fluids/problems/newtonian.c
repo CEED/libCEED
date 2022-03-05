@@ -32,7 +32,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   PetscInt          ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscCalloc1(1, &user->phys->newt_ig_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->newtonian_ig_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //           Setup Generic Newtonian IG Problem
@@ -197,14 +197,14 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
-  user->phys->newt_ig_ctx->lambda        = lambda;
-  user->phys->newt_ig_ctx->mu            = mu;
-  user->phys->newt_ig_ctx->k             = k;
-  user->phys->newt_ig_ctx->cv            = cv;
-  user->phys->newt_ig_ctx->cp            = cp;
-  user->phys->newt_ig_ctx->g             = g;
-  user->phys->newt_ig_ctx->c_tau         = c_tau;
-  user->phys->newt_ig_ctx->stabilization = stab;
+  user->phys->newtonian_ig_ctx->lambda        = lambda;
+  user->phys->newtonian_ig_ctx->mu            = mu;
+  user->phys->newtonian_ig_ctx->k             = k;
+  user->phys->newtonian_ig_ctx->cv            = cv;
+  user->phys->newtonian_ig_ctx->cp            = cp;
+  user->phys->newtonian_ig_ctx->g             = g;
+  user->phys->newtonian_ig_ctx->c_tau         = c_tau;
+  user->phys->newtonian_ig_ctx->stabilization = stab;
 
   PetscFunctionReturn(0);
 }
@@ -219,7 +219,7 @@ PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextCreate(ceed, &ceed_data->newt_ig_context);
   CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof(*phys->newt_ig_ctx), phys->newt_ig_ctx);
+                              sizeof(*phys->newtonian_ig_ctx), phys->newtonian_ig_ctx);
   if (ceed_data->qf_rhs_vol)
     CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->newt_ig_context);
   if (ceed_data->qf_ifunction_vol)
