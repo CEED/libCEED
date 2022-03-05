@@ -1,0 +1,13 @@
+problem: 'blasius'
+
+dm_plex_box_faces: 20,20,1
+degree: 1
+dm_plex_box_lower: 0,0,0
+dm_plex_box_upper: 20,1,.1
+dm_plex_dim: 3
+bc_wall: 1
+wall_comps: 1,2,3
+bc_inflow: 6
+bc_outflow: 5
+bc_slip_x: 2,3,4
+g: 0
