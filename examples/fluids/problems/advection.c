@@ -255,8 +255,3 @@ PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
                                   &advection_ctx);
   PetscFunctionReturn(0);
 }
-
-// Problem Register
-PetscErrorCode ProblemRegister_Advection(AppCtx app_ctx) {
-  return PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION);
-}

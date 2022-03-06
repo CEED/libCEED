@@ -201,9 +201,3 @@ PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
   CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &euler_ctx);
   PetscFunctionReturn(0);
 }
-
-// Problem Register
-PetscErrorCode ProblemRegister_EulerVortex(AppCtx app_ctx) {
-  return PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
-                              NS_EULER_VORTEX);
-}
