@@ -59,14 +59,19 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
     // -- Density
     const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
 
-    const CeedScalar bl_height = 1.e-2;
+    const CeedScalar meter = 1.e-2;
+    const CeedScalar radius = 0.5*meter;
+    const CeedScalar center[] = {0.5*meter, 0.5*meter};
+    const CeedScalar xr[] = {x[0], x[1]-center[0], x[2]-center[1]};
+    const CeedScalar r = sqrt(xr[1]*xr[1] + xr[2]*xr[2]);
     // Initial Conditions
     q[0] = rho;
-    if (x[1] > bl_height) {
-      q[1] = rho*1.0;
+    if (r > radius) {
+      q[1] = rho*0.0;
     } else {
-      q[1] = (x[1]/bl_height)*rho*1.0;
+      q[1] = (1 - r/radius)*rho*1.0;
     }
+    /* q[1] = rho*1.0; */
     q[2] = rho*0.0;
     q[3] = rho*0.0;
     q[4] = rho * (cv*theta0*Pi + g*x[2]);
