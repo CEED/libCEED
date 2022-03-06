@@ -195,11 +195,6 @@ CEED_QFUNCTION_HELPER void grad_S(double *dS, double *dE, const double lambda,
                     enzyme_const, lambda, enzyme_const, mu);
 }
 
-CEED_QFUNCTION_HELPER void free_tape(void *tape) {
-  // Free allocated memory for tape
-  free(tape);
-}
-
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
@@ -495,26 +490,6 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
           deltadvdX[k][j][i] += dXdx[k][m] * deltaP[j][m] * wdetJ;
       }
 
-  } // End of Quadrature Point Loop
-
-  return 0;
-}
-
-// -----------------------------------------------------------------------------
-// Free tape memory
-// -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasFSInitialNHFree_AD)(void *ctx, CeedInt Q,
-                                       const CeedScalar *const *in,
-                                       CeedScalar *const *out) {
-  // Inputs
-  void *(*tape) = (void *(*))in[0];
-  // No outputs
-
-  // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    // Free allocated memory for tape
-    free_tape(tape[i]);
   } // End of Quadrature Point Loop
 
   return 0;

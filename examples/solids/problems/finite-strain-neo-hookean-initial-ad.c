@@ -7,7 +7,6 @@
 #include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-initial-ad.h"
 
-// tape should be the last saved field
 static const char *const field_names[] = {"gradu", "Swork", "tape"};
 static CeedInt field_sizes[] = {9, 6, 1};
 
@@ -27,8 +26,6 @@ ProblemData finite_strain_neo_Hookean_initial_ad = {
   .energy_loc = ElasFSNHEnergy_loc,
   .diagnostic = ElasFSNHDiagnostic,
   .diagnostic_loc = ElasFSNHDiagnostic_loc,
-  .tape = ElasFSInitialNHFree_AD,
-  .tape_loc = ElasFSInitialNHFree_AD_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH_AD(DM dm, DM dm_energy,

@@ -41,8 +41,4 @@ PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
 // This function checks to see if the computed energy is close enough to reference file energy.
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
-// This function frees memory allocated for Enzyme-AD
-PetscErrorCode FreeTapeMemory(DM dm_tape, UserMult user, CeedOperator op_tape,
-                              Vec X);
-
-#endif // matopts_h
+#endif // libceed_solids_examples_matopts_h
