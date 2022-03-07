@@ -73,47 +73,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
-
-    // Context
-    /* const SetupContext context = (SetupContext)ctx; */
-    const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-    /* const CeedScalar theta0    = context->theta0; */
-    /* const CeedScalar P0        = context->P0; */
-    /* const CeedScalar N         = context->N; */
-    const CeedScalar theta0    = 300;
-    const CeedScalar P0        = 1.e5;
-    const CeedScalar N         = 0.01;
-    const CeedScalar cv        = context->cv;
-    const CeedScalar cp        = context->cp;
-    const CeedScalar g         = context->g;
-    const CeedScalar Rd        = cp - cv;
-
-    // Setup
-
-    // -- Exner pressure, hydrostatic balance
-    /* const CeedScalar Pi = 1. + g*g*(exp(-N*N*x[2]/g) - 1.) / (cp*theta0*N*N); */
-    const CeedScalar Pi = 1.;
-
-    // -- Density
-    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
-
-    const CeedScalar meter = 1.e-2;
-    const CeedScalar radius = 0.5*meter;
-    const CeedScalar center[] = {0.5*meter, 0.5*meter};
-    const CeedScalar xr[] = {x[0], x[1]-center[0], x[2]-center[1]};
-    const CeedScalar r = sqrt(xr[1]*xr[1] + xr[2]*xr[2]);
-    // Initial Conditions
-    q[0] = rho;
-    if (r > radius) {
-      q[1] = rho*0.0;
-    } else {
-      q[1] = (1 - r/radius)*rho*1.0;
-    }
-    /* q[1] = rho*1.0; */
-    q[2] = rho*0.0;
-    q[3] = rho*0.0;
-    /* q[4] = rho * (cv*theta0*Pi + g*x[2]); */
-    q[4] = rho * (cv*theta0*Pi) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
+    Exact_Channel(3, 0., x, 5, q, ctx);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -128,14 +88,14 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = false;
-  CeedScalar velocity[]   = {10., 0., 0.};
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
@@ -145,6 +105,10 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar P0     = 1.e5;
   const CeedScalar N      = 0.01;
   const CeedScalar z      = 0.;
+
+  CeedScalar meter           = 1e-2;
+  CeedScalar center_velocity = 10.;
+  CeedScalar center          = 0.5*meter;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -156,6 +120,19 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
+    // Calcualte prescribed inflow values
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q_exact[5] = {0.};
+    Exact_Channel(3, 0., x, 5, q_exact, ctx);
+    const CeedScalar E_kinetic_exact = 0.5*(q_exact[1]*q_exact[1] +
+                                            q_exact[2]*q_exact[2] +
+                                            q_exact[3]*q_exact[3]) / q_exact[0];
+    const CeedScalar velocity[3] = {q_exact[1]/q_exact[0],
+                                    q_exact[2]/q_exact[0],
+                                    q_exact[3]/q_exact[0]
+                                   };
+    const CeedScalar theta = (q_exact[4] - E_kinetic_exact) / (q_exact[0]*cv);
+
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
     const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
@@ -164,7 +141,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar P = E_internal * (gamma - 1.);
 
     // Find inflow state using calculated P and prescribed velocity, theta0
-    const CeedScalar e_internal = cv * theta0;
+    const CeedScalar e_internal = cv * theta;
     const CeedScalar rho_in = P / ((gamma - 1) * e_internal);
     const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
                                  velocity[1]*velocity[1] +
