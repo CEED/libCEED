@@ -54,6 +54,8 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedVectorDestroy(&data->geo_data);
   for (CeedInt i = 0; i < SOLIDS_MAX_NUMBER_FIELDS; i++)
     CeedVectorDestroy(&data->stored_fields[i]);
+  if (data->stored_tape)
+    CeedVectorDestroy(&data->stored_tape);
   CeedVectorDestroy(&data->geo_data_diagnostic);
   CeedVectorDestroy(&data->true_soln);
   // Restrictions
@@ -62,6 +64,8 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
   CeedElemRestrictionDestroy(&data->elem_restr_geo_data_i);
   for (CeedInt i = 0; i < SOLIDS_MAX_NUMBER_FIELDS; i++)
     CeedElemRestrictionDestroy(&data->elem_restr_stored_fields_i[i]);
+  if (data->elem_restr_tape_i)
+    CeedElemRestrictionDestroy(&data->elem_restr_tape_i);
   CeedElemRestrictionDestroy(&data->elem_restr_energy);
   CeedElemRestrictionDestroy(&data->elem_restr_diagnostic);
   CeedElemRestrictionDestroy(&data->elem_restr_geo_data_diagnostic_i);
@@ -163,6 +167,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedInt       dim, num_comp_x, num_comp_e = 1, num_comp_d = 5;
   CeedInt       num_qpts;
   CeedInt       q_data_size = problem_data.q_data_size;
+  CeedInt       tape_size;
   forcingType   forcing_choice = app_ctx->forcing_choice;
   DM            dm_coord;
   Vec           coords;
@@ -173,6 +178,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   CeedOperator  op_setup_geo, op_residual, op_jacobian, op_energy, op_diagnostic;
 
   PetscFunctionBeginUser;
+
+  // Enzyme-AD tape size
+  if (problem_data.tape_size) tape_size = problem_data.tape_size()/sizeof(
+        CeedScalar);
 
   // ---------------------------------------------------------------------------
   // libCEED bases
@@ -236,6 +245,12 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                                      CEED_STRIDES_BACKEND,
                                      &data[fine_level]->elem_restr_stored_fields_i[i]);
   }
+  // ---- Stored field restrictions
+  if (problem_data.tape_size) {
+    CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, tape_size,
+                                     num_elem*num_qpts*tape_size, CEED_STRIDES_BACKEND,
+                                     &data[fine_level]->elem_restr_tape_i);
+  }
   // ---- Geometric data restriction, diagnostic operator
   CeedElemRestrictionCreateStrided(ceed, num_elem, P*P*P, q_data_size,
                                    num_elem*P*P*P*q_data_size,
@@ -266,6 +281,11 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
     CeedVectorCreate(ceed, num_elem*num_qpts*problem_data.field_sizes[i],
                      &data[fine_level]->stored_fields[i]);
+  }
+  // -- Stored tape for Enzyme-AD
+  if (problem_data.tape_size) {
+    CeedVectorCreate(ceed, num_elem*num_qpts*tape_size, // fix this
+                     &data[fine_level]->stored_tape);
   }
   // -- Collocated geometric data vector
   CeedVectorCreate(ceed, num_elem*P*P*P*q_data_size,
@@ -316,6 +336,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddOutput(qf_residual, problem_data.field_names[i],
                            problem_data.field_sizes[i], CEED_EVAL_NONE);
   }
+  if (problem_data.tape_size) {
+    CeedQFunctionAddOutput(qf_residual, "tape", tape_size, CEED_EVAL_NONE);
+  }
   CeedQFunctionSetContext(qf_residual, phys_ctx);
   // -- Operator
   CeedOperatorCreate(ceed, qf_residual, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -332,6 +355,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          data[fine_level]->elem_restr_stored_fields_i[i],
                          CEED_BASIS_COLLOCATED,
                          data[fine_level]->stored_fields[i]);
+  }
+  if (problem_data.tape_size) {
+    CeedOperatorSetField(op_residual, "tape", data[fine_level]->elem_restr_tape_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->stored_tape);
   }
   // -- Save libCEED data
   data[fine_level]->qf_residual = qf_residual;
@@ -352,6 +379,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
     CeedQFunctionAddInput(qf_jacobian, problem_data.field_names[i],
                           problem_data.field_sizes[i], CEED_EVAL_NONE);
   }
+  if (problem_data.tape_size) {
+    CeedQFunctionAddInput(qf_jacobian, "tape", tape_size, CEED_EVAL_NONE);
+  }
   CeedQFunctionAddOutput(qf_jacobian, "delta dv", num_comp_u*dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qf_jacobian, phys_ctx);
   // -- Operator
@@ -369,6 +399,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
                          data[fine_level]->elem_restr_stored_fields_i[i],
                          CEED_BASIS_COLLOCATED,
                          data[fine_level]->stored_fields[i]);
+  }
+  if (problem_data.tape_size) {
+    CeedOperatorSetField(op_jacobian, "tape", data[fine_level]->elem_restr_tape_i,
+                         CEED_BASIS_COLLOCATED, data[fine_level]->stored_tape);
   }
   // -- Save libCEED data
   data[fine_level]->qf_jacobian = qf_jacobian;

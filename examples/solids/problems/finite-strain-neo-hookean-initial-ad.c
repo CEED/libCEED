@@ -7,8 +7,8 @@
 #include "../qfunctions/finite-strain-neo-hookean.h"
 #include "../qfunctions/finite-strain-neo-hookean-initial-ad.h"
 
-static const char *const field_names[] = {"gradu", "Swork", "tape"};
-static CeedInt field_sizes[] = {9, 6, 1};
+static const char *const field_names[] = {"gradu", "Swork"};
+static CeedInt field_sizes[] = {9, 6};
 
 ProblemData finite_strain_neo_Hookean_initial_ad = {
   .setup_geo = SetupGeo,
@@ -26,6 +26,7 @@ ProblemData finite_strain_neo_Hookean_initial_ad = {
   .energy_loc = ElasFSNHEnergy_loc,
   .diagnostic = ElasFSNHDiagnostic,
   .diagnostic_loc = ElasFSNHDiagnostic_loc,
+  .tape_size = GetTapeSize_ElasFSInitialNH_AD,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH_AD(DM dm, DM dm_energy,
@@ -58,6 +59,13 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
+};
+
+int  __enzyme_augmentsize(void *, ...);
+int enzyme_dup, enzyme_const;
+int GetTapeSize_ElasFSInitialNH_AD() {
+  return __enzyme_augmentsize(computeS,
+                              enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
 };
 
 PetscErrorCode ProblemRegister_ElasFSInitialNH_AD(ProblemFunctions
