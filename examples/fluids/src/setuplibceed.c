@@ -84,7 +84,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
 
   // -- Create Sub-Operator for in/outflow BCs
-  if (phys->has_neumann) {
+  if (phys->has_neumann || 1) {
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
     //ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);

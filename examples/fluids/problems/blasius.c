@@ -42,7 +42,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_inflow_loc        = Blasius_Inflow_loc;
   problem->apply_outflow           = Blasius_Outflow;
   problem->apply_outflow_loc       = Blasius_Outflow_loc;
-
+  problem->setup_ctx               = SetupContext_BLASIUS;
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
@@ -69,6 +69,7 @@ PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
                               sizeof(*phys->newtonian_ig_ctx), phys->newtonian_ig_ctx);
+  phys->has_neumann = PETSC_TRUE;
   if (ceed_data->qf_ics)
     CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->newt_ig_context);
   if (ceed_data->qf_rhs_vol)
