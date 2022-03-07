@@ -29,6 +29,43 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+
+CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
+                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const CeedScalar theta0 = 300;
+  const CeedScalar P0     = 1.e5;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar mu     = context->mu;
+  const CeedScalar k      = context->k;
+
+  const CeedScalar x=X[0], y=X[1], z=X[2];
+
+  const CeedScalar meter  = 1e-2;
+  const CeedScalar umax   = 10.;
+  const CeedScalar center = 0.5*meter;
+
+  const CeedScalar Pr    = mu / (cp*k);
+  const CeedScalar Ec    = (umax*umax) / (cp*theta0);
+  const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/center,4)));
+
+  const CeedScalar ReH = umax*center/mu
+                         ; //Deliberately not including density (it's canceled out)
+  const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*center);
+  const CeedScalar rho = p / (Rd*theta);
+
+  q[0] = rho;
+  q[1] = rho * umax*(1 - pow((y-center)/center,2));
+  q[2] = 0;
+  q[3] = 0;
+  q[4] = rho * (cv*theta) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
+
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems
 // *****************************************************************************
