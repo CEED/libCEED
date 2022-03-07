@@ -144,17 +144,21 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // incoming total energy
     const CeedScalar E = rho * (cv * theta0 + E_kinetic);
 
+    const CeedScalar u_normal = norm[0]*velocity[0] +
+                                norm[1]*velocity[1] +
+                                norm[2]*velocity[2];
+
     // The Physics
     // -- Density
     v[0][i] -= wdetJb * rho;
 
     // -- Momentum
     for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho *  velocity[j] +
+      v[j+1][i] -= wdetJb *(rho * u_normal * velocity[j] +
                             norm[j] * P);
 
     // -- Total Energy Density
-    v[4][i] -= wdetJb * (E + P);
+    v[4][i] -= wdetJb * u_normal * (E + P);
 
   } // End Quadrature Point Loop
   return 0;
