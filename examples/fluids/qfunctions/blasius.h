@@ -98,7 +98,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = false;
-  CeedScalar velocity[]   = {1., 0., 0.};
+  CeedScalar velocity[]   = {10., 0., 0.};
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
@@ -119,14 +119,20 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
-    // -- Exner pressure, hydrostatic balance
-    /* const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N); */
-    const CeedScalar Pi = 1.;
-
-    // -- Density
-    /* const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0); */
+    // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
-    const CeedScalar P = rho*Rd*theta0;
+    const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
+    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
+                                  u[2]*u[2]);
+    const CeedScalar P = E_internal * (gamma - 1.);
+
+    // Find inflow state using calculated P and prescribed velocity, theta0
+    const CeedScalar e_internal = cv * theta0;
+    const CeedScalar rho_in = P / ((gamma - 1) * e_internal);
+    const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
+                                 velocity[1]*velocity[1] +
+                                 velocity[2]*velocity[2]);
+    const CeedScalar E = rho_in * e_internal + E_kinetic;
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
@@ -137,25 +143,18 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // Zero v so all future terms can safely sum into it
     for (int j=0; j<5; j++) v[j][i] = 0.;
 
-    // Implementing inflow condition
-    const CeedScalar E_kinetic = (velocity[0]*velocity[0] +
-                                  velocity[1]*velocity[1] +
-                                  velocity[2]*velocity[2]) / 2.;
-    // incoming total energy
-    const CeedScalar E = rho * (cv * theta0 + E_kinetic);
-
     const CeedScalar u_normal = norm[0]*velocity[0] +
                                 norm[1]*velocity[1] +
                                 norm[2]*velocity[2];
 
     // The Physics
     // -- Density
-    v[0][i] -= wdetJb * rho * u_normal;
+    v[0][i] -= wdetJb * rho_in * u_normal;
 
     // -- Momentum
     for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho * u_normal * velocity[j] +
-                            norm[j] * P);
+      v[j+1][i] -= wdetJb * (rho_in * u_normal * velocity[j] +
+                             norm[j] * P);
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
