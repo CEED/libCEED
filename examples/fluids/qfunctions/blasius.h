@@ -159,7 +159,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // -- Density
-    v[0][i] -= wdetJb * rho;
+    v[0][i] -= wdetJb * rho * u_normal;
 
     // -- Momentum
     for (int j=0; j<3; j++)
