@@ -85,7 +85,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
     q[2] = rho*0.0;
     q[3] = rho*0.0;
     /* q[4] = rho * (cv*theta0*Pi + g*x[2]); */
-    q[4] = rho * (cv*theta0*Pi);
+    q[4] = rho * (cv*theta0*Pi) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
