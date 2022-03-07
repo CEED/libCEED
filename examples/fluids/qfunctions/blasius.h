@@ -54,7 +54,8 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
     // Setup
 
     // -- Exner pressure, hydrostatic balance
-    const CeedScalar Pi = 1. + g*g*(exp(-N*N*x[2]/g) - 1.) / (cp*theta0*N*N);
+    /* const CeedScalar Pi = 1. + g*g*(exp(-N*N*x[2]/g) - 1.) / (cp*theta0*N*N); */
+    const CeedScalar Pi = 1.;
 
     // -- Density
     const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
@@ -74,7 +75,8 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
     /* q[1] = rho*1.0; */
     q[2] = rho*0.0;
     q[3] = rho*0.0;
-    q[4] = rho * (cv*theta0*Pi + g*x[2]);
+    /* q[4] = rho * (cv*theta0*Pi + g*x[2]); */
+    q[4] = rho * (cv*theta0*Pi);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -88,7 +90,9 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
                                CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -99,6 +103,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
   const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
   const CeedScalar N      = 0.01;
@@ -115,10 +120,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
     // -- Exner pressure, hydrostatic balance
-    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+    /* const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N); */
+    const CeedScalar Pi = 1.;
 
     // -- Density
-    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
+    /* const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0); */
+    const CeedScalar rho = q[0][i];
+    const CeedScalar P = rho*Rd*theta0;
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
@@ -143,10 +151,10 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // -- Momentum
     for (int j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho *  velocity[j] +
-                            norm[j] * P0);
+                            norm[j] * P);
 
     // -- Total Energy Density
-    v[4][i] -= wdetJb * (E + P0);
+    v[4][i] -= wdetJb * (E + P);
 
   } // End Quadrature Point Loop
   return 0;
