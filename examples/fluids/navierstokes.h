@@ -306,6 +306,8 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
+                                 void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm,
                                  void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm,
@@ -320,6 +322,9 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *setup_ctx, void *ctx);
 
 // Set up context for each problem
+extern PetscErrorCode SetupContext_CHANNEL(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
 extern PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 

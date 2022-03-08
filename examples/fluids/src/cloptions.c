@@ -33,6 +33,9 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   ierr = PetscFunctionListAdd(&app_ctx->problems, "blasius",
                               NS_BLASIUS); CHKERRQ(ierr);
 
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "channel",
+                              NS_CHANNEL); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
