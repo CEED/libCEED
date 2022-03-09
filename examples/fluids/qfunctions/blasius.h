@@ -20,41 +20,58 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
+    const CeedScalar Uinf, const CeedScalar x0, const CeedScalar x,
+    const CeedScalar rho, CeedScalar *u, CeedScalar *v,
+    const NewtonianIdealGasContext newt_ctx) {
 
-CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
-                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+  CeedInt nprofs = 26;
+  CeedScalar eta_table[] = { 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 8.2, 8.7, 8.8, 9, 10, 11, 12, 12.43};
+  // *INDENT-OFF*
+  CeedScalar f_table[] = { 0,                  0.00166028097748329, 0.00664099782185387, 0.0149414623187717, 0.0265598832055768,
+                           0.0414928195150539, 0.0597346375181186,  0.0812769754437425,  0.106108220767729,  0.134213005526786,
+                           0.165571725783800,  0.650024370215956,   1.39680823153785,    2.30574641937620,   3.28327366522910,
+                           4.27962092307682,   5.27923881151476,    6.27921343179810,    6.47921288713369,   6.97921243151176,
+                           7.07921240368407,   7.27921237111197,    8.27921234339988,    9.27921234294946,   10.2792123429452,   10.7092123429449 };
+  CeedScalar fp_table[] = { 0,                 0.0332054966058561, 0.0664077801596799, 0.0995985889897647, 0.132764155997273,
+                            0.165885252325028, 0.198937252436665,  0.231890235983639,  0.264709138163229,  0.297353957812383,
+                            0.329780030672017, 0.629765736670949,  0.846044443888272,  0.955518229353090,  0.991541900689297,
+                            0.998972872289725, 0.999921604109742,  0.999996274564183,  0.999998087480233,  0.999999668030006,
+                            0.999999769481724, 0.999999890448371,  0.999999998015206,  0.999999999977930,  0.999999999998648, 1 };
+  CeedScalar fpp_table[] = { 0.332057336270228,   0.332048145748033,    0.331983834255578,     0.331809346697686,      0.331469843619160,
+                             0.330910954899200,   0.330079127676020,    0.328922067860142,     0.327389270302448,      0.325432629177788,
+                             0.323007116916611,   0.266751545690649,    0.161360318755386,     0.0642341216112545,     0.0159067979373118,
+                             0.00240204010581148, 0.000220169039772643, 0.0000122408522222333, 0.00000646792883303279, 0.00000120272733477146,
+                             8.46312294375786e-7, 4.12807423557125e-7,  8.44248043699535e-9,   1.04517612148937e-10,   5.63589958345985e-12, 0 };
+  // *INDENT-ON*
 
-  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar theta0 = 300;
-  const CeedScalar P0     = 1.e5;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
-  const CeedScalar Rd     = cp - cv;
-  const CeedScalar mu     = context->mu;
-  const CeedScalar k      = context->k;
+  CeedScalar nu = newt_ctx->mu / rho;
+  CeedScalar eta = y*sqrt(Uinf/(nu*(x0+x)));
+  CeedInt idx=-1;
 
-  const CeedScalar x=X[0], y=X[1], z=X[2];
+  for(CeedInt i=0; i<nprofs; i++) {
+    if (eta < eta_table[i]) {
+      idx = i;
+      break;
+    }
+  }
+  CeedScalar f, fp, fpp;
 
-  const CeedScalar meter  = 1e-2;
-  const CeedScalar umax   = 10.;
-  const CeedScalar center = 0.5*meter;
+  if (idx > 0) { // eta within the bounds of eta_table
+    CeedScalar coeff = (eta - eta_table[idx-1]) / (eta_table[idx] - eta_table[idx
+                       -1]);
 
-  const CeedScalar Pr    = mu / (cp*k);
-  const CeedScalar Ec    = (umax*umax) / (cp*theta0);
-  const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/center,4)));
+    f   = f_table[idx-1]   + coeff*( f_table[idx]   - f_table[idx-1] );
+    fp  = fp_table[idx-1]  + coeff*( fp_table[idx]  - fp_table[idx-1] );
+    fpp = fpp_table[idx-1] + coeff*( fpp_table[idx] - fpp_table[idx-1] );
+  } else { // eta outside bounds of eta_table
+    f   = f_table[nprofs];
+    fp  = fp_table[nprofs];
+    fpp = fpp_table[nprofs];
+  }
 
-  const CeedScalar ReH = umax*center/mu
-                         ; //Deliberately not including density (it's canceled out)
-  const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*center);
-  const CeedScalar rho = p / (Rd*theta);
-
-  q[0] = rho;
-  q[1] = rho * umax*(1 - pow((y-center)/center,2));
-  q[2] = 0;
-  q[3] = 0;
-  q[4] = rho * (cv*theta) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
-
-  return 0;
+  *u = Uinf*fp;
+  *v = 0.5*sqrt(nu*Uinf/(x0+x))*(eta*fp - f);
 }
 
 // *****************************************************************************
