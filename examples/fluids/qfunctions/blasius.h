@@ -85,15 +85,36 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const CeedScalar cv     = context->cv;
+  const CeedScalar cp     = context->cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
+  const CeedScalar mu     = context->mu;
+  const CeedScalar k      = context->k;
+
+  const CeedScalar meter  = 1e-2;
+  const CeedScalar theta0 = 300;
+  const CeedScalar P0     = 1.e5;
+  const CeedScalar x0     = 11*meter;
+  const CeedScalar Uinf   = 10;
+
+  const CeedScalar e_internal = cv*theta0;
+  const CeedScalar rho = P0 / ((gamma - 1) * e_internal);
+  CeedScalar u, v;
+
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5] = {0.};
-    Exact_Channel(3, 0., x, 5, q, ctx);
 
-    for (CeedInt j=0; j<5; j++)
-      q0[j][i] = q[j];
+    BlasiusSolution(x[1], Uinf, x0, x[0], rho, &u, &v, context);
+
+    q0[0][i] = rho;
+    q0[1][i] = u*rho;
+    q0[2][i] = v*rho;
+    q0[3][i] = 0.;
+    q0[4][i] = rho*e_internal + 0.5*(u*u + v*v)*rho;
   } // End of Quadrature Point Loop
   return 0;
 }
@@ -120,12 +141,12 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
-  const CeedScalar N      = 0.01;
   const CeedScalar z      = 0.;
 
-  CeedScalar meter           = 1e-2;
-  CeedScalar center_velocity = 10.;
-  CeedScalar center          = 0.5*meter;
+  const CeedScalar meter  = 1e-2;
+  const CeedScalar x0     = 11*meter;
+  const CeedScalar Uinf   = 10;
+  const CeedScalar rho_0 = P0 / (Rd * theta0);
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -139,16 +160,6 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Calcualte prescribed inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q_exact[5] = {0.};
-    Exact_Channel(3, 0., x, 5, q_exact, ctx);
-    const CeedScalar E_kinetic_exact = 0.5*(q_exact[1]*q_exact[1] +
-                                            q_exact[2]*q_exact[2] +
-                                            q_exact[3]*q_exact[3]) / q_exact[0];
-    const CeedScalar velocity[3] = {q_exact[1]/q_exact[0],
-                                    q_exact[2]/q_exact[0],
-                                    q_exact[3]/q_exact[0]
-                                   };
-    const CeedScalar theta = (q_exact[4] - E_kinetic_exact) / (q_exact[0]*cv);
 
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
@@ -158,8 +169,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar P = E_internal * (gamma - 1.);
 
     // Find inflow state using calculated P and prescribed velocity, theta0
-    const CeedScalar e_internal = cv * theta;
+    const CeedScalar e_internal = cv * theta0;
     const CeedScalar rho_in = P / ((gamma - 1) * e_internal);
+
+    CeedScalar velocity[3] = {0.};
+    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
+                    context);
+
     const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
                                  velocity[1]*velocity[1] +
                                  velocity[2]*velocity[2]);
@@ -249,7 +265,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
 
     // Implementing outflow condition
     const CeedScalar E_kinetic = (u[0]*u[0] + u[1]*u[1]) / 2.;
-    const CeedScalar P         = (E - E_kinetic * rho) * (gamma - 1.); // pressure
+    const CeedScalar P         = P0; // pressure
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity
     // The Physics
