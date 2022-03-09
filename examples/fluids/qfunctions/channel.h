@@ -107,7 +107,6 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
-  const CeedScalar N      = 0.01;
   const CeedScalar z      = 0.;
 
   CeedScalar meter           = 1e-2;

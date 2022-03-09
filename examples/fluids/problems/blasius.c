@@ -21,17 +21,7 @@
 #include "../qfunctions/newtonian.h"
 #include "../qfunctions/blasius.h"
 
-#ifndef blasius_context_struct
-#define blasius_context_struct
-typedef struct BlasiusContext_ *BlasiusContext;
-struct BlasiusContext_ {
-  bool implicit;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-  NewtonianIdealGasContext newt_ctx;
 
-};
-
-#endif
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
                           void *ctx) {
 
@@ -52,18 +42,19 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_outflow           = Blasius_Outflow;
   problem->apply_outflow_loc       = Blasius_Outflow_loc;
   problem->setup_ctx               = SetupContext_BLASIUS;
-  // ------------------------------------------------------
-  //             Create the libCEED context
-  // ------------------------------------------------------
 
-  // ------------------------------------------------------
-  //              Command line Options
-  // ------------------------------------------------------
-  // ierr = PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem",
-  //                          NULL); CHKERRQ(ierr);
-  // ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  CeedScalar mu = .01; // Pa s, dynamic viscosity
 
+  PetscScalar meter           = user->units->meter;
+  PetscScalar kilogram        = user->units->kilogram;
+  PetscScalar second          = user->units->second;
+  PetscScalar Kelvin          = user->units->Kelvin;
+  PetscScalar Pascal          = user->units->Pascal;
+  PetscScalar J_per_kg_K      = user->units->J_per_kg_K;
+  PetscScalar m_per_squared_s = user->units->m_per_squared_s;
+  PetscScalar W_per_m_K       = user->units->W_per_m_K;
 
+  user->phys->newtonian_ig_ctx->mu = mu*(Pascal * second);
   PetscFunctionReturn(0);
 }
 
