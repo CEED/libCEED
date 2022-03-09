@@ -119,10 +119,11 @@
 #  endif
 #endif
 
-#include <stdint.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /// Integer type, used for indexing
 /// @ingroup Ceed
@@ -710,7 +711,7 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
-    CeedInt *num_entries, CeedInt **rows, CeedInt **cols);
+     ptrdiff_t *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
 CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
     CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,

@@ -425,7 +425,8 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   {
     // Assemble matrix analytically
-    CeedInt num_entries, *rows, *cols;
+    PetscCount num_entries;
+    CeedInt *rows, *cols;
     CeedVector coo_values;
     CeedOperatorLinearAssembleSymbolic(user_O[0]->op, &num_entries, &rows, &cols);
     ISLocalToGlobalMapping ltog_row, ltog_col;

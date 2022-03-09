@@ -519,7 +519,8 @@ int main(int argc, char **argv) {
 
     if (app_ctx->degree > 1) {
       // -- Assemble sparsity pattern
-      CeedInt num_entries, *rows, *cols;
+      PetscCount num_entries;
+      CeedInt *rows, *cols;
       CeedVector coo_values;
       CeedOperatorLinearAssembleSymbolic(ceed_data[0]->op_jacobian, &num_entries,
                                          &rows, &cols);

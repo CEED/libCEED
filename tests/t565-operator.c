@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     assembled[k] = 0.0;
     assembled_true[k] = 0.0;
   }
-  CeedInt num_entries;
+  ptrdiff_t num_entries;
   CeedInt *rows;
   CeedInt *cols;
   CeedVector values;
