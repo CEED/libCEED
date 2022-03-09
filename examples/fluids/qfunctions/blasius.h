@@ -142,7 +142,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const bool implicit     = false;
+  const bool implicit     = true;
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar g      = context->g;
@@ -231,7 +231,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   // *INDENT-ON*
 
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const bool implicit     = false;
+  const bool implicit     = true;
   CeedScalar velocity[]   = {1., 0., 0.};
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
