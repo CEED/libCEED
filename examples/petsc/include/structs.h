@@ -38,7 +38,7 @@ struct UserProlongRestr_ {
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   Ceed ceed;
-  CeedBasis basis_x, basis_u, basis_c_to_f;
+  CeedBasis basis_x, basis_u;
   CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
   CeedQFunction qf_apply;
   CeedOperator op_apply, op_restrict, op_prolong;

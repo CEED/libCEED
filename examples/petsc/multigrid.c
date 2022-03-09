@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
   CeedData *ceed_data;
   CeedVector rhs_ceed, target;
-  CeedQFunction qf_error, qf_restrict, qf_prolong;
+  CeedQFunction qf_error;
   CeedOperator op_error;
   BPType bp_choice;
   CoarsenType coarsen;
@@ -213,6 +213,12 @@ int main(int argc, char **argv) {
   ierr = PetscMalloc1(num_levels, &xl_size); CHKERRQ(ierr);
   ierr = PetscMalloc1(num_levels, &g_size); CHKERRQ(ierr);
 
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(dm_orig, 0, &c_start, &c_end); CHKERRQ(ierr);
+  DMPolytopeType  cell_type;
+  ierr = DMPlexGetCellType(dm_orig, c_start, &cell_type); CHKERRQ(ierr);
+  CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
+
   // Setup DM and Operator Mat Shells for each level
   for (CeedInt i=0; i<num_levels; i++) {
     // Create DM
@@ -287,7 +293,8 @@ int main(int argc, char **argv) {
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend], P, Q, q_extra,
                        g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
-                       num_comp_u, num_levels); CHKERRQ(ierr);
+                       num_comp_u, CeedElemTopologies[elem_topo],
+                       num_levels); CHKERRQ(ierr);
   }
 
   // Create RHS vector
@@ -322,17 +329,6 @@ int main(int argc, char **argv) {
   ierr = VecZeroEntries(rhs); CHKERRQ(ierr);
   ierr = DMLocalToGlobal(dm[fine_level], rhs_loc, ADD_VALUES, rhs); CHKERRQ(ierr);
   CeedVectorDestroy(&rhs_ceed);
-
-  // Create the restriction/interpolation QFunction
-  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_NONE, CEED_EVAL_INTERP,
-                              &qf_restrict);
-  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_INTERP, CEED_EVAL_NONE,
-                              &qf_prolong);
-
-  // Set up libCEED level transfer operators
-  ierr = CeedLevelTransferSetup(ceed, num_levels, num_comp_u, ceed_data,
-                                level_degrees,
-                                qf_restrict, qf_prolong); CHKERRQ(ierr);
 
   // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bp_options[bp_choice].error,
@@ -401,6 +397,8 @@ int main(int argc, char **argv) {
 
     if (i > 0) {
       // Prolongation/Restriction Operator
+      ierr = CeedLevelTransferSetup(dm[i], ceed, i, num_comp_u, ceed_data,
+                                    mult[i]); CHKERRQ(ierr);
       user_pr[i]->comm = comm;
       user_pr[i]->dmf = dm[i];
       user_pr[i]->dmc = dm[i-1];
@@ -652,8 +650,6 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qf_error);
-  CeedQFunctionDestroy(&qf_restrict);
-  CeedQFunctionDestroy(&qf_prolong);
   CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
   return PetscFinalize();

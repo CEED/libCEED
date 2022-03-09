@@ -22,7 +22,6 @@ PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   CeedOperatorDestroy(&data->op_apply);
   if (i > 0) {
     CeedOperatorDestroy(&data->op_prolong);
-    CeedBasisDestroy(&data->basis_c_to_f);
     CeedOperatorDestroy(&data->op_restrict);
   }
   ierr = PetscFree(data); CHKERRQ(ierr);
@@ -218,56 +217,60 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 // -----------------------------------------------------------------------------
 // Setup libCEED level transfer operator objects
 // -----------------------------------------------------------------------------
-PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt num_levels,
+PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level,
                                       CeedInt num_comp_u, CeedData *data,
+<<<<<<< HEAD
                                       CeedInt *level_degrees,
                                       CeedQFunction qf_restrict, CeedQFunction qf_prolong) {
   PetscFunctionBeginUser;
   // Return early if num_levels=1
   if (num_levels == 1)
     PetscFunctionReturn(0);
+=======
+                                      Vec fine_mult) {
+  int ierr;
+>>>>>>> 2e9bde68 (Used "CeedOperatorMultigridLevelCreate" to create multigrid operators)
 
-  // Set up each level
-  for (CeedInt i=1; i<num_levels; i++) {
-    // P coarse and P fine
-    CeedInt Pc = level_degrees[i-1] + 1;
-    CeedInt Pf = level_degrees[i] + 1;
+  // Restriction - Fine to corse
+  CeedOperator op_restrict;
+  // Interpolation - Corse to fine
+  CeedOperator op_prolong;
+  // Coarse grid operator
+  CeedOperator op_apply;
+  // Basis
+  CeedBasis basis_u;
+  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &basis_u);
+  CHKERRQ(ierr);
 
-    // Restriction - Fine to corse
-    CeedBasis basis_c_to_f;
-    CeedOperator op_restrict;
+  // ---------------------------------------------------------------------------
+  // Coarse Grid, Prolongation, and Restriction Operators
+  // ---------------------------------------------------------------------------
+  // Create the Operators that compute the prolongation and
+  //   restriction between the p-multigrid levels and the coarse grid eval.
+  // ---------------------------------------------------------------------------
+  // Place in libCEED array
+  const PetscScalar *m;
+  PetscMemType m_mem_type;
+  ierr = VecGetArrayReadAndMemType(fine_mult, &m, &m_mem_type);
+  CHKERRQ(ierr);
+  CeedVectorSetArray(data[level]->x_ceed, MemTypeP2C(m_mem_type),
+                     CEED_USE_POINTER, (CeedScalar *)m);
 
-    // Basis
-    CeedBasisCreateTensorH1Lagrange(ceed, 3, num_comp_u, Pc, Pf,
-                                    CEED_GAUSS_LOBATTO, &basis_c_to_f);
+  CeedOperatorMultigridLevelCreate(data[level]->op_apply, data[level]->x_ceed,
+                                   data[level-1]->elem_restr_u, basis_u,
+                                   &op_apply, &op_prolong, &op_restrict);
 
-    // Create the restriction operator
-    CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &op_restrict);
-    CeedOperatorSetField(op_restrict, "input", data[i]->elem_restr_u,
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_restrict, "output", data[i-1]->elem_restr_u,
-                         basis_c_to_f, CEED_VECTOR_ACTIVE);
+  // Restore PETSc vector
+  CeedVectorTakeArray(data[level]->x_ceed, MemTypeP2C(m_mem_type),
+                      (CeedScalar **)&m);
+  ierr = VecRestoreArrayReadAndMemType(fine_mult, &m); CHKERRQ(ierr);
+  ierr = VecZeroEntries(fine_mult); CHKERRQ(ierr);
+  // -- Save libCEED data
+  data[level-1]->op_apply = op_apply;
+  data[level]->op_prolong = op_prolong;
+  data[level]->op_restrict = op_restrict;
 
-    // Save libCEED data required for level
-    data[i]->basis_c_to_f = basis_c_to_f;
-    data[i]->op_restrict = op_restrict;
-
-    // Interpolation - Corse to fine
-    CeedOperator op_prolong;
-
-    // Create the prolongation operator
-    CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE,
-                       CEED_QFUNCTION_NONE, &op_prolong);
-    CeedOperatorSetField(op_prolong, "input", data[i-1]->elem_restr_u,
-                         basis_c_to_f, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_prolong, "output", data[i]->elem_restr_u,
-                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-    // Save libCEED data required for level
-    data[i]->op_prolong = op_prolong;
-  }
-
+  CeedBasisDestroy(&basis_u);
   PetscFunctionReturn(0);
 };
 
