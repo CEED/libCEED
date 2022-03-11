@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     assembled[k] = 0.0;
     assembled_true[k] = 0.0;
   }
-  ptrdiff_t num_entries;
+  CeedSize num_entries;
   CeedInt *rows;
   CeedInt *cols;
   CeedVector values;

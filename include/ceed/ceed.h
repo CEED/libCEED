@@ -129,6 +129,10 @@
 /// @ingroup Ceed
 typedef int32_t CeedInt;
 
+/// Integer type, used array sizes
+/// @ingroup Ceed
+typedef ptrdiff_t CeedSize;
+
 /// Scalar (floating point) types
 ///
 /// @ingroup Ceed
@@ -711,7 +715,7 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
-     ptrdiff_t *num_entries, CeedInt **rows, CeedInt **cols);
+     CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
 CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
     CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,

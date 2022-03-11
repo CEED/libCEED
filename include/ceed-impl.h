@@ -345,7 +345,7 @@ struct CeedOperator_private {
                                           CeedRequest *);
   int (*LinearAssembleAddPointBlockDiagonal)(CeedOperator, CeedVector,
       CeedRequest *);
-  int (*LinearAssembleSymbolic)(CeedOperator, ptrdiff_t *, CeedInt **,
+  int (*LinearAssembleSymbolic)(CeedOperator, CeedSize *, CeedInt **,
                                 CeedInt **);
   int (*LinearAssemble)(CeedOperator, CeedVector);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);

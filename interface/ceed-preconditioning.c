@@ -1403,7 +1403,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
    @ref User
 **/
-int CeedOperatorLinearAssembleSymbolic(CeedOperator op, ptrdiff_t *num_entries,
+int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries,
                                        CeedInt **rows, CeedInt **cols) {
   int ierr;
   CeedInt num_suboperators, single_entries;
