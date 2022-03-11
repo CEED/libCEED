@@ -110,7 +110,7 @@ class Vector():
              *array: Numpy or Numba array"""
 
         # Retrieve the length of the array
-        length_pointer = ffi.new("CeedInt *")
+        length_pointer = ffi.new("CeedSize *")
         err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
         self._ceed._check_error(err_code)
 
@@ -155,7 +155,7 @@ class Vector():
              *array: Numpy or Numba array"""
 
         # Retrieve the length of the array
-        length_pointer = ffi.new("CeedInt *")
+        length_pointer = ffi.new("CeedSize *")
         err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
         self._ceed._check_error(err_code)
 
@@ -203,7 +203,7 @@ class Vector():
              *array: Numpy or Numba array"""
 
         # Retrieve the length of the array
-        length_pointer = ffi.new("CeedInt *")
+        length_pointer = ffi.new("CeedSize *")
         err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
         self._ceed._check_error(err_code)
 
@@ -343,7 +343,7 @@ class Vector():
            Returns:
              length: length of the Vector"""
 
-        length_pointer = ffi.new("CeedInt *")
+        length_pointer = ffi.new("CeedSize *")
 
         # libCEED call
         err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)
@@ -358,7 +358,7 @@ class Vector():
            Returns:
              length: length of the Vector"""
 
-        length_pointer = ffi.new("CeedInt *")
+        length_pointer = ffi.new("CeedSize *")
 
         # libCEED call
         err_code = lib.CeedVectorGetLength(self._pointer[0], length_pointer)

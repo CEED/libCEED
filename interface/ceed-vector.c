@@ -192,7 +192,7 @@ int CeedVectorReference(CeedVector vec) {
 
   @ref User
 **/
-int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
+int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   int ierr;
 
   if (!ceed->VectorCreate) {
@@ -684,7 +684,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   int ierr;
   CeedScalar *x_array = NULL;
-  CeedInt n_x;
+  CeedSize n_x;
 
   bool has_valid_array = true;
   ierr = CeedVectorHasValidArray(x, &has_valid_array); CeedChk(ierr);
@@ -725,7 +725,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   int ierr;
   CeedScalar *y_array = NULL;
   CeedScalar const *x_array = NULL;
-  CeedInt n_x, n_y;
+  CeedSize n_x, n_y;
 
   ierr = CeedVectorGetLength(y, &n_y); CeedChk(ierr);
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
@@ -802,7 +802,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   int ierr;
   CeedScalar *w_array = NULL;
   CeedScalar const *x_array = NULL, *y_array = NULL;
-  CeedInt n_w, n_x, n_y;
+  CeedSize n_w, n_x, n_y;
 
   ierr = CeedVectorGetLength(w, &n_w); CeedChk(ierr);
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
@@ -910,7 +910,7 @@ int CeedVectorReciprocal(CeedVector vec) {
     return CEED_ERROR_SUCCESS;
   }
 
-  CeedInt len;
+  CeedSize len;
   ierr = CeedVectorGetLength(vec, &len); CeedChk(ierr);
   CeedScalar *array;
   ierr = CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
@@ -973,7 +973,7 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 
   @ref User
 **/
-int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   *length = vec->length;
   return CEED_ERROR_SUCCESS;
 }

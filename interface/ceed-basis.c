@@ -802,7 +802,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode,
                    CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   int ierr;
-  CeedInt u_length = 0, v_length, dim, num_comp, num_nodes, num_qpts;
+  CeedSize u_length = 0, v_length;
+  CeedInt dim, num_comp, num_nodes, num_qpts;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
   ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &num_nodes); CeedChk(ierr);

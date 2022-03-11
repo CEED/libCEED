@@ -102,7 +102,7 @@ struct Ceed_private {
                va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
-  int (*VectorCreate)(CeedInt, CeedVector);
+  int (*VectorCreate)(CeedSize, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode,

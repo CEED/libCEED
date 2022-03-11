@@ -4,7 +4,7 @@
 #include <ceed.h>
 static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   const CeedScalar *b;
-  CeedInt n;
+  CeedSize n;
   CeedVectorGetLength(x, &n);
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
   for (CeedInt i=0; i<n; i++) {

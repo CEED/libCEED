@@ -118,7 +118,7 @@ typedef struct {
 
 CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
 
-CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type,
     CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);

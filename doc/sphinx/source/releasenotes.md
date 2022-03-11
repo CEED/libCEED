@@ -22,6 +22,7 @@ for each release of libCEED.
 - Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {c:struct}`CeedQFunctionContext` data by user defined field names.
 - Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
 - Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
+- Added type `CeedSize` equivalent to `ptrdiff_t` for array sizes in {c:func}`CeedVectorCreate`, {c:func}`CeedVectorGetLength`, and {c:func}`CeedOperatorLinearAssembleSymbolic`.
 
 ### New features
 

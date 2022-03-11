@@ -341,7 +341,7 @@ typedef enum {
   CEED_NORM_MAX,
 } CeedNormType;
 
-CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
+CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedCopyMode copy_mode, CeedScalar *array);
@@ -366,7 +366,7 @@ CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
-CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedSize *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;

@@ -49,7 +49,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
   for (int i = 0; i<num_out; i++) {
     ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_HOST, &impl->outputs[i]);
     CeedChkBackend(ierr);
-    CeedInt len;
+    CeedSize len;
     ierr = CeedVectorGetLength(V[i], &len); CeedChkBackend(ierr);
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
   }

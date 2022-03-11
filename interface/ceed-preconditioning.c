@@ -553,7 +553,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(
            op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
 
-  CeedInt qf_length;
+  CeedSize qf_length;
   ierr = CeedVectorGetLength(assembled_qf, &qf_length); CeedChk(ierr);
 
   CeedInt num_input_fields, num_output_fields;

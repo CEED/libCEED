@@ -27,7 +27,7 @@
 //------------------------------------------------------------------------------
 static inline size_t bytes(const CeedVector vec) {
   int ierr;
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
   return length * sizeof(CeedScalar);
 }
@@ -85,7 +85,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   } else if (impl->h_array_owned) {
     impl->h_array = impl->h_array_owned;
   } else {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
     ierr = CeedCalloc(length, &impl->h_array_owned);  CeedChkBackend(ierr);
     impl->h_array = impl->h_array_owned;
@@ -213,7 +213,7 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
 
   switch (copy_mode) {
   case CEED_COPY_VALUES: {
-    CeedInt length;
+    CeedSize length;
     if (!impl->h_array_owned) {
       ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
       ierr = CeedMalloc(length, &impl->h_array_owned); CeedChkBackend(ierr);
@@ -328,7 +328,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
@@ -505,7 +505,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type,
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
   cublasHandle_t handle;
   ierr = CeedCudaGetCublasHandle(ceed, &handle); CeedChkBackend(ierr);
@@ -577,7 +577,7 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
@@ -616,7 +616,7 @@ static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
   ierr = CeedVectorGetCeed(x, &ceed); CeedChkBackend(ierr);
   CeedVector_Cuda *x_impl;
   ierr = CeedVectorGetData(x, &x_impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(x, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
@@ -657,7 +657,7 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
   CeedVector_Cuda *y_impl, *x_impl;
   ierr = CeedVectorGetData(y, &y_impl); CeedChkBackend(ierr);
   ierr = CeedVectorGetData(x, &x_impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(y, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
@@ -703,7 +703,7 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x,
   ierr = CeedVectorGetData(w, &w_impl); CeedChkBackend(ierr);
   ierr = CeedVectorGetData(x, &x_impl); CeedChkBackend(ierr);
   ierr = CeedVectorGetData(y, &y_impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(w, &length); CeedChkBackend(ierr);
 
   // Set value for synced device/host array
@@ -748,7 +748,7 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
 //------------------------------------------------------------------------------
 // Create a vector of the specified length (does not allocate memory)
 //------------------------------------------------------------------------------
-int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedVector_Cuda *impl;
   int ierr;
   Ceed ceed;

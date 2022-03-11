@@ -254,7 +254,7 @@ impl<'a> fmt::Display for Vector<'a> {
 impl<'a> Vector<'a> {
     // Constructors
     pub fn create(ceed: &crate::Ceed, n: usize) -> crate::Result<Self> {
-        let n = i32::try_from(n).unwrap();
+        let n = isize::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
         let ierr = unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
         ceed.check_error(ierr)?;

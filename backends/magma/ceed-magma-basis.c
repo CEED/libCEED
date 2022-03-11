@@ -58,7 +58,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
             ncomp*CeedIntPow(P1d, dim), ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(V, &length); CeedChkBackend(ierr);
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
       magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *) v, length,
@@ -246,7 +246,7 @@ int CeedBasisApplyNonTensor_f64_Magma(CeedBasis basis, CeedInt nelem,
             ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(V, &length);
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
       magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *) dv, length,
@@ -371,7 +371,7 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem,
             ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(V, &length);
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
       magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *) dv, length,

@@ -66,7 +66,7 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-  CeedInt length;
+  CeedSize length;
   ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -210,7 +210,7 @@ static int CeedVectorDestroy_Ref(CeedVector vec) {
 //------------------------------------------------------------------------------
 // Vector Create
 //------------------------------------------------------------------------------
-int CeedVectorCreate_Ref(CeedInt n, CeedVector vec) {
+int CeedVectorCreate_Ref(CeedSize n, CeedVector vec) {
   int ierr;
   CeedVector_Ref *impl;
   Ceed ceed;
