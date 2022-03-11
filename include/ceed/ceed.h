@@ -417,23 +417,23 @@ CEED_EXTERN const char *const CeedTransposeModes[];
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem,
-    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
+    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
     CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
-    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
+    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
     CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
     const bool *orient, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
-    CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt l_size,
+    CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
     const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
     CeedInt elem_size, CeedInt blk_size, CeedInt num_comp, CeedInt comp_stride,
-    CeedInt l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+    CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
     const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
     CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
-    CeedInt l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
+    CeedSize l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr,
     CeedElemRestriction *rstr_copy);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
@@ -452,7 +452,7 @@ CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elem_size);
 CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
-    CeedInt *l_size);
+    CeedSize *l_size);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *num_comp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,

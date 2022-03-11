@@ -178,7 +178,7 @@ impl<'a> ElemRestriction<'a> {
             i32::try_from(elemsize).unwrap(),
             i32::try_from(ncomp).unwrap(),
             i32::try_from(compstride).unwrap(),
-            i32::try_from(lsize).unwrap(),
+            isize::try_from(lsize).unwrap(),
             mtype as bind_ceed::CeedMemType,
         );
         let ierr = unsafe {
@@ -215,7 +215,7 @@ impl<'a> ElemRestriction<'a> {
             i32::try_from(nelem).unwrap(),
             i32::try_from(elemsize).unwrap(),
             i32::try_from(ncomp).unwrap(),
-            i32::try_from(lsize).unwrap(),
+            isize::try_from(lsize).unwrap(),
         );
         let ierr = unsafe {
             bind_ceed::CeedElemRestrictionCreateStrided(

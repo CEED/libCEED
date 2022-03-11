@@ -173,7 +173,7 @@ struct CeedElemRestriction_private {
   CeedInt elem_size;     /* number of nodes per element */
   CeedInt num_comp;      /* number of components */
   CeedInt comp_stride;   /* Component stride for L-vector ordering */
-  CeedInt l_size;        /* size of the L-vector, can be used for checking
+  CeedSize l_size;       /* size of the L-vector, can be used for checking
                               for correct vector sizes */
   CeedInt blk_size;      /* number of elements in a batch */
   CeedInt num_blk;       /* number of blocks of elements */
