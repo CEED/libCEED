@@ -182,7 +182,8 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar rho_0 = P0 / ((gamma - 1) * e_internal);
 
     CeedScalar velocity[3] = {0.};
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1], context);
+    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
+                    context);
 
     const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
                                  velocity[1]*velocity[1] +

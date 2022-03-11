@@ -25,35 +25,49 @@
 #include <ceed.h>
 #include "../navierstokes.h"
 
+#ifndef channel_context_struct
+#define channel_context_struct
+typedef struct ChannelContext_ *ChannelContext;
+struct ChannelContext_ {
+  bool       implicit; // !< Using implicit timesteping or not
+  CeedScalar theta0;   // !< Reference temperature
+  CeedScalar P0;       // !< Reference Pressure
+  CeedScalar umax;     // !< Centerline velocity
+  CeedScalar center;   // !< Y Coordinate for center of channel
+  CeedScalar H;        // !< Channel half-height
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+};
+#endif
+
 CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
                                         const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
 
-  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar theta0 = 300;
-  const CeedScalar P0     = 1.e5;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
+  const ChannelContext context = (ChannelContext)ctx;
+  const CeedScalar theta0 = context->theta0;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar umax   = context->umax;
+  const CeedScalar center = context->center;
+  const CeedScalar H      = context->H;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
-  const CeedScalar mu     = context->mu;
-  const CeedScalar k      = context->k;
+  const CeedScalar mu     = context->newtonian_ctx.mu;
+  const CeedScalar k      = context->newtonian_ctx.k;
 
   const CeedScalar x=X[0], y=X[1], z=X[2];
 
-  const CeedScalar meter  = 1e-2;
-  const CeedScalar umax   = 10.;
-  const CeedScalar center = 0.5*meter;
-
   const CeedScalar Pr    = mu / (cp*k);
   const CeedScalar Ec    = (umax*umax) / (cp*theta0);
-  const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/center,4)));
+  const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/H,4)));
 
-  const CeedScalar ReH =
-    umax*center/mu; // Not including density (it's canceled out)
-  const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*center);
+  // Not including density (it's canceled out)
+  const CeedScalar ReH = umax*H/mu;
+  const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*H);
+
   const CeedScalar rho = p / (Rd*theta);
 
   q[0] = rho;
-  q[1] = rho * umax*(1 - pow((y-center)/center,2));
+  q[1] = rho * umax*(1 - pow((y-center)/H,2));
   q[2] = 0;
   q[3] = 0;
   q[4] = rho * (cv*theta) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
@@ -98,20 +112,19 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const bool implicit     = false;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
+  const ChannelContext context = (ChannelContext)ctx;
+  const bool implicit     = context->implicit;
+  const CeedScalar theta0 = context->theta0;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar umax   = context->umax;
+  const CeedScalar center = context->center;
+  const CeedScalar H      = context->H;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
-  const CeedScalar theta0 = 300;
-  const CeedScalar P0     = 1.e5;
-  const CeedScalar z      = 0.;
-
-  CeedScalar meter           = 1e-2;
-  CeedScalar center_velocity = 10.;
-  CeedScalar center          = 0.5*meter;
+  const CeedScalar mu     = context->newtonian_ctx.mu;
+  const CeedScalar k      = context->newtonian_ctx.k;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -192,18 +205,19 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
-  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const bool implicit     = false;
-  CeedScalar velocity[]   = {1., 0., 0.};
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
+  const ChannelContext context = (ChannelContext)ctx;
+  const bool implicit     = context->implicit;
+  const CeedScalar theta0 = context->theta0;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar umax   = context->umax;
+  const CeedScalar center = context->center;
+  const CeedScalar H      = context->H;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
-  const CeedScalar theta0 = 300;
-  const CeedScalar P0     = 1.e5;
-  const CeedScalar N      = 0.01;
-  const CeedScalar z      = 0.;
+  const CeedScalar mu     = context->newtonian_ctx.mu;
+  const CeedScalar k      = context->newtonian_ctx.k;
 
   CeedPragmaSIMD
   // Quadrature Point Loop

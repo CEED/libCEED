@@ -361,6 +361,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(phys_ctx->newtonian_ig_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->channel_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);
