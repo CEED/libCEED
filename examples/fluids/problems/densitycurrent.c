@@ -1,5 +1,6 @@
-// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
-// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other
+// CEED contributors. All Rights Reserved. See the top-level LICENSE and NOTICE
+// files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
 //
@@ -8,67 +9,106 @@
 /// @file
 /// Utility functions for setting up DENSITY_CURRENT
 
-#include "../navierstokes.h"
 #include "../qfunctions/densitycurrent.h"
+#include "../navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
                                   void *ctx) {
 
   PetscInt ierr;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
+  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx);
+  CHKERRQ(ierr);
   SetupContext setup_context = *(SetupContext *)setup_ctx;
-  User         user          = *(User *)ctx;
-  MPI_Comm     comm          = PETSC_COMM_WORLD;
+  User user = *(User *)ctx;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
 
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->ics     = ICsDC;
+  problem->ics = ICsDC;
   problem->ics_loc = ICsDC_loc;
-  problem->bc      = Exact_DC;
+  problem->bc = Exact_DC;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar rc     = 1000.;   // m (Radius of bubble)
+  CeedScalar theta0 = 300.; // K
+  CeedScalar thetaC = -15.; // K
+  CeedScalar P0 = 1.e5;     // Pa
+  CeedScalar N = 0.01;      // 1/s
+  CeedScalar rc = 1000.;    // m (Radius of bubble)
   PetscReal center[3], dc_axis[3] = {0, 0, 0};
   PetscReal domain_min[3], domain_max[3], domain_size[3];
-  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max);
+  CHKERRQ(ierr);
+  for (int i = 0; i < 3; i++)
+    domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
   PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem", NULL);
+  ierr = PetscOptionsScalar("-theta0", "Reference potential temperature", NULL,
+                            theta0, &theta0, NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
+                            NULL, thetaC, &thetaC, NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure", NULL, P0, &P0, NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency", NULL, N, &N, NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
-                            NULL, rc, &rc, NULL); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) center[i] = .5*domain_size[i];
+                            NULL, rc, &rc, NULL);
+  CHKERRQ(ierr);
+  for (int i = 0; i < 3; i++)
+    center[i] = .5 * domain_size[i];
   PetscInt n = problem->dim;
-  ierr = PetscOptionsRealArray("-center", "Location of bubble center",
-                               NULL, center, &n, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsRealArray("-center", "Location of bubble center", NULL,
+                               center, &n, NULL);
+  CHKERRQ(ierr);
   n = problem->dim;
   ierr = PetscOptionsRealArray("-dc_axis",
-                               "Axis of density current cylindrical anomaly, or {0,0,0} for spherically symmetric",
-                               NULL, dc_axis, &n, NULL); CHKERRQ(ierr);
+                               "Axis of density current cylindrical anomaly, "
+                               "or {0,0,0} for spherically symmetric",
+                               NULL, dc_axis, &n, NULL);
+  CHKERRQ(ierr);
   {
     PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(dc_axis[1]) +
                                    PetscSqr(dc_axis[2]));
     if (norm > 0) {
-      for (int i=0; i<3; i++)  dc_axis[i] /= norm;
+      for (int i = 0; i < 3; i++)
+        dc_axis[i] /= norm;
     }
   }
 
   PetscOptionsEnd();
 
   PetscScalar meter = user->units->meter;
+  PetscScalar kilogram = user->units->kilogram;
+  PetscScalar second = user->units->second;
+  PetscScalar Kelvin = user->units->Kelvin;
+  PetscScalar Pascal = user->units->Pascal;
+  PetscScalar J_per_kg_K = user->units->J_per_kg_K;
+  PetscScalar m_per_squared_s = user->units->m_per_squared_s;
+  PetscScalar W_per_m_K = user->units->W_per_m_K;
   rc = fabs(rc) * meter;
-  for (int i=0; i<3; i++) center[i] *= meter;
+  theta0 *= Kelvin;
+  thetaC *= Kelvin;
+  P0 *= Pascal;
+  N *= (1. / second);
+  for (int i = 0; i < 3; i++)
+    center[i] *= meter;
 
-  setup_context->rc         = rc;
-  setup_context->center[0]  = center[0];
-  setup_context->center[1]  = center[1];
-  setup_context->center[2]  = center[2];
+  setup_context->theta0 = theta0;
+  setup_context->thetaC = thetaC;
+  setup_context->P0 = P0;
+  setup_context->N = N;
+  setup_context->rc = rc;
+  setup_context->center[0] = center[0];
+  setup_context->center[1] = center[1];
+  setup_context->center[2] = center[2];
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
@@ -79,15 +119,15 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
-  PetscInt ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx,
-                  phys);
+  PetscInt ierr =
+    SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
                                      AppCtx app_ctx) {
-  MPI_Comm       comm = PETSC_COMM_WORLD;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 

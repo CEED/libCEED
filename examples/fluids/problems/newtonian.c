@@ -12,6 +12,22 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/newtonian.h"
 
+
+#ifndef newtonian_context_struct
+#define newtonian_context_struct
+typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
+struct NewtonianIdealGasContext_ {
+  CeedScalar lambda;
+  CeedScalar mu;
+  CeedScalar k;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g;
+  CeedScalar c_tau;
+  StabilizationType stabilization;
+};
+#endif
+
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                                void *ctx) {
   SetupContext      setup_context = *(SetupContext *)setup_ctx;
@@ -48,10 +64,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar theta0 = 300.;    // K
-  CeedScalar thetaC = -15.;    // K
-  CeedScalar P0     = 1.e5;    // Pa
-  CeedScalar N      = 0.01;    // 1/s
   CeedScalar cv     = 717.;    // J/(kg K)
   CeedScalar cp     = 1004.;   // J/(kg K)
   CeedScalar g      = 9.81;    // m/s^2
@@ -81,14 +93,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                     NULL);
 
   // -- Physics
-  ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                            NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
                             NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
@@ -157,10 +161,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  theta0 *= Kelvin;
-  thetaC *= Kelvin;
-  P0     *= Pascal;
-  N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
   g      *= m_per_squared_s;
@@ -170,10 +170,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   problem->dm_scale = meter;
 
   // -- Setup Context
-  setup_context->theta0     = theta0;
-  setup_context->thetaC     = thetaC;
-  setup_context->P0         = P0;
-  setup_context->N          = N;
   setup_context->cv         = cv;
   setup_context->cp         = cp;
   setup_context->g          = g;
@@ -207,6 +203,7 @@ PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
   CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
+
   CeedQFunctionContextCreate(ceed, &ceed_data->newt_ig_context);
   CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
