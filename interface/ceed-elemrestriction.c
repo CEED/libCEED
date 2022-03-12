@@ -991,7 +991,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   else
     sprintf(stridesstr, "%d", rstr->comp_stride);
 
-  fprintf(stream, "%sCeedElemRestriction from (%ld, %d) to %d elements with %d "
+  fprintf(stream, "%sCeedElemRestriction from (%td, %d) to %d elements with %d "
           "nodes each and %s %s\n", rstr->blk_size > 1 ? "Blocked " : "",
           rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
           rstr->strides ? "strides" : "component stride", stridesstr);
