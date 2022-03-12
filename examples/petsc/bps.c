@@ -214,7 +214,11 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
     if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
-      ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
+      if (rp->simplex) {
+        ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
+      } else {
+        ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
+      }
     } else {
       ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);
     }
