@@ -328,7 +328,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                                : %s\n"
                          "    KSP Convergence                         : %s\n"
-                         "    Total KSP Iterations                    : %D\n"
+                         "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
                          "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

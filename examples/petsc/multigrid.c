@@ -24,6 +24,7 @@
 //     multigrid -problem bp6 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -simplex
 
 /// @file
 /// CEED BPs 1-6 multigrid example using PETSc
@@ -566,7 +567,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                                : %s\n"
                          "    KSP Convergence                         : %s\n"
-                         "    Total KSP Iterations                    : %D\n"
+                         "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
                          "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

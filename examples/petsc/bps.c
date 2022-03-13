@@ -26,6 +26,7 @@
 //     ./bps -problem bp6 -degree 3 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
+//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 50,50 -simplex
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -279,7 +280,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                          "  KSP:\n"
                          "    KSP Type                                : %s\n"
                          "    KSP Convergence                         : %s\n"
-                         "    Total KSP Iterations                    : %D\n"
+                         "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
                          "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

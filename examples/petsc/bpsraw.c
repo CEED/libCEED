@@ -558,12 +558,12 @@ int main(int argc, char **argv) {
                        "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
                        "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n"
-                       "    Process Decomposition              : %" PetscInt_FMT
-                       " %" PetscInt_FMT " %" PetscInt_FMT "\n"
-                       "    Local Elements                     : %" PetscInt_FMT
-                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
-                       "    Owned nodes                        : %" PetscInt_FMT
-                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Process Decomposition              : %" PetscInt_FMT "
+                       %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Local Elements                     : %" PetscInt_FMT "
+                       = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT "
+                       = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
                        "    DoF per node                       : %" PetscInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],

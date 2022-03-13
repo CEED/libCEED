@@ -152,13 +152,6 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra,
 };
 
 // -----------------------------------------------------------------------------
-// Utility function - essential BC dofs are encoded in closure indices as -(i+1)
-// -----------------------------------------------------------------------------
-PetscInt Involute(PetscInt i) {
-  return i >= 0 ? i : -(i + 1);
-};
-
-// -----------------------------------------------------------------------------
 // Get CEED restriction data from DMPlex
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height,
