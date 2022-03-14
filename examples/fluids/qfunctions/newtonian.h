@@ -29,7 +29,7 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -59,7 +59,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar k;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar c_tau;
   StabilizationType stabilization;
 };
@@ -70,11 +70,13 @@ struct NewtonianIdealGasContext_ {
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
     const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
-    const CeedScalar gamma, const CeedScalar g, CeedScalar z) {
+    const CeedScalar gamma, const CeedScalar g[3], const CeedScalar x[3]) {
   CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
+  CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
   for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
     for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
-      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - g*z)) : 0.) - u[i]*u[j];
+      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - e_potential)) : 0.) -
+                      u[i]*u[j];
       for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
         dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
         dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
@@ -130,37 +132,35 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
+  // Context
+  const SetupContext context = (SetupContext)ctx;
+  const CeedScalar theta0    = context->theta0;
+  const CeedScalar P0        = context->P0;
+  const CeedScalar N         = context->N;
+  const CeedScalar cv        = context->cv;
+  const CeedScalar cp        = context->cp;
+  const CeedScalar *g        = context->g;
+  const CeedScalar Rd        = cp - cv;
+
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar q[5] = {0.};
 
-    // Context
-    const SetupContext context = (SetupContext)ctx;
-    const CeedScalar theta0    = context->theta0;
-    const CeedScalar P0        = context->P0;
-    const CeedScalar N         = context->N;
-    const CeedScalar cv        = context->cv;
-    const CeedScalar cp        = context->cp;
-    const CeedScalar g         = context->g;
-    const CeedScalar Rd        = cp - cv;
-
     // Setup
     // -- Coordinates
-    const CeedScalar z = X[2][i];
-
-    // -- Exner pressure, hydrostatic balance
-    const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    const CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
 
     // -- Density
-    const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta0);
+    const CeedScalar rho = P0 / (Rd*theta0);
 
     // Initial Conditions
     q[0] = rho;
     q[1] = 0.0;
     q[2] = 0.0;
     q[3] = 0.0;
-    q[4] = rho * (cv*theta0*Pi + g*z);
+    q[4] = rho * (cv*theta0 + e_potential);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -190,8 +190,7 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
 //
 // Thermal Stress:
 //   Fe = u Fu + k grad( T )
-//
-// Equation of State:
+// Equation of State
 //   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
 //
 // Stabilization:
@@ -238,7 +237,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar k      = context->k;
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
+  const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
   const CeedScalar gamma  = cp / cv;
 
@@ -288,6 +287,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
                                     q_data[8][i],
                                     q_data[9][i]}
                                   };
+    const CeedScalar x_i[3]       = {x[0][i], x[1][i], x[2][i]};
     // *INDENT-ON*
     // -- Grad-to-Grad q_data
     // dU/dx
@@ -314,11 +314,11 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
           dudx[j][k] += du[j][l] * dXdx[l][k];
     // -- grad_T
     const CeedScalar grad_T[3]  = {(dEdx[0]/rho - E*drhodx[0]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
+                                    (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]) + g[0])/cv,
                                    (dEdx[1]/rho - E*drhodx[1]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
+                                    (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]) + g[1])/cv,
                                    (dEdx[2]/rho - E*drhodx[2]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) - g)/cv
+                                    (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) + g[2])/cv
                                   };
 
     // -- Fuvisc
@@ -344,13 +344,13 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     // Pressure
     const CeedScalar
     E_kinetic   = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
-    E_potential = rho*g*x[2][i],
+    E_potential = -rho*(g[0]*x_i[0] + g[1]*x_i[1] + g[2]*x_i[2]),
     E_internal  = E - E_kinetic - E_potential,
     P           = E_internal * (gamma - 1.); // P = pressure
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
-    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x[2][i]);
+    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x_i);
 
     // jacob_F_conv_T = jacob_F_conv^T
     CeedScalar jacob_F_conv_T[3][5][5];
@@ -376,7 +376,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, 0, 0, -rho*g, 0};
+    const CeedScalar body_force[5] = {0, rho *g[0], rho *g[1], rho *g[2], 0};
 
     // The Physics
     // Zero dv so all future terms can safely sum into it
@@ -479,7 +479,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar k      = context->k;
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
+  const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
   const CeedScalar gamma  = cp / cv;
 
@@ -530,6 +530,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                     q_data[8][i],
                                     q_data[9][i]}
                                   };
+    const CeedScalar x_i[3]     = {x[0][i], x[1][i], x[2][i]};
     // *INDENT-ON*
     // -- Grad-to-Grad q_data
     // dU/dx
@@ -556,11 +557,11 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
           dudx[j][k] += du[j][l] * dXdx[l][k];
     // -- grad_T
     const CeedScalar grad_T[3]  = {(dEdx[0]/rho - E*drhodx[0]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]))/cv,
+                                    (u[0]*dudx[0][0] + u[1]*dudx[1][0] + u[2]*dudx[2][0]) + g[0])/cv,
                                    (dEdx[1]/rho - E*drhodx[1]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]))/cv,
+                                    (u[0]*dudx[0][1] + u[1]*dudx[1][1] + u[2]*dudx[2][1]) + g[1])/cv,
                                    (dEdx[2]/rho - E*drhodx[2]/(rho*rho) - /* *NOPAD* */
-                                    (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) - g)/cv
+                                    (u[0]*dudx[0][2] + u[1]*dudx[1][2] + u[2]*dudx[2][2]) + g[2])/cv
                                   };
     // -- Fuvisc
     // ---- Symmetric 3x3 matrix
@@ -585,13 +586,13 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     // Pressure
     const CeedScalar
     E_kinetic   = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
-    E_potential = rho*g*x[2][i],
+    E_potential = -rho*(g[0]*x_i[0] + g[1]*x_i[1] + g[2]*x_i[2]),
     E_internal  = E - E_kinetic - E_potential,
     P           = E_internal * (gamma - 1.); // P = pressure
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
-    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x[2][i]);
+    computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x_i);
 
     // jacob_F_conv_T = jacob_F_conv^T
     CeedScalar jacob_F_conv_T[3][5][5];
@@ -615,7 +616,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, 0, 0, -rho*g, 0};
+    const CeedScalar body_force[5] = {0, rho *g[0], rho *g[1], rho *g[2], 0};
 
     // Strong residual
     CeedScalar strong_res[5];

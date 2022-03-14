@@ -22,7 +22,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar k;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar c_tau;
   StabilizationType stabilization;
 };
@@ -64,11 +64,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar cv     = 717.;    // J/(kg K)
-  CeedScalar cp     = 1004.;   // J/(kg K)
-  CeedScalar g      = 9.81;    // m/s^2
-  CeedScalar lambda = -2./3.;  // -
-  CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
+  CeedScalar cv     = 717.;          // J/(kg K)
+  CeedScalar cp     = 1004.;         // J/(kg K)
+  CeedScalar g[3]   = {0, 0, -9.81}; // m/s^2
+  CeedScalar lambda = -2./3.;        // -
+  CeedScalar mu     = 75.;           // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
   CeedScalar k      = 0.02638; // W/(m K)
   CeedScalar c_tau  = 0.5;     // -
@@ -97,8 +97,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                             NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
                             NULL, cp, &cp, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                            NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
                             "Stokes hypothesis second viscosity coefficient",
                             NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
@@ -107,6 +105,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
 
+  PetscInt dim = problem->dim;
+  ierr = PetscOptionsRealArray("-g", "Gravitational acceleration",
+                               NULL, g, &dim, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
@@ -163,20 +164,20 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // -- Scale variables to desired units
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
   for (int i=0; i<3; i++) domain_size[i] *= meter;
+  for (int i=0; i<3; i++) g[i]           *= m_per_squared_s;
   problem->dm_scale = meter;
 
   // -- Setup Context
   setup_context->cv         = cv;
   setup_context->cp         = cp;
-  setup_context->g          = g;
   setup_context->lx         = domain_size[0];
   setup_context->ly         = domain_size[1];
   setup_context->lz         = domain_size[2];
   setup_context->time       = 0;
+  PetscArraycpy(setup_context->g, g, 3);
 
   // -- Solver Settings
   user->phys->stab          = stab;
@@ -189,9 +190,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->newtonian_ig_ctx->k             = k;
   user->phys->newtonian_ig_ctx->cv            = cv;
   user->phys->newtonian_ig_ctx->cp            = cp;
-  user->phys->newtonian_ig_ctx->g             = g;
   user->phys->newtonian_ig_ctx->c_tau         = c_tau;
   user->phys->newtonian_ig_ctx->stabilization = stab;
+  PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3);
 
   PetscFunctionReturn(0);
 }
