@@ -881,6 +881,9 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
                                   op_fine->output_fields[i]->vec); CeedChk(ierr);
     }
   }
+  // -- Clone QFunctionAssemblyData
+  ierr = CeedQFunctionAssemblyDataReferenceCopy(op_fine->qf_assembled,
+         &(*op_coarse)->qf_assembled); CeedChk(ierr);
 
   // Multiplicity vector
   CeedVector mult_vec, mult_e_vec;
