@@ -279,6 +279,7 @@ struct ChannelContext_ {
   CeedScalar umax;     // !< Centerline velocity
   CeedScalar center;   // !< Y Coordinate for center of channel
   CeedScalar H;        // !< Channel half-height
+  CeedScalar B;        // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif

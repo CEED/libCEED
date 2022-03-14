@@ -35,6 +35,7 @@ struct ChannelContext_ {
   CeedScalar umax;     // !< Centerline velocity
   CeedScalar center;   // !< Y Coordinate for center of channel
   CeedScalar H;        // !< Channel half-height
+  CeedScalar B;        // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
@@ -61,8 +62,9 @@ CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
   const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/H,4)));
 
   // Not including density (it's canceled out)
-  const CeedScalar ReH = umax*H/mu;
-  const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*H);
+  /* const CeedScalar ReH = umax*H/mu; */
+  /* const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*H); */
+  const CeedScalar p   = P0;
 
   const CeedScalar rho = p / (Rd*theta);
 
