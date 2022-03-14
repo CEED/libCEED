@@ -579,6 +579,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     (*op)->dqfT = dqfT;
     ierr = CeedQFunctionReference(dqfT); CeedChk(ierr);
   }
+  ierr = CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled);
+  CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
@@ -1428,16 +1430,12 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->op_fallback) {
     ierr = (*op)->qf_fallback->Destroy((*op)->qf_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->qf_fallback); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&(*op)->op_fallback->qf_assembled); CeedChk(ierr);
-    ierr = CeedElemRestrictionDestroy(&(*op)->op_fallback->qf_assembled_rstr);
-    CeedChk(ierr);
     ierr = (*op)->op_fallback->Destroy((*op)->op_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->op_fallback); CeedChk(ierr);
   }
 
   // Destroy QF assembly cache
-  ierr = CeedVectorDestroy(&(*op)->qf_assembled); CeedChk(ierr);
-  ierr = CeedElemRestrictionDestroy(&(*op)->qf_assembled_rstr); CeedChk(ierr);
+  ierr = CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->input_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->output_fields); CeedChk(ierr);

@@ -75,6 +75,8 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   op_ref->is_backend_setup = false;
   op_ref->ceed = ceed_ref;
   ierr = ceed_ref->OperatorCreate(op_ref); CeedChk(ierr);
+  ierr = CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled,
+         &op_ref->qf_assembled); CeedChk(ierr);
   op->op_fallback = op_ref;
 
   // Clone QF
@@ -1017,6 +1019,153 @@ CeedPragmaOptimizeOn
 /// @}
 
 /// ----------------------------------------------------------------------------
+/// CeedOperator Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedOperatorBackend
+/// @{
+
+/**
+  @brief Create object holding CeedQFunction assembly data for CeedOperator
+
+  @param[in] ceed  A Ceed object where the CeedQFunctionAssemblyData will be created
+  @param[out] data Address of the variable where the newly created
+                     CeedQFunctionAssemblyData will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataCreate(Ceed ceed,
+                                    CeedQFunctionAssemblyData *data) {
+  int ierr;
+
+  ierr = CeedCalloc(1, data); CeedChk(ierr);
+  (*data)->ref_count = 1;
+  (*data)->ceed = ceed;
+  ierr = CeedReference(ceed); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Increment the reference counter for a CeedQFunctionAssemblyData
+
+  @param data  CeedQFunctionAssemblyData to increment the reference counter
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data) {
+  data->ref_count++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedQFunctionAssemblyData. Both pointers should
+           be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`;
+           Note: If `*data_copy` is non-NULL, then it is assumed that
+           `*data_copy` is a pointer to a CeedQFunctionAssemblyData. This
+           CeedQFunctionAssemblyData will be destroyed if `*data_copy` is
+           the only reference to this CeedQFunctionAssemblyData.
+
+  @param data            CeedQFunctionAssemblyData to copy reference to
+  @param[out] data_copy  Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data,
+    CeedQFunctionAssemblyData *data_copy) {
+  int ierr;
+
+  ierr = CeedQFunctionAssemblyDataReference(data); CeedChk(ierr);
+  ierr = CeedQFunctionAssemblyDataDestroy(data_copy); CeedChk(ierr);
+  *data_copy = data;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get setup status for internal objects for CeedQFunctionAssemblyData
+
+  @param[in] data      CeedQFunctionAssemblyData to retreive status
+  @param[out] is_setup Boolean flag for setup status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data,
+                                     bool *is_setup) {
+  *is_setup = data->is_setup;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set internal objects for CeedQFunctionAssemblyData
+
+  @param[in] data  CeedQFunctionAssemblyData to set objects
+  @param[in] vec   CeedVector to store assembled CeedQFunction at quadrature points
+  @param[in] rstr  CeedElemRestriction for CeedVector containing assembled CeedQFunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data,
+                                        CeedVector vec, CeedElemRestriction rstr) {
+  int ierr;
+
+  ierr = CeedVectorDestroy(&data->vec); CeedChk(ierr);
+  data->vec = vec;
+
+  ierr = CeedElemRestrictionDestroy(&data->rstr); CeedChk(ierr);
+  data->rstr = rstr;
+
+  data->is_setup = true;
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data,
+                                        CeedVector *vec, CeedElemRestriction *rstr) {
+  if (!data->is_setup)
+    // LCOV_EXCL_START
+    return CeedError(data->ceed, CEED_ERROR_INCOMPLETE,
+                     "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
+  // LCOV_EXCL_STOP
+
+  *vec = data->vec;
+  *rstr = data->rstr;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy CeedQFunctionAssemblyData
+
+  @param[out] data  CeedQFunctionAssemblyData to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data) {
+  int ierr;
+
+  if (!*data || --(*data)->ref_count > 0) return CEED_ERROR_SUCCESS;
+
+  ierr = CeedDestroy(&(*data)->ceed); CeedChk(ierr);
+  ierr = CeedVectorDestroy(&(*data)->vec); CeedChk(ierr);
+  ierr = CeedElemRestrictionDestroy(&(*data)->rstr); CeedChk(ierr);
+
+  ierr = CeedFree(data); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
 /// CeedOperator Public API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedOperatorUser
@@ -1099,20 +1248,28 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
 
   // Backend version
   if (op->LinearAssembleQFunctionUpdate) {
-    if (op->has_qf_assembled) {
-      ierr = op->LinearAssembleQFunctionUpdate(op, op->qf_assembled,
-             op->qf_assembled_rstr, request);
+    bool qf_assembled_is_setup;
+    CeedVector assembled_vec;
+    CeedElemRestriction assembled_rstr;
+
+    ierr = CeedQFunctionAssemblyDataIsSetup(op->qf_assembled,
+                                            &qf_assembled_is_setup); CeedChk(ierr);
+    if (qf_assembled_is_setup) {
+      ierr = CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec,
+             &assembled_rstr); CeedChk(ierr);
+      ierr = op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr,
+             request); CeedChk(ierr);
     } else {
-      ierr = op->LinearAssembleQFunction(op, &op->qf_assembled,
-                                         &op->qf_assembled_rstr, request);
+      ierr = op->LinearAssembleQFunction(op, &assembled_vec, &assembled_rstr,
+                                         request); CeedChk(ierr);
+      ierr = CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec,
+             assembled_rstr); CeedChk(ierr);
     }
-    CeedChk(ierr);
-    op->has_qf_assembled = true;
     // Copy reference to internally held copy
     *assembled = NULL;
     *rstr = NULL;
-    ierr = CeedVectorReferenceCopy(op->qf_assembled, assembled); CeedChk(ierr);
-    ierr = CeedElemRestrictionReferenceCopy(op->qf_assembled_rstr, rstr);
+    ierr = CeedVectorReferenceCopy(assembled_vec, assembled); CeedChk(ierr);
+    ierr = CeedElemRestrictionReferenceCopy(assembled_rstr, rstr); CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
     if (!op->op_fallback) {
@@ -1122,7 +1279,6 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op->op_fallback,
            assembled, rstr, request); CeedChk(ierr);
   }
-  CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1828,7 +1984,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
 int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
                                         CeedRequest *request) {
