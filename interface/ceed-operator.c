@@ -976,6 +976,39 @@ int CeedOperatorCheckReady(CeedOperator op) {
 }
 
 /**
+  @brief Mark CeedQFunction data as updated and the CeedQFunction as requiring re-assembly.
+           When this function is not used, the CeedQFunction associated with this
+           CeedOperator is re-assembled every time a CeedOperatorLinearAssemble*
+           function is called. When this function is used, the CeedQFunction
+           associated with this CeedOperator is only re-assembled the first time
+           CeedOperatorLinearAssemble* is called after this function is called.
+           The same assembled CeedQFunction data is reused internally until this
+           function is called again.
+
+  @param op CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorSetQFunctionUpdated(CeedOperator op) {
+  int ierr;
+  bool is_composite;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorSetQFunctionUpdated(op->sub_operators[i]); CeedChk(ierr);
+    }
+  } else {
+    ierr = CeedQFunctionAssemblyDataSetQFunctionUpdated(op->qf_assembled, true);
+    CeedChk(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the number of quadrature points associated with a CeedOperator.
            This should be used when creating a CeedOperator where every
            field has a collocated basis. This function cannot be used for

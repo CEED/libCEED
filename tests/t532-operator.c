@@ -147,6 +147,10 @@ int main(int argc, char **argv) {
   // LCOV_EXCL_STOP
 
   // Assemble QFunction
+  CeedOperatorSetQFunctionUpdated(op_apply);
+  CeedOperatorLinearAssembleQFunction(op_apply, &A, &elem_restr_lin_i,
+                                      CEED_REQUEST_IMMEDIATE);
+  // Second call will be no-op since SetQFunctionUpdated was not called
   CeedOperatorLinearAssembleQFunction(op_apply, &A, &elem_restr_lin_i,
                                       CEED_REQUEST_IMMEDIATE);
 

@@ -1065,6 +1065,39 @@ int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data) {
 }
 
 /**
+  @brief Mark QFunctionAssemblyData as stale
+
+  @param data             CeedQFunctionAssemblyData to mark as stale
+  @param is_update_needed Boolean flag indicating if update is needed or completed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataSetQFunctionUpdated(CeedQFunctionAssemblyData data,
+    bool is_update_needed) {
+  data->is_update_flag_used = data->is_update_flag_used || is_update_needed;
+  data->is_update_needed = is_update_needed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if QFunctionAssemblyData needs update
+
+  @param[in] data              CeedQFunctionAssemblyData to mark as stale
+  @param[out] is_update_needed Boolean flag indicating if re-assembly is required
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data,
+    bool *is_update_needed) {
+  *is_update_needed = !data->is_update_flag_used || data->is_update_needed;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Copy the pointer to a CeedQFunctionAssemblyData. Both pointers should
            be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`;
            Note: If `*data_copy` is non-NULL, then it is assumed that
@@ -1260,14 +1293,22 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     if (qf_assembled_is_setup) {
       ierr = CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec,
              &assembled_rstr); CeedChk(ierr);
-      ierr = op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr,
-             request); CeedChk(ierr);
+
+      bool update_needed;
+      ierr = CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled,
+             &update_needed); CeedChk(ierr);
+      if (update_needed) {
+        ierr = op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr,
+               request); CeedChk(ierr);
+      }
     } else {
       ierr = op->LinearAssembleQFunction(op, &assembled_vec, &assembled_rstr,
                                          request); CeedChk(ierr);
       ierr = CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec,
              assembled_rstr); CeedChk(ierr);
     }
+    ierr = CeedQFunctionAssemblyDataSetQFunctionUpdated(op->qf_assembled, false);
+    CeedChk(ierr);
     // Copy reference to internally held copy
     *assembled = NULL;
     *rstr = NULL;

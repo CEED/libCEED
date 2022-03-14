@@ -91,6 +91,10 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
 
   // Assemble QFunction
+  CeedOperatorSetQFunctionUpdated(op_mass);
+  CeedOperatorLinearAssembleQFunction(op_mass, &A, &elem_restr_lin_i,
+                                      CEED_REQUEST_IMMEDIATE);
+  // Second call will be no-op since SetQFunctionUpdated was not called
   CeedOperatorLinearAssembleQFunction(op_mass, &A, &elem_restr_lin_i,
                                       CEED_REQUEST_IMMEDIATE);
 

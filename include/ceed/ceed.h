@@ -702,6 +702,7 @@ CEED_EXTERN int CeedOperatorGetFields(CeedOperator op,
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op,
     CeedOperator sub_op);
 CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
+CEED_EXTERN int CeedOperatorSetQFunctionUpdated(CeedOperator op);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
