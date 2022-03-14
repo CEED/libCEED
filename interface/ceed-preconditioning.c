@@ -1153,11 +1153,8 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data,
                                         CeedVector vec, CeedElemRestriction rstr) {
   int ierr;
 
-  ierr = CeedVectorDestroy(&data->vec); CeedChk(ierr);
-  data->vec = vec;
-
-  ierr = CeedElemRestrictionDestroy(&data->rstr); CeedChk(ierr);
-  data->rstr = rstr;
+  ierr = CeedVectorReferenceCopy(vec, &data->vec); CeedChk(ierr);
+  ierr = CeedElemRestrictionReferenceCopy(rstr, &data->rstr); CeedChk(ierr);
 
   data->is_setup = true;
   return CEED_ERROR_SUCCESS;
@@ -1165,14 +1162,16 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data,
 
 int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data,
                                         CeedVector *vec, CeedElemRestriction *rstr) {
+  int ierr;
+
   if (!data->is_setup)
     // LCOV_EXCL_START
     return CeedError(data->ceed, CEED_ERROR_INCOMPLETE,
                      "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
   // LCOV_EXCL_STOP
 
-  *vec = data->vec;
-  *rstr = data->rstr;
+  ierr = CeedVectorReferenceCopy(data->vec, vec); CeedChk(ierr);
+  ierr = CeedElemRestrictionReferenceCopy(data->rstr, rstr); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1285,8 +1284,8 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
   // Backend version
   if (op->LinearAssembleQFunctionUpdate) {
     bool qf_assembled_is_setup;
-    CeedVector assembled_vec;
-    CeedElemRestriction assembled_rstr;
+    CeedVector assembled_vec = NULL;
+    CeedElemRestriction assembled_rstr = NULL;
 
     ierr = CeedQFunctionAssemblyDataIsSetup(op->qf_assembled,
                                             &qf_assembled_is_setup); CeedChk(ierr);
@@ -1309,11 +1308,14 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     }
     ierr = CeedQFunctionAssemblyDataSetQFunctionUpdated(op->qf_assembled, false);
     CeedChk(ierr);
+
     // Copy reference to internally held copy
     *assembled = NULL;
     *rstr = NULL;
     ierr = CeedVectorReferenceCopy(assembled_vec, assembled); CeedChk(ierr);
+    ierr = CeedVectorDestroy(&assembled_vec); CeedChk(ierr);
     ierr = CeedElemRestrictionReferenceCopy(assembled_rstr, rstr); CeedChk(ierr);
+    ierr = CeedElemRestrictionDestroy(&assembled_rstr); CeedChk(ierr);
   } else {
     // Fallback to reference Ceed
     if (!op->op_fallback) {
