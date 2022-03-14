@@ -145,7 +145,6 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const bool implicit     = true;
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
@@ -236,7 +235,6 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   CeedScalar velocity[]   = {1., 0., 0.};
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
-  const CeedScalar g      = context->g;
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
