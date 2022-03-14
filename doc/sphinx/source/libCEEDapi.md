@@ -339,14 +339,16 @@ consider the implementation of the action of a simple 1D mass matrix
 :linenos: true
 ```
 In the following figure, we specialize the schematic used above for general operators so that 
-it corresponds to the mass matrix as implemented in the sample code. Notations marked as "L[#]"
-denote the line number in the code where that object or evaluation mode is set for the operator.
+it corresponds to the specific setup and mass operators as implemented in the sample code. We show
+that the active output of the setup operator, combining the quadrature weights with the Jacobian 
+information for the mesh transformation, becomes a passive input to the mass operator.  Notations
+denote the libCEED function used to set the properties of the input and output fields. 
 
 (fig-operator-schematic-mass)=
 
-:::{figure} ../../img/libceed_schematic_op_mass.svg
+:::{figure} ../../img/libceed_schematic_op_setup_mass.svg
 Specific combination of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, $\bm{D}$, and input/output vectors
-corresponding to t500-operator
+corresponding to the libCEED operators in the t500-operator test
 :::
 
 The constructor
