@@ -11,6 +11,7 @@ bc_slip_z: 1,2
 #bc_slip_y: 3,4
 bc_wall: 3,4
 wall_comps: 1,2,3
-bc_inflow: 6
-bc_outflow: 5
-g: 0
+# bc_inflow: 6
+# bc_outflow: 5
+dm_plex_box_bd: 'periodic,none,none'
+# g: 0

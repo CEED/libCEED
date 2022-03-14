@@ -22,6 +22,7 @@ struct ChannelContext_ {
   CeedScalar umax;     // !< Centerline velocity
   CeedScalar center;   // !< Y Coordinate for center of channel
   CeedScalar H;        // !< Channel half-height
+  CeedScalar B;        // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
@@ -91,7 +92,17 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->channel_ctx->P0       = P0;
   user->phys->channel_ctx->umax     = umax;
   user->phys->channel_ctx->implicit = user->phys->implicit;
+  user->phys->channel_ctx->B = -2*umax*mu/H;
 
+  {
+    // Calculate Body force
+    CeedScalar cv  = user->phys->newtonian_ig_ctx->cv,
+               cp  = user->phys->newtonian_ig_ctx->cp;
+    CeedScalar Rd  = cp - cv;
+    CeedScalar rho = P0 / (Rd*theta0);
+    CeedScalar g[] = {user->phys->channel_ctx->B / rho, 0., 0.};
+    PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3);
+  }
   user->phys->newtonian_ig_ctx->mu = mu;
   user->phys->channel_ctx->newtonian_ctx = *user->phys->newtonian_ig_ctx;
 
