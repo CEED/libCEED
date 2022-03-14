@@ -102,7 +102,7 @@ struct Ceed_private {
                va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
-  int (*VectorCreate)(CeedInt, CeedVector);
+  int (*VectorCreate)(CeedSize, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode,
@@ -173,7 +173,7 @@ struct CeedElemRestriction_private {
   CeedInt elem_size;     /* number of nodes per element */
   CeedInt num_comp;      /* number of components */
   CeedInt comp_stride;   /* Component stride for L-vector ordering */
-  CeedInt l_size;        /* size of the L-vector, can be used for checking
+  CeedSize l_size;       /* size of the L-vector, can be used for checking
                               for correct vector sizes */
   CeedInt blk_size;      /* number of elements in a batch */
   CeedInt num_blk;       /* number of blocks of elements */
@@ -345,7 +345,8 @@ struct CeedOperator_private {
                                           CeedRequest *);
   int (*LinearAssembleAddPointBlockDiagonal)(CeedOperator, CeedVector,
       CeedRequest *);
-  int (*LinearAssembleSymbolic)(CeedOperator, CeedInt *, CeedInt **, CeedInt **);
+  int (*LinearAssembleSymbolic)(CeedOperator, CeedSize *, CeedInt **,
+                                CeedInt **);
   int (*LinearAssemble)(CeedOperator, CeedVector);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);

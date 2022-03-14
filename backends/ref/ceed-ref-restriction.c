@@ -364,7 +364,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode,
         !strcmp(resource, "/cpu/self/ref/blocked") ||
         !strcmp(resource, "/cpu/self/memcheck/serial") ||
         !strcmp(resource, "/cpu/self/memcheck/blocked")) {
-      CeedInt l_size;
+      CeedSize l_size;
       ierr = CeedElemRestrictionGetLVectorSize(r, &l_size); CeedChkBackend(ierr);
 
       for (CeedInt i = 0; i < num_elem*elem_size; i++)

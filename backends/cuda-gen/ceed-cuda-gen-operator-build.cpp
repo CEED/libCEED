@@ -766,8 +766,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
+  CeedSize lsize;
   CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
-          numoutputfields, ncomp, dim = 0, lsize;
+          numoutputfields, ncomp, dim = 0;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;

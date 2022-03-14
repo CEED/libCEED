@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   CeedVectorReferenceCopy(x, &x_2); // This destroys the previous x_2
   CeedVectorDestroy(&x);
 
-  CeedInt len;
+  CeedSize len;
   CeedVectorGetLength(x_2, &len); // Second reference still valid
   if (len != n)
     // LCOV_EXCL_START

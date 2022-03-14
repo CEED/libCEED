@@ -48,7 +48,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem,
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = cudaMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Cu(ceed, ierr);
@@ -137,7 +137,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem,
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = cudaMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Cu(ceed, ierr);

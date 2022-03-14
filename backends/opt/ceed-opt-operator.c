@@ -60,7 +60,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op,
       CeedChkBackend(ierr);
       Ceed ceed;
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
-      CeedInt num_elem, elem_size, l_size, comp_stride;
+      CeedSize l_size;
+      CeedInt num_elem, elem_size, comp_stride;
       ierr = CeedElemRestrictionGetNumElements(r, &num_elem); CeedChkBackend(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elem_size); CeedChkBackend(ierr);
       ierr = CeedElemRestrictionGetLVectorSize(r, &l_size); CeedChkBackend(ierr);

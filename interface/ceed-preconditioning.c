@@ -459,7 +459,8 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
 
   CeedElemRestriction rstr_in;
   ierr = CeedOperatorGetActiveElemRestriction(op, &rstr_in); CeedChk(ierr);
-  CeedInt num_elem, elem_size, num_nodes, num_comp;
+  CeedSize num_nodes;
+  CeedInt num_elem, elem_size, num_comp;
   ierr = CeedElemRestrictionGetNumElements(rstr_in, &num_elem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr_in, &elem_size); CeedChk(ierr);
   ierr = CeedElemRestrictionGetLVectorSize(rstr_in, &num_nodes); CeedChk(ierr);
@@ -553,7 +554,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
   ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(
            op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
 
-  CeedInt qf_length;
+  CeedSize qf_length;
   ierr = CeedVectorGetLength(assembled_qf, &qf_length); CeedChk(ierr);
 
   CeedInt num_input_fields, num_output_fields;
@@ -1403,7 +1404,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
 
    @ref User
 **/
-int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedInt *num_entries,
+int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries,
                                        CeedInt **rows, CeedInt **cols) {
   int ierr;
   CeedInt num_suboperators, single_entries;
@@ -1890,8 +1891,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "No active field set");
   // LCOV_EXCL_STOP
-  CeedInt P_1d, Q_1d, elem_size, num_qpts, dim, num_comp = 1, num_elem = 1,
-                                                l_size = 1;
+  CeedSize l_size = 1;
+  CeedInt P_1d, Q_1d, elem_size, num_qpts, dim, num_comp = 1, num_elem = 1;
   ierr = CeedBasisGetNumNodes1D(basis, &P_1d); CeedChk(ierr);
   ierr = CeedBasisGetNumNodes(basis, &elem_size); CeedChk(ierr);
   ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d); CeedChk(ierr);

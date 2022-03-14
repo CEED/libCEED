@@ -47,7 +47,7 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem,
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Hip(ceed, ierr);
@@ -139,7 +139,7 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem,
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
-    CeedInt length;
+    CeedSize length;
     ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
     ierr = hipMemset(d_v, 0, length * sizeof(CeedScalar));
     CeedChk_Hip(ceed, ierr);

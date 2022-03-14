@@ -167,7 +167,8 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r,
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
   CeedElemRestriction_Hip *impl;
   ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
-  CeedInt num_elem, elem_size, l_size, num_comp;
+  CeedSize l_size;
+  CeedInt num_elem, elem_size, num_comp;
   ierr = CeedElemRestrictionGetNumElements(r, &num_elem); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetElementSize(r, &elem_size); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetLVectorSize(r, &l_size); CeedChkBackend(ierr);

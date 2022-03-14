@@ -34,7 +34,7 @@ namespace ceed {
       CeedInt ceedElementCount;
       CeedInt ceedElementSize;
       CeedInt ceedComponentCount;
-      CeedInt ceedLVectorSize;
+      CeedSize ceedLVectorSize;
       StrideType ceedStrideType;
       CeedInt ceedNodeStride;
       CeedInt ceedComponentStride;

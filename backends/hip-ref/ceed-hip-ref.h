@@ -119,7 +119,7 @@ typedef struct {
 
 CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);
 
-CEED_INTERN int CeedVectorCreate_Hip(CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Hip(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mtype,
     CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r);

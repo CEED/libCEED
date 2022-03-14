@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     assembled[k] = 0.0;
     assembled_true[k] = 0.0;
   }
-  CeedInt nentries;
+  CeedSize nentries;
   CeedInt *rows;
   CeedInt *cols;
   CeedVector values;

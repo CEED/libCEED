@@ -371,7 +371,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X,
   PetscScalar *x;
   PetscMemType mem_type;
   CeedVector collocated_error;
-  CeedInt length;
+  CeedSize length;
 
   PetscFunctionBeginUser;
 

@@ -68,7 +68,7 @@ typedef struct {
   CeedVector *qf_active_in;
 } CeedOperator_Ref;
 
-CEED_INTERN int CeedVectorCreate_Ref(CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Ref(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type,
     CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
