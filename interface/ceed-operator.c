@@ -976,32 +976,64 @@ int CeedOperatorCheckReady(CeedOperator op) {
 }
 
 /**
-  @brief Mark CeedQFunction data as updated and the CeedQFunction as requiring re-assembly.
-           When this function is not used, the CeedQFunction associated with this
-           CeedOperator is re-assembled every time a CeedOperatorLinearAssemble*
-           function is called. When this function is used, the CeedQFunction
-           associated with this CeedOperator is only re-assembled the first time
-           CeedOperatorLinearAssemble* is called after this function is called.
-           The same assembled CeedQFunction data is reused internally until this
-           function is called again.
+  @brief Set reuse of CeedQFunction data in CeedOperatorLinearAssemble* functions.
+           When `reuse_assembly_data = false` (default), the CeedQFunction associated
+           with this CeedOperator is re-assembled every time a `CeedOperatorLinearAssemble*`
+           function is called.
+           When `reuse_assembly_data = true`, the CeedQFunction associated with
+           this CeedOperator is reused between calls to
+           `CeedOperatorSetQFunctionAssemblyDataUpdated`.
 
-  @param op CeedOperator
+  @param[in] op                  CeedOperator
+  @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
-int CeedOperatorSetQFunctionUpdated(CeedOperator op) {
+int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op,
+    bool reuse_assembly_data) {
   int ierr;
   bool is_composite;
 
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
   if (is_composite) {
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
-      ierr = CeedOperatorSetQFunctionUpdated(op->sub_operators[i]); CeedChk(ierr);
+      ierr = CeedOperatorSetQFunctionAssemblyReuse(op->sub_operators[i],
+             reuse_assembly_data); CeedChk(ierr);
     }
   } else {
-    ierr = CeedQFunctionAssemblyDataSetQFunctionUpdated(op->qf_assembled, true);
+    ierr = CeedQFunctionAssemblyDataSetReuse(op->qf_assembled, reuse_assembly_data);
+    CeedChk(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Mark CeedQFunction data as updated and the CeedQFunction as requiring re-assembly.
+
+  @param[in] op                  CeedOperator
+  @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op,
+    bool needs_data_update) {
+  int ierr;
+  bool is_composite;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op->sub_operators[i],
+             needs_data_update); CeedChk(ierr);
+    }
+  } else {
+    ierr = CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled,
+           needs_data_update);
     CeedChk(ierr);
   }
 

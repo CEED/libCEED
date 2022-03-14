@@ -334,8 +334,8 @@ struct CeedQFunctionAssemblyData_private {
   Ceed ceed;
   int ref_count;
   bool is_setup;
-  bool is_update_flag_used;
-  bool is_update_needed;
+  bool reuse_data;
+  bool needs_data_update;
   CeedVector vec;
   CeedElemRestriction rstr;
 };

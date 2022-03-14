@@ -258,7 +258,8 @@ CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);
 CEED_EXTERN int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data);
-CEED_EXTERN int CeedQFunctionAssemblyDataSetQFunctionUpdated(CeedQFunctionAssemblyData data, bool is_update_needed);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetReuse(CeedQFunctionAssemblyData data, bool reuse_assembly_data);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyData data, bool needs_data_update);
 CEED_EXTERN int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool *is_update_needed);
 CEED_EXTERN int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQFunctionAssemblyData *data_copy);
 CEED_EXTERN int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_setup);
