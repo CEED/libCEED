@@ -3,11 +3,11 @@
 [![GitHub Actions](https://github.com/CEED/libCEED/actions/workflows/rust-test-with-style.yml/badge.svg)](https://github.com/CEED/libCEED/actions/workflows/rust-test-with-style.yml)
 [![Documentation](https://docs.rs/libceed/badge.svg)](https://docs.rs/libceed)
 
-This crate provides an interface to [libCEED](https://libceed.readthedocs.io), which is a performance-portable library for extensible element-based discretization for partial differential equations and related computational problems.
+This crate provides an interface to [libCEED](https://libceed.org), which is a performance-portable library for extensible element-based discretization for partial differential equations and related computational problems.
 The formulation is algebraic and intended to be lightweight and easy to incorporate in higher level abstractions.
-See the [libCEED user manual](https://libceed.readthedocs.io) for details on [interface concepts](https://libceed.readthedocs.io/en/latest/libCEEDapi/) and extensive examples.
+See the [libCEED user manual](https://libceed.org) for details on [interface concepts](https://libceed.org/en/latest/libCEEDapi/) and extensive examples.
 
-![libCEED operator decomposition](https://libceed.readthedocs.io/en/latest/_images/libCEED.png)
+![libCEED operator decomposition](https://libceed.org/en/latest/_images/libCEED.png)
 
 ## Usage
 
@@ -37,7 +37,7 @@ fn main() -> libceed::Result<()> {
 
 This crate provides modules for each object, but they are usually created from the `Ceed` object as with the vector above.
 The resource string passed to `Ceed::init` is used to identify the "backend", which includes algorithmic strategies and hardware such as NVIDIA and AMD GPUs.
-See the [libCEED documentation](https://libceed.readthedocs.io/en/latest/gettingstarted/#backends) for more information on available backends.
+See the [libCEED documentation](https://libceed.org/en/latest/gettingstarted/#backends) for more information on available backends.
 
 ## Examples
 
@@ -57,4 +57,4 @@ cargo doc --features=katexit
 ## Contributing
 
 The `libceed` crate is developed within the [libCEED repository](https://github.com/CEED/libCEED).
-See the [contributing guidelines](https://libceed.readthedocs.io/en/latest/CONTRIBUTING/) for details.
+See the [contributing guidelines](https://libceed.org/en/latest/CONTRIBUTING/) for details.

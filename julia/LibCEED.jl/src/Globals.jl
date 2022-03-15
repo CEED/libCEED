@@ -58,7 +58,7 @@ One of:
 - `EVAL_WEIGHT`
 
 See the [libCEED
-documentation](https://libceed.readthedocs.io/en/latest/api/CeedBasis/?highlight=EVAL_MODE#c.CeedEvalMode)
+documentation](https://libceed.org/en/latest/api/CeedBasis/?highlight=EVAL_MODE#c.CeedEvalMode)
 for further information.
 """
 const EvalMode = C.CeedEvalMode

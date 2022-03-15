@@ -140,7 +140,7 @@ for each release of libCEED.
 ## v0.6 (Mar 29, 2020)
 
 libCEED v0.6 contains numerous new features and examples, as well as expanded
-documentation in [this new website](https://libceed.readthedocs.io).
+documentation in [this new website](https://libceed.org).
 
 ### New features
 

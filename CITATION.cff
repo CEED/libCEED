@@ -47,7 +47,7 @@ authors:
     given-names: Stanimire
     orcid: 0000-0002-5937-7959
 doi: 10.5281/zenodo.5080234
-url: "https://libceed.readthedocs.io/en/latest/"
+url: "https://libceed.org/en/latest/"
 repository: "https://github.com/CEED/libCEED"
 preferred-citation:
   type: article
