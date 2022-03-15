@@ -4,7 +4,7 @@ Documentation for the LibCEED.jl Julia interface to the
 [libCEED](https://github.com/ceed/libceed) library.
 
 For further information, see also the [libCEED
-documentation](https://libceed.readthedocs.io/).
+documentation](https://libceed.org/).
 
 Several [short examples](Examples.md) are included to demonstrate the
 functionality.

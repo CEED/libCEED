@@ -5,7 +5,7 @@ library.
 
 ## Basic libCEED Examples
 
-Two examples that rely only upon libCEED without any external libraries are provided in the [ceed/](./ceed) folder. For more details, please see the dedicated [documentation section](https://libceed.readthedocs.io/en/latest/examples/ceed/index.html).
+Two examples that rely only upon libCEED without any external libraries are provided in the [ceed/](./ceed) folder. For more details, please see the dedicated [documentation section](https://libceed.org/en/latest/examples/ceed/index.html).
 
 ## Bakeoff Problems
 
@@ -60,30 +60,30 @@ to apply the operator.
 
 % bps-exclusion-marker
 
-For a more detailed description of the operators employed in the BPs, please see the dedicated [BPs documentation section](https://libceed.readthedocs.io/en/latest/examples/bps.html).
+For a more detailed description of the operators employed in the BPs, please see the dedicated [BPs documentation section](https://libceed.org/en/latest/examples/bps.html).
 
 ## PETSc+libCEED Navier-Stokes Solver
 
 The Navier-Stokes problem solves the compressible Navier-Stokes
 equations using an explicit or implicit time integration. A more detailed
 description of the problem formulation can be found in the
-[fluids/](./fluids) folder and the corresponding [fluids documentation page](https://libceed.readthedocs.io/en/latest/examples/fluids/index.html).
+[fluids/](./fluids) folder and the corresponding [fluids documentation page](https://libceed.org/en/latest/examples/fluids/index.html).
 
 ## PETSc+libCEED Solid mechanics elasticity mini-app
 
 This example solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations. A more detailed
 description of the problem formulation can be found in the
-[solids/](./solids) folder and the corresponding [solids documentation page](https://libceed.readthedocs.io/en/latest/examples/solids/index.html).
+[solids/](./solids) folder and the corresponding [solids documentation page](https://libceed.org/en/latest/examples/solids/index.html).
 
 ## PETSc+libCEED Surface Area Examples
 
 These examples, located in the [petsc/](./petsc) folder, use the mass operator to compute the surface area of a
-cube or a discrete cubed-sphere, using PETSc. For a detailed description, please see the corresponding [area documentation page](https://libceed.readthedocs.io/en/latest/examples/petsc/index.html#area).
+cube or a discrete cubed-sphere, using PETSc. For a detailed description, please see the corresponding [area documentation page](https://libceed.org/en/latest/examples/petsc/index.html#area).
 
 ## PETSc+libCEED Bakeoff Problems on the Cubed-Sphere
 
 These examples, located in the [petsc/](./petsc) folder, reproduce the Bakeoff Problems 1-6 on a discrete
-cubed-sphere, using PETSc. For a detailed description, please see the corresponding [problems on the cubed-sphere documentation page](https://libceed.readthedocs.io/en/latest/examples/petsc/index.html#bakeoff-problems-on-the-cubed-sphere).
+cubed-sphere, using PETSc. For a detailed description, please see the corresponding [problems on the cubed-sphere documentation page](https://libceed.org/en/latest/examples/petsc/index.html#bakeoff-problems-on-the-cubed-sphere).
 
 ## Running Examples
 

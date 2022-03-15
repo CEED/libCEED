@@ -1,7 +1,7 @@
 # libceed-sys: unsafe bindings to libCEED
 
 This is the documentation for the low level (unsafe) Rust bindings to the libCEED C
-interface. See the [libCEED user manual](https://libceed.readthedocs.io) for usage
+interface. See the [libCEED user manual](https://libceed.org) for usage
 information. Note that most Rust users will prefer the higher level (safe) Rust
 interface in the [`libceed` crate](https://docs.rs/libceed).
 
@@ -72,4 +72,4 @@ currently closed, but the problem still exists.
 
 The `libceed-sys` crate is developed within the [libCEED
 repository](https://github.com/CEED/libCEED). See the [contributing
-guidelines](https://libceed.readthedocs.io/en/latest/CONTRIBUTING/) for details.
+guidelines](https://libceed.org/en/latest/CONTRIBUTING/) for details.
