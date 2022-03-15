@@ -206,7 +206,7 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
   // Store Swork
   CeedScalar (*Swork)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // Store tape for autodiff
-  CeedScalar *tape = out[3];
+  CeedScalar (*tape)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
 
   // *INDENT-ON*
 
@@ -309,8 +309,9 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
     }
 
     // Compute Swork with Enzyme-AD and get tape
-    CeedScalar Swork_[6];
-    S_fwd(Swork_, E2work, lambda, mu, &tape[i*6]);
+    CeedScalar Swork_[6], packed_tape[6];
+    S_fwd(Swork_, E2work, lambda, mu, packed_tape);
+    for (int j=0; j<6; j++) tape[j][i] = packed_tape[j];
 
     // *INDENT-OFF*
     const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
@@ -362,7 +363,7 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
   // grad_u is used for hyperelasticity (non-linear)
   const CeedScalar (*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
   const CeedScalar (*Swork)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  const CeedScalar *tape = in[4];
+  const CeedScalar (*tape)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
 
   // Outputs
   CeedScalar (*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -449,7 +450,9 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
     // -- 2E is the input of computeS
     for (int j=0; j<6; j++) deltaEwork[j] *= 2.;
     CeedScalar deltaSwork[6];
-    grad_S(deltaSwork, deltaEwork, lambda, mu, &tape[i*6]);
+    CeedScalar packed_tape[6];
+    for (int j=0; j<6; j++) packed_tape[j] = tape[j][i];
+    grad_S(deltaSwork, deltaEwork, lambda, mu, packed_tape);
 
     // *INDENT-OFF*
 
