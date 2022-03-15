@@ -110,6 +110,11 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArrayRead(v, &vv);
 
   // Assemble QFunction
+  CeedOperatorSetQFunctionAssemblyReuse(op_diff, true);
+  CeedOperatorLinearAssembleQFunction(op_diff, &A, &elem_restr_lin_i,
+                                      CEED_REQUEST_IMMEDIATE);
+  // Second call will be no-op since SetQFunctionUpdated was not called
+  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op_diff, false);
   CeedOperatorLinearAssembleQFunction(op_diff, &A, &elem_restr_lin_i,
                                       CEED_REQUEST_IMMEDIATE);
 

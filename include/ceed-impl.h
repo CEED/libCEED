@@ -330,6 +330,16 @@ struct CeedOperatorField_private {
   const char *field_name;          /* matching QFunction field name */
 };
 
+struct CeedQFunctionAssemblyData_private {
+  Ceed ceed;
+  int ref_count;
+  bool is_setup;
+  bool reuse_data;
+  bool needs_data_update;
+  CeedVector vec;
+  CeedElemRestriction rstr;
+};
+
 struct CeedOperator_private {
   Ceed ceed;
   CeedOperator op_fallback;
@@ -369,9 +379,7 @@ struct CeedOperator_private {
   bool is_backend_setup;
   bool is_composite;
   bool has_restriction;
-  bool has_qf_assembled;
-  CeedVector qf_assembled;
-  CeedElemRestriction qf_assembled_rstr;
+  CeedQFunctionAssemblyData qf_assembled;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;

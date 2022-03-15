@@ -579,6 +579,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
     (*op)->dqfT = dqfT;
     ierr = CeedQFunctionReference(dqfT); CeedChk(ierr);
   }
+  ierr = CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled);
+  CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields); CeedChk(ierr);
   ierr = ceed->OperatorCreate(*op); CeedChk(ierr);
@@ -970,6 +972,71 @@ int CeedOperatorCheckReady(CeedOperator op) {
     // LCOV_EXCL_START
     op->dqfT->is_immutable = true;
   // LCOV_EXCL_STOP
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set reuse of CeedQFunction data in CeedOperatorLinearAssemble* functions.
+           When `reuse_assembly_data = false` (default), the CeedQFunction associated
+           with this CeedOperator is re-assembled every time a `CeedOperatorLinearAssemble*`
+           function is called.
+           When `reuse_assembly_data = true`, the CeedQFunction associated with
+           this CeedOperator is reused between calls to
+           `CeedOperatorSetQFunctionAssemblyDataUpdated`.
+
+  @param[in] op                  CeedOperator
+  @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op,
+    bool reuse_assembly_data) {
+  int ierr;
+  bool is_composite;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorSetQFunctionAssemblyReuse(op->sub_operators[i],
+             reuse_assembly_data); CeedChk(ierr);
+    }
+  } else {
+    ierr = CeedQFunctionAssemblyDataSetReuse(op->qf_assembled, reuse_assembly_data);
+    CeedChk(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Mark CeedQFunction data as updated and the CeedQFunction as requiring re-assembly.
+
+  @param[in] op                  CeedOperator
+  @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op,
+    bool needs_data_update) {
+  int ierr;
+  bool is_composite;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op->sub_operators[i],
+             needs_data_update); CeedChk(ierr);
+    }
+  } else {
+    ierr = CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled,
+           needs_data_update);
+    CeedChk(ierr);
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1428,16 +1495,12 @@ int CeedOperatorDestroy(CeedOperator *op) {
   if ((*op)->op_fallback) {
     ierr = (*op)->qf_fallback->Destroy((*op)->qf_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->qf_fallback); CeedChk(ierr);
-    ierr = CeedVectorDestroy(&(*op)->op_fallback->qf_assembled); CeedChk(ierr);
-    ierr = CeedElemRestrictionDestroy(&(*op)->op_fallback->qf_assembled_rstr);
-    CeedChk(ierr);
     ierr = (*op)->op_fallback->Destroy((*op)->op_fallback); CeedChk(ierr);
     ierr = CeedFree(&(*op)->op_fallback); CeedChk(ierr);
   }
 
   // Destroy QF assembly cache
-  ierr = CeedVectorDestroy(&(*op)->qf_assembled); CeedChk(ierr);
-  ierr = CeedElemRestrictionDestroy(&(*op)->qf_assembled_rstr); CeedChk(ierr);
+  ierr = CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->input_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->output_fields); CeedChk(ierr);

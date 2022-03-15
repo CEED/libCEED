@@ -656,12 +656,11 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op,
 
   // Setup l_vec
   if (!l_vec) {
-    ierr = CeedVectorCreate(ceed, num_blks*blk_size*Q*num_active_in*num_active_out,
+    ierr = CeedVectorCreate(ceed, blk_size*Q*num_active_in*num_active_out,
                             &l_vec); CeedChkBackend(ierr);
     ierr = CeedVectorSetValue(l_vec, 0.0); CeedChkBackend(ierr);
     impl->qf_l_vec = l_vec;
   }
-  ierr = CeedVectorGetArray(l_vec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
 
   // Build objects if needed
   CeedInt strides[3] = {1, Q, num_active_in *num_active_out*Q};
@@ -676,8 +675,20 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op,
                             assembled); CeedChkBackend(ierr);
   }
 
+  // Output blocked restriction
+  CeedElemRestriction blk_rstr = impl->qf_blk_rstr;
+  if (!blk_rstr) {
+    ierr = CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, Q, blk_size,
+           num_active_in*num_active_out, num_active_in*num_active_out*num_elem*Q,
+           strides, &blk_rstr); CeedChkBackend(ierr);
+    impl->qf_blk_rstr = blk_rstr;
+  }
+
   // Loop through elements
+  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChkBackend(ierr);
   for (CeedInt e=0; e<num_blks*blk_size; e+=blk_size) {
+    ierr = CeedVectorGetArray(l_vec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
+
     // Input basis apply
     ierr = CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields,
                                       num_input_fields, blk_size, NULL, true,
@@ -709,6 +720,11 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op,
       ierr = CeedQFunctionApply(qf, Q*blk_size, impl->q_vecs_in, impl->q_vecs_out);
       CeedChkBackend(ierr);
     }
+
+    // Assemble into assembled vector
+    ierr = CeedVectorRestoreArray(l_vec, &a); CeedChkBackend(ierr);
+    ierr = CeedElemRestrictionApplyBlock(blk_rstr, e/blk_size, CEED_TRANSPOSE,
+                                         l_vec, *assembled, request); CeedChkBackend(ierr);
   }
 
   // Un-set output Qvecs to prevent accidental overwrite of Assembled
@@ -727,19 +743,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op,
   ierr = CeedOperatorRestoreInputs_Opt(num_input_fields, qf_input_fields,
                                        op_input_fields, e_data, impl);
   CeedChkBackend(ierr);
-
-  // Output blocked restriction
-  ierr = CeedVectorRestoreArray(l_vec, &a); CeedChkBackend(ierr);
-  ierr = CeedVectorSetValue(*assembled, 0.0); CeedChkBackend(ierr);
-  CeedElemRestriction blk_rstr = impl->qf_blk_rstr;
-  if (!blk_rstr) {
-    ierr = CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, Q, blk_size,
-           num_active_in*num_active_out, num_active_in*num_active_out*num_elem*Q,
-           strides, &blk_rstr); CeedChkBackend(ierr);
-    impl->qf_blk_rstr = blk_rstr;
-  }
-  ierr = CeedElemRestrictionApply(blk_rstr, CEED_TRANSPOSE, l_vec, *assembled,
-                                  request); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
