@@ -329,7 +329,7 @@ endif
 # AVX Backed
 AVX_STATUS = Disabled
 AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
-AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS) -v -E -x c /dev/null 2>&1))
 AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
