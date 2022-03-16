@@ -23,7 +23,12 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
+#ifdef __cplusplus
+#  define CEED_INTERN extern "C" CEED_VISIBILITY(hidden)
+#else
+#  define CEED_INTERN extern CEED_VISIBILITY(hidden)
+#endif
+
 #define CEED_UNUSED __attribute__((unused))
 
 #define CEED_MAX_RESOURCE_LEN 1024

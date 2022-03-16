@@ -46,6 +46,12 @@
 ///    These functions are intended to be used by library developers of
 ///    libCEED and can generally be found in "ceed-impl.h".
 
+#if !defined(CEED_SKIP_VISIBILITY)
+#  define CEED_VISIBILITY(mode) __attribute__((visibility(#mode)))
+#else
+#  define CEED_VISIBILITY(mode)
+#endif
+
 /**
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
 
@@ -53,9 +59,9 @@
   used outside ceed.h.
  */
 #ifdef __cplusplus
-#  define CEED_EXTERN extern "C"
+#  define CEED_EXTERN extern "C" CEED_VISIBILITY(default)
 #else
-#  define CEED_EXTERN extern
+#  define CEED_EXTERN extern CEED_VISIBILITY(default)
 #endif
 
 /**
