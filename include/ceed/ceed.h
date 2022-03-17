@@ -93,8 +93,8 @@
   This macro expands to mark a variable or function as being capable of being
     used on either the GPU or CPU, if we're compiling for the GPU.
 **/
-#ifndef CEED_HOSTDEVICE
-#define CEED_HOSTDEVICE
+#ifndef CEED_DEVICE
+#define CEED_DEVICE
 #endif
 
 /**
