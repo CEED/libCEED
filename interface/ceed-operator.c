@@ -978,6 +978,61 @@ int CeedOperatorCheckReady(CeedOperator op) {
 }
 
 /**
+  @brief Get vector lengths for the active input and/or output vectors of a CeedOperator.
+           Note: Lengths of -1 indicate that the CeedOperator does not have an
+           active input and/or output.
+
+  @param[in] op           CeedOperator
+  @param[out] input_size  Variable to store active input vector length, or NULL
+  @param[out] output_size Variable to store active output vector length, or NULL
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size,
+                                       CeedSize *output_size) {
+  int ierr;
+  bool is_composite;
+
+  if (input_size) *input_size = -1;
+  if (output_size) *output_size = -1;
+
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      CeedSize sub_input_size, sub_output_size;
+      ierr = CeedOperatorGetActiveVectorLengths(op->sub_operators[i],
+             input_size ? &sub_input_size : NULL,
+             output_size ? &sub_output_size : NULL); CeedChk(ierr);
+      if (input_size && sub_input_size != -1) *input_size = sub_input_size;
+      if (output_size && sub_output_size != -1) *output_size = sub_output_size;
+    }
+  } else {
+    if (input_size) {
+      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          ierr = CeedElemRestrictionGetLVectorSize(op->input_fields[i]->elem_restr,
+                 input_size); CeedChk(ierr);
+          break;
+        }
+      }
+    }
+    if (output_size) {
+      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
+        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          ierr = CeedElemRestrictionGetLVectorSize(op->output_fields[i]->elem_restr,
+                 output_size); CeedChk(ierr);
+          break;
+        }
+      }
+    }
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set reuse of CeedQFunction data in CeedOperatorLinearAssemble* functions.
            When `reuse_assembly_data = false` (default), the CeedQFunction associated
            with this CeedOperator is re-assembled every time a `CeedOperatorLinearAssemble*`

@@ -24,6 +24,7 @@ for each release of libCEED.
 - Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
 - Added type `CeedSize` equivalent to `ptrdiff_t` for array sizes in {c:func}`CeedVectorCreate`, {c:func}`CeedVectorGetLength`, `CeedElemRestrictionCreate*`, {c:func}`CeedElemRestrictionGetLVectorSize`, and {c:func}`CeedOperatorLinearAssembleSymbolic`. This is a breaking change.
 - Added {c:func}`CeedOperatorSetQFunctionUpdated` to facilitate QFunction data re-use between operators sharing the same quadrature space, such as in a multigrid hierarchy.
+- Added {c:func}`CeedOperatorGetActiveVectorLengths` to get shape of CeedOperator.
 
 ### New features
 
