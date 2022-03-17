@@ -450,13 +450,13 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
                      "Composite operator not supported");
   // LCOV_EXCL_STOP
 
+  CeedSize num_nodes;
+  ierr = CeedOperatorGetActiveVectorLengths(op, &num_nodes, NULL); CeedChk(ierr);
   CeedElemRestriction rstr_in;
   ierr = CeedOperatorGetActiveElemRestriction(op, &rstr_in); CeedChk(ierr);
-  CeedSize num_nodes;
   CeedInt num_elem, elem_size, num_comp;
   ierr = CeedElemRestrictionGetNumElements(rstr_in, &num_elem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr_in, &elem_size); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetLVectorSize(rstr_in, &num_nodes); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr_in, &num_comp); CeedChk(ierr);
   CeedInt layout_er[3];
   ierr = CeedElemRestrictionGetELayout(rstr_in, &layout_er); CeedChk(ierr);
@@ -1361,6 +1361,14 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
+  CeedSize input_size = 0, output_size = 0;
+  ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  CeedChk(ierr);
+  if (input_size != output_size)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  // LCOV_EXCL_STOP
+
   // Use backend version, if available
   if (op->LinearAssembleDiagonal) {
     ierr = op->LinearAssembleDiagonal(op, assembled, request); CeedChk(ierr);
@@ -1418,6 +1426,14 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     CeedRequest *request) {
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
+
+  CeedSize input_size = 0, output_size = 0;
+  ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  CeedChk(ierr);
+  if (input_size != output_size)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  // LCOV_EXCL_STOP
 
   // Use backend version, if available
   if (op->LinearAssembleAddDiagonal) {
@@ -1486,6 +1502,14 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
+  CeedSize input_size = 0, output_size = 0;
+  ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  CeedChk(ierr);
+  if (input_size != output_size)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  // LCOV_EXCL_STOP
+
   // Use backend version, if available
   if (op->LinearAssemblePointBlockDiagonal) {
     ierr = op->LinearAssemblePointBlockDiagonal(op, assembled, request);
@@ -1551,6 +1575,14 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
+
+  CeedSize input_size = 0, output_size = 0;
+  ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  CeedChk(ierr);
+  if (input_size != output_size)
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  // LCOV_EXCL_STOP
 
   // Use backend version, if available
   if (op->LinearAssembleAddPointBlockDiagonal) {
