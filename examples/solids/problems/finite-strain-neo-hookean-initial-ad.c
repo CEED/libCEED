@@ -61,11 +61,18 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
   PetscFunctionReturn(0);
 };
 
-int  __enzyme_augmentsize(void *, ...);
-int enzyme_dup, enzyme_const;
 int GetTapeSize_ElasFSInitialNH_AD() {
-  return __enzyme_augmentsize(computeS,
-                              enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
+  static const int tape_size = 6;
+  int tape_bytes = __enzyme_augmentsize(computeS, enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
+  if (tape_size == tape_bytes/sizeof(CeedScalar)) {
+    return tape_size;
+  } else if (tape_size > tape_bytes/sizeof(CeedScalar)) {
+    printf("Warning: allocated %d CeedScalar's when you only needed %lu\n", tape_size, tape_bytes/sizeof(CeedScalar));
+    return tape_size;
+  } else {
+    printf("Error: allocated %d CeedScalar's when you need %lu\n", tape_size, tape_bytes/sizeof(CeedScalar));
+    return -1;
+  }
 };
 
 PetscErrorCode ProblemRegister_ElasFSInitialNH_AD(ProblemFunctions
