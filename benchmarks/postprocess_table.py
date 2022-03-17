@@ -6,7 +6,7 @@
 # This file is part of CEED, a collection of benchmarks, miniapps, software
 # libraries and APIs for efficient high-order finite element and spectral
 # element discretizations for exascale applications. For more information and
-# source code availability see http://github.com/ceed.
+# source code availability see http://github.com/ceed
 #
 # The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 # a collaborative effort of two U.S. Department of Energy organizations (Office

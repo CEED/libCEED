@@ -1,18 +1,9 @@
-C Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-C the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-C reserved. See files LICENSE and NOTICE for details.
+C Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors
+C All Rights Reserved. See the top-level COPYRIGHT and NOTICE files for details.
 C
-C This file is part of CEED, a collection of benchmarks, miniapps, software
-C libraries and APIs for efficient high-order finite element and spectral
-C element discretizations for exascale applications. For more information and
-C source code availability see http://github.com/ceed.
+C SPDX-License-Identifier: (BSD-2-Clause)
 C
-C The CEED research is supported by the Exascale Computing Project (17-SC-20-SC)
-C a collaborative effort of two U.S. Department of Energy organizations (Office
-C of Science and the National Nuclear Security Administration) responsible for
-C the planning and preparation of a capable exascale ecosystem, including
-C software, applications, hardware, advanced system engineering and early
-C testbed platforms, in support of the nation's exascale computing imperative.
+C This file is part of CEED:  http://github.com/ceed
 
 C> @file
 C> Mass and diffusion operators examples using Nek5000
