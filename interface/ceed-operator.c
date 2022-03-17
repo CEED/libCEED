@@ -204,10 +204,10 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 }
 
 /**
-  @brief Find the active vector basis for a CeedOperator
+  @brief Find the active vector basis for a non-composite CeedOperator
 
   @param[in] op             CeedOperator to find active basis for
-  @param[out] active_basis  Basis for active input vector
+  @param[out] active_basis  Basis for active input vector or NULL for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -215,6 +215,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   *active_basis = NULL;
+  if (op->is_composite) return CEED_ERROR_SUCCESS;
   for (int i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_basis = op->input_fields[i]->basis;
@@ -234,10 +235,10 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 }
 
 /**
-  @brief Find the active vector ElemRestriction for a CeedOperator
+  @brief Find the active vector ElemRestriction for a non-composite CeedOperator
 
   @param[in] op            CeedOperator to find active basis for
-  @param[out] active_rstr  ElemRestriction for active input vector
+  @param[out] active_rstr  ElemRestriction for active input vector or NULL for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -246,6 +247,7 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 int CeedOperatorGetActiveElemRestriction(CeedOperator op,
     CeedElemRestriction *active_rstr) {
   *active_rstr = NULL;
+  if (op->is_composite) return CEED_ERROR_SUCCESS;
   for (int i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_rstr = op->input_fields[i]->elem_restr;
