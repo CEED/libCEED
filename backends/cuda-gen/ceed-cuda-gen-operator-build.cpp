@@ -809,6 +809,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "#define CEED_QFUNCTION_HELPER inline __device__\n";
+  code << "#define CEED_HOSTDEVICE __host__ __device__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
@@ -823,12 +824,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedChkBackend(ierr);
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d;
 
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr);
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
@@ -853,7 +854,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       // Collect dim and Q1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
-      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr);
       if (isTensor) {
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
       } else {
@@ -863,7 +864,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         }
 
       // Check for collocated gradient
-      useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
+      useCollograd = useCollograd && basis_data->d_collo_grad_1d;
     }
   }
   data->dim = dim;
@@ -1051,7 +1052,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     if (emode != CEED_EVAL_WEIGHT &&
         !((emode == CEED_EVAL_NONE) && useCollograd)) {
       code << "    CeedScalar r_u"<<i<<"[ncomp_in_"<<i<<"*P_in_"<<i<<"];\n";
-      
+
       bool isStrided;
       ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
       if (!isStrided) {

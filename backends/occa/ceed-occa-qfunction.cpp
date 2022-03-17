@@ -101,6 +101,7 @@ namespace ceed {
          << "#define CEED_QFUNCTION_HELPER \\"     << std::endl
          << "  inline"                             << std::endl
          <<                                           std::endl
+         << "#define CEED_HOSTDEVICE "             << std::endl
          << "#include \"" << filename << "\""      << std::endl;
 
       props["headers"].asArray() += ss.str();

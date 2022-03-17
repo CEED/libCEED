@@ -37,7 +37,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "No QFunction source or hipFunction_t provided.");
   // LCOV_EXCL_STOP
-  
+
   // QFunction kernel generation
   CeedInt num_input_fields, num_output_fields, size;
   CeedQFunctionField *input_fields, *output_fields;
@@ -62,6 +62,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // Defintions
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
   code << "#define CEED_QFUNCTION_HELPER __device__ __forceinline__\n";
+  code << "#define CEED_HOSTDEVICE __host__ __device__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n";
   code << "#define CEED_Q_VLA 1\n\n";
@@ -71,7 +72,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   code << "\n";
   code << "extern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
   code << "__global__ void " << kernel_name << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
-  
+
   // Inputs
   code << "  // Input fields\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -124,7 +125,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // View kernel for debugging
   CeedDebug256(ceed, 2, "Generated QFunction Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
- 
+
   // Compile kernel
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module,
 		        1, "BLOCK_SIZE", ceed_Hip->opt_block_size);
