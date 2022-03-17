@@ -559,6 +559,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
 
 /**
   @brief Restore an array obtained using @ref CeedVectorGetArray()
+           or @ref CeedVectorGetArrayWrite()
 
   @param vec    CeedVector to restore
   @param array  Array of vector data
