@@ -170,11 +170,11 @@ CEED_QFUNCTION_HELPER int computeS(CeedScalar Swork[6], CeedScalar E2work[6],
 // -----------------------------------------------------------------------------
 // Compute deltaS with Enzyme-AD
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION_HELPER void __enzyme_augmentfwd(void *, ...);
-CEED_QFUNCTION_HELPER void __enzyme_fwdsplit(void *, ...);
-CEED_QFUNCTION_HELPER int  __enzyme_augmentsize(void *, ...);
+CEED_HOSTDEVICE void __enzyme_augmentfwd(void *, ...);
+CEED_HOSTDEVICE void __enzyme_fwdsplit(void *, ...);
+CEED_HOSTDEVICE int  __enzyme_augmentsize(void *, ...);
 
-extern int enzyme_tape, enzyme_const, enzyme_dup, enzyme_nofree, enzyme_allocated;
+CEED_HOSTDEVICE extern int enzyme_tape, enzyme_const, enzyme_dup, enzyme_nofree, enzyme_allocated;
 
 CEED_QFUNCTION_HELPER void S_fwd(double *S, double *E, const double lambda,
                                  const double mu, double *tape) {

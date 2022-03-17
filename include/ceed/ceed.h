@@ -87,6 +87,16 @@
 #define CEED_QFUNCTION_HELPER static inline
 #endif
 
+
+/**
+  @ingroup CeedQFunction
+  This macro expands to mark a variable or function as being capable of being
+    used on either the GPU or CPU, if we're compiling for the GPU.
+**/
+#ifndef CEED_HOSTDEVICE
+#define CEED_HOSTDEVICE
+#endif
+
 /**
   @ingroup CeedQFunction
   Using VLA syntax to reshape User QFunction inputs and outputs can make
@@ -148,7 +158,7 @@ typedef enum {
   /// Double precision
   CEED_SCALAR_FP64
 } CeedScalarType;
-/// Base scalar type for the library to use: change which header is 
+/// Base scalar type for the library to use: change which header is
 /// included to change the precision.
 #include "ceed-f64.h"
 
