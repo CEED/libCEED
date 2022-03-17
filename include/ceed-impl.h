@@ -368,6 +368,7 @@ struct CeedOperator_private {
   int (*Destroy)(CeedOperator);
   CeedOperatorField *input_fields;
   CeedOperatorField *output_fields;
+  CeedSize input_size, output_size;
   CeedInt num_elem;   /* Number of elements */
   CeedInt num_qpts;   /* Number of quadrature points over all elements */
   CeedInt num_fields; /* Number of fields that have been set */

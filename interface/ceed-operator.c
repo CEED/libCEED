@@ -572,6 +572,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf,
   ierr = CeedReference(ceed); CeedChk(ierr);
   (*op)->ref_count = 1;
   (*op)->qf = qf;
+  (*op)->input_size = -1;
+  (*op)->output_size = -1;
   ierr = CeedQFunctionReference(qf); CeedChk(ierr);
   if (dqf && dqf != CEED_QFUNCTION_NONE) {
     (*op)->dqf = dqf;
@@ -618,6 +620,8 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ierr = CeedReference(ceed); CeedChk(ierr);
   (*op)->is_composite = true;
   ierr = CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators); CeedChk(ierr);
+  (*op)->input_size = -1;
+  (*op)->output_size = -1;
 
   if (ceed->CompositeOperatorCreate) {
     ierr = ceed->CompositeOperatorCreate(*op); CeedChk(ierr);
@@ -729,6 +733,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
   }
   CeedQFunctionField qf_field;
   CeedOperatorField *op_field;
+  bool is_input = true;
   for (CeedInt i=0; i<op->qf->num_input_fields; i++) {
     if (!strcmp(field_name, (*op->qf->input_fields[i]).field_name)) {
       qf_field = op->qf->input_fields[i];
@@ -736,6 +741,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
       goto found;
     }
   }
+  is_input = false;
   for (CeedInt i=0; i<op->qf->num_output_fields; i++) {
     if (!strcmp(field_name, (*op->qf->output_fields[i]).field_name)) {
       qf_field = op->qf->output_fields[i];
@@ -751,6 +757,28 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
 found:
   ierr = CeedOperatorCheckField(op->ceed, qf_field, r, b); CeedChk(ierr);
   ierr = CeedCalloc(1, op_field); CeedChk(ierr);
+
+  if (v == CEED_VECTOR_ACTIVE) {
+    CeedSize l_size;
+    ierr = CeedElemRestrictionGetLVectorSize(r, &l_size); CeedChk(ierr);
+    if (is_input) {
+      if (op->input_size == -1) op->input_size = l_size;
+      if (l_size != op->input_size)
+        // LCOV_EXCL_START
+        return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                         "LVector size %td does not match previous size %td",
+                         l_size, op->input_size);
+      // LCOV_EXCL_STOP
+    } else {
+      if (op->output_size == -1) op->output_size = l_size;
+      if (l_size != op->output_size)
+        // LCOV_EXCL_START
+        return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE,
+                         "LVector size %td does not match previous size %td",
+                         l_size, op->output_size);
+      // LCOV_EXCL_STOP
+    }
+  }
 
   (*op_field)->vec = v;
   if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE) {
@@ -898,13 +926,31 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op,
   if (composite_op->num_suboperators == CEED_COMPOSITE_MAX)
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Cannot add additional sub_operators");
+                     "Cannot add additional sub-operators");
   // LCOV_EXCL_STOP
   if (composite_op->is_immutable)
     // LCOV_EXCL_START
     return CeedError(composite_op->ceed, CEED_ERROR_MAJOR,
                      "Operator cannot be changed after set as immutable");
   // LCOV_EXCL_STOP
+
+  {
+    CeedSize input_size, output_size;
+    ierr = CeedOperatorGetActiveVectorLengths(sub_op, &input_size, &output_size);
+    CeedChk(ierr);
+    if (composite_op->input_size == -1) composite_op->input_size = input_size;
+    if (composite_op->output_size == -1) composite_op->output_size = output_size;
+    // Note, a size of -1 means no active vector restriction set, so no incompatibility
+    if ((input_size != -1 && input_size != composite_op->input_size) ||
+        (output_size != -1 && output_size != composite_op->output_size))
+      // LCOV_EXCL_START
+      return CeedError(composite_op->ceed, CEED_ERROR_MAJOR,
+                       "Sub-operators must have compatible dimensions; "
+                       "composite operator of shape (%td, %td) not compatible with "
+                       "sub-operator of shape (%td, %td)",
+                       composite_op->input_size, composite_op->output_size, input_size, output_size);
+    // LCOV_EXCL_STOP
+  }
 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
   ierr = CeedOperatorReference(sub_op); CeedChk(ierr);
@@ -938,6 +984,11 @@ int CeedOperatorCheckReady(CeedOperator op) {
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
       ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
     }
+    // Sub-operators could be modified after adding to composite operator
+    // Need to verify no lvec incompatibility from any changes
+    CeedSize input_size, output_size;
+    ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+    CeedChk(ierr);
   } else {
     if (op->num_fields == 0)
       // LCOV_EXCL_START
@@ -995,37 +1046,27 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size,
   int ierr;
   bool is_composite;
 
-  if (input_size) *input_size = -1;
-  if (output_size) *output_size = -1;
+  if (input_size) *input_size = op->input_size;
+  if (output_size) *output_size = op->output_size;
 
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
-  if (is_composite) {
+  if (is_composite && (op->input_size == -1 || op->output_size == -1)) {
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
       CeedSize sub_input_size, sub_output_size;
       ierr = CeedOperatorGetActiveVectorLengths(op->sub_operators[i],
-             input_size ? &sub_input_size : NULL,
-             output_size ? &sub_output_size : NULL); CeedChk(ierr);
-      if (input_size && sub_input_size != -1) *input_size = sub_input_size;
-      if (output_size && sub_output_size != -1) *output_size = sub_output_size;
-    }
-  } else {
-    if (input_size) {
-      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          ierr = CeedElemRestrictionGetLVectorSize(op->input_fields[i]->elem_restr,
-                 input_size); CeedChk(ierr);
-          break;
-        }
-      }
-    }
-    if (output_size) {
-      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          ierr = CeedElemRestrictionGetLVectorSize(op->output_fields[i]->elem_restr,
-                 output_size); CeedChk(ierr);
-          break;
-        }
-      }
+             &sub_input_size, &sub_output_size); CeedChk(ierr);
+      if (op->input_size == -1) op->input_size = sub_input_size;
+      if (op->output_size == -1) op->output_size = sub_output_size;
+      // Note, a size of -1 means no active vector restriction set, so no incompatibility
+      if ((sub_input_size != -1 && sub_input_size != op->input_size) ||
+          (sub_output_size != -1 && sub_output_size != op->output_size))
+        // LCOV_EXCL_START
+        return CeedError(op->ceed, CEED_ERROR_MAJOR,
+                         "Sub-operators must have compatible dimensions; "
+                         "composite operator of shape (%td, %td) not compatible with "
+                         "sub-operator of shape (%td, %td)",
+                         op->input_size, op->output_size, input_size, output_size);
+      // LCOV_EXCL_STOP
     }
   }
 
