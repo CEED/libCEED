@@ -63,7 +63,7 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
 
 int GetTapeSize_ElasFSInitialNH_AD() {
   static const int tape_size = 6;
-  int tape_bytes = __enzyme_augmentsize(computeS, enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
   if (tape_size == tape_bytes/sizeof(CeedScalar)) {
     return tape_size;
   } else if (tape_size > tape_bytes/sizeof(CeedScalar)) {
