@@ -2,7 +2,6 @@
 
 [![GitHub Actions][github-badge]][github-link]
 [![GitLab-CI][gitlab-badge]][gitlab-link]
-[![Azure Pipelines][azure-badge]][azure-link]
 [![Code coverage][codecov-badge]][codecov-link]
 [![BSD-2-Clause][license-badge]][license-link]
 [![Documentation][doc-badge]][doc-link]
@@ -489,8 +488,6 @@ See files LICENSE and NOTICE for details.
 [github-link]: https://github.com/CEED/libCEED/actions
 [gitlab-badge]: https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
 [gitlab-link]: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
-[azure-badge]: https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
-[azure-link]: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
 [codecov-badge]: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
 [codecov-link]: https://codecov.io/gh/CEED/libCEED/
 [license-badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
