@@ -98,6 +98,13 @@ typedef struct {
 } CeedOperatorDiag_Hip;
 
 typedef struct {
+  hipModule_t module;
+  hipFunction_t linearAssemble;
+  CeedInt nelem, block_size_x, block_size_y, elemsPerBlock;
+  CeedScalar *d_B_in, *d_B_out;
+} CeedOperatorAssemble_Hip;
+
+typedef struct {
   CeedVector *evecs;   // E-vectors, inputs followed by outputs
   CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
@@ -106,6 +113,7 @@ typedef struct {
   CeedInt    qfnumactivein, qfnumactiveout;
   CeedVector *qfactivein;
   CeedOperatorDiag_Hip *diag;
+  CeedOperatorAssemble_Hip *asmb;
 } CeedOperator_Hip;
 
 CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);

@@ -97,6 +97,13 @@ typedef struct {
 } CeedOperatorDiag_Cuda;
 
 typedef struct {
+  CUmodule module;
+  CUfunction linearAssemble;
+  CeedInt nelem, block_size_x, block_size_y, elemsPerBlock;
+  CeedScalar *d_B_in, *d_B_out;
+} CeedOperatorAssemble_Cuda;
+
+typedef struct {
   CeedVector *evecs;   // E-vectors, inputs followed by outputs
   CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
@@ -105,6 +112,7 @@ typedef struct {
   CeedInt    qfnumactivein, qfnumactiveout;
   CeedVector *qfactivein;
   CeedOperatorDiag_Cuda *diag;
+  CeedOperatorAssemble_Cuda *asmb;
 } CeedOperator_Cuda;
 
 CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
