@@ -108,7 +108,7 @@ typedef struct {
 typedef struct {
   CUmodule module;
   CUfunction linearAssemble;
-  CeedInt nelem, nnodes, elemsPerBlock;
+  CeedInt nelem, block_size_x, block_size_y, elemsPerBlock;
   CeedScalar *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Cuda;
 

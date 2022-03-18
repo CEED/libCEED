@@ -1252,10 +1252,10 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Matrix assembly kernel
+// Matrix assembly kernel for low-order elements (2D thread block)
 //------------------------------------------------------------------------------
 // *INDENT-OFF*
-static const char *assemblykernels = QUOTE(
+static const char *assemblykernel = QUOTE(
 extern "C" __launch_bounds__(BLOCK_SIZE) 
            __global__ void linearAssemble(const CeedScalar *B_in, const CeedScalar *B_out,
                    const CeedScalar *__restrict__ qf_array,
@@ -1301,6 +1301,62 @@ extern "C" __launch_bounds__(BLOCK_SIZE)
         } // end of emode_in
         CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
    	values_array[val_index] = result;
+      } // end of out component
+    } // end of in component
+  } // end of element loop
+}
+);
+
+//------------------------------------------------------------------------------
+// Fallback kernel for larger orders (1D thread block)
+//------------------------------------------------------------------------------
+static const char *assemblykernelbigelem = QUOTE(
+extern "C" __launch_bounds__(BLOCK_SIZE) 
+           __global__ void linearAssemble(const CeedScalar *B_in, const CeedScalar *B_out,
+                   const CeedScalar *__restrict__ qf_array,
+                   CeedScalar *__restrict__ values_array) {
+
+  // This kernel assumes B_in and B_out have the same number of quadrature points and 
+  // basis points. 
+  // TODO: expand to more general cases
+  const int l = threadIdx.x; // The output column index of each B^TDB operation
+			     // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
+
+  // Strides for final output ordering, determined by the reference (interface) implementation of
+  // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col 
+  const CeedInt comp_out_stride = NNODES * NNODES;
+  const CeedInt comp_in_stride = comp_out_stride * NCOMP;
+  const CeedInt e_stride = comp_in_stride * NCOMP;
+  // Strides for QF array, slowest --> fastest:  emode_in, comp_in, emode_out, comp_out, elem, qpt 
+  const CeedInt qe_stride = NQPTS;
+  const CeedInt qcomp_out_stride = NELEM * qe_stride;
+  const CeedInt qemode_out_stride = qcomp_out_stride * NCOMP;
+  const CeedInt qcomp_in_stride = qemode_out_stride * NUMEMODEOUT;
+  const CeedInt qemode_in_stride = qcomp_in_stride * NCOMP;
+
+    // Loop over each element (if necessary)
+  for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < NELEM;
+         e += gridDim.x*blockDim.z) {
+    for (CeedInt comp_in = 0; comp_in < NCOMP; comp_in++) {
+      for (CeedInt comp_out = 0; comp_out < NCOMP; comp_out++) {
+        for (CeedInt i = 0; i < NNODES; i++) {
+          CeedScalar result = 0.0;
+          CeedInt qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e; 
+          for (CeedInt emode_in = 0; emode_in < NUMEMODEIN; emode_in++) {
+            CeedInt b_in_index = emode_in * NQPTS * NNODES;
+        	  for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
+               CeedInt b_out_index = emode_out * NQPTS * NNODES;
+               CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
+   	     // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
+              for (CeedInt j = 0; j < NQPTS; j++) {
+       	      result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
+  	    }
+
+            }// end of emode_out 
+          } // end of emode_in
+          CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
+     	  values_array[val_index] = result;
+        } // end of loop over element node index, i
       } // end of out component
     } // end of in component
   } // end of element loop
@@ -1419,29 +1475,40 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   ierr = CeedCalloc(1, &impl->asmb); CeedChkBackend(ierr);
   CeedOperatorAssemble_Cuda *asmb = impl->asmb;
   asmb->nelem = nelem;
-  asmb->nnodes = esize;
 
   // Compile kernels
   int elemsPerBlock = 1;
   asmb->elemsPerBlock = elemsPerBlock;
-  // TODO: 1D threadblock version for larger elements
+  CeedInt block_size = esize * esize * elemsPerBlock;
   Ceed_Cuda *cuda_data;
   ierr = CeedGetData(ceed, &cuda_data); CeedChkBackend(ierr);
-  if (esize * esize * elemsPerBlock > cuda_data->device_prop.maxThreadsPerBlock)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "GPU assembly not currently available for elements of this size");
-  // LCOV_EXCL_STOP
-
-  ierr = CeedCompileCuda(ceed, assemblykernels, &asmb->module, 7,
-                         "NELEM", nelem,
-                         "NUMEMODEIN", num_emode_in,
-                         "NUMEMODEOUT", num_emode_out,
-                         "NQPTS", nqpts,
-                         "NNODES", esize,
-                         "BLOCK_SIZE", esize * esize * elemsPerBlock,
-                         "NCOMP", ncomp
-                        ); CeedChk_Cu(ceed, ierr);
+  if (block_size > cuda_data->device_prop.maxThreadsPerBlock) {
+    // Use fallback kernel with 1D threadblock
+    block_size = esize * elemsPerBlock;
+    asmb->block_size_x = esize;
+    asmb->block_size_y = 1;
+    ierr = CeedCompileCuda(ceed, assemblykernelbigelem, &asmb->module, 7,
+                           "NELEM", nelem,
+                           "NUMEMODEIN", num_emode_in,
+                           "NUMEMODEOUT", num_emode_out,
+                           "NQPTS", nqpts,
+                           "NNODES", esize,
+                           "BLOCK_SIZE", block_size,
+                           "NCOMP", ncomp
+                          ); CeedChk_Cu(ceed, ierr);
+  } else {  // Use kernel with 2D threadblock
+    asmb->block_size_x = esize;
+    asmb->block_size_y = esize;
+    ierr = CeedCompileCuda(ceed, assemblykernel, &asmb->module, 7,
+                           "NELEM", nelem,
+                           "NUMEMODEIN", num_emode_in,
+                           "NUMEMODEOUT", num_emode_out,
+                           "NQPTS", nqpts,
+                           "NNODES", esize,
+                           "BLOCK_SIZE", block_size,
+                           "NCOMP", ncomp
+                          ); CeedChk_Cu(ceed, ierr);
+  }
   ierr = CeedGetKernelCuda(ceed, asmb->module, "linearAssemble",
                            &asmb->linearAssemble); CeedChk_Cu(ceed, ierr);
 
@@ -1536,14 +1603,14 @@ static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
   // Compute B^T D B
   const CeedInt nelem = impl->asmb->nelem;
   const CeedInt elemsPerBlock = impl->asmb->elemsPerBlock;
-  const CeedInt nnodes = impl->asmb->nnodes;
   const CeedInt grid = nelem/elemsPerBlock+((
                          nelem/elemsPerBlock*elemsPerBlock<nelem)?1:0);
   void *args[] = {&impl->asmb->d_B_in, &impl->asmb->d_B_out,
                   &qf_array, &values_array
                  };
   ierr = CeedRunKernelDimCuda(ceed, impl->asmb->linearAssemble, grid,
-                              nnodes, nnodes, elemsPerBlock, args);
+                              impl->asmb->block_size_x, impl->asmb->block_size_y,
+                              elemsPerBlock, args);
   CeedChkBackend(ierr);
 
 
