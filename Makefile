@@ -45,7 +45,9 @@ SED ?= sed
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
 
-LDFLAGS ?=
+# Allow users to customize LDFLAGS (libceed appends directly to this variable)
+override LDFLAGS := $(LDFLAGS)
+
 UNDERSCORE ?= 1
 
 # Verbose mode, V or VERBOSE
@@ -339,6 +341,8 @@ endif
 
 # Collect list of libraries and paths for use in linking and pkg-config
 PKG_LIBS =
+# Stubs that will not be RPATH'd
+PKG_STUBS_LIBS =
 
 # libXSMM Backends
 XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
@@ -386,6 +390,7 @@ CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
+  PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
   libceed.c     += $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
@@ -458,10 +463,10 @@ export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%)
+$(libceeds) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
 $(libceeds) : LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%)
+$(examples) $(tests) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
 $(examples) $(tests) : LDLIBS += $(_pkg_ldlibs)
 endif
 
