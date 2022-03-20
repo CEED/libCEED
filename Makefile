@@ -147,12 +147,12 @@ FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
   CXXFLAGS += --coverage
-  LDFLAGS += --coverage
+  override LDFLAGS += --coverage
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
-LDFLAGS += $(if $(ASAN),$(AFLAGS))
+override LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
 LDLIBS = -lm
 OBJDIR := build
@@ -311,7 +311,7 @@ info-backends-all:
 	$(info make: 'lib' with backends: $(filter-out $(TEST_BACKENDS),$(BACKENDS)))
 	@true
 
-$(libceed.so) : LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
+$(libceed.so) : override LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
 
 # Standard Backends
 libceed.c += $(ref.c)
@@ -463,10 +463,10 @@ export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(libceeds) : override LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
 $(libceeds) : LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(examples) $(tests) : override LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
 $(examples) $(tests) : LDLIBS += $(_pkg_ldlibs)
 endif
 
@@ -558,7 +558,7 @@ $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
 
 $(examples) : $(libceed)
 $(tests) : $(libceed)
-$(tests) $(examples) : LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
+$(tests) $(examples) : override LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
 	@tests/tap.sh $(<:$(OBJDIR)/%=%)
