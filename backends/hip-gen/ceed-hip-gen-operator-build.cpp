@@ -1391,12 +1391,12 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
-  CeedInt block_sizes[3];
+  CeedInt block_sizes[3] = {0, 0, 0};
   ierr = BlockGridCalculate_Hip_gen(dim, numelements, data->maxP1d, Q1d, block_sizes); 
   CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 2,
                          "T1d", block_sizes[0],
-			 "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]);
+                         "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, oper.c_str(), &data->op);
   CeedChkBackend(ierr);

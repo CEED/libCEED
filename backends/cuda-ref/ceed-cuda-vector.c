@@ -23,16 +23,6 @@
 #include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
-// * Bytes used
-//------------------------------------------------------------------------------
-static inline size_t bytes(const CeedVector vec) {
-  int ierr;
-  CeedSize length;
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  return length * sizeof(CeedScalar);
-}
-
-//------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
@@ -48,17 +38,21 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
                      "No valid host data to sync to device");
   // LCOV_EXCL_STOP
 
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t bytes = length * sizeof(CeedScalar);
+
   if (impl->d_array_borrowed) {
     impl->d_array = impl->d_array_borrowed;
   } else if (impl->d_array_owned) {
     impl->d_array = impl->d_array_owned;
   } else {
-    ierr = cudaMalloc((void **)&impl->d_array_owned, bytes(vec));
+    ierr = cudaMalloc((void **)&impl->d_array_owned, bytes);
     CeedChk_Cu(ceed, ierr);
     impl->d_array = impl->d_array_owned;
   }
 
-  ierr = cudaMemcpy(impl->d_array, impl->h_array, bytes(vec),
+  ierr = cudaMemcpy(impl->d_array, impl->h_array, bytes,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -91,7 +85,10 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
     impl->h_array = impl->h_array_owned;
   }
 
-  ierr = cudaMemcpy(impl->h_array, impl->d_array, bytes(vec),
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t bytes = length * sizeof(CeedScalar);
+  ierr = cudaMemcpy(impl->h_array, impl->d_array, bytes,
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -211,6 +208,7 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
+
   switch (copy_mode) {
   case CEED_COPY_VALUES: {
     CeedSize length;
@@ -220,8 +218,12 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec,
     }
     impl->h_array_borrowed = NULL;
     impl->h_array = impl->h_array_owned;
-    if (array)
-      memcpy(impl->h_array, array, bytes(vec));
+    if (array) {
+      CeedSize length;
+      ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+      size_t bytes = length * sizeof(CeedScalar);
+      memcpy(impl->h_array, array, bytes);
+    }
   } break;
   case CEED_OWN_POINTER:
     ierr = CeedFree(&impl->h_array_owned); CeedChkBackend(ierr);
@@ -250,18 +252,22 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec,
   CeedVector_Cuda *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
+
   switch (copy_mode) {
-  case CEED_COPY_VALUES:
+  case CEED_COPY_VALUES: {
+    CeedSize length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    size_t bytes = length * sizeof(CeedScalar);
     if (!impl->d_array_owned) {
-      ierr = cudaMalloc((void **)&impl->d_array_owned, bytes(vec));
+      ierr = cudaMalloc((void **)&impl->d_array_owned, bytes);
       CeedChk_Cu(ceed, ierr);
       impl->d_array = impl->d_array_owned;
     }
     if (array) {
-      ierr = cudaMemcpy(impl->d_array, array, bytes(vec),
+      ierr = cudaMemcpy(impl->d_array, array, bytes,
                         cudaMemcpyDeviceToDevice); CeedChk_Cu(ceed, ierr);
     }
-    break;
+  } break;
   case CEED_OWN_POINTER:
     ierr = cudaFree(impl->d_array_owned); CeedChk_Cu(ceed, ierr);
     impl->d_array_owned = array;

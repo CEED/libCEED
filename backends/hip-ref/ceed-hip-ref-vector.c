@@ -23,16 +23,6 @@
 #include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
-// * Bytes used
-//------------------------------------------------------------------------------
-static inline size_t bytes(const CeedVector vec) {
-  int ierr;
-  CeedSize length;
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  return length * sizeof(CeedScalar);
-}
-
-//------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
@@ -41,6 +31,10 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t bytes = length * sizeof(CeedScalar);
 
   if (!impl->h_array)
     // LCOV_EXCL_START
@@ -53,12 +47,12 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   } else if (impl->d_array_owned) {
     impl->d_array = impl->d_array_owned;
   } else {
-    ierr = hipMalloc((void **)&impl->d_array_owned, bytes(vec));
+    ierr = hipMalloc((void **)&impl->d_array_owned, bytes);
     CeedChk_Hip(ceed, ierr);
     impl->d_array = impl->d_array_owned;
   }
 
-  ierr = hipMemcpy(impl->d_array, impl->h_array, bytes(vec),
+  ierr = hipMemcpy(impl->d_array, impl->h_array, bytes,
                    hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -91,7 +85,10 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
     impl->h_array = impl->h_array_owned;
   }
 
-  ierr = hipMemcpy(impl->h_array, impl->d_array, bytes(vec),
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t bytes = length * sizeof(CeedScalar);
+  ierr = hipMemcpy(impl->h_array, impl->d_array, bytes,
                    hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -220,8 +217,12 @@ static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
     }
     impl->h_array_borrowed = NULL;
     impl->h_array = impl->h_array_owned;
-    if (array)
-      memcpy(impl->h_array, array, bytes(vec));
+    if (array) {
+      CeedSize length;
+      ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+      size_t bytes = length * sizeof(CeedScalar);
+      memcpy(impl->h_array, array, bytes);
+    }
   } break;
   case CEED_OWN_POINTER:
     ierr = CeedFree(&impl->h_array_owned); CeedChkBackend(ierr);
@@ -251,18 +252,21 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
   switch (copy_mode) {
-  case CEED_COPY_VALUES:
+  case CEED_COPY_VALUES: {
+    CeedSize length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    size_t bytes = length * sizeof(CeedScalar);
     if (!impl->d_array_owned) {
-      ierr = hipMalloc((void **)&impl->d_array_owned, bytes(vec));
+      ierr = hipMalloc((void **)&impl->d_array_owned, bytes);
       CeedChk_Hip(ceed, ierr);
     }
     impl->d_array_borrowed = NULL;
     impl->d_array = impl->d_array_owned;
     if (array) {
-      ierr = hipMemcpy(impl->d_array, array, bytes(vec),
+      ierr = hipMemcpy(impl->d_array, array, bytes,
                        hipMemcpyDeviceToDevice); CeedChk_Hip(ceed, ierr);
     }
-    break;
+  } break;
   case CEED_OWN_POINTER:
     ierr = hipFree(impl->d_array_owned); CeedChk_Hip(ceed, ierr);
     impl->d_array_owned = array;
