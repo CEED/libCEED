@@ -36,8 +36,12 @@ SED ?= sed
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
 
-# Allow users to customize LDFLAGS (libceed appends directly to this variable)
-override LDFLAGS := $(LDFLAGS)
+# These are the values automatically detected here in the makefile. They are
+# augmented with LDFLAGS and LDLIBS from the environment/passed by command line,
+# if any. If the user sets CEED_LDFLAGS or CEED_LDLIBS, they are used *instead
+# of* what we populate here (thus that's advanced usage and not recommended).
+CEED_LDFLAGS ?=
+CEED_LDLIBS ?=
 
 UNDERSCORE ?= 1
 
@@ -138,14 +142,14 @@ FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
   CXXFLAGS += --coverage
-  override LDFLAGS += --coverage
+  CEED_LDFLAGS += --coverage
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
-override LDFLAGS += $(if $(ASAN),$(AFLAGS))
+CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
-LDLIBS = -lm
+CEED_LDLIBS = -lm
 OBJDIR := build
 LIBDIR := lib
 
@@ -268,8 +272,8 @@ info:
 	$(info FFLAGS        = $(value FFLAGS))
 	$(info NVCCFLAGS     = $(value NVCCFLAGS))
 	$(info HIPCCFLAGS    = $(value HIPCCFLAGS))
-	$(info LDFLAGS       = $(value LDFLAGS))
-	$(info LDLIBS        = $(LDLIBS))
+	$(info CEED_LDFLAGS  = $(value CEED_LDFLAGS))
+	$(info CEED_LDLIBS   = $(value CEED_LDLIBS))
 	$(info AR            = $(AR))
 	$(info ARFLAGS       = $(ARFLAGS))
 	$(info OPT           = $(OPT))
@@ -302,7 +306,7 @@ info-backends-all:
 	$(info make: 'lib' with backends: $(filter-out $(TEST_BACKENDS),$(BACKENDS)))
 	@true
 
-$(libceed.so) : override LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
+$(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
 
 # Standard Backends
 libceed.c += $(ref.c)
@@ -454,18 +458,18 @@ export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : override LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
-$(libceeds) : LDLIBS += $(_pkg_ldlibs)
+$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : override LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
-$(examples) $(tests) : LDLIBS += $(_pkg_ldlibs)
+$(examples) $(tests) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
 pkgconfig-libs-private = $(PKG_LIBS)
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
   $(libceeds) : LINK = $(CXX)
   ifeq ($(STATIC),1)
-    $(examples) $(tests) : LDLIBS += $(LIBCXX)
+    $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
 	  pkgconfig-libs-private += $(LIBCXX)
   endif
 endif
@@ -478,7 +482,7 @@ libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
-	$(call quiet,LINK) $(LDFLAGS) -shared -o $@ $^ $(LDLIBS)
+	$(call quiet,LINK) $(LDFLAGS) $(CEED_LDFLAGS) -shared -o $@ $^ $(CEED_LDLIBS) $(LDLIBS)
 
 $(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
@@ -496,16 +500,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
