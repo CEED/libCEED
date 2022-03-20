@@ -145,7 +145,7 @@ struct CeedVector_private {
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
   int ref_count;
-  CeedInt length;
+  CeedSize length;
   uint64_t state;
   uint64_t num_readers;
   void *data;

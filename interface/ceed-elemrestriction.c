@@ -694,7 +694,7 @@ int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr,
 int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
                                     CeedVector *e_vec) {
   int ierr;
-  CeedInt e_size, l_size;
+  CeedSize e_size, l_size;
   l_size = rstr->l_size;
   e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
   if (l_vec) {

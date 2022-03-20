@@ -12,16 +12,6 @@
 #include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
-// * Bytes used
-//------------------------------------------------------------------------------
-static inline size_t bytes(const CeedQFunctionContext ctx) {
-  int ierr;
-  size_t ctxsize;
-  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
-  return ctxsize;
-}
-
-//------------------------------------------------------------------------------
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedQFunctionContextSyncH2D_Cuda(
@@ -38,17 +28,20 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(
                      "No valid host data to sync to device");
   // LCOV_EXCL_STOP
 
+  size_t ctxsize;
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
+
   if (impl->d_data_borrowed) {
     impl->d_data = impl->d_data_borrowed;
   } else if (impl->d_data_owned) {
     impl->d_data = impl->d_data_owned;
   } else {
-    ierr = cudaMalloc((void **)&impl->d_data_owned, bytes(ctx));
+    ierr = cudaMalloc((void **)&impl->d_data_owned, ctxsize);
     CeedChk_Cu(ceed, ierr);
     impl->d_data = impl->d_data_owned;
   }
 
-  ierr = cudaMemcpy(impl->d_data, impl->h_data, bytes(ctx),
+  ierr = cudaMemcpy(impl->d_data, impl->h_data, ctxsize,
                     cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -71,17 +64,20 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
                      "No valid device data to sync to host");
   // LCOV_EXCL_STOP
 
+  size_t ctxsize;
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
+
   if (impl->h_data_borrowed) {
     impl->h_data = impl->h_data_borrowed;
   } else if (impl->h_data_owned) {
     impl->h_data = impl->h_data_owned;
   } else {
-    ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned);
+    ierr = CeedMalloc(ctxsize, &impl->h_data_owned);
     CeedChkBackend(ierr);
     impl->h_data = impl->h_data_owned;
   }
 
-  ierr = cudaMemcpy(impl->h_data, impl->d_data, bytes(ctx),
+  ierr = cudaMemcpy(impl->h_data, impl->d_data, ctxsize,
                     cudaMemcpyDeviceToHost); CeedChk_Cu(ceed, ierr);
 
   return CEED_ERROR_SUCCESS;
@@ -186,10 +182,12 @@ static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
   ierr = CeedFree(&impl->h_data_owned); CeedChkBackend(ierr);
   switch (copy_mode) {
   case CEED_COPY_VALUES: {
-    ierr = CeedMalloc(bytes(ctx), &impl->h_data_owned); CeedChkBackend(ierr);
+    size_t ctxsize;
+    ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
+    ierr = CeedMalloc(ctxsize, &impl->h_data_owned); CeedChkBackend(ierr);
     impl->h_data_borrowed = NULL;
     impl->h_data = impl->h_data_owned;
-    memcpy(impl->h_data, data, bytes(ctx));
+    memcpy(impl->h_data, data, ctxsize);
   } break;
   case CEED_OWN_POINTER:
     impl->h_data_owned = data;
@@ -219,14 +217,16 @@ static int CeedQFunctionContextSetDataDevice_Cuda(
   ierr = cudaFree(impl->d_data_owned); CeedChk_Cu(ceed, ierr);
   impl->d_data_owned = NULL;
   switch (copy_mode) {
-  case CEED_COPY_VALUES:
-    ierr = cudaMalloc((void **)&impl->d_data_owned, bytes(ctx));
+  case CEED_COPY_VALUES: {
+    size_t ctxsize;
+    ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
+    ierr = cudaMalloc((void **)&impl->d_data_owned, ctxsize);
     CeedChk_Cu(ceed, ierr);
     impl->d_data_borrowed = NULL;
     impl->d_data = impl->d_data_owned;
-    ierr = cudaMemcpy(impl->d_data, data, bytes(ctx),
+    ierr = cudaMemcpy(impl->d_data, data, ctxsize,
                       cudaMemcpyDeviceToDevice); CeedChk_Cu(ceed, ierr);
-    break;
+  } break;
   case CEED_OWN_POINTER:
     impl->d_data_owned = data;
     impl->d_data_borrowed = NULL;

@@ -22,6 +22,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
                                        CeedInt start_e, CeedInt num_fields,
                                        CeedInt Q) {
   CeedInt ierr, num_comp, size, P;
+  CeedSize e_size, q_size;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedBasis basis;
@@ -57,7 +58,8 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
     switch(eval_mode) {
     case CEED_EVAL_NONE:
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
+      q_size = (CeedSize)Q*size;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
     case CEED_EVAL_GRAD:
@@ -65,12 +67,15 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op,
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
       ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
       ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*num_comp, &e_vecs[i]); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size, &q_vecs[i]); CeedChkBackend(ierr);
+      e_size = (CeedSize)P*num_comp;
+      ierr = CeedVectorCreate(ceed, e_size, &e_vecs[i]); CeedChkBackend(ierr);
+      q_size = (CeedSize)Q*size;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q, &q_vecs[i]); CeedChkBackend(ierr);
+      q_size = (CeedSize)Q;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       ierr = CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT,
                             CEED_VECTOR_NONE, q_vecs[i]); CeedChkBackend(ierr);
       break;
@@ -517,6 +522,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedInt Q, num_elem, num_input_fields, num_output_fields, size;
+  CeedSize q_size;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChkBackend(ierr);
   CeedOperatorField *op_input_fields, *op_output_fields;
@@ -569,7 +575,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
         CeedChkBackend(ierr);
         ierr = CeedRealloc(num_active_in + size, &active_in); CeedChkBackend(ierr);
         for (CeedInt field=0; field<size; field++) {
-          ierr = CeedVectorCreate(ceed, Q, &active_in[num_active_in+field]);
+          q_size = (CeedSize)Q;
+          ierr = CeedVectorCreate(ceed, q_size, &active_in[num_active_in+field]);
           CeedChkBackend(ierr);
           ierr = CeedVectorSetArray(active_in[num_active_in+field], CEED_MEM_HOST,
                                     CEED_USE_POINTER, &tmp[field*Q]);
@@ -616,8 +623,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
                                             num_active_in*num_active_out*num_elem*Q,
                                             strides, rstr); CeedChkBackend(ierr);
     // Create assembled vector
-    ierr = CeedVectorCreate(ceed_parent, num_elem*Q*num_active_in*num_active_out,
-                            assembled); CeedChkBackend(ierr);
+    CeedSize l_size = (CeedSize)num_elem*Q*num_active_in*num_active_out;
+    ierr = CeedVectorCreate(ceed_parent, l_size, assembled); CeedChkBackend(ierr);
   }
   // Clear output vector
   ierr = CeedVectorSetValue(*assembled, 0.0); CeedChkBackend(ierr);
