@@ -15,8 +15,8 @@
 #define PHYSICS_STRUCT_NH
 typedef struct Physics_NH_ *Physics_NH;
 struct Physics_NH_ {
-  CeedScalar   nu;      // Poisson's ratio
-  CeedScalar   E;       // Young's Modulus
+  CeedScalar   nu;         // Poisson's ratio
+  CeedScalar   E;          // Young's Modulus
 };
 #endif // PHYSICS_STRUCT_NH
 

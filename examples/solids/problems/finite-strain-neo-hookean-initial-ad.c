@@ -10,6 +10,28 @@
 static const char *const field_names[] = {"gradu", "Swork"};
 static CeedInt field_sizes[] = {9, 6};
 
+static PetscErrorCode GetTapeSize_NH(PetscInt *tape_size) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
+                                        enzyme_const, enzyme_const);
+  if (FSInitialNH_AD_TAPE_SIZE*sizeof(CeedScalar) == tape_bytes) {
+  } else if (FSInitialNH_AD_TAPE_SIZE*sizeof(CeedScalar) > tape_bytes) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD,
+                       "Warning! allocated %d CeedScalars when you only needed %lu\n",
+                       FSInitialNH_AD_TAPE_SIZE,
+                       tape_bytes/sizeof(CeedScalar)); CHKERRQ(ierr);
+  } else {
+    SETERRQ(PETSC_COMM_SELF, 1,
+            "Error: allocated %d CeedScalar's when you need %lu\n",
+            FSInitialNH_AD_TAPE_SIZE,
+            tape_bytes/sizeof(CeedScalar));
+  }
+  *tape_size = FSInitialNH_AD_TAPE_SIZE;
+  PetscFunctionReturn(0);
+};
+
 ProblemData finite_strain_neo_Hookean_initial_ad = {
   .setup_geo = SetupGeo,
   .setup_geo_loc = SetupGeo_loc,
@@ -26,7 +48,7 @@ ProblemData finite_strain_neo_Hookean_initial_ad = {
   .energy_loc = ElasFSNHEnergy_loc,
   .diagnostic = ElasFSNHDiagnostic,
   .diagnostic_loc = ElasFSNHDiagnostic_loc,
-  .tape_size = GetTapeSize_ElasFSInitialNH_AD,
+  .tape_size = GetTapeSize_NH,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH_AD(DM dm, DM dm_energy,
@@ -58,27 +80,6 @@ PetscErrorCode SetupLibceedLevel_ElasFSInitialNH_AD(DM dm, Ceed ceed,
                            level, num_comp_u, U_g_size, U_loc_size, fine_mult, data);
   CHKERRQ(ierr);
 
-  PetscFunctionReturn(0);
-};
-
-const PetscErrorCode GetTapeSize_ElasFSInitialNH_AD() {
-  static const int tape_size = 6;
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
-                                        enzyme_const, enzyme_const);
-  if (tape_size == tape_bytes/sizeof(CeedScalar)) {
-    return tape_size;
-  } else if (tape_size > tape_bytes/sizeof(CeedScalar)) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Warning! allocated %d CeedScalars when you only needed %lu\n", tape_size,
-                       tape_bytes/sizeof(CeedScalar)); CHKERRQ(ierr);
-    return tape_size;
-  } else {
-    SETERRQ(PETSC_COMM_SELF, 1,
-            "Error: allocated %d CeedScalar's when you need %lu\n", tape_size,
-            tape_bytes/sizeof(CeedScalar));
-  }
   PetscFunctionReturn(0);
 };
 

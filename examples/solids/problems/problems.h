@@ -32,7 +32,6 @@ PetscErrorCode RegisterProblems(ProblemFunctions problem_functions);
   PetscErrorCode SetupLibceedLevel_ ## name (DM dm, Ceed ceed,                  \
     AppCtx app_ctx, PetscInt level, PetscInt num_comp_u, PetscInt U_g_size,     \
     PetscInt u_loc_size, CeedVector fine_mult, CeedData *data);                 \
-  const PetscErrorCode GetTapeSize_ ## name ();                 \
 
 SOLIDS_PROBLEM(ElasLinear);
 SOLIDS_PROBLEM(ElasSSNH);

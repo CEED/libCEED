@@ -22,12 +22,14 @@
 
 #include <math.h>
 
+static const int FSInitialNH_AD_TAPE_SIZE = 6;
+
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT
 typedef struct Physics_private *Physics;
 struct Physics_private {
-  CeedScalar   nu;      // Poisson's ratio
-  CeedScalar   E;       // Young's Modulus
+  CeedScalar   nu;         // Poisson's ratio
+  CeedScalar   E;          // Young's Modulus
 };
 #endif
 
@@ -221,6 +223,8 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
   const Physics context = (Physics)ctx;
   const CeedScalar E  = context->E;
   const CeedScalar nu = context->nu;
+
+  // Constants
   const CeedScalar TwoMu = E / (1 + nu);
   const CeedScalar mu = TwoMu / 2;
   const CeedScalar Kbulk = E / (3*(1 - 2*nu)); // Bulk Modulus
@@ -316,9 +320,9 @@ CEED_QFUNCTION(ElasFSInitialNHF_AD)(void *ctx, CeedInt Q,
     }
 
     // Compute Swork with Enzyme-AD and get tape
-    CeedScalar Swork_[6], packed_tape[6];
+    CeedScalar Swork_[6], packed_tape[FSInitialNH_AD_TAPE_SIZE];
     S_fwd(Swork_, E2work, lambda, mu, packed_tape);
-    for (int j=0; j<6; j++) tape[j][i] = packed_tape[j];
+    for (int j=0; j<FSInitialNH_AD_TAPE_SIZE; j++) tape[j][i] = packed_tape[j];
 
     // *INDENT-OFF*
     const CeedScalar S[3][3] = {{Swork_[0], Swork_[5], Swork_[4]},
@@ -457,8 +461,8 @@ CEED_QFUNCTION(ElasFSInitialNHdF_AD)(void *ctx, CeedInt Q,
     // -- 2E is the input of computeS
     for (int j=0; j<6; j++) deltaEwork[j] *= 2.;
     CeedScalar deltaSwork[6];
-    CeedScalar packed_tape[6];
-    for (int j=0; j<6; j++) packed_tape[j] = tape[j][i];
+    CeedScalar packed_tape[FSInitialNH_AD_TAPE_SIZE];
+    for (int j=0; j<FSInitialNH_AD_TAPE_SIZE; j++) packed_tape[j] = tape[j][i];
     grad_S(deltaSwork, deltaEwork, lambda, mu, packed_tape);
 
     // *INDENT-OFF*

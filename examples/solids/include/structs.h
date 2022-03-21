@@ -11,6 +11,7 @@
 #include <ceed.h>
 #include <petsc.h>
 #include "../problems/cl-problems.h"
+#include "petscsystypes.h"
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -161,7 +162,7 @@ typedef struct {
   CeedQuadMode quadrature_mode;
   CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
-  const int (*tape_size)();
+  PetscErrorCode (*tape_size)(PetscInt *);
   const char *const *field_names;
 } ProblemData;
 

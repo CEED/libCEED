@@ -180,8 +180,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic,
   PetscFunctionBeginUser;
 
   // Enzyme-AD tape size
-  if (problem_data.tape_size)
-    tape_size = problem_data.tape_size();
+  if (problem_data.tape_size) {
+    ierr = problem_data.tape_size(&tape_size); CHKERRQ(ierr);
+  }
 
   // ---------------------------------------------------------------------------
   // libCEED bases
