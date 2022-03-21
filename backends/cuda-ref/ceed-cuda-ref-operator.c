@@ -1374,13 +1374,14 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   CeedOperatorField *input_fields;
   CeedOperatorField *output_fields;
   ierr = CeedOperatorGetFields(op, &num_input_fields, &input_fields,
-                               &num_output_fields, &output_fields); CeedChk(ierr);
+                               &num_output_fields, &output_fields); CeedChkBackend(ierr);
 
   // Determine active input basis eval mode
   CeedQFunction qf;
-  ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
+  ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   CeedQFunctionField *qf_fields;
-  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL);
+  CeedChkBackend(ierr);
   // Note that the kernel will treat each dimension of a gradient action separately;
   // i.e., when an active input has a CEED_EVAL_GRAD mode, num_emode_in will increment
   // by dim.  However, for the purposes of loading the B matrices, it will be treated
@@ -1389,24 +1390,25 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   CeedInt num_emode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0;
   CeedEvalMode *eval_mode_in = NULL; //will be of size num_B_in_mats_load
   CeedBasis basis_in = NULL;
-  CeedInt nqpts, esize;
+  CeedInt nqpts = 0, esize = 0;
   CeedElemRestriction rstr_in = NULL;
   for (CeedInt i=0; i<num_input_fields; i++) {
     CeedVector vec;
-    ierr = CeedOperatorFieldGetVector(input_fields[i], &vec); CeedChk(ierr);
+    ierr = CeedOperatorFieldGetVector(input_fields[i], &vec); CeedChkBackend(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(input_fields[i], &basis_in);
-      CeedChk(ierr);
-      ierr = CeedBasisGetDimension(basis_in, &dim); CeedChk(ierr);
-      ierr = CeedBasisGetNumQuadraturePoints(basis_in, &nqpts); CeedChk(ierr);
+      CeedChkBackend(ierr);
+      ierr = CeedBasisGetDimension(basis_in, &dim); CeedChkBackend(ierr);
+      ierr = CeedBasisGetNumQuadraturePoints(basis_in, &nqpts); CeedChkBackend(ierr);
       ierr = CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr_in);
-      ierr = CeedElemRestrictionGetElementSize(rstr_in, &esize); CeedChk(ierr);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
+      ierr = CeedElemRestrictionGetElementSize(rstr_in, &esize); CeedChkBackend(ierr);
       CeedEvalMode eval_mode;
       ierr = CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       if (eval_mode != CEED_EVAL_NONE) {
-        ierr = CeedRealloc(num_B_in_mats_to_load + 1, &eval_mode_in); CeedChk(ierr);
+        ierr = CeedRealloc(num_B_in_mats_to_load + 1, &eval_mode_in);
+        CeedChkBackend(ierr);
         eval_mode_in[num_B_in_mats_to_load] = eval_mode;
         num_B_in_mats_to_load += 1;
         if (eval_mode == CEED_EVAL_GRAD) {
@@ -1421,19 +1423,20 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   }
 
   // Determine active output basis; basis_out and rstr_out only used if same as input, TODO
-  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields); CeedChk(ierr);
+  ierr = CeedQFunctionGetFields(qf, NULL, NULL, NULL, &qf_fields);
+  CeedChkBackend(ierr);
   CeedInt num_emode_out = 0, num_B_out_mats_to_load = 0, size_B_out = 0;
   CeedEvalMode *eval_mode_out = NULL;
   CeedBasis basis_out = NULL;
   CeedElemRestriction rstr_out = NULL;
   for (CeedInt i=0; i<num_output_fields; i++) {
     CeedVector vec;
-    ierr = CeedOperatorFieldGetVector(output_fields[i], &vec); CeedChk(ierr);
+    ierr = CeedOperatorFieldGetVector(output_fields[i], &vec); CeedChkBackend(ierr);
     if (vec == CEED_VECTOR_ACTIVE) {
       ierr = CeedOperatorFieldGetBasis(output_fields[i], &basis_out);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       ierr = CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_out);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       if (rstr_out && rstr_out != rstr_in)
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND,
@@ -1441,9 +1444,10 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
       // LCOV_EXCL_STOP
       CeedEvalMode eval_mode;
       ierr = CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       if (eval_mode != CEED_EVAL_NONE) {
-        ierr = CeedRealloc(num_B_out_mats_to_load + 1, &eval_mode_out); CeedChk(ierr);
+        ierr = CeedRealloc(num_B_out_mats_to_load + 1, &eval_mode_out);
+        CeedChkBackend(ierr);
         eval_mode_out[num_B_out_mats_to_load] = eval_mode;
         num_B_out_mats_to_load += 1;
         if (eval_mode == CEED_EVAL_GRAD) {
@@ -1464,8 +1468,9 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   // LCOV_EXCL_STOP
 
   CeedInt nelem, ncomp;
-  ierr = CeedElemRestrictionGetNumElements(rstr_in, &nelem); CeedChk(ierr);
-  ierr = CeedElemRestrictionGetNumComponents(rstr_in, &ncomp); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetNumElements(rstr_in, &nelem); CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetNumComponents(rstr_in, &ncomp);
+  CeedChkBackend(ierr);
 
   ierr = CeedCalloc(1, &impl->asmb); CeedChkBackend(ierr);
   CeedOperatorAssemble_Cuda *asmb = impl->asmb;
@@ -1579,13 +1584,14 @@ static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
   if (!impl->asmb) {
     ierr = CeedSingleOperatorAssembleSetup_Cuda(op);
     CeedChkBackend(ierr);
+    assert(impl->asmb != NULL);
   }
 
   // Assemble QFunction
   CeedVector assembled_qf;
   CeedElemRestriction rstr_q;
   ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(
-           op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE); CeedChk(ierr);
+           op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr_q); CeedChkBackend(ierr);
   CeedScalar *values_array;
   ierr = CeedVectorGetArrayWrite(values, CEED_MEM_DEVICE, &values_array);
@@ -1635,7 +1641,7 @@ int CeedOperatorLinearAssemble_Cuda(CeedOperator op, CeedVector values) {
   // for composite operators, or call single operator assembly otherwise
   bool is_composite;
   CeedInt ierr;
-  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
 
   CeedElemRestriction rstr;
   CeedInt num_elem, elem_size, num_comp;
@@ -1643,21 +1649,24 @@ int CeedOperatorLinearAssemble_Cuda(CeedOperator op, CeedVector values) {
   CeedInt offset = 0;
   if (is_composite) {
     CeedInt num_suboperators;
-    ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChk(ierr);
+    ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChkBackend(ierr);
     CeedOperator *sub_operators;
-    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChkBackend(ierr);
     for (int k = 0; k < num_suboperators; ++k) {
       ierr = CeedSingleOperatorAssemble_Cuda(sub_operators[k], offset, values);
-      CeedChk(ierr);
+      CeedChkBackend(ierr);
       ierr = CeedOperatorGetActiveElemRestriction(sub_operators[k], &rstr);
-      CeedChk(ierr);
-      ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChk(ierr);
-      ierr = CeedElemRestrictionGetElementSize(rstr, &elem_size); CeedChk(ierr);
-      ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp); CeedChk(ierr);
+      CeedChkBackend(ierr);
+      ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChkBackend(ierr);
+      ierr = CeedElemRestrictionGetElementSize(rstr, &elem_size);
+      CeedChkBackend(ierr);
+      ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp);
+      CeedChkBackend(ierr);
       offset += elem_size*num_comp * elem_size*num_comp * num_elem;
     }
   } else {
-    ierr = CeedSingleOperatorAssemble_Cuda(op, offset, values); CeedChk(ierr);
+    ierr = CeedSingleOperatorAssemble_Cuda(op, offset, values);
+    CeedChkBackend(ierr);
   }
 
   return CEED_ERROR_SUCCESS;
