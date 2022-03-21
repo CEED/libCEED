@@ -71,7 +71,7 @@ const PetscErrorCode GetTapeSize_ElasFSInitialNH_AD() {
     return tape_size;
   } else if (tape_size > tape_bytes/sizeof(CeedScalar)) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Warning! allocated %d CeedScalar's when you only needed %lu\n", tape_size,
+                       "Warning! allocated %d CeedScalars when you only needed %lu\n", tape_size,
                        tape_bytes/sizeof(CeedScalar)); CHKERRQ(ierr);
     return tape_size;
   } else {
