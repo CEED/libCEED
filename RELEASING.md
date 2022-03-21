@@ -15,8 +15,6 @@ The version number must be updated in
 * `Doxyfile`
 * `CITATION.cff`
 
-as well as `include/ceed/ceed.h` (`CEED_VERSION_MAJOR`, `CEED_VERSION_MINOR`).
-
 Additionally, the release notes in `doc/sphinx/source/releasenotes.rst` should be updated. Use `git log --first-parent v0.7..` to get a sense of the pull requests that have been merged and thus might warrant emphasizing in the release notes. While doing this, gather a couple sentences for key features to highlight on [GitHub releases](https://github.com/CEED/libCEED/releases). The "Current Main" heading needs to be named for the release.
 
 Use `make doc-latexpdf` to build a PDF users manual and inspect it for missing references or formatting problems (e.g., with images that were converted to PDF). This contains the same content as the website, but will be archived on Zenodo.
