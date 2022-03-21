@@ -161,7 +161,7 @@ typedef struct {
   CeedQuadMode quadrature_mode;
   CeedInt q_data_size, number_fields_stored;
   CeedInt *field_sizes;
-  int (*tape_size)();
+  const int (*tape_size)();
   const char *const *field_names;
 } ProblemData;
 

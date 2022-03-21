@@ -174,11 +174,13 @@ CEED_DEVICE void __enzyme_augmentfwd(void *, ...);
 CEED_DEVICE void __enzyme_fwdsplit(void *, ...);
 CEED_DEVICE int  __enzyme_augmentsize(void *, ...);
 
-CEED_DEVICE extern int enzyme_tape, enzyme_const, enzyme_dup, enzyme_nofree, enzyme_allocated;
+CEED_DEVICE extern int enzyme_tape, enzyme_const, enzyme_dup, enzyme_nofree,
+            enzyme_allocated;
 
 CEED_QFUNCTION_HELPER void S_fwd(double *S, double *E, const double lambda,
                                  const double mu, double *tape) {
-  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
+                                        enzyme_const, enzyme_const);
   __enzyme_augmentfwd((void *)computeS, enzyme_allocated, tape_bytes,
                       enzyme_tape, tape, enzyme_nofree, S, (double *)NULL, E, (double *)NULL,
                       enzyme_const, lambda, enzyme_const, mu);
@@ -186,7 +188,8 @@ CEED_QFUNCTION_HELPER void S_fwd(double *S, double *E, const double lambda,
 
 CEED_QFUNCTION_HELPER void grad_S(double *dS, double *dE, const double lambda,
                                   const double mu, const double *tape) {
-  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup, enzyme_const, enzyme_const);
+  int tape_bytes = __enzyme_augmentsize((void *)computeS, enzyme_dup, enzyme_dup,
+                                        enzyme_const, enzyme_const);
   __enzyme_fwdsplit((void *)computeS, enzyme_allocated, tape_bytes,
                     enzyme_tape, tape, (double *)NULL, dS, (double *)NULL, dE,
                     enzyme_const, lambda, enzyme_const, mu);
