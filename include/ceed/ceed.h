@@ -5,7 +5,7 @@
 /// This file is part of CEED, a collection of benchmarks, miniapps, software
 /// libraries and APIs for efficient high-order finite element and spectral
 /// element discretizations for exascale applications. For more information and
-/// source code availability see http://github.com/ceed.
+/// source code availability see http://github.com/ceed
 ///
 /// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 /// a collaborative effort of two U.S. Department of Energy organizations (Office
@@ -46,6 +46,12 @@
 ///    These functions are intended to be used by library developers of
 ///    libCEED and can generally be found in "ceed-impl.h".
 
+#if !defined(CEED_SKIP_VISIBILITY)
+#  define CEED_VISIBILITY(mode) __attribute__((visibility(#mode)))
+#else
+#  define CEED_VISIBILITY(mode)
+#endif
+
 /**
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
 
@@ -53,9 +59,9 @@
   used outside ceed.h.
  */
 #ifdef __cplusplus
-#  define CEED_EXTERN extern "C"
+#  define CEED_EXTERN extern "C" CEED_VISIBILITY(default)
 #else
-#  define CEED_EXTERN extern
+#  define CEED_EXTERN extern CEED_VISIBILITY(default)
 #endif
 
 /**
@@ -119,14 +125,19 @@
 #  endif
 #endif
 
-#include <stdint.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
+
+/// Integer type, used array sizes
+/// @ingroup Ceed
+typedef ptrdiff_t CeedSize;
 
 /// Scalar (floating point) types
 ///
@@ -336,7 +347,7 @@ typedef enum {
   CEED_NORM_MAX,
 } CeedNormType;
 
-CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedInt len, CeedVector *vec);
+CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedCopyMode copy_mode, CeedScalar *array);
@@ -361,7 +372,7 @@ CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
-CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedInt *length);
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedSize *length);
 CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
@@ -412,23 +423,23 @@ CEED_EXTERN const char *const CeedTransposeModes[];
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
 
 CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem,
-    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
+    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
     CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
     CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
-    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedInt l_size,
+    CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
     CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
     const bool *orient, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed,
-    CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt l_size,
+    CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
     const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
     CeedInt elem_size, CeedInt blk_size, CeedInt num_comp, CeedInt comp_stride,
-    CeedInt l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+    CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
     const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed,
     CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
-    CeedInt l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
+    CeedSize l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr,
     CeedElemRestriction *rstr_copy);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr,
@@ -447,7 +458,7 @@ CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
     CeedInt *elem_size);
 CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
-    CeedInt *l_size);
+    CeedSize *l_size);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr,
     CeedInt *num_comp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr,
@@ -697,6 +708,9 @@ CEED_EXTERN int CeedOperatorGetFields(CeedOperator op,
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op,
     CeedOperator sub_op);
 CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
+CEED_EXTERN int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
+CEED_EXTERN int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
+CEED_EXTERN int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs_data_update);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op,
     CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
@@ -710,7 +724,7 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleSymbolic(CeedOperator op,
-    CeedInt *num_entries, CeedInt **rows, CeedInt **cols);
+     CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
 CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
     CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,

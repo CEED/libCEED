@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 //                        libCEED + PETSc Example: Navier-Stokes
 //
@@ -306,7 +297,7 @@ int main(int argc, char **argv) {
 
   // -- Contexts
   CeedQFunctionContextDestroy(&ceed_data->setup_context);
-  CeedQFunctionContextDestroy(&ceed_data->dc_context);
+  CeedQFunctionContextDestroy(&ceed_data->newt_ig_context);
   CeedQFunctionContextDestroy(&ceed_data->advection_context);
   CeedQFunctionContextDestroy(&ceed_data->euler_context);
 
@@ -368,7 +359,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->dc_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(phys_ctx->newtonian_ig_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->shocktube_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);

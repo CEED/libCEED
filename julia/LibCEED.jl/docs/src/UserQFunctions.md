@@ -1,13 +1,13 @@
 # Defining User Q-Functions
 
 An important feature of LibCEED.jl is the ability to define [user
-Q-functions](https://libceed.readthedocs.io/en/latest/libCEEDapi/#gallery-of-qfunctions)
+Q-functions](https://libceed.org/en/latest/libCEEDapi/#gallery-of-qfunctions)
 natively in Julia. These user Q-functions work with both the CPU and CUDA
 backends.
 
 User Q-functions describe the action of the $D$ operator at quadrature points
 (see [libCEED's theoretical
-framework](https://libceed.readthedocs.io/en/latest/libCEEDapi/#theoretical-framework)).
+framework](https://libceed.org/en/latest/libCEEDapi/#theoretical-framework)).
 Since the Q-functions are invoked at every quadrature point, efficiency is
 very important.
 

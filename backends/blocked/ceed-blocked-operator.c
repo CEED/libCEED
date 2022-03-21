@@ -1,18 +1,9 @@
-// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
@@ -29,6 +20,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
     CeedVector *e_vecs_full, CeedVector *e_vecs, CeedVector *q_vecs,
     CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   CeedInt ierr, num_comp, size, P;
+  CeedSize e_size, q_size;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
   CeedBasis basis;
@@ -58,7 +50,8 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       ierr = CeedOperatorFieldGetElemRestriction(op_fields[i], &r);
       CeedChkBackend(ierr);
       ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
-      CeedInt num_elem, elem_size, l_size, comp_stride;
+      CeedSize l_size;
+      CeedInt num_elem, elem_size, comp_stride;
       ierr = CeedElemRestrictionGetNumElements(r, &num_elem); CeedChkBackend(ierr);
       ierr = CeedElemRestrictionGetElementSize(r, &elem_size); CeedChkBackend(ierr);
       ierr = CeedElemRestrictionGetLVectorSize(r, &l_size); CeedChkBackend(ierr);
@@ -93,8 +86,8 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
     switch(eval_mode) {
     case CEED_EVAL_NONE:
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size*blk_size, &q_vecs[i]);
-      CeedChkBackend(ierr);
+      q_size = (CeedSize)Q*size*blk_size;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_INTERP:
     case CEED_EVAL_GRAD:
@@ -102,14 +95,15 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf,
       ierr = CeedQFunctionFieldGetSize(qf_fields[i], &size); CeedChkBackend(ierr);
       ierr = CeedBasisGetNumNodes(basis, &P); CeedChkBackend(ierr);
       ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, P*num_comp*blk_size, &e_vecs[i]);
-      CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*size*blk_size, &q_vecs[i]);
-      CeedChkBackend(ierr);
+      e_size = (CeedSize)P*num_comp*blk_size;
+      ierr = CeedVectorCreate(ceed, e_size, &e_vecs[i]); CeedChkBackend(ierr);
+      q_size = (CeedSize)Q*size*blk_size;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       break;
     case CEED_EVAL_WEIGHT: // Only on input fields
       ierr = CeedOperatorFieldGetBasis(op_fields[i], &basis); CeedChkBackend(ierr);
-      ierr = CeedVectorCreate(ceed, Q*blk_size, &q_vecs[i]); CeedChkBackend(ierr);
+      q_size = (CeedSize)Q*blk_size;
+      ierr = CeedVectorCreate(ceed, q_size, &q_vecs[i]); CeedChkBackend(ierr);
       ierr = CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE,
                             CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]);
       CeedChkBackend(ierr);
@@ -565,6 +559,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(
   CeedVector vec, l_vec = impl->qf_l_vec;
   CeedInt num_active_in = impl->num_active_in,
           num_active_out = impl->num_active_out;
+  CeedSize q_size;
   CeedVector *active_in = impl->qf_active_in;
   CeedScalar *a, *tmp;
   Ceed ceed;
@@ -601,7 +596,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(
         CeedChkBackend(ierr);
         ierr = CeedRealloc(num_active_in + size, &active_in); CeedChkBackend(ierr);
         for (CeedInt field=0; field<size; field++) {
-          ierr = CeedVectorCreate(ceed, Q*blk_size, &active_in[num_active_in+field]);
+          q_size = (CeedSize)Q*blk_size;
+          ierr = CeedVectorCreate(ceed, q_size, &active_in[num_active_in+field]);
           CeedChkBackend(ierr);
           ierr = CeedVectorSetArray(active_in[num_active_in+field], CEED_MEM_HOST,
                                     CEED_USE_POINTER, &tmp[field*Q*blk_size]);
@@ -641,8 +637,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(
 
   // Setup Lvec
   if (!l_vec) {
-    ierr = CeedVectorCreate(ceed, num_blks*blk_size*Q*num_active_in*num_active_out,
-                            &l_vec); CeedChkBackend(ierr);
+    CeedSize l_size = (CeedSize)num_blks*blk_size*Q*num_active_in*num_active_out;
+    ierr = CeedVectorCreate(ceed, l_size, &l_vec); CeedChkBackend(ierr);
     impl->qf_l_vec = l_vec;
   }
   ierr = CeedVectorGetArrayWrite(l_vec, CEED_MEM_HOST, &a); CeedChkBackend(ierr);
@@ -656,8 +652,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(
                                             num_active_in*num_active_out*num_elem*Q,
                                             strides, rstr); CeedChkBackend(ierr);
     // Create assembled vector
-    ierr = CeedVectorCreate(ceed, num_elem*Q*num_active_in*num_active_out,
-                            assembled); CeedChkBackend(ierr);
+    CeedSize l_size = (CeedSize)num_elem*Q*num_active_in*num_active_out;
+    ierr = CeedVectorCreate(ceed, l_size, assembled); CeedChkBackend(ierr);
   }
 
   // Loop through elements

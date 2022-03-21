@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
@@ -334,7 +325,7 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE =
 **/
 int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
                               CeedInt num_comp, CeedInt comp_stride,
-                              CeedInt l_size, CeedMemType mem_type,
+                              CeedSize l_size, CeedMemType mem_type,
                               CeedCopyMode copy_mode, const CeedInt *offsets,
                               CeedElemRestriction *rstr) {
   int ierr;
@@ -405,7 +396,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
 **/
 int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
                                       CeedInt elem_size, CeedInt num_comp,
-                                      CeedInt comp_stride, CeedInt l_size,
+                                      CeedInt comp_stride, CeedSize l_size,
                                       CeedMemType mem_type, CeedCopyMode copy_mode,
                                       const CeedInt *offsets, const bool *orient,
                                       CeedElemRestriction *rstr) {
@@ -470,7 +461,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
 **/
 int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
                                      CeedInt elem_size,
-                                     CeedInt num_comp, CeedInt l_size,
+                                     CeedInt num_comp, CeedSize l_size,
                                      const CeedInt strides[3],
                                      CeedElemRestriction *rstr) {
   int ierr;
@@ -547,7 +538,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
                                      CeedInt elem_size,
                                      CeedInt blk_size, CeedInt num_comp,
-                                     CeedInt comp_stride, CeedInt l_size,
+                                     CeedInt comp_stride, CeedSize l_size,
                                      CeedMemType mem_type, CeedCopyMode copy_mode,
                                      const CeedInt *offsets,
                                      CeedElemRestriction *rstr) {
@@ -623,7 +614,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
   @ref User
 **/
 int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
-    CeedInt elem_size, CeedInt blk_size, CeedInt num_comp, CeedInt l_size,
+    CeedInt elem_size, CeedInt blk_size, CeedInt num_comp, CeedSize l_size,
     const CeedInt strides[3], CeedElemRestriction *rstr) {
   int ierr;
   CeedInt num_blk = (num_elem / blk_size) + !!(num_elem % blk_size);
@@ -703,7 +694,7 @@ int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr,
 int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
                                     CeedVector *e_vec) {
   int ierr;
-  CeedInt e_size, l_size;
+  CeedSize e_size, l_size;
   l_size = rstr->l_size;
   e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
   if (l_vec) {
@@ -888,7 +879,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr,
   @ref Advanced
 **/
 int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr,
-                                      CeedInt *l_size) {
+                                      CeedSize *l_size) {
   *l_size = rstr->l_size;
   return CEED_ERROR_SUCCESS;
 }
@@ -991,7 +982,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   else
     sprintf(stridesstr, "%d", rstr->comp_stride);
 
-  fprintf(stream, "%sCeedElemRestriction from (%d, %d) to %d elements with %d "
+  fprintf(stream, "%sCeedElemRestriction from (%td, %d) to %d elements with %d "
           "nodes each and %s %s\n", rstr->blk_size > 1 ? "Blocked " : "",
           rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
           rstr->strides ? "strides" : "component stride", stridesstr);

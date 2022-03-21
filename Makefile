@@ -5,7 +5,7 @@
 # This file is part of CEED, a collection of benchmarks, miniapps, software
 # libraries and APIs for efficient high-order finite element and spectral
 # element discretizations for exascale applications. For more information and
-# source code availability see http://github.com/ceed.
+# source code availability see http://github.com/ceed
 #
 # The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 # a collaborative effort of two U.S. Department of Energy organizations (Office
@@ -329,7 +329,7 @@ endif
 # AVX Backed
 AVX_STATUS = Disabled
 AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
-AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(OPT) -v -E -x c /dev/null 2>&1))
+AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS) -v -E -x c /dev/null 2>&1))
 AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
@@ -427,7 +427,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.c  += $(magma.c)
       libceed.cu += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(CUDA_DIR)/include
+      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
   else  # HIP MAGMA
@@ -445,7 +445,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       else
         $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
       endif
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(MAGMA_DIR)/control -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif

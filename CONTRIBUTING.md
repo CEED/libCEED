@@ -106,6 +106,6 @@ intellectual contributions to the work.
 
 Note that there is no co-authorship expectation for those publishing
 about use of libCEED (versus creation of new features in libCEED), but
-see the [citing section](https://libceed.readthedocs.io/en/latest/gettingstarted/#how-to-cite)
+see the [citing section](https://libceed.org/en/latest/gettingstarted/#how-to-cite)
 and use your judgment regarding significance of support/advice you may have
 received in developing your use case and interpreting results.

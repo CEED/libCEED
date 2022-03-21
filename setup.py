@@ -5,7 +5,7 @@
 # This file is part of CEED, a collection of benchmarks, miniapps, software
 # libraries and APIs for efficient high-order finite element and spectral
 # element discretizations for exascale applications. For more information and
-# source code availability see http://github.com/ceed.
+# source code availability see http://github.com/ceed
 #
 # The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 # a collaborative effort of two U.S. Department of Energy organizations (Office
@@ -103,11 +103,11 @@ setup(name="libceed",
       platforms=["POSIX"],
       license="BSD 2",
       license_file='LICENSE',
-      url="https://libceed.readthedocs.io",
+      url="https://libceed.org",
       download_url="https://github.com/CEED/libCEED/releases",
       project_urls={
           "Bug Tracker": "https://github.com/CEED/libCEED/issues",
-          "Documentation": "https://libceed.readthedocs.io",
+          "Documentation": "https://libceed.org",
           "Source Code": "https://github.com/CEED/libCEED",
       },
       author="libCEED Team",

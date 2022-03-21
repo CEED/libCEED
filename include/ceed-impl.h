@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 /// @file
 /// Private header for frontend components of libCEED
@@ -102,7 +93,7 @@ struct Ceed_private {
                va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
-  int (*VectorCreate)(CeedInt, CeedVector);
+  int (*VectorCreate)(CeedSize, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode,
                                const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode,
@@ -154,7 +145,7 @@ struct CeedVector_private {
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
   int ref_count;
-  CeedInt length;
+  CeedSize length;
   uint64_t state;
   uint64_t num_readers;
   void *data;
@@ -173,7 +164,7 @@ struct CeedElemRestriction_private {
   CeedInt elem_size;     /* number of nodes per element */
   CeedInt num_comp;      /* number of components */
   CeedInt comp_stride;   /* Component stride for L-vector ordering */
-  CeedInt l_size;        /* size of the L-vector, can be used for checking
+  CeedSize l_size;       /* size of the L-vector, can be used for checking
                               for correct vector sizes */
   CeedInt blk_size;      /* number of elements in a batch */
   CeedInt num_blk;       /* number of blocks of elements */
@@ -330,6 +321,16 @@ struct CeedOperatorField_private {
   const char *field_name;          /* matching QFunction field name */
 };
 
+struct CeedQFunctionAssemblyData_private {
+  Ceed ceed;
+  int ref_count;
+  bool is_setup;
+  bool reuse_data;
+  bool needs_data_update;
+  CeedVector vec;
+  CeedElemRestriction rstr;
+};
+
 struct CeedOperator_private {
   Ceed ceed;
   CeedOperator op_fallback;
@@ -345,7 +346,8 @@ struct CeedOperator_private {
                                           CeedRequest *);
   int (*LinearAssembleAddPointBlockDiagonal)(CeedOperator, CeedVector,
       CeedRequest *);
-  int (*LinearAssembleSymbolic)(CeedOperator, CeedInt *, CeedInt **, CeedInt **);
+  int (*LinearAssembleSymbolic)(CeedOperator, CeedSize *, CeedInt **,
+                                CeedInt **);
   int (*LinearAssemble)(CeedOperator, CeedVector);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
@@ -357,6 +359,7 @@ struct CeedOperator_private {
   int (*Destroy)(CeedOperator);
   CeedOperatorField *input_fields;
   CeedOperatorField *output_fields;
+  CeedSize input_size, output_size;
   CeedInt num_elem;   /* Number of elements */
   CeedInt num_qpts;   /* Number of quadrature points over all elements */
   CeedInt num_fields; /* Number of fields that have been set */
@@ -368,9 +371,7 @@ struct CeedOperator_private {
   bool is_backend_setup;
   bool is_composite;
   bool has_restriction;
-  bool has_qf_assembled;
-  CeedVector qf_assembled;
-  CeedElemRestriction qf_assembled_rstr;
+  CeedQFunctionAssemblyData qf_assembled;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;

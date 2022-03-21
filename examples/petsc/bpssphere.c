@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 //                        libCEED + PETSc Example: CEED BPs
 //
@@ -141,31 +132,18 @@ int main(int argc, char **argv) {
                                 &dm);
     CHKERRQ(ierr);
   } else {
-    // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
+    // Create the mesh as a 0-refined sphere. This will create a cubic surface,
+    // not a box, and will snap to the unit sphere upon refinement.
     ierr = DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm);
     CHKERRQ(ierr);
     // Set the object name
     ierr = PetscObjectSetName((PetscObject)dm, "Sphere"); CHKERRQ(ierr);
-    // Distribute mesh over processes
-    {
-      DM dm_dist = NULL;
-      PetscPartitioner part;
-
-      ierr = DMPlexGetPartitioner(dm, &part); CHKERRQ(ierr);
-      ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-      ierr = DMPlexDistribute(dm, 0, NULL, &dm_dist); CHKERRQ(ierr);
-      if (dm_dist) {
-        ierr = DMDestroy(&dm); CHKERRQ(ierr);
-        dm  = dm_dist;
-      }
-    }
     // Refine DMPlex with uniform refinement using runtime option -dm_refine
     ierr = DMPlexSetRefinementUniform(dm, PETSC_TRUE); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = ProjectToUnitSphere(dm); CHKERRQ(ierr);
-    // View DMPlex via runtime option
-    ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
   }
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  // View DMPlex via runtime option
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   // Create DM
   ierr = SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false,

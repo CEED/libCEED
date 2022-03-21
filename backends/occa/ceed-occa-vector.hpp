@@ -5,7 +5,7 @@
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
 // element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// source code availability see http://github.com/ceed
 //
 // The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 // a collaborative effort of two U.S. Department of Energy organizations (Office
@@ -38,9 +38,9 @@ namespace ceed {
     class Vector : public CeedObject {
      public:
       // Owned resources
-      CeedInt length;
+      CeedSize length;
       ::occa::memory memory;
-      CeedInt hostBufferLength;
+      CeedSize hostBufferLength;
       CeedScalar *hostBuffer;
 
       // Current resources
@@ -59,13 +59,13 @@ namespace ceed {
 
       static Vector* from(CeedVector vec);
 
-      void resize(const CeedInt length_);
+      void resize(const CeedSize length_);
 
-      void resizeMemory(const CeedInt length_);
+      void resizeMemory(const CeedSize length_);
 
-      void resizeMemory(::occa::device device, const CeedInt length_);
+      void resizeMemory(::occa::device device, const CeedSize length_);
 
-      void resizeHostBuffer(const CeedInt length_);
+      void resizeHostBuffer(const CeedSize length_);
 
       void setCurrentMemoryIfNeeded();
 
@@ -108,7 +108,7 @@ namespace ceed {
       static int registerCeedFunction(Ceed ceed, CeedVector vec,
                                       const char *fname, ceed::occa::ceedFunction f);
 
-      static int ceedCreate(CeedInt length, CeedVector vec);
+      static int ceedCreate(CeedSize length, CeedVector vec);
 
       static int ceedSetValue(CeedVector vec, CeedScalar value);
 

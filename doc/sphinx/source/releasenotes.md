@@ -22,6 +22,9 @@ for each release of libCEED.
 - Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {c:struct}`CeedQFunctionContext` data by user defined field names.
 - Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
 - Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
+- Added type `CeedSize` equivalent to `ptrdiff_t` for array sizes in {c:func}`CeedVectorCreate`, {c:func}`CeedVectorGetLength`, `CeedElemRestrictionCreate*`, {c:func}`CeedElemRestrictionGetLVectorSize`, and {c:func}`CeedOperatorLinearAssembleSymbolic`. This is a breaking change.
+- Added {c:func}`CeedOperatorSetQFunctionUpdated` to facilitate QFunction data re-use between operators sharing the same quadrature space, such as in a multigrid hierarchy.
+- Added {c:func}`CeedOperatorGetActiveVectorLengths` to get shape of CeedOperator.
 
 ### New features
 
@@ -34,6 +37,7 @@ for each release of libCEED.
 - Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
 - Added support for non-tensor H(div) elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
 - Added {c:func}`CeedQFunctionSetContextWritable` and read-only access to `CeedQFunctionContext` data as an optional feature to improve GPU performance. By default, calling the `CeedQFunctionUser` during {c:func}`CeedQFunctionApply` is assumed to write into the `CeedQFunctionContext` data, consistent with the previous behavior. Note that if a user asserts that their `CeedQFunctionUser` does not write into the `CeedQFunctionContext` data, they are responsible for the validity of this assertion.
+- Added support for element matrix assembly in GPU backends.
 
 ### Maintainability
 
@@ -138,7 +142,7 @@ for each release of libCEED.
 ## v0.6 (Mar 29, 2020)
 
 libCEED v0.6 contains numerous new features and examples, as well as expanded
-documentation in [this new website](https://libceed.readthedocs.io).
+documentation in [this new website](https://libceed.org).
 
 ### New features
 

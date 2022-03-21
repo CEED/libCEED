@@ -2,7 +2,6 @@
 
 [![GitHub Actions][github-badge]][github-link]
 [![GitLab-CI][gitlab-badge]][gitlab-link]
-[![Azure Pipelines][azure-badge]][azure-link]
 [![Code coverage][codecov-badge]][codecov-link]
 [![BSD-2-Clause][license-badge]][license-link]
 [![Documentation][doc-badge]][doc-link]
@@ -17,9 +16,9 @@ level libraries and applications. It offers a C99 interface as well as bindings
 for Fortran, Python, Julia, and Rust.
 While our focus is on high-order finite elements, the approach is mostly
 algebraic and thus applicable to other discretizations in factored form, as
-explained in the [user manual](https://libceed.readthedocs.io/en/latest/) and
+explained in the [user manual](https://libceed.org/en/latest/) and
 API implementation portion of the
-[documentation](https://libceed.readthedocs.io/en/latest/api/).
+[documentation](https://libceed.org/en/latest/api/).
 
 One of the challenges with high-order methods is that a global sparse matrix is
 no longer a good representation of a high-order linear operator, both with
@@ -32,7 +31,7 @@ The goal of libCEED is to propose such a format, as well as supporting
 implementations and data structures, that enable efficient operator evaluation
 on a variety of computational device types (CPUs, GPUs, etc.). This new operator
 description is based on algebraically
-[factored form](https://libceed.readthedocs.io/en/latest/libCEEDapi/#finite-element-operator-decomposition),
+[factored form](https://libceed.org/en/latest/libCEEDapi/#finite-element-operator-decomposition),
 which is easy to incorporate in a wide variety of applications, without significant
 refactoring of their own discretization infrastructure.
 
@@ -51,7 +50,7 @@ Administration) responsible for the planning and preparation of a
 software, applications, hardware, advanced system engineering and early testbed
 platforms, in support of the nation’s exascale computing imperative.
 
-For more details on the CEED API see the [user manual](https://libceed.readthedocs.io/en/latest/).
+For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
 
 % gettingstarted-inclusion-marker
 
@@ -489,14 +488,12 @@ See files LICENSE and NOTICE for details.
 [github-link]: https://github.com/CEED/libCEED/actions
 [gitlab-badge]: https://gitlab.com/libceed/libCEED/badges/main/pipeline.svg?key_text=GitLab-CI
 [gitlab-link]: https://gitlab.com/libceed/libCEED/-/pipelines?page=1&scope=all&ref=main
-[azure-badge]: https://dev.azure.com/CEED-ECP/libCEED/_apis/build/status/CEED.libCEED?branchName=main
-[azure-link]: https://dev.azure.com/CEED-ECP/libCEED/_build?definitionId=2
 [codecov-badge]: https://codecov.io/gh/CEED/libCEED/branch/main/graphs/badge.svg
 [codecov-link]: https://codecov.io/gh/CEED/libCEED/
 [license-badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
 [license-link]: https://opensource.org/licenses/BSD-2-Clause
 [doc-badge]: https://readthedocs.org/projects/libceed/badge/?version=latest
-[doc-link]: https://libceed.readthedocs.io/en/latest/?badge=latest
+[doc-link]: https://libceed.org/en/latest/?badge=latest
 [joss-badge]: https://joss.theoj.org/papers/10.21105/joss.02945/status.svg
 [joss-link]: https://doi.org/10.21105/joss.02945
 [binder-badge]: http://mybinder.org/badge_logo.svg

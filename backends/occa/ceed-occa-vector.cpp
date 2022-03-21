@@ -5,7 +5,7 @@
 // This file is part of CEED, a collection of benchmarks, miniapps, software
 // libraries and APIs for efficient high-order finite element and spectral
 // element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// source code availability see http://github.com/ceed
 //
 // The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
 // a collaborative effort of two U.S. Department of Energy organizations (Office
@@ -60,22 +60,22 @@ namespace ceed {
       return vector;
     }
 
-    void Vector::resize(const CeedInt length_) {
+    void Vector::resize(const CeedSize length_) {
       length = length_;
     }
 
-    void Vector::resizeMemory(const CeedInt length_) {
+    void Vector::resizeMemory(const CeedSize length_) {
       resizeMemory(getDevice(), length_);
     }
 
-    void Vector::resizeMemory(::occa::device device, const CeedInt length_) {
-      if (length_ != (CeedInt) memory.length()) {
+    void Vector::resizeMemory(::occa::device device, const CeedSize length_) {
+      if (length_ != (CeedSize) memory.length()) {
         memory.free();
         memory = device.malloc<CeedScalar>(length_);
       }
     }
 
-    void Vector::resizeHostBuffer(const CeedInt length_) {
+    void Vector::resizeHostBuffer(const CeedSize length_) {
       if (length_ != hostBufferLength) {
         delete hostBuffer;
         hostBuffer = new CeedScalar[length_];
@@ -339,7 +339,7 @@ namespace ceed {
       return CeedSetBackendFunction(ceed, "Vector", vec, fname, f);
     }
 
-    int Vector::ceedCreate(CeedInt length, CeedVector vec) {
+    int Vector::ceedCreate(CeedSize length, CeedVector vec) {
       int ierr;
 
       Ceed ceed;

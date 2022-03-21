@@ -1,18 +1,9 @@
-// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #define CEED_DEBUG_COLOR 12
 
@@ -775,8 +766,9 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedQFunction_Hip_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
+  CeedSize lsize;
   CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
-          numoutputfields, ncomp, dim = 0, lsize;
+          numoutputfields, ncomp, dim = 0;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
@@ -1390,12 +1382,12 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
-  CeedInt block_sizes[3];
+  CeedInt block_sizes[3] = {0, 0, 0};
   ierr = BlockGridCalculate_Hip_gen(dim, numelements, data->maxP1d, Q1d, block_sizes); 
   CeedChkBackend(ierr);
   ierr = CeedCompileHip(ceed, code.str().c_str(), &data->module, 2,
                          "T1d", block_sizes[0],
-			 "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]);
+                         "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]);
   CeedChkBackend(ierr);
   ierr = CeedGetKernelHip(ceed, data->module, oper.c_str(), &data->op);
   CeedChkBackend(ierr);

@@ -95,7 +95,7 @@ noether-rocm:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA/install && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
   script:
     - rm -f .SUCCESS
 # libCEED
@@ -163,7 +163,7 @@ noether-float:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA/install && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
 # -- LIBXSMM v1.17
     - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
@@ -214,7 +214,7 @@ lv-cuda:
   before_script:
 # Environment
     - ulimit -v $[1024*1024*32] # 32 GiB in units of 1024 bytes
-    - . /opt/rh/gcc-toolset-10/enable
+    - . /opt/rh/gcc-toolset-11/enable
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
     - export CUDA_DIR=/usr/local/cuda-11.6
     - export CUDA_VISIBLE_DEVICES=GPU-c4529365-8229-f689-b43d-ccd7f1677079 # our RTX 2080 Super via nvidia-smi -L

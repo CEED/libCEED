@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 /// @file
 /// Public header for backend components of libCEED
@@ -23,7 +14,12 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define CEED_INTERN CEED_EXTERN __attribute__((visibility ("hidden")))
+#ifdef __cplusplus
+#  define CEED_INTERN extern "C" CEED_VISIBILITY(hidden)
+#else
+#  define CEED_INTERN extern CEED_VISIBILITY(hidden)
+#endif
+
 #define CEED_UNUSED __attribute__((unused))
 
 #define CEED_MAX_RESOURCE_LEN 1024
@@ -81,6 +77,10 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
 typedef struct CeedTensorContract_private *CeedTensorContract;
+
+/// Handle for object handling assembled QFunction data
+/// @ingroup CeedOperator
+typedef struct CeedQFunctionAssemblyData_private *CeedQFunctionAssemblyData;
 
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
    has to be a pointer to a pointer. */
@@ -251,6 +251,17 @@ CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
                                    CeedContextFieldType field_type, void *value);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
+
+CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);
+CEED_EXTERN int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetReuse(CeedQFunctionAssemblyData data, bool reuse_assembly_data);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyData data, bool needs_data_update);
+CEED_EXTERN int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool *is_update_needed);
+CEED_EXTERN int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQFunctionAssemblyData *data_copy);
+CEED_EXTERN int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_setup);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVector vec, CeedElemRestriction rstr);
+CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);

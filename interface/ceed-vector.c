@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
@@ -192,7 +183,7 @@ int CeedVectorReference(CeedVector vec) {
 
   @ref User
 **/
-int CeedVectorCreate(Ceed ceed, CeedInt length, CeedVector *vec) {
+int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   int ierr;
 
   if (!ceed->VectorCreate) {
@@ -559,6 +550,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
 
 /**
   @brief Restore an array obtained using @ref CeedVectorGetArray()
+           or @ref CeedVectorGetArrayWrite()
 
   @param vec    CeedVector to restore
   @param array  Array of vector data
@@ -684,7 +676,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   int ierr;
   CeedScalar *x_array = NULL;
-  CeedInt n_x;
+  CeedSize n_x;
 
   bool has_valid_array = true;
   ierr = CeedVectorHasValidArray(x, &has_valid_array); CeedChk(ierr);
@@ -725,7 +717,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   int ierr;
   CeedScalar *y_array = NULL;
   CeedScalar const *x_array = NULL;
-  CeedInt n_x, n_y;
+  CeedSize n_x, n_y;
 
   ierr = CeedVectorGetLength(y, &n_y); CeedChk(ierr);
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
@@ -802,7 +794,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   int ierr;
   CeedScalar *w_array = NULL;
   CeedScalar const *x_array = NULL, *y_array = NULL;
-  CeedInt n_w, n_x, n_y;
+  CeedSize n_w, n_x, n_y;
 
   ierr = CeedVectorGetLength(w, &n_w); CeedChk(ierr);
   ierr = CeedVectorGetLength(x, &n_x); CeedChk(ierr);
@@ -910,7 +902,7 @@ int CeedVectorReciprocal(CeedVector vec) {
     return CEED_ERROR_SUCCESS;
   }
 
-  CeedInt len;
+  CeedSize len;
   ierr = CeedVectorGetLength(vec, &len); CeedChk(ierr);
   CeedScalar *array;
   ierr = CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
@@ -973,7 +965,7 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 
   @ref User
 **/
-int CeedVectorGetLength(CeedVector vec, CeedInt *length) {
+int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   *length = vec->length;
   return CEED_ERROR_SUCCESS;
 }

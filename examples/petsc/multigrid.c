@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 //                        libCEED + PETSc Example: CEED BPs 3-6 with Multigrid
 //
@@ -164,22 +155,6 @@ int main(int argc, char **argv) {
                                NULL, NULL, PETSC_TRUE, &dm_orig); CHKERRQ(ierr);
   }
 
-  {
-    DM dm_dist = NULL;
-    PetscPartitioner part;
-
-    ierr = DMPlexGetPartitioner(dm_orig, &part); CHKERRQ(ierr);
-    ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-    ierr = DMPlexDistribute(dm_orig, 0, NULL, &dm_dist); CHKERRQ(ierr);
-    if (dm_dist) {
-      ierr = DMDestroy(&dm_orig); CHKERRQ(ierr);
-      dm_orig = dm_dist;
-    }
-  }
-
-  // Apply Kershaw mesh transformation
-  ierr = Kershaw(dm_orig, eps); CHKERRQ(ierr);
-
   VecType vec_type;
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
@@ -195,6 +170,10 @@ int main(int argc, char **argv) {
   }
   ierr = DMSetVecType(dm_orig, vec_type); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm_orig); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(dm_orig, NULL, "-dm_view"); CHKERRQ(ierr);
+
+  // Apply Kershaw mesh transformation
+  ierr = Kershaw(dm_orig, eps); CHKERRQ(ierr);
 
   // Allocate arrays for PETSc objects for each level
   switch (coarsen) {
@@ -437,7 +416,8 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   {
     // Assemble matrix analytically
-    CeedInt num_entries, *rows, *cols;
+    PetscCount num_entries;
+    CeedInt *rows, *cols;
     CeedVector coo_values;
     CeedOperatorLinearAssembleSymbolic(user_O[0]->op, &num_entries, &rows, &cols);
     ISLocalToGlobalMapping ltog_row, ltog_col;

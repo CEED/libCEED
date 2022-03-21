@@ -1,18 +1,9 @@
-// Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #ifndef _ceed_cuda_h
 #define _ceed_cuda_h
@@ -106,6 +97,13 @@ typedef struct {
 } CeedOperatorDiag_Cuda;
 
 typedef struct {
+  CUmodule module;
+  CUfunction linearAssemble;
+  CeedInt nelem, block_size_x, block_size_y, elemsPerBlock;
+  CeedScalar *d_B_in, *d_B_out;
+} CeedOperatorAssemble_Cuda;
+
+typedef struct {
   CeedVector *evecs;   // E-vectors, inputs followed by outputs
   CeedVector *qvecsin;    // Input Q-vectors needed to apply operator
   CeedVector *qvecsout;   // Output Q-vectors needed to apply operator
@@ -114,11 +112,12 @@ typedef struct {
   CeedInt    qfnumactivein, qfnumactiveout;
   CeedVector *qfactivein;
   CeedOperatorDiag_Cuda *diag;
+  CeedOperatorAssemble_Cuda *asmb;
 } CeedOperator_Cuda;
 
 CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
 
-CEED_INTERN int CeedVectorCreate_Cuda(CeedInt n, CeedVector vec);
+CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type,
     CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
