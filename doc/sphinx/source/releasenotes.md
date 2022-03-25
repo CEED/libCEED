@@ -11,7 +11,7 @@ for each release of libCEED.
 
 (v0-10)=
 
-## v0.10 (Mar 16, 2022)
+## v0.10 (Mar 21, 2022)
 
 ### Interface changes
 
