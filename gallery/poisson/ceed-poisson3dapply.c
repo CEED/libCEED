@@ -33,6 +33,8 @@ static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 15); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

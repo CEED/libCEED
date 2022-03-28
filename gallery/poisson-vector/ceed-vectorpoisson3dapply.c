@@ -37,6 +37,8 @@ static int CeedQFunctionInit_Vector3Poisson3DApply(Ceed ceed,
   ierr = CeedQFunctionAddOutput(qf, "dv", num_comp*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, num_comp * 15); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

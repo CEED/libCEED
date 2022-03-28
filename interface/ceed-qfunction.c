@@ -511,6 +511,24 @@ int CeedQFunctionReference(CeedQFunction qf) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Estimate number of FLOPs per quadrature required to apply QFunction
+
+  @param qf    QFunction to estimate FLOPs for
+  @param flops Address of variable to hold FLOPs estimate
+
+  @ref Backend
+**/
+int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedInt *flops) {
+  if (qf->user_flop_estimate == -1)
+    // LCOV_EXCL_START
+    return CeedError(qf->ceed, CEED_ERROR_INCOMPLETE,
+                     "Must set FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
+  // LCOV_EXCL_STOP
+  *flops = qf->user_flop_estimate;
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -578,6 +596,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->is_identity = false;
   (*qf)->is_context_writable = true;
   (*qf)->function = f;
+  (*qf)->user_flop_estimate = -1;
   if (strlen(source)) {
     const char *kernel_name = strrchr(source, ':') + 1;
     size_t kernel_name_len = strlen(kernel_name);
@@ -896,6 +915,24 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
 **/
 int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
   qf->is_context_writable = is_writable;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set estimated number of FLOPs per quadrature required to apply QFunction
+
+  @param qf    QFunction to estimate FLOPs for
+  @param flops FLOPs per quadrature point estimate
+
+  @ref Backend
+**/
+int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedInt flops) {
+  if (flops < 0)
+    // LCOV_EXCL_START
+    return CeedError(qf->ceed, CEED_ERROR_INCOMPATIBLE,
+                     "Must set non-negative FLOPs estimate");
+  // LCOV_EXCL_STOP
+  qf->user_flop_estimate = flops;
   return CEED_ERROR_SUCCESS;
 }
 

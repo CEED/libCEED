@@ -36,6 +36,8 @@ static int CeedQFunctionInit_Poisson1DBuild(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 1); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

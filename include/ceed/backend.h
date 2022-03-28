@@ -161,6 +161,7 @@ CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr,
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr,
     void *data);
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);
+CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedInt *flops);
 
 /// Type of FE space;
 /// @ingroup CeedBasis
@@ -182,6 +183,7 @@ CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
+CEED_EXTERN int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedInt *flops);
 
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo,
     CeedInt *dim);
@@ -234,6 +236,7 @@ CEED_EXTERN int CeedQFunctionIsContextWritable(CeedQFunction qf, bool *is_writab
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);
+CEED_EXTERN int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedInt *flops);
 
 CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx,
     Ceed *ceed);
