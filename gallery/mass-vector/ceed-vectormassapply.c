@@ -35,6 +35,8 @@ static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddOutput(qf, "v", num_comp, CEED_EVAL_INTERP);
   CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, num_comp); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

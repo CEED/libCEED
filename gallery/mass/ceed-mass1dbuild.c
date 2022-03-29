@@ -35,6 +35,8 @@ static int CeedQFunctionInit_Mass1DBuild(Ceed ceed, const char *requested,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 1); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 

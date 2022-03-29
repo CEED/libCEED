@@ -1102,8 +1102,8 @@ int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op,
 /**
   @brief Mark CeedQFunction data as updated and the CeedQFunction as requiring re-assembly.
 
-  @param[in] op                  CeedOperator
-  @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
+  @param[in] op                CeedOperator
+  @param[in] needs_data_update Boolean flag setting assembly data reuse
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1245,6 +1245,80 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
   // LCOV_EXCL_STOP
 
   *num_qpts = op->num_qpts;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Estimate number of FLOPs required to apply CeedOperator on the active vector
+
+  @param op    Operator to estimate FLOPs for
+  @param flops Address of variable to hold FLOPs estimate
+
+  @ref Backend
+**/
+int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
+  int ierr;
+  bool is_composite;
+  ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
+
+  *flops = 0;
+  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
+  if (is_composite) {
+    CeedInt num_suboperators;
+    ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChk(ierr);
+    CeedOperator *sub_operators;
+    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
+
+    // FLOPs for each suboperator
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedSize suboperator_flops;
+      ierr = CeedOperatorGetFlopsEstimate(sub_operators[i], &suboperator_flops);
+      CeedChk(ierr);
+      *flops += suboperator_flops;
+    }
+  } else {
+    CeedInt num_input_fields, num_output_fields;
+    CeedOperatorField *input_fields, *output_fields;
+
+    ierr = CeedOperatorGetFields(op, &num_input_fields, &input_fields,
+                                 &num_output_fields, &output_fields); CeedChk(ierr);
+
+    CeedInt num_elem = 0;
+    ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChk(ierr);
+    // Input FLOPs
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      if (input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+        CeedSize restr_flops, basis_flops;
+
+        ierr = CeedElemRestrictionGetFlopsEstimate(input_fields[i]->elem_restr,
+               CEED_NOTRANSPOSE, &restr_flops); CeedChk(ierr);
+        *flops += restr_flops;
+        ierr = CeedBasisGetFlopsEstimate(input_fields[i]->basis, CEED_NOTRANSPOSE,
+                                         op->qf->input_fields[i]->eval_mode, &basis_flops); CeedChk(ierr);
+        *flops += basis_flops * num_elem;
+      }
+    }
+    // QF FLOPs
+    CeedInt num_qpts;
+    CeedSize qf_flops;
+    ierr = CeedOperatorGetNumQuadraturePoints(op, &num_qpts); CeedChk(ierr);
+    ierr = CeedQFunctionGetFlopsEstimate(op->qf, &qf_flops); CeedChk(ierr);
+    *flops += num_elem * num_qpts * qf_flops;
+    // Output FLOPs
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      if (output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+        CeedSize restr_flops, basis_flops;
+
+        ierr = CeedElemRestrictionGetFlopsEstimate(output_fields[i]->elem_restr,
+               CEED_TRANSPOSE, &restr_flops); CeedChk(ierr);
+        *flops += restr_flops;
+        ierr = CeedBasisGetFlopsEstimate(output_fields[i]->basis, CEED_TRANSPOSE,
+                                         op->qf->output_fields[i]->eval_mode, &basis_flops); CeedChk(ierr);
+        *flops += basis_flops * num_elem;
+      }
+    }
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 

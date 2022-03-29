@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     if (fabs(sum - 2*q_ref[i]) > 100*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("Error in collocated gradient %f != %f\n", sum, 2*q_ref[i]);
-    // LCOV_EXCL_START
+    // LCOV_EXCL_STOP
   }
   CeedBasisDestroy(&b);
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     if (fabs(sum - 2*q_ref[i]) > 100*CEED_EPSILON)
       // LCOV_EXCL_START
       printf("Error in collocated gradient %f != %f\n", sum, 2*q_ref[i]);
-    // LCOV_EXCL_START
+    // LCOV_EXCL_STOP
   }
   CeedBasisDestroy(&b);
 

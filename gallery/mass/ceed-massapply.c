@@ -31,6 +31,8 @@ static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP); CeedChk(ierr);
 
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 1); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
