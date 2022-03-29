@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
   if (flop_estimate != 3042)
     // LCOV_EXCL_START
     printf("Incorrect FLOP estimate computed, %ld != 3042\n", flop_estimate);
-  // LOCV_EXCL_STOP
+  // LCOV_EXCL_STOP
 
   // Cleanup
   CeedQFunctionDestroy(&qf_mass);
