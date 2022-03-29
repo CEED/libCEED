@@ -300,7 +300,7 @@ int CeedBasisReference(CeedBasis basis) {
   @ref Backend
 **/
 int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode,
-                              CeedEvalMode eval_mode, CeedInt *flops) {
+                              CeedEvalMode eval_mode, CeedSize *flops) {
   int ierr;
   bool is_tensor;
 

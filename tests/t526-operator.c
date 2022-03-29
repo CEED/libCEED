@@ -17,7 +17,7 @@
 
 int main(int argc, char **argv) {
   Ceed ceed;
-  CeedInt flop_estimate;
+  CeedSize flop_estimate;
   CeedElemRestriction elem_restr_x_tet, elem_restr_u_tet,
                       elem_restr_qd_i_tet,
                       elem_restr_x_hex, elem_restr_u_hex,
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
   // Check output
   if (flop_estimate != 3042)
     // LCOV_EXCL_START
-    printf("Incorrect FLOP estimate computed, %d != 3042\n", flop_estimate);
+    printf("Incorrect FLOP estimate computed, %ld != 3042\n", flop_estimate);
   // LOCV_EXCL_STOP
 
   // Cleanup

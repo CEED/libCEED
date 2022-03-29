@@ -519,7 +519,7 @@ int CeedQFunctionReference(CeedQFunction qf) {
 
   @ref Backend
 **/
-int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedInt *flops) {
+int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
   if (qf->user_flop_estimate == -1)
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_INCOMPLETE,
@@ -926,7 +926,7 @@ int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
 
   @ref Backend
 **/
-int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedInt flops) {
+int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   if (flops < 0)
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_INCOMPATIBLE,

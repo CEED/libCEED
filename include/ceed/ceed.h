@@ -630,7 +630,7 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf,
                                         CeedQFunctionContext ctx);
 CEED_EXTERN int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
-CEED_EXTERN int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedInt flops);
+CEED_EXTERN int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops);
 CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
@@ -746,7 +746,7 @@ CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
     CeedInt *num_qpts);
-CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedInt *flops);
+CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op,
     const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op,

@@ -286,7 +286,7 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
   @ref Backend
 **/
 int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr,
-                                        CeedTransposeMode t_mode, CeedInt *flops) {
+                                        CeedTransposeMode t_mode, CeedSize *flops) {
   int ierr;
   bool is_oriented;
   CeedInt e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size *
