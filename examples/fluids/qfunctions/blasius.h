@@ -97,7 +97,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
   const CeedScalar x0     = 11*meter;
-  const CeedScalar Uinf   = 10;
+  const CeedScalar Uinf   = 40;
 
   const CeedScalar e_internal = cv*theta0;
   const CeedScalar rho = P0 / ((gamma - 1) * e_internal);
@@ -144,7 +144,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
   const CeedScalar meter  = 1e-2;
   const CeedScalar x0     = 11*meter;
-  const CeedScalar Uinf   = 10;
+  const CeedScalar Uinf   = 40;
   const CeedScalar rho_0 = P0 / (Rd * theta0);
 
   CeedPragmaSIMD
