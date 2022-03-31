@@ -109,14 +109,21 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
                                        const CeedScalar dXdx[3][3], const CeedScalar u[3],
-                                       const CeedScalar sound_speed, const CeedScalar c_tau) {
+                                       /* const CeedScalar sound_speed, const CeedScalar c_tau) { */
+                                       const CeedScalar sound_speed, const CeedScalar c_tau,
+                                       const CeedScalar viscosity) {
+  const CeedScalar a_i[3] = {fabs(u[0]) + sound_speed, fabs(u[1]) + sound_speed,fabs(u[2]) + sound_speed};
+  /* const CeedScalar mag_a_visc = sqrt(a_i[0]*a_i[0] +a_i[1]*a_i[1] +a_i[2]*a_i[2]) / (2*viscosity); */
+  const CeedScalar mag_a_visc = sqrt(u[0]*u[0] +u[1]*u[1] +u[2]*u[2]) / (2*viscosity);
   for (int i=0; i<3; i++) {
     // length of element in direction i
     CeedScalar h = 2 / sqrt(dXdx[0][i]*dXdx[0][i] + dXdx[1][i]*dXdx[1][i] +
                             dXdx[2][i]*dXdx[2][i]);
+    CeedScalar Pe = mag_a_visc*h;
+    CeedScalar Xi = cosh(Pe)/sinh(Pe) - 1/Pe; //TODO Fix overflow issues at high Pe
     // fastest wave in direction i
     CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
-    Tau_x[i] = c_tau * h / fastest_wave;
+    Tau_x[i] = c_tau * h * Xi / fastest_wave;
   }
 }
 
@@ -419,7 +426,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     // -- Tau elements
     const CeedScalar sound_speed = sqrt(gamma * P / rho);
     CeedScalar Tau_x[3] = {0.};
-    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none or SU
     CeedScalar stab[5][3];
@@ -668,7 +675,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     // -- Tau elements
     const CeedScalar sound_speed = sqrt(gamma * P / rho);
     CeedScalar Tau_x[3] = {0.};
-    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3];

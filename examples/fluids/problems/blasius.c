@@ -43,7 +43,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_outflow_loc       = Blasius_Outflow_loc;
   problem->setup_ctx               = SetupContext_BLASIUS;
 
-  CeedScalar mu = .01; // Pa s, dynamic viscosity
+  CeedScalar mu = .04; // Pa s, dynamic viscosity
 
   PetscScalar meter           = user->units->meter;
   PetscScalar kilogram        = user->units->kilogram;
