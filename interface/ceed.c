@@ -807,6 +807,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Setup Ceed
   ierr = CeedCalloc(1, ceed); CeedChk(ierr);
+  (*ceed)->jit_source_root = CEED_JIT_SOURCE_ROOT;
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler)
     ceed_error_handler = "abort";

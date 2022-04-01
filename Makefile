@@ -145,7 +145,7 @@ ifeq ($(COVERAGE), 1)
   CEED_LDFLAGS += --coverage
 endif
 
-CFLAGS += $(if $(ASAN),$(AFLAGS))
+CFLAGS += $(if $(ASAN),$(AFLAGS)) -DCEED_JIT_SOURCE_ROOT="\"$(abspath ./include)/\""
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include

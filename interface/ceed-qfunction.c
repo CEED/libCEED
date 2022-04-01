@@ -67,6 +67,8 @@ static size_t num_qfunctions;
 int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
+  int ierr;
+
   if (num_qfunctions >= sizeof(gallery_qfunctions) / sizeof(
         gallery_qfunctions[0]))
     // LCOV_EXCL_START
@@ -75,9 +77,12 @@ int CeedQFunctionRegister(const char *name, const char *source,
 
   CeedDebugEnv("Gallery Register: %s", name);
 
+  const char *relative_file_path;
+  ierr = CeedGetJitRelativePath(source, &relative_file_path); CeedChk(ierr);
+
   strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;
-  strncpy(gallery_qfunctions[num_qfunctions].source, source,
+  strncpy(gallery_qfunctions[num_qfunctions].source, relative_file_path,
           CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].source[CEED_MAX_RESOURCE_LEN-1] = 0;
   gallery_qfunctions[num_qfunctions].vec_length = vec_length;
@@ -650,12 +655,18 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "No suitable gallery QFunction");
   // LCOV_EXCL_STOP
 
+  // Build source path
+  char *gallery_qfunction_source_path;
+
   // Create QFunction
+  ierr = CeedGetInstalledJitPath(ceed, gallery_qfunctions[match_index].source,
+                                 &gallery_qfunction_source_path); CeedChk(ierr);
   ierr = CeedQFunctionCreateInterior(ceed,
                                      gallery_qfunctions[match_index].vec_length,
                                      gallery_qfunctions[match_index].f,
-                                     gallery_qfunctions[match_index].source, qf);
+                                     gallery_qfunction_source_path, qf);
   CeedChk(ierr);
+  ierr = CeedFree(&gallery_qfunction_source_path); CeedChkBackend(ierr);
 
   // QFunction specific setup
   ierr = gallery_qfunctions[match_index].init(ceed, name, *qf); CeedChk(ierr);

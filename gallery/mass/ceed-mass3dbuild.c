@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-mass3dbuild.h"
+#include <ceed-jit-source/gallery/ceed-mass3dbuild.h>
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D

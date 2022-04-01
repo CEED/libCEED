@@ -20,8 +20,12 @@
 #include <ceed/ceed.h>
 
 CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer);
-
+CEED_EXTERN int CeedGetJitSourceRoot(Ceed ceed, const char **jit_source_root);
+CEED_EXTERN int CeedGetJitRelativePath(const char *absolute_file_path,
+                                       const char **relative_file_path);
 CEED_EXTERN int CeedPathConcatenate(Ceed ceed, const char *base_file_path,
                                     const char *relative_file_path, char **new_file_path);
+CEED_EXTERN int CeedGetInstalledJitPath(Ceed ceed, const char *relative_file_path,
+                                        char **jit_file_path);
 
 #endif

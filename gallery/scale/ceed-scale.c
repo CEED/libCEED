@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-scale.h"
+#include <ceed-jit-source/gallery/ceed-scale.h>
 
 /**
   @brief  Set fields for vector scaling QFunction that scales inputs
