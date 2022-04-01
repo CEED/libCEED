@@ -626,7 +626,9 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
-	  "$(includedir)/ceed/" "$(libdir)" "$(pkgconfigdir)")
+	  "$(includedir)/ceed/" "$(includedir)/ceed-jit-source/"\
+	  "$(includedir)/ceed-jit-source/cuda/" "$(includedir)/ceed-jit-source/hip/"\
+	  "$(includedir)/ceed-jit-source/gallery/" "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"
@@ -640,6 +642,32 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) include/ceed-jit-source/cuda/cuda-ref-basis-nontensor.h "$(DESTDIR)$(includedir)/ceed-jit-source/cuda/"
+	$(INSTALL_DATA) include/ceed-jit-source/cuda/cuda-ref-basis-tensor.h "$(DESTDIR)$(includedir)/ceed-jit-source/cuda/"
+	$(INSTALL_DATA) include/ceed-jit-source/cuda/cuda-ref-qfunction.h "$(DESTDIR)$(includedir)/ceed-jit-source/cuda/"
+	$(INSTALL_DATA) include/ceed-jit-source/cuda/cuda-ref-restriction.h "$(DESTDIR)$(includedir)/ceed-jit-source/cuda/"
+	$(INSTALL_DATA) include/ceed-jit-source/cuda/cuda-shared-basis.h "$(DESTDIR)$(includedir)/ceed-jit-source/cuda/"
+	$(INSTALL_DATA) include/ceed-jit-source/hip/hip-ref-basis-nontensor.h "$(DESTDIR)$(includedir)/ceed-jit-source/hip/"
+	$(INSTALL_DATA) include/ceed-jit-source/hip/hip-ref-basis-tensor.h "$(DESTDIR)$(includedir)/ceed-jit-source/hip/"
+	$(INSTALL_DATA) include/ceed-jit-source/hip/hip-ref-qfunction.h "$(DESTDIR)$(includedir)/ceed-jit-source/hip/"
+	$(INSTALL_DATA) include/ceed-jit-source/hip/hip-ref-restriction.h "$(DESTDIR)$(includedir)/ceed-jit-source/hip/"
+	$(INSTALL_DATA) include/ceed-jit-source/hip/hip-shared-basis.h "$(DESTDIR)$(includedir)/ceed-jit-source/hip/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-identity.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-mass1dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-mass2dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-mass3dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-massapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson1dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson1dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson2dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson2dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson3dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-poisson3dbuild.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-scale.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-vectormassapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-vectorpoisson1dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-vectorpoisson2dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
+	$(INSTALL_DATA) include/ceed-jit-source/gallery/ceed-vectorpoisson3dapply.h "$(DESTDIR)$(includedir)/ceed-jit-source/gallery/"
 
 .PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy iwyu info info-backends info-backends-all
 
