@@ -145,7 +145,7 @@ ifeq ($(COVERAGE), 1)
   CEED_LDFLAGS += --coverage
 endif
 
-CFLAGS += $(if $(ASAN),$(AFLAGS)) -DCEED_JIT_SOURCE_ROOT="\"$(abspath ./include)/\""
+CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
@@ -623,6 +623,19 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
+
+ifeq ($(filter install,$(MAKECMDGOALS)),install)
+  CPPFLAGS += $(if $(ASAN),$(AFLAGS)) -DCEED_JIT_SOURCE_ROOT="\"$(abspath $(DESTDIR)$(includedir))/\""
+else
+  CPPFLAGS += -DCEED_JIT_SOURCE_ROOT="\"$(abspath ./include)/\""
+endif
+
+$(OBJDIR)/interface/ceed.o: .FORCE
+.FORCE:
+
+ifeq ($(filter install,$(MAKECMDGOALS)),install)
+	$(MAKE) $(OBJDIR)/interface/ceed.o
+endif
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\

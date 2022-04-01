@@ -11,6 +11,10 @@ for each release of libCEED.
 
 - Added {c:func}`CeedQFunctionSetUserFlopsEstimate` and {c:func}`CeedOperatorGetFlopsEstimate` to facilitate estimating FLOPs in operator application.
 
+### Bugfix
+
+- Install JiT source files in install directory to fix GPU functionality for installed libCEED.
+
 (v0-10)=
 
 ## v0.10 (Mar 21, 2022)
