@@ -150,7 +150,8 @@ static inline int CeedVectorHasArrayOfType_Hip(const CeedVector vec,
 // Check if has borrowed array of given type
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasBorrowedArrayOfType_Hip(const CeedVector vec,
-    CeedMemType mem_type, bool *has_borrowed_array_of_type) {
+    CeedMemType mem_type, CeedScalarType prec,
+    bool *has_borrowed_array_of_type) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -194,7 +195,7 @@ static inline int CeedVectorNeedSync_Hip(const CeedVector vec,
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
-                                      const CeedCopyMode copy_mode, CeedScalar *array) {
+                                      const CeedCopyMode copy_mode, void *array) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -235,7 +236,7 @@ static int CeedVectorSetArrayHost_Hip(const CeedVector vec,
 // Set array from device
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
-                                        const CeedCopyMode copy_mode, CeedScalar *array) {
+                                        const CeedCopyMode copy_mode, void *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -279,9 +280,10 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec,
 // Set the array used by a vector,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
-static int CeedVectorSetArray_Hip(const CeedVector vec,
-                                  const CeedMemType mem_type,
-                                  const CeedCopyMode copy_mode, CeedScalar *array) {
+static int CeedVectorSetArrayGeneric_Hip(const CeedVector vec,
+    const CeedMemType mem_type,
+    const CeedScalarType prec,
+    const CeedCopyMode copy_mode, void *array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -354,8 +356,9 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
 //------------------------------------------------------------------------------
 // Vector Take Array
 //------------------------------------------------------------------------------
-static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mem_type,
-                                   CeedScalar **array) {
+static int CeedVectorTakeArrayGeneric_Hip(CeedVector vec, CeedMemType mem_type,
+    CeedScalarType prec,
+    void **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -391,7 +394,9 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mem_type,
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayCore_Hip(const CeedVector vec,
-                                      const CeedMemType mem_type, CeedScalar **array) {
+                                      const CeedMemType mem_type,
+                                      const CeedScalarType prec,
+                                      void **array) {
   int ierr;
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
@@ -420,24 +425,28 @@ static int CeedVectorGetArrayCore_Hip(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Get read-only access to a vector via the specified mem_type
+// Get read-only access to a vector via the specified mem_type and precision
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayRead_Hip(const CeedVector vec,
-                                      const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Hip(vec, mem_type, (CeedScalar **)array);
+static int CeedVectorGetArrayReadGeneric_Hip(const CeedVector vec,
+    const CeedMemType mem_type,
+    const CeedScalarType prec,
+    const void **array) {
+  return CeedVectorGetArrayCore_Hip(vec, mem_type, prec, (void **)array);
 }
 
 //------------------------------------------------------------------------------
 // Get read/write access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
-static int CeedVectorGetArray_Hip(const CeedVector vec,
-                                  const CeedMemType mem_type,
-                                  CeedScalar **array) {
+static int CeedVectorGetArrayGeneric_Hip(const CeedVector vec,
+    const CeedMemType mem_type,
+    const CeedScalarType prec,
+    void **array) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  ierr = CeedVectorGetArrayCore_Hip(vec, mem_type, array); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayCore_Hip(vec, mem_type, prec, array);
+  CeedChkBackend(ierr);
 
   ierr = CeedVectorSetAllInvalid_Hip(vec); CeedChkBackend(ierr);
   switch (mem_type) {
@@ -453,10 +462,12 @@ static int CeedVectorGetArray_Hip(const CeedVector vec,
 }
 
 //------------------------------------------------------------------------------
-// Get write access to a vector via the specified mem_type
+// Get write access to a vector via the specified mem_type and precision
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayWrite_Hip(const CeedVector vec,
-                                       const CeedMemType mem_type, CeedScalar **array) {
+static int CeedVectorGetArrayWriteGeneric_Hip(const CeedVector vec,
+    const CeedMemType mem_type,
+    const CeedScalarType prec,
+    void **array) {
   int ierr;
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -466,7 +477,7 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec,
   CeedChkBackend(ierr);
   if (!has_array_of_type) {
     // Allocate if array is not yet allocated
-    ierr = CeedVectorSetArray(vec, mem_type, CEED_COPY_VALUES, NULL);
+    ierr = CeedVectorSetArrayGeneric(vec, mem_type, prec, CEED_COPY_VALUES, NULL);
     CeedChkBackend(ierr);
   } else {
     // Select dirty array
@@ -485,7 +496,7 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec,
     }
   }
 
-  return CeedVectorGetArray_Hip(vec, mem_type, array);
+  return CeedVectorGetArrayGeneric_Hip(vec, mem_type, prec, array);
 }
 
 //------------------------------------------------------------------------------
@@ -752,18 +763,18 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType",
                                 CeedVectorHasBorrowedArrayOfType_Hip);
   CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
-                                CeedVectorSetArray_Hip); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
-                                CeedVectorTakeArray_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArrayGeneric",
+                                CeedVectorSetArrayGeneric_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArrayGeneric",
+                                CeedVectorTakeArrayGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
                                 (int (*)())(CeedVectorSetValue_Hip)); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
-                                CeedVectorGetArray_Hip); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
-                                CeedVectorGetArrayRead_Hip); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
-                                CeedVectorGetArrayWrite_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayGeneric",
+                                CeedVectorGetArrayGeneric_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadGeneric",
+                                CeedVectorGetArrayReadGeneric_Hip); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteGeneric",
+                                CeedVectorGetArrayWriteGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Norm",
                                 CeedVectorNorm_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal",

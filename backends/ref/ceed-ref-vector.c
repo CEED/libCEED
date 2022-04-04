@@ -27,7 +27,7 @@ static int CeedVectorHasValidArray_Ref(CeedVector vec, bool *has_valid_array) {
 // Check if has borrowed array of given type
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasBorrowedArrayOfType_Ref(const CeedVector vec,
-    CeedMemType mem_type, bool *has_borrowed_array_of_type) {
+    CeedMemType mem_type, CeedScalarType prec, bool *has_borrowed_array_of_type) {
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -52,8 +52,9 @@ static inline int CeedVectorHasBorrowedArrayOfType_Ref(const CeedVector vec,
 //------------------------------------------------------------------------------
 // Vector Set Array
 //------------------------------------------------------------------------------
-static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
-                                  CeedCopyMode copy_mode, CeedScalar *array) {
+static int CeedVectorSetArrayGeneric_Ref(CeedVector vec, CeedMemType mem_type,
+    CeedScalarType prec,
+    CeedCopyMode copy_mode, void *array) {
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -76,18 +77,18 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
     impl->array_borrowed = NULL;
     impl->array = impl->array_owned;
     if (array)
-      memcpy(impl->array, array, length * sizeof(array[0]));
+      memcpy(impl->array, array, length * sizeof(CeedScalar));
     break;
   case CEED_OWN_POINTER:
     ierr = CeedFree(&impl->array_owned); CeedChkBackend(ierr);
-    impl->array_owned = array;
+    impl->array_owned = (CeedScalar *) array;
     impl->array_borrowed = NULL;
-    impl->array = array;
+    impl->array = (CeedScalar *) array;
     break;
   case CEED_USE_POINTER:
     ierr = CeedFree(&impl->array_owned); CeedChkBackend(ierr);
-    impl->array_borrowed = array;
-    impl->array = array;
+    impl->array_borrowed = (CeedScalar *) array;
+    impl->array = (CeedScalar *) array;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -95,8 +96,8 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type,
 //------------------------------------------------------------------------------
 // Vector Take Array
 //------------------------------------------------------------------------------
-static int CeedVectorTakeArray_Ref(CeedVector vec, CeedMemType mem_type,
-                                   CeedScalar **array) {
+static int CeedVectorTakeArrayGeneric_Ref(CeedVector vec, CeedMemType mem_type,
+    CeedScalarType prec, void **array) {
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -114,7 +115,7 @@ static int CeedVectorTakeArray_Ref(CeedVector vec, CeedMemType mem_type,
 // Vector Get Array
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayCore_Ref(CeedVector vec, CeedMemType mem_type,
-                                      CeedScalar **array) {
+                                      CeedScalarType prec, void **array) {
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -135,24 +136,28 @@ static int CeedVectorGetArrayCore_Ref(CeedVector vec, CeedMemType mem_type,
 //------------------------------------------------------------------------------
 // Vector Get Array Read
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mem_type,
-                                      const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
+static int CeedVectorGetArrayReadGeneric_Ref(CeedVector vec,
+    CeedMemType mem_type,
+    CeedScalarType prec,
+    const void **array) {
+  return CeedVectorGetArrayCore_Ref(vec, mem_type, prec, (void **)array);
 }
 
 //------------------------------------------------------------------------------
 // Vector Get Array
 //------------------------------------------------------------------------------
-static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type,
-                                  CeedScalar **array) {
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, array);
+static int CeedVectorGetArrayGeneric_Ref(CeedVector vec, CeedMemType mem_type,
+    CeedScalarType prec, void **array) {
+  return CeedVectorGetArrayCore_Ref(vec, mem_type, prec, array);
 }
 
 //------------------------------------------------------------------------------
 // Vector Get Array Write
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type,
-                                       const CeedScalar **array) {
+static int CeedVectorGetArrayWriteGeneric_Ref(CeedVector vec,
+    CeedMemType mem_type,
+    CeedScalarType prec,
+    const void **array) {
   int ierr;
   CeedVector_Ref *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
@@ -171,17 +176,17 @@ static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type,
     }
   }
 
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
+  return CeedVectorGetArrayCore_Ref(vec, mem_type, prec, (void **) array);
 }
 
 //------------------------------------------------------------------------------
 // Vector Restore Array
 //------------------------------------------------------------------------------
-static int CeedVectorRestoreArray_Ref(CeedVector vec) {
+static int CeedVectorRestoreArrayGeneric_Ref(CeedVector vec) {
   return CEED_ERROR_SUCCESS;
 }
 
-static int CeedVectorRestoreArrayRead_Ref(CeedVector vec) {
+static int CeedVectorRestoreArrayReadGeneric_Ref(CeedVector vec) {
   return CEED_ERROR_SUCCESS;
 }
 
@@ -212,20 +217,20 @@ int CeedVectorCreate_Ref(CeedSize n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType",
                                 CeedVectorHasBorrowedArrayOfType_Ref);
   CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArray",
-                                CeedVectorSetArray_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray",
-                                CeedVectorTakeArray_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArray",
-                                CeedVectorGetArray_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead",
-                                CeedVectorGetArrayRead_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite",
-                                CeedVectorGetArrayWrite_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray",
-                                CeedVectorRestoreArray_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead",
-                                CeedVectorRestoreArrayRead_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArrayGeneric",
+                                CeedVectorSetArrayGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArrayGeneric",
+                                CeedVectorTakeArrayGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayGeneric",
+                                CeedVectorGetArrayGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadGeneric",
+                                CeedVectorGetArrayReadGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWriteGeneric",
+                                CeedVectorGetArrayWriteGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayGeneric",
+                                CeedVectorRestoreArrayGeneric_Ref); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayReadGeneric",
+                                CeedVectorRestoreArrayReadGeneric_Ref); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "Destroy",
                                 CeedVectorDestroy_Ref); CeedChkBackend(ierr);
 
