@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include <ceed-jit-source/gallery/ceed-vectorpoisson3dapply.h>
+#include <ceed/jit-source/gallery/ceed-vectorpoisson3dapply.h>
 
 /**
   @brief Set fields for Ceed QFunction applying the 3D Poisson operator

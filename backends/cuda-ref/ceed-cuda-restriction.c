@@ -342,7 +342,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode,
   CeedInt num_nodes = impl->num_nodes;
   char *restriction_kernel_path, *restriction_kernel_source;
   ierr = CeedGetInstalledJitPath(ceed,
-                                 "ceed-jit-source/cuda/cuda-ref-restriction.h",
+                                 "ceed/jit-source/cuda/cuda-ref-restriction.h",
                                  &restriction_kernel_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, restriction_kernel_path,

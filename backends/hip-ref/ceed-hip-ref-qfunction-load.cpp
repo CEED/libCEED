@@ -47,7 +47,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   // Build strings for final kernel
   char *read_write_kernel_path, *read_write_kernel_source;
-  ierr = CeedGetInstalledJitPath(ceed, "ceed-jit-source/hip/hip-ref-qfunction.h",
+  ierr = CeedGetInstalledJitPath(ceed, "ceed/jit-source/hip/hip-ref-qfunction.h",
                                  &read_write_kernel_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading QFunction Read/Write Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source);

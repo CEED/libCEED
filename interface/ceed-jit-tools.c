@@ -102,6 +102,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
         strncpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
         ierr = CeedLoadSourceToInitalizedBuffer(ceed, include_source_path, buffer);
+        CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);
         CeedChk(ierr);
         ierr = CeedFree(&include_source_path); CeedChk(ierr);
       }
@@ -187,13 +188,13 @@ int CeedGetJitSourceRoot(Ceed ceed, const char **jit_source_root) {
 **/
 int CeedGetJitRelativePath(const char *absolute_file_path,
                            const char **relative_file_path) {
-  *(relative_file_path) = strstr(absolute_file_path, "ceed-jit-source");
+  *(relative_file_path) = strstr(absolute_file_path, "ceed/jit-source");
 
   if (!*relative_file_path)
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR,
                      "Couldn't find relative path including "
-                     "'ceed-jit-source' for: %s", absolute_file_path);
+                     "'ceed/jit-source' for: %s", absolute_file_path);
   // LCOV_EXCL_STOP
 
   return CEED_ERROR_SUCCESS;

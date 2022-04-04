@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include <ceed-jit-source/gallery/ceed-vectormassapply.h>
+#include <ceed/jit-source/gallery/ceed-vectormassapply.h>
 
 /**
   @brief Set fields for Ceed QFunction for applying the mass matrix
