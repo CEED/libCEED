@@ -160,47 +160,6 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path,
 }
 
 /**
-  @brief Get root of search path for installed files for JiT
-
-  @param ceed                 A Ceed object for error handling
-  @param[out] jit_source_root String for search path root
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetJitSourceRoot(Ceed ceed, const char **jit_source_root) {
-  CeedDebug256(ceed, 1, "JiT Source Root: ");
-  CeedDebug256(ceed, 255, "%s\n", ceed->jit_source_root);
-  *jit_source_root = ceed->jit_source_root;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Find the relative filepath to an installed JiT file
-
-  @param[in]  absolute_file_path Absolute path to installed JiT file
-  @param[out] relative_file_path Relative path to installed JiT file
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetJitRelativePath(const char *absolute_file_path,
-                           const char **relative_file_path) {
-  *(relative_file_path) = strstr(absolute_file_path, "ceed/jit-source");
-
-  if (!*relative_file_path)
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR,
-                     "Couldn't find relative path including "
-                     "'ceed/jit-source' for: %s", absolute_file_path);
-  // LCOV_EXCL_STOP
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Build an absolute filepath from a base filepath and an absolute filepath.
            This helps construct source file paths for `CeedLoadSourceToBuffer()`.
          Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
@@ -230,31 +189,92 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path,
 }
 
 /**
-  @brief Build an absolute filepath to an installed JiT file
+  @brief Find the relative filepath to an installed JiT file
 
-  @param ceed                     A Ceed object for error handling
-  @param[in]  relative_file_path  Relative path to installed JiT file
-  @param[out] new_file_path       String buffer for absolute path to target file
+  @param[in]  absolute_file_path Absolute path to installed JiT file
+  @param[out] relative_file_path Relative path to installed JiT file
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedGetInstalledJitPath(Ceed ceed, const char *relative_file_path,
-                            char **jit_file_path) {
-  int ierr;
-  const char *jit_source_root;
+int CeedGetJitRelativePath(const char *absolute_file_path,
+                           const char **relative_file_path) {
+  *(relative_file_path) = strstr(absolute_file_path, "ceed/jit-source");
 
-  ierr = CeedGetJitSourceRoot(ceed, &jit_source_root); CeedChk(ierr);
-
-  char *last_slash = strrchr(jit_source_root, '/');
-  size_t base_length = (last_slash - jit_source_root + 1),
-         relative_length = strlen(relative_file_path),
-         new_file_path_length = base_length + relative_length + 1;
-
-  ierr = CeedCalloc(new_file_path_length, jit_file_path); CeedChk(ierr);
-  memcpy(*jit_file_path, jit_source_root, base_length);
-  memcpy(&((*jit_file_path)[base_length]), relative_file_path, relative_length);
+  if (!*relative_file_path)
+    // LCOV_EXCL_START
+    return CeedError(NULL, CEED_ERROR_MAJOR,
+                     "Couldn't find relative path including "
+                     "'ceed/jit-source' for: %s", absolute_file_path);
+  // LCOV_EXCL_STOP
 
   return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Build an absolute filepath to a JiT file
+
+  @param ceed                    A Ceed object for error handling
+  @param[in]  relative_file_path Relative path to installed JiT file
+  @param[out] absolute_file_path String buffer for absolute path to target file
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
+                           char **absolute_file_path) {
+  int ierr;
+
+  // Debug
+  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, 1, "Relative JiT source file: ");
+  CeedDebug256(ceed, 255, "%s\n", relative_file_path);
+
+
+  for (CeedInt i = 0; i < ceed->num_jit_source_roots; i++) {
+    // Debug
+    CeedDebug256(ceed, 1, "Checking JiT root: ");
+    CeedDebug256(ceed, 255, "%s\n", ceed->jit_source_roots[i]);
+
+    // Build absolute path with current root
+    ierr = CeedPathConcatenate(ceed, ceed->jit_source_roots[i],
+                               relative_file_path, absolute_file_path);
+    CeedChk(ierr);
+
+    // Temporarily mask function name if included
+    char *last_colon = strrchr(*absolute_file_path, ':');
+    if (last_colon) {
+      *last_colon = '\0';
+    }
+
+    // Debug
+    CeedDebug256(ceed, 1, "Checking for source file: ");
+    CeedDebug256(ceed, 255, "%s\n", *absolute_file_path);
+
+    // Check for valid file path
+    FILE *source_file;
+    source_file = fopen((const char *)*absolute_file_path, "rb");
+    if (source_file) {
+      // Debug
+      CeedDebug256(ceed, 1, "Found JiT source file: ");
+      CeedDebug256(ceed, 255, "%s\n", *absolute_file_path);
+
+      // Restore function name if included
+      if (last_colon) {
+        *last_colon = ':';
+      }
+      fclose(source_file);
+      return CEED_ERROR_SUCCESS;
+    } else {
+      ierr = CeedFree(absolute_file_path); CeedChk(ierr);
+    }
+  }
+
+  // LCOV_EXCL_START
+  return CeedError(ceed, CEED_ERROR_MAJOR,
+                   "Couldn't find matching JiT source file: %s",
+                   relative_file_path);
+  // LCOV_EXCL_STOP
 }

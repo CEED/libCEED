@@ -807,7 +807,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Setup Ceed
   ierr = CeedCalloc(1, ceed); CeedChk(ierr);
-  (*ceed)->jit_source_root = CEED_JIT_SOURCE_ROOT;
+  ierr = CeedCalloc(1, &(*ceed)->jit_source_roots); CeedChk(ierr);
+  (*ceed)->jit_source_roots[0] = CeedJitSourceRootDefault;
+  (*ceed)->num_jit_source_roots = 1;
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler)
     ceed_error_handler = "abort";
@@ -1047,6 +1049,11 @@ int CeedDestroy(Ceed *ceed) {
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
+
+  for (int i=1; i < (*ceed)->num_jit_source_roots; i++) {
+    ierr = CeedFree(&(*ceed)->jit_source_roots[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*ceed)->jit_source_roots); CeedChk(ierr);
 
   ierr = CeedFree(&(*ceed)->f_offsets); CeedChk(ierr);
   ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);

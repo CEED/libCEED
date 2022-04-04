@@ -659,8 +659,8 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
   char *gallery_qfunction_source_path;
 
   // Create QFunction
-  ierr = CeedGetInstalledJitPath(ceed, gallery_qfunctions[match_index].source,
-                                 &gallery_qfunction_source_path); CeedChk(ierr);
+  ierr = CeedGetJitAbsolutePath(ceed, gallery_qfunctions[match_index].source,
+                                &gallery_qfunction_source_path); CeedChk(ierr);
   ierr = CeedQFunctionCreateInterior(ceed,
                                      gallery_qfunctions[match_index].vec_length,
                                      gallery_qfunctions[match_index].f,
