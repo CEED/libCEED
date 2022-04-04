@@ -14,6 +14,59 @@
 #include <string.h>
 
 /**
+  @brief Check if valid file exists at path given
+
+  @param ceed                  A Ceed object for error handling
+  @param[in]  source_file_path Absolute path to source file
+  @param[out] is_valid         Boolean flag indicating if file can be opend
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
+  int ierr;
+
+  // Sometimes we have path/to/file.h:function_name
+  // Create tempory file path without name, if needed
+  char *source_file_path_only;
+  char *last_colon = strrchr(source_file_path, ':');
+  if (last_colon) {
+    size_t source_file_path_length = (last_colon - source_file_path + 1);
+
+    ierr = CeedCalloc(source_file_path_length, &source_file_path_only);
+    CeedChk(ierr);
+    strncpy(source_file_path_only, source_file_path, source_file_path_length - 1);
+  } else {
+    source_file_path_only = (char *)source_file_path;
+  }
+
+  // Debug
+  CeedDebug256(ceed, 1, "Checking for source file: ");
+  CeedDebug256(ceed, 255, "%s\n", source_file_path_only);
+
+  // Check for valid file path
+  FILE *source_file;
+  source_file = fopen(source_file_path_only, "rb");
+  *is_valid = !!source_file;
+
+  if (*is_valid) {
+    // Debug
+    CeedDebug256(ceed, 1, "Found JiT source file: ");
+    CeedDebug256(ceed, 255, "%s\n", source_file_path_only);
+
+    fclose(source_file);
+  }
+
+  // Free temp file path, if used
+  if (last_colon) {
+    ierr = CeedFree(&source_file_path_only); CeedChk(ierr);
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Load source file into initalized string buffer, including full text
            of local files in place of `#include "local.h"`
 
@@ -182,8 +235,8 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path,
          new_file_path_length = base_length + relative_length + 1;
 
   ierr = CeedCalloc(new_file_path_length, new_file_path); CeedChk(ierr);
-  memcpy(*new_file_path, base_file_path, base_length);
-  memcpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
+  strncpy(*new_file_path, base_file_path, base_length);
+  strncpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -234,38 +287,19 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
 
 
   for (CeedInt i = 0; i < ceed->num_jit_source_roots; i++) {
+    bool is_valid;
+
     // Debug
     CeedDebug256(ceed, 1, "Checking JiT root: ");
     CeedDebug256(ceed, 255, "%s\n", ceed->jit_source_roots[i]);
 
-    // Build absolute path with current root
+    // Build  and check absolute path with current root
     ierr = CeedPathConcatenate(ceed, ceed->jit_source_roots[i],
                                relative_file_path, absolute_file_path);
     CeedChk(ierr);
+    ierr = CeedCheckFilePath(ceed, *absolute_file_path, &is_valid); CeedChk(ierr);
 
-    // Temporarily mask function name if included
-    char *last_colon = strrchr(*absolute_file_path, ':');
-    if (last_colon) {
-      *last_colon = '\0';
-    }
-
-    // Debug
-    CeedDebug256(ceed, 1, "Checking for source file: ");
-    CeedDebug256(ceed, 255, "%s\n", *absolute_file_path);
-
-    // Check for valid file path
-    FILE *source_file;
-    source_file = fopen((const char *)*absolute_file_path, "rb");
-    if (source_file) {
-      // Debug
-      CeedDebug256(ceed, 1, "Found JiT source file: ");
-      CeedDebug256(ceed, 255, "%s\n", *absolute_file_path);
-
-      // Restore function name if included
-      if (last_colon) {
-        *last_colon = ':';
-      }
-      fclose(source_file);
+    if (is_valid) {
       return CEED_ERROR_SUCCESS;
     } else {
       ierr = CeedFree(absolute_file_path); CeedChk(ierr);

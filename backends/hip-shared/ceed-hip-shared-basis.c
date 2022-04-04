@@ -326,9 +326,9 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
 
   // Compile basis kernels
   char *basis_kernel_path, *basis_kernel_source;
-  ierr = CeedGetInstalledJitPath(ceed,
-                                 "ceed/jit-source/hip/hip-shared-basis.h",
-                                 &basis_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/hip/hip-shared-basis.h",
+                                &basis_kernel_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);

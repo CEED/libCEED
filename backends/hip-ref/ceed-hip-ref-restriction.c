@@ -339,9 +339,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
   // Compile HIP kernels
   CeedInt num_nodes = impl->num_nodes;
   char *restriction_kernel_path, *restriction_kernel_source;
-  ierr = CeedGetInstalledJitPath(ceed,
-                                 "ceed/jit-source/hip/hip-ref-restriction.h",
-                                 &restriction_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/hip/hip-ref-restriction.h",
+                                &restriction_kernel_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, restriction_kernel_path,
                                 &restriction_kernel_source);

@@ -603,16 +603,30 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->function = f;
   (*qf)->user_flop_estimate = -1;
   if (strlen(source)) {
-    const char *kernel_name = strrchr(source, ':') + 1;
+    bool is_absolute_path;
+    char *absolute_path;
+
+    ierr = CeedCheckFilePath(ceed, source, &is_absolute_path); CeedChk(ierr);
+    if (is_absolute_path) {
+      absolute_path = (char *)source;
+    } else {
+      ierr = CeedGetJitAbsolutePath(ceed, source, &absolute_path); CeedChk(ierr);
+    }
+
+    const char *kernel_name = strrchr(absolute_path, ':') + 1;
     size_t kernel_name_len = strlen(kernel_name);
     ierr = CeedCalloc(kernel_name_len + 1, &kernel_name_copy); CeedChk(ierr);
     strncpy(kernel_name_copy, kernel_name, kernel_name_len);
     (*qf)->kernel_name = kernel_name_copy;
 
-    size_t source_len = strlen(source) - kernel_name_len - 1;
+    size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
     ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
-    strncpy(source_copy, source, source_len);
+    strncpy(source_copy, absolute_path, source_len);
     (*qf)->source_path = source_copy;
+
+    if (!is_absolute_path) {
+      ierr = CeedFree(&absolute_path); CeedChk(ierr);
+    }
   }
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->output_fields); CeedChk(ierr);
@@ -655,18 +669,12 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed,  const char *name,
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "No suitable gallery QFunction");
   // LCOV_EXCL_STOP
 
-  // Build source path
-  char *gallery_qfunction_source_path;
-
   // Create QFunction
-  ierr = CeedGetJitAbsolutePath(ceed, gallery_qfunctions[match_index].source,
-                                &gallery_qfunction_source_path); CeedChk(ierr);
   ierr = CeedQFunctionCreateInterior(ceed,
                                      gallery_qfunctions[match_index].vec_length,
                                      gallery_qfunctions[match_index].f,
-                                     gallery_qfunction_source_path, qf);
+                                     gallery_qfunctions[match_index].source, qf);
   CeedChk(ierr);
-  ierr = CeedFree(&gallery_qfunction_source_path); CeedChkBackend(ierr);
 
   // QFunction specific setup
   ierr = gallery_qfunctions[match_index].init(ceed, name, *qf); CeedChk(ierr);

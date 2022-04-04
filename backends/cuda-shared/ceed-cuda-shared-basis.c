@@ -270,9 +270,9 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedInt num_comp;
   ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
   char *basis_kernel_path, *basis_kernel_source;
-  ierr = CeedGetInstalledJitPath(ceed,
-                                 "ceed/jit-source/cuda/cuda-shared-basis.h",
-                                 &basis_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/cuda/cuda-shared-basis.h",
+                                &basis_kernel_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);
