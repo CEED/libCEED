@@ -151,7 +151,9 @@ CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
 CEED_LDLIBS = -lm
 OBJDIR := build
-LIBDIR := lib
+for_install := $(filter install,$(MAKECMDGOALS))
+LIBDIR := $(if $(for_install),$(OBJDIR),lib)
+
 
 # Installation variables
 prefix ?= /usr/local
@@ -178,9 +180,9 @@ SO_EXT := $(if $(DARWIN),dylib,so)
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
 libceed.so := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.a := $(LIBDIR)/libceed.a
-libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
+libceed := $(if $(STATIC),$(libceed.a),$(libceed.$(SO_EXT)))
 CEED_LIBS = -lceed
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceeds = $(libceed)
@@ -624,15 +626,8 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
-ifeq ($(filter install,$(MAKECMDGOALS)),install)
-  $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
-else
-  $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
-endif
-
-$(OBJDIR)/interface/ceed-jit-source-root-default.o : $(if $(filter install,$(MAKECMDGOALS)),.FORCE)
-
-.FORCE:
+$(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+$(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
