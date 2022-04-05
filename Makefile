@@ -625,17 +625,14 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
 ifeq ($(filter install,$(MAKECMDGOALS)),install)
-  CPPFLAGS += $(if $(ASAN),$(AFLAGS)) -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(DESTDIR)$(includedir))/\""
+  $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
 else
-  CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+  $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 endif
 
-$(OBJDIR)/interface/ceed-jit-source-root-default.o: .FORCE
+$(OBJDIR)/interface/ceed-jit-source-root-default.o : $(if $(filter install,$(MAKECMDGOALS)),.FORCE)
+
 .FORCE:
-
-ifeq ($(filter install,$(MAKECMDGOALS)),install)
-	$(MAKE) $(OBJDIR)/interface/ceed-jit-source-root-default.o
-endif
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
