@@ -15,12 +15,12 @@
 #include "../hip/ceed-hip-common.h"
 
 typedef struct {
-  CeedScalar *h_array;
-  CeedScalar *h_array_borrowed;
-  CeedScalar *h_array_owned;
-  CeedScalar *d_array;
-  CeedScalar *d_array_borrowed;
-  CeedScalar *d_array_owned;
+  CeedScalarArray h_array;
+  CeedScalarArray h_array_borrowed;
+  CeedScalarArray h_array_owned;
+  CeedScalarArray d_array;
+  CeedScalarArray d_array_borrowed;
+  CeedScalarArray d_array_owned;
 } CeedVector_Hip;
 
 typedef struct {

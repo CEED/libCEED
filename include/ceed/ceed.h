@@ -140,7 +140,6 @@ typedef int32_t CeedInt;
 typedef ptrdiff_t CeedSize;
 
 /// Scalar (floating point) types
-///
 /// @ingroup Ceed
 typedef enum {
   /// Single precision
@@ -148,6 +147,13 @@ typedef enum {
   /// Double precision
   CEED_SCALAR_FP64
 } CeedScalarType;
+/// Total number of allowed scalar precision types (size of CeedScalarType enum)
+#define CEED_NUM_PRECISIONS 2
+/// Struct for holding data in multiple precisions for mixed-precision-enabled
+/// backends
+typedef struct {
+  void *values[2]; // Size equals CEED_NUM_PRECISIONS
+} CeedScalarArray;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.
 #include "ceed-f64.h"
