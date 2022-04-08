@@ -914,6 +914,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedChk(ierr);
 
   // Set default JiT source root
+  // Note: there will always be the default root for every Ceed
+  // but all additional paths are added to the top-most parent
   ierr = CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault);
   CeedChk(ierr);
 
@@ -1014,14 +1016,17 @@ int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
 **/
 int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   int ierr;
+  Ceed ceed_parent;
 
-  CeedInt index = ceed->num_jit_source_roots;
+  ierr = CeedGetParent(ceed, &ceed_parent); CeedChk(ierr);
+
+  CeedInt index = ceed_parent->num_jit_source_roots;
   size_t path_length = strlen(jit_source_root);
-  ierr = CeedRealloc(index + 1, &ceed->jit_source_roots); CeedChk(ierr);
-  ierr = CeedCalloc(path_length + 1, &ceed->jit_source_roots[index]);
+  ierr = CeedRealloc(index + 1, &ceed_parent->jit_source_roots); CeedChk(ierr);
+  ierr = CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]);
   CeedChk(ierr);
-  strncpy(ceed->jit_source_roots[index], jit_source_root, path_length);
-  ceed->num_jit_source_roots++;
+  strncpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
+  ceed_parent->num_jit_source_roots++;
 
   return CEED_ERROR_SUCCESS;
 }

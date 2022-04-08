@@ -279,6 +279,7 @@ int CeedGetJitRelativePath(const char *absolute_file_path,
 int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
                            char **absolute_file_path) {
   int ierr;
+  Ceed ceed_parent;
 
   // Debug
   CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
@@ -286,15 +287,16 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
   CeedDebug256(ceed, 255, "%s\n", relative_file_path);
 
 
-  for (CeedInt i = 0; i < ceed->num_jit_source_roots; i++) {
+  ierr = CeedGetParent(ceed, &ceed_parent); CeedChk(ierr);
+  for (CeedInt i = 0; i < ceed_parent->num_jit_source_roots; i++) {
     bool is_valid;
 
     // Debug
     CeedDebug256(ceed, 1, "Checking JiT root: ");
-    CeedDebug256(ceed, 255, "%s\n", ceed->jit_source_roots[i]);
+    CeedDebug256(ceed, 255, "%s\n", ceed_parent->jit_source_roots[i]);
 
     // Build  and check absolute path with current root
-    ierr = CeedPathConcatenate(ceed, ceed->jit_source_roots[i],
+    ierr = CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i],
                                relative_file_path, absolute_file_path);
     CeedChk(ierr);
     ierr = CeedCheckFilePath(ceed, *absolute_file_path, &is_valid); CeedChk(ierr);
