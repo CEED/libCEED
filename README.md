@@ -375,13 +375,20 @@ For more details about the benchmarks, see the `benchmarks/README.md` file.
 To install libCEED, run:
 
 ```
-make install prefix=/usr/local
+make install prefix=/path/to/install/dir
 ```
 
 or (e.g., if creating packages):
 
 ```
 make install prefix=/usr DESTDIR=/packaging/path
+```
+
+To build and install in separate steps, run:
+
+```
+make for_install=1 prefix=/path/to/install/dir
+make install prefix=/path/to/install/dir
 ```
 
 The usual variables like `CC` and `CFLAGS` are used, and optimization flags
