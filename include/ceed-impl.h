@@ -14,6 +14,8 @@
 #include <ceed/backend.h>
 #include <stdbool.h>
 
+CEED_INTERN const char CeedJitSourceRootDefault[];
+
 /** @defgroup CeedUser Public API for Ceed
     @ingroup Ceed
 */
@@ -89,6 +91,8 @@ struct Ceed_private {
   int obj_delegate_count;
   Ceed op_fallback_ceed, op_fallback_parent;
   const char *op_fallback_resource;
+  char **jit_source_roots;
+  CeedInt num_jit_source_roots;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
