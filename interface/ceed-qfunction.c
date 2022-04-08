@@ -616,12 +616,12 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     const char *kernel_name = strrchr(absolute_path, ':') + 1;
     size_t kernel_name_len = strlen(kernel_name);
     ierr = CeedCalloc(kernel_name_len + 1, &kernel_name_copy); CeedChk(ierr);
-    strncpy(kernel_name_copy, kernel_name, kernel_name_len);
+    memcpy(kernel_name_copy, kernel_name, kernel_name_len);
     (*qf)->kernel_name = kernel_name_copy;
 
     size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
     ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
-    strncpy(source_copy, absolute_path, source_len);
+    memcpy(source_copy, absolute_path, source_len);
     (*qf)->source_path = source_copy;
 
     if (!is_absolute_path) {
