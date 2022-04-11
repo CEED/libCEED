@@ -36,7 +36,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 
     ierr = CeedCalloc(source_file_path_length, &source_file_path_only);
     CeedChk(ierr);
-    strncpy(source_file_path_only, source_file_path, source_file_path_length - 1);
+    memcpy(source_file_path_only, source_file_path, source_file_path_length - 1);
   } else {
     source_file_path_only = (char *)source_file_path;
   }
@@ -123,7 +123,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
     const char *next_e = strchr(first_hash, 'e');
     char keyword[8] = "";
     if (next_e)
-      strncpy(keyword, &next_e[-6], 7);
+      memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
     // ---- Spaces allowed in '#  include <header.h>'
     if (next_e)
@@ -134,9 +134,9 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
       long current_size = strlen(*buffer);
       long copy_size = first_hash - &temp_buffer[file_offset];
       ierr = CeedRealloc(current_size + copy_size + 2, buffer); CeedChk(ierr);
-      strncpy(&(*buffer)[current_size], "\n", 2);
-      strncpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
-      strncpy(&(*buffer)[current_size + copy_size], "", 1);
+      memcpy(&(*buffer)[current_size], "\n", 2);
+      memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
+      memcpy(&(*buffer)[current_size + copy_size], "", 1);
       // -- Load local "header.h"
       char *next_quote = strchr(first_hash, '"');
       char *next_new_line = strchr(first_hash, '\n');
@@ -149,10 +149,10 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
         long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
         ierr = CeedCalloc(root_length + include_file_name_len + 2,
                           &include_source_path); CeedChk(ierr);
-        strncpy(include_source_path, source_file_path, root_length + 1);
-        strncpy(&include_source_path[root_length + 1], &next_quote[1],
-                include_file_name_len);
-        strncpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
+        memcpy(include_source_path, source_file_path, root_length + 1);
+        memcpy(&include_source_path[root_length + 1], &next_quote[1],
+               include_file_name_len);
+        memcpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
         ierr = CeedLoadSourceToInitalizedBuffer(ceed, include_source_path, buffer);
         CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);
@@ -168,9 +168,9 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
   long current_size = strlen(*buffer);
   long copy_size = strlen(&temp_buffer[file_offset]);
   ierr = CeedRealloc(current_size + copy_size + 2, buffer); CeedChk(ierr);
-  strncpy(&(*buffer)[current_size], "\n", 2);
-  strncpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
-  strncpy(&(*buffer)[current_size + copy_size + 1], "", 1);
+  memcpy(&(*buffer)[current_size], "\n", 2);
+  memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
+  memcpy(&(*buffer)[current_size + copy_size + 1], "", 1);
 
   // Cleanup
   ierr = CeedFree(&temp_buffer); CeedChk(ierr);
@@ -235,8 +235,8 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path,
          new_file_path_length = base_length + relative_length + 1;
 
   ierr = CeedCalloc(new_file_path_length, new_file_path); CeedChk(ierr);
-  strncpy(*new_file_path, base_file_path, base_length);
-  strncpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
+  memcpy(*new_file_path, base_file_path, base_length);
+  memcpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
 
   return CEED_ERROR_SUCCESS;
 }

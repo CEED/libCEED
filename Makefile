@@ -687,7 +687,7 @@ style : style-c style-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include

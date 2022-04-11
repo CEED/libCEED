@@ -302,7 +302,7 @@ int CeedStringAllocCopy(const char *source, char **copy) {
   int ierr;
   size_t len = strlen(source);
   ierr = CeedCalloc(len + 1, copy); CeedChk(ierr);
-  memcpy(*copy, source, len + 1);
+  memcpy(*copy, source, len);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1025,7 +1025,7 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   ierr = CeedRealloc(index + 1, &ceed_parent->jit_source_roots); CeedChk(ierr);
   ierr = CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]);
   CeedChk(ierr);
-  strncpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
+  memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
   ceed_parent->num_jit_source_roots++;
 
   return CEED_ERROR_SUCCESS;
