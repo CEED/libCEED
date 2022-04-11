@@ -4,7 +4,7 @@ libdir=${prefix}/lib
 
 Name: CEED
 Description: Code for Efficient Extensible Discretization
-Version: 0.10.0
+Version: 0.10.1
 Cflags: -I${includedir}
 Libs: -L${libdir} -lceed
 Libs.private: %libs_private%

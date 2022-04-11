@@ -1,11 +1,16 @@
 # Changes/Release Notes
 
-On this page we provide a summary of the main API changes, new features and examples
-for each release of libCEED.
+On this page we provide a summary of the main API changes, new features and examples for each release of libCEED.
 
 (main)=
 
 ## Current `main` branch
+
+### Interface changes
+
+(v0-10-1)=
+
+## v0.10.1 (Apr 11, 2022)
 
 ### Interface changes
 
