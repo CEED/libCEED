@@ -242,7 +242,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 #define CEED_VERSION_MAJOR 0
 #define CEED_VERSION_MINOR 10
 #define CEED_VERSION_PATCH 1
-#define CEED_VERSION_RELEASE true
+#define CEED_VERSION_RELEASE false
 
 /// Compile-time check that the the current library version is at least as
 /// recent as the specified version. This macro is typically used in
