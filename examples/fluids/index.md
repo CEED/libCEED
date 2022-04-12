@@ -201,11 +201,13 @@ In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P
 It is defined as
 
 $$
-\mathcal P(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
-$$
+\mathcal P(\bm v) \equiv \bm{\tau} \left(\frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
+$$ (eq-streamline-P)
 
-where parameter $\bm{\tau} \in \mathbb R^{3\times 3}$ (spatial indices) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
-This expression contains the flux Jacobian, which we express in variational notation by differentiating the advective flux $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
+where parameter $\bm{\tau} \in \mathbb R^{3}$ (spatial index) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+Most generally, we consider $\bm\tau \in \mathbb R^{3,5,5}$.
+This expression contains the advective flux Jacobian, which may be thought of as mapping from a 5-vector (state) to a $(5,3)$ tensor (flux) or from a $(5,3)$ tensor (gradient of state) to a 5-vector (time derivative of state); the latter is used in {eq}`eq-streamline-P` because it's applied to $\nabla\bm v$.
+The forward variational form can be readily expressed by differentiating $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
 
 $$
 \begin{aligned}
@@ -219,14 +221,14 @@ $$
 $$
 
 where $\diff P$ is defined by differentiating {eq}`eq-state`.
-In this notation, we may equivalently write the stabilization term as
+This action is also readily computed by forward-mode AD, but since $\bm v$ is a test function, we actually need the action of the adjoint to use {eq}`eq-streamline-P` in finite element computation; that can be computed by reverse-mode AD.
+We may equivalently write the stabilization term as
 
 $$
-\mathcal P(\bm v)^T \bm r = \nabla \bm v \bm\tau \diff\bm F_{\text{adv}}(\bm r),
+\mathcal P(\bm v)^T \bm r = \nabla \bm v \tcolon \left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right)^T \, \bm\tau \bm r,
 $$
 
-where $\bm r$ is the strong form residual.
-Note that both $\nabla \bm v$ and $\diff \bm F$ are $5\times 3$ matrices and that $\bm\tau$ can be defined with spatial indices, or field indices, leading to a stabilization term of $(\nabla \bm v)_{\alpha i} \tau_{ij} \diff \bm F_{\alpha j}$ for spatial or $(\nabla \bm v)_{\alpha i} \tau_{\alpha \beta} \diff \bm F_{\beta i}$ for field, where $\alpha,\beta$ are field indices and $i,j$ are spatial indices.
+where $\bm r$ is the strong form residual and $\bm\tau$ is a $5\times 5$ matrix.
 
 :::{dropdown} Stabilization scale $\bm\tau$
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
