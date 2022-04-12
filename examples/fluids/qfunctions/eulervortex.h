@@ -644,7 +644,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_res[l];
+            stab[k][j] = jacob_F_conv_T[j][l][k] * Tau_x[j] * strong_res[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
