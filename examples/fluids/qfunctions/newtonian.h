@@ -358,13 +358,6 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
     computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x_i);
 
-    // jacob_F_conv_T = jacob_F_conv^T
-    CeedScalar jacob_F_conv_T[3][5][5];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<5; k++)
-        for (int l=0; l<5; l++)
-          jacob_F_conv_T[j][k][l] = jacob_F_conv[j][l][k];
-
     // dqdx collects drhodx, dUdx and dEdx in one vector
     CeedScalar dqdx[5][3];
     for (int j=0; j<3; j++) {
@@ -437,7 +430,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -600,12 +593,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
     computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x_i);
 
-    // jacob_F_conv_T = jacob_F_conv^T
-    CeedScalar jacob_F_conv_T[3][5][5];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<5; k++)
-        for (int l=0; l<5; l++)
-          jacob_F_conv_T[j][k][l] = jacob_F_conv[j][l][k];
     // dqdx collects drhodx, dUdx and dEdx in one vector
     CeedScalar dqdx[5][3];
     for (int j=0; j<3; j++) {
@@ -686,7 +673,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -698,7 +685,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_res[l];
+            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_res[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
