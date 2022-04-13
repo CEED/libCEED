@@ -42,8 +42,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
+                    NULL);
 
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
@@ -148,7 +148,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
                               "Face IDs to apply outflow BC",
                               NULL, bc->outflows, &bc->num_outflow, NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }

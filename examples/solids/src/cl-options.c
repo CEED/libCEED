@@ -20,9 +20,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
 
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Elasticity / Hyperelasticity in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL,
+                    "Elasticity / Hyperelasticity in PETSc with libCEED", NULL);
 
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
@@ -210,7 +209,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
     ierr = PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.);
     CHKERRQ(ierr);
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting AppCtx
+  PetscOptionsEnd(); // End of setting AppCtx
 
   // Check for all required values set
   if (app_ctx->test_mode) {

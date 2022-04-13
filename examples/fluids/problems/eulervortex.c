@@ -73,8 +73,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for EULER_VORTEX problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for EULER_VORTEX problem", NULL);
   // -- Physics
   ierr = PetscOptionsScalar("-vortex_strength", "Strength of Vortex",
                             NULL, vortex_strength, &vortex_strength, NULL);
@@ -120,7 +119,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
     CHKERRQ(ierr);
   }
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context
