@@ -80,9 +80,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
-  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
-  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
-  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar meter    = 1;  // 1 meter in scaled length units
+  PetscScalar kilogram = 1;  // 1 kilogram in scaled mass units
+  PetscScalar second   = 1;  // 1 second in scaled time units
   PetscScalar Kelvin   = 1;     // 1 Kelvin in scaled temperature units
   PetscScalar W_per_m_K, Pascal, J_per_kg_K, m_per_squared_s;
 
