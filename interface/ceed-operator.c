@@ -653,7 +653,8 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
 
   Active fields must be specified using this function, but their data (in a
   CeedVector) is passed in CeedOperatorApply().  There can be at most one active
-  input and at most one active output.
+  input CeedVector and at most one active output CeedVector passed to
+  CeedOperatorApply().
 
   @param op          CeedOperator on which to provide the field
   @param field_name  Name of the field (to be matched with the name used by
