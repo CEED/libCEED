@@ -75,8 +75,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem", NULL);
   // -- Physics
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
@@ -148,7 +147,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
     CHKERRQ(ierr);
   }
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context

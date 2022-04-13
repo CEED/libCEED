@@ -38,15 +38,14 @@ PetscErrorCode PhysicsSmootherContext_NH(MPI_Comm comm, Ceed ceed,
 
   PetscFunctionBegin;
 
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Neo-Hookean physical parameters for smoother", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Neo-Hookean physical parameters for smoother",
+                    NULL);
 
   ierr = PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother",
                             NULL, nu_smoother, &nu_smoother, &nu_flag);
   CHKERRQ(ierr);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+  PetscOptionsEnd(); // End of setting Physics
 
   if (nu_flag) {
     // Copy context
@@ -80,8 +79,7 @@ PetscErrorCode ProcessPhysics_NH(MPI_Comm comm, Physics_NH phys, Units units) {
 
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL, "Neo-Hookean physical parameters", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Neo-Hookean physical parameters", NULL);
 
   ierr = PetscOptionsScalar("-nu", "Poisson's ratio", NULL, phys->nu, &phys->nu,
                             &nu_flag); CHKERRQ(ierr);
@@ -104,7 +102,7 @@ PetscErrorCode ProcessPhysics_NH(MPI_Comm comm, Physics_NH phys, Units units) {
   CHKERRQ(ierr);
   units->kilogram = fabs(units->kilogram);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+  PetscOptionsEnd(); // End of setting Physics
 
   // Check for all required options to be set
   if (!nu_flag) {

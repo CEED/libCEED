@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   simplex = PETSC_FALSE;
   ierr = PetscOptionsBool("-simplex", "Use simplices, or tensor product cells",
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Setup DM
   if (read_mesh) {

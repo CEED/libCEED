@@ -439,7 +439,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
                               "Min and max number of iterations to use during benchmarking",
                               NULL, ksp_max_it_clip, &two, NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
   P = degree + 1;
   Q = P + q_extra;
 

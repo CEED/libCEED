@@ -469,8 +469,7 @@ int main(int argc, char **argv) {
   rp->comm = comm;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   {
     PetscBool set;
     ierr = PetscOptionsEnumArray("-problem", "CEED benchmark problem to solve",
@@ -558,8 +557,7 @@ int main(int argc, char **argv) {
     if (flg) ranks_per_node = p;
   }
 
-  ierr = PetscOptionsEnd();
-  CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Register PETSc logging stage
   ierr = PetscLogStageRegister("Solve Stage", &rp->solve_stage);

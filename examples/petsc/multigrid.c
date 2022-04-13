@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP3;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
                                 mesh_elem, &tmp, NULL); CHKERRQ(ierr);
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);

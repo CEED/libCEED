@@ -92,9 +92,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
-                           NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc", NULL);
   problem_choice = SPHERE;
   ierr = PetscOptionsEnum("-problem",
                           "Problem to solve", NULL,
@@ -116,7 +114,7 @@ int main(int argc, char **argv) {
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Setup DM
   if (read_mesh) {
