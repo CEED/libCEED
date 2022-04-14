@@ -64,15 +64,14 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
     //TODO ^^ make optional/respect explicit user set
   CeedScalar theta0 = 300.; // K
   CeedScalar P0     = 1.e5; // Pa
-  ierr = PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
   ierr = PetscOptionsScalar("-umax", "Centerline velocity of the Channel",
                             NULL, umax, &umax, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-theta0", "Wall temperature",
                             NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscScalar meter  = user->units->meter;
   PetscScalar second = user->units->second;
