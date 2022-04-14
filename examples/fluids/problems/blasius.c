@@ -12,6 +12,17 @@
 #include "../qfunctions/newtonian.h"
 #include "../qfunctions/blasius.h"
 
+void slantTopWall(PetscInt dim, PetscInt Nf, PetscInt NfAux,
+                  const PetscInt    uOff[],   const PetscInt    uOff_x[], const PetscScalar u[],
+                  const PetscScalar u_t[],    const PetscScalar u_x[],    const PetscInt aOff[],
+                  const PetscInt    aOff_x[], const PetscScalar a[],      const PetscScalar a_t[],
+                  const PetscScalar a_x[],    PetscReal t,                const PetscReal x[],
+                  PetscInt numConstants,      const PetscScalar constants[], PetscScalar f[]) {
+
+  f[0] = u[0];
+  f[1] = (1 - u[0]*0.08) * u[1];
+  f[2] = u[2];
+};
 
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
                           void *ctx) {
@@ -22,6 +33,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
+
+  DMPlexRemapGeometry(dm, 0.0, &slantTopWall);
 
   // ------------------------------------------------------
   //               SET UP Blasius
@@ -34,7 +47,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_outflow_loc       = Blasius_Outflow_loc;
   problem->setup_ctx               = SetupContext_BLASIUS;
 
-  CeedScalar mu = .04; // Pa s, dynamic viscosity
+  // CeedScalar mu = .04; // Pa s, dynamic viscosity
+  CeedScalar mu = .4; // Pa s, dynamic viscosity
 
   PetscScalar meter           = user->units->meter;
   PetscScalar kilogram        = user->units->kilogram;
@@ -75,3 +89,4 @@ PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
                             ceed_data->newt_ig_context);
   PetscFunctionReturn(0);
 }
+

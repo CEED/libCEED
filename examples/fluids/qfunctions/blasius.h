@@ -96,11 +96,12 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const CeedScalar meter  = 1;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
-  const CeedScalar x0     = 11*meter;
+  const CeedScalar delta0 = 5*meter;
   const CeedScalar Uinf   = 40;
 
   const CeedScalar e_internal = cv*theta0;
-  const CeedScalar rho = P0 / ((gamma - 1) * e_internal);
+  const CeedScalar rho        = P0 / ((gamma - 1) * e_internal);
+  const CeedScalar x0         = Uinf*rho / (mu*25/ (delta0*delta0) );
   CeedScalar u, v;
 
   // Quadrature Point Loop
@@ -134,18 +135,19 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = true;
+  const CeedScalar mu     = context->mu;
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
-  const CeedScalar z      = 0.;
 
   const CeedScalar meter  = 1;
-  const CeedScalar x0     = 11*meter;
+  const CeedScalar delta0 = 5*meter;
   const CeedScalar Uinf   = 40;
-  const CeedScalar rho_0 = P0 / (Rd * theta0);
+  const CeedScalar rho_0  = P0 / (Rd * theta0);
+  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -230,8 +232,6 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
-  const CeedScalar N      = 0.01;
-  const CeedScalar z      = 0.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
