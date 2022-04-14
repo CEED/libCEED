@@ -11,6 +11,7 @@ dm_plex_box_faces: 10,40,1
 degree: 1
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 1,1,.1
+dm_plex_box_upper: 10,10,.1
 dm_plex_dim: 3
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
 bc_slip_z: 1,2
@@ -19,4 +20,5 @@ bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5
-g: 0
+# bc_outflow: 5,4
+g: 0,0,0
