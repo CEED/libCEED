@@ -149,6 +149,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar gamma  = cp/cv;
   const CeedScalar theta0 = 300;
   const CeedScalar P0     = 1.e5;
+  const CeedScalar RHO0   = 1.16144019;
   const CeedScalar z      = 0.;
 
   const CeedScalar meter  = 1;
@@ -169,7 +170,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
 
     // Find pressure using state inside the domain
-    const CeedScalar rho = q[0][i];
+    const CeedScalar rho = RHO0; //q[0][i];
     const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
     const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
                                   u[2]*u[2]);
