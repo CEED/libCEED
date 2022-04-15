@@ -12,17 +12,71 @@
 #include "../qfunctions/newtonian.h"
 #include "../qfunctions/blasius.h"
 
-void slantTopWall(PetscInt dim, PetscInt Nf, PetscInt NfAux,
-                  const PetscInt    uOff[],   const PetscInt    uOff_x[], const PetscScalar u[],
-                  const PetscScalar u_t[],    const PetscScalar u_x[],    const PetscInt aOff[],
-                  const PetscInt    aOff_x[], const PetscScalar a[],      const PetscScalar a_t[],
-                  const PetscScalar a_x[],    PetscReal t,                const PetscReal x[],
-                  PetscInt numConstants,      const PetscScalar constants[], PetscScalar f[]) {
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
 
-  f[0] = u[0];
-  f[1] = (1 - u[0]*0.08) * u[1];
-  f[2] = u[2];
-};
+/* \brief Modify the domain and mesh for blasius
+ *
+ * Modifies mesh such that `N` elements are within 1.2*`delta0` with a geometric
+ * growth ratio of `growth`. Excess elements are then geometrically distributed
+ * to the top surface.
+ *
+ * The top surface is also angled downwards, so that it may be used as an
+ * outflow. It's angle is controlled by top_angle (in units of degrees).
+ */
+PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
+                          PetscReal delta0, PetscReal top_angle) {
+
+  PetscInt ierr, narr, ncoords;
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  PetscScalar *arr_coords;
+  Vec vec_coords;
+  PetscFunctionBeginUser;
+
+  PetscReal angle_coeff = tan(top_angle*(M_PI/180));
+
+  // Get domain boundary information
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
+  // Get coords array from DM
+  ierr = DMGetCoordinatesLocal(dm, &vec_coords); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(vec_coords, &narr); CHKERRQ(ierr);
+  ierr = VecGetArray(vec_coords, &arr_coords); CHKERRQ(ierr);
+
+  PetscScalar (*coords)[dim] = (PetscScalar(*)[dim]) arr_coords;
+  ncoords = narr/dim;
+
+  // Get mesh information
+  PetscInt nmax = 3, faces[3];
+  ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
+                                 NULL); CHKERRQ(ierr);
+
+  // Calculate the first element height
+  PetscReal dybox = domain_size[1]/faces[1];
+  PetscReal dy1   = delta0*1.2*(growth-1)/(pow(growth, N)-1);
+
+  // Calculate log of sizing outside BL
+  PetscReal logdy = (log(domain_max[1]) - log(delta0*1.2)) / (faces[1] - N);
+
+  for(int i=0; i<ncoords; i++) {
+    PetscInt y_box_index = coords[i][1]/dybox;
+    if(y_box_index <= N) {
+      coords[i][1] = (1 - (coords[i][0]/domain_max[0])*angle_coeff) *
+                     dy1*(pow(growth, coords[i][1]/dybox)-1)/(growth-1);
+    } else {
+      PetscInt j = y_box_index - N;
+      coords[i][1] = (1 - (coords[i][0]/domain_max[0])*angle_coeff) *
+                     exp(log(delta0*1.2) + logdy*j);
+    }
+  }
+
+  ierr = VecRestoreArray(vec_coords, &arr_coords); CHKERRQ(ierr);
+  ierr = DMSetCoordinatesLocal(dm, vec_coords); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
                           void *ctx) {
@@ -34,7 +88,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
 
-  DMPlexRemapGeometry(dm, 0.0, &slantTopWall);
+  ierr = modifyMesh(dm, problem->dim, 1.08, 35, 5, 5); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP Blasius
