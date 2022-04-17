@@ -38,9 +38,8 @@ PetscErrorCode PhysicsSmootherContext_MR(MPI_Comm comm, Ceed ceed,
 
   PetscFunctionBegin;
 
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Mooney Rivlin physical parameters for smoother", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Mooney Rivlin physical parameters for smoother",
+                    NULL);
 
   ierr = PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother",
                             NULL, nu_smoother, &nu_smoother, &nu_flag);
@@ -49,7 +48,7 @@ PetscErrorCode PhysicsSmootherContext_MR(MPI_Comm comm, Ceed ceed,
       nu_smoother >= 0.5) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
                                     "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+  PetscOptionsEnd(); // End of setting Physics
 
   if (nu_flag) {
     // Copy context
@@ -84,8 +83,7 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys, Units units) {
 
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL, "Mooney Rivlin physical parameters", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Mooney Rivlin physical parameters", NULL);
 
   ierr = PetscOptionsScalar("-mu_1", "Material Property mu_1", NULL,
                             phys->mu_1, &phys->mu_1, NULL); CHKERRQ(ierr);
@@ -118,7 +116,7 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys, Units units) {
   CHKERRQ(ierr);
   units->kilogram = fabs(units->kilogram);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr); // End of setting Physics
+  PetscOptionsEnd(); // End of setting Physics
 
   // Define derived units
   units->Pascal = units->kilogram / (units->meter * PetscSqr(units->second));

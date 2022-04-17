@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   simplex = PETSC_FALSE;
   ierr = PetscOptionsBool("-simplex", "Use simplices, or tensor product cells",
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Setup DM
   if (read_mesh) {
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n",
+                       "    Global nodes                       : %" PetscInt_FMT "\n",
                        bp_choice+1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q,
                        g_size/num_comp_u); CHKERRQ(ierr);
   }
@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

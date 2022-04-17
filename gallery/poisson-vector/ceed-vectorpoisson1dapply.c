@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-vectorpoisson1dapply.h"
+#include <ceed/jit-source/gallery/ceed-vectorpoisson1dapply.h>
 
 /**
   @brief Set fields for Ceed QFunction applying the 1D Poisson operator
@@ -36,6 +36,8 @@ static int CeedQFunctionInit_Vector3Poisson1DApply(Ceed ceed,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "dv", num_comp*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, num_comp); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

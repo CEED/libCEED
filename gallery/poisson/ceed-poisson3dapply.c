@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-poisson3dapply.h"
+#include <ceed/jit-source/gallery/ceed-poisson3dapply.h>
 
 /**
   @brief Set fields for Ceed QFunction applying the 3D Poisson operator
@@ -32,6 +32,8 @@ static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD); CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 15); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

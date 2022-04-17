@@ -9,7 +9,7 @@
 #include <ceed/backend.h>
 #include <stddef.h>
 #include <string.h>
-#include "ceed-identity.h"
+#include <ceed/jit-source/gallery/ceed-identity.h>
 
 /**
   @brief Set fields identity QFunction that copies inputs directly into outputs
@@ -29,6 +29,8 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested,
 
   // QFunction fields 'input' and 'output' with requested emodes added
   //   by the library rather than being added here
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 0); CeedChk(ierr);
 
   // Context data
   CeedQFunctionContext ctx;

@@ -20,6 +20,7 @@ jobs:
         CC: ${{ matrix.compiler }}
         FC: gfortran-9
       run: |
+        make -v
         make info
         make -j2
         PROVE_OPTS=-v make prove -j2

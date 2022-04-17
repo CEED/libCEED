@@ -45,8 +45,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED",
+                    NULL);
 
   ierr = PetscOptionsString("-ceed", "CEED resource specifier",
                             NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
@@ -137,7 +137,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
         for (PetscInt w = 0; w < bc->num_wall; w++)
           if (bc->slips[c][s] == bc->walls[w])
             SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                    "Boundary condition already set on face %D!\n",
+                    "Boundary condition already set on face %" PetscInt_FMT "!\n",
                     bc->walls[w]);
 
   // Inflow BCs
@@ -151,7 +151,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
                               "Face IDs to apply outflow BC",
                               NULL, bc->outflows, &bc->num_outflow, NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }

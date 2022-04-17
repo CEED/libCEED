@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-poisson3dbuild.h"
+#include <ceed/jit-source/gallery/ceed-poisson3dbuild.h>
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D
@@ -35,6 +35,8 @@ static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
   CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 69); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

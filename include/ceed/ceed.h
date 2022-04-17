@@ -197,6 +197,7 @@ CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
+CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
@@ -239,8 +240,8 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 /// libCEED library version numbering
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 9
-#define CEED_VERSION_PATCH 0
+#define CEED_VERSION_MINOR 10
+#define CEED_VERSION_PATCH 1
 #define CEED_VERSION_RELEASE false
 
 /// Compile-time check that the the current library version is at least as
@@ -630,6 +631,7 @@ CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf,
 CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf,
                                         CeedQFunctionContext ctx);
 CEED_EXTERN int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
+CEED_EXTERN int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops);
 CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
@@ -745,6 +747,7 @@ CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op,
     CeedInt *num_qpts);
+CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op,
     const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op,

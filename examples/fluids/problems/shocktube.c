@@ -84,8 +84,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem", NULL);
 
   // -- Numerical formulation options
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
@@ -119,7 +118,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   }
 
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context

@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-vectormassapply.h"
+#include <ceed/jit-source/gallery/ceed-vectormassapply.h>
 
 /**
   @brief Set fields for Ceed QFunction for applying the mass matrix
@@ -34,6 +34,8 @@ static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "v", num_comp, CEED_EVAL_INTERP);
   CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, num_comp); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

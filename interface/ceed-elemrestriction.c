@@ -276,6 +276,33 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Estimate number of FLOPs required to apply CeedElemRestriction in t_mode
+
+  @param rstr   ElemRestriction to estimate FLOPs for
+  @param t_mode Apply restriction or transpose
+  @param flops  Address of variable to hold FLOPs estimate
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr,
+                                        CeedTransposeMode t_mode, CeedSize *flops) {
+  int ierr;
+  bool is_oriented;
+  CeedInt e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size *
+                   rstr->num_comp,
+                   scale = 0;
+
+  ierr = CeedElemRestrictionIsOriented(rstr, &is_oriented); CeedChk(ierr);
+  switch (t_mode) {
+  case CEED_NOTRANSPOSE: scale = is_oriented ? 1 : 0; break;
+  case CEED_TRANSPOSE:   scale = is_oriented ? 2 : 1; break;
+  }
+  *flops = e_size * scale;
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// @cond DOXYGEN_SKIP

@@ -77,9 +77,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Options for Newtonian Ideal Gas based problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for Newtonian Ideal Gas based problem",
+                    NULL);
+
   // -- Physics
   ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
                             NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
@@ -133,7 +133,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                        "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context

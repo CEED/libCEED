@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-mass3dbuild.h"
+#include <ceed/jit-source/gallery/ceed-mass3dbuild.h>
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D
@@ -34,6 +34,8 @@ static int CeedQFunctionInit_Mass3DBuild(Ceed ceed, const char *requested,
   ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE); CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 15); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

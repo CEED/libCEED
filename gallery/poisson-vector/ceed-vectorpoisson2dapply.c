@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-vectorpoisson2dapply.h"
+#include <ceed/jit-source/gallery/ceed-vectorpoisson2dapply.h>
 
 /**
   @brief Set fields for Ceed QFunction applying the 2D Poisson operator
@@ -36,6 +36,8 @@ static int CeedQFunctionInit_Vector3Poisson2DApply(Ceed ceed,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf, "dv", num_comp*dim, CEED_EVAL_GRAD);
   CeedChk(ierr);
+
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf, num_comp * 6); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

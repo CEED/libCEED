@@ -302,7 +302,7 @@ int CeedStringAllocCopy(const char *source, char **copy) {
   int ierr;
   size_t len = strlen(source);
   ierr = CeedCalloc(len + 1, copy); CeedChk(ierr);
-  memcpy(*copy, source, len + 1);
+  memcpy(*copy, source, len);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -807,6 +807,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Setup Ceed
   ierr = CeedCalloc(1, ceed); CeedChk(ierr);
+  ierr = CeedCalloc(1, &(*ceed)->jit_source_roots); CeedChk(ierr);
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler)
     ceed_error_handler = "abort";
@@ -911,6 +912,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   ierr = CeedStringAllocCopy(backends[match_index].prefix,
                              (char **)&(*ceed)->resource);
   CeedChk(ierr);
+
+  // Set default JiT source root
+  // Note: there will always be the default root for every Ceed
+  // but all additional paths are added to the top-most parent
+  ierr = CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault);
+  CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -997,6 +1005,33 @@ int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
 }
 
 /**
+  @brief Set additional JiT source root for Ceed
+
+  @param[in] ceed            Ceed
+  @param[in] jit_source_root Absolute path to additional JiT source directory
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
+  int ierr;
+  Ceed ceed_parent;
+
+  ierr = CeedGetParent(ceed, &ceed_parent); CeedChk(ierr);
+
+  CeedInt index = ceed_parent->num_jit_source_roots;
+  size_t path_length = strlen(jit_source_root);
+  ierr = CeedRealloc(index + 1, &ceed_parent->jit_source_roots); CeedChk(ierr);
+  ierr = CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]);
+  CeedChk(ierr);
+  memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
+  ceed_parent->num_jit_source_roots++;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a Ceed
 
   @param[in] ceed    Ceed to view
@@ -1036,7 +1071,7 @@ int CeedDestroy(Ceed *ceed) {
   }
 
   if ((*ceed)->obj_delegate_count > 0) {
-    for (int i=0; i<(*ceed)->obj_delegate_count; i++) {
+    for (int i = 0; i < (*ceed)->obj_delegate_count; i++) {
       ierr = CeedDestroy(&((*ceed)->obj_delegates[i].delegate)); CeedChk(ierr);
       ierr = CeedFree(&(*ceed)->obj_delegates[i].obj_name); CeedChk(ierr);
     }
@@ -1046,6 +1081,11 @@ int CeedDestroy(Ceed *ceed) {
   if ((*ceed)->Destroy) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
+
+  for (int i = 0; i < (*ceed)->num_jit_source_roots; i++) {
+    ierr = CeedFree(&(*ceed)->jit_source_roots[i]); CeedChk(ierr);
+  }
+  ierr = CeedFree(&(*ceed)->jit_source_roots); CeedChk(ierr);
 
   ierr = CeedFree(&(*ceed)->f_offsets); CeedChk(ierr);
   ierr = CeedFree(&(*ceed)->resource); CeedChk(ierr);

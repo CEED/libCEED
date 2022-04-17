@@ -86,21 +86,21 @@ mesh elements, and the values at quadrature points, respectively.
 We refer to the operators that connect the different types of vectors as:
 
 - Subdomain restriction $\bm{P}$
-- Element restriction $\bm{G}$
+- Element restriction $\bm{\mathcal{E}}$
 - Basis (Dofs-to-Qpts) evaluator $\bm{B}$
 - Operator at quadrature points $\bm{D}$
 
 More generally, when the test and trial space differ, they get their own
-versions of $\bm{P}$, $\bm{G}$ and $\bm{B}$.
+versions of $\bm{P}$, $\bm{\mathcal{E}}$ and $\bm{B}$.
 
 (fig-operator-decomp)=
 
-:::{figure} ../../img/libCEED.png
+:::{figure} ../../img/libCEED.svg
 Operator Decomposition
 :::
 
 Note that in the case of adaptive mesh refinement (AMR), the restrictions
-$\bm{P}$ and $\bm{G}$ will involve not just extracting sub-vectors,
+$\bm{P}$ and $\bm{\mathcal{E}}$ will involve not just extracting sub-vectors,
 but evaluating values at constrained degrees of freedom through the AMR interpolation.
 There can also be several levels of subdomains ($\bm P_1$, $\bm P_2$,
 etc.), and it may be convenient to split $\bm{D}$ as the product of several
@@ -213,21 +213,21 @@ Operator representation/storage/action categories:
 ### Partial Assembly
 
 Since the global operator $\bm{A}$ is just a series of variational restrictions
-with $\bm{B}$, $\bm{G}$ and $\bm{P}$, starting from its
+with $\bm{B}$, $\bm{\mathcal{E}}$ and $\bm{P}$, starting from its
 point-wise kernel $\bm{D}$, a "matvec" with $\bm{A}$ can be
 performed by evaluating and storing some of the innermost variational restriction
 matrices, and applying the rest of the operators "on-the-fly". For example, one can
 compute and store a global matrix on **T-vector** level. Alternatively, one can compute
 and store only the subdomain (**L-vector**) or element (**E-vector**) matrices and
 perform the action of $\bm{A}$ using matvecs with $\bm{P}$ or
-$\bm{P}$ and $\bm{G}$. While these options are natural for
+$\bm{P}$ and $\bm{\mathcal{E}}$. While these options are natural for
 low-order discretizations, they are not a good fit for high-order methods due to
 the amount of FLOPs needed for their evaluation, as well as the memory transfer
 needed for a matvec.
 
 Our focus in libCEED, instead, is on **partial assembly**, where we compute and
 store only $\bm{D}$ (or portions of it) and evaluate the actions of
-$\bm{P}$, $\bm{G}$ and $\bm{B}$ on-the-fly.
+$\bm{P}$, $\bm{\mathcal{E}}$ and $\bm{B}$ on-the-fly.
 Critically for performance, we take advantage of the tensor-product structure of the
 degrees of freedom and quadrature points on *quad* and *hex* elements to perform the
 action of $\bm{B}$ without storing it as a matrix.
@@ -245,8 +245,8 @@ $\bm{D}$.
 ### Parallel Decomposition
 
 After the application of each of the first three transition operators,
-$\bm{P}$, $\bm{G}$ and $\bm{B}$, the operator evaluation
-is decoupled  on their ranges, so $\bm{P}$, $\bm{G}$ and
+$\bm{P}$, $\bm{\mathcal{E}}$ and $\bm{B}$, the operator evaluation
+is decoupled  on their ranges, so $\bm{P}$, $\bm{\mathcal{E}}$ and
 $\bm{B}$ allow us to "zoom-in" to subdomain, element and quadrature point
 level, ignoring the coupling at higher levels.
 
@@ -257,14 +257,14 @@ computational devices (CPUs, GPUs, etc.) as indicated by the shaded regions in
 the diagram above.
 
 One of the advantages of the decomposition perspective in these settings is that
-the operators $\bm{P}$, $\bm{G}$, $\bm{B}$ and
+the operators $\bm{P}$, $\bm{\mathcal{E}}$, $\bm{B}$ and
 $\bm{D}$ clearly separate the MPI parallelism
 in the operator ($\bm{P}$) from the unstructured mesh topology
-($\bm{G}$), the choice of the finite element space/basis ($\bm{B}$)
+($\bm{\mathcal{E}}$), the choice of the finite element space/basis ($\bm{B}$)
 and the geometry and point-wise physics $\bm{D}$. These components also
 naturally fall in different classes of numerical algorithms -- parallel (multi-device)
 linear algebra for $\bm{P}$, sparse (on-device) linear algebra for
-$\bm{G}$, dense/structured linear algebra (tensor contractions) for
+$\bm{\mathcal{E}}$, dense/structured linear algebra (tensor contractions) for
 $\bm{B}$ and parallel point-wise evaluations for $\bm{D}$.
 
 Currently in libCEED, it is assumed that the host application manages the global
@@ -288,9 +288,18 @@ operations on the host.
 ## API Description
 
 The libCEED API takes an algebraic approach, where the user essentially
-describes in the *frontend* the operators **G**, **B** and **D** and the library
+describes in the *frontend* the operators $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, and $\bm{D}$ and the library
 provides *backend* implementations and coordinates their action to the original
 operator on **L-vector** level (i.e. independently on each device / MPI task).
+This is visualized in the schematic below; "active" and "passive" inputs/outputs
+will be discussed in more detail later.
+
+(fig-operator-schematic)=
+
+:::{figure} ../../img/libceed_schematic.svg
+Flow of data through vector types inside libCEED Operators, through backend implementations 
+of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, and $\bm{D}$
+:::
 
 One of the advantages of this purely algebraic description is that it already
 includes all the finite element information, so the backends can operate on
@@ -307,16 +316,17 @@ specific devices (e.g. GPUs) or specific polynomial orders. A simple reference
 backend implementation is provided in the file
 [ceed-ref.c](https://github.com/CEED/libCEED/blob/main/backends/ref/ceed-ref.c).
 
+
 On the frontend, the mapping between the decomposition concepts and the code
 implementation is as follows:
 
 - **L-**, **E-** and **Q-vector** are represented as variables of type {ref}`CeedVector`.
   (A backend may choose to operate incrementally without forming explicit **E-** or
   **Q-vectors**.)
-- $\bm{G}$ is represented as variable of type {ref}`CeedElemRestriction`.
+- $\bm{\mathcal{E}}$ is represented as variable of type {ref}`CeedElemRestriction`.
 - $\bm{B}$ is represented as variable of type {ref}`CeedBasis`.
 - the action of $\bm{D}$ is represented as variable of type {ref}`CeedQFunction`.
-- the overall operator $\bm{G}^T \bm{B}^T \bm{D} \bm{B} \bm{G}$
+- the overall operator $\bm{\mathcal{E}}^T \bm{B}^T \bm{D} \bm{B} \bm{\mathcal{E}}$
   is represented as variable of type
   {ref}`CeedOperator` and its action is accessible through {c:func}`CeedOperatorApply()`.
 
@@ -328,6 +338,18 @@ consider the implementation of the action of a simple 1D mass matrix
 :language: c
 :linenos: true
 ```
+In the following figure, we specialize the schematic used above for general operators so that 
+it corresponds to the specific setup and mass operators as implemented in the sample code. We show
+that the active output of the setup operator, combining the quadrature weights with the Jacobian 
+information for the mesh transformation, becomes a passive input to the mass operator.  Notations
+denote the libCEED function used to set the properties of the input and output fields. 
+
+(fig-operator-schematic-mass)=
+
+:::{figure} ../../img/libceed_schematic_op_setup_mass.svg
+Specific combination of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, $\bm{D}$, and input/output vectors
+corresponding to the libCEED operators in the t500-operator test
+:::
 
 The constructor
 
@@ -418,7 +440,7 @@ dimension using {c:func}`CeedBasisCreateTensorH1()`. Elements that do not have t
 product structure, such as symmetric elements on simplices, will be created
 using different constructors.
 
-The $\bm{G}$ operators for the mesh nodes, `elem_restr_x`, and the unknown field,
+The $\bm{\mathcal{E}}$ operators for the mesh nodes, `elem_restr_x`, and the unknown field,
 `elem_restr_u`, are specified in the {c:func}`CeedElemRestrictionCreate()`. Both of these
 specify directly the dof indices for each element in the `ind_x` and `ind_u`
 arrays:
@@ -441,17 +463,17 @@ contexts that involve problem-sized data.
 
 For discontinuous Galerkin and for applications such as Nek5000 that only
 explicitly store **E-vectors** (inter-element continuity has been subsumed by
-the parallel restriction $\bm{P}$), the element restriction $\bm{G}$
+the parallel restriction $\bm{P}$), the element restriction $\bm{\mathcal{E}}$
 is the identity and {c:func}`CeedElemRestrictionCreateStrided()` is used instead.
-We plan to support other structured representations of $\bm{G}$ which will
+We plan to support other structured representations of $\bm{\mathcal{E}}$ which will
 be added according to demand.
-There are two common approaches for supporting non-conforming elements: applying the node constraints via $\bm P$ so that the **L-vector** can be processed uniformly and applying the constraints via $\bm G$ so that the **E-vector** is uniform.
+There are two common approaches for supporting non-conforming elements: applying the node constraints via $\bm P$ so that the **L-vector** can be processed uniformly and applying the constraints via $\bm{\mathcal{E}}$ so that the **E-vector** is uniform.
 The former can be done with the existing interface while the latter will require a generalization to element restriction that would define field values at constrained nodes as linear combinations of the values at primary nodes.
 
-These operations, $\bm{P}$, $\bm{B}$, and $\bm{D}$,
+These operations, $\bm{\mathcal{E}}$, $\bm{B}$, and $\bm{D}$,
 are combined with a {ref}`CeedOperator`. As with {ref}`CeedQFunction`s, operator fields are added
 separately with a matching field name, basis ($\bm{B}$), element restriction
-($\bm{G}$), and **L-vector**. The flag
+($\bm{\mathcal{E}}$), and **L-vector**. The flag
 `CEED_VECTOR_ACTIVE` indicates that the vector corresponding to that field will
 be provided to the operator when {c:func}`CeedOperatorApply()` is called. Otherwise the
 input/output will be read from/written to the specified **L-vector**.

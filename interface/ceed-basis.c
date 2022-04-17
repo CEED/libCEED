@@ -290,6 +290,71 @@ int CeedBasisReference(CeedBasis basis) {
 }
 
 /**
+  @brief Estimate number of FLOPs required to apply CeedBasis in t_mode and eval_mode
+
+  @param basis     Basis to estimate FLOPs for
+  @param t_mode    Apply basis or transpose
+  @param eval_mode Basis evaluation mode
+  @param flops     Address of variable to hold FLOPs estimate
+
+  @ref Backend
+**/
+int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode,
+                              CeedEvalMode eval_mode, CeedSize *flops) {
+  int ierr;
+  bool is_tensor;
+
+  ierr = CeedBasisIsTensor(basis, &is_tensor); CeedChk(ierr);
+  if (is_tensor) {
+    CeedInt dim, num_comp, P_1d, Q_1d;
+    ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis, &P_1d);  CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d);  CeedChk(ierr);
+    if (t_mode == CEED_TRANSPOSE) {
+      P_1d = Q_1d; Q_1d = P_1d;
+    }
+    CeedInt tensor_flops = 0, pre = num_comp * CeedIntPow(P_1d, dim-1), post = 1;
+    for (CeedInt d = 0; d < dim; d++) {
+      tensor_flops += 2 * pre * P_1d * post * Q_1d;
+      pre /= P_1d;
+      post *= Q_1d;
+    }
+    switch (eval_mode) {
+    case CEED_EVAL_NONE:   *flops = 0; break;
+    case CEED_EVAL_INTERP: *flops = tensor_flops; break;
+    case CEED_EVAL_GRAD:   *flops = tensor_flops * 2; break;
+    case CEED_EVAL_DIV:
+      // LCOV_EXCL_START
+      return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE,
+                       "Tensor CEED_EVAL_DIV not supported"); break;
+    case CEED_EVAL_CURL:
+      return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE,
+                       "Tensor CEED_EVAL_CURL not supported"); break;
+    // LCOV_EXCL_STOP
+    case CEED_EVAL_WEIGHT: *flops = dim * CeedIntPow(Q_1d, dim); break;
+    }
+  } else {
+    CeedInt dim, num_comp, num_nodes, num_qpts, Q_comp;
+    ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
+    ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes(basis, &num_nodes); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints(basis, &num_qpts); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadratureComponents(basis, &Q_comp); CeedChk(ierr);
+    switch (eval_mode) {
+    case CEED_EVAL_NONE:   *flops = 0; break;
+    case CEED_EVAL_INTERP: *flops = num_nodes * num_qpts * num_comp; break;
+    case CEED_EVAL_GRAD:   *flops = num_nodes * num_qpts * num_comp * dim; break;
+    case CEED_EVAL_DIV:    *flops = num_nodes * num_qpts; break;
+    case CEED_EVAL_CURL:   *flops = num_nodes * num_qpts * dim; break;
+    case CEED_EVAL_WEIGHT: *flops = 0; break;
+    }
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get dimension for given CeedElemTopology
 
   @param topo      CeedElemTopology

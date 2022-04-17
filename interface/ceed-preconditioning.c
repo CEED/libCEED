@@ -911,6 +911,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf_restrict, "output", num_comp,
                                 CEED_EVAL_INTERP); CeedChk(ierr);
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp); CeedChk(ierr);
 
   ierr = CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, op_restrict);
@@ -944,6 +945,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf_prolong, "output", num_comp, CEED_EVAL_NONE);
   CeedChk(ierr);
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf_prolong, num_comp); CeedChk(ierr);
 
   ierr = CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE,
                             CEED_QFUNCTION_NONE, op_prolong);
@@ -2285,6 +2287,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   CeedChk(ierr);
   ierr = CeedQFunctionAddOutput(qf_fdm, "output", num_comp, CEED_EVAL_INTERP);
   CeedChk(ierr);
+  ierr = CeedQFunctionSetUserFlopsEstimate(qf_fdm, num_comp); CeedChk(ierr);
   // -- QFunction context
   CeedInt *num_comp_data;
   ierr = CeedCalloc(1, &num_comp_data); CeedChk(ierr);
