@@ -555,11 +555,14 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    Process Decomposition              : %D %D %D\n"
-                       "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned nodes                        : %D = %D %D %D\n"
-                       "    DoF per node                       : %D\n",
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Process Decomposition              : %" PetscInt_FMT
+                       " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Local Elements                     : %" PetscInt_FMT
+                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT
+                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
                        P, Q,  gsize/num_comp_u, p[0], p[1], p[2], local_elem,
@@ -903,7 +906,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

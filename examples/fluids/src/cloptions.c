@@ -134,7 +134,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
         for (PetscInt w = 0; w < bc->num_wall; w++)
           if (bc->slips[c][s] == bc->walls[w])
             SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                    "Boundary condition already set on face %D!\n",
+                    "Boundary condition already set on face %" PetscInt_FMT "!\n",
                     bc->walls[w]);
 
   // Inflow BCs

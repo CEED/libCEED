@@ -388,9 +388,9 @@ int main(int argc, char **argv) {
                        "    File                               : %s\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n"
-                       "    DoF per node                       : %D\n"
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n"
                        "  Multigrid:\n"
                        "    Type                               : %s\n"
                        "    Number of Levels                   : %d\n",
@@ -412,10 +412,10 @@ int main(int argc, char **argv) {
       for (PetscInt i = 0; i < 2; i++) {
         CeedInt level = i ? fine_level : 0;
         ierr = PetscPrintf(comm,
-                           "    Level %D (%s):\n"
+                           "    Level %" PetscInt_FMT " (%s):\n"
                            "      Number of 1D Basis Nodes (p)     : %d\n"
-                           "      Global Nodes                     : %D\n"
-                           "      Owned Nodes                      : %D\n",
+                           "      Global Nodes                     : %" PetscInt_FMT "\n"
+                           "      Owned Nodes                      : %" PetscInt_FMT "\n",
                            level, i ? "fine" : "coarse",
                            app_ctx->level_degrees[level] + 1,
                            U_g_size[level]/num_comp_u, U_l_size[level]/num_comp_u);
@@ -763,7 +763,7 @@ int main(int argc, char **argv) {
                        "    SNES Convergence                   : %s\n"
                        "    Number of Load Increments          : %d\n"
                        "    Completed Load Increments          : %d\n"
-                       "    Total SNES Iterations              : %D\n"
+                       "    Total SNES Iterations              : %" PetscInt_FMT "\n"
                        "    Final rnorm                        : %e\n",
                        snes_type, SNESConvergedReasons[reason],
                        app_ctx->num_increments, increment - 1,
@@ -777,7 +777,7 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm,
                        "  Linear Solver:\n"
                        "    KSP Type                           : %s\n"
-                       "    Total KSP Iterations               : %D\n",
+                       "    Total KSP Iterations               : %" PetscInt_FMT "\n",
                        ksp_type, ksp_its); CHKERRQ(ierr);
 
     // -- PC

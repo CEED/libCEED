@@ -190,9 +190,9 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (p)       : %d\n"
                        "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    DoF per node                       : %D\n"
-                       "    Global DoFs                        : %D\n",
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n"
+                       "    Global DoFs                        : %" PetscInt_FMT "\n",
                        used_resource, CeedMemTypes[mem_type_backend], P, Q,
                        g_size/num_comp_u, num_comp_u, g_size); CHKERRQ(ierr);
   }

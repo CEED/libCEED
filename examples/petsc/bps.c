@@ -183,10 +183,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    Local Elements                     : %D\n"
-                       "    Owned nodes                        : %D\n"
-                       "    DoF per node                       : %D\n",
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Local Elements                     : %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n",
                        rp->bp_choice+1, rp->hostname, comm_size,
                        rp->ranks_per_node, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
@@ -308,7 +308,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
