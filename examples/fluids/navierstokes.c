@@ -259,11 +259,11 @@ int main(int argc, char **argv) {
                        "  Mesh:\n"
                        "    Number of 1D Basis Nodes (P)       : %d\n"
                        "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global DoFs                        : %D\n"
-                       "    Owned DoFs                         : %D\n"
-                       "    DoFs per node                      : %D\n"
-                       "    Global nodes                       : %D\n"
-                       "    Owned nodes                        : %D\n",
+                       "    Global DoFs                        : %" PetscInt_FMT "\n"
+                       "    Owned DoFs                         : %" PetscInt_FMT "\n"
+                       "    DoFs per node                      : %" PetscInt_FMT "\n"
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT "\n",
                        num_P, num_Q, glob_dofs, owned_dofs, num_comp_q,
                        glob_nodes, owned_nodes); CHKERRQ(ierr);
   }

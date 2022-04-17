@@ -202,7 +202,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
   ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
   if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time integrator took %D time steps to reach final time %g\n",
+                       "Time integrator took %" PetscInt_FMT " time steps to reach final time %g\n",
                        steps, (double)final_time); CHKERRQ(ierr);
   }
 
