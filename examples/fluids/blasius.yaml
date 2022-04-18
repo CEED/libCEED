@@ -1,5 +1,6 @@
 problem: 'blasius'
 
+q_extra: 0
 implicit: true
 ts_max_snes_failures: -4
 ts_adapt_type: 'none'

@@ -175,20 +175,20 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
-    const CeedScalar P = rho * Rd * theta0;
+    const CeedScalar P = rho * Rd * theta0; // interior rho with exterior T
 
     // Find inflow state using calculated P and prescribed velocity, theta0
     const CeedScalar e_internal = cv * theta0;
-    const CeedScalar rho_in = P / ((gamma - 1) * e_internal);
 
     CeedScalar velocity[3] = {0.};
     BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
                     &context->newtonian_ctx);
 
-    const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
+    const CeedScalar E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
                                  velocity[1]*velocity[1] +
                                  velocity[2]*velocity[2]);
-    const CeedScalar E = rho_in * e_internal + E_kinetic;
+    const CeedScalar E = rho * e_internal + E_kinetic;  // use interior rho
+    // from T       and  u exterior
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
@@ -205,12 +205,12 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // -- Density
-    v[0][i] -= wdetJb * rho_in * u_normal;
+    v[0][i] -= wdetJb * rho * u_normal; // interior rho
 
     // -- Momentum
     for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb * (rho_in * u_normal * velocity[j] +
-                             norm[j] * P);
+      v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] + // interior rho
+                             norm[j] * P); // mixed P
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
