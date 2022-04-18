@@ -29,7 +29,7 @@ void slantTopWall(PetscInt dim, PetscInt Nf, PetscInt NfAux,
     PetscInt numConstants,      const PetscScalar constants[], PetscScalar f[]) {
 
   f[0] = u[0];
-  f[1] = (1 - u[0]*0.08) * u[1];
+  f[1] = (1 - u[0]*0.008) * u[1];
   f[2] = u[2];
 };
 

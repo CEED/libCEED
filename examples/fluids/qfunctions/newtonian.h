@@ -92,6 +92,99 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
 }
 
 // *****************************************************************************
+// Helper function for computing flux Jacobian Prim
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
+    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
+    const CeedScalar Rd, const CeedScalar cv ) {
+  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
+  // someone else can add this in later but assume zero g below CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
+
+  CeedScalar T    = ( E / rho - u_sq / 2. ) / cv;
+  CeedScalar drdT = -rho / T;
+  CeedScalar drdP = 1. / ( Rd * T);
+  CeedScalar etot =  E / rho ;
+  CeedScalar e2p  = drdP * ( etot + 1. );
+  CeedScalar e3p  = ( E  + rho * Rd * T );
+  CeedScalar e4p  = drdT * etot + rho * cv * T ;
+
+  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
+    for (CeedInt j=0; j<3; j++) { // j counts F^{m_j}
+ //        [row][col] of A_i
+      dF[i][j+1][0] = drdP * u[i] * u[j] + ((i==j) ? 1. : 0.); // F^{{m_j} wrt p 
+      for (CeedInt k=0; k<3; k++) { // k counts the wrt vel_k this loop handles middle columns for all 5 rows
+        dF[i][0][k+1]   =  ((i==k) ? rho    : 0.); // F^c wrt vel_k
+        dF[i][j+1][k+1] = (((j==k) ? u[i] : 0.) +  // F^m_j wrt u_k
+                           ((i==k) ? u[j] : 0.) ) * rho; 
+        dF[i][4][k+1]   =  rho * u[i] * u[k] 
+                        + ((i==k) ? e3p  : 0.) ; // F^e wrt u_k
+      }
+      dF[i][j+1][4] = drdT * u[i] * u[j]; // F^{m_j} wrt T
+    }
+    dF[i][4][0] = u[i] * e2p; // F^e wrt p 
+    dF[s][4][4] = u[i] * e4p; // F^e wrt T
+    dF[i][0][0] = u[i] * drdP; // F^c wrt p 
+    dF[s][0][4] = u[i] * drdT; // F^c wrt T
+  }
+}
+
+// *****************************************************************************
+// Helper function for computing Tau elements (stabilization constant)
+//   Model from:
+//     PHASTA
+//
+//   Tau[i] = itau=0 which is diagonal-Shakib (3 values still but not spatial)
+//
+// Where NOT UPDATED YET
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
+                      const CeedScalar dXdx[3][3], const CeedScalar u[3],
+                      const CeedScalar cv, const CeedScalar c_tau,
+                      const CeedScalar viscosity) {
+  const CeedScalar gijd[6];
+  const CeedScalar tau;
+  const CeedScalar fact;
+
+gijd[0] = dXdx[0][0] * dXdx[0][0]
+        + dXdx[1][0] * dXdx[1][0]
+        + dXdx[2][0] * dXdx[2][0];
+
+gijd[1] = dXdx[0][0] * dXdx[0][1]
+        + dXdx[1][0] * dXdx[1][1]
+        + dXdx[2][0] * dXdx[2][1];
+
+gijd[2] = dXdx[0][1] * dXdx[0][1]
+        + dXdx[1][1] * dXdx[1][1]
+        + dXdx[2][1] * dXdx[2][1];
+
+gijd[3] = dXdx[0][0] * dXdx[0][2]
+        + dXdx[1][0] * dXdx[1][2]
+        + dXdx[2][0] * dXdx[2][2];
+
+gijd[4] = dXdx[0][1] * dXdx[0][2]
+        + dXdx[1][1] * dXdx[1][2]
+        + dXdx[2][1] * dXdx[2][2];
+
+gijd[5] = dXdx[0][2] * dXdx[0][2]
+        + dXdx[1][2] * dXdx[1][2]
+        + dXdx[2][2] * dXdx[2][2];
+
+ // PHASTA combines this with 2 other time scales
+tau = u[0] * ( u[0] * gijd[0] + 2. * ( u[1] * gijd[1] + u[2] * gijd[3]))
+    + u[1] * ( u[1] * gijd[2] + 2. *   u[2] * gijd[4]) 
+    + u[2] *   u[2] * gijd[5]; 
+
+fact=sqrt(tau);
+
+Tau_d[0] = fact / (gijd[0] + gijd[2] + gijd[5])*c_tau; 
+// PHASTA has taucfact/8 insteadof c_tau 
+
+Tau_d[1] = 1. / fact; 
+Tau_d[2] = Tau_d[1] / cv; // *temper 
+// which in  PHASTA scales this but the scale default is 1. 
+
+
+// *****************************************************************************
 // Helper function for computing Tau elements (stabilization constant)
 //   Model from:
 //     Stabilized Methods for Compressible Flows, Hughes et al 2010
@@ -357,6 +450,8 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
     computeFluxJacobian_NS(jacob_F_conv, rho, u, E, gamma, g, x_i);
+    CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
+    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
 
     // dqdx collects drhodx, dUdx and dEdx in one vector
     CeedScalar dqdx[5][3];
@@ -418,8 +513,10 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     // Stabilization
     // -- Tau elements
     const CeedScalar sound_speed = sqrt(gamma * P / rho);
-    CeedScalar Tau_x[3] = {0.};
-    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
+    CeedScalar Tau_d[3] = {0.};
+    Tau_diagPrim(Tau_d, dXdx, u, cv, c_tau, mu);
+//    CeedScalar Tau_x[3] = {0.};
+//    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none or SU
     CeedScalar stab[5][3];
@@ -682,10 +779,16 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                 stab[j][2] * dXdx[k][2]);
       break;
     case STAB_SUPG:        // SUPG
+      tau_strong_res[0]=Tau_d[0] * strong_res[0];
+      tau_strong_res[1]=Tau_d[1] * strong_res[1];
+      tau_strong_res[2]=Tau_d[1] * strong_res[2];
+      tau_strong_res[3]=Tau_d[1] * strong_res[3];
+      tau_strong_res[4]=Tau_d[2] * strong_res[4];
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_res[l];
+            stab[k][j] = jacob_F_conv[j][k][l] * tau_strong_res[l];
+//            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_res[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
