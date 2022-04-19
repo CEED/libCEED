@@ -74,9 +74,9 @@ void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     fp  = fp_table[idx-1]  + coeff*( fp_table[idx]  - fp_table[idx-1] );
     fpp = fpp_table[idx-1] + coeff*( fpp_table[idx] - fpp_table[idx-1] );
   } else { // eta outside bounds of eta_table
-    f   = f_table[nprofs];
-    fp  = fp_table[nprofs];
-    fpp = fpp_table[nprofs];
+    f   = f_table[nprofs-1];
+    fp  = fp_table[nprofs-1];
+    fpp = fpp_table[nprofs-1];
   }
 
   *u = Uinf*fp;
@@ -182,7 +182,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar e_internal = cv * theta0;
 //    const CeedScalar rho_in = P / ((gamma - 1) * e_internal); // mixed up
     const CeedScalar rho_0 = P0 / ((gamma - 1) * e_internal); // rho exterior but what for?
-    const P=rho*Rd*theta0; // interior rho with exterior T
+    const CeedScalar P=rho*Rd*theta0; // interior rho with exterior T
 
     const CeedScalar x0     = Uinf*rho / (mu*28/ (delta0*delta0) );
     CeedScalar velocity[3] = {0.};
