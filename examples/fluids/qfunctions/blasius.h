@@ -173,16 +173,16 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
-    const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
-    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
-                                  u[2]*u[2]);
-    const CeedScalar P = E_internal * (gamma - 1.);
+//    const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
+//    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
+//                                  u[2]*u[2]);
+//    const CeedScalar P = E_internal * (gamma - 1.);
 
     // Find inflow state using calculated P and prescribed velocity, theta0
     const CeedScalar e_internal = cv * theta0;
-    const CeedScalar rho_in = P / ((gamma - 1) * e_internal); // mixed up
+//    const CeedScalar rho_in = P / ((gamma - 1) * e_internal); // mixed up
     const CeedScalar rho_0 = P0 / ((gamma - 1) * e_internal); // rho exterior but what for?
-    P=rho*Rd*theta0 // interior rho with exterior T
+    const P=rho*Rd*theta0; // interior rho with exterior T
 
     const CeedScalar x0     = Uinf*rho / (mu*28/ (delta0*delta0) );
     CeedScalar velocity[3] = {0.};
