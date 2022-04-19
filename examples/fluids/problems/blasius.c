@@ -74,7 +74,7 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
   PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
 
   for(int i=0; i<ncoords; i++) {
-    PetscInt y_box_index = coords[i][1]/dybox;
+    PetscInt y_box_index = round(coords[i][1]/dybox);
     if(y_box_index <= N) {
       coords[i][1] = (1 - (coords[i][0]/domain_max[0])*angle_coeff) *
                      dy1*(pow(growth, coords[i][1]/dybox)-1)/(growth-1);

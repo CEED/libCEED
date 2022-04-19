@@ -81,6 +81,7 @@ void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     f   = f_table[nprofs-1];
     fp  = fp_table[nprofs-1];
     fpp = fpp_table[nprofs-1];
+    eta = eta_table[nprofs-1];
   }
 
   *u = Uinf*fp;
