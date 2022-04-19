@@ -12,6 +12,19 @@
 #include "../qfunctions/newtonian.h"
 #include "../qfunctions/blasius.h"
 
+#ifndef blasius_context_struct
+#define blasius_context_struct
+typedef struct BlasiusContext_ *BlasiusContext;
+struct BlasiusContext_ {
+  bool       implicit;  // !< Using implicit timesteping or not
+  CeedScalar delta0;    // !< Boundary layer height at inflow
+  CeedScalar Uinf;      // !< Velocity at boundary layer edge
+  CeedScalar P0;        // !< Pressure at outflow
+  CeedScalar theta0;    // !< Temperature at inflow
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+};
+#endif
+
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
 #endif
@@ -26,7 +39,7 @@
  * outflow. It's angle is controlled by top_angle (in units of degrees).
  */
 PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
-                          PetscReal delta0, PetscReal top_angle) {
+                          PetscReal refine_height, PetscReal top_angle) {
 
   PetscInt ierr, narr, ncoords;
   PetscReal domain_min[3], domain_max[3], domain_size[3];
@@ -55,10 +68,10 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
 
   // Calculate the first element height
   PetscReal dybox = domain_size[1]/faces[1];
-  PetscReal dy1   = delta0*1.2*(growth-1)/(pow(growth, N)-1);
+  PetscReal dy1   = refine_height*(growth-1)/(pow(growth, N)-1);
 
   // Calculate log of sizing outside BL
-  PetscReal logdy = (log(domain_max[1]) - log(delta0*1.2)) / (faces[1] - N);
+  PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
 
   for(int i=0; i<ncoords; i++) {
     PetscInt y_box_index = coords[i][1]/dybox;
@@ -68,7 +81,7 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
     } else {
       PetscInt j = y_box_index - N;
       coords[i][1] = (1 - (coords[i][0]/domain_max[0])*angle_coeff) *
-                     exp(log(delta0*1.2) + logdy*j);
+                     exp(log(refine_height) + logdy*j);
     }
   }
 
@@ -87,8 +100,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
-
-  ierr = modifyMesh(dm, problem->dim, 1.08, 35, 5, 5); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->blasius_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP Blasius
@@ -102,7 +114,37 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->setup_ctx               = SetupContext_BLASIUS;
 
   // CeedScalar mu = .04; // Pa s, dynamic viscosity
-  CeedScalar mu = .4; // Pa s, dynamic viscosity
+  CeedScalar mu            = .4;   // Pa s, dynamic viscosity
+  CeedScalar Uinf          = 40;   // m/s
+  CeedScalar delta0        = 5;    // m
+  PetscReal  refine_height = 6;    // m
+  PetscReal  growth        = 1.08; // [-]
+  PetscInt   Ndelta        = 35;   // [-]
+  PetscReal  top_angle     = 5;    // degrees
+  CeedScalar theta0        = 300.; // K
+  CeedScalar P0            = 1.e5; // Pa
+
+  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
+  ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
+                            NULL, Uinf, &Uinf, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-delta0", "Boundary layer height at inflow",
+                            NULL, delta0, &delta0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-theta0", "Wall temperature",
+                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
+                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBoundedInt("-Ndelta", "Velocity at boundary layer edge",
+                                NULL, Ndelta, &Ndelta, NULL, 1); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-refine_height",
+                            "Height of boundary layer mesh refinement",
+                            NULL, refine_height, &refine_height, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-growth",
+                            "Geometric growth rate of boundary layer mesh",
+                            NULL, growth, &growth, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-top_angle",
+                            "Geometric top_angle rate of boundary layer mesh",
+                            NULL, top_angle, &top_angle, NULL); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscScalar meter           = user->units->meter;
   PetscScalar kilogram        = user->units->kilogram;
@@ -113,34 +155,48 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   PetscScalar m_per_squared_s = user->units->m_per_squared_s;
   PetscScalar W_per_m_K       = user->units->W_per_m_K;
 
-  user->phys->newtonian_ig_ctx->mu = mu*(Pascal * second);
+  mu     *= Pascal * second;
+  theta0 *= Kelvin;
+  P0     *= Pascal;
+  Uinf   *= meter / second;
+  delta0 *= meter;
+
+  ierr = modifyMesh(dm, problem->dim, growth, Ndelta, refine_height, top_angle);
+  CHKERRQ(ierr);
+
+  user->phys->blasius_ctx->Uinf      = Uinf;
+  user->phys->blasius_ctx->delta0    = delta0;
+  user->phys->blasius_ctx->theta0    = theta0;
+  user->phys->blasius_ctx->P0        = P0;
+  user->phys->blasius_ctx->implicit  = user->phys->implicit;
+
+  user->phys->newtonian_ig_ctx->mu = mu;
+  user->phys->blasius_ctx->newtonian_ctx = *user->phys->newtonian_ig_ctx;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
                                     AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
   PetscFunctionBeginUser;
+  PetscInt ierr;
   CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
   CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
                               sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionContextCreate(ceed, &ceed_data->newt_ig_context);
-  CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*phys->newtonian_ig_ctx), phys->newtonian_ig_ctx);
+  ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
+  CHKERRQ(ierr);
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->blasius_context);
+  CeedQFunctionContextSetData(ceed_data->blasius_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*phys->blasius_ctx), phys->blasius_ctx);
   phys->has_neumann = PETSC_TRUE;
   if (ceed_data->qf_ics)
-    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->newt_ig_context);
-  if (ceed_data->qf_rhs_vol)
-    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->newt_ig_context);
-  if (ceed_data->qf_ifunction_vol)
-    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
-                            ceed_data->newt_ig_context);
+    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->blasius_context);
   if (ceed_data->qf_apply_inflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_inflow, ceed_data->newt_ig_context);
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow, ceed_data->blasius_context);
   if (ceed_data->qf_apply_outflow)
     CeedQFunctionSetContext(ceed_data->qf_apply_outflow,
-                            ceed_data->newt_ig_context);
+                            ceed_data->blasius_context);
   PetscFunctionReturn(0);
 }
 

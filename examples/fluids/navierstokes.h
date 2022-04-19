@@ -132,7 +132,7 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector           x_coord, q_data;
   CeedQFunctionContext setup_context, newt_ig_context, advection_context,
-                       euler_context, channel_context;
+                       euler_context, channel_context, blasius_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
@@ -284,8 +284,22 @@ struct ChannelContext_ {
 };
 #endif
 
+#ifndef blasius_context_struct
+#define blasius_context_struct
+typedef struct BlasiusContext_ *BlasiusContext;
+struct BlasiusContext_ {
+  bool       implicit;  // !< Using implicit timesteping or not
+  CeedScalar delta0;    // !< Boundary layer height at inflow
+  CeedScalar Uinf;      // !< Velocity at boundary layer edge
+  CeedScalar P0;        // !< Pressure at outflow
+  CeedScalar theta0;    // !< Temperature at inflow
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+};
+#endif
+
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
+  BlasiusContext           blasius_ctx;
   ChannelContext           channel_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   EulerContext             euler_ctx;
