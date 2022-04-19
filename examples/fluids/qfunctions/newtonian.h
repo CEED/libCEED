@@ -130,6 +130,23 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
   }
 }
 
+CEED_QFUNCTION_HELPER void PrimitiveToConservative_fwd(const CeedScalar rho,
+    const CeedScalar u[3], const CeedScalar E, const CeedScalar Rd,
+    const CeedScalar cv, const CeedScalar dY[5], CeedScalar dU[5]) {
+  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
+  CeedScalar T    = ( E / rho - u_sq / 2. ) / cv;
+  CeedScalar drdT = -rho / T;
+  CeedScalar drdP = 1. / ( Rd * T);
+  dU[0] = drdP * dY[0] + drdT * dY[4];
+  CeedScalar de_kinetic = 0;
+  for (int i=0; i<3; i++) {
+    dU[1+i] = dU[0] * u[i] + rho * dY[1+i];
+    de_kinetic += u[i] * dY[1+i];
+  }
+  dU[4] = rho * cv * dY[4] + dU[0] * cv * T // internal energy: rho * e
+          + rho * de_kinetic + .5 * dU[0] * u_sq; // kinetic energy: .5 * rho * |u|^2
+}
+
 // *****************************************************************************
 // Helper function for computing Tau elements (stabilization constant)
 //   Model from:
@@ -763,7 +780,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3];
-    CeedScalar tau_strong_res[5] = {0.};
+    CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
     CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
@@ -789,11 +806,14 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_res[2] = Tau_d[1] * strong_res[2];
       tau_strong_res[3] = Tau_d[1] * strong_res[3];
       tau_strong_res[4] = Tau_d[2] * strong_res[4];
+      PrimitiveToConservative_fwd(rho, u, E, Rd, cv, tau_strong_res,
+                                  tau_strong_res_conservative);
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_p[j][k][l] * tau_strong_res[l];
-//            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_res[l];
+            stab[k][j] = jacob_F_conv_p[j][k][l] * tau_strong_res[l] * 0
+                         // flux Jacobian with respect to primitive
+                         + jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
