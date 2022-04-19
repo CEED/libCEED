@@ -425,7 +425,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
         dv[j][4][i] -= wdetJ * nu_shock * dEdx[j];
     }
 
-    // Stabilizatio
+    // Stabilization
     // Need the Jacobian for the advective fluxes for stabilization
     //    indexed as: jacob_F_conv[direction][flux component][solution component]
     CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
@@ -472,6 +472,197 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       break;
     }
 
+  } // End Quadrature Point Loop
+
+  // Return
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction implements the shocktube problem with (mentioned above)
+//   with implicit time stepping method
+//
+// *****************************************************************************
+CEED_QFUNCTION(IFunction_EulerShockTube)(void *ctx, CeedInt Q,
+                                const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+
+  EulerContext context = (EulerContext)ctx;
+  const CeedScalar c_tau = context->c_tau;
+  const CeedScalar gamma = 1.4;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // *INDENT-OFF*
+    // Setup
+    // -- Interp in
+    const CeedScalar rho        =   q[0][i];
+    const CeedScalar u[3]       =  {q[1][i] / rho,
+                                    q[2][i] / rho,
+                                    q[3][i] / rho
+                                   };
+    const CeedScalar E          =   q[4][i];
+    const CeedScalar drho[3]    =  {dq[0][0][i],
+                                    dq[1][0][i],
+                                    dq[2][0][i]
+                                   };
+    const CeedScalar dU[3][3]   = {{dq[0][1][i],
+                                    dq[1][1][i],
+                                    dq[2][1][i]},
+                                   {dq[0][2][i],
+                                    dq[1][2][i],
+                                    dq[2][2][i]},
+                                   {dq[0][3][i],
+                                    dq[1][3][i],
+                                    dq[2][3][i]}
+                                  };
+    const CeedScalar dE[3]      =  {dq[0][4][i],
+                                    dq[1][4][i],
+                                    dq[2][4][i]
+                                   };
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ      =   q_data[0][i];
+    // -- Interp-to-Grad q_data
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    // *INDENT-OFF*
+    const CeedScalar dXdx[3][3] = {{q_data[1][i],
+                                    q_data[2][i],
+                                    q_data[3][i]},
+                                   {q_data[4][i],
+                                    q_data[5][i],
+                                    q_data[6][i]},
+                                   {q_data[7][i],
+                                    q_data[8][i],
+                                    q_data[9][i]}
+                                  };
+    // *INDENT-ON*
+    // dU/dx
+    CeedScalar drhodx[3] = {0.};
+    CeedScalar dEdx[3] = {0.};
+    CeedScalar dUdx[3][3] = {{0.}};
+    CeedScalar dXdxdXdxT[3][3] = {{0.}};
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
+        drhodx[j] += drho[k] * dXdx[k][j];
+        dEdx[j] += dE[k] * dXdx[k][j];
+        for (int l=0; l<3; l++) {
+          dUdx[j][k] += dU[j][l] * dXdx[l][k];
+          dXdxdXdxT[j][k] += dXdx[j][l]*dXdx[k][l];  //dXdx_j,k * dXdx_k,j
+        }
+      }
+    }
+    const CeedScalar
+    E_kinetic  = 0.5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]),
+    E_internal = E - E_kinetic,
+    P          = E_internal * (gamma - 1.); // P = pressure
+
+    // The Physics
+    // Zero v and dv so all future terms can safely sum into it
+    for (int j=0; j<5; j++) {
+      v[j][i] = 0.;
+      for (int k=0; k<3; k++)
+        dv[k][j][i] = 0.;
+    }
+    //-----mass matrix
+    for (int j=0; j<5; j++)
+      v[j][i] += wdetJ*q_dot[j][i];
+
+    // -- Density
+    // ---- u rho
+    for (int j=0; j<3; j++)
+      dv[j][0][i]  -= wdetJ*(rho*u[0]*dXdx[j][0] + rho*u[1]*dXdx[j][1] +
+                             rho*u[2]*dXdx[j][2]);
+    // -- Momentum
+    // ---- rho (u x u) + P I3
+    for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        dv[k][j+1][i]  -= wdetJ*((rho*u[j]*u[0] + (j==0?P:0.))*dXdx[k][0] +
+                                 (rho*u[j]*u[1] + (j==1?P:0.))*dXdx[k][1] +
+                                 (rho*u[j]*u[2] + (j==2?P:0.))*dXdx[k][2]);
+    // -- Total Energy Density
+    // ---- (E + P) u
+    for (int j=0; j<3; j++)
+      dv[j][4][i]  -= wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
+                                         u[2]*dXdx[j][2]);
+
+    // -- Stabilization terms
+    // ---- jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
+    CeedScalar jacob_F_conv[3][5][5] = {{{0.}}};
+    ConvectiveFluxJacobian_Euler(jacob_F_conv, rho, u, E, gamma);
+
+    // ---- Transpose of the Jacobian
+    CeedScalar jacob_F_conv_T[3][5][5];
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          jacob_F_conv_T[j][k][l] = jacob_F_conv[j][l][k];
+
+    // ---- dqdx collects drhodx, dUdx and dEdx in one vector
+    CeedScalar dqdx[5][3];
+    for (int j=0; j<3; j++) {
+      dqdx[0][j] = drhodx[j];
+      dqdx[4][j] = dEdx[j];
+      for (int k=0; k<3; k++)
+        dqdx[k+1][j] = dUdx[k][j];
+    }
+
+    // ---- strong_conv = dF/dq * dq/dx    (Strong convection)
+    CeedScalar strong_conv[5] = {0.};
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
+        for (int l=0; l<5; l++)
+          strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+
+    // ---- Strong residual
+    CeedScalar strong_res[5];
+    for (int j=0; j<5; j++)
+      strong_res[j] = q_dot[j][i] + strong_conv[j];
+
+    // Stabilization
+    // -- Tau elements
+    const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    CeedScalar Tau_x[3] = {0.};
+    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
+
+    // -- Stabilization method: none, SU, or SUPG
+    CeedScalar stab[5][3];
+    switch (context->stabilization) {
+    case 0:        // Galerkin
+      break;
+    case 1:        // SU
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = jacob_F_conv_T[j][k][l] * Tau_x[j] * strong_conv[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
+      break;
+    case 2:        // SUPG stabilization
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            stab[k][j] = jacob_F_conv_T[j][l][k] * Tau_x[j] * strong_res[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                stab[j][1] * dXdx[k][1] +
+                                stab[j][2] * dXdx[k][2]);
+      break;
+    }
   } // End Quadrature Point Loop
 
   // Return
