@@ -1,23 +1,20 @@
 problem: 'blasius'
 
-dm_plex_box_faces: 10,10,1
 implicit: true
 ts_max_snes_failures: -4
 ts_adapt_type: 'none'
-ts_type: 'pseudo'
-ts_dt: 1e-7
-dm_plex_box_faces: 10,40,1
+ts_type: 'beuler'
+ts_dt: 2.e-8
+dm_plex_box_faces: 40,60,1
 degree: 1
 dm_plex_box_lower: 0,0,0
-dm_plex_box_upper: 1,1,.1
-dm_plex_box_upper: 10,10,.1
+dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
+
 dm_plex_dim: 3
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
 bc_slip_z: 1,2
-# bc_slip_y: 4
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
-# bc_outflow: 5
 bc_outflow: 5,4
 g: 0,0,0

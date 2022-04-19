@@ -114,15 +114,15 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   problem->setup_ctx               = SetupContext_BLASIUS;
 
   // CeedScalar mu = .04; // Pa s, dynamic viscosity
-  CeedScalar mu            = .4;   // Pa s, dynamic viscosity
+  CeedScalar mu            = 1.8e-5;   // Pa s, dynamic viscosity
   CeedScalar Uinf          = 40;   // m/s
-  CeedScalar delta0        = 5;    // m
-  PetscReal  refine_height = 6;    // m
+  CeedScalar delta0        = 4.2e-4;    // m
+  PetscReal  refine_height = 5.9e-4;    // m
   PetscReal  growth        = 1.08; // [-]
-  PetscInt   Ndelta        = 35;   // [-]
+  PetscInt   Ndelta        = 45;   // [-]
   PetscReal  top_angle     = 5;    // degrees
-  CeedScalar theta0        = 300.; // K
-  CeedScalar P0            = 1.e5; // Pa
+  CeedScalar theta0        = 288.; // K
+  CeedScalar P0            = 1.01e5; // Pa
 
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
   ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
