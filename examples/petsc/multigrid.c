@@ -228,7 +228,8 @@ int main(int argc, char **argv) {
     ierr = DMSetVecType(dm[i], vec_type); CHKERRQ(ierr);
     PetscInt dim;
     ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], level_degrees[i], q_extra, num_comp_u, dim,
+    ierr = SetupDMByDegree(dm[i], level_degrees[fine_level], q_extra,
+                           num_comp_u, dim,
                            bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func);
     CHKERRQ(ierr);
 
@@ -283,12 +284,13 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                         : %s\n"
                        "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)            : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q)      : %" CeedInt_FMT "\n"
+                       "    Number of 1D Basis Nodes (P)            : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q)      : %" CeedInt_FMT "\n"
                        "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
                        "    Global Nodes                            : %" PetscInt_FMT "\n"
                        "    Owned Nodes                             : %" PetscInt_FMT "\n"
                        "    DoF per node                            : %" PetscInt_FMT "\n"
+                       "    Element topology                        : %s\n"
                        "  Multigrid:\n"
                        "    Number of Levels                        : %" CeedInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
@@ -311,9 +313,9 @@ int main(int argc, char **argv) {
     // Print level information
     if (!test_mode && (i == 0 || i == fine_level)) {
       ierr = PetscPrintf(comm,"    Level %" PetscInt_FMT " (%s):\n"
-                         "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
-                         "      Global Nodes                     : %" PetscInt_FMT "\n"
-                         "      Owned Nodes                      : %" PetscInt_FMT "\n",
+                         "      Number of 1D Basis Nodes (P)          : %" CeedInt_FMT "\n"
+                         "      Global Nodes                          : %" PetscInt_FMT "\n"
+                         "      Owned Nodes                           : %" PetscInt_FMT "\n",
                          i, (i? "fine" : "coarse"), level_degrees[i] + 1,
                          g_size[i]/num_comp_u, l_size[i]/num_comp_u); CHKERRQ(ierr);
     }
@@ -398,7 +400,7 @@ int main(int argc, char **argv) {
 
     if (i > 0) {
       // Prolongation/Restriction Operator
-      ierr = CeedLevelTransferSetup(dm[i], ceed, i, num_comp_u, ceed_data,
+      ierr = CeedLevelTransferSetup(dm[i-1], ceed, i, num_comp_u, ceed_data,
                                     mult[i]); CHKERRQ(ierr);
       user_pr[i]->comm = comm;
       user_pr[i]->dmf = dm[i];
@@ -599,7 +601,7 @@ int main(int argc, char **argv) {
     }
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
-                         "    DoFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                            : %g (%g) million\n",
                          1e-6*g_size[fine_level]*its/rt_max,
                          1e-6*g_size[fine_level]*its/rt_min);
       CHKERRQ(ierr);

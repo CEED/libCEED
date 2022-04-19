@@ -148,16 +148,18 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        "    libCEED Backend                         : %s\n"
                        "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
-                       "    Global nodes                       : %" PetscInt_FMT "\n"
-                       "    Local Elements                     : %" PetscInt_FMT "\n"
-                       "    Owned nodes                        : %" PetscInt_FMT "\n"
-                       "    DoF per node                       : %" PetscInt_FMT "\n",
+                       "    Number of 1D Basis Nodes (P)            : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q)      : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                       "    Global nodes                            : %" PetscInt_FMT "\n"
+                       "    Local Elements                          : %" PetscInt_FMT "\n"
+                       "    Element topology                        : %s\n"
+                       "    Owned nodes                             : %" PetscInt_FMT "\n"
+                       "    DoF per node                            : %" PetscInt_FMT "\n",
                        rp->bp_choice+1, rp->hostname, comm_size,
                        rp->ranks_per_node, vec_type, used_resource,
-                       CeedMemTypes[mem_type_backend],
-                       P, Q, rp->q_extra, g_size/rp->num_comp_u, c_end - c_start,
+                       CeedMemTypes[mem_type_backend], P, Q, rp->q_extra,
+                       g_size/rp->num_comp_u, c_end - c_start,
                        CeedElemTopologies[elem_topo],
                        l_size/rp->num_comp_u, rp->num_comp_u);
     CHKERRQ(ierr);
@@ -348,7 +350,7 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
 
   PetscFunctionBeginUser;
   // Setup DM
-  CreateDistributedDM(rp, &dm);
+  ierr = CreateDistributedDM(rp, &dm); CHKERRQ(ierr);
 
   for (PetscInt b = 0; b < num_bp_choices; b++) {
     DM dm_deg;

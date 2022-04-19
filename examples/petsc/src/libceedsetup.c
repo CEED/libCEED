@@ -55,6 +55,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   PetscFunctionBeginUser;
   // CEED bases
   P = degree + 1;
@@ -74,6 +75,8 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 =======
   //ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
 >>>>>>> 0fa86f50 (example/petsc: Added CreateDistributedDM in petscutils.c and some cleanup)
+=======
+>>>>>>> 3b5f1ce9 (Fixed the uncompatible restriction size.)
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
 
   // CEED bases

@@ -199,12 +199,12 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                         : %s\n"
                        "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)            : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q)      : %" CeedInt_FMT "\n"
-                       "    Additional quadrature points (q_extra)  : %d\n"
+                       "    Number of 1D Basis Nodes (P)            : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q)      : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
                        "    Global nodes                            : %" PetscInt_FMT "\n",
                        bp_choice+1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q,
-                       g_size/num_comp_u); CHKERRQ(ierr);
+                       q_extra, g_size/num_comp_u); CHKERRQ(ierr);
   }
 
   // Create RHS vector
