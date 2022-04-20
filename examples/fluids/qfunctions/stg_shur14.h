@@ -119,11 +119,10 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
   CeedScalar ke, fcut, feta, kcut, keta, hmax, Ektot=0.0;
 
   hmax = PetscMax( PetscMax(h[0], h[1]), h[2]);
-
+  ke   = PetscMax(2*dw, 3*lt);
   keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
   kcut = M_PI/ PetscMin( PetscMax(PetscMax(h[1], h[2]), 0.3*hmax) + 0.1*dw,
                          hmax );
-
 
   for(CeedInt n=0; n<stg_ctx->nmodes; n++) {
     feta = exp(-pow(12*kappa[n]/keta, 2));
@@ -131,6 +130,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
     qn[n] = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
     Ektot += qn[n];
   }
+
   for(CeedInt n=0; n<stg_ctx->nmodes; n++) qn[n] /= Ektot;
 }
 
