@@ -149,11 +149,7 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
-  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
-  CHKERRQ(ierr);
-
-  // -- Set up context for QFunctions
-  ierr = problem->setup_ctx(ceed, ceed_data, app_ctx, setup_ctx, phys_ctx);
+  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, setup_ctx);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
