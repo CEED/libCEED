@@ -89,8 +89,8 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 // Sync arrays
 //------------------------------------------------------------------------------
 static inline int CeedVectorSync_Cuda(const CeedVector vec,
-    CeedScalarType prec,
-    CeedMemType mem_type) {
+                                      CeedScalarType prec,
+                                      CeedMemType mem_type) {
   switch (mem_type) {
   case CEED_MEM_HOST: return CeedVectorSyncD2H_Cuda(vec);
   case CEED_MEM_DEVICE: return CeedVectorSyncH2D_Cuda(vec);
