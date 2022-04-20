@@ -84,17 +84,17 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
     *lt     = prof_lt[idx-1]      + coeff*( prof_lt[idx]      - prof_lt[idx-1] );
     //*INDENT-ON*
   } else { // y outside bounds of prof_dw
-    ubar[0] = prof_ubar[0][stg_ctx->nprofs];
-    ubar[1] = prof_ubar[1][stg_ctx->nprofs];
-    ubar[2] = prof_ubar[2][stg_ctx->nprofs];
-    cij[0]  = prof_cij[0][stg_ctx->nprofs];
-    cij[1]  = prof_cij[1][stg_ctx->nprofs];
-    cij[2]  = prof_cij[2][stg_ctx->nprofs];
-    cij[3]  = prof_cij[3][stg_ctx->nprofs];
-    cij[4]  = prof_cij[4][stg_ctx->nprofs];
-    cij[5]  = prof_cij[5][stg_ctx->nprofs];
-    *eps    = prof_eps[stg_ctx->nprofs];
-    *lt     = prof_lt[stg_ctx->nprofs];
+    ubar[0] = prof_ubar[0][stg_ctx->nprofs-1];
+    ubar[1] = prof_ubar[1][stg_ctx->nprofs-1];
+    ubar[2] = prof_ubar[2][stg_ctx->nprofs-1];
+    cij[0]  = prof_cij[0][stg_ctx->nprofs-1];
+    cij[1]  = prof_cij[1][stg_ctx->nprofs-1];
+    cij[2]  = prof_cij[2][stg_ctx->nprofs-1];
+    cij[3]  = prof_cij[3][stg_ctx->nprofs-1];
+    cij[4]  = prof_cij[4][stg_ctx->nprofs-1];
+    cij[5]  = prof_cij[5][stg_ctx->nprofs-1];
+    *eps    = prof_eps[stg_ctx->nprofs-1];
+    *lt     = prof_lt[stg_ctx->nprofs-1];
   }
 }
 
