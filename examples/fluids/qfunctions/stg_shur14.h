@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #include "../src/setupstg_shur14.h"
 
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
+
 /*
  * @brief Interpolate quantities from input profile to given location
  *

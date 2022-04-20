@@ -82,9 +82,9 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
   ierr = PetscFOpen(comm, path, "r", fp); CHKERRQ(ierr);
   ierr = PetscSynchronizedFGets(comm, *fp, char_array_len, line); CHKERRQ(ierr);
   ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-  if(ndims != 2) SETERRQ2(comm, -1,
-                            "Found %d dimensions instead of 2 on the first line of %s",
-                            ndims, path);
+  if(ndims != 2) SETERRQ(comm, -1,
+                           "Found %d dimensions instead of 2 on the first line of %s",
+                           ndims, path);
 
   for (int i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
   ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
@@ -152,9 +152,9 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
   for (int i=0; i<stg_ctx->nprofs; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims < dims[1]) SETERRQ4(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
-                                   path, ndims, dims[1]);
+    if(ndims < dims[1]) SETERRQ(comm, -1,
+                                  "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                  path, ndims, dims[1]);
 
     prof_dw[i] = (CeedScalar) atof(array[0]);
     ubar[0][i] = (CeedScalar) atof(array[1]);
@@ -169,12 +169,12 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
     eps[i]     = (CeedScalar) atof(array[12]);
     lt[i]      = (CeedScalar) atof(array[13]);
 
-    if(prof_dw[i] < 0) SETERRQ1(comm, -1,
-                                  "Distance to wall in %s cannot be negative", path);
-    if(lt[i] < 0) SETERRQ1(comm, -1,
-                             "Turbulent length scale in %s cannot be negative", path);
-    if(eps[i] < 0) SETERRQ1(comm, -1,
-                              "Turbulent dissipation in %s cannot be negative", path);
+    if(prof_dw[i] < 0) SETERRQ(comm, -1,
+                                 "Distance to wall in %s cannot be negative", path);
+    if(lt[i] < 0) SETERRQ(comm, -1,
+                            "Turbulent length scale in %s cannot be negative", path);
+    if(eps[i] < 0) SETERRQ(comm, -1,
+                             "Turbulent dissipation in %s cannot be negative", path);
 
     CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
                                           &stg_ctx->data[stg_ctx->offsets.cij];
@@ -218,9 +218,9 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
   for (int i=0; i<stg_ctx->nmodes; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims < dims[1]) SETERRQ4(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
-                                   path, ndims, dims[1]);
+    if(ndims < dims[1]) SETERRQ(comm, -1,
+                                  "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                  path, ndims, dims[1]);
 
     d[0][i]     = (CeedScalar) atof(array[0]);
     d[1][i]     = (CeedScalar) atof(array[1]);
