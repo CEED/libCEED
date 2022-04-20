@@ -14,7 +14,8 @@
 #include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
-// Sync host to device
+// Get size of the scalar type
+// TODO: move to interface level for all backends?
 //------------------------------------------------------------------------------
 static inline int CeedScalarTypeGetSize_Hip(Ceed ceed, CeedScalarType prec,
     size_t *size) {
@@ -34,265 +35,6 @@ static inline int CeedScalarTypeGetSize_Hip(Ceed ceed, CeedScalarType prec,
   return CEED_ERROR_SUCCESS;
 }
 
-
-//------------------------------------------------------------------------------
-// Sync host to device
-//------------------------------------------------------------------------------
-static inline int CeedVectorSyncH2D_Hip(const CeedVector vec,
-                                        const CeedScalarType prec) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
-  CeedVector_Hip *impl;
-  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-
-  CeedSize length;
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  size_t prec_size;
-  ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
-  CeedChkBackend(ierr);
-  size_t bytes = length * prec_size;
-
-  if (!impl->h_array.values[prec])
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "No valid host data to sync to device");
-  // LCOV_EXCL_STOP
-
-  if (impl->d_array_borrowed.values[prec]) {
-    impl->d_array.values[prec] = impl->d_array_borrowed.values[prec];
-  } else if (impl->d_array_owned.values[prec]) {
-    impl->d_array.values[prec] = impl->d_array_owned.values[prec];
-  } else {
-    ierr = hipMalloc((void **)&impl->d_array_owned.values[prec], bytes);
-    CeedChk_Hip(ceed, ierr);
-    impl->d_array.values[prec] = impl->d_array_owned.values[prec];
-  }
-
-  ierr = hipMemcpy(impl->d_array.values[prec], impl->h_array.values[prec],
-                   bytes, hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Sync device to host
-//------------------------------------------------------------------------------
-static inline int CeedVectorSyncD2H_Hip(const CeedVector vec,
-                                        const CeedScalarType prec) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
-  CeedVector_Hip *impl;
-  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-
-  if (!impl->d_array.values[prec])
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "No valid device data to sync to host");
-  // LCOV_EXCL_STOP
-
-  CeedSize length;
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  size_t prec_size;
-  ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
-  CeedChkBackend(ierr);
-  size_t bytes = length * prec_size;
-
-  if (impl->h_array_borrowed.values[prec]) {
-    impl->h_array.values[prec] = impl->h_array_borrowed.values[prec];
-  } else if (impl->h_array_owned.values[prec]) {
-    impl->h_array.values[prec] = impl->h_array_owned.values[prec];
-  } else {
-    CeedSize length;
-    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-    ierr = CeedCallocArray(length, prec_size,&impl->h_array_owned.values[prec]);
-    CeedChkBackend(ierr);
-    impl->h_array.values[prec] = impl->h_array_owned.values[prec];
-  }
-
-  ierr = hipMemcpy(impl->h_array.values[prec], impl->d_array.values[prec],
-                   bytes, hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Sync arrays
-//------------------------------------------------------------------------------
-static inline int CeedVectorSync_Hip(const CeedVector vec,
-                                     CeedMemType mem_type,
-                                     CeedScalarType prec) {
-  switch (mem_type) {
-  case CEED_MEM_HOST: return CeedVectorSyncD2H_Hip(vec, prec);
-  case CEED_MEM_DEVICE: return CeedVectorSyncH2D_Hip(vec, prec);
-  }
-  return CEED_ERROR_UNSUPPORTED;
-}
-
-
-//------------------------------------------------------------------------------
-// Convert vector's host array to new precision.
-//------------------------------------------------------------------------------
-static int CeedVectorConvertArrayHost_Hip(CeedVector vec,
-    const CeedScalarType from_prec, const CeedScalarType to_prec) {
-  CeedInt ierr;
-  CeedSize length;
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  CeedVector_Hip *data;
-  ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
-
-  switch (from_prec) {
-
-  case CEED_SCALAR_FP64:
-    switch (to_prec) {
-    case CEED_SCALAR_FP64:
-      // No conversion needed
-      break;
-    case CEED_SCALAR_FP32:
-      if (!data->h_array.values[CEED_SCALAR_FP32]) {
-        if (!data->h_array_owned.values[CEED_SCALAR_FP32]) {
-          ierr = CeedMalloc(length,
-                            (float **) &data->h_array_owned.values[CEED_SCALAR_FP32]);
-          CeedChkBackend(ierr);
-        }
-        // Use owned memory
-        data->h_array.values[CEED_SCALAR_FP32] =
-          data->h_array_owned.values[CEED_SCALAR_FP32];
-      }
-      float *float_data = (float *) data->h_array.values[CEED_SCALAR_FP32];
-      double *double_data = (double *) data->h_array.values[CEED_SCALAR_FP64];
-      for (int i = 0; i < length; i++)
-        float_data[i] = (float) double_data[i];
-      break;
-    }
-    break;
-
-  case CEED_SCALAR_FP32:
-    switch (to_prec) {
-    case CEED_SCALAR_FP64:
-      if (!data->h_array.values[CEED_SCALAR_FP64]) {
-        if (!data->h_array_owned.values[CEED_SCALAR_FP64]) {
-          ierr = CeedMalloc(length,
-                            (double **) &data->h_array_owned.values[CEED_SCALAR_FP64]);
-          CeedChkBackend(ierr);
-        }
-        // Use owned memory
-        data->h_array.values[CEED_SCALAR_FP64] =
-          data->h_array_owned.values[CEED_SCALAR_FP64];
-      }
-      float *float_data = (float *) data->h_array.values[CEED_SCALAR_FP32];
-      double *double_data = (double *) data->h_array.values[CEED_SCALAR_FP64];
-      for (int i = 0; i < length; i++)
-        double_data[i] = (double) float_data[i];
-      break;
-    case CEED_SCALAR_FP32:
-      // No conversion needed
-      break;
-    }
-    break;
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Convert a double-precision array to single precision
-//------------------------------------------------------------------------------
-int CeedDeviceConvertArray_Hip_Fp64_Fp32(CeedInt length,
-    double *double_data, float *float_data);
-
-//------------------------------------------------------------------------------
-// Convert a single-precision array to double precision
-//------------------------------------------------------------------------------
-int CeedDeviceConvertArray_Hip_Fp32_Fp64(CeedInt length,
-    float *float_data, double *double_data);
-
-//------------------------------------------------------------------------------
-// Convert device array to new precision(impl of individual functions/kernels in
-// .hip.cpp file)
-//------------------------------------------------------------------------------
-static int CeedVectorConvertArrayDevice_Hip(CeedVector vec,
-    const CeedScalarType from_prec, const CeedScalarType to_prec) {
-
-  CeedSize length;
-  CeedInt ierr;
-  Ceed ceed;
-  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
-  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
-  CeedVector_Hip *data;
-  ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
-  switch (from_prec) {
-
-  case CEED_SCALAR_FP64:
-    switch (to_prec) {
-    case CEED_SCALAR_FP64:
-      // No conversion needed
-      break;
-    case CEED_SCALAR_FP32:
-      if (!data->d_array.values[CEED_SCALAR_FP32]) {
-        if (!data->d_array_owned.values[CEED_SCALAR_FP32]) {
-          size_t bytes = length * sizeof(float);
-          ierr = hipMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP32],
-                           bytes);
-          CeedChk_Hip(ceed, ierr);
-        }
-        // Use owned memory
-        data->d_array.values[CEED_SCALAR_FP32] =
-          data->d_array_owned.values[CEED_SCALAR_FP32];
-      }
-      ierr = CeedDeviceConvertArray_Hip_Fp64_Fp32(length,
-             (double *) data->d_array.values[CEED_SCALAR_FP64],
-             (float *) data->d_array.values[CEED_SCALAR_FP32]);
-      CeedChkBackend(ierr);
-      break;
-    }
-    break;
-
-  case CEED_SCALAR_FP32:
-    switch (to_prec) {
-    case CEED_SCALAR_FP64:
-      if (!data->d_array.values[CEED_SCALAR_FP64]) {
-        if (!data->d_array_owned.values[CEED_SCALAR_FP64]) {
-          size_t bytes = length * sizeof(double);
-          ierr = hipMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP64],
-                           bytes);
-          CeedChk_Hip(ceed, ierr);
-        }
-        // Use owned memory
-        data->d_array.values[CEED_SCALAR_FP64] =
-          data->d_array_owned.values[CEED_SCALAR_FP64];
-      }
-      ierr = CeedDeviceConvertArray_Hip_Fp32_Fp64(length,
-             (float *) data->d_array.values[CEED_SCALAR_FP32],
-             (double *) data->d_array.values[CEED_SCALAR_FP64]);
-      CeedChkBackend(ierr);
-      break;
-    case CEED_SCALAR_FP32:
-      // No conversion needed
-      break;
-    }
-    break;
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Convert data array from one precision to another (through copy/cast).
-//------------------------------------------------------------------------------
-static int CeedVectorConvertArray_Hip(CeedVector vec,
-                                      const CeedMemType mem_type,
-                                      const CeedScalarType from_prec,
-                                      const CeedScalarType to_prec) {
-
-  switch (mem_type) {
-  case CEED_MEM_HOST: return CeedVectorConvertArrayHost_Hip(vec, from_prec,
-                               to_prec);
-  case CEED_MEM_DEVICE: return CeedVectorConvertArrayDevice_Hip(vec, from_prec,
-                                 to_prec);
-  }
-  return CEED_ERROR_UNSUPPORTED;
-}
-
 //------------------------------------------------------------------------------
 // Set all pointers as invalid
 //------------------------------------------------------------------------------
@@ -304,41 +46,6 @@ static inline int CeedVectorSetAllInvalid_Hip(const CeedVector vec) {
   for (int i = 0; i < CEED_NUM_PRECISIONS; i++) {
     impl->h_array.values[i] = NULL;
     impl->d_array.values[i] = NULL;
-  }
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Return the scalar type of the valid array on mem_type, or the "preferred
-//   precision" for copying, if more than one precision is valid. If no
-//   precisions are valid on the specified mem_type, it will return
-//   CEED_SCALAR_TYPE (default precision); you should check for a valid array
-//   separately.
-//------------------------------------------------------------------------------
-static inline int CeedVectorGetPrecision_Hip(const CeedVector vec,
-    const CeedMemType mem_type, CeedScalarType *preferred_precision) {
-
-  int ierr;
-  CeedVector_Hip *impl;
-  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
-
-  *preferred_precision = CEED_SCALAR_TYPE;
-  // Check for valid precisions, from most to least precise precise (we want
-  // the most precision if multiple arrays are valid)
-  switch (mem_type) {
-  case CEED_MEM_HOST:
-    if (!!impl->h_array.values[CEED_SCALAR_FP64])
-      *preferred_precision = CEED_SCALAR_FP64;
-    else if (!!impl->h_array.values[CEED_SCALAR_FP32])
-      *preferred_precision = CEED_SCALAR_FP32;
-    break;
-  case CEED_MEM_DEVICE:
-    if (!!impl->d_array.values[CEED_SCALAR_FP64])
-      *preferred_precision = CEED_SCALAR_FP64;
-    else if (!!impl->d_array.values[CEED_SCALAR_FP32])
-      *preferred_precision = CEED_SCALAR_FP32;
-    break;
   }
 
   return CEED_ERROR_SUCCESS;
@@ -436,6 +143,310 @@ static inline int CeedVectorHasBorrowedArrayOfType_Hip(const CeedVector vec,
   return CEED_ERROR_SUCCESS;
 }
 
+
+//------------------------------------------------------------------------------
+// Return the scalar type of the valid array on mem_type, or the "preferred
+//   precision" for copying, if more than one precision is valid. If no
+//   precisions are valid on the specified mem_type, it will return
+//   CEED_SCALAR_TYPE (default precision); you should check for a valid array
+//   separately.
+//------------------------------------------------------------------------------
+static inline int CeedVectorGetPrecision_Hip(const CeedVector vec,
+    const CeedMemType mem_type, CeedScalarType *preferred_precision) {
+
+  int ierr;
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  *preferred_precision = CEED_SCALAR_TYPE;
+  // Check for valid precisions, from most to least precise precise (we want
+  // the most precision if multiple arrays are valid)
+  switch (mem_type) {
+  case CEED_MEM_HOST:
+    if (!!impl->h_array.values[CEED_SCALAR_FP64])
+      *preferred_precision = CEED_SCALAR_FP64;
+    else if (!!impl->h_array.values[CEED_SCALAR_FP32])
+      *preferred_precision = CEED_SCALAR_FP32;
+    break;
+  case CEED_MEM_DEVICE:
+    if (!!impl->d_array.values[CEED_SCALAR_FP64])
+      *preferred_precision = CEED_SCALAR_FP64;
+    else if (!!impl->d_array.values[CEED_SCALAR_FP32])
+      *preferred_precision = CEED_SCALAR_FP32;
+    break;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Convert vector's host array to new precision.
+//------------------------------------------------------------------------------
+static int CeedVectorConvertArrayHost_Hip(CeedVector vec,
+    const CeedScalarType from_prec, const CeedScalarType to_prec) {
+  CeedInt ierr;
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  CeedVector_Hip *data;
+  ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
+
+  switch (from_prec) {
+
+  case CEED_SCALAR_FP64:
+    switch (to_prec) {
+    case CEED_SCALAR_FP64:
+      // No conversion needed
+      break;
+    case CEED_SCALAR_FP32:
+      if (!data->h_array.values[CEED_SCALAR_FP32]) {
+        // Use borrowed memory, if we have it for this precision
+        if (data->h_array_borrowed.values[CEED_SCALAR_FP32]) {
+          data->h_array.values[CEED_SCALAR_FP32] =
+            data->h_array_borrowed.values[CEED_SCALAR_FP32];
+        } else {
+          // Use owned memory
+          if (!data->h_array_owned.values[CEED_SCALAR_FP32]) {
+            ierr = CeedMalloc(length,
+                              (float **) &data->h_array_owned.values[CEED_SCALAR_FP32]);
+            CeedChkBackend(ierr);
+          }
+          data->h_array.values[CEED_SCALAR_FP32] =
+            data->h_array_owned.values[CEED_SCALAR_FP32];
+        }
+      }
+      float *float_data = (float *) data->h_array.values[CEED_SCALAR_FP32];
+      double *double_data = (double *) data->h_array.values[CEED_SCALAR_FP64];
+      for (int i = 0; i < length; i++)
+        float_data[i] = (float) double_data[i];
+      break;
+    }
+    break;
+
+  case CEED_SCALAR_FP32:
+    switch (to_prec) {
+    case CEED_SCALAR_FP64:
+      if (!data->h_array.values[CEED_SCALAR_FP64]) {
+        // Use borrowed memory, if we have it for this precision
+        if (data->h_array_borrowed.values[CEED_SCALAR_FP64]) {
+          data->h_array.values[CEED_SCALAR_FP64] =
+            data->h_array_borrowed.values[CEED_SCALAR_FP64];
+        } else {
+          // Use owned memory
+          if (!data->h_array_owned.values[CEED_SCALAR_FP64]) {
+            ierr = CeedMalloc(length,
+                              (double **) &data->h_array_owned.values[CEED_SCALAR_FP64]);
+            CeedChkBackend(ierr);
+          }
+          data->h_array.values[CEED_SCALAR_FP64] =
+            data->h_array_owned.values[CEED_SCALAR_FP64];
+        }
+      }
+      float *float_data = (float *) data->h_array.values[CEED_SCALAR_FP32];
+      double *double_data = (double *) data->h_array.values[CEED_SCALAR_FP64];
+      for (int i = 0; i < length; i++)
+        double_data[i] = (double) float_data[i];
+      break;
+    case CEED_SCALAR_FP32:
+      // No conversion needed
+      break;
+    }
+    break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Convert a double-precision array to single precision
+//------------------------------------------------------------------------------
+int CeedDeviceConvertArray_Hip_Fp64_Fp32(CeedInt length,
+    double *double_data, float *float_data);
+
+//------------------------------------------------------------------------------
+// Convert a single-precision array to double precision
+//------------------------------------------------------------------------------
+int CeedDeviceConvertArray_Hip_Fp32_Fp64(CeedInt length,
+    float *float_data, double *double_data);
+
+//------------------------------------------------------------------------------
+// Convert device array to new precision(impl of individual functions/kernels in
+// .hip.cpp file)
+//------------------------------------------------------------------------------
+static int CeedVectorConvertArrayDevice_Hip(CeedVector vec,
+    const CeedScalarType from_prec, const CeedScalarType to_prec) {
+
+  CeedSize length;
+  CeedInt ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  CeedVector_Hip *data;
+  ierr = CeedVectorGetData(vec, &data); CeedChkBackend(ierr);
+  switch (from_prec) {
+
+  case CEED_SCALAR_FP64:
+    switch (to_prec) {
+    case CEED_SCALAR_FP64:
+      // No conversion needed
+      break;
+    case CEED_SCALAR_FP32:
+      if (!data->d_array.values[CEED_SCALAR_FP32]) {
+        // Use borrowed memory, if we have it for this precision
+        if (data->d_array_borrowed.values[CEED_SCALAR_FP32]) {
+          data->d_array.values[CEED_SCALAR_FP32] =
+            data->d_array_borrowed.values[CEED_SCALAR_FP32];
+        } else {
+          // Use owned memory
+          if (!data->d_array_owned.values[CEED_SCALAR_FP32]) {
+            size_t bytes = length * sizeof(float);
+            ierr = hipMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP32],
+                             bytes);
+            CeedChk_Hip(ceed, ierr);
+          }
+          data->d_array.values[CEED_SCALAR_FP32] =
+            data->d_array_owned.values[CEED_SCALAR_FP32];
+        }
+      }
+      ierr = CeedDeviceConvertArray_Hip_Fp64_Fp32(length,
+             (double *) data->d_array.values[CEED_SCALAR_FP64],
+             (float *) data->d_array.values[CEED_SCALAR_FP32]);
+      CeedChkBackend(ierr);
+      break;
+    }
+    break;
+
+  case CEED_SCALAR_FP32:
+    switch (to_prec) {
+    case CEED_SCALAR_FP64:
+      if (!data->d_array.values[CEED_SCALAR_FP64]) {
+        // Use borrowed memory, if we have it for this precision
+        if (data->d_array_borrowed.values[CEED_SCALAR_FP64]) {
+          data->d_array.values[CEED_SCALAR_FP64] =
+            data->d_array_borrowed.values[CEED_SCALAR_FP64];
+        } else {
+          // Use owned memory
+          if (!data->d_array_owned.values[CEED_SCALAR_FP64]) {
+            size_t bytes = length * sizeof(double);
+            ierr = hipMalloc((void **)&data->d_array_owned.values[CEED_SCALAR_FP64],
+                             bytes);
+            CeedChk_Hip(ceed, ierr);
+          }
+          data->d_array.values[CEED_SCALAR_FP64] =
+            data->d_array_owned.values[CEED_SCALAR_FP64];
+        }
+      }
+      ierr = CeedDeviceConvertArray_Hip_Fp32_Fp64(length,
+             (float *) data->d_array.values[CEED_SCALAR_FP32],
+             (double *) data->d_array.values[CEED_SCALAR_FP64]);
+      CeedChkBackend(ierr);
+      break;
+    case CEED_SCALAR_FP32:
+      // No conversion needed
+      break;
+    }
+    break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Convert data array from one precision to another (through copy/cast).
+//------------------------------------------------------------------------------
+static int CeedVectorConvertArray_Hip(CeedVector vec,
+                                      const CeedMemType mem_type,
+                                      const CeedScalarType from_prec,
+                                      const CeedScalarType to_prec) {
+
+  switch (mem_type) {
+  case CEED_MEM_HOST: return CeedVectorConvertArrayHost_Hip(vec, from_prec,
+                               to_prec);
+  case CEED_MEM_DEVICE: return CeedVectorConvertArrayDevice_Hip(vec, from_prec,
+                                 to_prec);
+  }
+  return CEED_ERROR_UNSUPPORTED;
+}
+
+//------------------------------------------------------------------------------
+// Sync host to device
+//------------------------------------------------------------------------------
+static inline int CeedVectorSyncH2D_Hip(const CeedVector vec,
+                                        const CeedScalarType prec) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t prec_size;
+  ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
+  CeedChkBackend(ierr);
+  size_t bytes = length * prec_size;
+
+  if (!impl->h_array.values[prec])
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "No valid host data to sync to device");
+  // LCOV_EXCL_STOP
+
+  if (impl->d_array_borrowed.values[prec]) {
+    impl->d_array.values[prec] = impl->d_array_borrowed.values[prec];
+  } else if (impl->d_array_owned.values[prec]) {
+    impl->d_array.values[prec] = impl->d_array_owned.values[prec];
+  } else {
+    ierr = hipMalloc((void **)&impl->d_array_owned.values[prec], bytes);
+    CeedChk_Hip(ceed, ierr);
+    impl->d_array.values[prec] = impl->d_array_owned.values[prec];
+  }
+
+  ierr = hipMemcpy(impl->d_array.values[prec], impl->h_array.values[prec],
+                   bytes, hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Sync device to host
+//------------------------------------------------------------------------------
+static inline int CeedVectorSyncD2H_Hip(const CeedVector vec,
+                                        const CeedScalarType prec) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+
+  if (!impl->d_array.values[prec])
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "No valid device data to sync to host");
+  // LCOV_EXCL_STOP
+
+  CeedSize length;
+  ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+  size_t prec_size;
+  ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
+  CeedChkBackend(ierr);
+  size_t bytes = length * prec_size;
+
+  if (impl->h_array_borrowed.values[prec]) {
+    impl->h_array.values[prec] = impl->h_array_borrowed.values[prec];
+  } else if (impl->h_array_owned.values[prec]) {
+    impl->h_array.values[prec] = impl->h_array_owned.values[prec];
+  } else {
+    CeedSize length;
+    ierr = CeedVectorGetLength(vec, &length); CeedChkBackend(ierr);
+    ierr = CeedCallocArray(length, prec_size,&impl->h_array_owned.values[prec]);
+    CeedChkBackend(ierr);
+    impl->h_array.values[prec] = impl->h_array_owned.values[prec];
+  }
+
+  ierr = hipMemcpy(impl->h_array.values[prec], impl->d_array.values[prec],
+                   bytes, hipMemcpyDeviceToHost); CeedChk_Hip(ceed, ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Check if the only current valid array is on another MemType than mem_type
 //------------------------------------------------------------------------------
@@ -454,6 +465,78 @@ static inline int CeedVectorNeedSync_Hip(const CeedVector vec,
 
   // Check if we have a valid array, but not for the correct memory type
   *need_sync = has_valid_array && !has_valid_array_of_mem_type;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Sync arrays between host and device
+//------------------------------------------------------------------------------
+static int CeedVectorSyncArrayGeneric_Hip(const CeedVector vec,
+    CeedMemType mem_type,
+    CeedScalarType prec) {
+
+  int ierr;
+
+  // Check whether device/host sync is needed
+  bool need_sync = false;
+  ierr = CeedVectorNeedSync_Hip(vec, mem_type, &need_sync);
+  CeedChkBackend(ierr);
+  if (!need_sync)
+    return CEED_ERROR_SUCCESS;
+
+  Ceed ceed;
+  ierr = CeedVectorGetCeed(vec, &ceed); CeedChkBackend(ierr);
+  CeedMemType source_mem_type = CEED_MEM_HOST;
+  if (mem_type == CEED_MEM_HOST) source_mem_type = CEED_MEM_DEVICE;
+  // Sync array to requested mem_type
+  // Figure out which current precision we have to convert from
+  CeedScalarType source_cur_prec;
+  ierr = CeedVectorGetPrecision_Hip(vec, source_mem_type, &source_cur_prec);
+  CeedChkBackend(ierr);
+  bool need_convert = false;
+  CeedScalarType sync_prec = prec;
+  if (source_cur_prec != prec) {
+    size_t cur_prec_size, prec_size;
+    ierr = CeedScalarTypeGetSize_Hip(ceed, source_cur_prec, &cur_prec_size);
+    CeedChkBackend(ierr);
+    size_t ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
+    CeedChkBackend(ierr);
+
+    // If the size of the current precision's data type is greater than
+    // the destination precision, we want to convert first, then sync,
+    // to reduce size of memory movement between host and device
+    if (cur_prec_size > prec_size) {
+      ierr = CeedVectorConvertArray_Hip(vec, source_mem_type, source_cur_prec, prec);
+      CeedChkBackend(ierr);
+    }
+    // Else, we will sync first, then convert
+    else {
+      sync_prec = source_cur_prec;
+      need_convert = true;
+    }
+  }
+
+  // Perform sync between host and device in destination precision
+  switch (mem_type) {
+  case CEED_MEM_HOST:
+    ierr = CeedVectorSyncD2H_Hip(vec, sync_prec); CeedChkBackend(ierr);
+    break;
+  case CEED_MEM_DEVICE:
+    ierr = CeedVectorSyncH2D_Hip(vec, sync_prec); CeedChkBackend(ierr);
+    break;
+  default:
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Invalid memory type specified");
+    // LCOV_EXCL_STOP
+  }
+
+  // Perform conversion, if still necessary
+  if (need_convert) {
+    ierr = CeedVectorConvertArray_Hip(vec, mem_type, source_cur_prec, prec);
+    CeedChkBackend(ierr);
+  }
 
   return CEED_ERROR_SUCCESS;
 }
@@ -654,43 +737,18 @@ static int CeedVectorTakeArrayGeneric_Hip(CeedVector vec, CeedMemType mem_type,
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  bool need_sync = false;
-  ierr = CeedVectorNeedSync_Hip(vec, mem_type, &need_sync);
+  // Sync host/device (if necessary, otherwise the function will return)
+  ierr = CeedVectorSyncArrayGeneric_Hip(vec, mem_type, prec);
   CeedChkBackend(ierr);
-  if (need_sync) {
-    CeedMemType source_mem_type = CEED_MEM_HOST;
-    if (mem_type == CEED_MEM_HOST) source_mem_type = CEED_MEM_DEVICE;
-    // Sync array to requested mem_type
-    // Figure out which current precision we have to convert from
-    CeedScalarType source_cur_prec;
-    ierr = CeedVectorGetPrecision_Hip(vec, source_mem_type, &source_cur_prec);
-    CeedChkBackend(ierr);
-    if (source_cur_prec != prec) {
-      size_t cur_prec_size, prec_size;
-      ierr = CeedScalarTypeGetSize_Hip(ceed, source_cur_prec, &cur_prec_size);
-      CeedChkBackend(ierr);
-      size_t ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
-      CeedChkBackend(ierr);
 
-      // If the size of the current precision's data type is less than
-      // the destination precision, we want to sync first and then convert (conversion
-      // handled outside this sync check).
-      if (cur_prec_size < prec_size) {
-        ierr = CeedVectorSync_Hip(vec, mem_type, source_cur_prec); CeedChkBackend(ierr);
-        CeedChkBackend(ierr);
-      } else {
-        ierr = CeedVectorConvertArray_Hip(vec, source_mem_type, source_cur_prec, prec);
-        ierr = CeedVectorSync_Hip(vec, mem_type, prec); CeedChkBackend(ierr);
-      }
-    } else
-      ierr = CeedVectorSync_Hip(vec, mem_type, prec); CeedChkBackend(ierr);
-  }
   // Check if we need to convert from another precision
   CeedScalarType cur_prec;
   ierr = CeedVectorGetPrecision_Hip(vec, mem_type, &cur_prec);
   CeedChkBackend(ierr);
-  if (cur_prec != prec)
+  if (cur_prec != prec) {
     ierr = CeedVectorConvertArray_Hip(vec, mem_type, cur_prec, prec);
+    CeedChkBackend(ierr);
+  }
 
   // Update pointer
   switch (mem_type) {
@@ -723,43 +781,19 @@ static int CeedVectorGetArrayCore_Hip(const CeedVector vec,
   CeedVector_Hip *impl;
   ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
 
-  bool need_sync = false;
-  ierr = CeedVectorNeedSync_Hip(vec, mem_type, &need_sync);
+  // Sync host/device (if necessary, otherwise the function will return)
+  ierr = CeedVectorSyncArrayGeneric_Hip(vec, mem_type, prec);
   CeedChkBackend(ierr);
-  if (need_sync) {
-    CeedMemType source_mem_type = CEED_MEM_HOST;
-    if (mem_type == CEED_MEM_HOST) source_mem_type = CEED_MEM_DEVICE;
-    // Sync array to requested mem_type
-    // Figure out which current precision we have to convert from
-    CeedScalarType source_cur_prec;
-    ierr = CeedVectorGetPrecision_Hip(vec, source_mem_type, &source_cur_prec);
-    CeedChkBackend(ierr);
-    if (source_cur_prec != prec) {
-      size_t cur_prec_size, prec_size;
-      ierr = CeedScalarTypeGetSize_Hip(ceed, source_cur_prec, &cur_prec_size);
-      CeedChkBackend(ierr);
-      size_t ierr = CeedScalarTypeGetSize_Hip(ceed, prec, &prec_size);
-      CeedChkBackend(ierr);
 
-      // If the size of the current precision's data type is less than
-      // the destination precision, we want to sync first and then convert (conversion
-      // handled outside this sync check).
-      if (cur_prec_size < prec_size) {
-        ierr = CeedVectorSync_Hip(vec, mem_type, source_cur_prec); CeedChkBackend(ierr);
-        CeedChkBackend(ierr);
-      } else {
-        ierr = CeedVectorConvertArray_Hip(vec, source_mem_type, source_cur_prec, prec);
-        ierr = CeedVectorSync_Hip(vec, mem_type, prec); CeedChkBackend(ierr);
-      }
-    } else
-      ierr = CeedVectorSync_Hip(vec, mem_type, prec); CeedChkBackend(ierr);
-  }
   // Check if we need to convert from another precision
   CeedScalarType cur_prec;
   ierr = CeedVectorGetPrecision_Hip(vec, mem_type, &cur_prec);
   CeedChkBackend(ierr);
-  if (cur_prec != prec)
+  if (cur_prec != prec) {
     ierr = CeedVectorConvertArray_Hip(vec, mem_type, cur_prec, prec);
+    CeedChkBackend(ierr);
+  }
+
   // Update pointer
   switch (mem_type) {
   case CEED_MEM_HOST:
@@ -1143,6 +1177,8 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
                                 CeedVectorTakeArrayGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetValue",
                                 (int (*)())(CeedVectorSetValue_Hip)); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SyncArrayGeneric",
+                                CeedVectorSyncArrayGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayGeneric",
                                 CeedVectorGetArrayGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayReadGeneric",

@@ -88,7 +88,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 //------------------------------------------------------------------------------
 // Sync arrays
 //------------------------------------------------------------------------------
-static inline int CeedVectorSyncGeneric_Cuda(const CeedVector vec,
+static inline int CeedVectorSync_Cuda(const CeedVector vec,
     CeedScalarType prec,
     CeedMemType mem_type) {
   switch (mem_type) {

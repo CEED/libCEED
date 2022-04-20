@@ -842,6 +842,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, SetArrayGeneric),
     CEED_FTABLE_ENTRY(CeedVector, TakeArrayGeneric),
     CEED_FTABLE_ENTRY(CeedVector, SetValue),
+    CEED_FTABLE_ENTRY(CeedVector, SyncArrayGeneric),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayGeneric),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayReadGeneric),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayWriteGeneric),
