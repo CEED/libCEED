@@ -304,6 +304,46 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Version of SetArray for single precision arrays.
+
+  @param vec        CeedVector
+  @param mem_type   Memory type of the array being passed
+  @param copy_mode  Copy mode for the array
+  @param array      Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
+                      library allocate
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetArrayFP32(CeedVector vec, CeedMemType mem_type,
+                           CeedCopyMode copy_mode,
+                           float *array) {
+  return CeedVectorSetArrayGeneric(vec, mem_type, CEED_SCALAR_FP32, copy_mode,
+                                   (void **) array);
+}
+
+/**
+  @brief Version of SetArray for double precision arrays.
+
+  @param vec        CeedVector
+  @param mem_type   Memory type of the array being passed
+  @param copy_mode  Copy mode for the array
+  @param array      Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
+                      library allocate
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetArrayFP64(CeedVector vec, CeedMemType mem_type,
+                           CeedCopyMode copy_mode,
+                           double *array) {
+  return CeedVectorSetArrayGeneric(vec, mem_type, CEED_SCALAR_FP64, copy_mode,
+                                   (void **) array);
+}
+
+/**
   @brief Set the CeedVector to a constant value
 
   @param vec        CeedVector
@@ -394,6 +434,34 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
 }
 
 /**
+  @brief Sync the CeedVector to a specified memtype for single precision.
+
+  @param vec       CeedVector
+  @param mem_type  Memtype to be synced
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSyncArrayFP32(CeedVector vec, CeedMemType mem_type) {
+  return CeedVectorSyncArrayGeneric(vec, mem_type, CEED_SCALAR_FP32);
+}
+
+/**
+  @brief Sync the CeedVector to a specified memtype for double precision.
+
+  @param vec       CeedVector
+  @param mem_type  Memtype to be synced
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSyncArrayFP64(CeedVector vec, CeedMemType mem_type) {
+  return CeedVectorSyncArrayGeneric(vec, mem_type, CEED_SCALAR_FP64);
+}
+
+/**
   @brief Take ownership of the specified precision array set by @ref CeedVectorSetArray()
            with @ref CEED_USE_POINTER and remove the array from the CeedVector.
            The caller is responsible for managing and freeing the array.
@@ -480,6 +548,50 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Take ownership of the CeedVector single precision array set by
+           @ref CeedVectorSetArrayFP32() with @ref CEED_USE_POINTER, and
+	   remove the array from the CeedVector.
+           The caller is responsible for managing and freeing the array.
+
+  @param vec         CeedVector
+  @param mem_type    Memory type on which to take the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type, or NULL if array pointer is
+                       not required
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorTakeArrayFP32(CeedVector vec, CeedMemType mem_type,
+                            float **array) {
+  return CeedVectorTakeArrayGeneric(vec, mem_type, CEED_SCALAR_FP32,
+                                    (void **) array);
+}
+
+/**
+  @brief Take ownership of the CeedVector double precision array set by
+           @ref CeedVectorSetArrayFP64() with @ref CEED_USE_POINTER, and
+	   remove the array from the CeedVector.
+           The caller is responsible for managing and freeing the array.
+
+  @param vec         CeedVector
+  @param mem_type    Memory type on which to take the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type, or NULL if array pointer is
+                       not required
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorTakeArrayFP64(CeedVector vec, CeedMemType mem_type,
+                            double **array) {
+  return CeedVectorTakeArrayGeneric(vec, mem_type, CEED_SCALAR_FP64,
+                                    (void **) array);
+}
+
+/**
   @brief Get read/write access to a CeedVector via the specified memory type
            and scalar precision.
            Restore access with @ref CeedVectorRestoreArrayGeneric().
@@ -561,6 +673,46 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Get single precision read/write access to a CeedVector via the
+           specified memory type.
+           Restore access with @ref CeedVectorRestoreArrayFP32().
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayFP32(CeedVector vec, CeedMemType mem_type,
+                           float **array) {
+  return CeedVectorGetArrayGeneric(vec, mem_type, CEED_SCALAR_FP32,
+                                   (void **) array);
+}
+
+/**
+  @brief Get double precision read/write access to a CeedVector via the
+           specified memory type.
+           Restore access with @ref CeedVectorRestoreArrayFP64().
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array. If the backend
+                       uses a different memory type, this will perform a copy.
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayFP64(CeedVector vec, CeedMemType mem_type,
+                           double **array) {
+  return CeedVectorGetArrayGeneric(vec, mem_type, CEED_SCALAR_FP64,
+                                   (void **) array);
+}
+
+/**
   @brief Get read-only access to a CeedVector via the specified memory type
            and precision.
            Restore access with @ref CeedVectorRestoreArrayReadGeneric().
@@ -631,6 +783,48 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Get read-only single precision access to a CeedVector via the
+           specified memory type.
+           Restore access with @ref CeedVectorRestoreArrayReadFP32().
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.  If the backend
+                       uses a different memory type, this will perform a copy
+                       (possibly cached).
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayReadFP32(CeedVector vec, CeedMemType mem_type,
+                               const float **array) {
+  return CeedVectorGetArrayReadGeneric(vec, mem_type, CEED_SCALAR_FP32,
+                                       (const void **) array);
+}
+
+/**
+  @brief Get read-only double precision access to a CeedVector via the
+           specified memory type.
+           Restore access with @ref CeedVectorRestoreArrayReadFP64().
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.  If the backend
+                       uses a different memory type, this will perform a copy
+                       (possibly cached).
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayReadFP64(CeedVector vec, CeedMemType mem_type,
+                               const double **array) {
+  return CeedVectorGetArrayReadGeneric(vec, mem_type, CEED_SCALAR_FP64,
+                                       (const void **) array);
+}
+
+/**
   @brief Get write access to a CeedVector via the specified memory type and
            precision.
            Restore access with @ref CeedVectorRestoreArrayGeneric(). All old
@@ -696,6 +890,46 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
 }
 
 /**
+  @brief Get single precision write access to a CeedVector via the specified
+           memory type.
+           Restore access with @ref CeedVectorRestoreArrayFP32(). All old
+           values should be assumed to be invalid.
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayWriteFP32(CeedVector vec, CeedMemType mem_type,
+                                float **array) {
+  return CeedVectorGetArrayWriteGeneric(vec, mem_type, CEED_SCALAR_FP32,
+                                        (void **) array);
+}
+
+/**
+  @brief Get double precision write access to a CeedVector via the specified
+           memory type.
+           Restore access with @ref CeedVectorRestoreArrayFP64(). All old
+           values should be assumed to be invalid.
+
+  @param vec         CeedVector to access
+  @param mem_type    Memory type on which to access the array.
+  @param[out] array  Array on memory type mem_type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetArrayWriteFP64(CeedVector vec, CeedMemType mem_type,
+                                double **array) {
+  return CeedVectorGetArrayWriteGeneric(vec, mem_type, CEED_SCALAR_FP64,
+                                        (void **) array);
+}
+
+/**
   @brief Restore an array obtained using @ref CeedVectorGetArrayGeneric()
            or @ref CeedVectorGetArrayWriteGeneric()
 
@@ -733,6 +967,36 @@ int CeedVectorRestoreArrayGeneric(CeedVector vec, void **array) {
   @ref User
 **/
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
+  return CeedVectorRestoreArrayGeneric(vec, (void **) array);
+}
+
+/**
+  @brief Restore an array obtained using @ref CeedVectorGetArrayFP32()
+           or @ref CeedVectorGetArrayWriteFP32()
+
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorRestoreArrayFP32(CeedVector vec, float **array) {
+  return CeedVectorRestoreArrayGeneric(vec, (void **) array);
+}
+
+/**
+  @brief Restore an array obtained using @ref CeedVectorGetArrayFP64()
+           or @ref CeedVectorGetArrayWriteFP64()
+
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorRestoreArrayFP64(CeedVector vec, double **array) {
   return CeedVectorRestoreArrayGeneric(vec, (void **) array);
 }
 
@@ -775,6 +1039,34 @@ int CeedVectorRestoreArrayReadGeneric(CeedVector vec, const void **array) {
   @ref User
 **/
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
+  return CeedVectorRestoreArrayReadGeneric(vec, (const void **) array);
+}
+
+/**
+  @brief Restore an array obtained using @ref CeedVectorGetArrayReadFP32()
+
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorRestoreArrayReadFP32(CeedVector vec, const float **array) {
+  return CeedVectorRestoreArrayReadGeneric(vec, (const void **) array);
+}
+
+/**
+  @brief Restore an array obtained using @ref CeedVectorGetArrayReadFP64()
+
+  @param vec    CeedVector to restore
+  @param array  Array of vector data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorRestoreArrayReadFP64(CeedVector vec, const double **array) {
   return CeedVectorRestoreArrayReadGeneric(vec, (const void **) array);
 }
 
