@@ -1,18 +1,9 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 /// @file
 /// Implementation of the Synthetic Turbulence Generation (STG) algorithm
@@ -21,8 +12,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <petsc.h>
+#include "../navierstokes.h"
 #include "../qfunctions/stg_shur14.h"
-#include "setupstg_shur14.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -111,7 +102,7 @@ static PetscErrorCode GetNRows(const MPI_Comm comm,
   PetscFunctionBeginUser;
   ierr = OpenPHASTADatFile(comm, path, char_array_len, dims, &fp); CHKERRQ(ierr);
   *nrows = dims[0];
-  ierr = PetscFClose(comm, fp);
+  ierr = PetscFClose(comm, fp); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -180,7 +171,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
                                           &stg_ctx->data[stg_ctx->offsets.cij];
     CalcCholeskyDecomp(stg_ctx->nprofs, rij, cij);
   }
-  ierr = PetscFClose(comm, fp);
+  ierr = PetscFClose(comm, fp); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -230,12 +221,12 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
     sigma[1][i] = (CeedScalar) atof(array[5]);
     sigma[2][i] = (CeedScalar) atof(array[6]);
   }
-  ierr = PetscFClose(comm, fp);
+  ierr = PetscFClose(comm, fp); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 
-PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
+PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
@@ -278,7 +269,7 @@ PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
     size_t bytes = sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]);
     ierr = PetscMalloc(bytes, &stg_ctx); CHKERRQ(ierr);
     *stg_ctx = *s;
-    PetscFree(s);
+    ierr = PetscFree(s); CHKERRQ(ierr);
   }
   stg_ctx->alpha = alpha;
   stg_ctx->u0 = u0;
@@ -308,6 +299,15 @@ PetscErrorCode SetupSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
   PetscFunctionReturn(0);
 }
 
-void TearDownSTG(STGShur14Context stg_ctx) {
-  PetscFree(stg_ctx);
+PetscErrorCode SetupContext_STGShur14(Ceed ceed, CeedData ceed_data,
+                                      AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+  PetscFunctionBeginUser;
+
+  CeedQFunctionContextCreate(ceed, &ceed_data->stg_shur14_context);
+  CeedQFunctionContextSetData(ceed_data->stg_shur14_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*phys->stg_shur14_ctx), phys->stg_shur14_ctx);
+  CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
+                          ceed_data->stg_shur14_context);
+  PetscFunctionReturn(0);
 }
