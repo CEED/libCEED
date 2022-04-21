@@ -155,6 +155,11 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   if (user->phys->solution_time_label)
     CeedOperatorContextSetDouble(user->op_ifunction,
                                  user->phys->solution_time_label, &t);
+  {
+    PetscScalar dt;
+    ierr = TSGetTimeStep(ts, &dt); CHKERRQ(ierr);
+    user->phys->newtonian_ig_ctx->dt = dt;
+  }
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
