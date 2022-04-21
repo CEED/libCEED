@@ -152,6 +152,11 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
 
   // Update EulerContext
   if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
+  {
+  PetscScalar dt;
+  ierr = TSGetTimeStep(ts, &dt); CHKERRQ(ierr);
+  user->phys->newtonian_ig_ctx->dt = dt;
+  }
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
