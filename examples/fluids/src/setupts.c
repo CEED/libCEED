@@ -92,6 +92,10 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   // Update EulerContext
   if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
 
+  PetscScalar dtv;
+  ierr = TSGetTimeStep(ts,&dtv);
+  user->phys->newtonian_ig_ctx->dt = dtv;
+
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);

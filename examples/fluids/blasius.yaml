@@ -1,6 +1,5 @@
 problem: 'blasius'
 
-stabilization : 2
 k : 557
 dm_plex_box_faces: 10,10,1
 implicit: true
