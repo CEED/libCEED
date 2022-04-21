@@ -231,7 +231,7 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
                                       const char *field_name,
@@ -261,7 +261,7 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
@@ -296,7 +296,7 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
                                   CeedContextFieldLabel field_label, double *values) {
@@ -324,7 +324,7 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
                                  CeedContextFieldLabel field_label, int *values) {
