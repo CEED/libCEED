@@ -288,6 +288,62 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
 }
 
 /**
+  @brief Set QFunctionContext field holding a double precision value
+
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
+                                  CeedContextFieldLabel field_label, double *values) {
+  int ierr;
+
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_DOUBLE,
+                                        values); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field holding an int32 value
+
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
+                                 CeedContextFieldLabel field_label, int *values) {
+  int ierr;
+
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_INT32,
+                                        values); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Increment the reference counter for a CeedQFunctionContext
 
   @param ctx  CeedQFunctionContext to increment the reference counter
@@ -705,62 +761,6 @@ int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
   if (field_description) *field_description = label->description;
   if (num_values) *num_values = label->num_values;
   if (field_type) *field_type = label->type;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Set QFunctionContext field holding a double precision value
-
-  @param ctx         CeedQFunctionContext
-  @param field_label Label for field to register
-  @param values      Values to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-                                  CeedContextFieldLabel field_label, double *values) {
-  int ierr;
-
-  if (!field_label)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
-
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_DOUBLE,
-                                        values); CeedChk(ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Set QFunctionContext field holding an int32 value
-
-  @param ctx         CeedQFunctionContext
-  @param field_label Label for field to register
-  @param values      Values to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-                                 CeedContextFieldLabel field_label, int *values) {
-  int ierr;
-
-  if (!field_label)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
-
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_INT32,
-                                        values); CeedChk(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 
