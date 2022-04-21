@@ -24,6 +24,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar cp;
   CeedScalar g[3];
   CeedScalar c_tau;
+  CeedScalar dt;
   StabilizationType stabilization;
 };
 #endif
