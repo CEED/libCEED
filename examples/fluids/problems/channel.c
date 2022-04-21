@@ -61,7 +61,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   // -- Command Line Options
   CeedScalar umax   = 10.;  // m/s
   CeedScalar mu     = .01;  // Pa s, dynamic viscosity
-    //TODO ^^ make optional/respect explicit user set
+  //TODO ^^ make optional/respect explicit user set
   CeedScalar theta0 = 300.; // K
   CeedScalar P0     = 1.e5; // Pa
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
@@ -102,7 +102,8 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->channel_ctx->implicit = user->phys->implicit;
   user->phys->channel_ctx->B = -2*umax*mu/H;
 
-  { // Calculate Body force
+  {
+    // Calculate Body force
     CeedScalar cv  = user->phys->newtonian_ig_ctx->cv,
                cp  = user->phys->newtonian_ig_ctx->cp;
     CeedScalar Rd  = cp - cv;
@@ -121,7 +122,7 @@ PetscErrorCode SetupContext_CHANNEL(Ceed ceed, CeedData ceed_data,
   PetscFunctionBeginUser;
   PetscInt ierr;
   ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
-    CHKERRQ(ierr);
+  CHKERRQ(ierr);
   CeedQFunctionContextCreate(ceed, &ceed_data->channel_context);
   CeedQFunctionContextSetData(ceed_data->channel_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,

@@ -76,7 +76,8 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
   CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
   for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
     for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
-      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - e_potential)) : 0.) - u[i]*u[j];
+      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - e_potential)) : 0.) -
+                      u[i]*u[j];
       for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
         dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
         dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
@@ -508,7 +509,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, rho*g[0], rho*g[1], rho*g[2], 0};
+    const CeedScalar body_force[5] = {0, rho *g[0], rho *g[1], rho *g[2], 0};
 
     // The Physics
     // Zero dv so all future terms can safely sum into it
@@ -744,7 +745,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
     // Body force
-    const CeedScalar body_force[5] = {0, rho*g[0], rho*g[1], rho*g[2], 0};
+    const CeedScalar body_force[5] = {0, rho *g[0], rho *g[1], rho *g[2], 0};
 
     // Strong residual
     CeedScalar strong_res[5];

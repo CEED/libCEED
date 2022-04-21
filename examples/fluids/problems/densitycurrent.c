@@ -118,12 +118,12 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 }
 
 PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
-                                            AppCtx app_ctx,
-                                            SetupContext setup_ctx,
-                                            Physics phys) {
+    AppCtx app_ctx,
+    SetupContext setup_ctx,
+    Physics phys) {
   PetscFunctionBeginUser;
   PetscInt ierr =
-      SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
+    SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

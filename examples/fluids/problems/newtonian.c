@@ -70,7 +70,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar lambda = -2./3.;        // -
   CeedScalar mu     = 75.;           // Pa s, dynamic viscosity
   // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k      = 557; //0.02638; // W/(m K)
+  CeedScalar k      = 0.02638; // W/(m K)
   CeedScalar c_tau  = 0.5;     // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscReal domain_min[3], domain_max[3], domain_size[3];
@@ -107,7 +107,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscInt dim = problem->dim;
   ierr = PetscOptionsRealArray("-g", "Gravitational acceleration",
-                            NULL, g, &dim, NULL); CHKERRQ(ierr);
+                               NULL, g, &dim, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
