@@ -250,6 +250,8 @@ CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
     void *data);
+CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
                                    CeedContextFieldType field_type, void *value);

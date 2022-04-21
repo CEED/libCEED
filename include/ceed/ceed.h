@@ -677,8 +677,6 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
     const char *field_name, size_t field_offset, size_t num_values,
     const char *field_description);
-CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
     const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,

@@ -2,6 +2,7 @@
 /// Test registering and setting QFunctionContext fields
 /// \test Test registering and setting QFunctionContext fields
 #include <ceed.h>
+#include <ceed/backend.h>
 #include <stddef.h>
 #include <string.h>
 

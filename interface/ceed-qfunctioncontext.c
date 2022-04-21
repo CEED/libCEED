@@ -222,6 +222,36 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
+  @brief Get label for a registered QFunctionContext field, or `NULL` if no
+           field has been registered with this `field_name`
+
+  @param[in] ctx           CeedQFunctionContext
+  @param[in] field_name    Name of field to retrieve label
+  @param[out] field_label  Variable to field label
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+                                      const char *field_name,
+                                      CeedContextFieldLabel *field_label) {
+  int ierr;
+
+  CeedInt field_index;
+  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
+  CeedChk(ierr);
+
+  if (field_index != -1) {
+    *field_label = ctx->field_labels[field_index];
+  } else {
+    *field_label = NULL;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set QFunctionContext field
 
   @param ctx         CeedQFunctionContext
@@ -650,36 +680,6 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
     const CeedContextFieldLabel **field_labels, CeedInt *num_fields) {
   *field_labels = ctx->field_labels;
   *num_fields = ctx->num_fields;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get label for a registered QFunctionContext field, or `NULL` if no
-           field has been registered with this `field_name`
-
-  @param[in] ctx           CeedQFunctionContext
-  @param[in] field_name    Name of field to retrieve label
-  @param[out] field_label  Variable to field label
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-                                      const char *field_name,
-                                      CeedContextFieldLabel *field_label) {
-  int ierr;
-
-  CeedInt field_index;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
-
-  if (field_index != -1) {
-    *field_label = ctx->field_labels[field_index];
-  } else {
-    *field_label = NULL;
-  }
-
   return CEED_ERROR_SUCCESS;
 }
 
