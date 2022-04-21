@@ -203,7 +203,7 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
 //  }
 //  else {
 // PHASTA     dts = dtsfct*Dtgl;
-    dts = 1./dt ;
+    dts = 1./ (2.0e-4); //dt ;
 //  }
 
    tau = rho*rho*((4. * dts * dts)
