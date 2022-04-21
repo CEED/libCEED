@@ -7,6 +7,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -716,149 +717,6 @@ static int CeedOperatorLinearAssembleQFunctionUpdate_Hip(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Diagonal assembly kernels
-//------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *diagonalkernels = QUOTE(
-
-typedef enum {
-  /// Perform no evaluation (either because there is no data or it is already at
-  /// quadrature points)
-  CEED_EVAL_NONE   = 0,
-  /// Interpolate from nodes to quadrature points
-  CEED_EVAL_INTERP = 1,
-  /// Evaluate gradients at quadrature points from input in a nodal basis
-  CEED_EVAL_GRAD   = 2,
-  /// Evaluate divergence at quadrature points from input in a nodal basis
-  CEED_EVAL_DIV    = 4,
-  /// Evaluate curl at quadrature points from input in a nodal basis
-  CEED_EVAL_CURL   = 8,
-  /// Using no input, evaluate quadrature weights on the reference element
-  CEED_EVAL_WEIGHT = 16,
-} CeedEvalMode;
-
-//------------------------------------------------------------------------------
-// Get Basis Emode Pointer
-//------------------------------------------------------------------------------
-extern "C" __device__ void CeedOperatorGetBasisPointer_Hip(const CeedScalar **basisptr,
-    CeedEvalMode emode, const CeedScalar *identity, const CeedScalar *interp,
-    const CeedScalar *grad) {
-  switch (emode) {
-  case CEED_EVAL_NONE:
-    *basisptr = identity;
-    break;
-  case CEED_EVAL_INTERP:
-    *basisptr = interp;
-    break;
-  case CEED_EVAL_GRAD:
-    *basisptr = grad;
-    break;
-  case CEED_EVAL_WEIGHT:
-  case CEED_EVAL_DIV:
-  case CEED_EVAL_CURL:
-    break; // Caught by QF Assembly
-  }
-}
-
-//------------------------------------------------------------------------------
-// Core code for diagonal assembly
-//------------------------------------------------------------------------------
-__device__ void diagonalCore(const CeedInt nelem,
-    const CeedScalar maxnorm, const bool pointBlock,
-    const CeedScalar *identity,
-    const CeedScalar *interpin, const CeedScalar *gradin,
-    const CeedScalar *interpout, const CeedScalar *gradout,
-    const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
-    const CeedScalar *__restrict__ assembledqfarray,
-    CeedScalar *__restrict__ elemdiagarray) {
-  const int tid = threadIdx.x; // running with P threads, tid is evec node
-  const CeedScalar qfvaluebound = maxnorm*1e-12;
-
-  // Compute the diagonal of B^T D B
-  // Each element
-  for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < nelem;
-       e += gridDim.x*blockDim.z) {
-    CeedInt dout = -1;
-    // Each basis eval mode pair
-    for (CeedInt eout = 0; eout < NUMEMODEOUT; eout++) {
-      const CeedScalar *bt = NULL;
-      if (emodeout[eout] == CEED_EVAL_GRAD)
-        dout += 1;
-      CeedOperatorGetBasisPointer_Hip(&bt, emodeout[eout], identity, interpout,
-                                      &gradout[dout*NQPTS*NNODES]);
-      CeedInt din = -1;
-      for (CeedInt ein = 0; ein < NUMEMODEIN; ein++) {
-        const CeedScalar *b = NULL;
-        if (emodein[ein] == CEED_EVAL_GRAD)
-          din += 1;
-        CeedOperatorGetBasisPointer_Hip(&b, emodein[ein], identity, interpin,
-                                        &gradin[din*NQPTS*NNODES]);
-        // Each component
-        for (CeedInt compOut = 0; compOut < NCOMP; compOut++) {
-          // Each qpoint/node pair
-          if (pointBlock) {
-            // Point Block Diagonal
-            for (CeedInt compIn = 0; compIn < NCOMP; compIn++) {
-              CeedScalar evalue = 0.;
-              for (CeedInt q = 0; q < NQPTS; q++) {
-                const CeedScalar qfvalue =
-                  assembledqfarray[((((ein*NCOMP+compIn)*NUMEMODEOUT+eout)*
-                                     NCOMP+compOut)*nelem+e)*NQPTS+q];
-                if (abs(qfvalue) > qfvaluebound)
-                  evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
-              }
-              elemdiagarray[((compOut*NCOMP+compIn)*nelem+e)*NNODES+tid] += evalue;
-            }
-          } else {
-            // Diagonal Only
-            CeedScalar evalue = 0.;
-            for (CeedInt q = 0; q < NQPTS; q++) {
-              const CeedScalar qfvalue =
-                assembledqfarray[((((ein*NCOMP+compOut)*NUMEMODEOUT+eout)*
-                                   NCOMP+compOut)*nelem+e)*NQPTS+q];
-              if (abs(qfvalue) > qfvaluebound)
-                evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
-            }
-            elemdiagarray[(compOut*nelem+e)*NNODES+tid] += evalue;
-          }
-        }
-      }
-    }
-  }
-}
-
-//------------------------------------------------------------------------------
-// Linear diagonal
-//------------------------------------------------------------------------------
-extern "C" __global__ void linearDiagonal(const CeedInt nelem,
-    const CeedScalar maxnorm, const CeedScalar *identity,
-    const CeedScalar *interpin, const CeedScalar *gradin,
-    const CeedScalar *interpout, const CeedScalar *gradout,
-    const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
-    const CeedScalar *__restrict__ assembledqfarray,
-    CeedScalar *__restrict__ elemdiagarray) {
-  diagonalCore(nelem, maxnorm, false, identity, interpin, gradin, interpout,
-               gradout, emodein, emodeout, assembledqfarray, elemdiagarray);
-}
-
-//------------------------------------------------------------------------------
-// Linear point block diagonal
-//------------------------------------------------------------------------------
-extern "C" __global__ void linearPointBlockDiagonal(const CeedInt nelem,
-    const CeedScalar maxnorm, const CeedScalar *identity,
-    const CeedScalar *interpin, const CeedScalar *gradin,
-    const CeedScalar *interpout, const CeedScalar *gradout,
-    const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
-    const CeedScalar *__restrict__ assembledqfarray,
-    CeedScalar *__restrict__ elemdiagarray) {
-  diagonalCore(nelem, maxnorm, true, identity, interpin, gradin, interpout,
-               gradout, emodein, emodeout, assembledqfarray, elemdiagarray);
-}
-
-);
-// *INDENT-ON*
-
-//------------------------------------------------------------------------------
 // Create point block restriction
 //------------------------------------------------------------------------------
 static int CreatePBRestriction(CeedElemRestriction rstr,
@@ -1023,11 +881,22 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
   diag->numemodeout = numemodeout;
 
   // Assemble kernel
+
+  char *diagonal_kernel_path, *diagonal_kernel_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/hip/hip-ref-operator-assemble-diagonal.h",
+                                &diagonal_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Diagonal Assembly Kernel Source -----\n");
+  ierr = CeedLoadSourceToBuffer(ceed, diagonal_kernel_path,
+                                &diagonal_kernel_source);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2,
+               "----- Loading Diagonal Assembly Source Complete! -----\n");
   CeedInt nnodes, nqpts;
   ierr = CeedBasisGetNumNodes(basisin, &nnodes); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumQuadraturePoints(basisin, &nqpts); CeedChkBackend(ierr);
   diag->nnodes = nnodes;
-  ierr = CeedCompileHip(ceed, diagonalkernels, &diag->module, 5,
+  ierr = CeedCompileHip(ceed, diagonal_kernel_source, &diag->module, 5,
                         "NUMEMODEIN", numemodein,
                         "NUMEMODEOUT", numemodeout,
                         "NNODES", nnodes,
@@ -1039,6 +908,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op,
   ierr = CeedGetKernelHip(ceed, diag->module, "linearPointBlockDiagonal",
                           &diag->linearPointBlock);
   CeedChk_Hip(ceed, ierr);
+  ierr = CeedFree(&diagonal_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&diagonal_kernel_source); CeedChkBackend(ierr);
 
   // Basis matrices
   const CeedInt qBytes = nqpts * sizeof(CeedScalar);
@@ -1244,119 +1115,6 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Matrix assembly kernel for low-order elements (2D thread block)
-//------------------------------------------------------------------------------
-// *INDENT-OFF*
-static const char *assemblykernel = QUOTE(
-extern "C" __launch_bounds__(BLOCK_SIZE) 
-           __global__ void linearAssemble(const CeedScalar *B_in, const CeedScalar *B_out,
-                   const CeedScalar *__restrict__ qf_array,
-                   CeedScalar *__restrict__ values_array) {
-
-  // This kernel assumes B_in and B_out have the same number of quadrature points and 
-  // basis points. 
-  // TODO: expand to more general cases
-  const int i = threadIdx.x; // The output row index of each B^TDB operation 
-  const int l = threadIdx.y; // The output column index of each B^TDB operation
-			     // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
-
-  // Strides for final output ordering, determined by the reference (interface) implementation of
-  // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col 
-  const CeedInt comp_out_stride = NNODES * NNODES;
-  const CeedInt comp_in_stride = comp_out_stride * NCOMP;
-  const CeedInt e_stride = comp_in_stride * NCOMP;
-  // Strides for QF array, slowest --> fastest:  emode_in, comp_in, emode_out, comp_out, elem, qpt 
-  const CeedInt qe_stride = NQPTS;
-  const CeedInt qcomp_out_stride = NELEM * qe_stride;
-  const CeedInt qemode_out_stride = qcomp_out_stride * NCOMP;
-  const CeedInt qcomp_in_stride = qemode_out_stride * NUMEMODEOUT;
-  const CeedInt qemode_in_stride = qcomp_in_stride * NCOMP;
-
-  // Loop over each element (if necessary)
-  for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < NELEM;
-         e += gridDim.x*blockDim.z) {
-    for (CeedInt comp_in = 0; comp_in < NCOMP; comp_in++) {
-      for (CeedInt comp_out = 0; comp_out < NCOMP; comp_out++) {
-        CeedScalar result = 0.0;
-        CeedInt qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e; 
-        for (CeedInt emode_in = 0; emode_in < NUMEMODEIN; emode_in++) {
-          CeedInt b_in_index = emode_in * NQPTS * NNODES;
-      	  for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
-             CeedInt b_out_index = emode_out * NQPTS * NNODES;
-             CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
- 	     // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
-            for (CeedInt j = 0; j < NQPTS; j++) {
-     	      result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
-	    }
-
-          }// end of emode_out 
-        } // end of emode_in
-        CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
-   	values_array[val_index] = result;
-      } // end of out component
-    } // end of in component
-  } // end of element loop
-}
-);
-
-//------------------------------------------------------------------------------
-// Fallback kernel for larger orders (1D thread block)
-//------------------------------------------------------------------------------
-static const char *assemblykernelbigelem = QUOTE(
-extern "C" __launch_bounds__(BLOCK_SIZE) 
-           __global__ void linearAssemble(const CeedScalar *B_in, const CeedScalar *B_out,
-                   const CeedScalar *__restrict__ qf_array,
-                   CeedScalar *__restrict__ values_array) {
-
-  // This kernel assumes B_in and B_out have the same number of quadrature points and 
-  // basis points. 
-  // TODO: expand to more general cases
-  const int l = threadIdx.x; // The output column index of each B^TDB operation
-			     // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
-
-  // Strides for final output ordering, determined by the reference (interface) implementation of
-  // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col 
-  const CeedInt comp_out_stride = NNODES * NNODES;
-  const CeedInt comp_in_stride = comp_out_stride * NCOMP;
-  const CeedInt e_stride = comp_in_stride * NCOMP;
-  // Strides for QF array, slowest --> fastest:  emode_in, comp_in, emode_out, comp_out, elem, qpt 
-  const CeedInt qe_stride = NQPTS;
-  const CeedInt qcomp_out_stride = NELEM * qe_stride;
-  const CeedInt qemode_out_stride = qcomp_out_stride * NCOMP;
-  const CeedInt qcomp_in_stride = qemode_out_stride * NUMEMODEOUT;
-  const CeedInt qemode_in_stride = qcomp_in_stride * NCOMP;
-
-    // Loop over each element (if necessary)
-  for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < NELEM;
-         e += gridDim.x*blockDim.z) {
-    for (CeedInt comp_in = 0; comp_in < NCOMP; comp_in++) {
-      for (CeedInt comp_out = 0; comp_out < NCOMP; comp_out++) {
-        for (CeedInt i = 0; i < NNODES; i++) {
-          CeedScalar result = 0.0;
-          CeedInt qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e; 
-          for (CeedInt emode_in = 0; emode_in < NUMEMODEIN; emode_in++) {
-            CeedInt b_in_index = emode_in * NQPTS * NNODES;
-        	  for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
-               CeedInt b_out_index = emode_out * NQPTS * NNODES;
-               CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
-   	     // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
-              for (CeedInt j = 0; j < NQPTS; j++) {
-       	      result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
-  	    }
-
-            }// end of emode_out 
-          } // end of emode_in
-          CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
-     	  values_array[val_index] = result;
-        } // end of loop over element node index, i
-      } // end of out component
-    } // end of in component
-  } // end of element loop
-}
-);
-// *INDENT-ON*
-
-//------------------------------------------------------------------------------
 // Single operator assembly setup
 //------------------------------------------------------------------------------
 static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
@@ -1477,34 +1235,38 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
   int elemsPerBlock = 1;
   asmb->elemsPerBlock = elemsPerBlock;
   CeedInt block_size = esize * esize * elemsPerBlock;
-  if (block_size > 1024) { // Use fallback kernel with 1D threadblock
+  char *assembly_kernel_path, *assembly_kernel_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/hip/hip-ref-operator-assemble.h",
+                                &assembly_kernel_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Assembly Kernel Source -----\n");
+  ierr = CeedLoadSourceToBuffer(ceed, assembly_kernel_path,
+                                &assembly_kernel_source);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Assembly Source Complete! -----\n");
+  bool fallback = block_size > 1024;
+  if (fallback) { // Use fallback kernel with 1D threadblock
     block_size = esize * elemsPerBlock;
     asmb->block_size_x = esize;
     asmb->block_size_y = 1;
-    ierr = CeedCompileHip(ceed, assemblykernelbigelem, &asmb->module, 7,
-                          "NELEM", nelem,
-                          "NUMEMODEIN", num_emode_in,
-                          "NUMEMODEOUT", num_emode_out,
-                          "NQPTS", nqpts,
-                          "NNODES", esize,
-                          "BLOCK_SIZE", block_size,
-                          "NCOMP", ncomp
-                         ); CeedChk_Hip(ceed, ierr);
   } else {  // Use kernel with 2D threadblock
     asmb->block_size_x = esize;
     asmb->block_size_y = esize;
-    ierr = CeedCompileHip(ceed, assemblykernel, &asmb->module, 7,
-                          "NELEM", nelem,
-                          "NUMEMODEIN", num_emode_in,
-                          "NUMEMODEOUT", num_emode_out,
-                          "NQPTS", nqpts,
-                          "NNODES", esize,
-                          "BLOCK_SIZE", block_size,
-                          "NCOMP", ncomp
-                         ); CeedChk_Hip(ceed, ierr);
   }
-  ierr = CeedGetKernelHip(ceed, asmb->module, "linearAssemble",
+  ierr = CeedCompileHip(ceed, assembly_kernel_source, &asmb->module, 7,
+                        "NELEM", nelem,
+                        "NUMEMODEIN", num_emode_in,
+                        "NUMEMODEOUT", num_emode_out,
+                        "NQPTS", nqpts,
+                        "NNODES", esize,
+                        "BLOCK_SIZE", block_size,
+                        "NCOMP", ncomp
+                       ); CeedChk_Hip(ceed, ierr);
+  ierr = CeedGetKernelHip(ceed, asmb->module,
+                          fallback ? "linearAssembleFallback" : "linearAssemble",
                           &asmb->linearAssemble); CeedChk_Hip(ceed, ierr);
+  ierr = CeedFree(&assembly_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&assembly_kernel_source); CeedChkBackend(ierr);
 
   // Build 'full' B matrices (not 1D arrays used for tensor-product matrices)
   const CeedScalar *interp_in, *grad_in;
