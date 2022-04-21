@@ -216,10 +216,10 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
 
    fact=sqrt(tau);
 
-   Tau_d[0] = fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*c_tau; 
-   // PHASTA has taucfact/8 insteadof c_tau 
+   Tau_d[0] = fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125; //*c_tau; 
+   // PHASTA has taucfact/8 insteadof c_tau  Only matched for taucfact=1
 
-   Tau_d[1] = 1. / fact; 
+   Tau_d[1] = c_tau/ fact; // shifting our existing "knob" to here 
    Tau_d[2] = Tau_d[1] / cv; // *temper 
    // which in  PHASTA scales this but the scale default is 1. 
 }
