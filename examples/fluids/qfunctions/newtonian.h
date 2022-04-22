@@ -106,9 +106,9 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
   CeedScalar drdT = -rho / T;
   CeedScalar drdP = 1. / ( Rd * T);
   CeedScalar etot =  E / rho ;
-  CeedScalar e2p  = drdP * ( etot + 1. );
+  CeedScalar e2p  = drdP * etot + 1. ;
   CeedScalar e3p  = ( E  + rho * Rd * T );
-  CeedScalar e4p  = drdT * etot + rho * cv * T ;
+  CeedScalar e4p  = drdT * etot + rho * cv ;
 
   for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
     for (CeedInt j=0; j<3; j++) { // j counts F^{m_j}
