@@ -52,7 +52,7 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
   CeedInt idx=-1;
 
   for(CeedInt i=0; i<stg_ctx->nprofs; i++) {
-    if (dw > prof_dw[i]) {
+    if (dw < prof_dw[i]) {
       idx = i;
       break;
     }
@@ -171,45 +171,87 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
  * This will loop through quadrature points, calculate the wavemode amplitudes
  * at each location, then calculate the actual velocity.
  */
-CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
+CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in,
                                  CeedScalar *const *out) {
 
   //*INDENT-OFF*
   const CeedScalar (*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
-                   (*X)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
-                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
+                   (*X)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
 
    CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
 
   //*INDENT-ON*
 
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
-  CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt, h[3];
-  CeedScalar nu   = stg_ctx->nu;
-  CeedScalar time = stg_ctx->time;
+  CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
+  const bool implicit     = stg_ctx->implicit;
+  const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
+  const CeedScalar time   = stg_ctx->time;
+  const CeedScalar theta0 = stg_ctx->theta0;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
     const CeedScalar rho = q[0][i];
+    const CeedScalar nu  = mu / rho;
     const CeedScalar x[] = { X[0][i], X[1][i], X[2][i] };
+
+    const CeedScalar P = rho * Rd * theta0;
+
     //*INDENT-OFF*
-    const CeedScalar dXdx[3][3] = {{ q_data[1][i], q_data[2][i], q_data[3][i] },
-                                   { q_data[4][i], q_data[5][i], q_data[6][i] },
-                                   { q_data[7][i], q_data[8][i], q_data[9][i] }};
+    //TODO Determine how to determine dXdx for just the boundary elements
+    /* const CeedScalar dXdx[3][3] = {{ q_data[1][i], q_data[2][i], q_data[3][i] }, */
+    /*                                { q_data[4][i], q_data[5][i], q_data[6][i] }, */
+    /*                                { q_data[7][i], q_data[8][i], q_data[9][i] }}; */
     //*INDENT-OFF*
 
-    for(CeedInt j=0; j<3; j++){
-      h[j] = 2 / sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j] +
-                      dXdx[2][j]*dXdx[2][j]);
-    }
+    /* for(CeedInt j=0; j<3; j++){ */
+    /*   h[j] = 2 / sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j] + */
+    /*                   dXdx[2][j]*dXdx[2][j]); */
+    /* } */
 
-  InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
-  CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
-  STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+    const CeedScalar h[3] = { 0. };
 
+    InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
+    CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
+    STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] +
+                                                u[1]*u[1] +
+                                                u[2]*u[2]);
+    const CeedScalar E = rho * cv * theta0 + E_kinetic;
+
+    // Velocity normal to the boundary
+    const CeedScalar u_normal = norm[0]*u[0] +
+                                norm[1]*u[1] +
+                                norm[2]*u[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (int j=0; j<5; j++) v[j][i] = 0.;
+
+      // The Physics
+      // -- Density
+      v[0][i] -= wdetJb * rho * u_normal;
+
+      // -- Momentum
+      for (int j=0; j<3; j++)
+        v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
+                              norm[j] * P);
+
+      // -- Total Energy Density
+      v[4][i] -= wdetJb * u_normal * (E + P);
   }
-
   return 0;
 }
 

@@ -183,12 +183,14 @@ struct SimpleBC_private {
  *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma]; */
 typedef struct STGShur14Context_ *STGShur14Context;
 struct STGShur14Context_ {
-  CeedInt nmodes;   // !< Number of wavemodes
-  CeedInt nprofs;   // !< Number of profile points in STGInflow.dat
-  CeedScalar alpha; // !< Geometric growth rate of kappa
-  CeedScalar u0;    // !< Convective velocity
-  CeedScalar time;  // !< Solution time
-  CeedScalar nu;    // !< Kinematic viscosity
+  CeedInt    nmodes;   // !< Number of wavemodes
+  CeedInt    nprofs;   // !< Number of profile points in STGInflow.dat
+  CeedScalar alpha;    // !< Geometric growth rate of kappa
+  CeedScalar u0;       // !< Convective velocity
+  CeedScalar time;     // !< Solution time
+  CeedScalar theta0;   // !< Inlet temperature
+  bool       implicit; // !< Whether using implicit time integration
+  struct NewtonianIdealGasContext_ newtonian_ctx;
 
   struct {
     size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
@@ -263,8 +265,10 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
-extern PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
-                                       CeedScalar nu);
+extern PetscErrorCode CreateSTGContext(MPI_Comm comm,
+                                       STGShur14Context *pstg_ctx, 
+                                       NewtonianIdealGasContext newt_ctx, bool implicit,
+                                       CeedScalar theta0);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,

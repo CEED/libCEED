@@ -226,12 +226,14 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
 }
 
 
-PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
-                                CeedScalar nu) {
+PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
+                                NewtonianIdealGasContext newt_ctx, bool implicit,
+                                CeedScalar theta0) {
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
   CeedScalar u0=0.0, alpha=1.01;
+  STGShur14Context stg_ctx;
   PetscFunctionBeginUser;
 
   // Get options
@@ -272,9 +274,11 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
     *stg_ctx = *s;
     ierr = PetscFree(s); CHKERRQ(ierr);
   }
-  stg_ctx->alpha = alpha;
-  stg_ctx->u0    = u0;
-  stg_ctx->nu    = nu;
+  stg_ctx->alpha         = alpha;
+  stg_ctx->u0            = u0;
+  stg_ctx->implicit      = implicit;
+  stg_ctx->theta0        = theta0;
+  stg_ctx->newtonian_ctx = *newt_ctx;
 
   ierr = ReadSTGInflow(comm, stg_inflow_path, stg_ctx); CHKERRQ(ierr);
   ierr = ReadSTGRand(comm, stg_rand_path, stg_ctx); CHKERRQ(ierr);
@@ -298,6 +302,8 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa
+
+  *pstg_ctx = stg_ctx;
   PetscFunctionReturn(0);
 }
 
