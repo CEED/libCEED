@@ -398,6 +398,9 @@ CEED_EXTERN int CeedVectorRestoreArrayReadFP32(CeedVector vec,
     const float **array);
 CEED_EXTERN int CeedVectorRestoreArrayReadFP64(CeedVector vec,
     const double **array);
+CEED_EXTERN int CeedVectorCheckArrayStatus(CeedVector vec, CeedMemType mem_type, 
+    unsigned int *valid_status, unsigned int *borrowed_status, 
+    unsigned int *owned_status);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
 CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);

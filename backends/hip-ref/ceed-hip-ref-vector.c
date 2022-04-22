@@ -36,6 +36,47 @@ static inline int CeedScalarTypeGetSize_Hip(Ceed ceed, CeedScalarType prec,
 }
 
 //------------------------------------------------------------------------------
+// Get info about the current status of the different precisions in the
+// valid, borrowed, and owned arrays, for a specific mem_type
+//------------------------------------------------------------------------------
+static int CeedVectorCheckArrayStatus_Hip(CeedVector vec,
+    CeedMemType mem_type,
+    unsigned int *valid_status,
+    unsigned int *borrowed_status,
+    unsigned int *owned_status) {
+
+  int ierr;
+  CeedVector_Hip *impl;
+  ierr = CeedVectorGetData(vec, &impl); CeedChkBackend(ierr);
+  *valid_status = 0;
+  *borrowed_status = 0;
+  *owned_status = 0;
+  switch(mem_type) {
+  case CEED_MEM_HOST:
+    for (int i = 0; i < CEED_NUM_PRECISIONS; i++) {
+      if (!!impl->h_array.values[i])
+        *valid_status += 1 << i;
+      if (!!impl->h_array_borrowed.values[i])
+        *borrowed_status += 1 << i;
+      if (!!impl->h_array_owned.values[i])
+        *owned_status += 1 << i;
+    }
+    break;
+  case CEED_MEM_DEVICE:
+    for (int i = 0; i < CEED_NUM_PRECISIONS; i++) {
+      if (!!impl->d_array.values[i])
+        *valid_status += 1 << i;
+      if (!!impl->d_array_borrowed.values[i])
+        *borrowed_status += 1 << i;
+      if (!!impl->d_array_owned.values[i])
+        *owned_status += 1 << i;
+    }
+    break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Set all pointers as invalid
 //------------------------------------------------------------------------------
 static inline int CeedVectorSetAllInvalid_Hip(const CeedVector vec) {
@@ -1171,6 +1212,8 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType",
                                 CeedVectorHasBorrowedArrayOfType_Hip);
   CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Vector", vec, "CheckArrayStatus",
+                                CeedVectorCheckArrayStatus_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "SetArrayGeneric",
                                 CeedVectorSetArrayGeneric_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Vector", vec, "TakeArrayGeneric",

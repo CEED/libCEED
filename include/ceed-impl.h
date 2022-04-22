@@ -129,6 +129,8 @@ struct CeedVector_private {
   Ceed ceed;
   int (*HasValidArray)(CeedVector, bool *);
   int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, CeedScalarType, bool *);
+  int (*CheckArrayStatus)(CeedVector, CeedMemType, unsigned int *, unsigned int *,
+                          unsigned int *);
   int (*SetArrayGeneric)(CeedVector, CeedMemType, CeedScalarType, CeedCopyMode,
                          void *);
   int (*SetValue)(CeedVector, CeedScalar);

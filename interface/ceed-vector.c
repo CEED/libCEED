@@ -1071,6 +1071,39 @@ int CeedVectorRestoreArrayReadFP64(CeedVector vec, const double **array) {
 }
 
 /**
+  @brief Check the current status of the CeedVector's data arrays.
+
+  This function sets unsigned int parameters indicating for which precisions
+  the data for mem_type is not NULL, for borrowed and owned arrays, and also
+  which precisions are currently valid.
+  The values can be checked bitwise, such that, e.g.,
+  (valid_status & (1 << CEED_SCALAR_FP32)) will be true if the FP32 array is
+  currently valid, and false otherwise.
+
+  @param vec              CeedVector for which to check status
+  @param mem_type         Mem type for which to check status
+  @param valid_status     Status indicator for valid data
+  @param borrowed_status  Status indicator for borrowed arrays
+  @param owned_status     Status indicator for owned arrays
+**/
+int CeedVectorCheckArrayStatus(CeedVector vec, CeedMemType mem_type,
+                               unsigned int *valid_status,
+                               unsigned int *borrowed_status,
+                               unsigned int *owned_status) {
+  int ierr;
+
+  if (!vec->CheckArrayStatus)
+    // LCOV_EXCL_START
+    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Backend does not support CheckArrayStatus");
+  // LCOV_EXCL_STOP
+
+  ierr = vec->CheckArrayStatus(vec, mem_type, valid_status, borrowed_status,
+                               owned_status); CeedChk(ierr);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the norm of a CeedVector.
 
   Note: This operation is local to the CeedVector. This function will likely
