@@ -15,6 +15,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 #include "qfunctions/stabilization_types.h"
+#include "qfunctions/stg_shur14_type.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Version
@@ -127,7 +128,6 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedQFunctionContext stg_shur14_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
@@ -177,36 +177,8 @@ struct SimpleBC_private {
   PetscBool user_bc;
 };
 
-#ifndef stg_shur14_struct
-#define stg_shur14_struct
-/* Access data arrays via:
- *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma]; */
-typedef struct STGShur14Context_ *STGShur14Context;
-struct STGShur14Context_ {
-  CeedInt    nmodes;   // !< Number of wavemodes
-  CeedInt    nprofs;   // !< Number of profile points in STGInflow.dat
-  CeedScalar alpha;    // !< Geometric growth rate of kappa
-  CeedScalar u0;       // !< Convective velocity
-  CeedScalar time;     // !< Solution time
-  CeedScalar theta0;   // !< Inlet temperature
-  bool       implicit; // !< Whether using implicit time integration
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-
-  struct {
-    size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
-    size_t kappa;    // !< Wavemode frequencies in increasing order, [nmodes]
-    size_t prof_dw;  // !< Distance to wall for Inflow Profie, [nprof]
-    size_t ubar;     // !< Mean velocity, [nprof, 3]
-    size_t cij;      // !< Cholesky decomposition [nprof, 6]
-    size_t eps;      // !< Turbulent Disspation [nprof, 6]
-    size_t lt;       // !< Tubulent Length Scale [nprof, 6]
-  } offsets;         // !< Holds offsets for each array in data
-  CeedScalar data[]; // !< Holds concatenated scalar array data
-};
-#endif
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  STGShur14Context         stg_shur14_ctx;
   WindType                 wind_type;
   BubbleType               bubble_type;
   BubbleContinuityType     bubble_continuity_type;

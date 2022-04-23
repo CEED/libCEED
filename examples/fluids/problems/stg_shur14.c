@@ -306,21 +306,3 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
   *pstg_ctx = stg_ctx;
   PetscFunctionReturn(0);
 }
-
-PetscErrorCode SetupContext_STGShur14(Ceed ceed, CeedData ceed_data,
-                                      AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-
-  CeedQFunctionContextCreate(ceed, &ceed_data->stg_shur14_context);
-  CeedQFunctionContextSetData(ceed_data->stg_shur14_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*phys->stg_shur14_ctx), phys->stg_shur14_ctx);
-  CeedQFunctionContextRegisterDouble(ceed_data->stg_shur14_context,
-                                     "solution time",
-                                     offsetof(struct STGShur14Context_, time), 1, "Phyiscal time of the solution");
-
-  if (ceed_data->qf_apply_inflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
-                            ceed_data->stg_shur14_context);
-  PetscFunctionReturn(0);
-}

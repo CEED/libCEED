@@ -48,3 +48,6 @@ wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5,4
 g: 0,0,0
+
+stg:
+stg_inflow_path: "./STGInflow_physical.dat"
