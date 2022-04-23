@@ -266,9 +266,8 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
 extern PetscErrorCode CreateSTGContext(MPI_Comm comm,
-                                       STGShur14Context *pstg_ctx, 
-                                       NewtonianIdealGasContext newt_ctx, bool implicit,
-                                       CeedScalar theta0);
+                                       STGShur14Context *pstg_ctx, NewtonianIdealGasContext newt_ctx,
+                                       bool implicit, CeedScalar theta0);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
