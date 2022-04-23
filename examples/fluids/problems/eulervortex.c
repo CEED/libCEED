@@ -180,6 +180,9 @@ PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextSetData(ceed_data->euler_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
                               sizeof(*phys->euler_ctx), phys->euler_ctx);
+  CeedQFunctionContextRegisterDouble(ceed_data->euler_context, "solution time",
+                                     offsetof(struct EulerContext_, curr_time), 1, "Phyiscal time of the solution");
+
   if (ceed_data->qf_ics)
     CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->euler_context);
   if (ceed_data->qf_rhs_vol)

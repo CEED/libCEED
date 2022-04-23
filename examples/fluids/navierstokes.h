@@ -282,6 +282,7 @@ struct Physics_private {
   PetscBool                implicit;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
+  CeedContextFieldLabel    solution_time_label;
 };
 
 // Problem specific data
@@ -384,7 +385,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions
