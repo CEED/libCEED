@@ -744,6 +744,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
         for (int l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
 
+//    if(fabs(x_i[0] - 2.647e-3)+fabs(x_i[1] - 2.1437e-4) < 1e-5 ) {
+//        printf("found the point\n");
+//    }
     // Body force
     const CeedScalar body_force[5] = {0, rho *g[0], rho *g[1], rho *g[2], 0};
 
