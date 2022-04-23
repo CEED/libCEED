@@ -35,7 +35,7 @@ struct BlasiusContext_ {
 
 void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     const CeedScalar Uinf, const CeedScalar x0, const CeedScalar x,
-    const CeedScalar rho, CeedScalar *u, CeedScalar *v,
+    const CeedScalar rho, CeedScalar *u, CeedScalar *v, CeedScalar *t12,
     const NewtonianIdealGasContext newt_ctx) {
 
   CeedInt nprofs = 26;
@@ -85,6 +85,7 @@ void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
   }
 
   *u = Uinf*fp;
+  *t12 = rho*nu*Uinf*fpp*sqrt(Uinf/(nu*(x0+x)));
   *v = 0.5*sqrt(nu*Uinf/(x0+x))*(eta*fp - f);
 }
 
@@ -114,14 +115,15 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const CeedScalar e_internal = cv * theta0;
   const CeedScalar rho        = P0 / ((gamma - 1) * e_internal);
   const CeedScalar x0         = Uinf*rho / (mu*25/ (delta0*delta0) );
-  CeedScalar u, v;
+  CeedScalar u, v, t12;
 
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
 
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho, &u, &v, &context->newtonian_ctx);
+    BlasiusSolution(x[1], Uinf, x0, x[0], rho, &u, &v, &t12,
+                    &context->newtonian_ctx);
 
     q0[0][i] = rho;
     q0[1][i] = u * rho;
@@ -181,8 +183,9 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar e_internal = cv * theta0;
 
     CeedScalar velocity[3] = {0.};
+    CeedScalar t12;
     BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
-                    &context->newtonian_ctx);
+                    &t12, &context->newtonian_ctx);
 
     const CeedScalar E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
                                  velocity[1]*velocity[1] +
@@ -211,9 +214,11 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++)
       v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] + // interior rho
                              norm[j] * P); // mixed P
+    v[2][i] -= wdetJb * t12  ;
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
+    v[4][i] -= wdetJb * t12 * velocity[1];
 
   } // End Quadrature Point Loop
   return 0;
@@ -226,7 +231,8 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -241,8 +247,10 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
+  const CeedScalar rho_0  = P0 / (Rd*theta0);
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
+  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -277,6 +285,12 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     const CeedScalar P         = P0; // pressure
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity
+// Calcualte prescribed outflow traction values
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar velocity[3] = {0.};
+    CeedScalar t12;
+    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
+                    &t12, &context->newtonian_ctx);
     // The Physics
     // -- Density
     v[0][i] -= wdetJb * rho * u_normal;
@@ -284,9 +298,11 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     // -- Momentum
     for (int j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P);
+    v[2][i] += wdetJb * t12  ;
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
+    v[4][i] += wdetJb * t12 * velocity[1];
 
   } // End Quadrature Point Loop
   return 0;

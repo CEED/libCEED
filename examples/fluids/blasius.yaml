@@ -5,7 +5,7 @@ implicit: true
 ts_max_snes_failures: -4
 ts_adapt_type: 'none'
 ts_type: 'beuler'
-ts_dt: 2.e-8
+ts_dt: 5.e-8
 dm_plex_box_faces: 40,60,1
 degree: 1
 dm_plex_box_lower: 0,0,0
