@@ -212,7 +212,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->newtonian_ig_ctx->cp            = cp;
   user->phys->newtonian_ig_ctx->c_tau         = c_tau;
   user->phys->newtonian_ig_ctx->Ctau_t        = Ctau_t;
-  user->phys->newtonian_ig_ctx->Ctau_v        = Ctau_t;
+  user->phys->newtonian_ig_ctx->Ctau_v        = Ctau_v;
   user->phys->newtonian_ig_ctx->Ctau_C        = Ctau_C;
   user->phys->newtonian_ig_ctx->Ctau_M        = Ctau_M;
   user->phys->newtonian_ig_ctx->Ctau_E        = Ctau_E;
