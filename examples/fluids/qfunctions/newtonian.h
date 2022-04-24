@@ -829,7 +829,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       break;
     case STAB_SUPG:        // SUPG
       computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
-      Tau_diagPrim(Tau_d, dXdx, u, cv, &context, mu, dt, rho);
+      Tau_diagPrim(Tau_d, dXdx, u, cv, context, mu, dt, rho);
       tau_strong_res[0]=Tau_d[0] * strong_res[0];
       tau_strong_res[1]=Tau_d[1] * strong_res[1];
       tau_strong_res[2]=Tau_d[1] * strong_res[2];
