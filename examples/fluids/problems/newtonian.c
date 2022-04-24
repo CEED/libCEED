@@ -68,11 +68,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar cp     = 1004.;         // J/(kg K)
   CeedScalar g[3]   = {0, 0, -9.81}; // m/s^2
   CeedScalar lambda = -2./3.;        // -
-  CeedScalar mu     = 75.;           // Pa s, dynamic viscosity
-  // mu = 75 is not physical for air, but is good for numerical stability
+  CeedScalar mu     = 1.8e-5;           // Pa s, dynamic viscosity
   CeedScalar k      = 0.02638; // W/(m K)
   CeedScalar c_tau  = 0.5;     // -
-  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
   for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
