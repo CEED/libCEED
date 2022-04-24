@@ -366,3 +366,30 @@ $$
 
 where $P_0$ is the atmospheric pressure.
 For this problem, we have used no-slip and non-penetration boundary conditions for $\bm{u}$, and no-flux for mass and energy densities.
+
+## Channel
+
+A compressible channel flow. Analytical solution given in
+{cite}`whitingStabilizedFEM1999`:
+
+$$ u_1 = u_{\max} \left [ 1 - \left ( \frac{x_2}{H}\right)^2 \right] \quad \quad u_2 = u_3 = 0$$
+$$T = T_w \left [ 1 + \frac{Pr \hat{E}c}{3} \left \{1 - \left(\frac{x_2}{H}\right)^4  \right \} \right]$$
+$$p = p_0 - \frac{2\rho_0 u_{\max}^2 x_1}{Re_H H}$$
+
+where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ is the temperature at the wall, $Pr=\frac{\mu}{c_p \kappa}$ is the Prandlt number, $\hat E_c = \frac{u_{\max}^2}{c_p T_w}$ is the modified Eckert number, and $Re_h = \frac{u_{\max}H}{\nu}$ is the Reynolds number.
+
+Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
+The flow is driven by a body force.
+
+## Blasius
+
+Simulation of a laminar boundary layer flow, with the inflow being prescribed
+by a [Blasius similarity
+solution](https://en.wikipedia.org/wiki/Blasius_boundary_layer). At the inflow,
+the velocity is prescribed by the Blasius soution profile, temperature is set
+constant, and density is allowed to float. At the outlet, only the density is
+prescribed based on the user-set pressure. The wall is a no-slip,
+no-penetration, no-heat flux condition. The top of the domain is treated as an
+outflow and is tilted at a downward angle to ensure that flow is always exiting
+it.
+
