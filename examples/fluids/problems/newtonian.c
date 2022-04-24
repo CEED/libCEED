@@ -24,6 +24,11 @@ struct NewtonianIdealGasContext_ {
   CeedScalar cp;
   CeedScalar g[3];
   CeedScalar c_tau;
+  CeedScalar Ctau_t;
+  CeedScalar Ctau_v;
+  CeedScalar Ctau_C;
+  CeedScalar Ctau_M;
+  CeedScalar Ctau_E;
   StabilizationType stabilization;
 };
 #endif
@@ -73,6 +78,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar k      = 0.02638; // W/(m K)
   CeedScalar c_tau  = 0.5;     // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
+  CeedScalar Ctau_t  = 1.0;     // -
+  CeedScalar Ctau_v  = 36.0;     // should put this in a degree conditional-
+  CeedScalar Ctau_C  = 1.0;     //  should put this in a degree conditional-
+  CeedScalar Ctau_M  = 1.0;     //  should put this in a degree conditional-
+  CeedScalar Ctau_E  = 1.0;     //  should put this in a degree conditional-
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
   for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -113,6 +123,16 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
                             NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_t", "Stabilization time constant",
+                            NULL, Ctau_t, &Ctau_t, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_v", "Stabilization viscous constant",
+                            NULL, Ctau_v, &Ctau_v, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_C", "Stabilization continuity constant",
+                            NULL, Ctau_C, &Ctau_C, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_M", "Stabilization momentum constant",
+                            NULL, Ctau_M, &Ctau_M, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_E", "Stabilization energy constant",
+                            NULL, Ctau_E, &Ctau_E, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -191,6 +211,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->newtonian_ig_ctx->cv            = cv;
   user->phys->newtonian_ig_ctx->cp            = cp;
   user->phys->newtonian_ig_ctx->c_tau         = c_tau;
+  user->phys->newtonian_ig_ctx->Ctau_t        = Ctau_t;
+  user->phys->newtonian_ig_ctx->Ctau_v        = Ctau_t;
+  user->phys->newtonian_ig_ctx->Ctau_C        = Ctau_C;
+  user->phys->newtonian_ig_ctx->Ctau_M        = Ctau_M;
+  user->phys->newtonian_ig_ctx->Ctau_E        = Ctau_E;
   user->phys->newtonian_ig_ctx->stabilization = stab;
   PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3);
 

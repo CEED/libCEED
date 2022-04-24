@@ -61,6 +61,11 @@ struct NewtonianIdealGasContext_ {
   CeedScalar cp;
   CeedScalar g[3];
   CeedScalar c_tau;
+  CeedScalar Ctau_t;
+  CeedScalar Ctau_v;
+  CeedScalar Ctau_C;
+  CeedScalar Ctau_M;
+  CeedScalar Ctau_E;
   CeedScalar dt;
   StabilizationType stabilization;
 };
@@ -157,11 +162,16 @@ CEED_QFUNCTION_HELPER void PrimitiveToConservative_fwd(const CeedScalar rho, con
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
                       const CeedScalar dXdx[3][3], const CeedScalar u[3],
-                      const CeedScalar cv, const CeedScalar c_tau,
+                      const CeedScalar cv, const NewtonianIdealGasContext newt_ctx,
                       const CeedScalar mu, const CeedScalar dt,
                       const CeedScalar rho) {
+  // Context
+  const CeedScalar  Ctau_t      = newt_ctx->Ctau_t;
+  const CeedScalar  Ctau_v      = newt_ctx->Ctau_v;
+  const CeedScalar  Ctau_C      = newt_ctx->Ctau_C;
+  const CeedScalar  Ctau_M      = newt_ctx->Ctau_M;
+  const CeedScalar  Ctau_E      = newt_ctx->Ctau_E;
   CeedScalar gijd[6];
-  CeedScalar fff;
   CeedScalar tau;
   CeedScalar dts;
   CeedScalar fact;
@@ -190,39 +200,23 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
           + dXdx[1][2] * dXdx[1][2]
           + dXdx[2][2] * dXdx[2][2];
 
-//  if (ipord == 1) { 
-    fff = 36.;
-//  }
-//  else if (ipord == 2) {
-//    fff = 60.;
-//  }
-//  else if (ipord == 3) { 
-//    fff = 128.;
-//  }
-//  if (iremoveStabTimeTerm.eq.1 ) { 
-//    dts = zero 
-//  }
-//  else {
-// PHASTA     dts = dtsfct*Dtgl;
-    dts = 1./dt ;
-//  }
+
+   dts = Ctau_t / dt ;
 
    tau = rho*rho*((4. * dts * dts)
        + u[0] * ( u[0] * gijd[0] + 2. * ( u[1] * gijd[1] + u[2] * gijd[3]))
        + u[1] * ( u[1] * gijd[2] + 2. *   u[2] * gijd[4]) 
        + u[2] *   u[2] * gijd[5]) 
-       + fff* mu * mu * 
+       + Ctau_v* mu * mu * 
          (gijd[0]*gijd[0] + gijd[2]*gijd[2] + gijd[5]*gijd[5] +
        + 2. * (gijd[1]*gijd[1] + gijd[3]*gijd[3] + gijd[4]*gijd[4]));
 
    fact=sqrt(tau);
 
-   Tau_d[0] = fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125; //*c_tau; 
-   // PHASTA has taucfact/8 insteadof c_tau  Only matched for taucfact=1
+   Tau_d[0] = Ctau_C * fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125; 
 
-   Tau_d[1] = c_tau/ fact; // shifting our existing "knob" to here 
-   Tau_d[2] = Tau_d[1] / cv; // *temper 
-   // which in  PHASTA scales this but the scale default is 1. 
+   Tau_d[1] = Ctau_M / fact; 
+   Tau_d[2] = Ctau_E * Tau_d[1] / cv; 
 }
 
 // *****************************************************************************
@@ -379,6 +373,11 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
+  const CeedScalar Ctau_t  = context-> Ctau_t;
+  const CeedScalar Ctau_v  = context-> Ctau_v;
+  const CeedScalar Ctau_C  = context-> Ctau_C;
+  const CeedScalar Ctau_M  = context-> Ctau_M;
+  const CeedScalar Ctau_E  = context-> Ctau_E;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -614,6 +613,11 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
+  const CeedScalar Ctau_t  = context->Ctau_t;
+  const CeedScalar Ctau_v  = context->Ctau_v;
+  const CeedScalar Ctau_C  = context->Ctau_C;
+  const CeedScalar Ctau_M  = context->Ctau_M;
+  const CeedScalar Ctau_E  = context->Ctau_E;
   const CeedScalar dt     = context->dt;
   const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp-cv;
@@ -825,7 +829,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       break;
     case STAB_SUPG:        // SUPG
       computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
-      Tau_diagPrim(Tau_d, dXdx, u, cv, c_tau, mu, dt, rho);
+      Tau_diagPrim(Tau_d, dXdx, u, cv, &context, mu, dt, rho);
       tau_strong_res[0]=Tau_d[0] * strong_res[0];
       tau_strong_res[1]=Tau_d[1] * strong_res[1];
       tau_strong_res[2]=Tau_d[1] * strong_res[2];
