@@ -21,7 +21,7 @@ function run_tests()
 
    # Some of the available options are:
    # -degree <1>: Polynomial degree of tensor product basis
-   # -qextra <1>: Number of extra quadrature points
+   # -q_extra <1>: Number of extra quadrature points
    # -ceed </cpu/self>: CEED resource specifier
    # -local <1000>: Target number of locally (per rank) owned nodes
 
