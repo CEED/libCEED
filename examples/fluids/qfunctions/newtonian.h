@@ -555,7 +555,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none or SU
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3]={{0.}};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
@@ -563,7 +563,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -808,7 +808,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3]={{0.}};
     CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
     CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
     CeedScalar Tau_d[3] = {0.};
@@ -819,7 +819,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -828,19 +828,23 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                 stab[j][2] * dXdx[k][2]);
       break;
     case STAB_SUPG:        // SUPG
-      computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
       Tau_diagPrim(Tau_d, dXdx, u, cv, context, mu, dt, rho);
       tau_strong_res[0]=Tau_d[0] * strong_res[0];
       tau_strong_res[1]=Tau_d[1] * strong_res[1];
       tau_strong_res[2]=Tau_d[1] * strong_res[2];
       tau_strong_res[3]=Tau_d[1] * strong_res[3];
       tau_strong_res[4]=Tau_d[2] * strong_res[4];
+// this function was verified against PHASTA for as IC that was as close as possible 
+//    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
+// BUT when we use it to compute  
+//   stab[k][j] = jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
+// it does not produce a stable result.  Thus, for now, we use Jed's approach
       PrimitiveToConservative_fwd(rho, u, E, Rd, cv, tau_strong_res, tau_strong_res_conservative);
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_p[j][k][l] * tau_strong_res[l] * 0 // flux Jacobian with respect to primitive
-              + jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
+            stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] * 0 // flux Jacobian with respect to primitive
+              + jacob_F_conv[j][k][l] * tau_strong_res_conservative[l] * 1;
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
