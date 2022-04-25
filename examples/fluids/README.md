@@ -60,7 +60,7 @@ The following options are common among all problem types:
   - Polynomial degree of tensor product basis (must be >= 1)
   - `1`
 
-* - `-qextra`
+* - `-q_extra`
   - Number of extra quadrature points
   - `2`
 
