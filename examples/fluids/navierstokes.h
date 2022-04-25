@@ -319,6 +319,7 @@ struct Physics_private {
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
+  CeedContextFieldLabel    timestep_size_label;
 };
 
 // Problem specific data

@@ -209,6 +209,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   // ----- Get Context Labels for Operator
   CeedOperatorContextGetFieldLabel(*op_apply, "solution time",
                                    &phys->solution_time_label);
+  CeedOperatorContextGetFieldLabel(*op_apply, "timestep size",
+                                   &phys->timestep_size_label);
 
   PetscFunctionReturn(0);
 }

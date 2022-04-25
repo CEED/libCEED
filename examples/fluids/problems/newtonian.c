@@ -233,6 +233,9 @@ PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
                               sizeof(*phys->newtonian_ig_ctx), phys->newtonian_ig_ctx);
+  CeedQFunctionContextRegisterDouble(ceed_data->newt_ig_context, "timestep size",
+                                     offsetof(struct NewtonianIdealGasContext_, dt), 1, "Size of timestep, delta t");
+
   if (ceed_data->qf_rhs_vol)
     CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->newt_ig_context);
   if (ceed_data->qf_ifunction_vol)
