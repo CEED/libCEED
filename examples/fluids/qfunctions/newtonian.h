@@ -248,8 +248,6 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
                                        /* const CeedScalar sound_speed, const CeedScalar c_tau) { */
                                        const CeedScalar sound_speed, const CeedScalar c_tau,
                                        const CeedScalar viscosity) {
-  const CeedScalar a_i[3] = {fabs(u[0]) + sound_speed, fabs(u[1]) + sound_speed,fabs(u[2]) + sound_speed};
-  /* const CeedScalar mag_a_visc = sqrt(a_i[0]*a_i[0] +a_i[1]*a_i[1] +a_i[2]*a_i[2]) / (2*viscosity); */
   const CeedScalar mag_a_visc = sqrt(u[0]*u[0] +u[1]*u[1] +u[2]*u[2]) / (2*viscosity);
   for (int i=0; i<3; i++) {
     // length of element in direction i
@@ -278,7 +276,6 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar theta0    = context->theta0;
   const CeedScalar P0        = context->P0;
-  const CeedScalar N         = context->N;
   const CeedScalar cv        = context->cv;
   const CeedScalar cp        = context->cp;
   const CeedScalar *g        = context->g;
@@ -381,11 +378,6 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
-  const CeedScalar Ctau_t  = context-> Ctau_t;
-  const CeedScalar Ctau_v  = context-> Ctau_v;
-  const CeedScalar Ctau_C  = context-> Ctau_C;
-  const CeedScalar Ctau_M  = context-> Ctau_M;
-  const CeedScalar Ctau_E  = context-> Ctau_E;
   const CeedScalar gamma  = cp / cv;
 
   CeedPragmaSIMD
@@ -621,11 +613,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
-  const CeedScalar Ctau_t  = context->Ctau_t;
-  const CeedScalar Ctau_v  = context->Ctau_v;
-  const CeedScalar Ctau_C  = context->Ctau_C;
-  const CeedScalar Ctau_M  = context->Ctau_M;
-  const CeedScalar Ctau_E  = context->Ctau_E;
   const CeedScalar dt     = context->dt;
   const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp-cv;
@@ -818,7 +805,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3]={{0.}};
     CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
-    CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
@@ -842,8 +828,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_res[2]=Tau_d[1] * strong_res[2];
       tau_strong_res[3]=Tau_d[1] * strong_res[3];
       tau_strong_res[4]=Tau_d[2] * strong_res[4];
-// Alternate rout (useful later with primitive variable code)
+// Alternate route (useful later with primitive variable code)
 // this function was verified against PHASTA for as IC that was as close as possible 
+//    CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
 //    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
 // it has also been verified to compute a correct through the following
 //   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive

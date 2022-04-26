@@ -143,7 +143,6 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const BlasiusContext context = (BlasiusContext)ctx;
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
   const CeedScalar mu     = context->newtonian_ctx.mu;
 
@@ -211,19 +210,23 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Calcualte prescribed inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+//  Try fixing rho weakly on the inflow to a value  consistent with theta0 and P0
 
-    // Find pressure using state inside the domain
-    const CeedScalar rho = q[0][i];
-//    const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
-//    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
-//                                  u[2]*u[2]);
-//    const CeedScalar P = E_internal * (gamma - 1.);
+    const CeedScalar rho = P0 / (Rd * theta0); // rho fixed 
+    
+//    const CeedScalar rho = q[0][i];
+    const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
+    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
+                                  u[2]*u[2]);
+    const CeedScalar P = E_internal * (gamma - 1.);
 
     // Find inflow state using calculated P and prescribed velocity, theta0
-    const CeedScalar e_internal = cv * theta0;
+//    const CeedScalar e_internal = cv * theta0;
 //    const CeedScalar rho_in = P / ((gamma - 1) * e_internal); // mixed up
-    const CeedScalar rho_0 = P0 / ((gamma - 1) * e_internal); // rho exterior but what for?
-    const CeedScalar P=rho*Rd*theta0; // interior rho with exterior T
+//    const CeedScalar rho = P0 / ((gamma - 1) * e_internal); // rho exterior 
+//    const CeedScalar P=rho*Rd*theta0; // interior rho with exterior T
+    const CeedScalar rho_0 = rho;
+    
 
     const CeedScalar x0     = Uinf*rho / (mu*25/ (delta0*delta0) );
     CeedScalar velocity[3] = {0.};
@@ -236,7 +239,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
                                  velocity[1]*velocity[1] +
                                  velocity[2]*velocity[2]);
 //    const CeedScalar E = rho_in * e_internal + E_kinetic;
-    const CeedScalar E = rho * e_internal + E_kinetic;  // use interior rho
+    const CeedScalar E = E_internal + E_kinetic;  // use interior rho
                            // from T       and  u exterior
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
