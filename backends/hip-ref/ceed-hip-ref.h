@@ -62,8 +62,8 @@ typedef struct {
 // We use a struct to avoid having to memCpy the array of pointers
 // __global__ copies by value the struct.
 typedef struct {
-  const CeedScalar *inputs[CEED_FIELD_MAX];
-  CeedScalar *outputs[CEED_FIELD_MAX];
+  const void *inputs[CEED_FIELD_MAX];
+  void *outputs[CEED_FIELD_MAX];
 } Fields_Hip;
 
 typedef struct {

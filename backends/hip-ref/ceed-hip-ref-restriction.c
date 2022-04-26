@@ -35,15 +35,20 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
   hipFunction_t kernel;
 
   // Get vectors
-  const CeedScalar *d_u;
-  CeedScalar *d_v;
-  ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
+  const void *d_u;
+  void *d_v;
+  ierr = CeedVectorGetArrayReadGeneric(u, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                       &d_u);
+  CeedChkBackend(ierr);
   if (t_mode == CEED_TRANSPOSE) {
     // Sum into for transpose mode, e-vec to l-vec
-    ierr = CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+    ierr = CeedVectorGetArrayGeneric(v, CEED_MEM_DEVICE, CEED_SCALAR_TYPE, &d_v);
+    CeedChkBackend(ierr);
   } else {
     // Overwrite for notranspose mode, l-vec to e-vec
-    ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+    ierr = CeedVectorGetArrayWriteGeneric(v, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                          &d_v);
+    CeedChkBackend(ierr);
   }
 
   // Restrict
@@ -87,8 +92,8 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r,
     *request = NULL;
 
   // Restore arrays
-  ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArrayReadGeneric(u, &d_u); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArrayGeneric(v, &d_v); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 

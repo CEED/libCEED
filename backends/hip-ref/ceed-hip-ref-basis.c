@@ -29,12 +29,16 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem,
   const int max_block_size = 64;
 
   // Read vectors
-  const CeedScalar *d_u;
-  CeedScalar *d_v;
+  const void *d_u;
+  void *d_v;
   if (eval_mode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
+    ierr = CeedVectorGetArrayReadGeneric(u, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                         &d_u);
+    CeedChkBackend(ierr);
   }
-  ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWriteGeneric(v, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                        &d_v);
+  CeedChkBackend(ierr);
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
@@ -93,9 +97,9 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem,
 
   // Restore vectors
   if (eval_mode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
+    ierr = CeedVectorRestoreArrayReadGeneric(u, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArrayGeneric(v, &d_v); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -121,12 +125,16 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem,
                                        num_elem/elemsPerBlock*elemsPerBlock<num_elem)?1:0);
 
   // Read vectors
-  const CeedScalar *d_u;
-  CeedScalar *d_v;
+  const void *d_u;
+  void *d_v;
   if (eval_mode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
+    ierr = CeedVectorGetArrayReadGeneric(u, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                         &d_u);
+    CeedChkBackend(ierr);
   }
-  ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorGetArrayWriteGeneric(v, CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                        &d_v);
+  CeedChkBackend(ierr);
 
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
@@ -183,9 +191,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem,
 
   // Restore vectors
   if (eval_mode != CEED_EVAL_WEIGHT) {
-    ierr = CeedVectorRestoreArrayRead(u, &d_u); CeedChkBackend(ierr);
+    ierr = CeedVectorRestoreArrayReadGeneric(u, &d_u); CeedChkBackend(ierr);
   }
-  ierr = CeedVectorRestoreArray(v, &d_v); CeedChkBackend(ierr);
+  ierr = CeedVectorRestoreArrayGeneric(v, &d_v); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
