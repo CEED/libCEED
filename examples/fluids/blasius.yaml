@@ -4,7 +4,7 @@ implicit: true
 ts:
   adapt_type: 'none'
   type: 'beuler'
-  dt: 5.e-8
+  dt: 6.4e-5
 
 ## Linear Settings:
 degree: 1
@@ -21,14 +21,15 @@ stab: 'supg'
 Ctau_t: 1
 #Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
 Ctau_v: 36
-Ctau_C: 0.125
-Ctau_M: 1.0
-Ctau_E: 0.125
+Ctau_C: 0.5
+Ctau_M: 0.5
+Ctau_E: 0.5
 q_extra: 0
 
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
 dm_plex_dim: 3
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
 bc_slip_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3

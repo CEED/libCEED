@@ -203,6 +203,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Calcualte prescribed inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+//  Try fixing rho weakly on the inflow to a value  consistent with theta0 and P0
 
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
@@ -313,7 +314,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity
 
-    // Calculate prescribed outflow traction values
+    // Calculate outflow traction values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;
