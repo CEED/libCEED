@@ -216,10 +216,18 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
 
   fact=sqrt(tau);
 
-  Tau_d[0] = Ctau_C * fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125;
+   Tau_d[0] = Ctau_C * fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125;
 
-  Tau_d[1] = Ctau_M / fact;
-  Tau_d[2] = Ctau_E * Tau_d[1] / cv;
+   Tau_d[1] = Ctau_M / fact;
+   Tau_d[2] = Ctau_E / ( fact * cv );
+
+// consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv 
+//  to avoid a division if the compiler is smart enough to see that cv IS
+// a constant that it could invert once for all elements
+// but in that case energy tau is scaled by the product of Ctau_E * Ctau_M
+// OR we could absorb cv into Ctau_E but this puts more burden on user to
+// know how to change constants with a change of fluid or units.  Same for
+// Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
 }
 
 // *****************************************************************************
@@ -559,7 +567,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none or SU
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3] = {{0.}};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
@@ -567,7 +575,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -809,7 +817,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3] = {{0.}};
     CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
     CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
     CeedScalar Tau_d[3] = {0.};
@@ -820,7 +828,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -836,14 +844,19 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_res[2] = Tau_d[1] * strong_res[2];
       tau_strong_res[3] = Tau_d[1] * strong_res[3];
       tau_strong_res[4] = Tau_d[2] * strong_res[4];
+// Alternate route (useful later with primitive variable code)
+// this function was verified against PHASTA for as IC that was as close as possible 
+//    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
+// it has also been verified to compute a correct through the following
+//   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
+// applied in the triple loop below
+//  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
       PrimitiveToConservative_fwd(rho, u, E, Rd, cv, tau_strong_res,
                                   tau_strong_res_conservative);
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv_p[j][k][l] * tau_strong_res[l] * 0
-                         // flux Jacobian with respect to primitive
-                         + jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
