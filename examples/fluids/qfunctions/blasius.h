@@ -25,6 +25,7 @@ struct BlasiusContext_ {
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
+  CeedInt weakT;    // !< flag to set Temperature weakly at inflow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
@@ -188,6 +189,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar P0     = context->P0;
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
+  const CeedInt weakT     = context->weakT;
   const CeedScalar rho_0  = P0 / (Rd * theta0);
   const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
 
@@ -203,25 +205,33 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Calcualte prescribed inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-//  Try fixing rho weakly on the inflow to a value  consistent with theta0 and P0
-
-    // Find pressure using state inside the domain
-    const CeedScalar rho = q[0][i];
-    const CeedScalar P = rho * Rd * theta0; // interior rho with exterior T
-
-    // Find inflow state using calculated P and prescribed velocity, theta0
-    const CeedScalar e_internal = cv * theta0;
-
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;
     BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
                     &t12, &context->newtonian_ctx);
 
-    const CeedScalar E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
-                                 velocity[1]*velocity[1] +
-                                 velocity[2]*velocity[2]);
-    const CeedScalar E = rho * e_internal + E_kinetic;  // use interior rho
-    // from T       and  u exterior
+    // enabling user to choose between weak T and weak rho inflow
+    CeedScalar rho,E_internal, P, E_kinetic;
+    if(weakT==1) {
+      // rho should be from the current solution
+      rho = q[0][i];
+      // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
+      E_internal = rho * cv * theta0;
+      // Find pressure using state inside the domain
+      P=rho*Rd*theta0; // interior rho with exterior T
+      E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
+                              velocity[1]*velocity[1] +
+                              velocity[2]*velocity[2]);
+    } else {
+      //  Fixing rho weakly on the inflow to a value  consistent with theta0 and P0
+      rho =  rho_0;
+      E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
+                              velocity[1]*velocity[1] +
+                              velocity[2]*velocity[2]);
+      E_internal = q[4][i] - E_kinetic; // uses set rho and u but E from solution
+      P = E_internal * (gamma - 1.);
+    }
+    const CeedScalar E = E_internal + E_kinetic;  
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
