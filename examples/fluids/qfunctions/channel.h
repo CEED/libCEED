@@ -46,16 +46,13 @@ CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
   const CeedScalar mu     = context->newtonian_ctx.mu;
   const CeedScalar k      = context->newtonian_ctx.k;
 
-  const CeedScalar x=X[0], y=X[1], z=X[2];
+  const CeedScalar y=X[1];
 
   const CeedScalar Pr    = mu / (cp*k);
   const CeedScalar Ec    = (umax*umax) / (cp*theta0);
   const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/H,4)));
 
-  // Not including density (it's canceled out)
-  /* const CeedScalar ReH = umax*H/mu; */
-  /* const CeedScalar p   = P0 - (2*umax*umax*x) / (ReH*H); */
-  const CeedScalar p   = P0;
+  const CeedScalar p = P0;
 
   const CeedScalar rho = p / (Rd*theta);
 
@@ -107,17 +104,9 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   const ChannelContext context = (ChannelContext)ctx;
   const bool implicit     = context->implicit;
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar umax   = context->umax;
-  const CeedScalar center = context->center;
-  const CeedScalar H      = context->H;
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
-  const CeedScalar mu     = context->newtonian_ctx.mu;
-  const CeedScalar k      = context->newtonian_ctx.k;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -200,17 +189,7 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
 
   const ChannelContext context = (ChannelContext)ctx;
   const bool implicit     = context->implicit;
-  const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
-  const CeedScalar umax   = context->umax;
-  const CeedScalar center = context->center;
-  const CeedScalar H      = context->H;
-  const CeedScalar cv     = context->newtonian_ctx.cv;
-  const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
-  const CeedScalar gamma  = cp/cv;
-  const CeedScalar mu     = context->newtonian_ctx.mu;
-  const CeedScalar k      = context->newtonian_ctx.k;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -241,7 +220,6 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) v[j][i] = 0.;
 
     // Implementing outflow condition
-    const CeedScalar E_kinetic = (u[0]*u[0] + u[1]*u[1]) / 2.;
     const CeedScalar P         = P0; // pressure
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity

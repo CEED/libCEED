@@ -85,15 +85,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscOptionsEnd();
 
-  //TODO get scaling for atmospheric flows correct
   PetscScalar meter           = user->units->meter;
-  PetscScalar kilogram        = user->units->kilogram;
   PetscScalar second          = user->units->second;
   PetscScalar Kelvin          = user->units->Kelvin;
   PetscScalar Pascal          = user->units->Pascal;
-  PetscScalar J_per_kg_K      = user->units->J_per_kg_K;
-  PetscScalar m_per_squared_s = user->units->m_per_squared_s;
-  PetscScalar W_per_m_K       = user->units->W_per_m_K;
   rc = fabs(rc) * meter;
   theta0 *= Kelvin;
   thetaC *= Kelvin;

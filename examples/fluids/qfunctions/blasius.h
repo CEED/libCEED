@@ -134,7 +134,6 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const BlasiusContext context = (BlasiusContext)ctx;
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
   const CeedScalar mu     = context->newtonian_ctx.mu;
 
@@ -184,7 +183,6 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
-  const CeedScalar gamma  = cp/cv;
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
@@ -274,7 +272,6 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
-  const CeedScalar gamma  = cp/cv;
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
@@ -312,11 +309,11 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) v[j][i] = 0.;
 
     // Implementing outflow condition
-    const CeedScalar E_kinetic = (u[0]*u[0] + u[1]*u[1]) / 2.;
     const CeedScalar P         = P0; // pressure
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity
-// Calcualte prescribed outflow traction values
+
+    // Calculate prescribed outflow traction values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;

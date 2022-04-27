@@ -96,7 +96,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscInt ierr;
   ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
@@ -147,13 +146,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   PetscOptionsEnd();
 
   PetscScalar meter           = user->units->meter;
-  PetscScalar kilogram        = user->units->kilogram;
   PetscScalar second          = user->units->second;
   PetscScalar Kelvin          = user->units->Kelvin;
   PetscScalar Pascal          = user->units->Pascal;
-  PetscScalar J_per_kg_K      = user->units->J_per_kg_K;
-  PetscScalar m_per_squared_s = user->units->m_per_squared_s;
-  PetscScalar W_per_m_K       = user->units->W_per_m_K;
 
   mu     *= Pascal * second;
   theta0 *= Kelvin;

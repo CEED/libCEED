@@ -32,7 +32,6 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscInt ierr;
   ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
@@ -81,7 +80,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
     ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
     for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
-    H      = 0.5*(domain_max[1] - domain_min[1])*meter;
+    H      = 0.5*domain_size[1]*meter;
     center = H + domain_min[1]*meter;
   }
 

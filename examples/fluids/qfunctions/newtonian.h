@@ -251,16 +251,14 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3],
                                        /* const CeedScalar sound_speed, const CeedScalar c_tau) { */
                                        const CeedScalar sound_speed, const CeedScalar c_tau,
                                        const CeedScalar viscosity) {
-  const CeedScalar a_i[3] = {fabs(u[0]) + sound_speed, fabs(u[1]) + sound_speed,fabs(u[2]) + sound_speed};
-  /* const CeedScalar mag_a_visc = sqrt(a_i[0]*a_i[0] +a_i[1]*a_i[1] +a_i[2]*a_i[2]) / (2*viscosity); */
-  const CeedScalar mag_a_visc = sqrt(u[0]*u[0] +u[1]*u[1] +u[2]*u[2]) /
+  const CeedScalar mag_u_visc = sqrt(u[0]*u[0] +u[1]*u[1] +u[2]*u[2]) /
                                 (2*viscosity);
   for (int i=0; i<3; i++) {
     // length of element in direction i
     CeedScalar h = 2 / sqrt(dXdx[0][i]*dXdx[0][i] + dXdx[1][i]*dXdx[1][i] +
                             dXdx[2][i]*dXdx[2][i]);
-    CeedScalar Pe = mag_a_visc*h;
-    CeedScalar Xi = cosh(Pe)/sinh(Pe) - 1/Pe; //TODO Fix overflow issues at high Pe
+    CeedScalar Pe = mag_u_visc*h;
+    CeedScalar Xi = 1/tanh(Pe) - 1/Pe;
     // fastest wave in direction i
     CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
     Tau_x[i] = c_tau * h * Xi / fastest_wave;
@@ -282,7 +280,6 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar theta0    = context->theta0;
   const CeedScalar P0        = context->P0;
-  const CeedScalar N         = context->N;
   const CeedScalar cv        = context->cv;
   const CeedScalar cp        = context->cp;
   const CeedScalar *g        = context->g;
@@ -385,12 +382,6 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar dt     = context->dt;
-  const CeedScalar c_tau  = context->c_tau;
-  const CeedScalar Ctau_t = context-> Ctau_t;
-  const CeedScalar Ctau_v = context-> Ctau_v;
-  const CeedScalar Ctau_C = context-> Ctau_C;
-  const CeedScalar Ctau_M = context-> Ctau_M;
-  const CeedScalar Ctau_E = context-> Ctau_E;
   const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp - cv;
 
@@ -566,7 +557,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     // -- Not used in favor of diagonal tau. Kept for future testing
     // const CeedScalar sound_speed = sqrt(gamma * P / rho);
     // CeedScalar Tau_x[3] = {0.};
-    // Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
+    // Tau_spatial(Tau_x, dXdx, u, sound_speed, context->c_tau, mu);
 
     // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3] = {{0.}};
@@ -636,7 +627,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
-  const CeedScalar c_tau  = context->c_tau;
   const CeedScalar dt     = context->dt;
   const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp-cv;
