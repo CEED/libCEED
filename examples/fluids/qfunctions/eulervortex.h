@@ -435,7 +435,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
 
     // -- Stabilization method: none or SU
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3] = {{0.}};
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -443,7 +443,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -610,7 +610,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3] = {{0.}};
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -618,7 +618,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
