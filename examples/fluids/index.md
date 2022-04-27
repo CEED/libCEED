@@ -262,12 +262,32 @@ $$ (eq-test-perturbation-advdiff)
 
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
-For the Navier-Stokes and Euler equations in primitive variables, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization consisting of
+For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization $\mathrm{diag}(\tau_c, \tau_m, \tau_m, \tau_m, \tau_E)$ consisting of
 1. continuity stabilization $\tau_c$
 2. momentum stabilization $\tau_m$
 3. energy stabilization $\tau_E$
 
-However, since our equations are in conservative form, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
+The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
+
+$$ 
+\begin{aligned}
+
+\tau_c &= \frac{C_c \mathcal{F}}{8\rho \ \mathrm{tr}(\bm g)} \\
+\tau_m &= \frac{C_m}{\mathcal{F}} \\
+\tau_E &= \frac{C_E}{\mathcal{F} c_v} \\
+\end{aligned}
+$$
+
+$$
+\mathcal{F} = \sqrt{ \rho^2 \left [ \left(\frac{2C_t}{\Delta t}\right)^2
++ \bm u \cdot (\bm u \cdot  \bm g)
++ C_v \mu^2 \Vert \bm g \Vert_F ^2\right]}
+$$
+
+where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor, $\mathrm{tr}(\cdot)$ is the trace, and $\Vert \cdot \Vert_F$ is the Frobenius norm.
+This formulation is currently not available in the Euler code.
+
+In the Euler code, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
 
 $$
 \tau_{ii} = c_{\tau} \frac{2 \xi(\mathrm{Pe})}{(\lambda_{\max \text{abs}})_i \lVert \nabla_{x_i} \bm X \rVert}

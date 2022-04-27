@@ -376,8 +376,33 @@ For the Density Current, Channel, and Blasius problems, the following common com
   -
 
 * - `-c_tau`
-  - Stabilization constant
+  - Stabilization constant, $c_\tau$
   - `0.5`
+  -
+
+* - `-Ctau_t`
+  - Stabilization time constant, $C_t$
+  - `1.0`
+  -
+
+* - `-Ctau_v`
+  - Stabilization viscous constant, $C_v$
+  - `36.0`
+  -
+
+* - `-Ctau_C`
+  - Stabilization continuity constant, $C_c$
+  - `1.0`
+  -
+
+* - `-Ctau_M`
+  - Stabilization momentum constant, $C_m$
+  - `1.0`
+  -
+
+* - `-Ctau_E`
+  - Stabilization energy constant, $C_E$
+  - `1.0`
   -
 
 * - `-cv`
