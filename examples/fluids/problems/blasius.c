@@ -9,7 +9,6 @@
 /// Utility functions for setting up Blasius Boundary Layer
 
 #include "../navierstokes.h"
-#include "../qfunctions/newtonian.h"
 #include "../qfunctions/blasius.h"
 
 #ifndef blasius_context_struct

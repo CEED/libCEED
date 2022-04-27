@@ -9,7 +9,6 @@
 /// Utility functions for setting up Channel flow
 
 #include "../navierstokes.h"
-#include "../qfunctions/newtonian.h"
 #include "../qfunctions/channel.h"
 
 #ifndef channel_context_struct
@@ -99,7 +98,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
     CeedScalar Rd  = cp - cv;
     CeedScalar rho = P0 / (Rd*theta0);
     CeedScalar g[] = {user->phys->channel_ctx->B / rho, 0., 0.};
-    PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3);
+    ierr = PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
   }
   user->phys->newtonian_ig_ctx->mu = mu;
   user->phys->channel_ctx->newtonian_ctx = *user->phys->newtonian_ig_ctx;

@@ -196,7 +196,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   setup_context->ly         = domain_size[1];
   setup_context->lz         = domain_size[2];
   setup_context->time       = 0;
-  PetscArraycpy(setup_context->g, g, 3);
+  ierr = PetscArraycpy(setup_context->g, g, 3); CHKERRQ(ierr);
 
   // -- Solver Settings
   user->phys->stab          = stab;
@@ -216,7 +216,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->newtonian_ig_ctx->Ctau_M        = Ctau_M;
   user->phys->newtonian_ig_ctx->Ctau_E        = Ctau_E;
   user->phys->newtonian_ig_ctx->stabilization = stab;
-  PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3);
+  ierr = PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
