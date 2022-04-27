@@ -168,11 +168,11 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
                                         const CeedScalar mu, const CeedScalar dt,
                                         const CeedScalar rho) {
   // Context
-  const CeedScalar  Ctau_t = newt_ctx->Ctau_t;
-  const CeedScalar  Ctau_v = newt_ctx->Ctau_v;
-  const CeedScalar  Ctau_C = newt_ctx->Ctau_C;
-  const CeedScalar  Ctau_M = newt_ctx->Ctau_M;
-  const CeedScalar  Ctau_E = newt_ctx->Ctau_E;
+  const CeedScalar Ctau_t = newt_ctx->Ctau_t;
+  const CeedScalar Ctau_v = newt_ctx->Ctau_v;
+  const CeedScalar Ctau_C = newt_ctx->Ctau_C;
+  const CeedScalar Ctau_M = newt_ctx->Ctau_M;
+  const CeedScalar Ctau_E = newt_ctx->Ctau_E;
   CeedScalar gijd[6];
   CeedScalar tau;
   CeedScalar dts;
@@ -216,12 +216,12 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
 
   fact=sqrt(tau);
 
-   Tau_d[0] = Ctau_C * fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125;
+  Tau_d[0] = Ctau_C * fact / (rho*(gijd[0] + gijd[2] + gijd[5]))*0.125;
 
-   Tau_d[1] = Ctau_M / fact;
-   Tau_d[2] = Ctau_E / ( fact * cv );
+  Tau_d[1] = Ctau_M / fact;
+  Tau_d[2] = Ctau_E / ( fact * cv );
 
-// consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv 
+// consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv
 //  to avoid a division if the compiler is smart enough to see that cv IS
 // a constant that it could invert once for all elements
 // but in that case energy tau is scaled by the product of Ctau_E * Ctau_M
@@ -384,6 +384,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->cv;
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
+  const CeedScalar dt     = context->dt;
   const CeedScalar c_tau  = context->c_tau;
   const CeedScalar Ctau_t = context-> Ctau_t;
   const CeedScalar Ctau_v = context-> Ctau_v;
@@ -391,6 +392,7 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar Ctau_M = context-> Ctau_M;
   const CeedScalar Ctau_E = context-> Ctau_E;
   const CeedScalar gamma  = cp / cv;
+  const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -560,22 +562,32 @@ CEED_QFUNCTION(Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * body_force[j];
 
-    // Stabilization
-    // -- Tau elements
-    const CeedScalar sound_speed = sqrt(gamma * P / rho);
-    CeedScalar Tau_x[3] = {0.};
-    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
+    // Spatial Stabilization
+    // -- Not used in favor of diagonal tau. Kept for future testing
+    // const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    // CeedScalar Tau_x[3] = {0.};
+    // Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
-    // -- Stabilization method: none or SU
+    // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3] = {{0.}};
+    CeedScalar tau_strong_conv[5] = {0.}, tau_strong_conv_conservative[5] = {0};
+    CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
     case STAB_SU:        // SU
+      Tau_diagPrim(Tau_d, dXdx, u, cv, context, mu, dt, rho);
+      tau_strong_conv[0] = Tau_d[0] * strong_conv[0];
+      tau_strong_conv[1] = Tau_d[1] * strong_conv[1];
+      tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
+      tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
+      tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
+      PrimitiveToConservative_fwd(rho, u, E, Rd, cv, tau_strong_conv,
+                                  tau_strong_conv_conservative);
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -625,11 +637,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar c_tau  = context->c_tau;
-  const CeedScalar Ctau_t = context->Ctau_t;
-  const CeedScalar Ctau_v = context->Ctau_v;
-  const CeedScalar Ctau_C = context->Ctau_C;
-  const CeedScalar Ctau_M = context->Ctau_M;
-  const CeedScalar Ctau_E = context->Ctau_E;
   const CeedScalar dt     = context->dt;
   const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp-cv;
@@ -810,25 +817,33 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] -= wdetJ*body_force[j];
 
-    // Stabilization
-    // -- Tau elements
-    const CeedScalar sound_speed = sqrt(gamma * P / rho);
-    CeedScalar Tau_x[3] = {0.};
-    Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
+    // Spatial Stabilization
+    // -- Not used in favor of diagonal tau. Kept for future testing
+    // const CeedScalar sound_speed = sqrt(gamma * P / rho);
+    // CeedScalar Tau_x[3] = {0.};
+    // Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau, mu);
 
     // -- Stabilization method: none, SU, or SUPG
     CeedScalar stab[5][3] = {{0.}};
     CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
-    CeedScalar jacob_F_conv_p[3][5][5] = {{{0.}}};
+    CeedScalar tau_strong_conv[5] = {0.}, tau_strong_conv_conservative[5] = {0};
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
     case STAB_SU:        // SU
+      Tau_diagPrim(Tau_d, dXdx, u, cv, context, mu, dt, rho);
+      tau_strong_conv[0] = Tau_d[0] * strong_conv[0];
+      tau_strong_conv[1] = Tau_d[1] * strong_conv[1];
+      tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
+      tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
+      tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
+      PrimitiveToConservative_fwd(rho, u, E, Rd, cv, tau_strong_conv,
+                                  tau_strong_conv_conservative);
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)
-            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -837,7 +852,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                 stab[j][2] * dXdx[k][2]);
       break;
     case STAB_SUPG:        // SUPG
-      computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
       Tau_diagPrim(Tau_d, dXdx, u, cv, context, mu, dt, rho);
       tau_strong_res[0] = Tau_d[0] * strong_res[0];
       tau_strong_res[1] = Tau_d[1] * strong_res[1];
@@ -845,7 +859,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_res[3] = Tau_d[1] * strong_res[3];
       tau_strong_res[4] = Tau_d[2] * strong_res[4];
 // Alternate route (useful later with primitive variable code)
-// this function was verified against PHASTA for as IC that was as close as possible 
+// this function was verified against PHASTA for as IC that was as close as possible
 //    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
 // it has also been verified to compute a correct through the following
 //   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
