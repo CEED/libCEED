@@ -577,5 +577,6 @@ addition to the Newtonian Ideal Gas options:
 This problem can be run with:
 
 ```
-./navierstokes -problem blasius -dm_plex_box_faces 40,60,1 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 4.2e-3,4.2e-3,5e-5 -dm_plex_dim 3 -bc_slip_z 1,2 -bc_wall 3 -wall_comps 1,2,3 -bc_inflow 6 -bc_outflow 5,4 -g 0,0,0
+./navierstokes -problem blasius -dm_plex_box_faces 40,60,1 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 4.2e-3,4.2e-3,5e-5 -dm_plex_dim 3 -bc_slip_z 1,2 -bc_wall 3 -wall_comps 1,2,3 -bc_inflow 6 -bc_outflow 5,4 -g 0,0,0 -ts_dt 5e-8
 ```
+Additionally, there is a `blasius.yaml` file that offers some other recommended options for running the problem.
