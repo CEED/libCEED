@@ -50,4 +50,5 @@ bc_outflow: 5,4
 g: 0,0,0
 
 stg:
-stg_inflow_path: "./STGInflow_physical.dat"
+  inflow_path: "./STGInflow_physical.dat"
+  mean_only: true

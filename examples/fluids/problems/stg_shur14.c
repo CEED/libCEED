@@ -13,7 +13,6 @@
 #include <math.h>
 #include <petsc.h>
 #include "../navierstokes.h"
-#include "../qfunctions/stg_shur14.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -232,6 +231,7 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
+  PetscBool mean_only = PETSC_FALSE;
   CeedScalar u0=0.0, alpha=1.01;
   STGShur14Context stg_ctx;
   PetscFunctionBeginUser;
@@ -248,6 +248,8 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
                           alpha, &alpha, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
                           NULL, u0, &u0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-stg_mean_only", "Only apply mean profile",
+                          NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
   int nmodes, nprofs;
@@ -277,6 +279,7 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
   stg_ctx->alpha         = alpha;
   stg_ctx->u0            = u0;
   stg_ctx->implicit      = implicit;
+  stg_ctx->mean_only     = mean_only;
   stg_ctx->theta0        = theta0;
   stg_ctx->newtonian_ctx = *newt_ctx;
 

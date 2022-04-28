@@ -187,6 +187,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
   const bool implicit     = stg_ctx->implicit;
+  const bool mean_only     = stg_ctx->mean_only;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
   const CeedScalar time   = stg_ctx->time;
   const CeedScalar theta0 = stg_ctx->theta0;
@@ -217,9 +218,12 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar h[3] = { 0. };
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
-    /* CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx); */
-    /* STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx); */
-    for (int j=0; j<3; j++) u[j] = ubar[j];
+    if (!mean_only) {
+      CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
+      STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+    } else {
+      for (int j=0; j<3; j++) u[j] = ubar[j];
+    }
 
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
