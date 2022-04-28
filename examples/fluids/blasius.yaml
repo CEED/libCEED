@@ -1,6 +1,6 @@
 problem: 'blasius'
 
-#stab: 'supg'
+stab: 'supg'
 Ctau_t: 1
 #Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
 Ctau_v: 36
