@@ -805,6 +805,30 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 }
 
 /**
+  @brief Set additional destroy routine for CeedQFunctionContext user data
+
+  @param ctx        CeedQFunctionContext to set user destroy function
+  @param f_mem_type Memory type to use when passing data into `f`
+  @param f          Additional routine to use to destroy user data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+
+int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
+                                       CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f) {
+  if (!f)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Must provide valid callback function for destroying user data");
+  // LCOV_EXCL_STOP
+  ctx->data_destroy_mem_type = f_mem_type;
+  ctx->data_destroy_function = f;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a CeedQFunctionContext
 
   @param ctx  CeedQFunctionContext to destroy
@@ -826,6 +850,14 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
                      "lock is in use");
   // LCOV_EXCL_STOP
 
+  if ((*ctx)->data_destroy_function) {
+    void *data;
+
+    ierr = CeedQFunctionContextGetData(*ctx, (*ctx)->data_destroy_mem_type, &data);
+    CeedChk(ierr);
+    ierr = (*ctx)->data_destroy_function(data); CeedChk(ierr);
+    ierr = CeedQFunctionContextRestoreData(*ctx, &data); CeedChk(ierr);
+  }
   if ((*ctx)->Destroy) {
     ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
   }

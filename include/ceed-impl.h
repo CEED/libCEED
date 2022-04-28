@@ -275,6 +275,8 @@ struct CeedQFunctionContext_private {
   int (*RestoreData)(CeedQFunctionContext);
   int (*RestoreDataRead)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  CeedMemType data_destroy_mem_type;
   CeedInt num_fields;
   CeedInt max_fields;
   CeedContextFieldLabel *field_labels;

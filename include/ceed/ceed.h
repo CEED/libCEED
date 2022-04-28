@@ -655,6 +655,16 @@ typedef enum {
 } CeedContextFieldType;
 CEED_EXTERN const char *const CeedContextFieldTypes[];
 
+/** Handle for the user provided CeedQFunctionContextDataDestroy callback function
+
+ @param[in,out] data  User-CeedQFunctionContext data
+
+ @return An error code: 0 - success, otherwise - failure
+
+ @ingroup CeedQFunction
+**/
+typedef int (*CeedQFunctionContextDataDestroyUser)(void *data);
+
 CEED_EXTERN int CeedQFunctionContextCreate(Ceed ceed,
     CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
@@ -686,6 +696,7 @@ CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
+CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
