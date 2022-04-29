@@ -562,6 +562,9 @@ This problem can be run with the `channel.yaml` file via:
 ```
 ./navierstokes -options_file channel.yaml
 ```
+```{literalinclude} ../../../../../examples/fluids/channel.yaml
+:language: yaml
+```
 
 The Blasius problem the following command-line options are available in
 addition to the Newtonian Ideal Gas options:
@@ -619,4 +622,8 @@ This problem can be run with the `blasius.yaml` file via:
 
 ```
 ./navierstokes -options_file blasius.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/blasius.yaml
+:language: yaml
 ```
