@@ -272,7 +272,7 @@ The Navier-Stokes code in this example uses the following formulation for $\tau_
 $$ 
 \begin{aligned}
 
-\tau_c &= \frac{C_c \mathcal{F}}{8\rho \ \mathrm{tr}(\bm g)} \\
+\tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
 \tau_m &= \frac{C_m}{\mathcal{F}} \\
 \tau_E &= \frac{C_E}{\mathcal{F} c_v} \\
 \end{aligned}
@@ -284,7 +284,7 @@ $$
 + C_v \mu^2 \Vert \bm g \Vert_F ^2\right]}
 $$
 
-where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor, $\mathrm{tr}(\cdot)$ is the trace, and $\Vert \cdot \Vert_F$ is the Frobenius norm.
+where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor and $\Vert \cdot \Vert_F$ is the Frobenius norm.
 This formulation is currently not available in the Euler code.
 
 In the Euler code, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.

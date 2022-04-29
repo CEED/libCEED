@@ -1,5 +1,22 @@
 problem: 'blasius'
 
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 5.e-8
+
+## Linear Settings:
+degree: 1
+dm_plex_box_faces: 40,60,1
+nDelta: 45
+
+## Quadratic Settings:
+#degree: 2
+#dm_plex_box_faces: 20,30,1
+#nDelta: 22
+#growth: 1.1664 # 1.08^2
+
 stab: 'supg'
 Ctau_t: 1
 #Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
@@ -8,26 +25,10 @@ Ctau_C: 0.125
 Ctau_M: 1.0
 Ctau_E: 0.125
 q_extra: 0
-implicit: true
-ts_max_snes_failures: 0
-ts_adapt_type: 'none'
-ts_type: 'beuler'
-ts_dt: 5.e-8
-
-# next three lines for quadratic
-#degree: 2
-#dm_plex_box_faces: 20,30,1
-#nDelta: 22
-# next three lines for linear
-degree: 1
-dm_plex_box_faces: 40,60,1
-nDelta: 45
 
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
-
 dm_plex_dim: 3
-# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
 bc_slip_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3

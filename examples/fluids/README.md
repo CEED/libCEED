@@ -123,18 +123,59 @@ The following options are common among all problem types:
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
 
-* 2D:
-  - faceMarkerBottom = 1
-  - faceMarkerRight  = 2
-  - faceMarkerTop    = 3
-  - faceMarkerLeft   = 4
-* 3D:
-  - faceMarkerBottom = 1
-  - faceMarkerTop    = 2
-  - faceMarkerFront  = 3
-  - faceMarkerBack   = 4
-  - faceMarkerRight  = 5
-  - faceMarkerLeft   = 6
+:::{list-table} 2D Face ID Labels
+:header-rows: 1
+* - PETSc Face Name
+  - Cartesian direction
+  - Face ID
+
+* - faceMarkerBottom
+  - -z
+  - 1
+
+* - faceMarkerRight
+  - +x
+  - 2
+
+* - faceMarkerTop
+  - +z
+  - 3
+
+* - faceMarkerLeft
+  - -x
+  - 4
+:::
+
+:::{list-table} 2D Face ID Labels
+:header-rows: 1
+* - PETSc Face Name
+  - Cartesian direction
+  - Face ID
+
+* - faceMarkerBottom
+  - -z
+  - 1
+
+* - faceMarkerTop
+  - +z
+  - 2
+
+* - faceMarkerFront
+  - -y
+  - 3
+
+* - faceMarkerBack
+  - +y
+  - 4
+
+* - faceMarkerRight
+  - +x
+  - 5
+
+* - faceMarkerLeft
+  - -x
+  - 6
+:::
 
 For the 2D advection problem, the following additional command-line options are available:
 
@@ -516,10 +557,10 @@ addition to the Newtonian Ideal Gas options:
   - `Pa`
 :::
 
-This problem can be run with:
+This problem can be run with the `channel.yaml` file via:
 
 ```
-./navierstokes -problem channel -dm_plex_box_faces 10,10,1 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1,1,.1 -dm_plex_dim 3 -bc_slip_z 1,2 -bc_wall 3,4 -wall_comps 1,2,3 -dm_plex_box_bd 'periodic,none,none'
+./navierstokes -options_file channel.yaml
 ```
 
 The Blasius problem the following command-line options are available in
@@ -574,9 +615,8 @@ addition to the Newtonian Ideal Gas options:
   - `degrees`
 :::
 
-This problem can be run with:
+This problem can be run with the `blasius.yaml` file via:
 
 ```
-./navierstokes -problem blasius -dm_plex_box_faces 40,60,1 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 4.2e-3,4.2e-3,5e-5 -dm_plex_dim 3 -bc_slip_z 1,2 -bc_wall 3 -wall_comps 1,2,3 -bc_inflow 6 -bc_outflow 5,4 -g 0,0,0 -ts_dt 5e-8
+./navierstokes -options_file blasius.yaml
 ```
-Additionally, there is a `blasius.yaml` file that offers some other recommended options for running the problem.
