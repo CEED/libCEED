@@ -78,11 +78,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
                          "Regular refinement levels for visualization",
                          NULL, app_ctx->viz_refine, &app_ctx->viz_refine, NULL); CHKERRQ(ierr);
 
-//  app_ctx->weakT = 0;
-//  ierr = PetscOptionsInt("-weakT",
-//                         "weak inflow switched from rho (default) to T",
-//                         NULL, app_ctx->weakT, &app_ctx->weakT, NULL); CHKERRQ(ierr);
-
   app_ctx->output_freq = 10;
   ierr = PetscOptionsInt("-output_freq",
                          "Frequency of output, in number of steps",

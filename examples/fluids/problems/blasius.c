@@ -20,7 +20,7 @@ struct BlasiusContext_ {
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
-  CeedInt weakT;    // !< flag to weakly set Temperature at inflow if not set weak rho instead
+  CeedInt weakT;        // !< flag to weakly set Temperature at inflow if not set weak rho instead
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif

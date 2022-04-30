@@ -25,7 +25,7 @@ struct BlasiusContext_ {
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
-  CeedInt weakT;    // !< flag to set Temperature weakly at inflow
+  CeedInt weakT;        // !< flag to set Temperature weakly at inflow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
@@ -184,6 +184,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar cv     = context->newtonian_ctx.cv;
   const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
 
   const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
@@ -203,7 +204,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
-    // Calcualte prescribed inflow values
+    // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;
@@ -217,7 +218,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
       rho = q[0][i];
       // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
       E_internal = rho * cv * theta0;
-      // Find pressure using state inside the domain
+      // Find pressure using 
       P=rho*Rd*theta0; // interior rho with exterior T
       E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
                               velocity[1]*velocity[1] +
@@ -324,7 +325,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
                                  norm[2]*u[2]; // Normal velocity
 
-    // Calculate outflow traction values
+    // Calculate prescribed outflow traction values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;

@@ -120,8 +120,7 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
 //        [row][col] of A_i
       dF[i][j+1][0] = drdP * u[i] * u[j] + ((i==j) ? 1. : 0.); // F^{{m_j} wrt p
       for (CeedInt k=0; k<3; k++) { // k counts the wrt vel_k
-        // this loop handles middle columns for all 5 rows
-        dF[i][0][k+1]   =  ((i==k) ? rho  : 0.);   // F^c wrt vel_k
+        dF[i][0][k+1]   =  ((i==k) ? rho  : 0.);   // F^c wrt u_k
         dF[i][j+1][k+1] = (((j==k) ? u[i] : 0.) +  // F^m_j wrt u_k
                            ((i==k) ? u[j] : 0.) ) * rho;
         dF[i][4][k+1]   = rho * u[i] * u[k]
