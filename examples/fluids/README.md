@@ -123,18 +123,59 @@ The following options are common among all problem types:
 
 For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
 
-* 2D:
-  - faceMarkerBottom = 1
-  - faceMarkerRight  = 2
-  - faceMarkerTop    = 3
-  - faceMarkerLeft   = 4
-* 3D:
-  - faceMarkerBottom = 1
-  - faceMarkerTop    = 2
-  - faceMarkerFront  = 3
-  - faceMarkerBack   = 4
-  - faceMarkerRight  = 5
-  - faceMarkerLeft   = 6
+:::{list-table} 2D Face ID Labels
+:header-rows: 1
+* - PETSc Face Name
+  - Cartesian direction
+  - Face ID
+
+* - faceMarkerBottom
+  - -z
+  - 1
+
+* - faceMarkerRight
+  - +x
+  - 2
+
+* - faceMarkerTop
+  - +z
+  - 3
+
+* - faceMarkerLeft
+  - -x
+  - 4
+:::
+
+:::{list-table} 2D Face ID Labels
+:header-rows: 1
+* - PETSc Face Name
+  - Cartesian direction
+  - Face ID
+
+* - faceMarkerBottom
+  - -z
+  - 1
+
+* - faceMarkerTop
+  - +z
+  - 2
+
+* - faceMarkerFront
+  - -y
+  - 3
+
+* - faceMarkerBack
+  - +y
+  - 4
+
+* - faceMarkerRight
+  - +x
+  - 5
+
+* - faceMarkerLeft
+  - -x
+  - 6
+:::
 
 For the 2D advection problem, the following additional command-line options are available:
 
@@ -340,9 +381,9 @@ This problem can be run with:
 ./navierstokes -problem euler_vortex -dm_plex_box_faces 20,20,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,1000,50 -dm_plex_dim 3 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -mean_velocity .5,-.8,0.
 ```
 
-For the Density Current problem, the following additional command-line options are available:
+For the Density Current, Channel, and Blasius problems, the following common command-line options are available:
 
-:::{list-table} Euler Vortex Runtime Options
+:::{list-table} Newtonian Ideal Gas problems Runtime Options
 :header-rows: 1
 
 * - Option
@@ -350,34 +391,19 @@ For the Density Current problem, the following additional command-line options a
   - Default value
   - Unit
 
-* - `-center`
-  - Location of bubble center
-  - `(lx,ly,lz)/2`
-  - `(m,m,m)`
-
-* - `-dc_axis`
-  - Axis of density current cylindrical anomaly, or `(0,0,0)` for spherically symmetric
-  - `(0,0,0)`
-  -
-
-* - `-rc`
-  - Characteristic radius of thermal bubble
-  - `1000`
-  - `m`
-
 * - `-units_meter`
   - 1 meter in scaled length units
-  - `1E-2`
+  - `1`
   -
 
 * - `-units_second`
   - 1 second in scaled time units
-  - `1E-2`
+  - `1`
   -
 
 * - `-units_kilogram`
   - 1 kilogram in scaled mass units
-  - `1E-6`
+  - `1`
   -
 
 * - `-units_Kelvin`
@@ -391,29 +417,34 @@ For the Density Current problem, the following additional command-line options a
   -
 
 * - `-c_tau`
-  - Stabilization constant
+  - Stabilization constant, $c_\tau$
   - `0.5`
   -
 
-* - `-theta0`
-  - Reference potential temperature
-  - `300`
-  - `K`
+* - `-Ctau_t`
+  - Stabilization time constant, $C_t$
+  - `1.0`
+  -
 
-* - `-thetaC`
-  - Perturbation of potential temperature
-  - `-15`
-  - `K`
+* - `-Ctau_v`
+  - Stabilization viscous constant, $C_v$
+  - `36.0`
+  -
 
-* - `-P0`
-  - Atmospheric pressure
-  - `1E5`
-  - `Pa`
+* - `-Ctau_C`
+  - Stabilization continuity constant, $C_c$
+  - `1.0`
+  -
 
-* - `-N`
-  - Brunt-Vaisala frequency
-  - `0.01`
-  - `1/s`
+* - `-Ctau_M`
+  - Stabilization momentum constant, $C_m$
+  - `1.0`
+  -
+
+* - `-Ctau_E`
+  - Stabilization energy constant, $C_E$
+  - `1.0`
+  -
 
 * - `-cv`
   - Heat capacity at constant volume
@@ -446,8 +477,153 @@ For the Density Current problem, the following additional command-line options a
   - `W/(m K)`
 :::
 
+The Density Current problem the following command-line options are available in
+addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Density Current Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-center`
+  - Location of bubble center
+  - `(lx,ly,lz)/2`
+  - `(m,m,m)`
+
+* - `-dc_axis`
+  - Axis of density current cylindrical anomaly, or `(0,0,0)` for spherically symmetric
+  - `(0,0,0)`
+  -
+
+* - `-rc`
+  - Characteristic radius of thermal bubble
+  - `1000`
+  - `m`
+
+* - `-theta0`
+  - Reference potential temperature
+  - `300`
+  - `K`
+
+* - `-thetaC`
+  - Perturbation of potential temperature
+  - `-15`
+  - `K`
+
+* - `-P0`
+  - Atmospheric pressure
+  - `1E5`
+  - `Pa`
+
+* - `-N`
+  - Brunt-Vaisala frequency
+  - `0.01`
+  - `1/s`
+:::
+
 This problem can be run with:
 
 ```
-./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_slip_y 3,4 -viz_refine 2
+./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_slip_y 3,4 -mu 75
+```
+
+The Channel problem the following command-line options are available in
+addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Channel Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-umax`
+  - Maximum/centerline velocity of the flow
+  - `10`
+  - `m/s`
+
+* - `-theta0`
+  - Reference potential temperature
+  - `300`
+  - `K`
+
+* - `-P0`
+  - Atmospheric pressure
+  - `1E5`
+  - `Pa`
+:::
+
+This problem can be run with the `channel.yaml` file via:
+
+```
+./navierstokes -options_file channel.yaml
+```
+```{literalinclude} ../../../../../examples/fluids/channel.yaml
+:language: yaml
+```
+
+The Blasius problem the following command-line options are available in
+addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Blasius Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-Uinf`
+  - Freestream velocity
+  - `40`
+  - `m/s`
+
+* - `-delta0`
+  - Boundary layer height at the inflow
+  - `4.2e-4`
+  - `m`
+
+* - `-theta0`
+  - Reference potential temperature
+  - `288`
+  - `K`
+
+* - `-P0`
+  - Atmospheric pressure
+  - `1.01E5`
+  - `Pa`
+
+* - `-refine_height`
+  - Height at which `-Ndelta` number of elements should refined into
+  - `5.9E-4`
+  - `m`
+
+* - `-Ndelta`
+  - Number of elements to keep below `-refine_height`
+  - `45`
+  -
+
+* - `-growth`
+  - Growth rate of the elements in the refinement region
+  - `1.08`
+  -
+
+* - `-top_angle`
+  - Downward angle of the top face of the domain. This face serves as an outlet.
+  - `5`
+  - `degrees`
+:::
+
+This problem can be run with the `blasius.yaml` file via:
+
+```
+./navierstokes -options_file blasius.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/blasius.yaml
+:language: yaml
 ```
