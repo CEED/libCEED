@@ -210,7 +210,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
-    // Calcualte prescribed inflow values
+    // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     const CeedScalar rho0 = P0 / (Rd * theta0);  // freestream rho0 as we set P0 and theta0
     const CeedScalar x0     = Uinf*rho0 / (mu*25/ (delta0*delta0) );
