@@ -24,14 +24,15 @@
  * This assumes the input matrices are in order [11,22,33,12,13,23]. This
  * format is also used for the output.
  *
- * @param[in] nprofs Number of matrices in Rij
- * @param[in] Rij Array of the symmetric matrices [6,nprofs]
- * @param[out] Cij Array of the Cholesky Decomposition matrices, [6,nprofs]
+ * @param[in]  comm   MPI_Comm
+ * @param[in]  nprofs Number of matrices in Rij
+ * @param[in]  Rij    Array of the symmetric matrices [6,nprofs]
+ * @param[out] Cij    Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-static void CalcCholeskyDecomp(int nprofs,
+PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, int nprofs,
                                const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
-  CeedPragmaSIMD
+  PetscFunctionBeginUser;
   for(int i=0; i<nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
     Cij[3][i] = Rij[3][i] / Cij[0][i];
@@ -39,7 +40,12 @@ static void CalcCholeskyDecomp(int nprofs,
     Cij[4][i] = Rij[4][i] / Cij[0][i];
     Cij[5][i] = (Rij[5][i] - Cij[3][i]*Cij[4][i]) / Cij[1][i];
     Cij[2][i] = sqrt(Rij[2][i] - pow(Cij[4][i], 2) - pow(Cij[5][i], 2));
+
+    if (isnan(Cij[0][i]) || isnan(Cij[1][i]) || isnan(Cij[2][i]))
+      SETERRQ(comm, -1, "Cholesky decomposition failed at profile point %d. "
+          "Either STGInflow has non-SPD matrix or contains nan.", i+1);
   }
+  PetscFunctionReturn(0);
 }
 
 
@@ -166,10 +172,10 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
     if(eps[i] < 0) SETERRQ(comm, -1,
                              "Turbulent dissipation in %s cannot be negative", path);
 
-    CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
-                                          &stg_ctx->data[stg_ctx->offsets.cij];
-    CalcCholeskyDecomp(stg_ctx->nprofs, rij, cij);
   }
+  CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
+                                        &stg_ctx->data[stg_ctx->offsets.cij];
+  ierr = CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij); CHKERRQ(ierr);
   ierr = PetscFClose(comm, fp); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
