@@ -6,7 +6,7 @@ ts:
   type: 'beuler'
   dt: 0.2e-5
   max_time: 1.0e-3
-  output_freq: 10
+output_freq: 10
 
 #snes_max_it: 4 
 #snes_convergence_test: skip
