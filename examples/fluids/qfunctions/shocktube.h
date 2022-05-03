@@ -454,7 +454,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
     CeedScalar Tau_x[3] = {0.};
     Tau_spatial(Tau_x, dXdx, u, sound_speed, c_tau);
 
-    CeedScalar stab[5][3];
+    CeedScalar stab[5][3] = {0};
     switch (context->stabilization) {
     case 0:        // Galerkin
       break;
@@ -462,7 +462,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q,
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++) {
-            stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+            stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
           }
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
@@ -496,6 +496,8 @@ CEED_QFUNCTION(IFunction_EulerShockTube)(void *ctx, CeedInt Q,
              (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   EulerContext context = (EulerContext)ctx;
+  const CeedScalar Cyzb  = context->Cyzb;
+  const CeedScalar Byzb  = context->Byzb;
   const CeedScalar c_tau = context->c_tau;
   const CeedScalar gamma = 1.4;
 
@@ -593,6 +595,42 @@ CEED_QFUNCTION(IFunction_EulerShockTube)(void *ctx, CeedInt Q,
     for (int j=0; j<3; j++)
       dv[j][4][i]  -= wdetJ * (E + P) * (u[0]*dXdx[j][0] + u[1]*dXdx[j][1] +
                                          u[2]*dXdx[j][2]);
+
+    // YZB stabilization
+     if (context->yzb) {
+      CeedScalar drho_norm = 0.0;         // magnitude of the density gradient
+      CeedScalar j_vec[3] = {0.0};        // unit vector aligned with the density gradient
+      CeedScalar h_shock = 0.0;           // element lengthscale
+      CeedScalar acoustic_vel = 0.0;      // characteristic velocity, acoustic speed
+      CeedScalar tau_shock = 0.0;         // timescale
+      CeedScalar nu_shock = 0.0;          // artificial diffusion
+
+      // Unit vector aligned with the density gradient
+      drho_norm = sqrt(drhodx[0]*drhodx[0] + drhodx[1]*drhodx[1] +
+                       drhodx[2]*drhodx[2]);
+      for (int j=0; j<3; j++)
+        j_vec[j] = drhodx[j] / (drho_norm + 1e-20);
+
+      if (drho_norm == 0.0) {
+        nu_shock = 0.0;
+      } else {
+        h_shock = Covariant_length_along_vector(j_vec, dXdx);
+        h_shock /= Cyzb;
+        acoustic_vel = sqrt(gamma*P/rho);
+        tau_shock = h_shock / (2*acoustic_vel) * pow(drho_norm * h_shock / rho, Byzb);
+        nu_shock = fabs(tau_shock * acoustic_vel * acoustic_vel);
+      }
+
+      for (int j=0; j<3; j++)
+        dv[j][0][i] -= wdetJ * nu_shock * drhodx[j];
+
+      for (int k=0; k<3; k++)
+        for (int j=0; j<3; j++)
+          dv[j][k][i] -= wdetJ * nu_shock * du[k][j];
+
+      for (int j=0; j<3; j++)
+        dv[j][4][i] -= wdetJ * nu_shock * dEdx[j];
+    }                                    
 
     // -- Stabilization terms
     // ---- jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
