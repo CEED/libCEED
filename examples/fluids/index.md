@@ -459,11 +459,14 @@ then a description of the implementation and usage.
 #### Equation Formulation
 
 $$
-\bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \sum^N_{n=1} q^n(\bm{x}) \bm{\sigma}^n \cos(\kappa^n \bm{d}^n \cdot \bm{\hat{x}}^n(\bm{x}, t) + \phi^n )
+\bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \cdot \bm{v}'
 $$
 
 $$
-\bm{\hat{x}}^n = \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
+\begin{aligned}
+\bm{v}' &= 2 \sqrt{3/2} \sum^N_{n=1} \sqrt{q^n(\bm{x})} \bm{\sigma}^n \cos(\kappa^n \bm{d}^n \cdot \bm{\hat{x}}^n(\bm{x}, t) + \phi^n ) \\
+\bm{\hat{x}}^n &= \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
+\end{aligned}
 $$
 
 Here, we define the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
