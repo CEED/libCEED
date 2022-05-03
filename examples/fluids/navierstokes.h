@@ -295,6 +295,7 @@ struct ChannelContext_ {
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool       implicit;  // !< Using implicit timesteping or not
+  bool       weakT;     // !< flag to set Temperature at inflow
   CeedScalar delta0;    // !< Boundary layer height at inflow
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
