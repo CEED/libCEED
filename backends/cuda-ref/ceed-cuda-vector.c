@@ -375,7 +375,7 @@ static int CeedVectorTakeArrayGeneric_Cuda(CeedVector vec, CeedMemType mem_type,
   bool need_sync = false;
   ierr = CeedVectorNeedSync_Cuda(vec, mem_type, &need_sync); CeedChkBackend(ierr);
   if (need_sync) {
-    ierr = CeedVectorSync_Cuda(vec, mem_type); CeedChkBackend(ierr);
+    ierr = CeedVectorSync_Cuda(vec, prec, mem_type); CeedChkBackend(ierr);
   }
 
   // Update pointer
@@ -415,7 +415,7 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec,
   CeedChkBackend(ierr);
   if (need_sync) {
     // Sync array to requested mem_type
-    ierr = CeedVectorSync_Cuda(vec, mem_type); CeedChkBackend(ierr);
+    ierr = CeedVectorSync_Cuda(vec, prec, mem_type); CeedChkBackend(ierr);
   }
 
   // Update pointer
