@@ -21,11 +21,11 @@
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool       implicit;  // !< Using implicit timesteping or not
+  bool       weakT;     // !< flag to set Temperature weakly at inflow
   CeedScalar delta0;    // !< Boundary layer height at inflow
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
-  CeedInt weakT;        // !< flag to set Temperature weakly at inflow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
@@ -190,7 +190,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar P0     = context->P0;
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
-  const CeedInt weakT     = context->weakT;
+  const bool weakT        = context->weakT;
   const CeedScalar rho_0  = P0 / (Rd * theta0);
   const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
 
@@ -213,12 +213,12 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // enabling user to choose between weak T and weak rho inflow
     CeedScalar rho,E_internal, P, E_kinetic;
-    if(weakT==1) {
+    if (weakT) {
       // rho should be from the current solution
       rho = q[0][i];
       // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
       E_internal = rho * cv * theta0;
-      // Find pressure using 
+      // Find pressure using
       P=rho*Rd*theta0; // interior rho with exterior T
       E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
                               velocity[1]*velocity[1] +
@@ -232,7 +232,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
       E_internal = q[4][i] - E_kinetic; // uses set rho and u but E from solution
       P = E_internal * (gamma - 1.);
     }
-    const CeedScalar E = E_internal + E_kinetic;  
+    const CeedScalar E = E_internal + E_kinetic;
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],

@@ -122,11 +122,11 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   PetscReal  top_angle     = 5;    // degrees
   CeedScalar theta0        = 288.; // K
   CeedScalar P0            = 1.01e5; // Pa
-  CeedInt    weakT         = 0; // if not changed to 1 weak density will be chosen
+  PetscBool  weakT         = PETSC_FALSE; // weak density or temperature
 
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
-  ierr = PetscOptionsInt("-weakT", "Change from rho weak to T weak at inflow",
-                            NULL, weakT, &weakT, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow",
+                          NULL, weakT, &weakT, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
                             NULL, Uinf, &Uinf, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-delta0", "Boundary layer height at inflow",
@@ -162,7 +162,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   ierr = modifyMesh(dm, problem->dim, growth, Ndelta, refine_height, top_angle);
   CHKERRQ(ierr);
 
-  user->phys->blasius_ctx->weakT     = weakT;
+  user->phys->blasius_ctx->weakT     = !!weakT;
   user->phys->blasius_ctx->Uinf      = Uinf;
   user->phys->blasius_ctx->delta0    = delta0;
   user->phys->blasius_ctx->theta0    = theta0;
