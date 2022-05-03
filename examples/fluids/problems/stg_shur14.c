@@ -30,7 +30,7 @@
  * @param[out] Cij    Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
 PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, int nprofs,
-                               const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
+                                  const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
   PetscFunctionBeginUser;
   for(int i=0; i<nprofs; i++) {
@@ -43,7 +43,7 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, int nprofs,
 
     if (isnan(Cij[0][i]) || isnan(Cij[1][i]) || isnan(Cij[2][i]))
       SETERRQ(comm, -1, "Cholesky decomposition failed at profile point %d. "
-          "Either STGInflow has non-SPD matrix or contains nan.", i+1);
+              "Either STGInflow has non-SPD matrix or contains nan.", i+1);
   }
   PetscFunctionReturn(0);
 }

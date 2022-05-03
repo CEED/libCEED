@@ -142,27 +142,31 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
     const STGShur14Context stg_ctx) {
 
   //*INDENT-OFF*
-  CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
-  CeedScalar *phi   = &stg_ctx->data[stg_ctx->offsets.phi];
-  CeedScalar (*sigma)[stg_ctx->nprofs] = (CeedScalar (*)[stg_ctx->nprofs])
+  const CeedInt    nmodes = stg_ctx->nmodes;
+  const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
+  const CeedScalar *phi   = &stg_ctx->data[stg_ctx->offsets.phi];
+  const CeedScalar (*sigma)[nmodes] = (CeedScalar (*)[nmodes])
                                          &stg_ctx->data[stg_ctx->offsets.sigma];
-  CeedScalar (*d)[stg_ctx->nprofs]     = (CeedScalar (*)[stg_ctx->nprofs])
+  const CeedScalar (*d)[nmodes]     = (CeedScalar (*)[nmodes])
                                          &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
-  CeedScalar xdotd, vp[] = {0., 0., 0.};
+  const CeedScalar tworoot1p5 = 2*sqrt(1.5);
+  CeedScalar xdotd, vp[3] = {0.};
   CeedScalar xhat[] = {0., X[1], X[2]};
 
   CeedPragmaSIMD
-  for(CeedInt n=0; n<stg_ctx->nmodes; n++) {
+  for(CeedInt n=0; n<nmodes; n++) {
     xhat[0] = (X[0] - stg_ctx->u0*t)*PetscMax(2*kappa[0]/kappa[n], 0.1);
     xdotd = 0.;
     for(CeedInt i=0; i<3; i++) xdotd += d[i][n]*xhat[i];
-    vp[0] += qn[n]*sigma[0][n]*cos(kappa[n]*xdotd + phi[n]);
+    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0][n] * cos(kappa[n]*xdotd + phi[n]);
+    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1][n] * cos(kappa[n]*xdotd + phi[n]);
+    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2][n] * cos(kappa[n]*xdotd + phi[n]);
   }
 
-  u[0] = ubar[0] + cij[0]*vp[0] + cij[3]*vp[0] + cij[4]*vp[0];
-  u[1] = ubar[1] + cij[3]*vp[1] + cij[1]*vp[1] + cij[5]*vp[1];
-  u[2] = ubar[2] + cij[4]*vp[2] + cij[5]*vp[2] + cij[2]*vp[2];
+  u[0] = ubar[0] + cij[0]*vp[0];
+  u[1] = ubar[1] + cij[3]*vp[0] + cij[1]*vp[1];
+  u[2] = ubar[2] + cij[4]*vp[0] + cij[5]*vp[1] + cij[2]*vp[2];
 }
 
 /********************************************************************
@@ -176,9 +180,9 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                                  CeedScalar *const *out) {
 
   //*INDENT-OFF*
-  const CeedScalar (*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
                    (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
-                   (*X)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
 
    CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
 
@@ -187,7 +191,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
   const bool implicit     = stg_ctx->implicit;
-  const bool mean_only     = stg_ctx->mean_only;
+  const bool mean_only    = stg_ctx->mean_only;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
   const CeedScalar time   = stg_ctx->time;
   const CeedScalar theta0 = stg_ctx->theta0;
@@ -215,7 +219,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     /*                   dXdx[2][j]*dXdx[2][j]); */
     /* } */
 
-    const CeedScalar h[3] = { 0. };
+    const CeedScalar h[3] = { 1. };
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
