@@ -32,7 +32,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   problem->dim                               = 3;
   problem->q_data_size_vol                   = 10;
-  problem->q_data_size_sur                   = 4;
+  problem->q_data_size_sur                   = 10;
   problem->setup_vol.qfunction               = Setup;
   problem->setup_vol.qfunction_loc           = Setup_loc;
   problem->ics.qfunction                     = ICsNewtonianIG;

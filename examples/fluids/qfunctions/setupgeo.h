@@ -113,12 +113,19 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 // Physical (current) 3D coordinates: x
 // Change of coordinate matrix:
 //   dxdX_{i,j} = dx_i/dX_j (indicial notation) [3 * 2]
+// Inverse change of coordinate matrix:
+//   dXdx_{i,j} = dX_i/dx_j (indicial notation) [2 * 3]
 //
 // (J1,J2,J3) is given by the cross product of the columns of dxdX_{i,j}
 //
 // detJb is the magnitude of (J1,J2,J3)
 //
-// All quadrature data is stored in 4 field vector of quadrature data.
+// dXdx is calculated via Moore–Penrose inverse:
+//
+//   dX_i/dx_j = (dxdX^T dxdX)^(-1) dxdX
+//             = (dx_l/dX_i * dx_l/dX_k)^(-1) dx_j/dX_k
+//
+// All quadrature data is stored in 10 field vector of quadrature data.
 //
 // We require the determinant of the Jacobian to properly compute integrals of
 //   the form: int( u v )
@@ -133,6 +140,11 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 //   (detJb^-1) * [ J1 ]
 //                [ J2 ]
 //                [ J3 ]
+//
+// Stored: dxdX_{i,j}
+//   in q_data_sur[4:9] as
+//    [dXdx_11 dXdx_12 dXdx_13]
+//    [dXdx_21 dXdx_22 dXdx_23]
 //
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
@@ -169,6 +181,37 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q,
     q_data_sur[1][i] = J1 / detJb;
     q_data_sur[2][i] = J2 / detJb;
     q_data_sur[3][i] = J3 / detJb;
+
+    // dxdX_k,j * dxdX_j,k
+    CeedScalar dxdXTdxdX[2][2] = {{ 0. }};
+    for (CeedInt j=0; j<2; j++)
+      for (CeedInt k=0; k<2; k++)
+        for (CeedInt l=0; l<3; l++)
+          dxdXTdxdX[j][k] += dxdX[l][j]*dxdX[l][k];
+
+    const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
+                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
+
+    // Compute inverse of dxdXTdxdX
+    CeedScalar dxdXTdxdX_inv[2][2];
+    dxdXTdxdX_inv[0][0] =  dxdXTdxdX[1][1] / detdxdXTdxdX;
+    dxdXTdxdX_inv[0][1] = -dxdXTdxdX[0][1] / detdxdXTdxdX;
+    dxdXTdxdX_inv[1][0] = -dxdXTdxdX[1][0] / detdxdXTdxdX;
+    dxdXTdxdX_inv[1][1] =  dxdXTdxdX[0][0] / detdxdXTdxdX;
+
+    // Compute dXdx from dxdXTdxdX^-1 and dxdX
+    CeedScalar dXdx[2][3] = {{ 0. }};
+    for (CeedInt j=0; j<2; j++)
+      for (CeedInt k=0; k<3; k++)
+        for (CeedInt l=0; l<2; l++)
+          dXdx[j][k] += dxdXTdxdX_inv[l][j] * dxdX[k][l];
+
+    q_data_sur[4][i] = dXdx[0][0];
+    q_data_sur[5][i] = dXdx[0][1];
+    q_data_sur[6][i] = dXdx[0][2];
+    q_data_sur[7][i] = dXdx[1][0];
+    q_data_sur[8][i] = dXdx[1][1];
+    q_data_sur[9][i] = dXdx[1][2];
 
   } // End of Quadrature Point Loop
 

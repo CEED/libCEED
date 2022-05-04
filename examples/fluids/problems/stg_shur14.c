@@ -231,7 +231,8 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
 }
 
 
-PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
+PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
+                                STGShur14Context *pstg_ctx,
                                 NewtonianIdealGasContext newt_ctx, bool implicit,
                                 CeedScalar theta0) {
   PetscErrorCode ierr;
@@ -288,6 +289,18 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context *pstg_ctx,
   stg_ctx->mean_only     = mean_only;
   stg_ctx->theta0        = theta0;
   stg_ctx->newtonian_ctx = *newt_ctx;
+
+  {
+    // Calculate dx assuming constant spacing
+    PetscReal domain_min[3], domain_max[3], domain_size[3];
+    ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+    for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
+    PetscInt nmax = 3, faces[3];
+    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
+                                   NULL); CHKERRQ(ierr);
+    stg_ctx->dx = domain_size[0]/faces[0];
+  }
 
   ierr = ReadSTGInflow(comm, stg_inflow_path, stg_ctx); CHKERRQ(ierr);
   ierr = ReadSTGRand(comm, stg_rand_path, stg_ctx); CHKERRQ(ierr);

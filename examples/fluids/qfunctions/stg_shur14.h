@@ -192,6 +192,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
   const bool implicit     = stg_ctx->implicit;
   const bool mean_only    = stg_ctx->mean_only;
+  const CeedScalar dx     = stg_ctx->dx;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
   const CeedScalar time   = stg_ctx->time;
   const CeedScalar theta0 = stg_ctx->theta0;
@@ -204,22 +205,17 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar rho = q[0][i];
     const CeedScalar nu  = mu / rho;
     const CeedScalar x[] = { X[0][i], X[1][i], X[2][i] };
+    const CeedScalar dXdx[2][3] = {
+      {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
+      {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
+    };
 
     const CeedScalar P = rho * Rd * theta0;
 
-    //*INDENT-OFF*
-    //TODO Determine how to determine dXdx for just the boundary elements
-    /* const CeedScalar dXdx[3][3] = {{ q_data[1][i], q_data[2][i], q_data[3][i] }, */
-    /*                                { q_data[4][i], q_data[5][i], q_data[6][i] }, */
-    /*                                { q_data[7][i], q_data[8][i], q_data[9][i] }}; */
-    //*INDENT-OFF*
-
-    /* for(CeedInt j=0; j<3; j++){ */
-    /*   h[j] = 2 / sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j] + */
-    /*                   dXdx[2][j]*dXdx[2][j]); */
-    /* } */
-
-    const CeedScalar h[3] = { 1. };
+    CeedScalar h[3];
+    for(CeedInt j=0; j<3; j++)
+      h[j] = 2/sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j]);
+    h[0] = dx;
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
@@ -236,9 +232,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                                 q_data_sur[3][i]
                                };
 
-    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] +
-                                                u[1]*u[1] +
-                                                u[2]*u[2]);
+    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
     const CeedScalar E = rho * cv * theta0 + E_kinetic;
 
     // Velocity normal to the boundary
@@ -249,17 +243,17 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     // Zero v so all future terms can safely sum into it
     for (int j=0; j<5; j++) v[j][i] = 0.;
 
-      // The Physics
-      // -- Density
-      v[0][i] -= wdetJb * rho * u_normal;
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal;
 
-      // -- Momentum
-      for (int j=0; j<3; j++)
-        v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
-                              norm[j] * P);
+    // -- Momentum
+    for (int j=0; j<3; j++)
+      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
+                            norm[j] * P);
 
-      // -- Total Energy Density
-      v[4][i] -= wdetJb * u_normal * (E + P);
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * u_normal * (E + P);
   }
   return 0;
 }

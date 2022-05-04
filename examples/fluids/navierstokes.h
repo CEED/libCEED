@@ -237,7 +237,7 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
-extern PetscErrorCode CreateSTGContext(MPI_Comm comm,
+extern PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
                                        STGShur14Context *pstg_ctx, NewtonianIdealGasContext newt_ctx,
                                        bool implicit, CeedScalar theta0);
 
