@@ -187,6 +187,8 @@ struct STGShur14Context_ {
   CeedInt nprofs;   // !< Number of profile points in STGInflow.dat
   CeedScalar alpha; // !< Geometric growth rate of kappa
   CeedScalar u0;    // !< Convective velocity
+  CeedScalar time;  // !< Solution time
+  CeedScalar nu;    // !< Kinematic viscosity
 
   struct {
     size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
@@ -261,7 +263,8 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
-extern PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx);
+extern PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
+                                       CeedScalar nu);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,

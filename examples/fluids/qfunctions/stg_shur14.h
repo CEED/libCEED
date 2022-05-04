@@ -186,8 +186,8 @@ CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
 
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt, h[3];
-  CeedScalar nu; // TODO Calculate nu
-  CeedScalar t; //TODO Get time into the q function (via context?)
+  CeedScalar nu   = stg_ctx->nu;
+  CeedScalar time = stg_ctx->time;
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
@@ -206,7 +206,7 @@ CEED_QFUNCTION(STGShur14_CalcQF)(void *ctx, CeedInt Q,
 
   InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
   CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
-  STGShur14_Calc(x, t, ubar, cij, qn, u, stg_ctx);
+  STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
 
   }
 

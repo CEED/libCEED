@@ -226,7 +226,8 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
 }
 
 
-PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
+PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx,
+                                CeedScalar nu) {
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
@@ -272,7 +273,8 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, STGShur14Context stg_ctx) {
     ierr = PetscFree(s); CHKERRQ(ierr);
   }
   stg_ctx->alpha = alpha;
-  stg_ctx->u0 = u0;
+  stg_ctx->u0    = u0;
+  stg_ctx->nu    = nu;
 
   ierr = ReadSTGInflow(comm, stg_inflow_path, stg_ctx); CHKERRQ(ierr);
   ierr = ReadSTGRand(comm, stg_rand_path, stg_ctx); CHKERRQ(ierr);
@@ -307,7 +309,12 @@ PetscErrorCode SetupContext_STGShur14(Ceed ceed, CeedData ceed_data,
   CeedQFunctionContextSetData(ceed_data->stg_shur14_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
                               sizeof(*phys->stg_shur14_ctx), phys->stg_shur14_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
-                          ceed_data->stg_shur14_context);
+  CeedQFunctionContextRegisterDouble(ceed_data->stg_shur14_context,
+                                     "solution time",
+                                     offsetof(struct STGShur14Context_, time), 1, "Phyiscal time of the solution");
+
+  if (ceed_data->qf_apply_inflow)
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
+                            ceed_data->stg_shur14_context);
   PetscFunctionReturn(0);
 }
