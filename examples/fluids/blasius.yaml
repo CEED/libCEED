@@ -4,12 +4,17 @@ implicit: true
 ts:
   adapt_type: 'none'
   type: 'beuler'
-  dt: 0.2e-5
-  max_time: 1.0e-3
-  output_freq: 10
+  dt: 2.0e-2
+  max_time: 1.0e+1
 
-#snes_max_it: 4 
+output_freq: 10
+
+#snes_max_it: 2 
 #snes_convergence_test: skip
+
+units_meter: 1.e+3 
+units_second: 1.e+4 
+units_kilogram: 1.e+9
 
 ## Linear Settings:
 degree: 1
@@ -23,7 +28,7 @@ nDelta: 45
 #growth: 1.1664 # 1.08^2
 
 stab: 'supg'
-Ctau_t: 1
+Ctau_t: 1.0
 #Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
 ## linear Settings:
 Ctau_v: 36
@@ -34,7 +39,7 @@ Ctau_E: 0.125
 #Ctau_v: 60
 #Ctau_C: 0.125
 #Ctau_M: 0.125
-#Ctau_E: 0.125
+#Ctau_E: 0.003125
 
 q_extra: 0
 
