@@ -41,16 +41,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     ierr = PetscObjectSetName((PetscObject)fe, "Q"); CHKERRQ(ierr);
     ierr = DMAddField(dm, NULL,(PetscObject)fe); CHKERRQ(ierr);
     ierr = DMCreateDS(dm); CHKERRQ(ierr);
-    {
-      /* create FE field for coordinates */
-      PetscFE fe_coords;
-      PetscInt num_comp_coord;
-      ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
-      ierr = PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord,
-                                   PETSC_FALSE, 1, 1, &fe_coords); CHKERRQ(ierr);
-      ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
-      ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
-    }
     ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
     // Set wall BCs
     if (bc->num_wall > 0) {

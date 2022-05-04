@@ -41,7 +41,7 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;

@@ -96,7 +96,7 @@ The command line options just shown are the minimum requirements to run the mini
   - CEED resource specifier
   - `/cpu/self`
 
-* - `-qextra`
+* - `-q_extra`
   - Number of extra quadrature points
   - `0`
 

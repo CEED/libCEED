@@ -84,7 +84,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
 
   // -- Create Sub-Operator for in/outflow BCs
-  if (phys->has_neumann) {
+  if (phys->has_neumann || 1) {
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
     //ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -205,11 +205,18 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedOperatorDestroy(&op_apply_outflow);
     }
   }
+
+  // ----- Get Context Labels for Operator
+  CeedOperatorContextGetFieldLabel(*op_apply, "solution time",
+                                   &phys->solution_time_label);
+  CeedOperatorContextGetFieldLabel(*op_apply, "timestep size",
+                                   &phys->timestep_size_label);
+
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
@@ -451,6 +458,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Apply CEED Operator for the geometric data
   CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_coord,
                     ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
+
+  // -- Set up context for QFunctions
+  ierr = problem->setup_ctx(ceed, ceed_data, app_ctx, setup_ctx, user->phys);
+  CHKERRQ(ierr);
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS

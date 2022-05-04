@@ -32,7 +32,7 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -115,11 +115,12 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
   const CeedScalar N        = context->N;
   const CeedScalar cv       = context->cv;
   const CeedScalar cp       = context->cp;
-  const CeedScalar g        = context->g;
+  const CeedScalar *g_vec   = context->g;
   const CeedScalar rc       = context->rc;
   const CeedScalar *center  = context->center;
   const CeedScalar *dc_axis = context->dc_axis;
   const CeedScalar Rd       = cp - cv;
+  const CeedScalar g = -g_vec[2];
 
   // Setup
   // -- Coordinates

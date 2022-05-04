@@ -132,7 +132,7 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector           x_coord, q_data;
   CeedQFunctionContext setup_context, newt_ig_context, advection_context,
-                       euler_context, shocktube_context;
+                       euler_context, shocktube_context, channel_context, blasius_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
@@ -193,7 +193,7 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -282,17 +282,54 @@ struct NewtonianIdealGasContext_ {
   CeedScalar k;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g;
+  CeedScalar g[3];
   CeedScalar c_tau;
+  CeedScalar Ctau_t;
+  CeedScalar Ctau_v;
+  CeedScalar Ctau_C;
+  CeedScalar Ctau_M;
+  CeedScalar Ctau_E;
+  CeedScalar dt;
   StabilizationType stabilization;
+};
+#endif
+
+#ifndef channel_context_struct
+#define channel_context_struct
+typedef struct ChannelContext_ *ChannelContext;
+struct ChannelContext_ {
+  bool       implicit; // !< Using implicit timesteping or not
+  CeedScalar theta0;   // !< Reference temperature
+  CeedScalar P0;       // !< Reference Pressure
+  CeedScalar umax;     // !< Centerline velocity
+  CeedScalar center;   // !< Y Coordinate for center of channel
+  CeedScalar H;        // !< Channel half-height
+  CeedScalar B;        // !< Body-force driving the flow
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+};
+#endif
+
+#ifndef blasius_context_struct
+#define blasius_context_struct
+typedef struct BlasiusContext_ *BlasiusContext;
+struct BlasiusContext_ {
+  bool       implicit;  // !< Using implicit timesteping or not
+  bool       weakT;     // !< flag to set Temperature at inflow
+  CeedScalar delta0;    // !< Boundary layer height at inflow
+  CeedScalar Uinf;      // !< Velocity at boundary layer edge
+  CeedScalar P0;        // !< Pressure at outflow
+  CeedScalar theta0;    // !< Temperature at inflow
+  struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 #endif
 
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
+  BlasiusContext           blasius_ctx;
+  ChannelContext           channel_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   EulerContext             euler_ctx;
-  ShockTubeContext     shocktube_ctx;
+  ShockTubeContext         shocktube_ctx;
   AdvectionContext         advection_ctx;
   WindType                 wind_type;
   BubbleType               bubble_type;
@@ -302,6 +339,8 @@ struct Physics_private {
   PetscBool                implicit;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
+  CeedContextFieldLabel    solution_time_label;
+  CeedContextFieldLabel    timestep_size_label;
 };
 
 // Problem specific data
@@ -325,6 +364,10 @@ typedef struct {
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
+                                 void *setup_ctx, void *ctx);
+extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm,
+                                 void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm,
                                       void *setup_ctx, void *ctx);
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
@@ -341,6 +384,12 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *setup_ctx, void *ctx);
 
 // Set up context for each problem
+extern PetscErrorCode SetupContext_CHANNEL(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
+extern PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
+    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
+
 extern PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
     AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
 
@@ -417,7 +466,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions

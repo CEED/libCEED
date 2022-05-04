@@ -173,7 +173,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \bm{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
+  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
   \nabla \cdot \bm{F} \, (\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV &= 0
   \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
@@ -201,11 +201,13 @@ In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P
 It is defined as
 
 $$
-\mathcal P(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right)^T \, \nabla \bm v\,,
-$$
+\mathcal P(\bm v) \equiv \bm{\tau} \left(\frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
+$$ (eq-streamline-P)
 
-where parameter $\bm{\tau} \in \mathbb R^{3\times 3}$ (spatial indices) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
-This expression contains the flux Jacobian, which we express in variational notation by differentiating the advective flux $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
+where parameter $\bm{\tau} \in \mathbb R^{3}$ (spatial index) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+Most generally, we consider $\bm\tau \in \mathbb R^{3,5,5}$.
+This expression contains the advective flux Jacobian, which may be thought of as mapping from a 5-vector (state) to a $(5,3)$ tensor (flux) or from a $(5,3)$ tensor (gradient of state) to a 5-vector (time derivative of state); the latter is used in {eq}`eq-streamline-P` because it's applied to $\nabla\bm v$.
+The forward variational form can be readily expressed by differentiating $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
 
 $$
 \begin{aligned}
@@ -219,14 +221,14 @@ $$
 $$
 
 where $\diff P$ is defined by differentiating {eq}`eq-state`.
-In this notation, we may equivalently write the stabilization term as
+This action is also readily computed by forward-mode AD, but since $\bm v$ is a test function, we actually need the action of the adjoint to use {eq}`eq-streamline-P` in finite element computation; that can be computed by reverse-mode AD.
+We may equivalently write the stabilization term as
 
 $$
-\mathcal P(\bm v)^T \bm r = \nabla \bm v \bm\tau \diff\bm F_{\text{adv}}(\bm r),
+\mathcal P(\bm v)^T \bm r = \nabla \bm v \tcolon \left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right)^T \, \bm\tau \bm r,
 $$
 
-where $\bm r$ is the strong form residual.
-Note that both $\nabla \bm v$ and $\diff \bm F$ are $5\times 3$ matrices and that $\bm\tau$ can be defined with spatial indices, or field indices, leading to a stabilization term of $(\nabla \bm v)_{\alpha i} \tau_{ij} \diff \bm F_{\alpha j}$ for spatial or $(\nabla \bm v)_{\alpha i} \tau_{\alpha \beta} \diff \bm F_{\beta i}$ for field, where $\alpha,\beta$ are field indices and $i,j$ are spatial indices.
+where $\bm r$ is the strong form residual and $\bm\tau$ is a $5\times 5$ matrix.
 
 :::{dropdown} Stabilization scale $\bm\tau$
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
@@ -260,12 +262,32 @@ $$ (eq-test-perturbation-advdiff)
 
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
-For the Navier-Stokes and Euler equations in primitive variables, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization consisting of
+For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization $\mathrm{diag}(\tau_c, \tau_m, \tau_m, \tau_m, \tau_E)$ consisting of
 1. continuity stabilization $\tau_c$
 2. momentum stabilization $\tau_m$
 3. energy stabilization $\tau_E$
 
-However, since our equations are in conservative form, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
+The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
+
+$$ 
+\begin{aligned}
+
+\tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
+\tau_m &= \frac{C_m}{\mathcal{F}} \\
+\tau_E &= \frac{C_E}{\mathcal{F} c_v} \\
+\end{aligned}
+$$
+
+$$
+\mathcal{F} = \sqrt{ \rho^2 \left [ \left(\frac{2C_t}{\Delta t}\right)^2
++ \bm u \cdot (\bm u \cdot  \bm g)
++ C_v \mu^2 \Vert \bm g \Vert_F ^2\right]}
+$$
+
+where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor and $\Vert \cdot \Vert_F$ is the Frobenius norm.
+This formulation is currently not available in the Euler code.
+
+In the Euler code, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
 
 $$
 \tau_{ii} = c_{\tau} \frac{2 \xi(\mathrm{Pe})}{(\lambda_{\max \text{abs}})_i \lVert \nabla_{x_i} \bm X \rVert}
@@ -398,3 +420,30 @@ $$
 
 where $P_0$ is the atmospheric pressure.
 For this problem, we have used no-slip and non-penetration boundary conditions for $\bm{u}$, and no-flux for mass and energy densities.
+
+## Channel
+
+A compressible channel flow. Analytical solution given in
+{cite}`whitingStabilizedFEM1999`:
+
+$$ u_1 = u_{\max} \left [ 1 - \left ( \frac{x_2}{H}\right)^2 \right] \quad \quad u_2 = u_3 = 0$$
+$$T = T_w \left [ 1 + \frac{Pr \hat{E}c}{3} \left \{1 - \left(\frac{x_2}{H}\right)^4  \right \} \right]$$
+$$p = p_0 - \frac{2\rho_0 u_{\max}^2 x_1}{Re_H H}$$
+
+where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ is the temperature at the wall, $Pr=\frac{\mu}{c_p \kappa}$ is the Prandlt number, $\hat E_c = \frac{u_{\max}^2}{c_p T_w}$ is the modified Eckert number, and $Re_h = \frac{u_{\max}H}{\nu}$ is the Reynolds number.
+
+Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
+The flow is driven by a body force.
+
+## Blasius
+
+Simulation of a laminar boundary layer flow, with the inflow being prescribed
+by a [Blasius similarity
+solution](https://en.wikipedia.org/wiki/Blasius_boundary_layer). At the inflow,
+the velocity is prescribed by the Blasius soution profile, temperature is set
+constant, and density is allowed to float. At the outlet, only the density is
+prescribed based on the user-set pressure. The wall is a no-slip,
+no-penetration, no-heat flux condition. The top of the domain is treated as an
+outflow and is tilted at a downward angle to ensure that flow is always exiting
+it.
+

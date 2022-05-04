@@ -40,7 +40,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   CHKERRQ(ierr);
 
   app_ctx->q_extra         = 0;
-  ierr = PetscOptionsInt("-qextra", "Number of extra quadrature points",
+  ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
                          NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL);
   CHKERRQ(ierr);
 
