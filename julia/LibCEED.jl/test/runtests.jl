@@ -296,18 +296,6 @@ else
                     (:output, r, b, CeedVectorActive()),
                 ],
             )
-            @test showstr(op) == """
-                CeedOperator
-                  1 elements with 27 quadrature points each
-                  2 Fields
-                  1 Input Field:
-                    Input Field [0]:
-                      Name: "input"
-                      Active vector
-                  1 Output Field:
-                    Output Field [0]:
-                      Name: "output"
-                      Active vector"""
 
             v = rand(CeedScalar, n)
             v1 = CeedVector(c, v)
