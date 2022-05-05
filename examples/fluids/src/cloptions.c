@@ -24,6 +24,9 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
                               NS_EULER_VORTEX); CHKERRQ(ierr);
 
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "shocktube",
+                              NS_SHOCKTUBE); CHKERRQ(ierr);
+
   ierr = PetscFunctionListAdd(&app_ctx->problems, "advection",
                               NS_ADVECTION); CHKERRQ(ierr);
 

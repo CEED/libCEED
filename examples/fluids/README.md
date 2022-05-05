@@ -177,6 +177,12 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - 6
 :::
 
+### Advection
+
+For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$. These are available in 2D and 3D.
+
+#### 2D advection
+
 For the 2D advection problem, the following additional command-line options are available:
 
 :::{list-table} Advection2D Runtime Options
@@ -250,6 +256,8 @@ and the `translation` mode with:
 ./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
 ```
 Note the lengths in `-dm_plex_box_upper` are given in meters, and will be nondimensionalized according to `-units_meter`.
+
+#### 3D advection
 
 For the 3D advection problem, the following additional command-line options are available:
 
@@ -334,6 +342,10 @@ and the `translation` mode with:
 ./navierstokes -problem advection -dm_plex_box_faces 10,10,10 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 8000,8000,8000 -wind_type translation -wind_translation .5,-1,0 -bc_inflow 1,2,3,4,5,6
 ```
 
+### Inviscid Ideal Gas
+
+#### Isentropic Euler vortex
+
 For the Isentropic Vortex problem, the following additional command-line options are available:
 
 :::{list-table} Isentropic Vortex Runtime Options
@@ -380,6 +392,47 @@ This problem can be run with:
 ```
 ./navierstokes -problem euler_vortex -dm_plex_box_faces 20,20,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,1000,50 -dm_plex_dim 3 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -mean_velocity .5,-.8,0.
 ```
+
+#### Sod shock tube
+
+For the Shock Tube problem, the following additional command-line options are available:
+
+:::{list-table} Shock Tube Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-units_meter`
+  - 1 meter in scaled length units
+  - `1E-2`
+  -
+
+* - `-units_second`
+  - 1 second in scaled time units
+  - `1E-2`
+  -
+
+* - `-yzb`
+  - Use YZB discontinuity capturing
+  - `none`
+  -
+
+* - `-stab`
+  - Stabilization method (`none`, `su`, or `supg`)
+  - `none`
+  -
+:::
+
+This problem can be run with:
+
+```
+./navierstokes -problem shocktube -yzb -stab su -bc_slip_z 3,4 -bc_slip_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1 
+```
+
+### Newtonian viscosity, Ideal Gas
 
 For the Density Current, Channel, and Blasius problems, the following common command-line options are available:
 
@@ -477,6 +530,8 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `W/(m K)`
 :::
 
+#### Density current
+
 The Density Current problem the following command-line options are available in
 addition to the Newtonian Ideal Gas options:
 
@@ -530,6 +585,8 @@ This problem can be run with:
 ./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_slip_y 3,4 -mu 75
 ```
 
+#### Channel flow
+
 The Channel problem the following command-line options are available in
 addition to the Newtonian Ideal Gas options:
 
@@ -565,6 +622,8 @@ This problem can be run with the `channel.yaml` file via:
 ```{literalinclude} ../../../../../examples/fluids/channel.yaml
 :language: yaml
 ```
+
+#### Blasius boundary layer
 
 The Blasius problem the following command-line options are available in
 addition to the Newtonian Ideal Gas options:
