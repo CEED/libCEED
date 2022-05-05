@@ -1,4 +1,5 @@
 CeedOperator
+  15 elements with 8 quadrature points each
   3 Fields
   2 Input Fields:
     Input Field [0]:
@@ -13,6 +14,7 @@ CeedOperator
       Collocated basis
       Active vector
 CeedOperator
+  15 elements with 8 quadrature points each
   3 Fields
   2 Input Fields:
     Input Field [0]:

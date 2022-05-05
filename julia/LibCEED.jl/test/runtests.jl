@@ -298,6 +298,7 @@ else
             )
             @test showstr(op) == """
                 CeedOperator
+                  1 elements with 27 quadrature points each
                   2 Fields
                   1 Input Field:
                     Input Field [0]:

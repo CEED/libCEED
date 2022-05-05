@@ -1,5 +1,6 @@
 Composite CeedOperator
   SubOperator [0]:
+    6 elements with 4 quadrature points each
     3 Fields
     2 Input Fields:
       Input Field [0]:
@@ -13,6 +14,7 @@ Composite CeedOperator
         Name: "rho"
         Collocated basis
   SubOperator [1]:
+    6 elements with 16 quadrature points each
     3 Fields
     2 Input Fields:
       Input Field [0]:
@@ -27,6 +29,7 @@ Composite CeedOperator
         Collocated basis
 Composite CeedOperator
   SubOperator [0]:
+    6 elements with 4 quadrature points each
     3 Fields
     2 Input Fields:
       Input Field [0]:
@@ -40,6 +43,7 @@ Composite CeedOperator
         Name: "v"
         Active vector
   SubOperator [1]:
+    6 elements with 16 quadrature points each
     3 Fields
     2 Input Fields:
       Input Field [0]:

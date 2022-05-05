@@ -172,8 +172,14 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   int ierr;
   const char *pre = sub ? "  " : "";
 
+  CeedInt num_elem, num_qpts;
+  ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChk(ierr);
+  ierr = CeedOperatorGetNumQuadraturePoints(op, &num_qpts); CeedChk(ierr);
+
   CeedInt total_fields = 0;
   ierr = CeedOperatorGetNumArgs(op, &total_fields); CeedChk(ierr);
+  fprintf(stream, "%s  %d elements with %d quadrature points each\n",
+          pre, num_elem, num_qpts);
 
   fprintf(stream, "%s  %d Field%s\n", pre, total_fields,
           total_fields>1 ? "s" : "");
