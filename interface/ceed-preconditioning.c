@@ -68,7 +68,6 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = ceed_ref->OperatorCreate(op_ref); CeedChk(ierr);
   ierr = CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled,
          &op_ref->qf_assembled); CeedChk(ierr);
-  ierr = CeedOperatorSetName(op_ref, op->name); CeedChk(ierr);
   op->op_fallback = op_ref;
 
   // Clone QF
