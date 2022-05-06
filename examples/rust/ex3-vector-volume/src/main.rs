@@ -187,6 +187,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     // Operator that build the quadrature data for the mass operator
     let op_build = ceed
         .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)?
+        .name("build qdata")?
         .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)?
         .field(
             "weights",
@@ -239,6 +240,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     // Mass Operator
     let op_mass = ceed
         .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
+        .name("mass")?
         .field("u", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
         .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?

@@ -143,7 +143,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field,
   ierr = CeedQFunctionFieldGetSize(field, &size); CeedChk(ierr);
   CeedEvalMode eval_mode;
   ierr = CeedQFunctionFieldGetEvalMode(field, &eval_mode); CeedChk(ierr);
-  fprintf(stream, "    %s Field [%d]:\n"
+  fprintf(stream, "    %s field %d:\n"
           "      Name: \"%s\"\n"
           "      Size: %d\n"
           "      EvalMode: \"%s\"\n",
@@ -968,18 +968,18 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "%sCeedQFunction %s\n",
+  fprintf(stream, "%sCeedQFunction - %s\n",
           qf->is_gallery ? "Gallery " : "User ",
           qf->is_gallery ? qf->gallery_name : qf->kernel_name);
 
-  fprintf(stream, "  %d Input Field%s:\n", qf->num_input_fields,
+  fprintf(stream, "  %d input field%s:\n", qf->num_input_fields,
           qf->num_input_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_input_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->input_fields[i], i, 1, stream);
     CeedChk(ierr);
   }
 
-  fprintf(stream, "  %d Output Field%s:\n", qf->num_output_fields,
+  fprintf(stream, "  %d output field%s:\n", qf->num_output_fields,
           qf->num_output_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_output_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream);

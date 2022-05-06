@@ -1074,8 +1074,8 @@ CEED_EXTERN void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
 #define fCeedOperatorSetField \
     FORTRAN_NAME(ceedoperatorsetfield,CEEDOPERATORSETFIELD)
 CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *r,
-                                       int *b,
-                                       int *v, int *err, fortran_charlen_t field_name_len) {
+                                       int *b, int *v, int *err,
+                                       fortran_charlen_t field_name_len) {
   FIX_STRING(field_name);
   CeedElemRestriction r_;
   CeedBasis b_;
@@ -1119,7 +1119,16 @@ CEED_EXTERN void fCeedCompositeOperatorAddSub(int *compositeop, int *subop,
   CeedOperator subop_ = CeedOperator_dict[*subop];
 
   *err = CeedCompositeOperatorAddSub(compositeop_, subop_);
-  if (*err) return;
+}
+
+#define fCeedOperatorSetName \
+    FORTRAN_NAME(ceedoperatorsetname, CEEDOPERATORSETNAME)
+CEED_EXTERN void fCeedOperatorSetName(int *op, const char *name, int *err,
+                                      fortran_charlen_t name_len) {
+  FIX_STRING(name);
+  CeedOperator op_ = CeedOperator_dict[*op];
+
+  *err = CeedOperatorSetName(op_, name_c);
 }
 
 #define fCeedOperatorLinearAssembleQFunction \

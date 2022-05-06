@@ -337,6 +337,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 /// // Operator fields
 /// let op = ceed
 ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+///     .name("mass")?
 ///     .field("dx", &r, &b, VectorOpt::Active)?
 ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
 ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
@@ -378,6 +379,7 @@ impl<'a> fmt::Display for Operator<'a> {
 /// let qf_mass = ceed.q_function_interior_by_name("MassApply")?;
 /// let op_mass = ceed
 ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
+///     .name("Mass term")?
 ///     .field("u", &r, &b, VectorOpt::Active)?
 ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
 ///     .field("v", &r, &b, VectorOpt::Active)?;
@@ -385,12 +387,14 @@ impl<'a> fmt::Display for Operator<'a> {
 /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
 /// let op_diff = ceed
 ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
+///     .name("Poisson term")?
 ///     .field("du", &r, &b, VectorOpt::Active)?
 ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
 ///     .field("dv", &r, &b, VectorOpt::Active)?;
 ///
 /// let op = ceed
 ///     .composite_operator()?
+///     .name("Screened Poisson")?
 ///     .sub_operator(&op_mass)?
 ///     .sub_operator(&op_diff)?;
 ///
@@ -421,6 +425,12 @@ impl<'a> OperatorCore<'a> {
     // Common implementations
     pub fn check(&self) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedOperatorCheckReady(self.ptr) };
+        self.check_error(ierr)
+    }
+
+    pub fn name(&self, name: &str) -> crate::Result<i32> {
+        let name_c = CString::new(name).expect("CString::new failed");
+        let ierr = unsafe { bind_ceed::CeedOperatorSetName(self.ptr, name_c.as_ptr()) };
         self.check_error(ierr)
     }
 
@@ -536,6 +546,46 @@ impl<'a> Operator<'a> {
                 _lifeline: PhantomData,
             },
         })
+    }
+
+    /// Set name for Operator printing
+    ///
+    /// * 'name' - Name to set
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
+    ///
+    /// // Operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// // Operator fields
+    /// let op = ceed
+    ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .name("mass")?
+    ///     .field("dx", &r, &b, VectorOpt::Active)?
+    ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[allow(unused_mut)]
+    pub fn name(mut self, name: &str) -> crate::Result<Self> {
+        self.op_core.name(name)?;
+        Ok(self)
     }
 
     /// Apply Operator to a vector
@@ -2035,9 +2085,65 @@ impl<'a> CompositeOperator<'a> {
         })
     }
 
+    /// Set name for CompositeOperator printing
+    ///
+    /// * 'name' - Name to set
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    ///
+    /// // Sub operator field arguments
+    /// let ne = 3;
+    /// let q = 4 as usize;
+    /// let mut ind: Vec<i32> = vec![0; 2 * ne];
+    /// for i in 0..ne {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    /// }
+    /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
+    /// let strides: [i32; 3] = [1, q as i32, q as i32];
+    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    ///
+    /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
+    ///
+    /// let qdata_mass = ceed.vector(q * ne)?;
+    /// let qdata_diff = ceed.vector(q * ne)?;
+    ///
+    /// let qf_mass = ceed.q_function_interior_by_name("MassApply")?;
+    /// let op_mass = ceed
+    ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .name("Mass term")?
+    ///     .field("u", &r, &b, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
+    ///     .field("v", &r, &b, VectorOpt::Active)?;
+    ///
+    /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
+    /// let op_diff = ceed
+    ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
+    ///     .name("Poisson term")?
+    ///     .field("du", &r, &b, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
+    ///     .field("dv", &r, &b, VectorOpt::Active)?;
+    ///
+    /// let op = ceed
+    ///     .composite_operator()?
+    ///     .name("Screened Poisson")?
+    ///     .sub_operator(&op_mass)?
+    ///     .sub_operator(&op_diff)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[allow(unused_mut)]
+    pub fn name(mut self, name: &str) -> crate::Result<Self> {
+        self.op_core.name(name)?;
+        Ok(self)
+    }
+
     /// Apply Operator to a vector
     ///
-    /// * `input`  - Input Vector
+    /// * `input`  - Inpuht Vector
     /// * `output` - Output Vector
     ///
     /// ```

@@ -68,6 +68,7 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = ceed_ref->OperatorCreate(op_ref); CeedChk(ierr);
   ierr = CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled,
          &op_ref->qf_assembled); CeedChk(ierr);
+  ierr = CeedOperatorSetName(op_ref, op->name); CeedChk(ierr);
   op->op_fallback = op_ref;
 
   // Clone QF
@@ -958,6 +959,27 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
   ierr = CeedOperatorSetField(*op_prolong, "output", rstr_fine,
                               CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedChk(ierr);
+
+  // Clone name
+  bool has_name = op_fine->name;
+  size_t name_len = op_fine->name ? strlen(op_fine->name) : 0;
+  ierr = CeedOperatorSetName(*op_coarse, op_fine->name); CeedChk(ierr);
+  {
+    char *prolongation_name;
+    ierr = CeedCalloc(18 + name_len, &prolongation_name); CeedChk(ierr);
+    sprintf(prolongation_name, "prolongation%s%s", has_name ? " for " : "",
+            op_fine->name);
+    ierr = CeedOperatorSetName(*op_prolong, prolongation_name); CeedChk(ierr);
+    ierr = CeedFree(&prolongation_name); CeedChk(ierr);
+  }
+  {
+    char *restriction_name;
+    ierr = CeedCalloc(17 + name_len, &restriction_name); CeedChk(ierr);
+    sprintf(restriction_name, "restriction%s%s", has_name ? " for " : "",
+            op_fine->name);
+    ierr = CeedOperatorSetName(*op_restrict, restriction_name); CeedChk(ierr);
+    ierr = CeedFree(&restriction_name); CeedChk(ierr);
+  }
 
   // Cleanup
   ierr = CeedVectorDestroy(&mult_vec); CeedChk(ierr);

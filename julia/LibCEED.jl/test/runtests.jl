@@ -221,23 +221,6 @@ else
             apply!(id, Q, [v1], [v2])
             @test @witharray(a = v2, a == v)
 
-            @test showstr(create_interior_qfunction(c, "Poisson3DApply")) == """
-                Gallery CeedQFunction Poisson3DApply
-                  2 Input Fields:
-                    Input Field [0]:
-                      Name: "du"
-                      Size: 3
-                      EvalMode: "gradient"
-                    Input Field [1]:
-                      Name: "qdata"
-                      Size: 6
-                      EvalMode: "none"
-                  1 Output Field:
-                    Output Field [0]:
-                      Name: "dv"
-                      Size: 3
-                      EvalMode: "gradient\""""
-
             @interior_qf id2 = (c, (a, :in, EVAL_INTERP), (b, :out, EVAL_INTERP), b .= a)
             v2[] = 0.0
             apply!(id2, Q, [v1], [v2])
@@ -296,17 +279,6 @@ else
                     (:output, r, b, CeedVectorActive()),
                 ],
             )
-            @test showstr(op) == """
-                CeedOperator
-                  2 Fields
-                  1 Input Field:
-                    Input Field [0]:
-                      Name: "input"
-                      Active vector
-                  1 Output Field:
-                    Output Field [0]:
-                      Name: "output"
-                      Active vector"""
 
             v = rand(CeedScalar, n)
             v1 = CeedVector(c, v)

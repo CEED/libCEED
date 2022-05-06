@@ -227,6 +227,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     // Operator that build the quadrature data for the diff operator
     let op_build = ceed
         .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)?
+        .name("build qdata")?
         .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)?
         .field(
             "weights",
@@ -326,6 +327,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     // Diff Operator
     let op_diff = ceed
         .operator(qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
+        .name("Poisson")?
         .field("du", &restr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
         .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?

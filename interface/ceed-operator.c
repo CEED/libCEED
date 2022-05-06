@@ -143,7 +143,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
   const char *pre = sub ? "  " : "";
   const char *in_out = input ? "Input" : "Output";
 
-  fprintf(stream, "%s    %s Field [%d]:\n"
+  fprintf(stream, "%s    %s field %d:\n"
           "%s      Name: \"%s\"\n",
           pre, in_out, field_number, pre, qf_field->field_name);
 
@@ -172,20 +172,26 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   int ierr;
   const char *pre = sub ? "  " : "";
 
+  CeedInt num_elem, num_qpts;
+  ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChk(ierr);
+  ierr = CeedOperatorGetNumQuadraturePoints(op, &num_qpts); CeedChk(ierr);
+
   CeedInt total_fields = 0;
   ierr = CeedOperatorGetNumArgs(op, &total_fields); CeedChk(ierr);
+  fprintf(stream, "%s  %d elements with %d quadrature points each\n",
+          pre, num_elem, num_qpts);
 
-  fprintf(stream, "%s  %d Field%s\n", pre, total_fields,
+  fprintf(stream, "%s  %d field%s\n", pre, total_fields,
           total_fields>1 ? "s" : "");
 
-  fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->num_input_fields,
+  fprintf(stream, "%s  %d input field%s:\n", pre, op->qf->num_input_fields,
           op->qf->num_input_fields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->num_input_fields; i++) {
     ierr = CeedOperatorFieldView(op->input_fields[i], op->qf->input_fields[i],
                                  i, sub, 1, stream); CeedChk(ierr);
   }
 
-  fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->num_output_fields,
+  fprintf(stream, "%s  %d output field%s:\n", pre, op->qf->num_output_fields,
           op->qf->num_output_fields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->num_output_fields; i++) {
     ierr = CeedOperatorFieldView(op->output_fields[i], op->qf->output_fields[i],
@@ -1165,6 +1171,31 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
 }
 
 /**
+  @brief Set name of CeedOperator for CeedOperatorView output
+
+  @param op    CeedOperator
+  @param name  Name to set, or NULL to remove previously set name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetName(CeedOperator op, const char *name) {
+  int ierr;
+  char *name_copy;
+  size_t name_len = name ? strlen(name) : 0;
+
+  ierr = CeedFree(&op->name); CeedChk(ierr);
+  if (name_len > 0) {
+    ierr = CeedCalloc(name_len + 1, &name_copy); CeedChk(ierr);
+    memcpy(name_copy, name, name_len);
+    op->name = name_copy;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a CeedOperator
 
   @param[in] op      CeedOperator to view
@@ -1176,17 +1207,23 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
 **/
 int CeedOperatorView(CeedOperator op, FILE *stream) {
   int ierr;
+  bool has_name = op->name;
 
   if (op->is_composite) {
-    fprintf(stream, "Composite CeedOperator\n");
+    fprintf(stream, "Composite CeedOperator%s%s\n",
+            has_name ? " - " : "", has_name ? op->name : "");
 
     for (CeedInt i=0; i<op->num_suboperators; i++) {
-      fprintf(stream, "  SubOperator [%d]:\n", i);
+      has_name = op->sub_operators[i]->name;
+      fprintf(stream, "  SubOperator %d%s%s:\n", i,
+              has_name ? " - " : "",
+              has_name ? op->sub_operators[i]->name : "");
       ierr = CeedOperatorSingleView(op->sub_operators[i], 1, stream);
       CeedChk(ierr);
     }
   } else {
-    fprintf(stream, "CeedOperator\n");
+    fprintf(stream, "CeedOperator%s%s\n",
+            has_name ? " - " : "", has_name ? op->name : "");
     ierr = CeedOperatorSingleView(op, 0, stream); CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
@@ -1669,6 +1706,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(&(*op)->input_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->output_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->sub_operators); CeedChk(ierr);
+  ierr = CeedFree(&(*op)->name); CeedChk(ierr);
   ierr = CeedFree(op); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }

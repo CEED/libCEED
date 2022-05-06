@@ -373,6 +373,7 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
+  const char *name;
   bool is_immutable;
   bool is_interface_setup;
   bool is_backend_setup;
