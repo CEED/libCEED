@@ -17,7 +17,7 @@
 // Go from L-vector (du) to E-vector (dv):
 //
 // dv(i, e, c) = du( offsets(i, e) + compstride * c)  
-static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
+extern "C" __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_readDofsOffset_kernel(const int NCOMP, const int compstride,
                             const int esize, const int nelem, int *offsets, 
                             const CeedScalar *du, CeedScalar *dv)
@@ -42,7 +42,7 @@ magma_readDofsOffset_kernel(const int NCOMP, const int compstride,
 //  to describe the L-vector layout
 //
 // dv(i, e, c) = du( i * strides[0] + c * strides[1] + e * strides[2] )  
-static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
+extern "C" __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
 magma_readDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
                              const int *strides, const CeedScalar *du, CeedScalar *dv)
 {
@@ -65,28 +65,10 @@ magma_readDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
 // Go from E-vector (du) to L-vector (dv):
 //
 // dv(offsets(i, e) + compstride * c) = du(i, e, c)
-// Double precision version 
-static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
-magma_writeDofsOffset_kernel_d(const int NCOMP, const int compstride,
-                               const int esize, const int nelem, int *offsets, 
-                               const double *du, double *dv)
-{
-    const int  pid = threadIdx.x;
-    const int elem = blockIdx.x;
-
-    for (CeedInt i = pid; i < esize; i += blockDim.x) {
-        const CeedInt ind = offsets ? offsets[i + elem * esize] : i + elem * esize;
-        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            atomicAdd(dv + (ind + compstride * comp),
-                       du[i+elem*esize+comp*esize*nelem]);
-        }
-    }
-}
-// Single precision version
-static __global__ void 
-magma_writeDofsOffset_kernel_s(const int NCOMP, const int compstride,
-                               const int esize, const int nelem, int *offsets, 
-                               const float *du, float *dv)
+extern "C" __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
+magma_writeDofsOffset_kernel(const int NCOMP, const int compstride,
+                             const int esize, const int nelem, int *offsets, 
+                             const CeedScalar *du, CeedScalar *dv)
 {
     const int  pid = threadIdx.x;
     const int elem = blockIdx.x;
@@ -108,27 +90,9 @@ magma_writeDofsOffset_kernel_s(const int NCOMP, const int compstride,
 //  to describe the L-vector layout
 //
 // dv( i * strides[0] + c * strides[1] + e * strides[2] ) = du(i, e, c) 
-// Double precision version
-static __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
-magma_writeDofsStrided_kernel_d(const int NCOMP, const int esize, const int nelem,
-                                const int *strides, const double *du, double *dv)
-{
-    const int  pid = threadIdx.x;
-    const int elem = blockIdx.x;
-
-    for (CeedInt i = pid; i < esize; i += blockDim.x) {
-        for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-            atomicAdd(dv + (i * strides[0] + comp * strides[1] + 
-                             elem * strides[2]),
-                      du[i+elem*esize+comp*esize*nelem]);
-        }
-    }
-}
-
-// Single precision version
-static __global__ void 
-magma_writeDofsStrided_kernel_s(const int NCOMP, const int esize, const int nelem,
-                                const int *strides, const float *du, float *dv)
+extern "C" __launch_bounds__(MAGMA_ERSTR_THREADS) __global__ void 
+magma_writeDofsStrided_kernel(const int NCOMP, const int esize, const int nelem,
+                              const int *strides, const CeedScalar *du, CeedScalar *dv)
 {
     const int  pid = threadIdx.x;
     const int elem = blockIdx.x;

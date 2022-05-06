@@ -13,6 +13,34 @@
 #include <ceed/backend.h>
 #include <magma_v2.h>
 
+#define MAGMA_MAXTHREADS_1D 128
+#define MAGMA_MAXTHREADS_2D 128
+#define MAGMA_MAXTHREADS_3D 64
+// Define macro for determining number of threads in y-direction
+// for basis kernels
+#define MAGMA_BASIS_NTCOL(x, maxt) (((maxt) < (x)) ? 1 : ((maxt) / (x)))
+// Define macro for computing the total threads in a block
+// for use with __launch_bounds__()
+#define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
+
+#ifdef HAVE_HIP
+#define MAGMA_RTC_MODULE hipModule_t
+#define MAGMA_RTC_FUNCTION hipFunction_t
+#define MAGMA_RTC_COMPILE CeedCompileHip
+#define MAGMA_RTC_GET_KERNEL CeedGetKernelHip
+#define MAGMA_RTC_RUN_KERNEL CeedRunKernelHip
+#define MAGMA_RTC_RUN_KERNEL_DIM CeedRunKernelDimHip
+#define MAGMA_RTC_RUN_KERNEL_DIM_SH CeedRunKernelDimSharedHip
+#else
+#define MAGMA_RTC_MODULE CUmodule
+#define MAGMA_RTC_FUNCTION CUfunction
+#define MAGMA_RTC_COMPILE CeedCompileCuda
+#define MAGMA_RTC_GET_KERNEL CeedGetKernelCuda
+#define MAGMA_RTC_RUN_KERNEL CeedRunKernelCuda
+#define MAGMA_RTC_RUN_KERNEL_DIM CeedRunKernelDimCuda
+#define MAGMA_RTC_RUN_KERNEL_DIM_SH CeedRunKernelDimSharedCuda
+#endif
+
 typedef enum {
   MAGMA_KERNEL_DIM_GENERIC=101,
   MAGMA_KERNEL_DIM_SPECIFIC=102
@@ -25,6 +53,12 @@ typedef struct {
 } Ceed_Magma;
 
 typedef struct {
+  MAGMA_RTC_MODULE module;
+  MAGMA_RTC_FUNCTION magma_interp;
+  MAGMA_RTC_FUNCTION magma_interp_tr;
+  MAGMA_RTC_FUNCTION magma_grad;
+  MAGMA_RTC_FUNCTION magma_grad_tr;
+  MAGMA_RTC_FUNCTION magma_weight;
   CeedScalar *dqref1d;
   CeedScalar *dinterp1d;
   CeedScalar *dgrad1d;
@@ -45,6 +79,11 @@ typedef enum {
 } OwnershipMode;
 
 typedef struct {
+  MAGMA_RTC_MODULE module;
+  MAGMA_RTC_FUNCTION StridedTranspose;
+  MAGMA_RTC_FUNCTION StridedNoTranspose;
+  MAGMA_RTC_FUNCTION OffsetTranspose;
+  MAGMA_RTC_FUNCTION OffsetNoTranspose;
   CeedInt *offsets;
   CeedInt *doffsets;
   OwnershipMode own_;
@@ -183,28 +222,6 @@ CEED_INTERN {
   void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t nelem,
                               magma_int_t Q,
                               CeedScalar *dqweight, CeedScalar *dv, magma_queue_t queue);
-
-  void magma_readDofsOffset(const magma_int_t NCOMP,
-                            const magma_int_t compstride,
-                            const magma_int_t esize, const magma_int_t nelem,
-                            magma_int_t *offsets, const CeedScalar *du, CeedScalar *dv,
-                            magma_queue_t queue);
-
-  void magma_readDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
-                             const magma_int_t nelem, magma_int_t *strides,
-                             const CeedScalar *du, CeedScalar *dv,
-                             magma_queue_t queue);
-
-  void magma_writeDofsOffset(const magma_int_t NCOMP,
-                             const magma_int_t compstride,
-                             const magma_int_t esize, const magma_int_t nelem,
-                             magma_int_t *offsets,const CeedScalar *du, CeedScalar *dv,
-                             magma_queue_t queue);
-
-  void magma_writeDofsStrided(const magma_int_t NCOMP, const magma_int_t esize,
-                              const magma_int_t nelem, magma_int_t *strides,
-                              const CeedScalar *du, CeedScalar *dv,
-                              magma_queue_t queue);
 
   int magma_dgemm_nontensor(
     magma_trans_t transA, magma_trans_t transB,

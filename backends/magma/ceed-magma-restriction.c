@@ -7,8 +7,16 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <string.h>
 #include "ceed-magma.h"
+#ifdef HAVE_HIP
+#include "../hip/ceed-hip-common.h"
+#include "../hip/ceed-hip-compile.h"
+#else
+#include "../cuda/ceed-cuda-common.h"
+#include "../cuda/ceed-cuda-compile.h"
+#endif
 
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
@@ -75,13 +83,16 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
       magma_setvector(3, sizeof(CeedInt), strides, 1, dstrides, 1, data->queue);
     }
 
+    void *args[] = {&ncomp, &esize, &nelem, &dstrides, &du, &dv};
+    CeedInt grid = nelem;
+    CeedInt blocksize = 256;
     // Perform strided restriction with dstrides
     if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
-                             data->queue);
+      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->StridedTranspose,
+                                  grid, blocksize, args); CeedChkBackend(ierr);
     } else {
-      magma_readDofsStrided(ncomp, esize, nelem, dstrides, du, dv,
-                            data->queue);
+      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->StridedNoTranspose,
+                                  grid, blocksize, args); CeedChkBackend(ierr);
     }
 
     ierr = magma_free(dstrides);  CeedChkBackend(ierr);
@@ -90,13 +101,16 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
 
     CeedInt compstride;
     ierr = CeedElemRestrictionGetCompStride(r, &compstride); CeedChkBackend(ierr);
+    void *args[] = {&ncomp, &compstride, &esize, &nelem, &impl->doffsets, &du, &dv};
+    CeedInt grid = nelem;
+    CeedInt blocksize = 256;
 
     if (tmode == CEED_TRANSPOSE) {
-      magma_writeDofsOffset(ncomp, compstride, esize, nelem, impl->doffsets,
-                            du, dv, data->queue);
+      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->OffsetTranspose,
+                                  grid, blocksize, args); CeedChkBackend(ierr);
     } else {
-      magma_readDofsOffset(ncomp, compstride, esize, nelem, impl->doffsets,
-                           du, dv, data->queue);
+      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->OffsetNoTranspose,
+                                  grid, blocksize, args); CeedChkBackend(ierr);
     }
 
   }
@@ -152,6 +166,13 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   } else if (impl->down_) {
     ierr = magma_free(impl->doffsets);       CeedChkBackend(ierr);
   }
+  Ceed ceed;
+  ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
+  #ifdef HAVE_HIP
+  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
+  #else
+  ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);
+  #endif
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -247,6 +268,44 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   } else
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Only MemType = HOST or DEVICE supported");
+  // Compile kernels
+  char *magma_common_path;
+  char *restriction_kernel_path, *restriction_kernel_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/magma_common_device.h",
+                                &magma_common_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
+  ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
+                                &restriction_kernel_source);
+  CeedChkBackend(ierr);
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/elem_restriction.h",
+                                &restriction_kernel_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, restriction_kernel_path,
+         &restriction_kernel_source);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2,
+               "----- Loading Restriction Kernel Source Complete! -----\n");
+  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
+  // data
+  Ceed delegate;
+  ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
+  ierr = MAGMA_RTC_COMPILE(delegate, restriction_kernel_source, &impl->module, 0);
+  CeedChkBackend(ierr);
+
+  // Kernel setup
+  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_readDofsStrided_kernel",
+                              &impl->StridedNoTranspose);
+  CeedChkBackend(ierr);
+  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_readDofsOffset_kernel",
+                              &impl->OffsetNoTranspose);
+  CeedChkBackend(ierr);
+  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_writeDofsStrided_kernel",
+                              &impl->StridedTranspose);
+  CeedChkBackend(ierr);
+  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_writeDofsOffset_kernel",
+                              &impl->OffsetTranspose);
+  CeedChkBackend(ierr);
 
   ierr = CeedElemRestrictionSetData(r, impl); CeedChkBackend(ierr);
   CeedInt layout[3] = {1, elemsize*nelem, elemsize};
