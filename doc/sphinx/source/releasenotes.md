@@ -8,6 +8,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+- Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)

@@ -1,4 +1,4 @@
-Gallery CeedQFunction Mass1DBuild
+Gallery CeedQFunction - Mass1DBuild
   2 input fields:
     Input field 0:
       Name: "dx"
@@ -13,7 +13,7 @@ Gallery CeedQFunction Mass1DBuild
       Name: "qdata"
       Size: 1
       EvalMode: "none"
-Gallery CeedQFunction MassApply
+Gallery CeedQFunction - MassApply
   2 input fields:
     Input field 0:
       Name: "u"

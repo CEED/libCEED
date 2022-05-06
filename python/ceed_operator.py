@@ -108,6 +108,17 @@ class _OperatorBase(ABC):
                                                                        d._pointer[0], request)
         self._ceed._check_error(err_code)
 
+    # Set name
+    def name(self, name):
+        """Set name of Operator for print output
+
+           Args:
+             name: Name to set"""
+
+        name = ffi.new("char[]", name.encode('ascii'))
+        err_code = lib.CeedOperatorSetName(self._pointer[0], name)
+        self._ceed._check_error(err_code)
+
     # Apply CeedOperator
     def apply(self, u, v, request=REQUEST_IMMEDIATE):
         """Apply Operator to a vector.

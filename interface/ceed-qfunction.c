@@ -968,7 +968,7 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "%sCeedQFunction %s\n",
+  fprintf(stream, "%sCeedQFunction - %s\n",
           qf->is_gallery ? "Gallery " : "User ",
           qf->is_gallery ? qf->gallery_name : qf->kernel_name);
 

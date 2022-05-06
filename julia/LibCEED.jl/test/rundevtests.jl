@@ -4,7 +4,7 @@ using Test, LibCEED, LinearAlgebra, StaticArrays
     @testset "QFunction" begin
         c = Ceed()
         @test showstr(create_interior_qfunction(c, "Poisson3DApply")) == """
-             Gallery CeedQFunction Poisson3DApply
+             Gallery CeedQFunction - Poisson3DApply
                2 input fields:
                  Input field 0:
                    Name: "du"
