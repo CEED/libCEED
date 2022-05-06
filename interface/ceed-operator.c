@@ -143,7 +143,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
   const char *pre = sub ? "  " : "";
   const char *in_out = input ? "Input" : "Output";
 
-  fprintf(stream, "%s    %s Field [%d]:\n"
+  fprintf(stream, "%s    %s field %d:\n"
           "%s      Name: \"%s\"\n",
           pre, in_out, field_number, pre, qf_field->field_name);
 
@@ -181,17 +181,17 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   fprintf(stream, "%s  %d elements with %d quadrature points each\n",
           pre, num_elem, num_qpts);
 
-  fprintf(stream, "%s  %d Field%s\n", pre, total_fields,
+  fprintf(stream, "%s  %d field%s\n", pre, total_fields,
           total_fields>1 ? "s" : "");
 
-  fprintf(stream, "%s  %d Input Field%s:\n", pre, op->qf->num_input_fields,
+  fprintf(stream, "%s  %d input field%s:\n", pre, op->qf->num_input_fields,
           op->qf->num_input_fields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->num_input_fields; i++) {
     ierr = CeedOperatorFieldView(op->input_fields[i], op->qf->input_fields[i],
                                  i, sub, 1, stream); CeedChk(ierr);
   }
 
-  fprintf(stream, "%s  %d Output Field%s:\n", pre, op->qf->num_output_fields,
+  fprintf(stream, "%s  %d output field%s:\n", pre, op->qf->num_output_fields,
           op->qf->num_output_fields>1 ? "s" : "");
   for (CeedInt i=0; i<op->qf->num_output_fields; i++) {
     ierr = CeedOperatorFieldView(op->output_fields[i], op->qf->output_fields[i],
@@ -1187,7 +1187,7 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
     fprintf(stream, "Composite CeedOperator\n");
 
     for (CeedInt i=0; i<op->num_suboperators; i++) {
-      fprintf(stream, "  SubOperator [%d]:\n", i);
+      fprintf(stream, "  SubOperator %d:\n", i);
       ierr = CeedOperatorSingleView(op->sub_operators[i], 1, stream);
       CeedChk(ierr);
     }

@@ -1,6 +1,26 @@
 using Test, LibCEED, LinearAlgebra, StaticArrays
 
 @testset "LibCEED Development Tests" begin
+    @testset "QFunction" begin
+        c = Ceed()
+        @test showstr(create_interior_qfunction(c, "Poisson3DApply")) == """
+             Gallery CeedQFunction Poisson3DApply
+               2 input fields:
+                 Input field 0:
+                   Name: "du"
+                   Size: 3
+                   EvalMode: "gradient"
+                 Input field 1:
+                   Name: "qdata"
+                   Size: 6
+                   EvalMode: "none"
+               1 output field:
+                 Output field 0:
+                   Name: "dv"
+                   Size: 3
+                   EvalMode: "gradient\""""
+    end
+
     @testset "Operator" begin
         c = Ceed()
         @interior_qf id = (
@@ -26,13 +46,13 @@ using Test, LibCEED, LinearAlgebra, StaticArrays
         @test showstr(op) == """
              CeedOperator
                1 elements with 27 quadrature points each
-               2 Fields
-               1 Input Field:
-                 Input Field [0]:
+               2 fields
+               1 input field:
+                 Input field 0:
                    Name: "input"
                    Active vector
-               1 Output Field:
-                 Output Field [0]:
+               1 output field:
+                 Output field 0:
                    Name: "output"
                    Active vector"""
     end

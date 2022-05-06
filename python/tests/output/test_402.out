@@ -1,31 +1,31 @@
 User CeedQFunction setup_mass
-  2 Input Fields:
-    Input Field [0]:
+  2 input fields:
+    Input field 0:
       Name: "w"
       Size: 1
       EvalMode: "quadrature weights"
-    Input Field [1]:
+    Input field 1:
       Name: "dx"
       Size: 1
       EvalMode: "gradient"
-  1 Output Field:
-    Output Field [0]:
+  1 output field:
+    Output field 0:
       Name: "qdata"
       Size: 1
       EvalMode: "none"
 
 User CeedQFunction apply_mass
-  2 Input Fields:
-    Input Field [0]:
+  2 input fields:
+    Input field 0:
       Name: "qdata"
       Size: 1
       EvalMode: "none"
-    Input Field [1]:
+    Input field 1:
       Name: "u"
       Size: 1
       EvalMode: "interpolation"
-  1 Output Field:
-    Output Field [0]:
+  1 output field:
+    Output field 0:
       Name: "v"
       Size: 1
       EvalMode: "interpolation"
