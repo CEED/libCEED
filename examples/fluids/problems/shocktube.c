@@ -38,23 +38,23 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP SHOCKTUBE
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsShockTube;
-  problem->ics_loc                 = ICsShockTube_loc;
-  problem->apply_vol_rhs           = EulerShockTube;
-  problem->apply_vol_rhs_loc       = EulerShockTube_loc;
-  problem->apply_vol_ifunction     = NULL;
-  problem->apply_vol_ifunction_loc = NULL;
-  problem->bc                      = Exact_ShockTube;
-  problem->setup_ctx               = SetupContext_SHOCKTUBE;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_SHOCKTUBE;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 4;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->ics.qfunction                     = ICsShockTube;
+  problem->ics.qfunction_loc                 = ICsShockTube_loc;
+  problem->apply_vol_rhs.qfunction           = EulerShockTube;
+  problem->apply_vol_rhs.qfunction_loc       = EulerShockTube_loc;
+  problem->apply_vol_ifunction.qfunction     = NULL;
+  problem->apply_vol_ifunction.qfunction_loc = NULL;
+  problem->bc                                = Exact_ShockTube;
+  problem->setup_ctx                         = SetupContext_SHOCKTUBE;
+  problem->non_zero_time                     = PETSC_FALSE;
+  problem->print_info                        = PRINT_SHOCKTUBE;
 
   // ------------------------------------------------------
   //             Create the libCEED context

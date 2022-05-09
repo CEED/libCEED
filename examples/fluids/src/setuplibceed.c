@@ -257,7 +257,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED QFunctions
   // -----------------------------------------------------------------------------
   // -- Create QFunction for quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol, problem->setup_vol_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol.qfunction,
+                              problem->setup_vol.qfunction_loc,
                               &ceed_data->qf_setup_vol);
   CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", num_comp_x*dim,
                         CEED_EVAL_GRAD);
@@ -266,15 +267,16 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_EVAL_NONE);
 
   // -- Create QFunction for ICs
-  CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->ics.qfunction,
+                              problem->ics.qfunction_loc,
                               &ceed_data->qf_ics);
   CeedQFunctionAddInput(ceed_data->qf_ics, "x", num_comp_x, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for RHS
-  if (problem->apply_vol_rhs) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_rhs,
-                                problem->apply_vol_rhs_loc, &ceed_data->qf_rhs_vol);
+  if (problem->apply_vol_rhs.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_rhs.qfunction,
+                                problem->apply_vol_rhs.qfunction_loc, &ceed_data->qf_rhs_vol);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q", num_comp_q, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "dq", num_comp_q*dim,
                           CEED_EVAL_GRAD);
@@ -288,9 +290,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // -- Create QFunction for IFunction
-  if (problem->apply_vol_ifunction) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ifunction,
-                                problem->apply_vol_ifunction_loc, &ceed_data->qf_ifunction_vol);
+  if (problem->apply_vol_ifunction.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ifunction.qfunction,
+                                problem->apply_vol_ifunction.qfunction_loc, &ceed_data->qf_ifunction_vol);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "dq", num_comp_q*dim,
@@ -416,7 +418,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED QFunctions
   // -----------------------------------------------------------------------------
   // -- Create QFunction for quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup_sur, problem->setup_sur_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup_sur.qfunction,
+                              problem->setup_sur.qfunction_loc,
                               &ceed_data->qf_setup_sur);
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "dx", num_comp_x*dim_sur,
                         CEED_EVAL_GRAD);
@@ -425,9 +428,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          q_data_size_sur, CEED_EVAL_NONE);
 
   // -- Creat QFunction for inflow boundaries
-  if (problem->apply_inflow) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_inflow,
-                                problem->apply_inflow_loc, &ceed_data->qf_apply_inflow);
+  if (problem->apply_inflow.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_inflow.qfunction,
+                                problem->apply_inflow.qfunction_loc, &ceed_data->qf_apply_inflow);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "surface qdata",
@@ -439,9 +442,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // -- Creat QFunction for outflow boundaries
-  if (problem->apply_outflow) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_outflow,
-                                problem->apply_outflow_loc, &ceed_data->qf_apply_outflow);
+  if (problem->apply_outflow.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_outflow.qfunction,
+                                problem->apply_outflow.qfunction_loc, &ceed_data->qf_apply_outflow);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "surface qdata",

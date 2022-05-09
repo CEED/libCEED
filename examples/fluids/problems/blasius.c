@@ -104,13 +104,13 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP Blasius
   // ------------------------------------------------------
-  problem->ics                     = ICsBlasius;
-  problem->ics_loc                 = ICsBlasius_loc;
-  problem->apply_inflow            = Blasius_Inflow;
-  problem->apply_inflow_loc        = Blasius_Inflow_loc;
-  problem->apply_outflow           = Blasius_Outflow;
-  problem->apply_outflow_loc       = Blasius_Outflow_loc;
-  problem->setup_ctx               = SetupContext_BLASIUS;
+  problem->ics.qfunction               = ICsBlasius;
+  problem->ics.qfunction_loc           = ICsBlasius_loc;
+  problem->apply_inflow.qfunction      = Blasius_Inflow;
+  problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
+  problem->apply_outflow.qfunction     = Blasius_Outflow;
+  problem->apply_outflow.qfunction_loc = Blasius_Outflow_loc;
+  problem->setup_ctx                   = SetupContext_BLASIUS;
 
   // CeedScalar mu = .04; // Pa s, dynamic viscosity
   CeedScalar mu            = 1.8e-5;   // Pa s, dynamic viscosity

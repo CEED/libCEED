@@ -26,8 +26,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->ics = ICsDC;
-  problem->ics_loc = ICsDC_loc;
+  problem->ics.qfunction = ICsDC;
+  problem->ics.qfunction_loc = ICsDC_loc;
   problem->bc = Exact_DC;
 
   // ------------------------------------------------------

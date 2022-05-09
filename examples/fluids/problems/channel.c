@@ -39,13 +39,13 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP Channel
   // ------------------------------------------------------
-  problem->ics               = ICsChannel;
-  problem->ics_loc           = ICsChannel_loc;
-  problem->apply_inflow      = Channel_Inflow;
-  problem->apply_inflow_loc  = Channel_Inflow_loc;
-  problem->apply_outflow     = Channel_Outflow;
-  problem->apply_outflow_loc = Channel_Outflow_loc;
-  problem->setup_ctx         = SetupContext_CHANNEL;
+  problem->ics.qfunction               = ICsChannel;
+  problem->ics.qfunction_loc           = ICsChannel_loc;
+  problem->apply_inflow.qfunction      = Channel_Inflow;
+  problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
+  problem->apply_outflow.qfunction     = Channel_Outflow;
+  problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
+  problem->setup_ctx                   = SetupContext_CHANNEL;
 
   // -- Command Line Options
   CeedScalar umax   = 10.;  // m/s

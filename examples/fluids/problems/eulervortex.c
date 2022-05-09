@@ -30,27 +30,27 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsEuler;
-  problem->ics_loc                 = ICsEuler_loc;
-  problem->apply_vol_rhs           = Euler;
-  problem->apply_vol_rhs_loc       = Euler_loc;
-  problem->apply_vol_ifunction     = IFunction_Euler;
-  problem->apply_vol_ifunction_loc = IFunction_Euler_loc;
-  problem->apply_inflow            = TravelingVortex_Inflow;
-  problem->apply_inflow_loc        = TravelingVortex_Inflow_loc;
-  problem->apply_outflow           = Euler_Outflow;
-  problem->apply_outflow_loc       = Euler_Outflow_loc;
-  problem->bc                      = Exact_Euler;
-  problem->setup_ctx               = SetupContext_EULER_VORTEX;
-  problem->non_zero_time           = PETSC_TRUE;
-  problem->print_info              = PRINT_EULER_VORTEX;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 4;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->ics.qfunction                     = ICsEuler;
+  problem->ics.qfunction_loc                 = ICsEuler_loc;
+  problem->apply_vol_rhs.qfunction           = Euler;
+  problem->apply_vol_rhs.qfunction_loc       = Euler_loc;
+  problem->apply_vol_ifunction.qfunction     = IFunction_Euler;
+  problem->apply_vol_ifunction.qfunction_loc = IFunction_Euler_loc;
+  problem->apply_inflow.qfunction            = TravelingVortex_Inflow;
+  problem->apply_inflow.qfunction_loc        = TravelingVortex_Inflow_loc;
+  problem->apply_outflow.qfunction           = Euler_Outflow;
+  problem->apply_outflow.qfunction_loc       = Euler_Outflow_loc;
+  problem->bc                                = Exact_Euler;
+  problem->setup_ctx                         = SetupContext_EULER_VORTEX;
+  problem->non_zero_time                     = PETSC_TRUE;
+  problem->print_info                        = PRINT_EULER_VORTEX;
 
   // ------------------------------------------------------
   //             Create the libCEED context

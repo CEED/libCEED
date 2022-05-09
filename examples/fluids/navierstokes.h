@@ -343,15 +343,18 @@ struct Physics_private {
   CeedContextFieldLabel    timestep_size_label;
 };
 
+typedef struct {
+  CeedQFunctionUser    qfunction;
+  const char           *qfunction_loc;
+} ProblemQFunctionSpec;
+
 // Problem specific data
 // *INDENT-OFF*
 typedef struct {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
   CeedScalar        dm_scale;
-  CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_inflow, apply_outflow;
-  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_inflow_loc, *apply_outflow_loc;
+  ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
+    apply_inflow, apply_outflow;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);

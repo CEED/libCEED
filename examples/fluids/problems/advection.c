@@ -31,25 +31,25 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //               SET UP ADVECTION
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsAdvection;
-  problem->ics_loc                 = ICsAdvection_loc;
-  problem->apply_vol_rhs           = Advection;
-  problem->apply_vol_rhs_loc       = Advection_loc;
-  problem->apply_vol_ifunction     = IFunction_Advection;
-  problem->apply_vol_ifunction_loc = IFunction_Advection_loc;
-  problem->apply_inflow            = Advection_InOutFlow;
-  problem->apply_inflow_loc        = Advection_InOutFlow_loc;
-  problem->bc                      = Exact_Advection;
-  problem->setup_ctx               = SetupContext_ADVECTION;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_ADVECTION;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 4;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->ics.qfunction                     = ICsAdvection;
+  problem->ics.qfunction_loc                 = ICsAdvection_loc;
+  problem->apply_vol_rhs.qfunction           = Advection;
+  problem->apply_vol_rhs.qfunction_loc       = Advection_loc;
+  problem->apply_vol_ifunction.qfunction     = IFunction_Advection;
+  problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection_loc;
+  problem->apply_inflow.qfunction            = Advection_InOutFlow;
+  problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
+  problem->bc                                = Exact_Advection;
+  problem->setup_ctx                         = SetupContext_ADVECTION;
+  problem->non_zero_time                     = PETSC_FALSE;
+  problem->print_info                        = PRINT_ADVECTION;
 
   // ------------------------------------------------------
   //             Create the libCEED context
