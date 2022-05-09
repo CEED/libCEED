@@ -35,6 +35,9 @@
 int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
 
+  // Check not already created
+  if (op->op_fallback) return CEED_ERROR_SUCCESS;
+
   // Fallback Ceed
   const char *resource, *fallback_resource;
   ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
@@ -48,37 +51,49 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   // LCOV_EXCL_STOP
 
   // Fallback Ceed
-  Ceed ceed_ref;
   if (!op->ceed->op_fallback_ceed) {
+    Ceed ceed_ref;
     ierr = CeedInit(fallback_resource, &ceed_ref); CeedChk(ierr);
     ceed_ref->op_fallback_parent = op->ceed;
     ceed_ref->Error = op->ceed->Error;
     op->ceed->op_fallback_ceed = ceed_ref;
   }
-  ceed_ref = op->ceed->op_fallback_ceed;
 
   // Clone Op
-  CeedOperator op_ref;
-  ierr = CeedCalloc(1, &op_ref); CeedChk(ierr);
-  memcpy(op_ref, op, sizeof(*op_ref));
-  op_ref->data = NULL;
-  op_ref->is_interface_setup = false;
-  op_ref->is_backend_setup = false;
-  op_ref->ceed = ceed_ref;
-  ierr = ceed_ref->OperatorCreate(op_ref); CeedChk(ierr);
-  ierr = CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled,
-         &op_ref->qf_assembled); CeedChk(ierr);
-  op->op_fallback = op_ref;
+  CeedOperator op_fallback;
+  if (op->is_composite) {
+    ierr = CeedCompositeOperatorCreate(op->ceed->op_fallback_ceed, &op_fallback);
+    CeedChk(ierr);
+    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+      ierr = CeedCompositeOperatorAddSub(op_fallback, op->sub_operators[i]);
+      CeedChk(ierr);
+    }
+  } else {
+    ierr = CeedOperatorCreate(op->ceed->op_fallback_ceed, op->qf, op->dqf, op->dqfT,
+                              &op_fallback); CeedChk(ierr);
+    for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+      ierr = CeedOperatorSetField(op_fallback, op->input_fields[i]->field_name,
+                                  op->input_fields[i]->elem_restr,
+                                  op->input_fields[i]->basis,
+                                  op->input_fields[i]->vec); CeedChk(ierr);
+    }
+    for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
+      ierr = CeedOperatorSetField(op_fallback, op->output_fields[i]->field_name,
+                                  op->output_fields[i]->elem_restr,
+                                  op->output_fields[i]->basis,
+                                  op->output_fields[i]->vec); CeedChk(ierr);
+    }
+    ierr = CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled,
+           &op_fallback->qf_assembled); CeedChk(ierr);
+    if (op_fallback->num_qpts == 0) {
+      ierr = CeedOperatorSetNumQuadraturePoints(op_fallback, op->num_qpts);
+      CeedChk(ierr);
+    }
+  }
+  ierr = CeedOperatorSetName(op_fallback, op->name); CeedChk(ierr);
+  ierr = CeedOperatorCheckReady(op_fallback); CeedChk(ierr);
+  op->op_fallback = op_fallback;
 
-  // Clone QF
-  CeedQFunction qf_ref;
-  ierr = CeedCalloc(1, &qf_ref); CeedChk(ierr);
-  memcpy(qf_ref, (op->qf), sizeof(*qf_ref));
-  qf_ref->data = NULL;
-  qf_ref->ceed = ceed_ref;
-  ierr = ceed_ref->QFunctionCreate(qf_ref); CeedChk(ierr);
-  op_ref->qf = qf_ref;
-  op->qf_fallback = qf_ref;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -985,6 +1000,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
   ierr = CeedBasisDestroy(&basis_c_to_f); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qf_restrict); CeedChk(ierr);
   ierr = CeedQFunctionDestroy(&qf_prolong); CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
