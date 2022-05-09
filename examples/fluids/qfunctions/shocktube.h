@@ -61,8 +61,6 @@ struct SetupContext_ {
 };
 #endif
 
-#ifndef shocktube_context_struct
-#define shocktube_context_struct
 typedef struct ShockTubeContext_ *ShockTubeContext;
 struct ShockTubeContext_ {
   CeedScalar Cyzb;
@@ -72,7 +70,6 @@ struct ShockTubeContext_ {
   bool yzb;
   int stabilization;
 };
-#endif
 
 // *****************************************************************************
 // This function sets the initial conditions

@@ -14,10 +14,8 @@
 
 #include <math.h>
 #include <ceed.h>
-#include "../navierstokes.h"
+#include "newtonian_types.h"
 
-#ifndef channel_context_struct
-#define channel_context_struct
 typedef struct ChannelContext_ *ChannelContext;
 struct ChannelContext_ {
   bool       implicit; // !< Using implicit timesteping or not
@@ -29,7 +27,6 @@ struct ChannelContext_ {
   CeedScalar B;        // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-#endif
 
 CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
                                         const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {

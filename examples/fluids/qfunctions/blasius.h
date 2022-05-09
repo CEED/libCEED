@@ -14,10 +14,8 @@
 
 #include <math.h>
 #include <ceed.h>
-#include "../navierstokes.h"
+#include "newtonian_types.h"
 
-#ifndef blasius_context_struct
-#define blasius_context_struct
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool       implicit;  // !< Using implicit timesteping or not
@@ -28,7 +26,6 @@ struct BlasiusContext_ {
   CeedScalar theta0;    // !< Temperature at inflow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-#endif
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846

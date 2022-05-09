@@ -10,7 +10,8 @@
 
 #include "../navierstokes.h"
 
-PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
+PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user,
+                                   Vec Q_loc, Vec Q,
                                    CeedScalar time) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
@@ -18,11 +19,9 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
   // ---------------------------------------------------------------------------
   // Update SetupContext
   // ---------------------------------------------------------------------------
-  SetupContext setup_ctx;
-  CeedQFunctionContextGetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              (void **)&setup_ctx);
-  setup_ctx->time = time;
-  CeedQFunctionContextRestoreData(ceed_data->setup_context, (void **)&setup_ctx);
+  if (user->phys->ics_time_label)
+    CeedOperatorContextSetDouble(ceed_data->op_ics, user->phys->ics_time_label,
+                                 &time);
 
   // ---------------------------------------------------------------------------
   // ICs
@@ -151,7 +150,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 }
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q,
                            PetscScalar final_time) {
   PetscInt       loc_nodes;
   Vec            Q_exact, Q_exact_loc;
@@ -163,7 +162,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
   ierr = DMCreateGlobalVector(dm, &Q_exact); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
   ierr = VecGetSize(Q_exact_loc, &loc_nodes); CHKERRQ(ierr);
-  ierr = ICs_FixMultiplicity(dm, ceed_data, Q_exact_loc, Q_exact, final_time);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact,
+                             final_time);
   CHKERRQ(ierr);
 
   // Get |exact solution - obtained solution|
@@ -187,20 +187,20 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
-                              ProblemData *problem, AppCtx app_ctx,
+                              ProblemData *problem, User user,
                               Vec Q, PetscScalar final_time) {
   PetscInt       steps;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
   // Print relative error
-  if (problem->non_zero_time && !app_ctx->test_mode) {
-    ierr = GetError_NS(ceed_data, dm, app_ctx, Q, final_time); CHKERRQ(ierr);
+  if (problem->non_zero_time && !user->app_ctx->test_mode) {
+    ierr = GetError_NS(ceed_data, dm, user, Q, final_time); CHKERRQ(ierr);
   }
 
   // Print final time and number of steps
   ierr = TSGetStepNumber(ts, &steps); CHKERRQ(ierr);
-  if (!app_ctx->test_mode) {
+  if (!user->app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time integrator took %" PetscInt_FMT " time steps to reach final time %g\n",
                        steps, (double)final_time); CHKERRQ(ierr);
@@ -210,8 +210,8 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
   ierr = VecViewFromOptions(Q, NULL, "-vec_view"); CHKERRQ(ierr);
 
   // Compare reference solution values with current test run for CI
-  if (app_ctx->test_mode) {
-    ierr = RegressionTests_NS(app_ctx, Q); CHKERRQ(ierr);
+  if (user->app_ctx->test_mode) {
+    ierr = RegressionTests_NS(user->app_ctx, Q); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -258,4 +258,11 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
+}
+
+// Free a plain data context that was allocated using PETSc; returning libCEED error codes
+int FreeContextPetsc(void *data) {
+  if (PetscFree(data)) return CeedError(NULL, CEED_ERROR_ACCESS,
+                                          "PetscFree failed");
+  return CEED_ERROR_SUCCESS;
 }

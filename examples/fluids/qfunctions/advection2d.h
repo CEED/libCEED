@@ -47,8 +47,6 @@ struct SetupContext_ {
 };
 #endif
 
-#ifndef advection_context_struct
-#define advection_context_struct
 typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
@@ -57,7 +55,6 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-#endif
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions

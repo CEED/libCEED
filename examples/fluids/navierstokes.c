@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
 
   // -- Fix multiplicity for ICs
-  ierr = ICs_FixMultiplicity(dm, ceed_data, Q_loc, Q, 0.0); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_loc, Q, 0.0); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Set up lumped mass matrix
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
                        host_name, comm_size); CHKERRQ(ierr);
 
     // Problem specific info
-    ierr = problem->print_info(phys_ctx, setup_ctx, app_ctx); CHKERRQ(ierr);
+    ierr = problem->print_info(problem, setup_ctx, app_ctx); CHKERRQ(ierr);
 
     // libCEED
     const char *used_resource;
@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
-  ierr = PostProcess_NS(ts, ceed_data, dm, problem, app_ctx, Q, final_time);
+  ierr = PostProcess_NS(ts, ceed_data, dm, problem, user, Q, final_time);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
@@ -294,9 +294,6 @@ int main(int argc, char **argv) {
 
   // -- Contexts
   CeedQFunctionContextDestroy(&ceed_data->setup_context);
-  CeedQFunctionContextDestroy(&ceed_data->newt_ig_context);
-  CeedQFunctionContextDestroy(&ceed_data->advection_context);
-  CeedQFunctionContextDestroy(&ceed_data->euler_context);
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
@@ -356,12 +353,6 @@ int main(int argc, char **argv) {
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
   ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->newtonian_ig_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->euler_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->shocktube_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->advection_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->channel_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->blasius_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);

@@ -111,28 +111,3 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscFunctionReturn(0);
 }
-
-PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-  PetscInt ierr =
-    SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
-  CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
-                                     AppCtx app_ctx) {
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  ierr = PetscPrintf(comm,
-                     "  Problem:\n"
-                     "    Problem Name                       : %s\n"
-                     "    Stabilization                      : %s\n",
-                     app_ctx->problem_name, StabilizationTypes[phys->stab]);
-  CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}

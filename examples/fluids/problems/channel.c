@@ -11,46 +11,33 @@
 #include "../navierstokes.h"
 #include "../qfunctions/channel.h"
 
-#ifndef channel_context_struct
-#define channel_context_struct
-typedef struct ChannelContext_ *ChannelContext;
-struct ChannelContext_ {
-  bool       implicit; // !< Using implicit timesteping or not
-  CeedScalar theta0;   // !< Reference temperature
-  CeedScalar P0;       // !< Reference Pressure
-  CeedScalar umax;     // !< Centerline velocity
-  CeedScalar center;   // !< Y Coordinate for center of channel
-  CeedScalar H;        // !< Channel half-height
-  CeedScalar B;        // !< Body-force driving the flow
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-};
-#endif
-
 PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
                           void *ctx) {
 
   PetscInt ierr;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
+  ChannelContext    channel_ctx;
+  NewtonianIdealGasContext newtonian_ig_ctx;
+  CeedQFunctionContext channel_context;
+
   PetscFunctionBeginUser;
-  ierr = PetscCalloc1(1, &user->phys->channel_ctx); CHKERRQ(ierr);
+  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &channel_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP Channel
   // ------------------------------------------------------
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction               = ICsChannel;
   problem->ics.qfunction_loc           = ICsChannel_loc;
   problem->apply_inflow.qfunction      = Channel_Inflow;
   problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
   problem->apply_outflow.qfunction     = Channel_Outflow;
   problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
-  problem->setup_ctx                   = SetupContext_CHANNEL;
 
   // -- Command Line Options
   CeedScalar umax   = 10.;  // m/s
-  CeedScalar mu     = .01;  // Pa s, dynamic viscosity
-  //TODO ^^ make optional/respect explicit user set
   CeedScalar theta0 = 300.; // K
   CeedScalar P0     = 1.e5; // Pa
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
@@ -67,7 +54,6 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  mu     *= Pascal * second;
   theta0 *= Kelvin;
   P0     *= Pascal;
   umax   *= meter / second;
@@ -83,46 +69,42 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
     center = H + domain_min[1]*meter;
   }
 
-  user->phys->channel_ctx->center   = center;
-  user->phys->channel_ctx->H        = H;
-  user->phys->channel_ctx->theta0   = theta0;
-  user->phys->channel_ctx->P0       = P0;
-  user->phys->channel_ctx->umax     = umax;
-  user->phys->channel_ctx->implicit = user->phys->implicit;
-  user->phys->channel_ctx->B = -2*umax*mu/H;
+  // Some properties depend on parameters from NewtonianIdealGas
+  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
+                              CEED_MEM_HOST, &newtonian_ig_ctx);
+
+  channel_ctx->center   = center;
+  channel_ctx->H        = H;
+  channel_ctx->theta0   = theta0;
+  channel_ctx->P0       = P0;
+  channel_ctx->umax     = umax;
+  channel_ctx->implicit = user->phys->implicit;
+  channel_ctx->B = -2*umax*newtonian_ig_ctx->mu/H;
 
   {
     // Calculate Body force
-    CeedScalar cv  = user->phys->newtonian_ig_ctx->cv,
-               cp  = user->phys->newtonian_ig_ctx->cp;
+    CeedScalar cv  = newtonian_ig_ctx->cv,
+               cp  = newtonian_ig_ctx->cp;
     CeedScalar Rd  = cp - cv;
     CeedScalar rho = P0 / (Rd*theta0);
-    CeedScalar g[] = {user->phys->channel_ctx->B / rho, 0., 0.};
-    ierr = PetscArraycpy(user->phys->newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
+    CeedScalar g[] = {channel_ctx->B / rho, 0., 0.};
+    ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
   }
-  user->phys->newtonian_ig_ctx->mu = mu;
-  user->phys->channel_ctx->newtonian_ctx = *user->phys->newtonian_ig_ctx;
+  channel_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
+                                  &newtonian_ig_ctx);
 
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode SetupContext_CHANNEL(Ceed ceed, CeedData ceed_data,
-                                    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-  PetscInt ierr;
-  ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
-  CHKERRQ(ierr);
-  CeedQFunctionContextCreate(ceed, &ceed_data->channel_context);
-  CeedQFunctionContextSetData(ceed_data->channel_context, CEED_MEM_HOST,
+  CeedQFunctionContextCreate(user->ceed, &channel_context);
+  CeedQFunctionContextSetData(channel_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof(*phys->channel_ctx), phys->channel_ctx);
-  phys->has_neumann = PETSC_TRUE;
-  if (ceed_data->qf_ics)
-    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->channel_context);
-  if (ceed_data->qf_apply_inflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_inflow, ceed_data->channel_context);
-  if (ceed_data->qf_apply_outflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_outflow,
-                            ceed_data->channel_context);
+                              sizeof(*channel_ctx), channel_ctx);
+  CeedQFunctionContextSetDataDestroy(channel_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
+
+  problem->ics.qfunction_context = channel_context;
+  CeedQFunctionContextReferenceCopy(channel_context,
+                                    &problem->apply_inflow.qfunction_context);
+  CeedQFunctionContextReferenceCopy(channel_context,
+                                    &problem->apply_outflow.qfunction_context);
   PetscFunctionReturn(0);
 }
