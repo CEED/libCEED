@@ -138,12 +138,12 @@ int main(int argc, char **argv) {
   }
 
   // -- Set up DM
-  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx, setup_ctx);
+  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx);
   CHKERRQ(ierr);
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
-    ierr = VizRefineDM(dm, user, problem, bc, phys_ctx, setup_ctx);
+    ierr = VizRefineDM(dm, user, problem, bc, phys_ctx);
     CHKERRQ(ierr);
   }
 
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
-  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, setup_ctx);
+  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------

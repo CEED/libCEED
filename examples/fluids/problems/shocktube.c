@@ -55,6 +55,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_ifunction.qfunction     = NULL;
   problem->apply_vol_ifunction.qfunction_loc = NULL;
   problem->bc                                = Exact_ShockTube;
+  problem->bc_ctx                            = setup_ctx;
   problem->non_zero_time                     = PETSC_FALSE;
   problem->print_info                        = PRINT_SHOCKTUBE;
 

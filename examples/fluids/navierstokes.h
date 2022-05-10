@@ -240,6 +240,7 @@ struct ProblemData_private {
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
+  void *bc_ctx;
   PetscErrorCode    (*print_info)(ProblemData*, SetupContext, AppCtx);
 };
 // *INDENT-ON*
@@ -315,7 +316,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx);
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions
@@ -347,11 +348,11 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
-                       SimpleBC bc, Physics phys, void *setup_ctx);
+                       SimpleBC bc, Physics phys);
 
 // Refine DM for high-order viz
 PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
-                           SimpleBC bc, Physics phys, void *setup_ctx);
+                           SimpleBC bc, Physics phys);
 
 // -----------------------------------------------------------------------------
 // Process command line options

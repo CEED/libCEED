@@ -216,7 +216,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 }
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx) {
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 

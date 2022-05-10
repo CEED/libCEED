@@ -29,6 +29,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
   problem->ics.qfunction = ICsDC;
   problem->ics.qfunction_loc = ICsDC_loc;
   problem->bc = Exact_DC;
+  problem->bc_ctx = setup_ctx;
 
   // ------------------------------------------------------
   //             Create the libCEED context

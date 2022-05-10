@@ -48,6 +48,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_inflow.qfunction            = Advection2d_InOutFlow;
   problem->apply_inflow.qfunction_loc        = Advection2d_InOutFlow_loc;
   problem->bc                                = Exact_Advection2d;
+  problem->bc_ctx                            = setup_ctx;
   problem->non_zero_time                     = PETSC_TRUE;
   problem->print_info                        = PRINT_ADVECTION2D;
 
