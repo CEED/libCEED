@@ -14,6 +14,7 @@
 #include <petscsys.h>
 #include <petscts.h>
 #include <stdbool.h>
+#include "qfunctions/stabilization_types.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Version
@@ -85,11 +86,6 @@ static const char *const EulerTestTypes[] = {
 };
 
 // Stabilization methods
-typedef enum {
-  STAB_NONE = 0,
-  STAB_SU   = 1, // Streamline Upwind
-  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
-} StabilizationType;
 static const char *const StabilizationTypes[] = {
   "none",
   "SU",
@@ -131,8 +127,6 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedQFunctionContext setup_context, newt_ig_context, advection_context,
-                       euler_context, shocktube_context, channel_context, blasius_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
@@ -182,155 +176,8 @@ struct SimpleBC_private {
   PetscBool user_bc;
 };
 
-// Initial conditions
-#ifndef setup_context_struct
-#define setup_context_struct
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g[3];
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
-  CeedScalar time;
-  CeedScalar mid_point;
-  CeedScalar P_high;
-  CeedScalar rho_high;
-  CeedScalar P_low;
-  CeedScalar rho_low;
-  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
-};
-#endif
-
-// DENSITY_CURRENT
-#ifndef dc_context_struct
-#define dc_context_struct
-typedef struct DCContext_ *DCContext;
-struct DCContext_ {
-  CeedScalar lambda;
-  CeedScalar mu;
-  CeedScalar k;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
-  CeedScalar c_tau;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-#endif
-
-// EULER_VORTEX
-#ifndef euler_context_struct
-#define euler_context_struct
-typedef struct EulerContext_ *EulerContext;
-struct EulerContext_ {
-  CeedScalar center[3];
-  CeedScalar curr_time;
-  CeedScalar vortex_strength;
-  CeedScalar c_tau;
-  CeedScalar mean_velocity[3];
-  bool implicit;
-  int euler_test;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-#endif
-
-// SHOCKTUBE
-#ifndef shocktube_context_struct
-#define shocktube_context_struct
-typedef struct ShockTubeContext_ *ShockTubeContext;
-struct ShockTubeContext_ {
-  CeedScalar Cyzb;
-  CeedScalar Byzb;
-  CeedScalar c_tau;
-  bool implicit;
-  bool yzb;
-  int stabilization;
-};
-#endif
-
-// ADVECTION and ADVECTION2D
-#ifndef advection_context_struct
-#define advection_context_struct
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  CeedScalar E_wind;
-  bool implicit;
-  int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
-};
-#endif
-
-// Newtonian Ideal Gas
-#ifndef newtonian_context_struct
-#define newtonian_context_struct
-typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
-struct NewtonianIdealGasContext_ {
-  CeedScalar lambda;
-  CeedScalar mu;
-  CeedScalar k;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g[3];
-  CeedScalar c_tau;
-  CeedScalar Ctau_t;
-  CeedScalar Ctau_v;
-  CeedScalar Ctau_C;
-  CeedScalar Ctau_M;
-  CeedScalar Ctau_E;
-  CeedScalar dt;
-  StabilizationType stabilization;
-};
-#endif
-
-#ifndef channel_context_struct
-#define channel_context_struct
-typedef struct ChannelContext_ *ChannelContext;
-struct ChannelContext_ {
-  bool       implicit; // !< Using implicit timesteping or not
-  CeedScalar theta0;   // !< Reference temperature
-  CeedScalar P0;       // !< Reference Pressure
-  CeedScalar umax;     // !< Centerline velocity
-  CeedScalar center;   // !< Y Coordinate for center of channel
-  CeedScalar H;        // !< Channel half-height
-  CeedScalar B;        // !< Body-force driving the flow
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-};
-#endif
-
-#ifndef blasius_context_struct
-#define blasius_context_struct
-typedef struct BlasiusContext_ *BlasiusContext;
-struct BlasiusContext_ {
-  bool       implicit;  // !< Using implicit timesteping or not
-  bool       weakT;     // !< flag to set Temperature at inflow
-  CeedScalar delta0;    // !< Boundary layer height at inflow
-  CeedScalar Uinf;      // !< Velocity at boundary layer edge
-  CeedScalar P0;        // !< Pressure at outflow
-  CeedScalar theta0;    // !< Temperature at inflow
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-};
-#endif
-
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  BlasiusContext           blasius_ctx;
-  ChannelContext           channel_ctx;
-  NewtonianIdealGasContext newtonian_ig_ctx;
-  EulerContext             euler_ctx;
-  ShockTubeContext         shocktube_ctx;
-  AdvectionContext         advection_ctx;
   WindType                 wind_type;
   BubbleType               bubble_type;
   BubbleContinuityType     bubble_continuity_type;
@@ -341,103 +188,69 @@ struct Physics_private {
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
   CeedContextFieldLabel    timestep_size_label;
+  CeedContextFieldLabel    ics_time_label;
 };
+
+typedef struct {
+  CeedQFunctionUser    qfunction;
+  const char           *qfunction_loc;
+  CeedQFunctionContext qfunction_context;
+} ProblemQFunctionSpec;
 
 // Problem specific data
 // *INDENT-OFF*
-typedef struct {
+typedef struct ProblemData_private ProblemData;
+struct ProblemData_private {
   CeedInt           dim, q_data_size_vol, q_data_size_sur;
   CeedScalar        dm_scale;
-  CeedQFunctionUser setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-                    apply_inflow, apply_outflow;
-  const char        *setup_vol_loc, *setup_sur_loc, *ics_loc,
-                    *apply_vol_rhs_loc, *apply_vol_ifunction_loc, *apply_inflow_loc, *apply_outflow_loc;
+  ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
+    apply_inflow, apply_outflow;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
-  PetscErrorCode    (*setup_ctx)(Ceed, CeedData, AppCtx, SetupContext, Physics);
-  PetscErrorCode    (*print_info)(Physics, SetupContext, AppCtx);
-} ProblemData;
+  void *bc_ctx;
+  PetscErrorCode    (*print_info)(ProblemData*, AppCtx);
+};
 // *INDENT-ON*
+
+extern int FreeContextPetsc(void *);
 
 // -----------------------------------------------------------------------------
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
 extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
-                                 void *setup_ctx, void *ctx);
+                                 void *ctx);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm,
-                                 void *setup_ctx, void *ctx);
+                                 void *ctx);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm,
-                                      void *setup_ctx, void *ctx);
+                                      void *ctx);
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
-    void *setup_ctx,
     void *ctx);
 
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
-                                      void *setup_ctx, void *ctx);
-extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
+                                      void *ctx);
+extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm,
                                    void *ctx);
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
-                                     void *setup_ctx, void *ctx);
-
-// Set up context for each problem
-extern PetscErrorCode SetupContext_CHANNEL(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed,
-    CeedData ceed_data, AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_EULER_VORTEX(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_SHOCKTUBE(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-extern PetscErrorCode SetupContext_ADVECTION2D(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys);
-
-// Boundary condition function for each problem
-extern PetscErrorCode BC_DENSITY_CURRENT(DM dm, SimpleBC bc, Physics phys,
-    void *setup_ctx);
-
-extern PetscErrorCode BC_EULER_VORTEX(DM dm, SimpleBC bc, Physics phys,
-                                      void *setup_ctx);
-
-extern PetscErrorCode BC_SHOCKTUBE(DM dm, SimpleBC bc, Physics phys,
-                                   void *setup_ctx);
-
-extern PetscErrorCode BC_ADVECTION(DM dm, SimpleBC bc, Physics phys,
-                                   void *setup_ctx);
-
-extern PetscErrorCode BC_ADVECTION2D(DM dm, SimpleBC bc, Physics phys,
-                                     void *setup_ctx);
+                                     void *ctx);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys,
-    SetupContext setup_ctx, AppCtx app_ctx);
-
-extern PetscErrorCode PRINT_EULER_VORTEX(Physics phys, SetupContext setup_ctx,
+extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
     AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(Physics phys, SetupContext setup_ctx,
+extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
+    AppCtx app_ctx);
+
+extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem,
                                       AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
+extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem,
                                       AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(Physics phys, SetupContext setup_ctx,
+extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
                                         AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
@@ -466,7 +279,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedOperator *op_apply);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx);
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions
@@ -498,11 +311,11 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
-                       SimpleBC bc, Physics phys, void *setup_ctx);
+                       SimpleBC bc, Physics phys);
 
 // Refine DM for high-order viz
 PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem,
-                           SimpleBC bc, Physics phys, void *setup_ctx);
+                           SimpleBC bc, Physics phys);
 
 // -----------------------------------------------------------------------------
 // Process command line options
@@ -517,7 +330,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
-PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, Vec Q_loc, Vec Q,
+PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user,
+                                   Vec Q_loc, Vec Q,
                                    CeedScalar time);
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
@@ -528,12 +342,12 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, AppCtx app_ctx, Vec Q,
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q,
                            PetscScalar final_time);
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
-                              ProblemData *problem, AppCtx app_ctx,
+                              ProblemData *problem, User user,
                               Vec Q, PetscScalar final_time);
 
 // -- Gather initial Q values in case of continuation of simulation

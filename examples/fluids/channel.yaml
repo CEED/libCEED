@@ -1,4 +1,5 @@
 problem: 'channel'
+mu: .01
 
 umax: 40
 implicit: true

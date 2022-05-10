@@ -13,38 +13,19 @@
 
 #include <math.h>
 
-#ifndef setup_context_struct
-#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g[3];
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
   CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
-  CeedScalar mid_point;
-  CeedScalar P_high;
-  CeedScalar rho_high;
-  CeedScalar P_low;
-  CeedScalar rho_low;
   int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
   int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
-#endif
 
-#ifndef advection_context_struct
-#define advection_context_struct
 typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
@@ -53,7 +34,6 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-#endif
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions

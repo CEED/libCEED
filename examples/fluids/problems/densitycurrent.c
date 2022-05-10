@@ -12,23 +12,22 @@
 #include "../qfunctions/densitycurrent.h"
 #include "../navierstokes.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
-                                  void *ctx) {
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx);
-  CHKERRQ(ierr);
-  SetupContext setup_context = *(SetupContext *)setup_ctx;
+  SetupContext setup_context;
   User user = *(User *)ctx;
   MPI_Comm comm = PETSC_COMM_WORLD;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
+  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->ics = ICsDC;
-  problem->ics_loc = ICsDC_loc;
+  problem->ics.qfunction = ICsDC;
+  problem->ics.qfunction_loc = ICsDC_loc;
   problem->bc = Exact_DC;
+  setup_context = problem->bc_ctx;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -108,31 +107,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode SetupContext_DENSITY_CURRENT(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-  PetscInt ierr =
-    SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
-  CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode PRINT_DENSITY_CURRENT(Physics phys, SetupContext setup_ctx,
-                                     AppCtx app_ctx) {
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-
-  ierr = PetscPrintf(comm,
-                     "  Problem:\n"
-                     "    Problem Name                       : %s\n"
-                     "    Stabilization                      : %s\n",
-                     app_ctx->problem_name, StabilizationTypes[phys->stab]);
-  CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

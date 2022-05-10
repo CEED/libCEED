@@ -216,7 +216,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 }
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
-                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc, SetupContext setup_ctx) {
+                            AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
@@ -257,8 +257,14 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED QFunctions
   // -----------------------------------------------------------------------------
   // -- Create QFunction for quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol, problem->setup_vol_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup_vol.qfunction,
+                              problem->setup_vol.qfunction_loc,
                               &ceed_data->qf_setup_vol);
+  if (problem->setup_vol.qfunction_context) {
+    CeedQFunctionSetContext(ceed_data->qf_setup_vol,
+                            problem->setup_vol.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context);
+  }
   CeedQFunctionAddInput(ceed_data->qf_setup_vol, "dx", num_comp_x*dim,
                         CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_vol, "weight", 1, CEED_EVAL_WEIGHT);
@@ -266,15 +272,21 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_EVAL_NONE);
 
   // -- Create QFunction for ICs
-  CeedQFunctionCreateInterior(ceed, 1, problem->ics, problem->ics_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->ics.qfunction,
+                              problem->ics.qfunction_loc,
                               &ceed_data->qf_ics);
+  CeedQFunctionSetContext(ceed_data->qf_ics, problem->ics.qfunction_context);
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   CeedQFunctionAddInput(ceed_data->qf_ics, "x", num_comp_x, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for RHS
-  if (problem->apply_vol_rhs) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_rhs,
-                                problem->apply_vol_rhs_loc, &ceed_data->qf_rhs_vol);
+  if (problem->apply_vol_rhs.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_rhs.qfunction,
+                                problem->apply_vol_rhs.qfunction_loc, &ceed_data->qf_rhs_vol);
+    CeedQFunctionSetContext(ceed_data->qf_rhs_vol,
+                            problem->apply_vol_rhs.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q", num_comp_q, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "dq", num_comp_q*dim,
                           CEED_EVAL_GRAD);
@@ -288,9 +300,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // -- Create QFunction for IFunction
-  if (problem->apply_vol_ifunction) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ifunction,
-                                problem->apply_vol_ifunction_loc, &ceed_data->qf_ifunction_vol);
+  if (problem->apply_vol_ifunction.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ifunction.qfunction,
+                                problem->apply_vol_ifunction.qfunction_loc, &ceed_data->qf_ifunction_vol);
+    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
+                            problem->apply_vol_ifunction.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "dq", num_comp_q*dim,
@@ -354,6 +369,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                        ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(ceed_data->op_ics, "q0", ceed_data->elem_restr_q,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorContextGetFieldLabel(ceed_data->op_ics, "evaluation time",
+                                   &user->phys->ics_time_label);
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -416,8 +433,14 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // CEED QFunctions
   // -----------------------------------------------------------------------------
   // -- Create QFunction for quadrature data
-  CeedQFunctionCreateInterior(ceed, 1, problem->setup_sur, problem->setup_sur_loc,
+  CeedQFunctionCreateInterior(ceed, 1, problem->setup_sur.qfunction,
+                              problem->setup_sur.qfunction_loc,
                               &ceed_data->qf_setup_sur);
+  if (problem->setup_sur.qfunction_context) {
+    CeedQFunctionSetContext(ceed_data->qf_setup_sur,
+                            problem->setup_sur.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context);
+  }
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "dx", num_comp_x*dim_sur,
                         CEED_EVAL_GRAD);
   CeedQFunctionAddInput(ceed_data->qf_setup_sur, "weight", 1, CEED_EVAL_WEIGHT);
@@ -425,9 +448,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          q_data_size_sur, CEED_EVAL_NONE);
 
   // -- Creat QFunction for inflow boundaries
-  if (problem->apply_inflow) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_inflow,
-                                problem->apply_inflow_loc, &ceed_data->qf_apply_inflow);
+  if (problem->apply_inflow.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_inflow.qfunction,
+                                problem->apply_inflow.qfunction_loc, &ceed_data->qf_apply_inflow);
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
+                            problem->apply_inflow.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "surface qdata",
@@ -439,9 +465,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   }
 
   // -- Creat QFunction for outflow boundaries
-  if (problem->apply_outflow) {
-    CeedQFunctionCreateInterior(ceed, 1, problem->apply_outflow,
-                                problem->apply_outflow_loc, &ceed_data->qf_apply_outflow);
+  if (problem->apply_outflow.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_outflow.qfunction,
+                                problem->apply_outflow.qfunction_loc, &ceed_data->qf_apply_outflow);
+    CeedQFunctionSetContext(ceed_data->qf_apply_outflow,
+                            problem->apply_outflow.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "surface qdata",
@@ -458,10 +487,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Apply CEED Operator for the geometric data
   CeedOperatorApply(ceed_data->op_setup_vol, ceed_data->x_coord,
                     ceed_data->q_data, CEED_REQUEST_IMMEDIATE);
-
-  // -- Set up context for QFunctions
-  ierr = problem->setup_ctx(ceed, ceed_data, app_ctx, setup_ctx, user->phys);
-  CHKERRQ(ierr);
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS

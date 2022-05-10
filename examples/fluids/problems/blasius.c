@@ -11,24 +11,6 @@
 #include "../navierstokes.h"
 #include "../qfunctions/blasius.h"
 
-#ifndef blasius_context_struct
-#define blasius_context_struct
-typedef struct BlasiusContext_ *BlasiusContext;
-struct BlasiusContext_ {
-  bool       implicit;  // !< Using implicit timesteping or not
-  CeedScalar delta0;    // !< Boundary layer height at inflow
-  CeedScalar Uinf;      // !< Velocity at boundary layer edge
-  CeedScalar P0;        // !< Pressure at outflow
-  CeedScalar theta0;    // !< Temperature at inflow
-  CeedInt weakT;        // !< flag to weakly set Temperature at inflow if not set weak rho instead
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-};
-#endif
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
-
 /* \brief Modify the domain and mesh for blasius
  *
  * Modifies mesh such that `N` elements are within 1.2*`delta0` with a geometric
@@ -91,29 +73,31 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
-                          void *ctx) {
+PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
+  BlasiusContext    blasius_ctx;
+  NewtonianIdealGasContext newtonian_ig_ctx;
+  CeedQFunctionContext blasius_context;
+
   PetscFunctionBeginUser;
-  ierr = PetscCalloc1(1, &user->phys->blasius_ctx); CHKERRQ(ierr);
+  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &blasius_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP Blasius
   // ------------------------------------------------------
-  problem->ics                     = ICsBlasius;
-  problem->ics_loc                 = ICsBlasius_loc;
-  problem->apply_inflow            = Blasius_Inflow;
-  problem->apply_inflow_loc        = Blasius_Inflow_loc;
-  problem->apply_outflow           = Blasius_Outflow;
-  problem->apply_outflow_loc       = Blasius_Outflow_loc;
-  problem->setup_ctx               = SetupContext_BLASIUS;
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  problem->ics.qfunction               = ICsBlasius;
+  problem->ics.qfunction_loc           = ICsBlasius_loc;
+  problem->apply_inflow.qfunction      = Blasius_Inflow;
+  problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
+  problem->apply_outflow.qfunction     = Blasius_Outflow;
+  problem->apply_outflow.qfunction_loc = Blasius_Outflow_loc;
 
   // CeedScalar mu = .04; // Pa s, dynamic viscosity
-  CeedScalar mu            = 1.8e-5;   // Pa s, dynamic viscosity
   CeedScalar Uinf          = 40;   // m/s
   CeedScalar delta0        = 4.2e-4;    // m
   PetscReal  refine_height = 5.9e-4;    // m
@@ -153,7 +137,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   PetscScalar Kelvin          = user->units->Kelvin;
   PetscScalar Pascal          = user->units->Pascal;
 
-  mu     *= Pascal * second;
   theta0 *= Kelvin;
   P0     *= Pascal;
   Uinf   *= meter / second;
@@ -162,40 +145,31 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   ierr = modifyMesh(dm, problem->dim, growth, Ndelta, refine_height, top_angle);
   CHKERRQ(ierr);
 
-  user->phys->blasius_ctx->weakT     = !!weakT;
-  user->phys->blasius_ctx->Uinf      = Uinf;
-  user->phys->blasius_ctx->delta0    = delta0;
-  user->phys->blasius_ctx->theta0    = theta0;
-  user->phys->blasius_ctx->P0        = P0;
-  user->phys->blasius_ctx->implicit  = user->phys->implicit;
+  // Some properties depend on parameters from NewtonianIdealGas
+  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
+                              CEED_MEM_HOST, &newtonian_ig_ctx);
 
-  user->phys->newtonian_ig_ctx->mu = mu;
-  user->phys->blasius_ctx->newtonian_ctx = *user->phys->newtonian_ig_ctx;
-  PetscFunctionReturn(0);
-}
+  blasius_ctx->weakT     = !!weakT;
+  blasius_ctx->Uinf      = Uinf;
+  blasius_ctx->delta0    = delta0;
+  blasius_ctx->theta0    = theta0;
+  blasius_ctx->P0        = P0;
+  blasius_ctx->implicit  = user->phys->implicit;
+  blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
+                                  &newtonian_ig_ctx);
 
-PetscErrorCode SetupContext_BLASIUS(Ceed ceed, CeedData ceed_data,
-                                    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-  PetscInt ierr;
-  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
-  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
+  CeedQFunctionContextCreate(user->ceed, &blasius_context);
+  CeedQFunctionContextSetData(blasius_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof(*setup_ctx), setup_ctx);
-  ierr = SetupContext_NEWTONIAN_IG(ceed, ceed_data, app_ctx, setup_ctx, phys);
-  CHKERRQ(ierr);
+                              sizeof(*blasius_ctx), blasius_ctx);
+  CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
 
-  CeedQFunctionContextCreate(ceed, &ceed_data->blasius_context);
-  CeedQFunctionContextSetData(ceed_data->blasius_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*phys->blasius_ctx), phys->blasius_ctx);
-  phys->has_neumann = PETSC_TRUE;
-  if (ceed_data->qf_ics)
-    CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->blasius_context);
-  if (ceed_data->qf_apply_inflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_inflow, ceed_data->blasius_context);
-  if (ceed_data->qf_apply_outflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_outflow,
-                            ceed_data->blasius_context);
+  problem->ics.qfunction_context = blasius_context;
+  CeedQFunctionContextReferenceCopy(blasius_context,
+                                    &problem->apply_inflow.qfunction_context);
+  CeedQFunctionContextReferenceCopy(blasius_context,
+                                    &problem->apply_outflow.qfunction_context);
   PetscFunctionReturn(0);
 }
-

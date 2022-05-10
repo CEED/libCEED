@@ -21,9 +21,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/shocktube.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
-                            void *ctx) {
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+  SetupContext      setup_context;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
@@ -31,30 +30,34 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   PetscInt          stab;
   PetscBool         has_curr_time = PETSC_FALSE;
   PetscInt          ierr;
-  PetscFunctionBeginUser;
+  ShockTubeContext  shocktube_ctx;
+  CeedQFunctionContext shocktube_context;
 
-  ierr = PetscCalloc1(1, &user->phys->shocktube_ctx); CHKERRQ(ierr);
+
+  PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &shocktube_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP SHOCKTUBE
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsShockTube;
-  problem->ics_loc                 = ICsShockTube_loc;
-  problem->apply_vol_rhs           = EulerShockTube;
-  problem->apply_vol_rhs_loc       = EulerShockTube_loc;
-  problem->apply_vol_ifunction     = NULL;
-  problem->apply_vol_ifunction_loc = NULL;
-  problem->bc                      = Exact_ShockTube;
-  problem->setup_ctx               = SetupContext_SHOCKTUBE;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_SHOCKTUBE;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 4;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->ics.qfunction                     = ICsShockTube;
+  problem->ics.qfunction_loc                 = ICsShockTube_loc;
+  problem->apply_vol_rhs.qfunction           = EulerShockTube;
+  problem->apply_vol_rhs.qfunction_loc       = EulerShockTube_loc;
+  problem->apply_vol_ifunction.qfunction     = NULL;
+  problem->apply_vol_ifunction.qfunction_loc = NULL;
+  problem->bc                                = Exact_ShockTube;
+  problem->bc_ctx                            = setup_context;
+  problem->non_zero_time                     = PETSC_FALSE;
+  problem->print_info                        = PRINT_SHOCKTUBE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -138,9 +141,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar mid_point = 0.5*(domain_size[0]+domain_min[0]);
 
   // -- Setup Context
-  setup_context->lx        = domain_size[0];
-  setup_context->ly        = domain_size[1];
-  setup_context->lz        = domain_size[2];
   setup_context->mid_point = mid_point;
   setup_context->time      = 0.0;
   setup_context->P_high    = P_high;
@@ -151,39 +151,28 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   // -- QFunction Context
   user->phys->implicit                      = implicit;
   user->phys->has_curr_time                 = has_curr_time;
-  user->phys->shocktube_ctx->implicit       = implicit;
-  user->phys->shocktube_ctx->stabilization  = stab;
-  user->phys->shocktube_ctx->yzb            = yzb;
-  user->phys->shocktube_ctx->Cyzb           = Cyzb;
-  user->phys->shocktube_ctx->Byzb           = Byzb;
-  user->phys->shocktube_ctx->c_tau          = c_tau;
+  shocktube_ctx->implicit       = implicit;
+  shocktube_ctx->stabilization  = stab;
+  shocktube_ctx->yzb            = yzb;
+  shocktube_ctx->Cyzb           = Cyzb;
+  shocktube_ctx->Byzb           = Byzb;
+  shocktube_ctx->c_tau          = c_tau;
 
-  PetscFunctionReturn(0);
-}
+  CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
+  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_context), setup_context);
 
-PetscErrorCode SetupContext_SHOCKTUBE(Ceed ceed, CeedData ceed_data,
-                                      AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-
-  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
-  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
-  CeedQFunctionContextCreate(ceed, &ceed_data->shocktube_context);
-  CeedQFunctionContextSetData(ceed_data->shocktube_context, CEED_MEM_HOST,
+  CeedQFunctionContextCreate(user->ceed, &shocktube_context);
+  CeedQFunctionContextSetData(shocktube_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof(*phys->shocktube_ctx), phys->shocktube_ctx);
-  if (ceed_data->qf_rhs_vol)
-    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->shocktube_context);
-  if (ceed_data->qf_ifunction_vol)
-    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
-                            ceed_data->shocktube_context);
-
+                              sizeof(*shocktube_ctx), shocktube_ctx);
+  CeedQFunctionContextSetDataDestroy(shocktube_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
+  problem->apply_vol_rhs.qfunction_context = shocktube_context;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_SHOCKTUBE(Physics phys, SetupContext setup_ctx,
-                               AppCtx app_ctx) {
+PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;

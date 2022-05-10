@@ -23,8 +23,6 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef euler_context_struct
-#define euler_context_struct
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
   CeedScalar center[3];
@@ -36,7 +34,6 @@ struct EulerContext_ {
   int euler_test;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-#endif
 
 // *****************************************************************************
 // This function sets the initial conditions
