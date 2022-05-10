@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
                        host_name, comm_size); CHKERRQ(ierr);
 
     // Problem specific info
-    ierr = problem->print_info(problem, setup_ctx, app_ctx); CHKERRQ(ierr);
+    ierr = problem->print_info(problem, app_ctx); CHKERRQ(ierr);
 
     // libCEED
     const char *used_resource;

@@ -219,7 +219,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
 }
 
 PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-                                     SetupContext setup_ctx,
                                      AppCtx app_ctx) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;

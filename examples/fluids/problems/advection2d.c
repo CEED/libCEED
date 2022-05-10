@@ -195,13 +195,16 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, SetupContext setup_ctx,
+PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
                                  AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
+  SetupContext setup_ctx;
   AdvectionContext advection_ctx;
 
   PetscFunctionBeginUser;
+  CeedQFunctionContextGetData(problem->ics.qfunction_context,
+                              CEED_MEM_HOST, &setup_ctx);
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &advection_ctx);
   ierr = PetscPrintf(comm,
@@ -217,6 +220,8 @@ PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, SetupContext setup_ctx,
                        "    Background Wind                    : %f,%f\n",
                        setup_ctx->wind[0], setup_ctx->wind[1]); CHKERRQ(ierr);
   }
+  CeedQFunctionContextRestoreData(problem->ics.qfunction_context,
+                                  &setup_ctx);
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &advection_ctx);
   PetscFunctionReturn(0);

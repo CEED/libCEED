@@ -241,7 +241,7 @@ struct ProblemData_private {
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   void *bc_ctx;
-  PetscErrorCode    (*print_info)(ProblemData*, SetupContext, AppCtx);
+  PetscErrorCode    (*print_info)(ProblemData*, AppCtx);
 };
 // *INDENT-ON*
 
@@ -272,22 +272,18 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-    SetupContext setup_ctx, AppCtx app_ctx);
+    AppCtx app_ctx);
 
 extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
-    SetupContext setup_ctx,
     AppCtx app_ctx);
 
 extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem,
-                                      SetupContext setup_ctx,
                                       AppCtx app_ctx);
 
 extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem,
-                                      SetupContext setup_ctx,
                                       AppCtx app_ctx);
 
 extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
-                                        SetupContext setup_ctx,
                                         AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------

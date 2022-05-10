@@ -187,7 +187,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, SetupContext setup_ctx,
+PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
                                   AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
