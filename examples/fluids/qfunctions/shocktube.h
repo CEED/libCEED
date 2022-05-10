@@ -31,8 +31,6 @@
 #define M_PI    3.14159265358979323846
 #endif
 
-#ifndef setup_context_struct
-#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
@@ -41,14 +39,6 @@ struct SetupContext_ {
   CeedScalar N;
   CeedScalar cv;
   CeedScalar cp;
-  CeedScalar g[3];
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
   CeedScalar time;
   CeedScalar mid_point;
   CeedScalar P_high;
@@ -59,7 +49,6 @@ struct SetupContext_ {
   int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
-#endif
 
 typedef struct ShockTubeContext_ *ShockTubeContext;
 struct ShockTubeContext_ {

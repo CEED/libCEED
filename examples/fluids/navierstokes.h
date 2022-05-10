@@ -127,7 +127,6 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedQFunctionContext setup_context;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
                        qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
@@ -177,37 +176,6 @@ struct SimpleBC_private {
   PetscBool user_bc;
 };
 
-// Initial conditions
-#ifndef setup_context_struct
-#define setup_context_struct
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g[3];
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
-  CeedScalar time;
-  CeedScalar mid_point;
-  CeedScalar P_high;
-  CeedScalar rho_high;
-  CeedScalar P_low;
-  CeedScalar rho_low;
-  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
-};
-#endif
-
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
   WindType                 wind_type;
@@ -252,23 +220,22 @@ extern int FreeContextPetsc(void *);
 // -----------------------------------------------------------------------------
 // Set up function for each problem
 extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
-                                 void *setup_ctx, void *ctx);
+                                 void *ctx);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm,
-                                 void *setup_ctx, void *ctx);
+                                 void *ctx);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm,
-                                      void *setup_ctx, void *ctx);
+                                      void *ctx);
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm,
-    void *setup_ctx,
     void *ctx);
 
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm,
-                                      void *setup_ctx, void *ctx);
-extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
+                                      void *ctx);
+extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm,
                                    void *ctx);
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
-                                     void *setup_ctx, void *ctx);
+                                     void *ctx);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,

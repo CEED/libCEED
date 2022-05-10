@@ -17,7 +17,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user,
   PetscFunctionBeginUser;
 
   // ---------------------------------------------------------------------------
-  // Update SetupContext
+  // Update time for evaluation
   // ---------------------------------------------------------------------------
   if (user->phys->ics_time_label)
     CeedOperatorContextSetDouble(ceed_data->op_ics, user->phys->ics_time_label,

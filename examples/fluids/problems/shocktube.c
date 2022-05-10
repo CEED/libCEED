@@ -21,9 +21,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/shocktube.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
-                            void *ctx) {
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+  SetupContext      setup_context;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
@@ -36,6 +35,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
 
 
   PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &shocktube_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -55,7 +55,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_ifunction.qfunction     = NULL;
   problem->apply_vol_ifunction.qfunction_loc = NULL;
   problem->bc                                = Exact_ShockTube;
-  problem->bc_ctx                            = setup_ctx;
+  problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
   problem->print_info                        = PRINT_SHOCKTUBE;
 
@@ -141,9 +141,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *setup_ctx,
   CeedScalar mid_point = 0.5*(domain_size[0]+domain_min[0]);
 
   // -- Setup Context
-  setup_context->lx        = domain_size[0];
-  setup_context->ly        = domain_size[1];
-  setup_context->lz        = domain_size[2];
   setup_context->mid_point = mid_point;
   setup_context->time      = 0.0;
   setup_context->P_high    = P_high;

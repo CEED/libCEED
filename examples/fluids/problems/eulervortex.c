@@ -12,10 +12,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/eulervortex.h"
 
-PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
-                               void *ctx) {
+PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
   EulerTestType     euler_test;
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
   User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
@@ -50,7 +48,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_outflow.qfunction           = Euler_Outflow;
   problem->apply_outflow.qfunction_loc       = Euler_Outflow_loc;
   problem->bc                                = Exact_Euler;
-  problem->bc_ctx                            = setup_ctx;
+  problem->bc_ctx                            = euler_ctx;
   problem->non_zero_time                     = PETSC_TRUE;
   problem->print_info                        = PRINT_EULER_VORTEX;
 
@@ -140,15 +138,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
   }
   problem->dm_scale = meter;
 
-  // -- Setup Context
-  setup_context->lx        = domain_size[0];
-  setup_context->ly        = domain_size[1];
-  setup_context->lz        = domain_size[2];
-  setup_context->center[0] = center[0];
-  setup_context->center[1] = center[1];
-  setup_context->center[2] = center[2];
-  setup_context->time      = 0;
-
   // -- QFunction Context
   user->phys->stab                        = stab;
   user->phys->euler_test                  = euler_test;
@@ -175,7 +164,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *setup_ctx,
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(euler_context, "solution time",
                                      offsetof(struct EulerContext_, curr_time), 1, "Phyiscal time of the solution");
-  problem->ics.qfunction_context = euler_context;
+  CeedQFunctionContextReferenceCopy(euler_context,
+                                    &problem->ics.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context,
                                     &problem->apply_vol_rhs.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context,

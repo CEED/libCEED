@@ -11,7 +11,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/channel.h"
 
-PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
+PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
                           void *ctx) {
 
   PetscInt ierr;
@@ -22,7 +22,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *setup_ctx,
   CeedQFunctionContext channel_context;
 
   PetscFunctionBeginUser;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
+  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &channel_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------

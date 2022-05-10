@@ -12,9 +12,8 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/newtonian.h"
 
-PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
-                               void *ctx) {
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
+  SetupContext      setup_context;
   User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
@@ -25,6 +24,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   CeedQFunctionContext newtonian_ig_context;
 
   PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &newtonian_ig_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -43,6 +43,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_vol_rhs.qfunction_loc       = Newtonian_loc;
   problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian;
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
+  problem->bc                                = NULL;
+  problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
   problem->print_info                        = PRINT_DENSITY_CURRENT;
 

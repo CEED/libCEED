@@ -12,24 +12,22 @@
 #include "../qfunctions/densitycurrent.h"
 #include "../navierstokes.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *setup_ctx,
-                                  void *ctx) {
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx);
-  CHKERRQ(ierr);
-  SetupContext setup_context = *(SetupContext *)setup_ctx;
+  SetupContext setup_context;
   User user = *(User *)ctx;
   MPI_Comm comm = PETSC_COMM_WORLD;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
+  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
   problem->ics.qfunction = ICsDC;
   problem->ics.qfunction_loc = ICsDC_loc;
   problem->bc = Exact_DC;
-  problem->bc_ctx = setup_ctx;
+  setup_context = problem->bc_ctx;
 
   // ------------------------------------------------------
   //             Create the libCEED context

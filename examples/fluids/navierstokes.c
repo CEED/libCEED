@@ -69,9 +69,6 @@ int main(int argc, char **argv) {
   SimpleBC bc;
   ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
 
-  SetupContext setup_ctx;
-  ierr = PetscCalloc1(1, &setup_ctx); CHKERRQ(ierr);
-
   Physics phys_ctx;
   ierr = PetscCalloc1(1, &phys_ctx); CHKERRQ(ierr);
 
@@ -129,12 +126,12 @@ int main(int argc, char **argv) {
   // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   {
-    PetscErrorCode (*p)(ProblemData *, DM, void *, void *);
+    PetscErrorCode (*p)(ProblemData *, DM, void *);
     ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
     CHKERRQ(ierr);
     if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found",
                       app_ctx->problem_name);
-    ierr = (*p)(problem, dm, &setup_ctx, &user); CHKERRQ(ierr);
+    ierr = (*p)(problem, dm, &user); CHKERRQ(ierr);
   }
 
   // -- Set up DM
@@ -292,9 +289,6 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->q_dot_ceed);
   CeedVectorDestroy(&user->g_ceed);
 
-  // -- Contexts
-  CeedQFunctionContextDestroy(&ceed_data->setup_context);
-
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
   CeedQFunctionDestroy(&ceed_data->qf_ics);
@@ -347,12 +341,13 @@ int main(int argc, char **argv) {
   // -- Function list
   ierr = PetscFunctionListDestroy(&app_ctx->problems); CHKERRQ(ierr);
 
+  ierr = PetscFree(problem->bc_ctx); CHKERRQ(ierr);
+
   // -- Structs
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
   ierr = PetscFree(problem); CHKERRQ(ierr);
   ierr = PetscFree(bc); CHKERRQ(ierr);
-  ierr = PetscFree(setup_ctx); CHKERRQ(ierr);
   ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
   ierr = PetscFree(app_ctx); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);

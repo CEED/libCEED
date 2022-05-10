@@ -73,8 +73,7 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
-                          void *ctx) {
+PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
   User              user = *(User *)ctx;
@@ -84,7 +83,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *setup_ctx,
   CeedQFunctionContext blasius_context;
 
   PetscFunctionBeginUser;
-  ierr = NS_NEWTONIAN_IG(problem, dm, setup_ctx, ctx); CHKERRQ(ierr);
+  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &blasius_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------

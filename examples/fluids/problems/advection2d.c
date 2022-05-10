@@ -12,11 +12,10 @@
 #include "../qfunctions/setupgeo2d.h"
 #include "../qfunctions/advection2d.h"
 
-PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
-                              void *ctx) {
+PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
   WindType          wind_type;
   StabilizationType stab;
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+  SetupContext      setup_context;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
@@ -28,6 +27,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
 
   PetscFunctionBeginUser;
   ierr = PetscCalloc1(1, &advection_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP ADVECTION2D
@@ -48,7 +48,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_inflow.qfunction            = Advection2d_InOutFlow;
   problem->apply_inflow.qfunction_loc        = Advection2d_InOutFlow_loc;
   problem->bc                                = Exact_Advection2d;
-  problem->bc_ctx                            = setup_ctx;
+  problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_TRUE;
   problem->print_info                        = PRINT_ADVECTION2D;
 

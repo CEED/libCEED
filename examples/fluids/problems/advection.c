@@ -12,13 +12,13 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                             void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
-  SetupContext         setup_context = *(SetupContext *)setup_ctx;
+  SetupContext         setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   PetscBool            implicit;
@@ -28,6 +28,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   CeedQFunctionContext advection_context;
 
   PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &advection_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -49,7 +50,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   problem->apply_inflow.qfunction            = Advection_InOutFlow;
   problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
   problem->bc                                = Exact_Advection;
-  problem->bc_ctx                            = setup_ctx;
+  problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
   problem->print_info                        = PRINT_ADVECTION;
 
