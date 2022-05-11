@@ -88,6 +88,19 @@ CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas,
   return s;
 }
 
+CEED_QFUNCTION_HELPER State StateFromU_fwd(NewtonianIdealGasContext gas,
+    State s, const CeedScalar dU[5],
+    const CeedScalar x[3], const CeedScalar dx[3]) {
+  State ds;
+  ds.U.density = dU[0];
+  ds.U.momentum[0] = dU[1];
+  ds.U.momentum[1] = dU[2];
+  ds.U.momentum[2] = dU[3];
+  ds.U.E_total = dU[4];
+  ds.Y = StatePrimitiveFromConservative_fwd(gas, s, ds.U, x, dx);
+  return ds;
+}
+
 CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s,
                                         StateConservative Flux[3]) {
   for (int i=0; i<3; i++) {
@@ -455,16 +468,12 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     State grad_s[3];
     for (int j=0; j<3; j++) {
-      CeedScalar dx_i[3] = {0};
-      grad_s[j].U.density = dq[0][0][i] * dXdx[0][j]
-                            + dq[1][0][i] * dXdx[1][j] + dq[2][0][i] * dXdx[2][j];
-      for (int k=0; k<3; k++) grad_s[j].U.momentum[k] = dq[0][k+1][i] * dXdx[0][j]
-            + dq[1][k+1][i] * dXdx[1][j] + dq[2][k+1][i] * dXdx[2][j];
-      grad_s[j].U.E_total = dq[0][4][i] * dXdx[0][j] + dq[1][4][i] * dXdx[1][j] +
-                            dq[2][4][i] * dXdx[2][j];
+      CeedScalar dx_i[3] = {0}, dU[5];
+      for (int k=0; k<5; k++) dU[k] = dq[0][k][i] * dXdx[0][j]
+                                        + dq[1][k][i] * dXdx[1][j]
+                                        + dq[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
-      grad_s[j].Y = StatePrimitiveFromConservative_fwd(context, s, grad_s[j].U,
-                    x_i, dx_i);
+      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -612,16 +621,12 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     // *INDENT-ON*
     State grad_s[3];
     for (int j=0; j<3; j++) {
-      CeedScalar dx_i[3];
-      grad_s[j].U.density = dq[0][0][i] * dXdx[0][j]
-                            + dq[1][0][i] * dXdx[1][j] + dq[2][0][i] * dXdx[2][j];
-      for (int k=0; k<3; k++) grad_s[j].U.momentum[k] = dq[0][k+1][i] * dXdx[0][j]
-            + dq[1][k+1][i] * dXdx[1][j] + dq[2][k+1][i] * dXdx[2][j];
-      grad_s[j].U.E_total = dq[0][4][i] * dXdx[0][j] + dq[1][4][i] * dXdx[1][j] +
-                            dq[2][4][i] * dXdx[2][j];
+      CeedScalar dx_i[3] = {0}, dU[5];
+      for (int k=0; k<5; k++) dU[k] = dq[0][k][i] * dXdx[0][j]
+                                        + dq[1][k][i] * dXdx[1][j]
+                                        + dq[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
-      grad_s[j].Y = StatePrimitiveFromConservative_fwd(context, s, grad_s[j].U,
-                    x_i, dx_i);
+      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
