@@ -39,8 +39,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction_loc                 = ICsNewtonianIG_loc;
   problem->setup_sur.qfunction               = SetupBoundary;
   problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
-  problem->apply_vol_rhs.qfunction           = Newtonian;
-  problem->apply_vol_rhs.qfunction_loc       = Newtonian_loc;
+  problem->apply_vol_rhs.qfunction           = RHSFunction_Newtonian;
+  problem->apply_vol_rhs.qfunction_loc       = RHSFunction_Newtonian_loc;
   problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian;
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
   problem->bc                                = NULL;
