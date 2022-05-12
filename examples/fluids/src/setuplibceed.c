@@ -44,25 +44,32 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   DM             dm_coord;
   CeedInt        dim, loc_num_elem;
   CeedInt        Q_dim;
+  CeedElemRestriction elem_restr_tmp;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   dim -= height;
   Q_dim = CeedIntPow(Q, dim);
-  ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
-  ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm, height, domain_label, value,
-                                   elem_restr_q);
+                                   &elem_restr_tmp);
   CHKERRQ(ierr);
-  ierr = CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, value,
-                                   elem_restr_x);
-  CHKERRQ(ierr);
-  CeedElemRestrictionGetNumElements(*elem_restr_q, &loc_num_elem);
-  CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim,
-                                   q_data_size, q_data_size*loc_num_elem*Q_dim,
-                                   CEED_STRIDES_BACKEND, elem_restr_qd_i);
+  if (elem_restr_q) *elem_restr_q = elem_restr_tmp;
+  if (elem_restr_x) {
+    ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
+    CHKERRQ(ierr);
+    ierr = CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, value,
+                                     elem_restr_x);
+    CHKERRQ(ierr);
+  }
+  if (elem_restr_qd_i) {
+    CeedElemRestrictionGetNumElements(elem_restr_tmp, &loc_num_elem);
+    CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim,
+                                     q_data_size, q_data_size*loc_num_elem*Q_dim,
+                                     CEED_STRIDES_BACKEND, elem_restr_qd_i);
+  }
+  if (!elem_restr_q) CeedElemRestrictionDestroy(&elem_restr_tmp);
   PetscFunctionReturn(0);
 }
 
