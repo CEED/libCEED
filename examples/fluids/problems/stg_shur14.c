@@ -162,8 +162,8 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
     rij[3][i]  = (CeedScalar) atof(array[7]);
     rij[4][i]  = (CeedScalar) atof(array[8]);
     rij[5][i]  = (CeedScalar) atof(array[9]);
-    eps[i]     = (CeedScalar) atof(array[12]);
-    lt[i]      = (CeedScalar) atof(array[13]);
+    lt[i]      = (CeedScalar) atof(array[12]);
+    eps[i]     = (CeedScalar) atof(array[13]);
 
     if(prof_dw[i] < 0) SETERRQ(comm, -1,
                                  "Distance to wall in %s cannot be negative", path);
@@ -314,10 +314,10 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
 
     CeedPragmaSIMD
     for(int i=0; i<stg_ctx->nprofs; i++) {
-      le = PetscMax(2*prof_dw[i], 3*lt[i]);
+      le = PetscMin(2*prof_dw[i], 3*lt[i]);
       if(le_max < le) le_max = le;
     }
-    CeedScalar kmin = 0.5*M_PI/le_max;
+    CeedScalar kmin = M_PI/le_max;
 
     CeedPragmaSIMD
     for(int i=0; i<stg_ctx->nmodes; i++) {

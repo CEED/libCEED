@@ -42,16 +42,17 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
     CeedScalar ubar[3], CeedScalar cij[6], CeedScalar *eps, CeedScalar *lt,
     const STGShur14Context stg_ctx) {
 
-  CeedScalar *prof_dw = &stg_ctx->data[stg_ctx->offsets.prof_dw];
-  CeedScalar *prof_eps = &stg_ctx->data[stg_ctx->offsets.eps];
-  CeedScalar *prof_lt = &stg_ctx->data[stg_ctx->offsets.lt];
-  CeedScalar (*prof_ubar)[stg_ctx->nprofs] = (CeedScalar (
-        *)[stg_ctx->nprofs]) &stg_ctx->data[stg_ctx->offsets.ubar];
-  CeedScalar (*prof_cij)[stg_ctx->nprofs] = (CeedScalar (*)[stg_ctx->nprofs])
-      &stg_ctx->data[stg_ctx->offsets.cij];
+  const CeedInt    nprofs    = stg_ctx->nprofs;
+  const CeedScalar *prof_dw  = &stg_ctx->data[stg_ctx->offsets.prof_dw];
+  const CeedScalar *prof_eps = &stg_ctx->data[stg_ctx->offsets.eps];
+  const CeedScalar *prof_lt  = &stg_ctx->data[stg_ctx->offsets.lt];
+  const CeedScalar (*prof_ubar)[nprofs] = (CeedScalar (*)[nprofs])
+                                          &stg_ctx->data[stg_ctx->offsets.ubar];
+  const CeedScalar (*prof_cij)[nprofs]  = (CeedScalar (*)[nprofs])
+                                          &stg_ctx->data[stg_ctx->offsets.cij];
   CeedInt idx=-1;
 
-  for(CeedInt i=0; i<stg_ctx->nprofs; i++) {
+  for(CeedInt i=0; i<nprofs; i++) {
     if (dw < prof_dw[i]) {
       idx = i;
       break;
@@ -75,17 +76,17 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
     *lt     = prof_lt[idx-1]      + coeff*( prof_lt[idx]      - prof_lt[idx-1] );
     //*INDENT-ON*
   } else { // y outside bounds of prof_dw
-    ubar[0] = prof_ubar[0][stg_ctx->nprofs-1];
-    ubar[1] = prof_ubar[1][stg_ctx->nprofs-1];
-    ubar[2] = prof_ubar[2][stg_ctx->nprofs-1];
-    cij[0]  = prof_cij[0][stg_ctx->nprofs-1];
-    cij[1]  = prof_cij[1][stg_ctx->nprofs-1];
-    cij[2]  = prof_cij[2][stg_ctx->nprofs-1];
-    cij[3]  = prof_cij[3][stg_ctx->nprofs-1];
-    cij[4]  = prof_cij[4][stg_ctx->nprofs-1];
-    cij[5]  = prof_cij[5][stg_ctx->nprofs-1];
-    *eps    = prof_eps[stg_ctx->nprofs-1];
-    *lt     = prof_lt[stg_ctx->nprofs-1];
+    ubar[0] = prof_ubar[0][nprofs-1];
+    ubar[1] = prof_ubar[1][nprofs-1];
+    ubar[2] = prof_ubar[2][nprofs-1];
+    cij[0]  = prof_cij[0][nprofs-1];
+    cij[1]  = prof_cij[1][nprofs-1];
+    cij[2]  = prof_cij[2][nprofs-1];
+    cij[3]  = prof_cij[3][nprofs-1];
+    cij[4]  = prof_cij[4][nprofs-1];
+    cij[5]  = prof_cij[5][nprofs-1];
+    *eps    = prof_eps[nprofs-1];
+    *lt     = prof_lt[nprofs-1];
   }
 }
 
@@ -106,23 +107,25 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
     const CeedScalar nu, CeedScalar qn[], const STGShur14Context stg_ctx) {
 
-  CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
-  CeedScalar ke, fcut, feta, kcut, keta, hmax, Ektot=0.0;
+  const CeedInt    nmodes = stg_ctx->nmodes;
+  const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
 
-  hmax = PetscMax( PetscMax(h[0], h[1]), h[2]);
-  ke   = PetscMax(2*dw, 3*lt);
-  keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
-  kcut = M_PI/ PetscMin( PetscMax(PetscMax(h[1], h[2]), 0.3*hmax) + 0.1*dw,
-                         hmax );
+  const CeedScalar hmax = PetscMax( PetscMax(h[0], h[1]), h[2]);
+  const CeedScalar ke   = 2*M_PI/PetscMin(2*dw, 3*lt);
+  const CeedScalar keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
+  const CeedScalar kcut =
+    M_PI/ PetscMin( PetscMax(PetscMax(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
+  CeedScalar fcut, feta, Ektot=0.0;
 
-  for(CeedInt n=0; n<stg_ctx->nmodes; n++) {
-    feta = exp(-pow(12*kappa[n]/keta, 2));
-    fcut = exp( -pow(4*PetscMax(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
-    qn[n] = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
+  for(CeedInt n=0; n<nmodes; n++) {
+    feta   = exp(-pow(12*kappa[n]/keta, 2));
+    fcut   = exp( -pow(4*PetscMax(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
+    qn[n]  = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
+    qn[n] *= n==0 ? kappa[0] : kappa[n] - kappa[n-1];
     Ektot += qn[n];
   }
 
-  for(CeedInt n=0; n<stg_ctx->nmodes; n++) qn[n] /= Ektot;
+  for(CeedInt n=0; n<nmodes; n++) qn[n] /= Ektot;
 }
 
 /******************************************************
