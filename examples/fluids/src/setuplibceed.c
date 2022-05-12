@@ -234,8 +234,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   const CeedInt  dim             = problem->dim,
                  num_comp_x      = problem->dim,
                  q_data_size_vol = problem->q_data_size_vol,
+                 jac_data_size_vol = num_comp_q + 3,
                  P               = app_ctx->degree + 1,
                  Q               = P + app_ctx->q_extra;
+  CeedElemRestriction elem_restr_jd_i;
+  CeedVector jac_data;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
@@ -254,7 +257,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, q_data_size_vol,
                                  &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                  &ceed_data->elem_restr_qd_i); CHKERRQ(ierr);
-  // -- Create E vectors
+
+  ierr = GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, jac_data_size_vol,
+                                 NULL, NULL,
+                                 &elem_restr_jd_i); CHKERRQ(ierr);
+// -- Create E vectors
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed,
                                   NULL);
@@ -295,14 +302,14 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             problem->apply_vol_rhs.qfunction_context);
     CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "q", num_comp_q, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "dq", num_comp_q*dim,
+    CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "Grad_q", num_comp_q*dim,
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "qdata", q_data_size_vol,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_rhs_vol, "x", num_comp_x, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "v", num_comp_q,
                            CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "dv", num_comp_q*dim,
+    CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
   }
 
@@ -315,7 +322,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q", num_comp_q,
                           CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "dq", num_comp_q*dim,
+    CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "Grad_q", num_comp_q*dim,
                           CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "q dot", num_comp_q,
                           CEED_EVAL_INTERP);
@@ -325,8 +332,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "v", num_comp_q,
                            CEED_EVAL_INTERP);
-    CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "dv", num_comp_q*dim,
+    CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
+    CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "jac_data",
+                           jac_data_size_vol, CEED_EVAL_NONE);
   }
 
   // ---------------------------------------------------------------------------
@@ -357,6 +366,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedVectorCreate(ceed, q_data_size_vol*loc_num_elem_vol*num_qpts_vol,
                    &ceed_data->q_data);
 
+  CeedElemRestrictionCreateVector(elem_restr_jd_i, &jac_data, NULL);
   // -----------------------------------------------------------------------------
   // CEED Operators
   // -----------------------------------------------------------------------------
@@ -385,7 +395,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedOperatorCreate(ceed, ceed_data->qf_rhs_vol, NULL, NULL, &op);
     CeedOperatorSetField(op, "q", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
+    CeedOperatorSetField(op, "Grad_q", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "qdata", ceed_data->elem_restr_qd_i,
                          CEED_BASIS_COLLOCATED, ceed_data->q_data);
@@ -393,7 +403,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", ceed_data->elem_restr_q, ceed_data->basis_q,
+    CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     user->op_rhs_vol = op;
   }
@@ -404,7 +414,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedOperatorCreate(ceed, ceed_data->qf_ifunction_vol, NULL, NULL, &op);
     CeedOperatorSetField(op, "q", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
+    CeedOperatorSetField(op, "Grad_q", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "q dot", ceed_data->elem_restr_q, ceed_data->basis_q,
                          user->q_dot_ceed);
@@ -414,8 +424,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op, "dv", ceed_data->elem_restr_q, ceed_data->basis_q,
+    CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "jac_data", elem_restr_jd_i,
+                         CEED_BASIS_COLLOCATED, jac_data);
+
     user->op_ifunction_vol = op;
   }
 
@@ -505,6 +518,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                    user->op_ifunction_vol, height, P_sur, Q_sur,
                                    q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
   }
-
+  CeedElemRestrictionDestroy(&elem_restr_jd_i);
+  CeedVectorDestroy(&jac_data);
   PetscFunctionReturn(0);
 }

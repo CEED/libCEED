@@ -423,12 +423,12 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
-             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+             (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   // *INDENT-ON*
 
   // Context
@@ -469,9 +469,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     State grad_s[3];
     for (int j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (int k=0; k<5; k++) dU[k] = dq[0][k][i] * dXdx[0][j]
-                                        + dq[1][k][i] * dXdx[1][j]
-                                        + dq[2][k][i] * dXdx[2][j];
+      for (int k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
+                                        + Grad_q[1][k][i] * dXdx[1][j]
+                                        + Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
       grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
@@ -496,9 +496,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     for (int j=0; j<3; j++) {
       for (int k=0; k<5; k++) {
-        dv[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] +
-                               dXdx[j][1] * Flux[k][1] +
-                               dXdx[j][2] * Flux[k][2]);
+        Grad_v[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] +
+                                   dXdx[j][1] * Flux[k][1] +
+                                   dXdx[j][2] * Flux[k][2]);
       }
     }
 
@@ -548,9 +548,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
-          dv[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
-                                stab[j][1] * dXdx[k][1] +
-                                stab[j][2] * dXdx[k][2]);
+          Grad_v[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
+                                    stab[j][1] * dXdx[k][1] +
+                                    stab[j][2] * dXdx[k][2]);
       break;
     case STAB_SUPG:        // SUPG is not implemented for explicit scheme
       break;
@@ -577,13 +577,14 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
                    (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
-             (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+             (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1],
+             (*jac_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // *INDENT-ON*
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
@@ -622,9 +623,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     State grad_s[3];
     for (int j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (int k=0; k<5; k++) dU[k] = dq[0][k][i] * dXdx[0][j]
-                                        + dq[1][k][i] * dXdx[1][j]
-                                        + dq[2][k][i] * dXdx[2][j];
+      for (int k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
+                                        + Grad_q[1][k][i] * dXdx[1][j]
+                                        + Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
       grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
@@ -650,9 +651,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     for (int j=0; j<3; j++) {
       for (int k=0; k<5; k++) {
-        dv[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] +
-                                dXdx[j][1] * Flux[k][1] +
-                                dXdx[j][2] * Flux[k][2]);
+        Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] +
+                                    dXdx[j][1] * Flux[k][1] +
+                                    dXdx[j][2] * Flux[k][2]);
       }
     }
 
@@ -707,9 +708,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
-          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                stab[j][1] * dXdx[k][1] +
-                                stab[j][2] * dXdx[k][2]);
+          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                    stab[j][1] * dXdx[k][1] +
+                                    stab[j][2] * dXdx[k][2]);
       break;
     case STAB_SUPG:        // SUPG
       Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
@@ -734,11 +735,13 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
-          dv[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                stab[j][1] * dXdx[k][1] +
-                                stab[j][2] * dXdx[k][2]);
+          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                    stab[j][1] * dXdx[k][1] +
+                                    stab[j][2] * dXdx[k][2]);
       break;
     }
+    for (int j=0; j<5; j++) jac_data[j][i] = U[j];
+    for (int j=0; j<3; j++) jac_data[5+j][i] = Tau_d[j];
 
   } // End Quadrature Point Loop
 
