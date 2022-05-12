@@ -35,6 +35,8 @@ struct AdvectionContext_ {
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 
+CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
+
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
 //   for two test cases: ROTATION and TRANSLATION
@@ -109,14 +111,13 @@ CEED_QFUNCTION_HELPER int Exact_Advection(CeedInt dim, CeedScalar time,
   switch (context->bubble_type) {
   //  original sphere
   case 0: { // (dim=3)
-    r = sqrt(pow((x - x0[0]), 2) +
-             pow((y - x0[1]), 2) +
-             pow((z - x0[2]), 2));
+    r = sqrt(Square(x - x0[0]) +
+             Square(y - x0[1]) +
+             Square(z - x0[2]));
   } break;
   // cylinder (needs periodicity to work properly)
   case 1: { // (dim=2)
-    r = sqrt(pow((x - x0[0]), 2) +
-             pow((y - x0[1]), 2) );
+    r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
   } break;
   }
 

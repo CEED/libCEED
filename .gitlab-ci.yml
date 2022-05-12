@@ -240,8 +240,7 @@ lv-cuda:
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-#     Note: Skipping fluids and solids due to CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES on RTX 2080 Super
-    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc"
+    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status
     - touch .SUCCESS
   after_script:

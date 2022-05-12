@@ -36,6 +36,8 @@ struct AdvectionContext_ {
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
 
+CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
+
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
 //   for two test cases: ROTATION and TRANSLATION
@@ -124,15 +126,15 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
     return 1;
   }
 
-  CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
+  CeedScalar r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
   CeedScalar E = 1 - r/rc;
 
   if (0) { // non-smooth initial conditions
     if (q[4] < E) q[4] = E;
-    r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
+    r = sqrt(Square(x - x1[0]) + Square(y - x1[1]));
     if (r <= rc) q[4] = 1;
   }
-  r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
+  r = sqrt(Square(x - x2[0]) + Square(y - x2[1]));
   E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
   if (q[4] < E) q[4] = E;
 

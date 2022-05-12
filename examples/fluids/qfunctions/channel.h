@@ -13,7 +13,7 @@
 #define channel_h
 
 #include <math.h>
-#include <ceed.h>
+#include <ceed/ceed.h>
 #include "newtonian_types.h"
 
 typedef struct ChannelContext_ *ChannelContext;
@@ -47,14 +47,15 @@ CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
 
   const CeedScalar Pr    = mu / (cp*k);
   const CeedScalar Ec    = (umax*umax) / (cp*theta0);
-  const CeedScalar theta = theta0*( 1 + (Pr*Ec/3)*(1 - pow((y-center)/H,4)));
+  const CeedScalar theta = theta0*(1 + (Pr*Ec/3)
+                                   * (1 - Square(Square((y-center)/H))));
 
   const CeedScalar p = P0;
 
   const CeedScalar rho = p / (Rd*theta);
 
   q[0] = rho;
-  q[1] = rho * umax*(1 - pow((y-center)/H,2));
+  q[1] = rho * umax*(1 - Square((y-center)/H));
   q[2] = 0;
   q[3] = 0;
   q[4] = rho * (cv*theta) + .5 * (q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) / rho;
