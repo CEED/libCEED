@@ -13,6 +13,7 @@
 #include <math.h>
 #include <petsc.h>
 #include "../navierstokes.h"
+#include "stg_shur14.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846

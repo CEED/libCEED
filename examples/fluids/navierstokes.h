@@ -15,7 +15,6 @@
 #include <petscts.h>
 #include <stdbool.h>
 #include "qfunctions/stabilization_types.h"
-#include "qfunctions/stg_shur14_type.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Version
@@ -237,9 +236,6 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                                    void *ctx);
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
-extern PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
-                                       STGShur14Context *pstg_ctx, NewtonianIdealGasContext newt_ctx,
-                                       bool implicit, CeedScalar theta0);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,

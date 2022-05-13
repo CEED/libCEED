@@ -11,7 +11,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/blasius.h"
 #include "../qfunctions/stg_shur14.h"
-#include "../qfunctions/stg_shur14_type.h"
+#include "stg_shur14.h"
 
 /* \brief Modify the domain and mesh for blasius
  *

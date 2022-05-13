@@ -19,7 +19,8 @@
 #include <math.h>
 #include <ceed.h>
 #include <stdlib.h>
-#include "../navierstokes.h"
+#include <petscmath.h>
+#include "stg_shur14_type.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
