@@ -288,6 +288,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
   CeedVectorDestroy(&user->g_ceed);
+  CeedVectorDestroy(&user->coo_values);
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
@@ -317,6 +318,7 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&user->op_ifunction_vol);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
+  CeedOperatorDestroy(&user->op_ijacobian);
 
   // -- Ceed
   CeedDestroy(&ceed);

@@ -128,7 +128,9 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector           x_coord, q_data;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
+                       qf_setup_sur,
+                       qf_apply_inflow, qf_apply_inflow_jacobian,
+                       qf_apply_outflow, qf_apply_outflow_jacobian;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
@@ -145,8 +147,9 @@ struct User_private {
   Vec          M;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian;
+  bool matrices_set_up;
 };
 
 // Units
@@ -189,6 +192,7 @@ struct Physics_private {
   CeedContextFieldLabel    solution_time_label;
   CeedContextFieldLabel    timestep_size_label;
   CeedContextFieldLabel    ics_time_label;
+  CeedContextFieldLabel    ijacobian_time_shift_label;
 };
 
 typedef struct {
@@ -201,10 +205,11 @@ typedef struct {
 // *INDENT-OFF*
 typedef struct ProblemData_private ProblemData;
 struct ProblemData_private {
-  CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedInt           dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar        dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-    apply_inflow, apply_outflow;
+    apply_vol_ijacobian, apply_inflow, apply_outflow,
+    apply_inflow_jacobian, apply_outflow_jacobian;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
@@ -274,9 +279,12 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
-                                       CeedOperator op_apply_vol, CeedInt height,
-                                       CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
-                                       CeedOperator *op_apply);
+                                       CeedOperator op_apply_vol,
+                                       CeedOperator op_apply_ijacobian_vol,
+                                       CeedInt height,
+                                       CeedInt P_sur, CeedInt Q_sur,
+                                       CeedInt q_data_size_sur, CeedInt jac_data_size_sur,
+                                       CeedOperator *op_apply, CeedOperator *op_apply_ijacobian);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc);

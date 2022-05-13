@@ -76,9 +76,12 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
-                                       CeedOperator op_apply_vol, CeedInt height,
-                                       CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
-                                       CeedOperator *op_apply) {
+                                       CeedOperator op_apply_vol,
+                                       CeedOperator op_apply_ijacobian_vol,
+                                       CeedInt height,
+                                       CeedInt P_sur, CeedInt Q_sur,
+                                       CeedInt q_data_size_sur, CeedInt jac_data_size_sur,
+                                       CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
   //CeedInt        dim;
   DMLabel        domain_label;
   PetscErrorCode ierr;
@@ -86,9 +89,13 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
   // Create Composite Operaters
   CeedCompositeOperatorCreate(ceed, op_apply);
+  if (op_apply_ijacobian)
+    CeedCompositeOperatorCreate(ceed, op_apply_ijacobian);
 
   // --Apply Sub-Operator for the volume
   CeedCompositeOperatorAddSub(*op_apply, op_apply_vol);
+  if (op_apply_ijacobian)
+    CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_ijacobian_vol);
 
   // -- Create Sub-Operator for in/outflow BCs
   if (phys->has_neumann || 1) {
@@ -103,7 +110,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     // --- Create Sub-Operator for inflow boundaries
     for (CeedInt i=0; i < bc->num_inflow; i++) {
       CeedVector          q_data_sur;
-      CeedOperator        op_setup_sur, op_apply_inflow;
+      CeedOperator        op_setup_sur, op_apply_inflow,
+                          op_apply_inflow_jacobian = NULL;
       CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur;
 
       // ---- CEED Restriction
@@ -140,12 +148,28 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedOperatorSetField(op_apply_inflow, "v", elem_restr_q_sur,
                            ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
 
+      if (ceed_data->qf_apply_inflow_jacobian) {
+        CeedOperatorCreate(ceed, ceed_data->qf_apply_inflow_jacobian, NULL, NULL,
+                           &op_apply_inflow_jacobian);
+        CeedOperatorSetField(op_apply_inflow_jacobian, "dq", elem_restr_q_sur,
+                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+        CeedOperatorSetField(op_apply_inflow_jacobian, "surface qdata",
+                             elem_restr_qd_i_sur,
+                             CEED_BASIS_COLLOCATED, q_data_sur);
+        CeedOperatorSetField(op_apply_inflow_jacobian, "x", elem_restr_x_sur,
+                             ceed_data->basis_x_sur, ceed_data->x_coord);
+        CeedOperatorSetField(op_apply_inflow_jacobian, "v", elem_restr_q_sur,
+                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+      }
+
       // ----- Apply CEED operator for Setup
       CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
                         CEED_REQUEST_IMMEDIATE);
 
       // ----- Apply Sub-Operator for Physics
       CeedCompositeOperatorAddSub(*op_apply, op_apply_inflow);
+      if (op_apply_ijacobian)
+        CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_inflow_jacobian);
 
       // ----- Cleanup
       CeedVectorDestroy(&q_data_sur);
@@ -154,18 +178,25 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
       CeedOperatorDestroy(&op_setup_sur);
       CeedOperatorDestroy(&op_apply_inflow);
+      CeedOperatorDestroy(&op_apply_inflow_jacobian);
     }
 
     // --- Create Sub-Operator for outflow boundaries
     for (CeedInt i=0; i < bc->num_outflow; i++) {
-      CeedVector          q_data_sur;
-      CeedOperator        op_setup_sur, op_apply_outflow;
-      CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur;
+      CeedVector          q_data_sur, jac_data_sur;
+      CeedOperator        op_setup_sur, op_apply_outflow,
+                          op_apply_outflow_jacobian = NULL;
+      CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur,
+                          elem_restr_jd_i_sur;
 
       // ---- CEED Restriction
       ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->outflows[i],
                                      Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
                                      &elem_restr_qd_i_sur);
+      CHKERRQ(ierr);
+      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->outflows[i],
+                                     Q_sur, jac_data_size_sur, NULL, NULL,
+                                     &elem_restr_jd_i_sur);
       CHKERRQ(ierr);
 
       // ---- CEED Vector
@@ -173,6 +204,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
       CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
                        &q_data_sur);
+
+      CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
 
       // ---- CEED Operator
       // ----- CEED Operator for Setup (geometric factors)
@@ -195,6 +228,24 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                            ceed_data->basis_x_sur, ceed_data->x_coord);
       CeedOperatorSetField(op_apply_outflow, "v", elem_restr_q_sur,
                            ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_apply_outflow, "surface jacobian data",
+                           elem_restr_jd_i_sur,
+                           CEED_BASIS_COLLOCATED, jac_data_sur);
+
+      if (ceed_data->qf_apply_outflow_jacobian) {
+        CeedOperatorCreate(ceed, ceed_data->qf_apply_outflow_jacobian, NULL, NULL,
+                           &op_apply_outflow_jacobian);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "dq", elem_restr_q_sur,
+                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "surface qdata",
+                             elem_restr_qd_i_sur,
+                             CEED_BASIS_COLLOCATED, q_data_sur);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "surface jacobian data",
+                             elem_restr_jd_i_sur,
+                             CEED_BASIS_COLLOCATED, jac_data_sur);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "v", elem_restr_q_sur,
+                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+      }
 
       // ----- Apply CEED operator for Setup
       CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
@@ -202,14 +253,19 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
 
       // ----- Apply Sub-Operator for Physics
       CeedCompositeOperatorAddSub(*op_apply, op_apply_outflow);
+      if (op_apply_ijacobian)
+        CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_outflow_jacobian);
 
       // ----- Cleanup
       CeedVectorDestroy(&q_data_sur);
+      CeedVectorDestroy(&jac_data_sur);
       CeedElemRestrictionDestroy(&elem_restr_q_sur);
       CeedElemRestrictionDestroy(&elem_restr_x_sur);
       CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
+      CeedElemRestrictionDestroy(&elem_restr_jd_i_sur);
       CeedOperatorDestroy(&op_setup_sur);
       CeedOperatorDestroy(&op_apply_outflow);
+      CeedOperatorDestroy(&op_apply_outflow_jacobian);
     }
   }
 
@@ -234,7 +290,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   const CeedInt  dim             = problem->dim,
                  num_comp_x      = problem->dim,
                  q_data_size_vol = problem->q_data_size_vol,
-                 jac_data_size_vol = num_comp_q + 3,
+                 jac_data_size_vol = num_comp_q + 6 + 3,
                  P               = app_ctx->degree + 1,
                  Q               = P + app_ctx->q_extra;
   CeedElemRestriction elem_restr_jd_i;
@@ -338,6 +394,29 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                            jac_data_size_vol, CEED_EVAL_NONE);
   }
 
+  CeedQFunction qf_ijacobian_vol = NULL;
+  if (problem->apply_vol_ijacobian.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ijacobian.qfunction,
+                                problem->apply_vol_ijacobian.qfunction_loc, &qf_ijacobian_vol);
+    CeedQFunctionSetContext(qf_ijacobian_vol,
+                            problem->apply_vol_ijacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context);
+    CeedQFunctionAddInput(qf_ijacobian_vol, "dq", num_comp_q,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ijacobian_vol, "Grad_dq", num_comp_q*dim,
+                          CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_ijacobian_vol, "qdata", q_data_size_vol,
+                          CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_ijacobian_vol, "x", num_comp_x,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_ijacobian_vol, "jac_data",
+                          jac_data_size_vol, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_ijacobian_vol, "v", num_comp_q,
+                           CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(qf_ijacobian_vol, "Grad_v", num_comp_q*dim,
+                           CEED_EVAL_GRAD);
+  }
+
   // ---------------------------------------------------------------------------
   // Element coordinates
   // ---------------------------------------------------------------------------
@@ -432,6 +511,28 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     user->op_ifunction_vol = op;
   }
 
+  CeedOperator op_ijacobian_vol = NULL;
+  if (qf_ijacobian_vol) {
+    CeedOperator op;
+    CeedOperatorCreate(ceed, qf_ijacobian_vol, NULL, NULL, &op);
+    CeedOperatorSetField(op, "dq", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "Grad_dq", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdata", ceed_data->elem_restr_qd_i,
+                         CEED_BASIS_COLLOCATED, ceed_data->q_data);
+    CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
+                         ceed_data->x_coord);
+    CeedOperatorSetField(op, "jac_data", elem_restr_jd_i,
+                         CEED_BASIS_COLLOCATED, jac_data);
+    CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    op_ijacobian_vol = op;
+    CeedQFunctionDestroy(&qf_ijacobian_vol);
+  }
+
   // *****************************************************************************
   // Set up CEED objects for the exterior domain (surface)
   // *****************************************************************************
@@ -439,7 +540,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
           dim_sur = dim - height,
           P_sur   = app_ctx->degree + 1,
           Q_sur   = P_sur + app_ctx->q_extra;
-  const CeedInt q_data_size_sur = problem->q_data_size_sur;
+  const CeedInt q_data_size_sur = problem->q_data_size_sur,
+                jac_data_size_sur = problem->jac_data_size_sur;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
@@ -483,6 +585,22 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionAddOutput(ceed_data->qf_apply_inflow, "v", num_comp_q,
                            CEED_EVAL_INTERP);
   }
+  if (problem->apply_inflow_jacobian.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_inflow_jacobian.qfunction,
+                                problem->apply_inflow_jacobian.qfunction_loc,
+                                &ceed_data->qf_apply_inflow_jacobian);
+    CeedQFunctionSetContext(ceed_data->qf_apply_inflow_jacobian,
+                            problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionAddInput(ceed_data->qf_apply_inflow_jacobian, "dq", num_comp_q,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_inflow_jacobian, "surface qdata",
+                          q_data_size_sur, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(ceed_data->qf_apply_inflow_jacobian, "x", num_comp_x,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(ceed_data->qf_apply_inflow_jacobian, "v", num_comp_q,
+                           CEED_EVAL_INTERP);
+  }
 
   // -- Creat QFunction for outflow boundaries
   if (problem->apply_outflow.qfunction) {
@@ -499,6 +617,26 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_apply_outflow, "v", num_comp_q,
                            CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(ceed_data->qf_apply_outflow, "surface jacobian data",
+                           jac_data_size_sur,
+                           CEED_EVAL_NONE);
+  }
+  if (problem->apply_outflow_jacobian.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_outflow_jacobian.qfunction,
+                                problem->apply_outflow_jacobian.qfunction_loc,
+                                &ceed_data->qf_apply_outflow_jacobian);
+    CeedQFunctionSetContext(ceed_data->qf_apply_outflow_jacobian,
+                            problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "dq", num_comp_q,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "surface qdata",
+                          q_data_size_sur, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian,
+                          "surface jacobian data",
+                          jac_data_size_sur, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(ceed_data->qf_apply_outflow_jacobian, "v", num_comp_q,
+                           CEED_EVAL_INTERP);
   }
 
   // *****************************************************************************
@@ -511,12 +649,21 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) { // RHS
     ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
-                                   user->op_rhs_vol, height, P_sur, Q_sur,
-                                   q_data_size_sur, &user->op_rhs); CHKERRQ(ierr);
+                                   user->op_rhs_vol, NULL, height, P_sur, Q_sur,
+                                   q_data_size_sur, 0,
+                                   &user->op_rhs, NULL); CHKERRQ(ierr);
   } else { // IFunction
     ierr = CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys,
-                                   user->op_ifunction_vol, height, P_sur, Q_sur,
-                                   q_data_size_sur, &user->op_ifunction); CHKERRQ(ierr);
+                                   user->op_ifunction_vol, op_ijacobian_vol,
+                                   height, P_sur, Q_sur,
+                                   q_data_size_sur, jac_data_size_sur,
+                                   &user->op_ifunction,
+                                   op_ijacobian_vol ? &user->op_ijacobian : NULL); CHKERRQ(ierr);
+    if (user->op_ijacobian) {
+      CeedOperatorContextGetFieldLabel(user->op_ijacobian, "ijacobian time shift",
+                                       &user->phys->ijacobian_time_shift_label);
+    }
+
   }
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
   CeedVectorDestroy(&jac_data);
