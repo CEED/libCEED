@@ -30,11 +30,11 @@
  * @param[in]  Rij    Array of the symmetric matrices [6,nprofs]
  * @param[out] Cij    Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, int nprofs,
+PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs,
                                   const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
   PetscFunctionBeginUser;
-  for(int i=0; i<nprofs; i++) {
+  for(PetscInt i=0; i<nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
     Cij[3][i] = Rij[3][i] / Cij[0][i];
     Cij[1][i] = sqrt(Rij[1][i] - pow(Cij[3][i], 2) );
@@ -68,10 +68,10 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, int nprofs,
  * @param[out] fp File pointer to the opened file
  */
 static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
-                                        const char path[PETSC_MAX_PATH_LEN], const int char_array_len, int dims[2],
+                                        const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                         FILE **fp) {
   PetscErrorCode ierr;
-  int ndims;
+  PetscInt ndims;
   char line[char_array_len];
   char **array;
 
@@ -83,7 +83,7 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
                            "Found %d dimensions instead of 2 on the first line of %s",
                            ndims, path);
 
-  for (int i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
+  for (PetscInt i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
   ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -99,10 +99,10 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
  * @param[out] nrows Number of rows
  */
 static PetscErrorCode GetNRows(const MPI_Comm comm,
-                               const char path[PETSC_MAX_PATH_LEN], int *nrows) {
+                               const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
   PetscErrorCode ierr;
-  const int char_array_len = 512;
-  int dims[2];
+  const PetscInt char_array_len = 512;
+  PetscInt dims[2];
   FILE *fp;
 
   PetscFunctionBeginUser;
@@ -129,9 +129,9 @@ static PetscErrorCode GetNRows(const MPI_Comm comm,
 static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
                                     const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
   PetscErrorCode ierr;
-  int ndims, dims[2];
+  PetscInt ndims, dims[2];
   FILE *fp;
-  const int char_array_len=512;
+  const PetscInt char_array_len=512;
   char line[char_array_len];
   char **array;
 
@@ -146,7 +146,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
   CeedScalar (*ubar)[stg_ctx->nprofs] = (CeedScalar (*)[stg_ctx->nprofs])
                                         &stg_ctx->data[stg_ctx->offsets.ubar];
 
-  for (int i=0; i<stg_ctx->nprofs; i++) {
+  for (PetscInt i=0; i<stg_ctx->nprofs; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if(ndims < dims[1]) SETERRQ(comm, -1,
@@ -197,9 +197,9 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
                                   STGShur14Context stg_ctx) {
 
   PetscErrorCode ierr;
-  int ndims, dims[2];
+  PetscInt ndims, dims[2];
   FILE *fp;
-  const int char_array_len = 512;
+  const PetscInt char_array_len = 512;
   char line[char_array_len];
   char **array;
 
@@ -212,7 +212,7 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
   CeedScalar (*sigma)[stg_ctx->nmodes] = (CeedScalar (*)[stg_ctx->nmodes])
                                          &stg_ctx->data[stg_ctx->offsets.sigma];
 
-  for (int i=0; i<stg_ctx->nmodes; i++) {
+  for (PetscInt i=0; i<stg_ctx->nmodes; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if(ndims < dims[1]) SETERRQ(comm, -1,
@@ -260,7 +260,7 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
                           NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
-  int nmodes, nprofs;
+  PetscInt nmodes, nprofs;
   ierr = GetNRows(comm, stg_rand_path, &nmodes); CHKERRQ(ierr);
   ierr = GetNRows(comm, stg_inflow_path, &nprofs); CHKERRQ(ierr);
 
@@ -278,7 +278,7 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
     s->offsets.cij     = s->offsets.ubar    + nprofs*3;
     s->offsets.eps     = s->offsets.cij     + nprofs*6;
     s->offsets.lt      = s->offsets.eps     + nprofs;
-    int total_num_scalars = s->offsets.lt + nprofs;
+    PetscInt total_num_scalars = s->offsets.lt + nprofs;
     size_t bytes = sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]);
     ierr = PetscMalloc(bytes, &stg_ctx); CHKERRQ(ierr);
     *stg_ctx = *s;
@@ -295,7 +295,7 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
     // Calculate dx assuming constant spacing
     PetscReal domain_min[3], domain_max[3], domain_size[3];
     ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-    for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+    for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
     PetscInt nmax = 3, faces[3];
     ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
@@ -314,14 +314,14 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
     CeedScalar le, le_max=0;
 
     CeedPragmaSIMD
-    for(int i=0; i<stg_ctx->nprofs; i++) {
+    for(PetscInt i=0; i<stg_ctx->nprofs; i++) {
       le = PetscMin(2*prof_dw[i], 3*lt[i]);
       if(le_max < le) le_max = le;
     }
     CeedScalar kmin = M_PI/le_max;
 
     CeedPragmaSIMD
-    for(int i=0; i<stg_ctx->nmodes; i++) {
+    for(PetscInt i=0; i<stg_ctx->nmodes; i++) {
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa

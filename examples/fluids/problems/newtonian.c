@@ -65,7 +65,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar Ctau_E  = 1.0;          // TODO make function of degree
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -166,8 +166,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   cp     *= J_per_kg_K;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
-  for (int i=0; i<3; i++) domain_size[i] *= meter;
-  for (int i=0; i<3; i++) g[i]           *= m_per_squared_s;
+  for (PetscInt i=0; i<3; i++) domain_size[i] *= meter;
+  for (PetscInt i=0; i<3; i++) g[i]           *= m_per_squared_s;
   problem->dm_scale = meter;
 
   // -- Setup Context

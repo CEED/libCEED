@@ -41,7 +41,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max);
   CHKERRQ(ierr);
-  for (int i = 0; i < 3; i++)
+  for (PetscInt i = 0; i < 3; i++)
     domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
@@ -61,7 +61,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL);
   CHKERRQ(ierr);
-  for (int i = 0; i < 3; i++)
+  for (PetscInt i = 0; i < 3; i++)
     center[i] = .5 * domain_size[i];
   PetscInt n = problem->dim;
   ierr = PetscOptionsRealArray("-center", "Location of bubble center", NULL,
@@ -77,7 +77,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
     PetscReal norm = PetscSqrtReal(PetscSqr(dc_axis[0]) + PetscSqr(dc_axis[1]) +
                                    PetscSqr(dc_axis[2]));
     if (norm > 0) {
-      for (int i = 0; i < 3; i++)
+      for (PetscInt i = 0; i < 3; i++)
         dc_axis[i] /= norm;
     }
   }
@@ -93,7 +93,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   thetaC *= Kelvin;
   P0 *= Pascal;
   N *= (1. / second);
-  for (int i = 0; i < 3; i++)
+  for (PetscInt i = 0; i < 3; i++)
     center[i] *= meter;
 
   setup_context->theta0 = theta0;

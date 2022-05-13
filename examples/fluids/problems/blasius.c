@@ -35,7 +35,7 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
 
   // Get domain boundary information
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // Get coords array from DM
   ierr = DMGetCoordinatesLocal(dm, &vec_coords); CHKERRQ(ierr);
@@ -57,7 +57,7 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
   // Calculate log of sizing outside BL
   PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
 
-  for(int i=0; i<ncoords; i++) {
+  for(PetscInt i=0; i<ncoords; i++) {
     PetscInt y_box_index = round(coords[i][1]/dybox);
     if(y_box_index <= N) {
       coords[i][1] = (1 - (coords[i][0]/domain_max[0])*angle_coeff) *

@@ -238,7 +238,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     const CeedScalar u_normal = norm[0]*velocity[0] +
                                 norm[1]*velocity[1] +
@@ -249,7 +249,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     v[0][i] -= wdetJb * rho * u_normal; // interior rho
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] + // interior rho
                              norm[j] * P); // mixed P
     v[2][i] -= wdetJb * t12  ;
@@ -315,7 +315,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     // Implementing outflow condition
     const CeedScalar P         = P0; // pressure
@@ -333,7 +333,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     v[0][i] -= wdetJb * rho * u_normal;
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P);
     v[2][i] += wdetJb * t12  ;
 

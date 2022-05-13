@@ -62,7 +62,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
             mean_velocity[3] = {1., 1., 0}; // m/s
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -83,7 +83,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
   ierr = PetscOptionsRealArray("-mean_velocity", "Background velocity vector",
                                NULL, mean_velocity, &n, &user_velocity);
   CHKERRQ(ierr);
-  for (int i=0; i<3; i++) center[i] = .5*domain_size[i];
+  for (PetscInt i=0; i<3; i++) center[i] = .5*domain_size[i];
   n = problem->dim;
   ierr = PetscOptionsRealArray("-center", "Location of vortex center",
                                NULL, center, &n, NULL); CHKERRQ(ierr);
@@ -131,7 +131,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  for (int i=0; i<3; i++) {
+  for (PetscInt i=0; i<3; i++) {
     center[i] *= meter;
     domain_size[i] *= meter;
     mean_velocity[i] *= (meter/second);

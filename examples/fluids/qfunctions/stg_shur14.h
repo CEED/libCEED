@@ -226,7 +226,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
       CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
       STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
     } else {
-      for (int j=0; j<3; j++) u[j] = ubar[j];
+      for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
@@ -245,14 +245,14 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                                 norm[2]*u[2];
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     // The Physics
     // -- Density
     v[0][i] -= wdetJb * rho * u_normal;
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
                             norm[j] * P);
 

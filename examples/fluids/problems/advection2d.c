@@ -62,7 +62,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
   PetscReal wind[2]      = {1., 0.};   // m/s
   PetscReal domain_min[2], domain_max[2], domain_size[2];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<2; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<2; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
 
   // ------------------------------------------------------
@@ -151,7 +151,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
   // -- Scale variables to desired units
   E_wind *= Joule;
   rc = fabs(rc) * meter;
-  for (int i=0; i<2; i++) {
+  for (PetscInt i=0; i<2; i++) {
     wind[i] *= (meter/second);
     domain_size[i] *= meter;
   }
