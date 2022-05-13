@@ -49,7 +49,7 @@ bc_inflow: 6
 bc_outflow: 5,4
 g: 0,0,0
 
-stg: true
 stg:
+  use: true
   inflow_path: "./STGInflow_blasius.dat"
   mean_only: true

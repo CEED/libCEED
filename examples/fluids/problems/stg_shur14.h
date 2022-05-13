@@ -11,4 +11,4 @@
 
 extern PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
                                        STGShur14Context *pstg_ctx, NewtonianIdealGasContext newt_ctx,
-                                       bool implicit, CeedScalar theta0);
+                                       bool is_implicit, CeedScalar theta0);

@@ -194,7 +194,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
 
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
-  const bool implicit     = stg_ctx->implicit;
+  const bool is_implicit  = stg_ctx->is_implicit;
   const bool mean_only    = stg_ctx->mean_only;
   const CeedScalar dx     = stg_ctx->dx;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
@@ -229,7 +229,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
-    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],

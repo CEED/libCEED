@@ -80,7 +80,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscInt ierr;
   User           user     = *(User *)ctx;
   MPI_Comm       comm     = PETSC_COMM_WORLD;
-  PetscBool      stg_bool = PETSC_FALSE;
+  PetscBool      use_stg = PETSC_FALSE;
   BlasiusContext blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   STGShur14Context stg_shur14_ctx;
@@ -133,16 +133,16 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   ierr = PetscOptionsScalar("-top_angle",
                             "Geometric top_angle rate of boundary layer mesh",
                             NULL, top_angle, &top_angle, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-stg", "Use STG inflow boundary condition",
-                          NULL, stg_bool, &stg_bool, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-stg_use", "Use STG inflow boundary condition",
+                          NULL, use_stg, &use_stg, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
-  if (!stg_bool) {
-    problem->apply_inflow.qfunction     = Blasius_Inflow;
-    problem->apply_inflow.qfunction_loc = Blasius_Inflow_loc;
-  } else {
+  if (use_stg) {
     problem->apply_inflow.qfunction     = STGShur14_Inflow;
     problem->apply_inflow.qfunction_loc = STGShur14_Inflow_loc;
+  } else {
+    problem->apply_inflow.qfunction     = Blasius_Inflow;
+    problem->apply_inflow.qfunction_loc = Blasius_Inflow_loc;
   }
 
   PetscScalar meter           = user->units->meter;
@@ -169,7 +169,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   blasius_ctx->P0        = P0;
   blasius_ctx->implicit  = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
-  if (stg_bool) {
+  if (use_stg) {
     ierr = CreateSTGContext(comm, dm, &stg_shur14_ctx,
                             newtonian_ig_ctx,
                             user->phys->implicit, theta0);
@@ -186,10 +186,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                                      FreeContextPetsc);
 
   problem->ics.qfunction_context = blasius_context;
-  if (!stg_bool) {
-    CeedQFunctionContextReferenceCopy(blasius_context,
-                                      &problem->apply_inflow.qfunction_context);
-  } else {
+  if (use_stg) {
     CeedQFunctionContextCreate(user->ceed, &stg_shur14_context);
     CeedQFunctionContextSetData(stg_shur14_context, CEED_MEM_HOST,
                                 CEED_USE_POINTER,
@@ -200,6 +197,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                                        offsetof(struct STGShur14Context_, time), 1,
                                        "Phyiscal time of the solution");
     problem->apply_inflow.qfunction_context = stg_shur14_context;
+  } else {
+    CeedQFunctionContextReferenceCopy(blasius_context,
+                                      &problem->apply_inflow.qfunction_context);
   }
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_outflow.qfunction_context);
