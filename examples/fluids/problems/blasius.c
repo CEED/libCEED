@@ -15,12 +15,12 @@
 
 /* \brief Modify the domain and mesh for blasius
  *
- * Modifies mesh such that `N` elements are within 1.2*`delta0` with a geometric
- * growth ratio of `growth`. Excess elements are then geometrically distributed
- * to the top surface.
+ * Modifies mesh such that `N` elements are within `refine_height` with a
+ * geometric growth ratio of `growth`. Excess elements are then distributed
+ * linearly in logspace to the top surface.
  *
  * The top surface is also angled downwards, so that it may be used as an
- * outflow. It's angle is controlled by top_angle (in units of degrees).
+ * outflow. It's angle is controlled by `top_angle` (in units of degrees).
  */
 PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
                           PetscReal refine_height, PetscReal top_angle) {

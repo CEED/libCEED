@@ -390,17 +390,21 @@ The shock capturing viscosity is implemented following the first formulation des
 $$
 \nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
 $$
+
 where,
+
 $$
 \tau_{SHOCK} = \frac{h_{SHOCK}}{2u_{cha}} \left( \frac{ \,|\, \nabla \rho \,|\, h_{SHOCK}}{\rho_{ref}} \right)^{\beta}
 $$
 
-$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
+$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}$. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
 
 $$
 h_{SHOCK} = 2 \left( C_{YZB} \,|\, \bm p \,|\, \right)^{-1}
 $$
+
 where
+
 $$
 p_k = \hat{j}_i \frac{\partial \xi_i}{x_k}
 $$
@@ -440,12 +444,15 @@ The flow is driven by a body force.
 Simulation of a laminar boundary layer flow, with the inflow being prescribed
 by a [Blasius similarity
 solution](https://en.wikipedia.org/wiki/Blasius_boundary_layer). At the inflow,
-the velocity is prescribed by the Blasius soution profile, temperature is set
-constant, and density is allowed to float. At the outlet, only the density is
-prescribed based on the user-set pressure. The wall is a no-slip,
-no-penetration, no-heat flux condition. The top of the domain is treated as an
-outflow and is tilted at a downward angle to ensure that flow is always exiting
-it.
+the velocity is prescribed by the Blasius soution profile, density is set
+constant, and temperature is allowed to float. Using `weakT: true`, density is
+allowed to float and temperature is set constant. At the outlet, a user-set
+pressure is used for pressure in the inviscid flux terms (all other inviscid
+flux terms use interior solution values). The viscous traction is also set to
+the analytic Blasius profile value at both the inflow and the outflow. The wall
+is a no-slip, no-penetration, no-heat flux condition. The top of the domain is
+treated as an outflow and is tilted at a downward angle to ensure that flow is
+always exiting it.
 
 ## Flat Plate Boundary Layer
 
@@ -495,7 +502,7 @@ $$
 q^n = \frac{E(\kappa^n) \Delta \kappa^n}{\sum^N_{n=1} E(\kappa^n)\Delta \kappa^n} \ ,\quad \Delta \kappa^n = \kappa^n - \kappa^{n-1}
 $$
 
-$$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa^e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
+$$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa_e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
 
 $$
 f_\eta = \exp \left[-(12\kappa /\kappa_\eta)^2 \right], \quad
@@ -512,15 +519,16 @@ $$
 \kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
 $$
 
-#### Algorithm Architecture
+#### Initialization Data Flow
 
 Data flow for initializing function (which creates the context data struct) is
 given below:
 ```{mermaid}
 flowchart LR
     subgraph STGInflow.dat
-    eps
+    y
     lt[l_t]
+    eps
     Rij[R_ij]
     ubar
     end
@@ -533,40 +541,42 @@ flowchart LR
     u0[U0];
     end
 
-    subgraph Grid Data
-    gridsize[h_i]
-    end
-    gridsize --> Ek
-
-    subgraph init[Init Func Data]
-    Ek[Ek]
+    subgraph init[Create Context Function]
     ke[k_e]
     N;
     end
-    eps --Calc--> Ek;
-    ke --Calc-->Ek;
     lt --Calc-->ke --Calc-->kn
-    Ek --Calc--> qn
+    y --Calc-->ke
 
     subgraph context[Context Data]
-    qn[q^n]
+    yC[y]
     randC[RN Set]
     Cij[C_ij]
     u0 --Copy--> u0C[U0]
     kn[k^n];
     ubarC[ubar]
+    ltC[l_t]
+    epsC[eps]
     end
-    ubar --Interp--> ubarC;
-    rand --> N --Calc--> kn;
+    ubar --Copy--> ubarC;
+    y --Copy--> yC;
+    lt --Copy--> ltC;
+    eps --Copy--> epsC;
+
     rand --Copy--> randC;
-    Rij --Calc and Interp--> Cij[C_ij]
+    rand --> N --Calc--> kn;
+    Rij --Calc--> Cij[C_ij]
 ```
+
+This is done once at runtime. The spatially-varying terms are then evaluated at
+each quadrature point on-the-fly, either by interpolation (for $l_t$,
+$\varepsilon$, $C_{ij}$, and $\overline{\bm u}$) or by calculation (for $q^n$).
 
 The `STGInflow.dat` file is a table of values at given distances from the wall.
 These values are then interpolated to a physical location (node or quadrature
 point). It has the following format:
 ```
-[Total number of locations]
+[Total number of locations] 14
 [d_w] [u_1] [u_2] [u_3] [R_11] [R_22] [R_33] [R_12] [R_13] [R_23] [sclr_1] [sclr_2] [l_t] [eps]
 ```
 where each `[  ]` item is a number in scientific notation (ie. `3.1415E0`), and `sclr_1` and
@@ -576,9 +586,12 @@ this example.
 The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
 \bm{d}^n, \phi^n\}_{n=1}^N$. It has the format:
 ```
-[Number of wavemodes]
+[Number of wavemodes] 7
 [d_1] [d_2] [d_3] [phi] [sigma_1] [sigma_2] [sigma_3]
 ```
+
+The following table is presented to help clarify the dimensionality of the
+numerous terms in the STG formulation.
 
 | Math            | Label  | $f(\bm{x})$? | $f(n)$? |
 |-----------------|--------|--------------|---------|
@@ -592,3 +605,4 @@ The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
 | $q^n$           | q^n    | Yes           | Yes     |
 | $\{\kappa^n\}_{n=1}^N$ | k^n  | No           | Yes      |
 | $h_i$           | h_i    | Yes          | No   |
+| $d_w$           | d_w    | Yes          | No   |
