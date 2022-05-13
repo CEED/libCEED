@@ -68,8 +68,8 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs,
  * @param[out] fp File pointer to the opened file
  */
 static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
-                                        const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
-                                        FILE **fp) {
+                                        const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len,
+                                        PetscInt dims[2], FILE **fp) {
   PetscErrorCode ierr;
   PetscInt ndims;
   char line[char_array_len];

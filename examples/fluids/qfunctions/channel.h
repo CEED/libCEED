@@ -29,7 +29,7 @@ struct ChannelContext_ {
 };
 
 CEED_QFUNCTION_HELPER CeedInt Exact_Channel(CeedInt dim, CeedScalar time,
-                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
 
   const ChannelContext context = (ChannelContext)ctx;
   const CeedScalar theta0 = context->theta0;
