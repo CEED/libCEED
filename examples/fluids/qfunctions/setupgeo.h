@@ -135,13 +135,14 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q,
 //
 // Normal vector = (J1,J2,J3) / detJb
 //
+//   - TODO Could possibly remove normal vector, as it could be calculated in the Qfunction from dXdx
 // Stored: (J1,J2,J3) / detJb
 //   in q_data_sur[1:3] as
 //   (detJb^-1) * [ J1 ]
 //                [ J2 ]
 //                [ J3 ]
 //
-// Stored: dxdX_{i,j}
+// Stored: dXdx_{i,j}
 //   in q_data_sur[4:9] as
 //    [dXdx_11 dXdx_12 dXdx_13]
 //    [dXdx_21 dXdx_22 dXdx_23]
