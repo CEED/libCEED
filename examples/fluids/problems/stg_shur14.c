@@ -34,7 +34,7 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs,
                                   const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
 
   PetscFunctionBeginUser;
-  for(PetscInt i=0; i<nprofs; i++) {
+  for (PetscInt i=0; i<nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
     Cij[3][i] = Rij[3][i] / Cij[0][i];
     Cij[1][i] = sqrt(Rij[1][i] - pow(Cij[3][i], 2) );
@@ -79,9 +79,9 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
   ierr = PetscFOpen(comm, path, "r", fp); CHKERRQ(ierr);
   ierr = PetscSynchronizedFGets(comm, *fp, char_array_len, line); CHKERRQ(ierr);
   ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-  if(ndims != 2) SETERRQ(comm, -1,
-                           "Found %d dimensions instead of 2 on the first line of %s",
-                           ndims, path);
+  if (ndims != 2) SETERRQ(comm, -1,
+                            "Found %d dimensions instead of 2 on the first line of %s",
+                            ndims, path);
 
   for (PetscInt i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
   ierr = PetscStrToArrayDestroy(ndims, array); CHKERRQ(ierr);
@@ -149,9 +149,9 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
   for (PetscInt i=0; i<stg_ctx->nprofs; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims < dims[1]) SETERRQ(comm, -1,
-                                  "Line %d of %s does not contain enough columns (%d instead of %d)", i,
-                                  path, ndims, dims[1]);
+    if (ndims < dims[1]) SETERRQ(comm, -1,
+                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   path, ndims, dims[1]);
 
     prof_dw[i] = (CeedScalar) atof(array[0]);
     ubar[0][i] = (CeedScalar) atof(array[1]);
@@ -166,12 +166,12 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
     lt[i]      = (CeedScalar) atof(array[12]);
     eps[i]     = (CeedScalar) atof(array[13]);
 
-    if(prof_dw[i] < 0) SETERRQ(comm, -1,
-                                 "Distance to wall in %s cannot be negative", path);
-    if(lt[i] < 0) SETERRQ(comm, -1,
-                            "Turbulent length scale in %s cannot be negative", path);
-    if(eps[i] < 0) SETERRQ(comm, -1,
-                             "Turbulent dissipation in %s cannot be negative", path);
+    if (prof_dw[i] < 0) SETERRQ(comm, -1,
+                                  "Distance to wall in %s cannot be negative", path);
+    if (lt[i] < 0) SETERRQ(comm, -1,
+                             "Turbulent length scale in %s cannot be negative", path);
+    if (eps[i] < 0) SETERRQ(comm, -1,
+                              "Turbulent dissipation in %s cannot be negative", path);
 
   }
   CeedScalar (*cij)[stg_ctx->nprofs]  = (CeedScalar (*)[stg_ctx->nprofs])
@@ -215,9 +215,9 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
   for (PetscInt i=0; i<stg_ctx->nmodes; i++) {
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
-    if(ndims < dims[1]) SETERRQ(comm, -1,
-                                  "Line %d of %s does not contain enough columns (%d instead of %d)", i,
-                                  path, ndims, dims[1]);
+    if (ndims < dims[1]) SETERRQ(comm, -1,
+                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   path, ndims, dims[1]);
 
     d[0][i]     = (CeedScalar) atof(array[0]);
     d[1][i]     = (CeedScalar) atof(array[1]);
@@ -314,14 +314,14 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
     CeedScalar le, le_max=0;
 
     CeedPragmaSIMD
-    for(PetscInt i=0; i<stg_ctx->nprofs; i++) {
+    for (PetscInt i=0; i<stg_ctx->nprofs; i++) {
       le = PetscMin(2*prof_dw[i], 3*lt[i]);
-      if(le_max < le) le_max = le;
+      if (le_max < le) le_max = le;
     }
     CeedScalar kmin = M_PI/le_max;
 
     CeedPragmaSIMD
-    for(PetscInt i=0; i<stg_ctx->nmodes; i++) {
+    for (PetscInt i=0; i<stg_ctx->nmodes; i++) {
       kappa[i] = kmin*pow(stg_ctx->alpha, i);
     }
   } //end calculate kappa
