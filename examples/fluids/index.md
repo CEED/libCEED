@@ -439,7 +439,9 @@ where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ i
 Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
 The flow is driven by a body force.
 
-## Blasius
+## Flat Plate Boundary Layer
+
+### Laminar Boundary Layer - Blasius
 
 Simulation of a laminar boundary layer flow, with the inflow being prescribed
 by a [Blasius similarity
@@ -454,16 +456,22 @@ is a no-slip, no-penetration, no-heat flux condition. The top of the domain is
 treated as an outflow and is tilted at a downward angle to ensure that flow is
 always exiting it.
 
-## Flat Plate Boundary Layer
+### Turbulent Boundary Layer
 
-### Synthetic Turbulence Generation (STG) Boundary Condition
+Simulating a turbulent boundary layer without modeling the turbulence requires
+resolving the turbulent flow structures. These structures may be introduced
+into the simulations either by allowing a laminar boundary layer naturally
+transition to turbulence, or imposing turbulent structures at the inflow. The
+latter approach has been taken here, specifically using a *synthetic turbulence
+generation* (STG) method.
 
-To form the inflow boundary condition for the flat plate, we use the synthetic
-turbulence generation (STG) method described in {cite}`shurSTG2014`. Below
-follows a re-description of the formulation to match the present notation, and
-then a description of the implementation and usage.
+#### Synthetic Turbulence Generation (STG) Boundary Condition
 
-#### Equation Formulation
+We use the STG method described in
+{cite}`shurSTG2014`. Below follows a re-description of the formulation to match
+the present notation, and then a description of the implementation and usage.
+
+##### Equation Formulation
 
 $$
 \bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \cdot \bm{v}'
@@ -519,7 +527,7 @@ $$
 \kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
 $$
 
-#### Initialization Data Flow
+##### Initialization Data Flow
 
 Data flow for initializing function (which creates the context data struct) is
 given below:
