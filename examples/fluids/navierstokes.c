@@ -22,9 +22,9 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
-//TESTARGS(name="channel") -ceed {ceed_resource} -test -options_file examples/fluids/channel.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-channel.bin
+//TESTARGS(name="channel") -ceed {ceed_resource} -test -options_file examples/fluids/channel.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-channel.bin -snes_fd_color
 //TESTARGS(name="dc_explicit") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -units_kilogram 1e-9 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -mu 75 -ts_dt 1e-3 -units_meter 1e-2 -units_second 1e-2 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-explicit.bin
-//TESTARGS(name="dc_implicit_stab_none") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -units_kilogram 1e-9 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -mu 75 -units_meter 1e-2 -units_second 1e-2 -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin
+//TESTARGS(name="dc_implicit_stab_none") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -units_kilogram 1e-9 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -mu 75 -units_meter 1e-2 -units_second 1e-2 -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin -snes_fd_color
 //TESTARGS(name="adv_rotation_explicit_strong") -ceed {ceed_resource} -test -problem advection -strong_form 1 -degree 3 -dm_plex_box_faces 2,2,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-explicit-strong.bin
 //TESTARGS(name="adv_rotation_implicit_sharp_cylinder") -ceed {ceed_resource} -test -problem advection -bubble_type cylinder -bubble_continuity back_sharp -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_Slip_z 1,2 -bc_wall 3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-sharp-cylinder.bin
 //TESTARGS(name="adv_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin
@@ -107,19 +107,22 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Create DM
   DM dm;
-  ierr = CreateDM(comm, problem, &dm); CHKERRQ(ierr);
   VecType vec_type = NULL;
+  MatType mat_type = NULL;
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
   case CEED_MEM_DEVICE: {
     const char *resolved;
     CeedGetResource(ceed, &resolved);
     if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-    else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+    else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
     else vec_type = VECSTANDARD;
   }
   }
-  ierr = DMSetVecType(dm, vec_type); CHKERRQ(ierr);
+  if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
+  else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
+  else mat_type = MATAIJ;
+  ierr = CreateDM(comm, problem, mat_type, vec_type, &dm); CHKERRQ(ierr);
   user->dm = dm;
 
   // ---------------------------------------------------------------------------
@@ -232,11 +235,18 @@ int main(int argc, char **argv) {
     if (problem->dim == 2) box_faces_str[3] = '\0';
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
+    MatType mat_type;
+    VecType vec_type;
+    ierr = DMGetMatType(dm, &mat_type); CHKERRQ(ierr);
+    ierr = DMGetVecType(dm, &vec_type); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "  PETSc:\n"
                        "    Box Faces                          : %s\n"
+                       "    DM MatType                         : %s\n"
+                       "    DM VecType                         : %s\n"
                        "    Time Stepping Scheme               : %s\n",
-                       box_faces_str, phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
+                       box_faces_str, mat_type, vec_type,
+                       phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
     // Mesh
     const PetscInt num_comp_q = 5;
     CeedInt        glob_dofs, owned_dofs;

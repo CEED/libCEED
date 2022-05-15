@@ -11,12 +11,17 @@
 #include "../navierstokes.h"
 
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm) {
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
+                        MatType mat_type, VecType vec_type,
+                        DM *dm) {
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
   // Create DMPLEX
   ierr = DMCreate(comm, dm); CHKERRQ(ierr);
   ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  ierr = DMSetMatType(*dm, mat_type); CHKERRQ(ierr);
+  ierr = DMSetVecType(*dm, vec_type); CHKERRQ(ierr);
+
   // Set Tensor elements
   ierr = PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"); CHKERRQ(ierr);
   // Set CL options

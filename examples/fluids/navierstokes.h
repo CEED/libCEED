@@ -315,7 +315,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // Setup DM
 // -----------------------------------------------------------------------------
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
+                        MatType, VecType, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
