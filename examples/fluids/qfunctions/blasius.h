@@ -237,6 +237,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) v[j][i] = 0.;
 
     const CeedScalar u_normal = Dot3(norm, velocity);
+    const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
 
     // The Physics
     // -- Density
@@ -244,13 +245,12 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // -- Momentum
     for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] + // interior rho
-                             norm[j] * P); // mixed P
-    v[2][i] -= wdetJb * t12  ;
+      v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] // interior rho
+                             + norm[j] * P // mixed P
+                             + viscous_flux[j]);
 
     // -- Total Energy Density
-    v[4][i] -= wdetJb * u_normal * (E + P);
-    v[4][i] -= wdetJb * t12 * velocity[1];
+    v[4][i] -= wdetJb * (u_normal * (E + P) + Dot3(viscous_flux, velocity));
 
   } // End Quadrature Point Loop
   return 0;
@@ -382,10 +382,6 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
                                 q_data_sur[3][i]
                                };
 
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
-
     // Implementing outflow condition
     const CeedScalar P         = P0; // pressure
     const CeedScalar u_normal  = Dot3(norm, u); // Normal velocity
@@ -396,18 +392,19 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     CeedScalar t12;
     BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
                     &t12, &context->newtonian_ctx);
-    // The Physics
+    const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
+
     // -- Density
-    v[0][i] -= wdetJb * rho * u_normal;
+    v[0][i] = -wdetJb * rho * u_normal;
 
     // -- Momentum
     for (int j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P);
-    v[2][i] += wdetJb * t12  ;
+      v[j+1][i] = -wdetJb * (rho * u_normal * u[j]
+                             + norm[j] * P + viscous_flux[j]);
 
     // -- Total Energy Density
-    v[4][i] -= wdetJb * u_normal * (E + P);
-    v[4][i] += wdetJb * t12 * velocity[1];
+    v[4][i] = -wdetJb * (u_normal * (E + P)
+                         + Dot3(viscous_flux, velocity));
 
     // Save values for Jacobian
     jac_data_sur[0][i] = rho;
