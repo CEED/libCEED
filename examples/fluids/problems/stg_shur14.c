@@ -232,10 +232,11 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
 }
 
 
-PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
+PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
                                 STGShur14Context *pstg_ctx,
-                                NewtonianIdealGasContext newt_ctx, bool is_implicit,
-                                CeedScalar theta0) {
+                                const NewtonianIdealGasContext newt_ctx,
+                                const bool is_implicit, const bool prescribe_T,
+                                const CeedScalar theta0, const CeedScalar P0) {
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
@@ -287,8 +288,10 @@ PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
   stg_ctx->alpha         = alpha;
   stg_ctx->u0            = u0;
   stg_ctx->is_implicit   = is_implicit;
+  stg_ctx->prescribe_T   = prescribe_T;
   stg_ctx->mean_only     = mean_only;
   stg_ctx->theta0        = theta0;
+  stg_ctx->P0            = P0;
   stg_ctx->newtonian_ctx = *newt_ctx;
 
   {

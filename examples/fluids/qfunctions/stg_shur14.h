@@ -196,37 +196,51 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
   const bool is_implicit  = stg_ctx->is_implicit;
   const bool mean_only    = stg_ctx->mean_only;
+  const bool prescribe_T  = stg_ctx->prescribe_T;
   const CeedScalar dx     = stg_ctx->dx;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
   const CeedScalar time   = stg_ctx->time;
   const CeedScalar theta0 = stg_ctx->theta0;
+  const CeedScalar P0     = stg_ctx->P0;
   const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
   const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
-    const CeedScalar rho = q[0][i];
-    const CeedScalar nu  = mu / rho;
+    const CeedScalar rho = prescribe_T ? q[0][i] : P0 / (Rd * theta0);
     const CeedScalar x[] = { X[0][i], X[1][i], X[2][i] };
     const CeedScalar dXdx[2][3] = {
       {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
     };
 
-    const CeedScalar P = rho * Rd * theta0;
-
     CeedScalar h[3];
-    for(CeedInt j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       h[j] = 2/sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j]);
     h[0] = dx;
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
-      CalcSpectrum(X[1][i], eps, lt, h, nu, qn, stg_ctx);
+      CalcSpectrum(X[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
       STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
     } else {
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
+    }
+
+    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] +
+                                 u[1]*u[1] +
+                                 u[2]*u[2]);
+    CeedScalar E_internal, P;
+    if (prescribe_T) {
+      // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
+      E_internal = rho * cv * theta0;
+      // Find pressure using
+      P = rho * Rd * theta0; // interior rho with exterior T
+    } else {
+      E_internal = q[4][i] - E_kinetic; // uses prescribed rho and u, E from solution
+      P = E_internal * (gamma - 1.);
     }
 
     const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
@@ -236,8 +250,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                                 q_data_sur[3][i]
                                };
 
-    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
-    const CeedScalar E = rho * cv * theta0 + E_kinetic;
+    const CeedScalar E = E_internal + E_kinetic;
 
     // Velocity normal to the boundary
     const CeedScalar u_normal = norm[0]*u[0] +

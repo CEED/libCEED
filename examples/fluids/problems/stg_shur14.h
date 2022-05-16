@@ -9,6 +9,8 @@
 #include <petsc.h>
 #include "../qfunctions/stg_shur14_type.h"
 
-extern PetscErrorCode CreateSTGContext(MPI_Comm comm, DM dm,
-                                       STGShur14Context *pstg_ctx, NewtonianIdealGasContext newt_ctx,
-                                       bool is_implicit, CeedScalar theta0);
+extern PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
+                                       STGShur14Context *pstg_ctx,
+                                       const NewtonianIdealGasContext newt_ctx,
+                                       const bool is_implicit, const bool prescribe_T,
+                                       const CeedScalar theta0, const CeedScalar P0);

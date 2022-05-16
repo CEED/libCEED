@@ -172,7 +172,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   if (use_stg) {
     ierr = CreateSTGContext(comm, dm, &stg_shur14_ctx,
                             newtonian_ig_ctx,
-                            user->phys->implicit, theta0);
+                            user->phys->implicit, weakT, theta0, P0);
     CHKERRQ(ierr);
   }
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,

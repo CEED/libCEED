@@ -20,10 +20,12 @@ struct STGShur14Context_ {
   CeedScalar alpha;       // !< Geometric growth rate of kappa
   CeedScalar u0;          // !< Convective velocity
   CeedScalar time;        // !< Solution time
+  CeedScalar P0;          // !< Inlet pressure
   CeedScalar theta0;      // !< Inlet temperature
   bool       is_implicit; // !< Whether using implicit time integration
   bool       mean_only;   // !< Only apply the mean profile
   CeedScalar dx;          // !< dx used for h calculation
+  bool       prescribe_T; // !< Prescribe temperature weakly
   struct NewtonianIdealGasContext_ newtonian_ctx;
 
   struct {

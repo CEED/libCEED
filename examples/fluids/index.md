@@ -527,6 +527,10 @@ $$
 \kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
 $$
 
+The enforcement of the boundary condition is identical to the blasius inflow;
+it weakly enforces velocity, with the option of weakly enforcing either density
+or temperature using the the `-weakT` flag.
+
 ##### Initialization Data Flow
 
 Data flow for initializing function (which creates the context data struct) is
