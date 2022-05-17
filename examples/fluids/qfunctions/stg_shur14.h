@@ -19,7 +19,7 @@
 #include <math.h>
 #include <ceed.h>
 #include <stdlib.h>
-#include <petscmath.h>
+#include <petscsys.h>
 #include "stg_shur14_type.h"
 
 #ifndef M_PI
@@ -47,9 +47,9 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
   const CeedScalar *prof_dw  = &stg_ctx->data[stg_ctx->offsets.prof_dw];
   const CeedScalar *prof_eps = &stg_ctx->data[stg_ctx->offsets.eps];
   const CeedScalar *prof_lt  = &stg_ctx->data[stg_ctx->offsets.lt];
-  const CeedScalar (*prof_ubar)[nprofs] = (CeedScalar (*)[nprofs])
+  const CeedScalar (*prof_ubar)[nprofs] = (const CeedScalar (*)[nprofs])
                                           &stg_ctx->data[stg_ctx->offsets.ubar];
-  const CeedScalar (*prof_cij)[nprofs]  = (CeedScalar (*)[nprofs])
+  const CeedScalar (*prof_cij)[nprofs]  = (const CeedScalar (*)[nprofs])
                                           &stg_ctx->data[stg_ctx->offsets.cij];
   CeedInt idx=-1;
 
@@ -149,9 +149,9 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
   const CeedScalar *phi   = &stg_ctx->data[stg_ctx->offsets.phi];
-  const CeedScalar (*sigma)[nmodes] = (CeedScalar (*)[nmodes])
+  const CeedScalar (*sigma)[nmodes] = (const CeedScalar (*)[nmodes])
                                          &stg_ctx->data[stg_ctx->offsets.sigma];
-  const CeedScalar (*d)[nmodes]     = (CeedScalar (*)[nmodes])
+  const CeedScalar (*d)[nmodes]     = (const CeedScalar (*)[nmodes])
                                          &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
   const CeedScalar tworoot1p5 = 2*sqrt(1.5);
