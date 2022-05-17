@@ -8,33 +8,31 @@ ts:
   max_time: 1.0e-3
 output_freq: 10
 
-#snes_max_it: 4
-#snes_convergence_test: skip
-
 ## Linear Settings:
 degree: 1
 dm_plex_box_faces: 40,60,1
-nDelta: 45
+platemesh_nDelta: 45
 
-## Quadratic Settings:
-#degree: 2
-#dm_plex_box_faces: 20,30,1
-#nDelta: 22
-#growth: 1.1664 # 1.08^2
+# # Quadratic Settings:
+# degree: 2
+# dm_plex_box_faces: 20,30,1
+# platemesh:
+#   nDelta: 22
+#   growth: 1.1664 # 1.08^2
 
 stab: 'supg'
 Ctau_t: 1
-#Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
-## linear Settings:
+#Ctau_v: 36,60,128 is what PHASTA has for p=1,2,3
+# Linear Settings:
 Ctau_v: 36
 Ctau_C: 0.25
 Ctau_M: 0.25
 Ctau_E: 0.125
-## Quadratic Settings:
-#Ctau_v: 60
-#Ctau_C: 0.125
-#Ctau_M: 0.125
-#Ctau_E: 0.125
+# # Quadratic Settings:
+# Ctau_v: 60
+# Ctau_C: 0.125
+# Ctau_M: 0.125
+# Ctau_E: 0.125
 
 q_extra: 0
 
