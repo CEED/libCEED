@@ -1,10 +1,10 @@
 /// @file
-/// Test assembly of mass matrix operator (multi-component) see t537
-/// \test Test assembly of mass matrix operator (multi-component)
+/// Test assembly of non-symmetric mass matrix operator (multi-component) see t537
+/// \test Test assembly of non-symmetric mass matrix operator (multi-component)
 #include <ceed.h>
 #include <stdlib.h>
 #include <math.h>
-#include "t537-operator.h"
+#include "t566-operator.h"
 
 int main(int argc, char **argv) {
   Ceed ceed;
@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   CeedQFunction qf_setup, qf_mass;
   CeedOperator op_setup, op_mass;
   CeedVector q_data, X, U, V;
-  CeedInt P = 3, Q = 4, dim = 2, num_comp = 2;
+  CeedInt P = 3, Q = 3, dim = 2, num_comp = 2;
   CeedInt n_x = 1, n_y = 1;
   CeedInt num_elem = n_x * n_y;
   CeedInt num_dofs = (n_x*2+1)*(n_y*2+1), num_qpts = num_elem*Q*Q;
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   CeedOperatorLinearAssemble(op_mass, values);
   const CeedScalar *vals;
   CeedVectorGetArrayRead(values, CEED_MEM_HOST, &vals);
-  for (CeedInt k=0; k<nentries; ++k) {
+  for (CeedInt k=0; k<nentries; k++) {
     assembled[rows[k]*num_comp*num_dofs + cols[k]] += vals[k];
   }
   CeedVectorRestoreArrayRead(values, &vals);
@@ -118,36 +118,49 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(U, 0.0);
   CeedVectorCreate(ceed, num_comp*num_dofs, &V);
   CeedInt indOld = -1;
-  for (CeedInt j=0; j<num_dofs*num_comp; j++) {
-    // Set input
-    CeedVectorGetArray(U, CEED_MEM_HOST, &u);
-    CeedInt ind = j;
-    u[ind] = 1.0;
-    if (ind > 0)
-      u[indOld] = 0.0;
-    indOld = ind;
-    CeedVectorRestoreArray(U, &u);
 
-    // Compute effect of DoF j
-    CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
+  for (CeedInt comp_in=0; comp_in<num_comp; comp_in++) {
+    for (CeedInt node_in=0; node_in<num_dofs; node_in++) {
+      // Set input
+      CeedVectorGetArray(U, CEED_MEM_HOST, &u);
+      CeedInt ind = node_in + comp_in*num_dofs;
+      u[ind] = 1.0;
+      if (ind > 0)
+        u[indOld] = 0.0;
+      indOld = ind;
+      CeedVectorRestoreArray(U, &u);
 
-    CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-    for (CeedInt k=0; k<num_dofs*num_comp; k++) {
-      assembled_true[j*num_dofs*num_comp + k] = v[k];
+      // Compute effect of DoF j
+      CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
+
+      CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
+      for (CeedInt k=0; k<num_dofs*num_comp; k++) {
+        assembled_true[ind*num_dofs*num_comp + k] = v[k];
+      }
+      CeedVectorRestoreArrayRead(V, &v);
     }
-    CeedVectorRestoreArrayRead(V, &v);
   }
 
   // Check output
-  for (CeedInt i=0; i<num_comp*num_dofs; i++)
-    for (CeedInt j=0; j<num_comp*num_dofs; j++)
-      if (fabs(assembled[j*num_dofs*num_comp+i] - assembled_true[j*num_dofs*num_comp
-               +i]) >
-          100.*CEED_EPSILON)
-        // LCOV_EXCL_START
-        printf("[%d,%d] Error in assembly: %f != %f\n", i, j,
-               assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);
-  // LCOV_EXCL_STOP
+  for (CeedInt node_in=0; node_in<num_dofs; node_in++) {
+    for (CeedInt comp_in=0; comp_in<num_comp; comp_in++) {
+      for (CeedInt node_out=0; node_out<num_dofs; node_out++) {
+        for (CeedInt comp_out=0; comp_out<num_comp; comp_out++) {
+          const CeedInt index = (node_in + comp_in*num_dofs)*num_comp + node_out +
+                                comp_out*num_dofs;
+          const CeedScalar assembled_value = assembled[index];
+          const CeedScalar assembled_true_value = assembled_true[index];
+          if (fabs(assembled_value - assembled_true_value) >
+              100.*CEED_EPSILON)
+            // LCOV_EXCL_START
+            printf("[(%d, %d), (%d, %d)] Error in assembly: %f != %f\n",
+                   node_in, comp_in, node_out, comp_out,
+                   assembled_value, assembled_true_value);
+          // LCOV_EXCL_STOP
+        }
+      }
+    }
+  }
 
   // Cleanup
   free(rows);
