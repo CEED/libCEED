@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem, P*P, num_comp, num_dofs,
                             num_comp*num_dofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restr_u);
-  CeedInt strides_qd[3] = {1, Q*Q*num_elem, Q*Q};
+  CeedInt strides_qd[3] = {1, Q*Q*num_elem, Q*Q}; /* *NOPAD* */
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q, 1, num_qpts, strides_qd,
                                    &elem_restr_qd_i);
 
