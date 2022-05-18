@@ -19,12 +19,14 @@
 #include <math.h>
 #include <ceed.h>
 #include <stdlib.h>
-#include <petscsys.h>
 #include "stg_shur14_type.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
 #endif
+
+CEED_QFUNCTION_HELPER CeedScalar Max(CeedScalar a, CeedScalar b) { return a < b ? b : a; }
+CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b ? a : b; }
 
 /*
  * @brief Interpolate quantities from input profile to given location
@@ -111,16 +113,16 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
 
-  const CeedScalar hmax = PetscMax( PetscMax(h[0], h[1]), h[2]);
-  const CeedScalar ke   = 2*M_PI/PetscMin(2*dw, 3*lt);
+  const CeedScalar hmax = Max( Max(h[0], h[1]), h[2]);
+  const CeedScalar ke   = 2*M_PI/Min(2*dw, 3*lt);
   const CeedScalar keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
   const CeedScalar kcut =
-    M_PI/ PetscMin( PetscMax(PetscMax(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
+    M_PI/ Min( Max(Max(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
   CeedScalar fcut, feta, Ektot=0.0;
 
   for(CeedInt n=0; n<nmodes; n++) {
     feta   = exp(-pow(12*kappa[n]/keta, 2));
-    fcut   = exp( -pow(4*PetscMax(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
+    fcut   = exp( -pow(4*Max(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
     qn[n]  = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
     qn[n] *= n==0 ? kappa[0] : kappa[n] - kappa[n-1];
     Ektot += qn[n];
@@ -160,7 +162,7 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
 
   CeedPragmaSIMD
   for(CeedInt n=0; n<nmodes; n++) {
-    xhat[0] = (X[0] - stg_ctx->u0*t)*PetscMax(2*kappa[0]/kappa[n], 0.1);
+    xhat[0] = (X[0] - stg_ctx->u0*t)*Max(2*kappa[0]/kappa[n], 0.1);
     xdotd = 0.;
     for(CeedInt i=0; i<3; i++) xdotd += d[i][n]*xhat[i];
     vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0][n] * cos(kappa[n]*xdotd + phi[n]);
