@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 
       CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
       for (CeedInt k=0; k<num_dofs*num_comp; k++) {
-        assembled_true[ind*num_dofs*num_comp + k] = v[k];
+        assembled_true[k*num_dofs*num_comp + ind] = v[k];
       }
       CeedVectorRestoreArrayRead(V, &v);
     }
@@ -146,15 +146,15 @@ int main(int argc, char **argv) {
     for (CeedInt comp_in=0; comp_in<num_comp; comp_in++) {
       for (CeedInt node_out=0; node_out<num_dofs; node_out++) {
         for (CeedInt comp_out=0; comp_out<num_comp; comp_out++) {
-          const CeedInt index = (node_in + comp_in*num_dofs)*num_comp + node_out +
-                                comp_out*num_dofs;
+          const CeedInt index = (node_out + comp_out*num_dofs)*num_comp + node_in +
+                                comp_in*num_dofs;
           const CeedScalar assembled_value = assembled[index];
           const CeedScalar assembled_true_value = assembled_true[index];
           if (fabs(assembled_value - assembled_true_value) >
               100.*CEED_EPSILON)
             // LCOV_EXCL_START
             printf("[(%d, %d), (%d, %d)] Error in assembly: %f != %f\n",
-                   node_in, comp_in, node_out, comp_out,
+                   node_out, comp_out, node_in, comp_in,
                    assembled_value, assembled_true_value);
           // LCOV_EXCL_STOP
         }
