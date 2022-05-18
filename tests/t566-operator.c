@@ -27,10 +27,10 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   // DoF Coordinates
-  for (CeedInt i=0; i<n_x*2+1; i++)
-    for (CeedInt j=0; j<n_y*2+1; j++) {
-      x[i+j*(n_x*2+1)+0*num_dofs] = (CeedScalar) i / (2*n_x);
-      x[i+j*(n_x*2+1)+1*num_dofs] = (CeedScalar) j / (2*n_y);
+  for (CeedInt i=0; i<n_x*(P-1)+1; i++)
+    for (CeedInt j=0; j<n_y*(P-1)+1; j++) {
+      x[i+j*(n_x*2+1)+0*num_dofs] = (CeedScalar) i / (n_x * (P-1));
+      x[i+j*(n_x*2+1)+1*num_dofs] = (CeedScalar) j / (n_y * (P-1));
     }
   CeedVectorCreate(ceed, dim*num_dofs, &X);
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
@@ -43,10 +43,10 @@ int main(int argc, char **argv) {
     CeedInt col, row, offset;
     col = i % n_x;
     row = i / n_x;
-    offset = col*(P-1) + row*(n_x*2+1)*(P-1);
+    offset = col*(P-1) + row*(n_x*(P-1)+1)*(P-1);
     for (CeedInt j=0; j<P; j++)
       for (CeedInt k=0; k<P; k++)
-        ind_x[P*(P*i+k)+j] = offset + k*(n_x*2+1) + j;
+        ind_x[P*(P*i+k)+j] = offset + k*P + j;
   }
 
   // Restrictions
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem, P*P, num_comp, num_dofs,
                             num_comp*num_dofs,
                             CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restr_u);
-  CeedInt strides_qd[3] = {1, Q*Q, Q*Q};
+  CeedInt strides_qd[3] = {1, Q*Q*num_elem, Q*Q};
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q*Q, 1, num_qpts, strides_qd,
                                    &elem_restr_qd_i);
 
