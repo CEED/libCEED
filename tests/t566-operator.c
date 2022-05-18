@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   CeedInt P = 3, Q = 3, dim = 2, num_comp = 2;
   CeedInt n_x = 1, n_y = 1;
   CeedInt num_elem = n_x * n_y;
-  CeedInt num_dofs = (n_x*2+1)*(n_y*2+1), num_qpts = num_elem*Q*Q;
+  CeedInt num_dofs = (n_x*(P-1)+1)*(n_y*(P-1)+1), num_qpts = num_elem*Q*Q;
   CeedInt ind_x[num_elem*P*P];
   CeedScalar assembled[num_comp*num_comp*num_dofs*num_dofs];
   CeedScalar x[dim*num_dofs], assembled_true[num_comp*num_comp*num_dofs*num_dofs];
