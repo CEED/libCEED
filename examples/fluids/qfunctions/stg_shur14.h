@@ -41,7 +41,7 @@ CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b 
  * @param[out] lt      Turbulent length scale at dw
  * @param[in]  stg_ctx STGShur14Context for the problem
  */
-void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
+CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
     CeedScalar ubar[3], CeedScalar cij[6], CeedScalar *eps, CeedScalar *lt,
     const STGShur14Context stg_ctx) {
 
@@ -49,10 +49,8 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
   const CeedScalar *prof_dw  = &stg_ctx->data[stg_ctx->offsets.prof_dw];
   const CeedScalar *prof_eps = &stg_ctx->data[stg_ctx->offsets.eps];
   const CeedScalar *prof_lt  = &stg_ctx->data[stg_ctx->offsets.lt];
-  const CeedScalar (*prof_ubar)[nprofs] = (const CeedScalar (*)[nprofs])
-                                          &stg_ctx->data[stg_ctx->offsets.ubar];
-  const CeedScalar (*prof_cij)[nprofs]  = (const CeedScalar (*)[nprofs])
-                                          &stg_ctx->data[stg_ctx->offsets.cij];
+  const CeedScalar *prof_ubar = &stg_ctx->data[stg_ctx->offsets.ubar];
+  const CeedScalar *prof_cij  = &stg_ctx->data[stg_ctx->offsets.cij];
   CeedInt idx=-1;
 
   for(CeedInt i=0; i<nprofs; i++) {
@@ -66,28 +64,28 @@ void CEED_QFUNCTION_HELPER(InterpolateProfile)(const CeedScalar dw,
     CeedScalar coeff = (dw - prof_dw[idx-1]) / (prof_dw[idx] - prof_dw[idx-1]);
 
     //*INDENT-OFF*
-    ubar[0] = prof_ubar[0][idx-1] + coeff*( prof_ubar[0][idx] - prof_ubar[0][idx-1] );
-    ubar[1] = prof_ubar[1][idx-1] + coeff*( prof_ubar[1][idx] - prof_ubar[1][idx-1] );
-    ubar[2] = prof_ubar[2][idx-1] + coeff*( prof_ubar[2][idx] - prof_ubar[2][idx-1] );
-    cij[0]  = prof_cij[0][idx-1]  + coeff*( prof_cij[0][idx]  - prof_cij[0][idx-1] );
-    cij[1]  = prof_cij[1][idx-1]  + coeff*( prof_cij[1][idx]  - prof_cij[1][idx-1] );
-    cij[2]  = prof_cij[2][idx-1]  + coeff*( prof_cij[2][idx]  - prof_cij[2][idx-1] );
-    cij[3]  = prof_cij[3][idx-1]  + coeff*( prof_cij[3][idx]  - prof_cij[3][idx-1] );
-    cij[4]  = prof_cij[4][idx-1]  + coeff*( prof_cij[4][idx]  - prof_cij[4][idx-1] );
-    cij[5]  = prof_cij[5][idx-1]  + coeff*( prof_cij[5][idx]  - prof_cij[5][idx-1] );
+    ubar[0] = prof_ubar[0*nprofs+idx-1] + coeff*( prof_ubar[0*nprofs+idx] - prof_ubar[0*nprofs+idx-1] );
+    ubar[1] = prof_ubar[1*nprofs+idx-1] + coeff*( prof_ubar[1*nprofs+idx] - prof_ubar[1*nprofs+idx-1] );
+    ubar[2] = prof_ubar[2*nprofs+idx-1] + coeff*( prof_ubar[2*nprofs+idx] - prof_ubar[2*nprofs+idx-1] );
+    cij[0]  = prof_cij[0*nprofs+idx-1]  + coeff*( prof_cij[0*nprofs+idx]  - prof_cij[0*nprofs+idx-1] );
+    cij[1]  = prof_cij[1*nprofs+idx-1]  + coeff*( prof_cij[1*nprofs+idx]  - prof_cij[1*nprofs+idx-1] );
+    cij[2]  = prof_cij[2*nprofs+idx-1]  + coeff*( prof_cij[2*nprofs+idx]  - prof_cij[2*nprofs+idx-1] );
+    cij[3]  = prof_cij[3*nprofs+idx-1]  + coeff*( prof_cij[3*nprofs+idx]  - prof_cij[3*nprofs+idx-1] );
+    cij[4]  = prof_cij[4*nprofs+idx-1]  + coeff*( prof_cij[4*nprofs+idx]  - prof_cij[4*nprofs+idx-1] );
+    cij[5]  = prof_cij[5*nprofs+idx-1]  + coeff*( prof_cij[5*nprofs+idx]  - prof_cij[5*nprofs+idx-1] );
     *eps    = prof_eps[idx-1]     + coeff*( prof_eps[idx]     - prof_eps[idx-1] );
     *lt     = prof_lt[idx-1]      + coeff*( prof_lt[idx]      - prof_lt[idx-1] );
     //*INDENT-ON*
   } else { // y outside bounds of prof_dw
-    ubar[0] = prof_ubar[0][nprofs-1];
-    ubar[1] = prof_ubar[1][nprofs-1];
-    ubar[2] = prof_ubar[2][nprofs-1];
-    cij[0]  = prof_cij[0][nprofs-1];
-    cij[1]  = prof_cij[1][nprofs-1];
-    cij[2]  = prof_cij[2][nprofs-1];
-    cij[3]  = prof_cij[3][nprofs-1];
-    cij[4]  = prof_cij[4][nprofs-1];
-    cij[5]  = prof_cij[5][nprofs-1];
+    ubar[0] = prof_ubar[1*nprofs-1];
+    ubar[1] = prof_ubar[2*nprofs-1];
+    ubar[2] = prof_ubar[3*nprofs-1];
+    cij[0]  = prof_cij[1*nprofs-1];
+    cij[1]  = prof_cij[2*nprofs-1];
+    cij[2]  = prof_cij[3*nprofs-1];
+    cij[3]  = prof_cij[4*nprofs-1];
+    cij[4]  = prof_cij[5*nprofs-1];
+    cij[5]  = prof_cij[6*nprofs-1];
     *eps    = prof_eps[nprofs-1];
     *lt     = prof_lt[nprofs-1];
   }
@@ -151,10 +149,8 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
   const CeedScalar *phi   = &stg_ctx->data[stg_ctx->offsets.phi];
-  const CeedScalar (*sigma)[nmodes] = (const CeedScalar (*)[nmodes])
-                                         &stg_ctx->data[stg_ctx->offsets.sigma];
-  const CeedScalar (*d)[nmodes]     = (const CeedScalar (*)[nmodes])
-                                         &stg_ctx->data[stg_ctx->offsets.d];
+  const CeedScalar *sigma = &stg_ctx->data[stg_ctx->offsets.sigma];
+  const CeedScalar *d     = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
   const CeedScalar tworoot1p5 = 2*sqrt(1.5);
   CeedScalar xdotd, vp[3] = {0.};
@@ -164,10 +160,10 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   for(CeedInt n=0; n<nmodes; n++) {
     xhat[0] = (X[0] - stg_ctx->u0*t)*Max(2*kappa[0]/kappa[n], 0.1);
     xdotd = 0.;
-    for(CeedInt i=0; i<3; i++) xdotd += d[i][n]*xhat[i];
-    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0][n] * cos(kappa[n]*xdotd + phi[n]);
-    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1][n] * cos(kappa[n]*xdotd + phi[n]);
-    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2][n] * cos(kappa[n]*xdotd + phi[n]);
+    for(CeedInt i=0; i<3; i++) xdotd += d[i*nmodes+n]*xhat[i];
+    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
+    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
+    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
   }
 
   u[0] = ubar[0] + cij[0]*vp[0];
