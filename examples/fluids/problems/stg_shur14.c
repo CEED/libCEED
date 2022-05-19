@@ -189,8 +189,8 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
  * as the only two entries, separated by a single space.
  * Assumes there are 7 columns in the file
  *
- * @param[in] comm MPI_Comm for the program
- * @param[in] path Path to the STGRand.dat file
+ * @param[in]    comm    MPI_Comm for the program
+ * @param[in]    path    Path to the STGRand.dat file
  * @param[inout] stg_ctx STGShur14Context where the data will be loaded into
  */
 static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
@@ -232,37 +232,29 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
   PetscFunctionReturn(0);
 }
 
-
-PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
-                                STGShur14Context *pstg_ctx,
-                                const NewtonianIdealGasContext newt_ctx,
-                                const bool is_implicit, const bool prescribe_T,
-                                const CeedScalar theta0, const CeedScalar P0) {
+/*
+ * @brief Read STG data from input paths and put in STGShur14Context
+ *
+ * Reads data from input paths and puts them into a STGShur14Context object.
+ * Data stored initially in `*pstg_ctx` will be copied over to the new
+ * STGShur14Context instance.
+ *
+ * @param[in]    comm            MPI_Comm for the program
+ * @param[in]    dm              DM for the program
+ * @param[in]    stg_inflow_path Path to STGInflow.dat file
+ * @param[in]    stg_rand_path   Path to STGRand.dat file
+ * @param[inout] pstg_ctx        Pointer to STGShur14Context where the data will be loaded into
+ */
+PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm,
+                                 char stg_inflow_path[PETSC_MAX_PATH_LEN],
+                                 char stg_rand_path[PETSC_MAX_PATH_LEN],
+                                 STGShur14Context *pstg_ctx) {
   PetscErrorCode ierr;
-  char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
-  char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
-  PetscBool mean_only = PETSC_FALSE;
-  CeedScalar u0=0.0, alpha=1.01;
+  PetscInt nmodes, nprofs;
   STGShur14Context stg_ctx;
   PetscFunctionBeginUser;
 
   // Get options
-  PetscOptionsBegin(comm, NULL, "STG Boundary Condition Options", NULL);
-  ierr = PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL,
-                            stg_inflow_path, stg_inflow_path,
-                            sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL,
-                            stg_rand_path,stg_rand_path,
-                            sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-stg_alpha", "Growth rate of the wavemodes", NULL,
-                          alpha, &alpha, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
-                          NULL, u0, &u0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-stg_mean_only", "Only apply mean profile",
-                          NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
-  PetscOptionsEnd();
-
-  PetscInt nmodes, nprofs;
   ierr = GetNRows(comm, stg_rand_path, &nmodes); CHKERRQ(ierr);
   ierr = GetNRows(comm, stg_inflow_path, &nprofs); CHKERRQ(ierr);
   if (nmodes > STG_NMODES_MAX)
@@ -273,6 +265,7 @@ PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
   {
     STGShur14Context s;
     ierr = PetscCalloc1(1, &s); CHKERRQ(ierr);
+    *s = **pstg_ctx;
     s->nmodes = nmodes;
     s->nprofs = nprofs;
     s->offsets.sigma   = 0;
@@ -289,26 +282,6 @@ PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
     ierr = PetscMalloc(bytes, &stg_ctx); CHKERRQ(ierr);
     *stg_ctx = *s;
     ierr = PetscFree(s); CHKERRQ(ierr);
-  }
-  stg_ctx->alpha         = alpha;
-  stg_ctx->u0            = u0;
-  stg_ctx->is_implicit   = is_implicit;
-  stg_ctx->prescribe_T   = prescribe_T;
-  stg_ctx->mean_only     = mean_only;
-  stg_ctx->theta0        = theta0;
-  stg_ctx->P0            = P0;
-  stg_ctx->newtonian_ctx = *newt_ctx;
-
-  {
-    // Calculate dx assuming constant spacing
-    PetscReal domain_min[3], domain_max[3], domain_size[3];
-    ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-    for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
-
-    PetscInt nmax = 3, faces[3];
-    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
-                                   NULL); CHKERRQ(ierr);
-    stg_ctx->dx = domain_size[0]/faces[0];
   }
 
   ierr = ReadSTGInflow(comm, stg_inflow_path, stg_ctx); CHKERRQ(ierr);
@@ -335,5 +308,81 @@ PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
   } //end calculate kappa
 
   *pstg_ctx = stg_ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
+                        User user, const bool prescribe_T,
+                        const CeedScalar theta0, const CeedScalar P0) {
+  PetscErrorCode ierr;
+  char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
+  char stg_rand_path[PETSC_MAX_PATH_LEN] = "./STGRand.dat";
+  PetscBool mean_only = PETSC_FALSE;
+  CeedScalar u0=0.0, alpha=1.01;
+  STGShur14Context stg_ctx;
+  CeedQFunctionContext stg_context;
+  NewtonianIdealGasContext newtonian_ig_ctx;
+  PetscFunctionBeginUser;
+
+  // Get options
+  PetscOptionsBegin(comm, NULL, "STG Boundary Condition Options", NULL);
+  ierr = PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL,
+                            stg_inflow_path, stg_inflow_path,
+                            sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL,
+                            stg_rand_path,stg_rand_path,
+                            sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-stg_alpha", "Growth rate of the wavemodes", NULL,
+                          alpha, &alpha, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
+                          NULL, u0, &u0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-stg_mean_only", "Only apply mean profile",
+                          NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
+  PetscOptionsEnd();
+
+  ierr = PetscCalloc1(1, &stg_ctx); CHKERRQ(ierr);
+  stg_ctx->alpha         = alpha;
+  stg_ctx->u0            = u0;
+  stg_ctx->is_implicit   = user->phys->implicit;
+  stg_ctx->prescribe_T   = prescribe_T;
+  stg_ctx->mean_only     = mean_only;
+  stg_ctx->theta0        = theta0;
+  stg_ctx->P0            = P0;
+
+  {
+    // Calculate dx assuming constant spacing
+    PetscReal domain_min[3], domain_max[3], domain_size[3];
+    ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+    for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
+    PetscInt nmax = 3, faces[3];
+    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
+                                   NULL); CHKERRQ(ierr);
+    stg_ctx->dx = domain_size[0]/faces[0];
+  }
+
+  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
+                              CEED_MEM_HOST, &newtonian_ig_ctx);
+  stg_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
+                                  &newtonian_ig_ctx);
+
+  ierr = GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path, &stg_ctx);
+  CHKERRQ(ierr);
+
+  CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
+  CeedQFunctionContextCreate(user->ceed, &stg_context);
+  CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*stg_ctx), stg_ctx);
+  CeedQFunctionContextSetDataDestroy(stg_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
+  CeedQFunctionContextRegisterDouble(stg_context, "solution time",
+                                     offsetof(struct STGShur14Context_, time), 1,
+                                     "Phyiscal time of the solution");
+
+  problem->apply_inflow.qfunction         = STGShur14_Inflow;
+  problem->apply_inflow.qfunction_loc     = STGShur14_Inflow_loc;
+  problem->apply_inflow.qfunction_context = stg_context;
+
   PetscFunctionReturn(0);
 }

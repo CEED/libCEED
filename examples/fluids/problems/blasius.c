@@ -10,7 +10,6 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/blasius.h"
-#include "../qfunctions/stg_shur14.h"
 #include "stg_shur14.h"
 
 /* \brief Modify the domain and mesh for blasius
@@ -78,14 +77,12 @@ PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  User           user     = *(User *)ctx;
-  MPI_Comm       comm     = PETSC_COMM_WORLD;
+  User           user    = *(User *)ctx;
+  MPI_Comm       comm    = PETSC_COMM_WORLD;
   PetscBool      use_stg = PETSC_FALSE;
   BlasiusContext blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
-  STGShur14Context stg_shur14_ctx;
   CeedQFunctionContext blasius_context;
-  CeedQFunctionContext stg_shur14_context;
 
   PetscFunctionBeginUser;
   ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
@@ -99,6 +96,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction_loc           = ICsBlasius_loc;
   problem->apply_outflow.qfunction     = Blasius_Outflow;
   problem->apply_outflow.qfunction_loc = Blasius_Outflow_loc;
+  problem->apply_inflow.qfunction      = Blasius_Inflow;
+  problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
 
   // CeedScalar mu = .04; // Pa s, dynamic viscosity
   CeedScalar Uinf          = 40;   // m/s
@@ -137,14 +136,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                           NULL, use_stg, &use_stg, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
-  if (use_stg) {
-    problem->apply_inflow.qfunction     = STGShur14_Inflow;
-    problem->apply_inflow.qfunction_loc = STGShur14_Inflow_loc;
-  } else {
-    problem->apply_inflow.qfunction     = Blasius_Inflow;
-    problem->apply_inflow.qfunction_loc = Blasius_Inflow_loc;
-  }
-
   PetscScalar meter           = user->units->meter;
   PetscScalar second          = user->units->second;
   PetscScalar Kelvin          = user->units->Kelvin;
@@ -169,12 +160,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   blasius_ctx->P0        = P0;
   blasius_ctx->implicit  = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
-  if (use_stg) {
-    ierr = CreateSTGContext(comm, dm, &stg_shur14_ctx,
-                            newtonian_ig_ctx,
-                            user->phys->implicit, weakT, theta0, P0);
-    CHKERRQ(ierr);
-  }
+
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
 
@@ -186,22 +172,12 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                                      FreeContextPetsc);
 
   problem->ics.qfunction_context = blasius_context;
-  if (use_stg) {
-    CeedQFunctionContextCreate(user->ceed, &stg_shur14_context);
-    CeedQFunctionContextSetData(stg_shur14_context, CEED_MEM_HOST,
-                                CEED_USE_POINTER,
-                                sizeof(*stg_shur14_ctx), stg_shur14_ctx);
-    CeedQFunctionContextSetDataDestroy(stg_shur14_context, CEED_MEM_HOST,
-                                       FreeContextPetsc);
-    CeedQFunctionContextRegisterDouble(stg_shur14_context, "solution time",
-                                       offsetof(struct STGShur14Context_, time), 1,
-                                       "Phyiscal time of the solution");
-    problem->apply_inflow.qfunction_context = stg_shur14_context;
-  } else {
-    CeedQFunctionContextReferenceCopy(blasius_context,
-                                      &problem->apply_inflow.qfunction_context);
-  }
+  CeedQFunctionContextReferenceCopy(blasius_context,
+                                    &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_outflow.qfunction_context);
+  if (use_stg) {
+    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0); CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }
