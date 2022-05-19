@@ -5,11 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed.h>
-#include "../qfunctions/newtonian_types.h"
+#ifndef stg_shur14_type_h
+#define stg_shur14_type_h
 
-#ifndef stg_shur14_struct
-#define stg_shur14_struct
+#include <ceed.h>
+#include "newtonian_types.h"
+
 
 /* Access data arrays via:
  *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma]; */
