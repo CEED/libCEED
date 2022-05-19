@@ -14,6 +14,7 @@
 #include <petsc.h>
 #include "../navierstokes.h"
 #include "stg_shur14.h"
+#include "../qfunctions/stg_shur14.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -264,6 +265,10 @@ PetscErrorCode CreateSTGContext(const MPI_Comm comm, const DM dm,
   PetscInt nmodes, nprofs;
   ierr = GetNRows(comm, stg_rand_path, &nmodes); CHKERRQ(ierr);
   ierr = GetNRows(comm, stg_inflow_path, &nprofs); CHKERRQ(ierr);
+  if (nmodes > STG_NMODES_MAX)
+    SETERRQ(comm, 1, "Number of wavemodes in %s (%d) exceeds STG_NMODES_MAX (%d). "
+            "Change size of STG_NMODES_MAX and recompile", stg_rand_path, nmodes,
+            STG_NMODES_MAX);
 
   {
     STGShur14Context s;

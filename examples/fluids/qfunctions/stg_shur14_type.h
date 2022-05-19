@@ -11,7 +11,6 @@
 #include <ceed.h>
 #include "newtonian_types.h"
 
-
 /* Access data arrays via:
  *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma]; */
 typedef struct STGShur14Context_ *STGShur14Context;

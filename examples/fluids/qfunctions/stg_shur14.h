@@ -25,6 +25,8 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+#define STG_NMODES_MAX 1024
+
 CEED_QFUNCTION_HELPER CeedScalar Max(CeedScalar a, CeedScalar b) { return a < b ? b : a; }
 CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b ? a : b; }
 
@@ -161,9 +163,10 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
     xhat[0] = (X[0] - stg_ctx->u0*t)*Max(2*kappa[0]/kappa[n], 0.1);
     xdotd = 0.;
     for(CeedInt i=0; i<3; i++) xdotd += d[i*nmodes+n]*xhat[i];
-    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
-    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
-    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2*nmodes+n] * cos(kappa[n]*xdotd + phi[n]);
+    const CeedScalar cos_kxdp = cos(kappa[n]*xdotd + phi[n]);
+    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0*nmodes+n] * cos_kxdp;
+    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1*nmodes+n] * cos_kxdp;
+    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2*nmodes+n] * cos_kxdp;
   }
 
   u[0] = ubar[0] + cij[0]*vp[0];
@@ -191,7 +194,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   //*INDENT-ON*
 
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
-  CeedScalar qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
+  CeedScalar qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
   const bool is_implicit  = stg_ctx->is_implicit;
   const bool mean_only    = stg_ctx->mean_only;
   const bool prescribe_T  = stg_ctx->prescribe_T;
