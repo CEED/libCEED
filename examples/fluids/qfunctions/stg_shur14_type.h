@@ -30,14 +30,15 @@ struct STGShur14Context_ {
 
   struct {
     size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
-    size_t kappa;    // !< Wavemode frequencies in increasing order, [nmodes]
-    size_t prof_dw;  // !< Distance to wall for Inflow Profie, [nprof]
-    size_t ubar;     // !< Mean velocity, [nprof, 3]
-    size_t cij;      // !< Cholesky decomposition [nprof, 6]
-    size_t eps;      // !< Turbulent Disspation [nprof, 6]
-    size_t lt;       // !< Tubulent Length Scale [nprof, 6]
-  } offsets;         // !< Holds offsets for each array in data
-  CeedScalar data[]; // !< Holds concatenated scalar array data
+    size_t kappa;     // !< Wavemode frequencies in increasing order, [nmodes]
+    size_t prof_dw;   // !< Distance to wall for Inflow Profie, [nprof]
+    size_t ubar;      // !< Mean velocity, [nprof, 3]
+    size_t cij;       // !< Cholesky decomposition [nprof, 6]
+    size_t eps;       // !< Turbulent Disspation [nprof, 6]
+    size_t lt;        // !< Tubulent Length Scale [nprof, 6]
+  } offsets;          // !< Holds offsets for each array in data
+  size_t total_bytes; // !< Total size of struct plus array
+  CeedScalar data[1]; // !< Holds concatenated scalar array data
 };
 
 #endif

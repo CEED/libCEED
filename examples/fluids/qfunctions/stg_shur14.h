@@ -121,9 +121,10 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
   CeedScalar fcut, feta, Ektot=0.0;
 
   for(CeedInt n=0; n<nmodes; n++) {
-    feta   = exp(-pow(12*kappa[n]/keta, 2));
-    fcut   = exp( -pow(4*Max(kappa[n] - 0.9*kcut, 0)/kcut, 3) );
-    qn[n]  = pow(kappa[n]/ke, 4)*pow(1 + 2.4*pow(kappa[n]/ke,2), -17./6)*feta*fcut;
+    feta   = exp(-Square(12*kappa[n]/keta));
+    fcut   = exp( -pow(4*Max(kappa[n] - 0.9*kcut, 0)/kcut, 3.) );
+    qn[n]  = pow(kappa[n]/ke, 4.)
+             * pow(1 + 2.4*Square(kappa[n]/ke),-17./6)*feta*fcut;
     qn[n] *= n==0 ? kappa[0] : kappa[n] - kappa[n-1];
     Ektot += qn[n];
   }

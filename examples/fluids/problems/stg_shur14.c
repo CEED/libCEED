@@ -278,8 +278,8 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm,
     s->offsets.eps     = s->offsets.cij     + nprofs*6;
     s->offsets.lt      = s->offsets.eps     + nprofs;
     PetscInt total_num_scalars = s->offsets.lt + nprofs;
-    size_t bytes = sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]);
-    ierr = PetscMalloc(bytes, &stg_ctx); CHKERRQ(ierr);
+    s->total_bytes = sizeof(*stg_ctx) + total_num_scalars*sizeof(stg_ctx->data[0]);
+    ierr = PetscMalloc(s->total_bytes, &stg_ctx); CHKERRQ(ierr);
     *stg_ctx = *s;
     ierr = PetscFree(s); CHKERRQ(ierr);
   }
@@ -373,7 +373,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
   CeedQFunctionContextCreate(user->ceed, &stg_context);
   CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*stg_ctx), stg_ctx);
+                              CEED_USE_POINTER, stg_ctx->total_bytes, stg_ctx);
   CeedQFunctionContextSetDataDestroy(stg_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(stg_context, "solution time",
