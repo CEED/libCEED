@@ -675,6 +675,11 @@ addition to the Newtonian Ideal Gas options:
   - Downward angle of the top face of the domain. This face serves as an outlet.
   - `5`
   - `degrees`
+
+* - `-stg_use`
+  - Whether to use stg for the inflow conditions
+  - `false`
+  -
 :::
 
 This problem can be run with the `blasius.yaml` file via:
@@ -686,3 +691,52 @@ This problem can be run with the `blasius.yaml` file via:
 ```{literalinclude} ../../../../../examples/fluids/blasius.yaml
 :language: yaml
 ```
+
+#### STG Inflow for Flat Plate
+
+Using the STG Inflow for the blasius problem adds the following command-line
+options:
+
+:::{list-table} Blasius Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-stg_inflow_path`
+  - Path to the STGInflow file
+  - `./STGInflow.dat`
+  -
+
+* - `-stg_rand_path`
+  - Path to the STGRand file
+  - `./STGRand.dat`
+  -
+
+* - `-stg_alpha`
+  - Growth rate of the wavemodes
+  - `1.01`
+  -
+
+* - `-stg_u0`
+  - Convective velocity, $U_0$
+  - `0.0`
+  - `m/s`
+
+* - `-stg_mean_only`
+  - Only impose the mean velocity (no fluctutations)
+  - `false`
+  -
+
+:::
+
+This problem can be run with the `blasius.yaml` file via:
+
+```
+./navierstokes -options_file blasius.yaml -stg_use true
+```
+
+Note the added `-stg_use true` flag. This overrides the `stg: use: false`
+setting in the `blasius.yaml` file, enabling the use of the STG inflow.

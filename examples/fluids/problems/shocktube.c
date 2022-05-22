@@ -76,7 +76,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   //                                          2 for sharp shocks
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -133,7 +133,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  for (int i=0; i<3; i++) {
+  for (PetscInt i=0; i<3; i++) {
     domain_size[i] *= meter;
     domain_min[i] *= meter;
   }

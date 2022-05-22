@@ -8,7 +8,7 @@ ts:
   max_time: 1.0e-3
 output_freq: 10
 
-#snes_max_it: 4 
+#snes_max_it: 4
 #snes_convergence_test: skip
 
 ## Linear Settings:
@@ -48,3 +48,8 @@ wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5,4
 g: 0,0,0
+
+stg:
+  use: false
+  inflow_path: "./STGInflow_blasius.dat"
+  mean_only: true

@@ -63,7 +63,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
   {
     PetscReal domain_min[3], domain_max[3], domain_size[3];
     ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-    for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+    for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
     H      = 0.5*domain_size[1]*meter;
     center = H + domain_min[1]*meter;

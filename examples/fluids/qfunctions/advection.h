@@ -12,6 +12,7 @@
 #define advection_h
 
 #include <math.h>
+#include <ceed.h>
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
@@ -88,7 +89,7 @@ CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for 3D advection
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int Exact_Advection(CeedInt dim, CeedScalar time,
+CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time,
     const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc    = context->rc;
