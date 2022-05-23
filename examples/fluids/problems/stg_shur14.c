@@ -307,6 +307,7 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm,
     }
   } //end calculate kappa
 
+  ierr = PetscFree(*pstg_ctx); CHKERRQ(ierr);
   *pstg_ctx = stg_ctx;
   PetscFunctionReturn(0);
 }
