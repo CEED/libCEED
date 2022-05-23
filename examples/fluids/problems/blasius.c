@@ -21,8 +21,9 @@
  * The top surface is also angled downwards, so that it may be used as an
  * outflow. It's angle is controlled by `top_angle` (in units of degrees).
  */
-PetscErrorCode modifyMesh(DM dm, PetscInt dim, PetscReal growth, PetscInt N,
-                          PetscReal refine_height, PetscReal top_angle) {
+static PetscErrorCode ModifyMesh(DM dm, PetscInt dim, PetscReal growth,
+                                 PetscInt N, PetscReal refine_height,
+                                 PetscReal top_angle) {
 
   PetscInt ierr, narr, ncoords;
   PetscReal domain_min[3], domain_max[3], domain_size[3];
@@ -99,16 +100,15 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   problem->apply_inflow.qfunction      = Blasius_Inflow;
   problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
 
-  // CeedScalar mu = .04; // Pa s, dynamic viscosity
-  CeedScalar Uinf          = 40;   // m/s
-  CeedScalar delta0        = 4.2e-4;    // m
-  PetscReal  refine_height = 5.9e-4;    // m
-  PetscReal  growth        = 1.08; // [-]
-  PetscInt   Ndelta        = 45;   // [-]
-  PetscReal  top_angle     = 5;    // degrees
-  CeedScalar theta0        = 288.; // K
-  CeedScalar P0            = 1.01e5; // Pa
-  PetscBool  weakT         = PETSC_FALSE; // weak density or temperature
+  CeedScalar Uinf   = 40;          // m/s
+  CeedScalar delta0 = 4.2e-4;      // m
+  CeedScalar theta0 = 288.;        // K
+  CeedScalar P0     = 1.01e5;      // Pa
+  PetscBool  weakT  = PETSC_FALSE; // weak density or temperature
+  PetscReal  mesh_refine_height = 5.9e-4; // m
+  PetscReal  mesh_growth        = 1.08;   // [-]
+  PetscInt   mesh_Ndelta        = 45;     // [-]
+  PetscReal  mesh_top_angle     = 5;      // degrees
 
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
   ierr = PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow",
@@ -121,32 +121,33 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                             NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBoundedInt("-Ndelta", "Velocity at boundary layer edge",
-                                NULL, Ndelta, &Ndelta, NULL, 1); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-refine_height",
+  ierr = PetscOptionsBoundedInt("-platemesh_Ndelta",
+                                "Velocity at boundary layer edge",
+                                NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-platemesh_refine_height",
                             "Height of boundary layer mesh refinement",
-                            NULL, refine_height, &refine_height, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-growth",
+                            NULL, mesh_refine_height, &mesh_refine_height, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-platemesh_growth",
                             "Geometric growth rate of boundary layer mesh",
-                            NULL, growth, &growth, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-top_angle",
+                            NULL, mesh_growth, &mesh_growth, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-platemesh_top_angle",
                             "Geometric top_angle rate of boundary layer mesh",
-                            NULL, top_angle, &top_angle, NULL); CHKERRQ(ierr);
+                            NULL, mesh_top_angle, &mesh_top_angle, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-stg_use", "Use STG inflow boundary condition",
                           NULL, use_stg, &use_stg, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
-  PetscScalar meter           = user->units->meter;
-  PetscScalar second          = user->units->second;
-  PetscScalar Kelvin          = user->units->Kelvin;
-  PetscScalar Pascal          = user->units->Pascal;
+  PetscScalar meter  = user->units->meter;
+  PetscScalar second = user->units->second;
+  PetscScalar Kelvin = user->units->Kelvin;
+  PetscScalar Pascal = user->units->Pascal;
 
   theta0 *= Kelvin;
   P0     *= Pascal;
   Uinf   *= meter / second;
   delta0 *= meter;
 
-  ierr = modifyMesh(dm, problem->dim, growth, Ndelta, refine_height, top_angle);
+  ierr = ModifyMesh(dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle);
   CHKERRQ(ierr);
 
   // Some properties depend on parameters from NewtonianIdealGas
