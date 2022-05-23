@@ -245,7 +245,7 @@ CEED_QFUNCTION_HELPER void PrimitiveToConservative_fwd(const CeedScalar rho,
   CeedScalar drdP = 1. / ( Rd * T);
   dU[0] = drdP * dY[0] + drdT * dY[4];
   CeedScalar de_kinetic = 0;
-  for (int i=0; i<3; i++) {
+  for (CeedInt i=0; i<3; i++) {
     dU[1+i] = dU[0] * u[i] + rho * dY[1+i];
     de_kinetic += u[i] * dY[1+i];
   }
@@ -474,9 +474,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     // *INDENT-ON*
 
     State grad_s[3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (int k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
+      for (CeedInt k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
                                         + Grad_q[1][k][i] * dXdx[1][j]
                                         + Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
@@ -494,15 +494,15 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar Flux[5][3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       Flux[0][j] = F_inviscid[j].density;
-      for (int k=0; k<3; k++)
+      for (CeedInt k=0; k<3; k++)
         Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
       Flux[4][j] = F_inviscid[j].E_total + Fe[j];
     }
 
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<5; k++) {
+    for (CeedInt j=0; j<3; j++) {
+      for (CeedInt k=0; k<5; k++) {
         Grad_v[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] +
                                    dXdx[j][1] * Flux[k][1] +
                                    dXdx[j][2] * Flux[k][2]);
@@ -518,17 +518,17 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
                            gamma, g, x_i);
     CeedScalar grad_U[5][3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       grad_U[0][j] = grad_s[j].U.density;
-      for (int k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
+      for (CeedInt k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
       grad_U[4][j] = grad_s[j].U.E_total;
     }
 
     // strong_conv = dF/dq * dq/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0};
-    for (int j=0; j<3; j++)
-      for (int k=0; k<5; k++)
-        for (int l=0; l<5; l++)
+    for (CeedInt j=0; j<3; j++)
+      for (CeedInt k=0; k<5; k++)
+        for (CeedInt l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * grad_U[l][j];
 
     // -- Stabilization method: none, SU, or SUPG
@@ -548,13 +548,13 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_conv,
                                   tau_strong_conv_conservative);
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
+      for (CeedInt j=0; j<3; j++)
+        for (CeedInt k=0; k<5; k++)
+          for (CeedInt l=0; l<5; l++)
             stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
 
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
+      for (CeedInt j=0; j<5; j++)
+        for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
                                     stab[j][1] * dXdx[k][1] +
                                     stab[j][2] * dXdx[k][2]);
@@ -607,7 +607,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     CeedScalar U[5];
-    for (int j=0; j<5; j++) U[j] = q[j][i];
+    for (CeedInt j=0; j<5; j++) U[j] = q[j][i];
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     State s = StateFromU(context, U, x_i);
 
@@ -628,9 +628,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
     State grad_s[3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (int k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
+      for (CeedInt k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
                                         + Grad_q[1][k][i] * dXdx[1][j]
                                         + Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
@@ -649,15 +649,15 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar Flux[5][3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       Flux[0][j] = F_inviscid[j].density;
-      for (int k=0; k<3; k++)
+      for (CeedInt k=0; k<3; k++)
         Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
       Flux[4][j] = F_inviscid[j].E_total + Fe[j];
     }
 
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<5; k++) {
+    for (CeedInt j=0; j<3; j++) {
+      for (CeedInt k=0; k<5; k++) {
         Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] +
                                     dXdx[j][1] * Flux[k][1] +
                                     dXdx[j][2] * Flux[k][2]);
@@ -665,7 +665,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     }
 
     const CeedScalar body_force[5] = {0, s.U.density *g[0], s.U.density *g[1], s.U.density *g[2], 0};
-    for (int j=0; j<5; j++)
+    for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (q_dot[j][i] - body_force[j]);
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
@@ -673,22 +673,22 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
                            gamma, g, x_i);
     CeedScalar grad_U[5][3];
-    for (int j=0; j<3; j++) {
+    for (CeedInt j=0; j<3; j++) {
       grad_U[0][j] = grad_s[j].U.density;
-      for (int k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
+      for (CeedInt k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
       grad_U[4][j] = grad_s[j].U.E_total;
     }
 
     // strong_conv = dF/dq * dq/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0};
-    for (int j=0; j<3; j++)
-      for (int k=0; k<5; k++)
-        for (int l=0; l<5; l++)
+    for (CeedInt j=0; j<3; j++)
+      for (CeedInt k=0; k<5; k++)
+        for (CeedInt l=0; l<5; l++)
           strong_conv[k] += jacob_F_conv[j][k][l] * grad_U[l][j];
 
     // Strong residual
     CeedScalar strong_res[5];
-    for (int j=0; j<5; j++)
+    for (CeedInt j=0; j<5; j++)
       strong_res[j] = q_dot[j][i] + strong_conv[j] - body_force[j];
 
     // -- Stabilization method: none, SU, or SUPG
@@ -708,16 +708,17 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_conv, tau_strong_conv_conservative);
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
+      for (CeedInt j=0; j<3; j++)
+        for (CeedInt k=0; k<5; k++)
+          for (CeedInt l=0; l<5; l++)
             stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
 
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
+      for (CeedInt j=0; j<5; j++)
+        for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
                                     stab[j][1] * dXdx[k][1] +
                                     stab[j][2] * dXdx[k][2]);
+
       break;
     case STAB_SUPG:        // SUPG
       Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
@@ -735,21 +736,21 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 //  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_res, tau_strong_res_conservative);
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
+      for (CeedInt j=0; j<3; j++)
+        for (CeedInt k=0; k<5; k++)
+          for (CeedInt l=0; l<5; l++)
             stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
 
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
+      for (CeedInt j=0; j<5; j++)
+        for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
                                     stab[j][1] * dXdx[k][1] +
                                     stab[j][2] * dXdx[k][2]);
       break;
     }
-    for (int j=0; j<5; j++) jac_data[j][i] = U[j];
-    for (int j=0; j<6; j++) jac_data[5+j][i] = kmstress[j];
-    for (int j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
+    for (CeedInt j=0; j<5; j++) jac_data[j][i] = U[j];
+    for (CeedInt j=0; j<6; j++) jac_data[5+j][i] = kmstress[j];
+    for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
 
   } // End Quadrature Point Loop
 

@@ -28,8 +28,8 @@ struct ChannelContext_ {
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 
-CEED_QFUNCTION_HELPER int Exact_Channel(CeedInt dim, CeedScalar time,
-                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+CEED_QFUNCTION_HELPER CeedInt Exact_Channel(CeedInt dim, CeedScalar time,
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
 
   const ChannelContext context = (ChannelContext)ctx;
   const CeedScalar theta0 = context->theta0;
@@ -151,7 +151,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     const CeedScalar u_normal = norm[0]*velocity[0] +
                                 norm[1]*velocity[1] +
@@ -162,7 +162,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
     v[0][i] -= wdetJb * rho_in * u_normal;
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb * (rho_in * u_normal * velocity[j] +
                              norm[j] * P);
 
@@ -215,7 +215,7 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     // Implementing outflow condition
     const CeedScalar P         = P0; // pressure
@@ -226,7 +226,7 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
     v[0][i] -= wdetJb * rho * u_normal;
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P);
 
     // -- Total Energy Density

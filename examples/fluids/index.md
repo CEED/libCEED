@@ -390,17 +390,21 @@ The shock capturing viscosity is implemented following the first formulation des
 $$
 \nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
 $$
+
 where,
+
 $$
 \tau_{SHOCK} = \frac{h_{SHOCK}}{2u_{cha}} \left( \frac{ \,|\, \nabla \rho \,|\, h_{SHOCK}}{\rho_{ref}} \right)^{\beta}
 $$
 
-$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
+$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}$. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
 
 $$
 h_{SHOCK} = 2 \left( C_{YZB} \,|\, \bm p \,|\, \right)^{-1}
 $$
+
 where
+
 $$
 p_k = \hat{j}_i \frac{\partial \xi_i}{x_k}
 $$
@@ -435,15 +439,182 @@ where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ i
 Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
 The flow is driven by a body force.
 
-## Blasius
+## Flat Plate Boundary Layer
+
+### Laminar Boundary Layer - Blasius
 
 Simulation of a laminar boundary layer flow, with the inflow being prescribed
 by a [Blasius similarity
 solution](https://en.wikipedia.org/wiki/Blasius_boundary_layer). At the inflow,
-the velocity is prescribed by the Blasius soution profile, temperature is set
-constant, and density is allowed to float. At the outlet, only the density is
-prescribed based on the user-set pressure. The wall is a no-slip,
-no-penetration, no-heat flux condition. The top of the domain is treated as an
-outflow and is tilted at a downward angle to ensure that flow is always exiting
-it.
+the velocity is prescribed by the Blasius soution profile, density is set
+constant, and temperature is allowed to float. Using `weakT: true`, density is
+allowed to float and temperature is set constant. At the outlet, a user-set
+pressure is used for pressure in the inviscid flux terms (all other inviscid
+flux terms use interior solution values). The viscous traction is also set to
+the analytic Blasius profile value at both the inflow and the outflow. The wall
+is a no-slip, no-penetration, no-heat flux condition. The top of the domain is
+treated as an outflow and is tilted at a downward angle to ensure that flow is
+always exiting it.
 
+### Turbulent Boundary Layer
+
+Simulating a turbulent boundary layer without modeling the turbulence requires
+resolving the turbulent flow structures. These structures may be introduced
+into the simulations either by allowing a laminar boundary layer naturally
+transition to turbulence, or imposing turbulent structures at the inflow. The
+latter approach has been taken here, specifically using a *synthetic turbulence
+generation* (STG) method.
+
+#### Synthetic Turbulence Generation (STG) Boundary Condition
+
+We use the STG method described in
+{cite}`shurSTG2014`. Below follows a re-description of the formulation to match
+the present notation, and then a description of the implementation and usage.
+
+##### Equation Formulation
+
+$$
+\bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \cdot \bm{v}'
+$$
+
+$$
+\begin{aligned}
+\bm{v}' &= 2 \sqrt{3/2} \sum^N_{n=1} \sqrt{q^n(\bm{x})} \bm{\sigma}^n \cos(\kappa^n \bm{d}^n \cdot \bm{\hat{x}}^n(\bm{x}, t) + \phi^n ) \\
+\bm{\hat{x}}^n &= \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
+\end{aligned}
+$$
+
+Here, we define the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$, the Cholesky decomposition of the Reynolds stress
+tensor $\bm{C}$ (such that $\bm{R} = \bm{CC}^T$ ), bulk velocity $U_0$,
+wavemode amplitude $q^n$, wavemode frequency $\kappa^n$, and $\kappa_{\min} =
+0.5 \min_{\bm{x}} (\kappa_e)$.
+
+$$
+\kappa_e = \frac{2\pi}{\min(2d_w, 3.0 l_t)}
+$$
+
+where $l_t$ is the turbulence length scale, and $d_w$ is the distance to the
+nearest wall.
+
+
+The set of wavemode frequencies is defined by a geometric distribution:
+
+$$
+\kappa^n = \kappa_{\min} (1 + \alpha)^{n-1} \ , \quad \forall n=1, 2, ... , N
+$$
+
+The wavemode amplitudes $q^n$ are defined by a model energy spectrum $E(\kappa)$:
+
+$$
+q^n = \frac{E(\kappa^n) \Delta \kappa^n}{\sum^N_{n=1} E(\kappa^n)\Delta \kappa^n} \ ,\quad \Delta \kappa^n = \kappa^n - \kappa^{n-1}
+$$
+
+$$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa_e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
+
+$$
+f_\eta = \exp \left[-(12\kappa /\kappa_\eta)^2 \right], \quad
+f_\mathrm{cut} = \exp \left( - \left [ \frac{4\max(\kappa-0.9\kappa_\mathrm{cut}, 0)}{\kappa_\mathrm{cut}} \right]^3 \right)
+$$
+
+$\kappa_\eta$ represents turbulent dissipation frequency, and is given as $2\pi
+(\nu^3/\varepsilon)^{-1/4}$ with $\nu$ the kinematic viscosity and
+$\varepsilon$ the turbulent dissipation. $\kappa_\mathrm{cut}$ approximates the
+effective cutoff frequency of the mesh (viewing the mesh as a filter on
+solution over $\Omega$) and is given by:
+
+$$
+\kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
+$$
+
+The enforcement of the boundary condition is identical to the blasius inflow;
+it weakly enforces velocity, with the option of weakly enforcing either density
+or temperature using the the `-weakT` flag.
+
+##### Initialization Data Flow
+
+Data flow for initializing function (which creates the context data struct) is
+given below:
+```{mermaid}
+flowchart LR
+    subgraph STGInflow.dat
+    y
+    lt[l_t]
+    eps
+    Rij[R_ij]
+    ubar
+    end
+
+    subgraph STGRand.dat
+    rand[RN Set];
+    end
+
+    subgraph User Input
+    u0[U0];
+    end
+
+    subgraph init[Create Context Function]
+    ke[k_e]
+    N;
+    end
+    lt --Calc-->ke --Calc-->kn
+    y --Calc-->ke
+
+    subgraph context[Context Data]
+    yC[y]
+    randC[RN Set]
+    Cij[C_ij]
+    u0 --Copy--> u0C[U0]
+    kn[k^n];
+    ubarC[ubar]
+    ltC[l_t]
+    epsC[eps]
+    end
+    ubar --Copy--> ubarC;
+    y --Copy--> yC;
+    lt --Copy--> ltC;
+    eps --Copy--> epsC;
+
+    rand --Copy--> randC;
+    rand --> N --Calc--> kn;
+    Rij --Calc--> Cij[C_ij]
+```
+
+This is done once at runtime. The spatially-varying terms are then evaluated at
+each quadrature point on-the-fly, either by interpolation (for $l_t$,
+$\varepsilon$, $C_{ij}$, and $\overline{\bm u}$) or by calculation (for $q^n$).
+
+The `STGInflow.dat` file is a table of values at given distances from the wall.
+These values are then interpolated to a physical location (node or quadrature
+point). It has the following format:
+```
+[Total number of locations] 14
+[d_w] [u_1] [u_2] [u_3] [R_11] [R_22] [R_33] [R_12] [R_13] [R_23] [sclr_1] [sclr_2] [l_t] [eps]
+```
+where each `[  ]` item is a number in scientific notation (ie. `3.1415E0`), and `sclr_1` and
+`sclr_2` are reserved for turbulence modeling variables. They are not used in
+this example.
+
+The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$. It has the format:
+```
+[Number of wavemodes] 7
+[d_1] [d_2] [d_3] [phi] [sigma_1] [sigma_2] [sigma_3]
+```
+
+The following table is presented to help clarify the dimensionality of the
+numerous terms in the STG formulation.
+
+| Math            | Label  | $f(\bm{x})$? | $f(n)$? |
+|-----------------|--------|--------------|---------|
+| $ \{\bm{\sigma}^n, \bm{d}^n, \phi^n\}_{n=1}^N$        | RN Set | No           | Yes     |
+| $\bm{\overline{u}}$ | ubar | Yes | No |
+| $U_0$           | U0     | No           | No      |
+| $l_t$           | l_t    | Yes          | No   |
+| $\varepsilon$   | eps    | Yes          | No   |
+| $\bm{R}$        | R_ij   | Yes          | No      |
+| $\bm{C}$        | C_ij   | Yes          | No      |
+| $q^n$           | q^n    | Yes           | Yes     |
+| $\{\kappa^n\}_{n=1}^N$ | k^n  | No           | Yes      |
+| $h_i$           | h_i    | Yes          | No   |
+| $d_w$           | d_w    | Yes          | No   |

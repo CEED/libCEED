@@ -234,7 +234,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // The Physics
     // Zero v so all future terms can safely sum into it
-    for (int j=0; j<5; j++) v[j][i] = 0.;
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
     const CeedScalar u_normal = Dot3(norm, velocity);
     const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
@@ -244,7 +244,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     v[0][i] -= wdetJb * rho * u_normal; // interior rho
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] // interior rho
                              + norm[j] * P // mixed P
                              + viscous_flux[j]);
@@ -398,7 +398,7 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     v[0][i] = -wdetJb * rho * u_normal;
 
     // -- Momentum
-    for (int j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++)
       v[j+1][i] = -wdetJb * (rho * u_normal * u[j]
                              + norm[j] * P + viscous_flux[j]);
 

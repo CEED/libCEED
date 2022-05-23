@@ -807,7 +807,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   oper = "CeedKernel_Hip_gen_" + qFunctionName;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "#define CEED_QFUNCTION_HELPER inline __device__ __forceinline__\n";
+  code << "#define CEED_QFUNCTION_HELPER __device__ __forceinline__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
