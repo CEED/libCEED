@@ -75,8 +75,8 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
     cij[3]  = prof_cij[3*nprofs+idx-1]  + coeff*( prof_cij[3*nprofs+idx]  - prof_cij[3*nprofs+idx-1] );
     cij[4]  = prof_cij[4*nprofs+idx-1]  + coeff*( prof_cij[4*nprofs+idx]  - prof_cij[4*nprofs+idx-1] );
     cij[5]  = prof_cij[5*nprofs+idx-1]  + coeff*( prof_cij[5*nprofs+idx]  - prof_cij[5*nprofs+idx-1] );
-    *eps    = prof_eps[idx-1]     + coeff*( prof_eps[idx]     - prof_eps[idx-1] );
-    *lt     = prof_lt[idx-1]      + coeff*( prof_lt[idx]      - prof_lt[idx-1] );
+    *eps    = prof_eps[idx-1]           + coeff*( prof_eps[idx]           - prof_eps[idx-1] );
+    *lt     = prof_lt[idx-1]            + coeff*( prof_lt[idx]            - prof_lt[idx-1] );
     //*INDENT-ON*
   } else { // y outside bounds of prof_dw
     ubar[0] = prof_ubar[1*nprofs-1];
@@ -129,6 +129,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
     Ektot += qn[n];
   }
 
+  if (Ektot == 0) return;
   for(CeedInt n=0; n<nmodes; n++) qn[n] /= Ektot;
 }
 
@@ -155,7 +156,6 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   const CeedScalar *sigma = &stg_ctx->data[stg_ctx->offsets.sigma];
   const CeedScalar *d     = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
-  const CeedScalar tworoot1p5 = 2*sqrt(1.5);
   CeedScalar xdotd, vp[3] = {0.};
   CeedScalar xhat[] = {0., X[1], X[2]};
 
@@ -165,10 +165,11 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
     xdotd = 0.;
     for(CeedInt i=0; i<3; i++) xdotd += d[i*nmodes+n]*xhat[i];
     const CeedScalar cos_kxdp = cos(kappa[n]*xdotd + phi[n]);
-    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0*nmodes+n] * cos_kxdp;
-    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1*nmodes+n] * cos_kxdp;
-    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2*nmodes+n] * cos_kxdp;
+    vp[0] += sqrt(qn[n])*sigma[0*nmodes+n] * cos_kxdp;
+    vp[1] += sqrt(qn[n])*sigma[1*nmodes+n] * cos_kxdp;
+    vp[2] += sqrt(qn[n])*sigma[2*nmodes+n] * cos_kxdp;
   }
+  for(CeedInt i=0; i<3; i++) vp[i] *= 2*sqrt(1.5);
 
   u[0] = ubar[0] + cij[0]*vp[0];
   u[1] = ubar[1] + cij[3]*vp[0] + cij[1]*vp[1];
