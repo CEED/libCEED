@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
   //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
-  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);}
+  if (0) {ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);}
 
   // ---------------------------------------------------------------------------
   // Create output directory
