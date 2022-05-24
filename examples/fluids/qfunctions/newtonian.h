@@ -476,9 +476,10 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     State grad_s[3];
     for (CeedInt j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (CeedInt k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
-                                        + Grad_q[1][k][i] * dXdx[1][j]
-                                        + Grad_q[2][k][i] * dXdx[2][j];
+      for (CeedInt k=0; k<5; k++)
+        dU[k] = Grad_q[0][k][i] * dXdx[0][j] +
+                Grad_q[1][k][i] * dXdx[1][j] +
+                Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
       grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
@@ -630,9 +631,10 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     State grad_s[3];
     for (CeedInt j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (CeedInt k=0; k<5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j]
-                                        + Grad_q[1][k][i] * dXdx[1][j]
-                                        + Grad_q[2][k][i] * dXdx[2][j];
+      for (CeedInt k=0; k<5; k++)
+        dU[k] = Grad_q[0][k][i] * dXdx[0][j] +
+                Grad_q[1][k][i] * dXdx[1][j] +
+                Grad_q[2][k][i] * dXdx[2][j];
       dx_i[j] = 1.;
       grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
