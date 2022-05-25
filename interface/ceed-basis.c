@@ -485,11 +485,30 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
     return CEED_ERROR_SUCCESS;
   }
 
-  if (dim<1)
+  if (dim < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "Basis dimension must be a positive value");
   // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (P_1d < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 node");
+  // LCOV_EXCL_STOP
+
+  if (Q_1d < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 quadrature point");
+  // LCOV_EXCL_STOP
+
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE
                           : dim == 2 ? CEED_TOPOLOGY_QUAD
                           : CEED_TOPOLOGY_HEX;
@@ -549,10 +568,28 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp,
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp_1d, *grad_1d, *q_ref_1d,
              *q_weight_1d;
 
-  if (dim<1)
+  if (dim < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "Basis dimension must be a positive value");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (P < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 node");
+  // LCOV_EXCL_STOP
+
+  if (Q < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 quadrature point");
   // LCOV_EXCL_STOP
 
   // Get Nodes and Weights
@@ -655,6 +692,24 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (num_nodes < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 node");
+  // LCOV_EXCL_STOP
+
+  if (num_qpts < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 quadrature point");
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
 
   ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
@@ -729,6 +784,24 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
                                q_weight, basis); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (num_nodes < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 node");
+  // LCOV_EXCL_STOP
+
+  if (num_qpts < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Basis must have at least 1 quadrature point");
+  // LCOV_EXCL_STOP
 
   ierr = CeedCalloc(1, basis); CeedChk(ierr);
 
