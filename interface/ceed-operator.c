@@ -213,7 +213,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   *active_basis = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (int i = 0; i < op->qf->num_input_fields; i++)
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_basis = op->input_fields[i]->basis;
       break;
@@ -245,7 +245,7 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
     CeedElemRestriction *active_rstr) {
   *active_rstr = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (int i = 0; i < op->qf->num_input_fields; i++)
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_rstr = op->input_fields[i]->elem_restr;
       break;
