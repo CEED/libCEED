@@ -1055,11 +1055,11 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
   // Free fields
-  for (int i=0; i<(*qf)->num_input_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_input_fields; i++) {
     ierr = CeedFree(&(*(*qf)->input_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->input_fields[i]); CeedChk(ierr);
   }
-  for (int i=0; i<(*qf)->num_output_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_output_fields; i++) {
     ierr = CeedFree(&(*(*qf)->output_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->output_fields[i]); CeedChk(ierr);
   }

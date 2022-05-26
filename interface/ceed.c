@@ -1072,7 +1072,7 @@ int CeedDestroy(Ceed *ceed) {
   }
 
   if ((*ceed)->obj_delegate_count > 0) {
-    for (int i = 0; i < (*ceed)->obj_delegate_count; i++) {
+    for (CeedInt i = 0; i < (*ceed)->obj_delegate_count; i++) {
       ierr = CeedDestroy(&((*ceed)->obj_delegates[i].delegate)); CeedChk(ierr);
       ierr = CeedFree(&(*ceed)->obj_delegates[i].obj_name); CeedChk(ierr);
     }
@@ -1083,7 +1083,7 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
 
-  for (int i = 0; i < (*ceed)->num_jit_source_roots; i++) {
+  for (CeedInt i = 0; i < (*ceed)->num_jit_source_roots; i++) {
     ierr = CeedFree(&(*ceed)->jit_source_roots[i]); CeedChk(ierr);
   }
   ierr = CeedFree(&(*ceed)->jit_source_roots); CeedChk(ierr);
@@ -1233,7 +1233,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int line_no,
 int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
   ceed->Error = handler;
   if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, handler);
-  for (int i=0; i<ceed->obj_delegate_count; i++)
+  for (CeedInt i=0; i<ceed->obj_delegate_count; i++)
     CeedSetErrorHandler(ceed->obj_delegates[i].delegate, handler);
   return CEED_ERROR_SUCCESS;
 }

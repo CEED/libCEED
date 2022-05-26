@@ -158,12 +158,12 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 **/
 static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m,
                           CeedInt n, const CeedScalar *a, FILE *stream) {
-  for (int i=0; i<m; i++) {
+  for (CeedInt i=0; i<m; i++) {
     if (m > 1)
       fprintf(stream, "%12s[%d]:", name, i);
     else
       fprintf(stream, "%12s:", name);
-    for (int j=0; j<n; j++)
+    for (CeedInt j=0; j<n; j++)
       fprintf(stream, fp_fmt, fabs(a[i*n+j]) > 1E-14 ? a[i*n+j] : 0);
     fputs("\n", stream);
   }
@@ -1366,14 +1366,14 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
   // Allocate
   CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
   // Build q_ref_1d, q_weight_1d
-  for (int i = 0; i <= Q/2; i++) {
+  for (CeedInt i = 0; i <= Q/2; i++) {
     // Guess
     xi = cos(PI*(CeedScalar)(2*i+1)/((CeedScalar)(2*Q)));
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
     P2 = 0.0;
-    for (int j = 2; j <= Q; j++) {
+    for (CeedInt j = 2; j <= Q; j++) {
       P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
       P0 = P1;
       P1 = P2;
@@ -1382,10 +1382,10 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
     xi = xi-P2/dP2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(P2)>10*CEED_EPSILON; k++) {
+    for (CeedInt k=0; k<100 && fabs(P2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
-      for (int j = 2; j <= Q; j++) {
+      for (CeedInt j = 2; j <= Q; j++) {
         P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
         P0 = P1;
         P1 = P2;
@@ -1434,14 +1434,14 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
   q_ref_1d[0] = -1.0;
   q_ref_1d[Q-1] = 1.0;
   // Interior
-  for (int i = 1; i <= (Q-1)/2; i++) {
+  for (CeedInt i = 1; i <= (Q-1)/2; i++) {
     // Guess
     xi = cos(PI*(CeedScalar)(i)/(CeedScalar)(Q-1));
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
     P2 = 0.0;
-    for (int j = 2; j < Q; j++) {
+    for (CeedInt j = 2; j < Q; j++) {
       P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
       P0 = P1;
       P1 = P2;
@@ -1451,10 +1451,10 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     d2P2 = (2*xi*dP2 - (CeedScalar)(Q*(Q-1))*P2)/(1.0-xi*xi);
     xi = xi-dP2/d2P2;
     // Newton to convergence
-    for (int k=0; k<100 && fabs(dP2)>10*CEED_EPSILON; k++) {
+    for (CeedInt k=0; k<100 && fabs(dP2)>10*CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
-      for (int j = 2; j < Q; j++) {
+      for (CeedInt j = 2; j < Q; j++) {
         P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
         P0 = P1;
         P1 = P2;
