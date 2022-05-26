@@ -386,7 +386,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
@@ -476,7 +476,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
@@ -657,7 +657,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
