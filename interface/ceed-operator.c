@@ -1693,12 +1693,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(&(*op)->context_labels); CeedChk(ierr);
 
   // Destroy fallback
-  if ((*op)->op_fallback) {
-    ierr = (*op)->qf_fallback->Destroy((*op)->qf_fallback); CeedChk(ierr);
-    ierr = CeedFree(&(*op)->qf_fallback); CeedChk(ierr);
-    ierr = (*op)->op_fallback->Destroy((*op)->op_fallback); CeedChk(ierr);
-    ierr = CeedFree(&(*op)->op_fallback); CeedChk(ierr);
-  }
+  ierr = CeedOperatorDestroy(&(*op)->op_fallback); CeedChk(ierr);
 
   // Destroy QF assembly cache
   ierr = CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled); CeedChk(ierr);
