@@ -1876,14 +1876,16 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
   ierr = CeedMalloc(Q*P_c, &interp_c); CeedChk(ierr);
   ierr = CeedCalloc(P_c*P_f, &interp_c_to_f); CeedChk(ierr);
   ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
+  const CeedScalar *interp_f_source = NULL, *interp_c_source = NULL;
   if (is_tensor_f) {
-    memcpy(interp_f, basis_fine->interp_1d, Q*P_f*sizeof basis_fine->interp_1d[0]);
-    memcpy(interp_c, basis_coarse->interp_1d,
-           Q*P_c*sizeof basis_coarse->interp_1d[0]);
+    ierr = CeedBasisGetInterp1D(basis_fine, &interp_f_source); CeedChk(ierr);
+    ierr = CeedBasisGetInterp1D(basis_coarse, &interp_c_source); CeedChk(ierr);
   } else {
-    memcpy(interp_f, basis_fine->interp, Q*P_f*sizeof basis_fine->interp[0]);
-    memcpy(interp_c, basis_coarse->interp, Q*P_c*sizeof basis_coarse->interp[0]);
+    ierr = CeedBasisGetInterp(basis_fine, &interp_f_source); CeedChk(ierr);
+    ierr = CeedBasisGetInterp(basis_coarse, &interp_c_source); CeedChk(ierr);
   }
+  memcpy(interp_f, interp_f_source, Q*P_f*sizeof interp_f_source[0]);
+  memcpy(interp_c, interp_c_source, Q*P_c*sizeof interp_c_source[0]);
 
   // -- QR Factorization, interp_f = Q R
   ierr = CeedQRFactorization(ceed, interp_f, tau, Q, P_f); CeedChk(ierr);
