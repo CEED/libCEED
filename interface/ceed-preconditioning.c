@@ -681,7 +681,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
           B_mat_out[ell] = 0.0;
         }
         // Store block-diagonal D matrix as collection of small dense blocks
-        for (CeedInt ell = 0; ell < num_eval_mode_in*num_eval_mode_out*num_qpts; ++ell) {
+        for (CeedInt ell = 0; ell < num_eval_mode_in*num_eval_mode_out*num_qpts;
+             ++ell) {
           D_mat[ell] = 0.0;
         }
         // form element matrix itself (for each block component)
@@ -723,10 +724,11 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
           }
           for (CeedInt ei = 0; ei < num_eval_mode_out; ++ei) {
             for (CeedInt ej = 0; ej < num_eval_mode_in; ++ej) {
-              const CeedInt eval_mode_index = ((ei*num_comp+comp_in)*num_eval_mode_in+ej)*num_comp
-                                          +comp_out;
+              const CeedInt eval_mode_index = ((ei*num_comp+comp_in)*num_eval_mode_in+ej)
+                                              *num_comp
+                                              +comp_out;
               const CeedInt index = q*layout_qf[0] + eval_mode_index*layout_qf[1] +
-                                e*layout_qf[2];
+                                    e*layout_qf[2];
               D_mat[(ei*num_eval_mode_in+ej)*num_qpts + q] += assembled_qf_array[index];
             }
           }

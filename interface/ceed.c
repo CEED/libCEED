@@ -516,7 +516,7 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
       return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                        "Backend %s cannot create an operator"
                        "fallback to resource %s", resource, fallback_resource);
-      // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
 
     // Create fallback
     Ceed fallback_ceed;
