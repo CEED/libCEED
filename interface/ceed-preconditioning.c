@@ -23,6 +23,61 @@
 /// @{
 
 /**
+  @brief Duplicate a CeedQFunction with a reference Ceed to fallback for advanced
+         CeedOperator functionality
+
+  @param[in] qf            CeedQFunction to create fallback for
+  @param[out] fallback_qf  fallback CeedQFunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf,
+                                       CeedQFunction *qf_fallback) {
+  int ierr;
+
+  // Check if NULL qf passed in
+  if (!qf) return CEED_ERROR_SUCCESS;
+
+  char *source_path_with_name = "";
+  if (qf->source_path) {
+    size_t path_len = strlen(qf->source_path),
+           name_len = strlen(qf->kernel_name);
+    ierr = CeedCalloc(path_len + name_len + 2, &source_path_with_name);
+    CeedChk(ierr);
+    memcpy(source_path_with_name, qf->source_path, path_len);
+    memcpy(&source_path_with_name[path_len], ":", 1);
+    memcpy(&source_path_with_name[path_len + 1], qf->kernel_name, name_len);
+  } else {
+    ierr = CeedCalloc(1, &source_path_with_name); CeedChk(ierr);
+  }
+
+  ierr = CeedQFunctionCreateInterior(fallback_ceed, qf->vec_length,
+                                     qf->function, source_path_with_name,
+                                     qf_fallback); CeedChk(ierr);
+  {
+    CeedQFunctionContext ctx;
+
+    ierr = CeedQFunctionGetContext(qf, &ctx); CeedChk(ierr);
+    ierr = CeedQFunctionSetContext(*qf_fallback, ctx); CeedChk(ierr);
+  }
+  for (CeedInt i = 0; i < qf->num_input_fields; i++) {
+    ierr = CeedQFunctionAddInput(*qf_fallback, qf->input_fields[i]->field_name,
+                                 qf->input_fields[i]->size,
+                                 qf->input_fields[i]->eval_mode); CeedChk(ierr);
+  }
+  for (CeedInt i = 0; i < qf->num_output_fields; i++) {
+    ierr = CeedQFunctionAddOutput(*qf_fallback, qf->output_fields[i]->field_name,
+                                  qf->output_fields[i]->size,
+                                  qf->output_fields[i]->eval_mode); CeedChk(ierr);
+  }
+  ierr = CeedFree(&source_path_with_name); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
          CeedOperator functionality
 
@@ -34,26 +89,33 @@
 **/
 int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
-  Ceed fallback_ceed;
+  Ceed ceed_fallback;
 
   // Check not already created
   if (op->op_fallback) return CEED_ERROR_SUCCESS;
 
   // Fallback Ceed
-  ierr = CeedGetOperatorFallbackCeed(op->ceed, &fallback_ceed); CeedChk(ierr);
+  ierr = CeedGetOperatorFallbackCeed(op->ceed, &ceed_fallback); CeedChk(ierr);
 
   // Clone Op
   CeedOperator op_fallback;
   if (op->is_composite) {
-    ierr = CeedCompositeOperatorCreate(fallback_ceed, &op_fallback);
+    ierr = CeedCompositeOperatorCreate(ceed_fallback, &op_fallback);
     CeedChk(ierr);
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
       ierr = CeedCompositeOperatorAddSub(op_fallback, op->sub_operators[i]);
       CeedChk(ierr);
     }
   } else {
-    ierr = CeedOperatorCreate(fallback_ceed, op->qf, op->dqf, op->dqfT,
-                              &op_fallback); CeedChk(ierr);
+    CeedQFunction qf_fallback = NULL, dqf_fallback = NULL, dqfT_fallback = NULL;
+    ierr = CeedQFunctionCreateFallback(ceed_fallback, op->qf, &qf_fallback);
+    CeedChk(ierr);
+    ierr = CeedQFunctionCreateFallback(ceed_fallback, op->dqf, &dqf_fallback);
+    CeedChk(ierr);
+    ierr = CeedQFunctionCreateFallback(ceed_fallback, op->dqfT, &dqfT_fallback);
+    CeedChk(ierr);
+    ierr = CeedOperatorCreate(ceed_fallback, qf_fallback, dqf_fallback,
+                              dqfT_fallback, &op_fallback); CeedChk(ierr);
     for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
       ierr = CeedOperatorSetField(op_fallback, op->input_fields[i]->field_name,
                                   op->input_fields[i]->elem_restr,
@@ -72,6 +134,10 @@ int CeedOperatorCreateFallback(CeedOperator op) {
       ierr = CeedOperatorSetNumQuadraturePoints(op_fallback, op->num_qpts);
       CeedChk(ierr);
     }
+    // Cleanup
+    ierr = CeedQFunctionDestroy(&qf_fallback); CeedChk(ierr);
+    ierr = CeedQFunctionDestroy(&dqf_fallback); CeedChk(ierr);
+    ierr = CeedQFunctionDestroy(&dqfT_fallback); CeedChk(ierr);
   }
   ierr = CeedOperatorSetName(op_fallback, op->name); CeedChk(ierr);
   ierr = CeedOperatorCheckReady(op_fallback); CeedChk(ierr);

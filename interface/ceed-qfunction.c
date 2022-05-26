@@ -907,7 +907,9 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   int ierr;
   ierr = CeedQFunctionContextDestroy(&qf->ctx); CeedChk(ierr);
   qf->ctx = ctx;
-  ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
