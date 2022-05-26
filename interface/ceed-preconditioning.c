@@ -34,42 +34,25 @@
 **/
 int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
+  Ceed fallback_ceed;
 
   // Check not already created
   if (op->op_fallback) return CEED_ERROR_SUCCESS;
 
   // Fallback Ceed
-  const char *resource, *fallback_resource;
-  ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-  ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-  CeedChk(ierr);
-  if (!strcmp(resource, fallback_resource))
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend %s cannot create an operator"
-                     "fallback to resource %s", resource, fallback_resource);
-  // LCOV_EXCL_STOP
-
-  // Fallback Ceed
-  if (!op->ceed->op_fallback_ceed) {
-    Ceed ceed_ref;
-    ierr = CeedInit(fallback_resource, &ceed_ref); CeedChk(ierr);
-    ceed_ref->op_fallback_parent = op->ceed;
-    ceed_ref->Error = op->ceed->Error;
-    op->ceed->op_fallback_ceed = ceed_ref;
-  }
+  ierr = CeedGetOperatorFallbackCeed(op->ceed, &fallback_ceed); CeedChk(ierr);
 
   // Clone Op
   CeedOperator op_fallback;
   if (op->is_composite) {
-    ierr = CeedCompositeOperatorCreate(op->ceed->op_fallback_ceed, &op_fallback);
+    ierr = CeedCompositeOperatorCreate(fallback_ceed, &op_fallback);
     CeedChk(ierr);
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
       ierr = CeedCompositeOperatorAddSub(op_fallback, op->sub_operators[i]);
       CeedChk(ierr);
     }
   } else {
-    ierr = CeedOperatorCreate(op->ceed->op_fallback_ceed, op->qf, op->dqf, op->dqfT,
+    ierr = CeedOperatorCreate(fallback_ceed, op->qf, op->dqf, op->dqfT,
                               &op_fallback); CeedChk(ierr);
     for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
       ierr = CeedOperatorSetField(op_fallback, op->input_fields[i]->field_name,

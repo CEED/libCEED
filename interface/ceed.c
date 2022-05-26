@@ -492,6 +492,45 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 }
 
 /**
+  @brief Get the fallback Ceed for CeedOperators
+
+  @param ceed                Ceed context
+  @param[out] fallback_ceed  Variable to store fallback Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
+  int ierr;
+
+  // Create fallback Ceed if uninitalized
+  if (!ceed->op_fallback_ceed) {
+    // Check resource
+    const char *resource, *fallback_resource;
+    ierr = CeedGetResource(ceed, &resource); CeedChk(ierr);
+    ierr = CeedGetOperatorFallbackResource(ceed, &fallback_resource); CeedChk(ierr);
+    if (!strcmp(resource, fallback_resource))
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend %s cannot create an operator"
+                       "fallback to resource %s", resource, fallback_resource);
+      // LCOV_EXCL_STOP
+
+    // Create fallback
+    Ceed fallback_ceed;
+    ierr = CeedInit(fallback_resource, &fallback_ceed); CeedChk(ierr);
+    fallback_ceed->op_fallback_parent = ceed;
+    fallback_ceed->Error = ceed->Error;
+    ceed->op_fallback_ceed = fallback_ceed;
+  }
+  *fallback_ceed = ceed->op_fallback_ceed;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the fallback resource for CeedOperators. The current resource, if
            any, is freed by calling this function. This string is freed upon the
            destruction of the Ceed context.
