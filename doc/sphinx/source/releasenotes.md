@@ -1,7 +1,6 @@
 # Changes/Release Notes
 
-On this page we provide a summary of the main API changes, new features and examples
-for each release of libCEED.
+On this page we provide a summary of the main API changes, new features and examples for each release of libCEED.
 
 (main)=
 
@@ -9,7 +8,19 @@ for each release of libCEED.
 
 ### Interface changes
 
+- Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
+
+(v0-10-1)=
+
+## v0.10.1 (Apr 11, 2022)
+
+### Interface changes
+
 - Added {c:func}`CeedQFunctionSetUserFlopsEstimate` and {c:func}`CeedOperatorGetFlopsEstimate` to facilitate estimating FLOPs in operator application.
+
+### Bugfix
+
+- Install JiT source files in install directory to fix GPU functionality for installed libCEED.
 
 (v0-10)=
 

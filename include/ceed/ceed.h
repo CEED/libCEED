@@ -203,6 +203,7 @@ CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
 CEED_EXTERN int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
+CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
@@ -246,7 +247,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
 #define CEED_VERSION_MINOR 10
-#define CEED_VERSION_PATCH 0
+#define CEED_VERSION_PATCH 1
 #define CEED_VERSION_RELEASE false
 
 /// Compile-time check that the the current library version is at least as
@@ -691,6 +692,16 @@ typedef enum {
 } CeedContextFieldType;
 CEED_EXTERN const char *const CeedContextFieldTypes[];
 
+/** Handle for the user provided CeedQFunctionContextDataDestroy callback function
+
+ @param[in,out] data  User-CeedQFunctionContext data
+
+ @return An error code: 0 - success, otherwise - failure
+
+ @ingroup CeedQFunction
+**/
+typedef int (*CeedQFunctionContextDataDestroyUser)(void *data);
+
 CEED_EXTERN int CeedQFunctionContextCreate(Ceed ceed,
     CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
@@ -713,21 +724,16 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
     const char *field_name, size_t field_offset, size_t num_values,
     const char *field_description);
-CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
     const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
     const char **field_name, const char **field_description, size_t *num_values,
     CeedContextFieldType *field_type);
-CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
+CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
@@ -778,6 +784,7 @@ CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdm_inv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts);
+CEED_EXTERN int CeedOperatorSetName(CeedOperator op, const char *name);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);

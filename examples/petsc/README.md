@@ -61,7 +61,7 @@ The following arguments can be specified for all of the above examples:
 - `-ceed`              - CEED resource specifier
 - `-problem`           - CEED benchmark problem to solve
 - `-degree`            - Polynomial degree of tensor product basis
-- `-qextra`            - Number of extra quadrature points
+- `-q_extra`           - Number of extra quadrature points
 - `-test`              - Testing mode (do not print unless error is large)
 - `-benchmark`         - Benchmarking mode (prints benchmark statistics)
 
@@ -84,7 +84,7 @@ The following arguments can be specified for the area example:
 - `-ceed`              - CEED resource specifier
 - `-problem`           - Problem to solve, either 'cube' or 'sphere'
 - `-petscspace_degree` - Polynomial degree of tensor product basis
-- `-qextra`            - Number of extra quadrature points
+- `-q_extra`           - Number of extra quadrature points
 - `-test`              - Testing mode (do not print unless error is large)
 - `-mesh`              - Read mesh from file
 

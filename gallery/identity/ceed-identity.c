@@ -9,7 +9,7 @@
 #include <ceed/backend.h>
 #include <stddef.h>
 #include <string.h>
-#include "ceed-identity.h"
+#include <ceed/jit-source/gallery/ceed-identity.h>
 
 /**
   @brief Set fields identity QFunction that copies inputs directly into outputs

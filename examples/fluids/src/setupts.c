@@ -89,8 +89,15 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Update EulerContext
-  if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
+  // Update context field labels
+  if (user->phys->solution_time_label)
+    CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
+  if (user->phys->timestep_size_label) {
+    PetscScalar dt;
+    ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr);
+    CeedOperatorContextSetDouble(user->op_rhs, user->phys->timestep_size_label,
+                                 &dt);
+  }
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
@@ -146,8 +153,16 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
-  // Update EulerContext
-  if (user->phys->has_curr_time) user->phys->euler_ctx->curr_time = t;
+  // Update context field labels
+  if (user->phys->solution_time_label)
+    CeedOperatorContextSetDouble(user->op_ifunction,
+                                 user->phys->solution_time_label, &t);
+  if (user->phys->timestep_size_label) {
+    PetscScalar dt;
+    ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr);
+    CeedOperatorContextSetDouble(user->op_ifunction,
+                                 user->phys->timestep_size_label, &dt);
+  }
 
   // Get local vectors
   ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
@@ -220,7 +235,8 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
 
   // Output
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-%03D.vtu",
+  ierr = PetscSNPrintf(file_path, sizeof file_path,
+                       "%s/ns-%03" PetscInt_FMT ".vtu",
                        user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
   CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
@@ -241,7 +257,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
     ierr = DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc);
     CHKERRQ(ierr);
     ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
-                         "%s/nsrefined-%03D.vtu", user->app_ctx->output_dir,
+                         "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
                          step_no + user->app_ctx->cont_steps);
     CHKERRQ(ierr);
     ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),

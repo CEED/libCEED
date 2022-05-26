@@ -13,6 +13,7 @@
 #include <string.h>
 #include "ceed-hip-ref.h"
 
+
 //------------------------------------------------------------------------------
 // Get size of the scalar type
 // TODO: move to interface level for all backends?

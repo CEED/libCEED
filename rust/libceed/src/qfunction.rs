@@ -568,6 +568,12 @@ unsafe extern "C" fn trampoline(
     (trampoline_data.get_unchecked_mut().user_f)(inputs_array, outputs_array)
 }
 
+unsafe extern "C" fn destroy_trampoline(ctx: *mut ::std::os::raw::c_void) -> ::std::os::raw::c_int {
+    let trampoline_data: Pin<&mut QFunctionTrampolineData> = std::mem::transmute(ctx);
+    drop(trampoline_data);
+    0 // Clean error code
+}
+
 // -----------------------------------------------------------------------------
 // QFunction
 // -----------------------------------------------------------------------------
@@ -620,6 +626,14 @@ impl<'a> QFunction<'a> {
                 crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
                 std::mem::size_of::<QFunctionTrampolineData>() as u64,
                 std::mem::transmute(trampoline_data.as_ref()),
+            )
+        };
+        ceed.check_error(ierr)?;
+        ierr = unsafe {
+            bind_ceed::CeedQFunctionContextSetDataDestroy(
+                qf_ctx_ptr,
+                crate::MemType::Host as bind_ceed::CeedMemType,
+                Some(destroy_trampoline),
             )
         };
         ceed.check_error(ierr)?;

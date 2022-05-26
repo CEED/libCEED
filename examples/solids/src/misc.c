@@ -131,7 +131,7 @@ PetscErrorCode ViewSolution(MPI_Comm comm, AppCtx app_ctx, Vec U,
 
   // Build file name
   ierr = PetscSNPrintf(output_filename, sizeof output_filename,
-                       "%s/solution-%03D.vtu", app_ctx->output_dir,
+                       "%s/solution-%03" PetscInt_FMT ".vtu", app_ctx->output_dir,
                        increment); CHKERRQ(ierr);
 
   // Increment sequence

@@ -375,7 +375,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   } else {
     CeedScalar *array;
     ierr = CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array); CeedChk(ierr);
-    for (int i=0; i<vec->length; i++) array[i] = value;
+    for (CeedInt i=0; i<vec->length; i++) array[i] = value;
     ierr = CeedVectorRestoreArray(vec, &array); CeedChk(ierr);
   }
   vec->state += 2;
@@ -1142,17 +1142,17 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   *norm = 0.;
   switch (norm_type) {
   case CEED_NORM_1:
-    for (int i=0; i<vec->length; i++) {
+    for (CeedInt i=0; i<vec->length; i++) {
       *norm += fabs(array[i]);
     }
     break;
   case CEED_NORM_2:
-    for (int i=0; i<vec->length; i++) {
+    for (CeedInt i=0; i<vec->length; i++) {
       *norm += fabs(array[i])*fabs(array[i]);
     }
     break;
   case CEED_NORM_MAX:
-    for (int i=0; i<vec->length; i++) {
+    for (CeedInt i=0; i<vec->length; i++) {
       const CeedScalar abs_v_i = fabs(array[i]);
       *norm = *norm > abs_v_i ? *norm : abs_v_i;
     }

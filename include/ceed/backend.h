@@ -119,6 +119,7 @@ CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
     const char **resource);
+CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
     const char *resource);
 CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
@@ -265,9 +266,15 @@ CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
     void *data);
+CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
                                    CeedContextFieldType field_type, void *value);
+CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
+    CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
+    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);

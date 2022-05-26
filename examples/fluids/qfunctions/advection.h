@@ -12,34 +12,21 @@
 #define advection_h
 
 #include <math.h>
+#include <ceed.h>
 
-#ifndef setup_context_struct
-#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
   CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
   int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
   int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
-#endif
 
-#ifndef advection_context_struct
-#define advection_context_struct
 typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
@@ -48,7 +35,8 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-#endif
+
+CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
@@ -101,7 +89,7 @@ struct AdvectionContext_ {
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for 3D advection
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int Exact_Advection(CeedInt dim, CeedScalar time,
+CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time,
     const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc    = context->rc;
@@ -124,14 +112,13 @@ CEED_QFUNCTION_HELPER int Exact_Advection(CeedInt dim, CeedScalar time,
   switch (context->bubble_type) {
   //  original sphere
   case 0: { // (dim=3)
-    r = sqrt(pow((x - x0[0]), 2) +
-             pow((y - x0[1]), 2) +
-             pow((z - x0[2]), 2));
+    r = sqrt(Square(x - x0[0]) +
+             Square(y - x0[1]) +
+             Square(z - x0[2]));
   } break;
   // cylinder (needs periodicity to work properly)
   case 1: { // (dim=2)
-    r = sqrt(pow((x - x0[0]), 2) +
-             pow((y - x0[1]), 2) );
+    r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
   } break;
   }
 

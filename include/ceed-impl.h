@@ -14,6 +14,8 @@
 #include <ceed/backend.h>
 #include <stdbool.h>
 
+CEED_INTERN const char CeedJitSourceRootDefault[];
+
 /** @defgroup CeedUser Public API for Ceed
     @ingroup Ceed
 */
@@ -89,6 +91,8 @@ struct Ceed_private {
   int obj_delegate_count;
   Ceed op_fallback_ceed, op_fallback_parent;
   const char *op_fallback_resource;
+  char **jit_source_roots;
+  CeedInt num_jit_source_roots;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *,
                va_list *);
   int (*GetPreferredMemType)(CeedMemType *);
@@ -275,6 +279,8 @@ struct CeedQFunctionContext_private {
   int (*RestoreData)(CeedQFunctionContext);
   int (*RestoreDataRead)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  CeedMemType data_destroy_mem_type;
   CeedInt num_fields;
   CeedInt max_fields;
   CeedContextFieldLabel *field_labels;
@@ -371,6 +377,7 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
+  const char *name;
   bool is_immutable;
   bool is_interface_setup;
   bool is_backend_setup;

@@ -222,6 +222,36 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
+  @brief Get label for a registered QFunctionContext field, or `NULL` if no
+           field has been registered with this `field_name`
+
+  @param[in] ctx           CeedQFunctionContext
+  @param[in] field_name    Name of field to retrieve label
+  @param[out] field_label  Variable to field label
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+                                      const char *field_name,
+                                      CeedContextFieldLabel *field_label) {
+  int ierr;
+
+  CeedInt field_index;
+  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
+  CeedChk(ierr);
+
+  if (field_index != -1) {
+    *field_label = ctx->field_labels[field_index];
+  } else {
+    *field_label = NULL;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set QFunctionContext field
 
   @param ctx         CeedQFunctionContext
@@ -231,7 +261,7 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
@@ -253,6 +283,62 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
   ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data); CeedChk(ierr);
   memcpy(&data[field_label->offset], value, field_label->size);
   ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field holding a double precision value
+
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
+                                  CeedContextFieldLabel field_label, double *values) {
+  int ierr;
+
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_DOUBLE,
+                                        values); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field holding an int32 value
+
+  @param ctx         CeedQFunctionContext
+  @param field_label Label for field to register
+  @param values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
+                                 CeedContextFieldLabel field_label, int *values) {
+  int ierr;
+
+  if (!field_label)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
+                     "Invalid field label");
+  // LCOV_EXCL_STOP
+
+  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
+                                        CEED_CONTEXT_FIELD_INT32,
+                                        values); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -654,36 +740,6 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
 }
 
 /**
-  @brief Get label for a registered QFunctionContext field, or `NULL` if no
-           field has been registered with this `field_name`
-
-  @param[in] ctx           CeedQFunctionContext
-  @param[in] field_name    Name of field to retrieve label
-  @param[out] field_label  Variable to field label
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-                                      const char *field_name,
-                                      CeedContextFieldLabel *field_label) {
-  int ierr;
-
-  CeedInt field_index;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
-
-  if (field_index != -1) {
-    *field_label = ctx->field_labels[field_index];
-  } else {
-    *field_label = NULL;
-  }
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the descriptive information about a CeedContextFieldLabel
 
   @param[in] label              CeedContextFieldLabel
@@ -705,62 +761,6 @@ int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
   if (field_description) *field_description = label->description;
   if (num_values) *num_values = label->num_values;
   if (field_type) *field_type = label->type;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Set QFunctionContext field holding a double precision value
-
-  @param ctx         CeedQFunctionContext
-  @param field_label Label for field to register
-  @param values      Values to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-                                  CeedContextFieldLabel field_label, double *values) {
-  int ierr;
-
-  if (!field_label)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
-
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_DOUBLE,
-                                        values); CeedChk(ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Set QFunctionContext field holding an int32 value
-
-  @param ctx         CeedQFunctionContext
-  @param field_label Label for field to register
-  @param values      Values to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-                                 CeedContextFieldLabel field_label, int *values) {
-  int ierr;
-
-  if (!field_label)
-    // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
-
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_INT32,
-                                        values); CeedChk(ierr);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -805,6 +805,30 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 }
 
 /**
+  @brief Set additional destroy routine for CeedQFunctionContext user data
+
+  @param ctx        CeedQFunctionContext to set user destroy function
+  @param f_mem_type Memory type to use when passing data into `f`
+  @param f          Additional routine to use to destroy user data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+
+int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
+                                       CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f) {
+  if (!f)
+    // LCOV_EXCL_START
+    return CeedError(ctx->ceed, 1,
+                     "Must provide valid callback function for destroying user data");
+  // LCOV_EXCL_STOP
+  ctx->data_destroy_mem_type = f_mem_type;
+  ctx->data_destroy_function = f;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a CeedQFunctionContext
 
   @param ctx  CeedQFunctionContext to destroy
@@ -826,6 +850,14 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
                      "lock is in use");
   // LCOV_EXCL_STOP
 
+  if ((*ctx)->data_destroy_function) {
+    void *data;
+
+    ierr = CeedQFunctionContextGetData(*ctx, (*ctx)->data_destroy_mem_type, &data);
+    CeedChk(ierr);
+    ierr = (*ctx)->data_destroy_function(data); CeedChk(ierr);
+    ierr = CeedQFunctionContextRestoreData(*ctx, &data); CeedChk(ierr);
+  }
   if ((*ctx)->Destroy) {
     ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
   }

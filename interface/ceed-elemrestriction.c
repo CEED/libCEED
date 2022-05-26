@@ -43,8 +43,8 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets,
                           CeedInt num_blk, CeedInt num_elem, CeedInt blk_size,
                           CeedInt elem_size) {
   for (CeedInt e=0; e<num_blk*blk_size; e+=blk_size)
-    for (int j=0; j<blk_size; j++)
-      for (int k=0; k<elem_size; k++)
+    for (CeedInt j=0; j<blk_size; j++)
+      for (CeedInt k=0; k<elem_size; k++)
         blk_offsets[e*elem_size + k*blk_size + j]
           = offsets[CeedIntMin(e+j,num_elem-1)*elem_size + k];
   return CEED_ERROR_SUCCESS;
@@ -77,7 +77,7 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr,
                      "ElemRestriction has no stride data");
   // LCOV_EXCL_STOP
 
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     (*strides)[i] = rstr->strides[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -205,7 +205,7 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
                      "ElemRestriction has no layout data");
   // LCOV_EXCL_STOP
 
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     (*layout)[i] = rstr->layout[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -227,7 +227,7 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr,
 **/
 int CeedElemRestrictionSetELayout(CeedElemRestriction rstr,
                                   CeedInt layout[3]) {
-  for (int i = 0; i<3; i++)
+  for (CeedInt i = 0; i<3; i++)
     rstr->layout[i] = layout[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -374,6 +374,24 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (elem_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Element size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (comp_stride < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction component stride must be at least 1");
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
@@ -446,6 +464,24 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (elem_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Element size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (comp_stride < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction component stride must be at least 1");
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
@@ -510,6 +546,18 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (elem_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Element size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction must have at least 1 component");
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
   (*rstr)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
@@ -522,7 +570,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->blk_size = 1;
   (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL,
                                      *rstr);
@@ -590,6 +638,30 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
     CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   }
+
+  if (elem_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Element size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (blk_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Block size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction must have at least 1 component");
+  // LCOV_EXCL_STOP
+
+  if (comp_stride < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction component stride must be at least 1");
+  // LCOV_EXCL_STOP
 
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
@@ -662,6 +734,24 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
     return CEED_ERROR_SUCCESS;
   }
 
+  if (elem_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Element size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (blk_size < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Block size must be at least 1");
+  // LCOV_EXCL_STOP
+
+  if (num_comp < 1)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "ElemRestriction must have at least 1 component");
+  // LCOV_EXCL_STOP
+
   ierr = CeedCalloc(1, rstr); CeedChk(ierr);
 
   (*rstr)->ceed = ceed;
@@ -675,7 +765,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem,
   (*rstr)->blk_size = blk_size;
   (*rstr)->is_oriented = 0;
   ierr = CeedMalloc(3, &(*rstr)->strides); CeedChk(ierr);
-  for (int i=0; i<3; i++)
+  for (CeedInt i=0; i<3; i++)
     (*rstr)->strides[i] = strides[i];
   ierr = ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER,
          NULL, *rstr); CeedChk(ierr);

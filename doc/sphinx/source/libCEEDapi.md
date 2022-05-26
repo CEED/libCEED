@@ -470,7 +470,7 @@ be added according to demand.
 There are two common approaches for supporting non-conforming elements: applying the node constraints via $\bm P$ so that the **L-vector** can be processed uniformly and applying the constraints via $\bm{\mathcal{E}}$ so that the **E-vector** is uniform.
 The former can be done with the existing interface while the latter will require a generalization to element restriction that would define field values at constrained nodes as linear combinations of the values at primary nodes.
 
-These operations, $\bm{P}$, $\bm{B}$, and $\bm{D}$,
+These operations, $\bm{\mathcal{E}}$, $\bm{B}$, and $\bm{D}$,
 are combined with a {ref}`CeedOperator`. As with {ref}`CeedQFunction`s, operator fields are added
 separately with a matching field name, basis ($\bm{B}$), element restriction
 ($\bm{\mathcal{E}}$), and **L-vector**. The flag

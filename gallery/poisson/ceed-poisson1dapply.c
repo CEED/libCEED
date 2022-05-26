@@ -8,7 +8,7 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
-#include "ceed-poisson1dapply.h"
+#include <ceed/jit-source/gallery/ceed-poisson1dapply.h>
 
 /**
   @brief Set fields for Ceed QFunction applying the 1D Poisson operator

@@ -121,7 +121,8 @@
 ! ---- Setup Tet
       call ceedoperatorcreate(ceed,qf_setuptet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuptet,err)
-      call ceedoperatorsetfield(op_setuptet, 'weight',&
+      call ceedoperatorsetname(op_setuptet,'triangle elements',err)
+      call ceedoperatorsetfield(op_setuptet,'weight',&
      & ceed_elemrestriction_none,bxtet,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
@@ -130,6 +131,7 @@
 ! ---- Mass Tet
       call ceedoperatorcreate(ceed,qf_masstet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masstet,err)
+      call ceedoperatorsetname(op_masstet,'triangle elements',err)
       call ceedoperatorsetfield(op_masstet,'rho',erestrictuitet,&
      & ceed_basis_collocated,qdatatet,err)
       call ceedoperatorsetfield(op_masstet,'u',erestrictutet,&
@@ -184,6 +186,7 @@
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
+      call ceedoperatorsetname(op_setuphex,'quadralateral elements',err)
       call ceedoperatorsetfield(op_setuphex,'weight',&
      & ceed_elemrestriction_none,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
@@ -193,6 +196,7 @@
 ! ---- Mass Hex
       call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masshex,err)
+      call ceedoperatorsetname(op_masshex,'quadralateral elements',err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
      & ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&
@@ -202,10 +206,12 @@
 
 ! Composite Operators
       call ceedcompositeoperatorcreate(ceed,op_setup,err)
+      call ceedoperatorsetname(op_setup,'setup',err)
       call ceedcompositeoperatoraddsub(op_setup,op_setuptet,err)
       call ceedcompositeoperatoraddsub(op_setup,op_setuphex,err)
 
       call ceedcompositeoperatorcreate(ceed,op_mass,err)
+      call ceedoperatorsetname(op_mass,'mass',err)
       call ceedcompositeoperatoraddsub(op_mass,op_masstet,err)
       call ceedcompositeoperatoraddsub(op_mass,op_masshex,err)
 

@@ -67,6 +67,8 @@ static size_t num_qfunctions;
 int CeedQFunctionRegister(const char *name, const char *source,
                           CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
+  int ierr;
+
   if (num_qfunctions >= sizeof(gallery_qfunctions) / sizeof(
         gallery_qfunctions[0]))
     // LCOV_EXCL_START
@@ -75,9 +77,12 @@ int CeedQFunctionRegister(const char *name, const char *source,
 
   CeedDebugEnv("Gallery Register: %s", name);
 
+  const char *relative_file_path;
+  ierr = CeedGetJitRelativePath(source, &relative_file_path); CeedChk(ierr);
+
   strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN-1] = 0;
-  strncpy(gallery_qfunctions[num_qfunctions].source, source,
+  strncpy(gallery_qfunctions[num_qfunctions].source, relative_file_path,
           CEED_MAX_RESOURCE_LEN);
   gallery_qfunctions[num_qfunctions].source[CEED_MAX_RESOURCE_LEN-1] = 0;
   gallery_qfunctions[num_qfunctions].vec_length = vec_length;
@@ -138,7 +143,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field,
   ierr = CeedQFunctionFieldGetSize(field, &size); CeedChk(ierr);
   CeedEvalMode eval_mode;
   ierr = CeedQFunctionFieldGetEvalMode(field, &eval_mode); CeedChk(ierr);
-  fprintf(stream, "    %s Field [%d]:\n"
+  fprintf(stream, "    %s field %d:\n"
           "      Name: \"%s\"\n"
           "      Size: %d\n"
           "      EvalMode: \"%s\"\n",
@@ -598,16 +603,30 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
   (*qf)->function = f;
   (*qf)->user_flop_estimate = -1;
   if (strlen(source)) {
-    const char *kernel_name = strrchr(source, ':') + 1;
+    bool is_absolute_path;
+    char *absolute_path;
+
+    ierr = CeedCheckFilePath(ceed, source, &is_absolute_path); CeedChk(ierr);
+    if (is_absolute_path) {
+      absolute_path = (char *)source;
+    } else {
+      ierr = CeedGetJitAbsolutePath(ceed, source, &absolute_path); CeedChk(ierr);
+    }
+
+    const char *kernel_name = strrchr(absolute_path, ':') + 1;
     size_t kernel_name_len = strlen(kernel_name);
     ierr = CeedCalloc(kernel_name_len + 1, &kernel_name_copy); CeedChk(ierr);
-    strncpy(kernel_name_copy, kernel_name, kernel_name_len);
+    memcpy(kernel_name_copy, kernel_name, kernel_name_len);
     (*qf)->kernel_name = kernel_name_copy;
 
-    size_t source_len = strlen(source) - kernel_name_len - 1;
+    size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
     ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
-    strncpy(source_copy, source, source_len);
+    memcpy(source_copy, absolute_path, source_len);
     (*qf)->source_path = source_copy;
+
+    if (!is_absolute_path) {
+      ierr = CeedFree(&absolute_path); CeedChk(ierr);
+    }
   }
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->input_fields); CeedChk(ierr);
   ierr = CeedCalloc(CEED_FIELD_MAX, &(*qf)->output_fields); CeedChk(ierr);
@@ -949,18 +968,18 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "%sCeedQFunction %s\n",
+  fprintf(stream, "%sCeedQFunction - %s\n",
           qf->is_gallery ? "Gallery " : "User ",
           qf->is_gallery ? qf->gallery_name : qf->kernel_name);
 
-  fprintf(stream, "  %d Input Field%s:\n", qf->num_input_fields,
+  fprintf(stream, "  %d input field%s:\n", qf->num_input_fields,
           qf->num_input_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_input_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->input_fields[i], i, 1, stream);
     CeedChk(ierr);
   }
 
-  fprintf(stream, "  %d Output Field%s:\n", qf->num_output_fields,
+  fprintf(stream, "  %d output field%s:\n", qf->num_output_fields,
           qf->num_output_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_output_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream);
@@ -1036,11 +1055,11 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
   // Free fields
-  for (int i=0; i<(*qf)->num_input_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_input_fields; i++) {
     ierr = CeedFree(&(*(*qf)->input_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->input_fields[i]); CeedChk(ierr);
   }
-  for (int i=0; i<(*qf)->num_output_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_output_fields; i++) {
     ierr = CeedFree(&(*(*qf)->output_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->output_fields[i]); CeedChk(ierr);
   }

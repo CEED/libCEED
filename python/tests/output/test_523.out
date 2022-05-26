@@ -1,56 +1,60 @@
-Composite CeedOperator
-  SubOperator [0]:
-    3 Fields
-    2 Input Fields:
-      Input Field [0]:
+Composite CeedOperator - setup
+  SubOperator 0 - triangle elements:
+    6 elements with 4 quadrature points each
+    3 fields
+    2 input fields:
+      Input field 0:
         Name: "weights"
         No vector
-      Input Field [1]:
+      Input field 1:
         Name: "dx"
         Active vector
-    1 Output Field:
-      Output Field [0]:
+    1 output field:
+      Output field 0:
         Name: "rho"
         Collocated basis
-  SubOperator [1]:
-    3 Fields
-    2 Input Fields:
-      Input Field [0]:
+  SubOperator 1 - quadralateral elements:
+    6 elements with 16 quadrature points each
+    3 fields
+    2 input fields:
+      Input field 0:
         Name: "weights"
         No vector
-      Input Field [1]:
+      Input field 1:
         Name: "dx"
         Active vector
-    1 Output Field:
-      Output Field [0]:
+    1 output field:
+      Output field 0:
         Name: "rho"
         Collocated basis
 
-Composite CeedOperator
-  SubOperator [0]:
-    3 Fields
-    2 Input Fields:
-      Input Field [0]:
+Composite CeedOperator - mass
+  SubOperator 0 - triangle elements:
+    6 elements with 4 quadrature points each
+    3 fields
+    2 input fields:
+      Input field 0:
         Name: "rho"
         Collocated basis
-      Input Field [1]:
+      Input field 1:
         Name: "u"
         Active vector
-    1 Output Field:
-      Output Field [0]:
+    1 output field:
+      Output field 0:
         Name: "v"
         Active vector
-  SubOperator [1]:
-    3 Fields
-    2 Input Fields:
-      Input Field [0]:
+  SubOperator 1 - quadralateral elements:
+    6 elements with 16 quadrature points each
+    3 fields
+    2 input fields:
+      Input field 0:
         Name: "rho"
         Collocated basis
-      Input Field [1]:
+      Input field 1:
         Name: "u"
         Active vector
-    1 Output Field:
-      Output Field [0]:
+    1 output field:
+      Output field 0:
         Name: "v"
         Active vector
 

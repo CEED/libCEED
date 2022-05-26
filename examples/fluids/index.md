@@ -173,7 +173,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \bm{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
+  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
   \nabla \cdot \bm{F} \, (\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV &= 0
   \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
@@ -201,11 +201,13 @@ In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P
 It is defined as
 
 $$
-\mathcal P(\bm v) \equiv \left(\bm{\tau} \cdot \frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right)^T \, \nabla \bm v\,,
-$$
+\mathcal P(\bm v) \equiv \bm{\tau} \left(\frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
+$$ (eq-streamline-P)
 
-where parameter $\bm{\tau} \in \mathbb R^{3\times 3}$ (spatial indices) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
-This expression contains the flux Jacobian, which we express in variational notation by differentiating the advective flux $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
+where parameter $\bm{\tau} \in \mathbb R^{3}$ (spatial index) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+Most generally, we consider $\bm\tau \in \mathbb R^{3,5,5}$.
+This expression contains the advective flux Jacobian, which may be thought of as mapping from a 5-vector (state) to a $(5,3)$ tensor (flux) or from a $(5,3)$ tensor (gradient of state) to a 5-vector (time derivative of state); the latter is used in {eq}`eq-streamline-P` because it's applied to $\nabla\bm v$.
+The forward variational form can be readily expressed by differentiating $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
 
 $$
 \begin{aligned}
@@ -219,14 +221,14 @@ $$
 $$
 
 where $\diff P$ is defined by differentiating {eq}`eq-state`.
-In this notation, we may equivalently write the stabilization term as
+This action is also readily computed by forward-mode AD, but since $\bm v$ is a test function, we actually need the action of the adjoint to use {eq}`eq-streamline-P` in finite element computation; that can be computed by reverse-mode AD.
+We may equivalently write the stabilization term as
 
 $$
-\mathcal P(\bm v)^T \bm r = \nabla \bm v \bm\tau \diff\bm F_{\text{adv}}(\bm r),
+\mathcal P(\bm v)^T \bm r = \nabla \bm v \tcolon \left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right)^T \, \bm\tau \bm r,
 $$
 
-where $\bm r$ is the strong form residual.
-Note that both $\nabla \bm v$ and $\diff \bm F$ are $5\times 3$ matrices and that $\bm\tau$ can be defined with spatial indices, or field indices, leading to a stabilization term of $(\nabla \bm v)_{\alpha i} \tau_{ij} \diff \bm F_{\alpha j}$ for spatial or $(\nabla \bm v)_{\alpha i} \tau_{\alpha \beta} \diff \bm F_{\beta i}$ for field, where $\alpha,\beta$ are field indices and $i,j$ are spatial indices.
+where $\bm r$ is the strong form residual and $\bm\tau$ is a $5\times 5$ matrix.
 
 :::{dropdown} Stabilization scale $\bm\tau$
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
@@ -260,12 +262,32 @@ $$ (eq-test-perturbation-advdiff)
 
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
-For the Navier-Stokes and Euler equations in primitive variables, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization consisting of
+For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization $\mathrm{diag}(\tau_c, \tau_m, \tau_m, \tau_m, \tau_E)$ consisting of
 1. continuity stabilization $\tau_c$
 2. momentum stabilization $\tau_m$
 3. energy stabilization $\tau_E$
 
-However, since our equations are in conservative form, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
+The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
+
+$$ 
+\begin{aligned}
+
+\tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
+\tau_m &= \frac{C_m}{\mathcal{F}} \\
+\tau_E &= \frac{C_E}{\mathcal{F} c_v} \\
+\end{aligned}
+$$
+
+$$
+\mathcal{F} = \sqrt{ \rho^2 \left [ \left(\frac{2C_t}{\Delta t}\right)^2
++ \bm u \cdot (\bm u \cdot  \bm g)
++ C_v \mu^2 \Vert \bm g \Vert_F ^2\right]}
+$$
+
+where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor and $\Vert \cdot \Vert_F$ is the Frobenius norm.
+This formulation is currently not available in the Euler code.
+
+In the Euler code, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.
 
 $$
 \tau_{ii} = c_{\tau} \frac{2 \xi(\mathrm{Pe})}{(\lambda_{\max \text{abs}})_i \lVert \nabla_{x_i} \bm X \rVert}
@@ -351,6 +373,44 @@ $$
 where $(\bar{x}, \, \bar{y}) = (x-x_c, \, y-y_c)$, $(x_c, \, y_c)$ represents the center of the domain, $r^2=\bar{x}^2 + \bar{y}^2$, and $\epsilon$ is the vortex strength ($\epsilon$ < 10).
 There is no perturbation in the entropy $S=P/\rho^\gamma$ ($\delta S=0)$.
 
+(problem-shock-tube)=
+
+## Shock Tube
+
+This test problem is based on Sod's Shock Tube (from{cite}`sodshocktubewiki`), a canonical test case for discontinuity capturing in one dimension. For this problem, the three-dimensional Euler equations are formulated exactly as in the Isentropic Vortex problem. The default initial conditions are $P=1$, $\rho=1$ for the driver section and $P=0.1$, $\rho=0.125$ for the driven section. The initial velocity is zero in both sections. Slip boundary conditions are applied to the side walls and wall boundary conditions are applied at the end walls.
+
+SU upwinding and discontinuity capturing have been implemented into the explicit timestepping operator for this problem. Discontinuity capturing is accomplished using a modified version of the $YZ\beta$ operator described in {cite}`tezduyar2007yzb`. This discontinuity capturing scheme involves the introduction of a dissipation term of the form
+
+$$
+\int_{\Omega} \nu_{SHOCK} \nabla \bm v \!:\! \nabla \bm q dV
+$$
+
+The shock capturing viscosity is implemented following the first formulation described in {cite} `tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
+
+$$
+\nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
+$$
+
+where,
+
+$$
+\tau_{SHOCK} = \frac{h_{SHOCK}}{2u_{cha}} \left( \frac{ \,|\, \nabla \rho \,|\, h_{SHOCK}}{\rho_{ref}} \right)^{\beta}
+$$
+
+$\beta$ is a tuning parameter set between 1 (smoother shocks) and 2 (sharper shocks. The parameter $h_{SHOCK}$ is a length scale that is proportional to the element length in the direction of the density gradient unit vector. This density gradient unit vector is defined as $\hat{\bm j} = \frac{\nabla \rho}{|\nabla \rho|}$. The original formulation of Tezduyar and Senga relies on the shape function gradient to define the element length scale, but this gradient is not available to qFunctions in libCEED. To avoid this problem, $h_{SHOCK}$ is defined in the current implementation as
+
+$$
+h_{SHOCK} = 2 \left( C_{YZB} \,|\, \bm p \,|\, \right)^{-1}
+$$
+
+where
+
+$$
+p_k = \hat{j}_i \frac{\partial \xi_i}{x_k}
+$$
+
+The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the current implementation. Larger values approaching unity are expected with more robust stabilization and implicit timestepping.
+
 (problem-density-current)=
 
 ## Density Current
@@ -364,3 +424,223 @@ $$
 
 where $P_0$ is the atmospheric pressure.
 For this problem, we have used no-slip and non-penetration boundary conditions for $\bm{u}$, and no-flux for mass and energy densities.
+
+## Channel
+
+A compressible channel flow. Analytical solution given in
+{cite}`whitingStabilizedFEM1999`:
+
+$$ u_1 = u_{\max} \left [ 1 - \left ( \frac{x_2}{H}\right)^2 \right] \quad \quad u_2 = u_3 = 0$$
+$$T = T_w \left [ 1 + \frac{Pr \hat{E}c}{3} \left \{1 - \left(\frac{x_2}{H}\right)^4  \right \} \right]$$
+$$p = p_0 - \frac{2\rho_0 u_{\max}^2 x_1}{Re_H H}$$
+
+where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ is the temperature at the wall, $Pr=\frac{\mu}{c_p \kappa}$ is the Prandlt number, $\hat E_c = \frac{u_{\max}^2}{c_p T_w}$ is the modified Eckert number, and $Re_h = \frac{u_{\max}H}{\nu}$ is the Reynolds number.
+
+Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
+The flow is driven by a body force.
+
+## Flat Plate Boundary Layer
+
+### Laminar Boundary Layer - Blasius
+
+Simulation of a laminar boundary layer flow, with the inflow being prescribed
+by a [Blasius similarity
+solution](https://en.wikipedia.org/wiki/Blasius_boundary_layer). At the inflow,
+the velocity is prescribed by the Blasius soution profile, density is set
+constant, and temperature is allowed to float. Using `weakT: true`, density is
+allowed to float and temperature is set constant. At the outlet, a user-set
+pressure is used for pressure in the inviscid flux terms (all other inviscid
+flux terms use interior solution values). The viscous traction is also set to
+the analytic Blasius profile value at both the inflow and the outflow. The wall
+is a no-slip, no-penetration, no-heat flux condition. The top of the domain is
+treated as an outflow and is tilted at a downward angle to ensure that flow is
+always exiting it.
+
+### Turbulent Boundary Layer
+
+Simulating a turbulent boundary layer without modeling the turbulence requires
+resolving the turbulent flow structures. These structures may be introduced
+into the simulations either by allowing a laminar boundary layer naturally
+transition to turbulence, or imposing turbulent structures at the inflow. The
+latter approach has been taken here, specifically using a *synthetic turbulence
+generation* (STG) method.
+
+#### Synthetic Turbulence Generation (STG) Boundary Condition
+
+We use the STG method described in
+{cite}`shurSTG2014`. Below follows a re-description of the formulation to match
+the present notation, and then a description of the implementation and usage.
+
+##### Equation Formulation
+
+$$
+\bm{u}(\bm{x}, t) = \bm{\overline{u}}(\bm{x}) + \bm{C}(\bm{x}) \cdot \bm{v}'
+$$
+
+$$
+\begin{aligned}
+\bm{v}' &= 2 \sqrt{3/2} \sum^N_{n=1} \sqrt{q^n(\bm{x})} \bm{\sigma}^n \cos(\kappa^n \bm{d}^n \cdot \bm{\hat{x}}^n(\bm{x}, t) + \phi^n ) \\
+\bm{\hat{x}}^n &= \left[(x - U_0 t)\max(2\kappa_{\min}/\kappa^n, 0.1) , y, z  \right]^T
+\end{aligned}
+$$
+
+Here, we define the number of wavemodes $N$, set of random numbers $ \{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$, the Cholesky decomposition of the Reynolds stress
+tensor $\bm{C}$ (such that $\bm{R} = \bm{CC}^T$ ), bulk velocity $U_0$,
+wavemode amplitude $q^n$, wavemode frequency $\kappa^n$, and $\kappa_{\min} =
+0.5 \min_{\bm{x}} (\kappa_e)$.
+
+$$
+\kappa_e = \frac{2\pi}{\min(2d_w, 3.0 l_t)}
+$$
+
+where $l_t$ is the turbulence length scale, and $d_w$ is the distance to the
+nearest wall.
+
+
+The set of wavemode frequencies is defined by a geometric distribution:
+
+$$
+\kappa^n = \kappa_{\min} (1 + \alpha)^{n-1} \ , \quad \forall n=1, 2, ... , N
+$$
+
+The wavemode amplitudes $q^n$ are defined by a model energy spectrum $E(\kappa)$:
+
+$$
+q^n = \frac{E(\kappa^n) \Delta \kappa^n}{\sum^N_{n=1} E(\kappa^n)\Delta \kappa^n} \ ,\quad \Delta \kappa^n = \kappa^n - \kappa^{n-1}
+$$
+
+$$ E(\kappa) = \frac{(\kappa/\kappa_e)^4}{[1 + 2.4(\kappa/\kappa_e)^2]^{17/6}} f_\eta f_{\mathrm{cut}} $$
+
+$$
+f_\eta = \exp \left[-(12\kappa /\kappa_\eta)^2 \right], \quad
+f_\mathrm{cut} = \exp \left( - \left [ \frac{4\max(\kappa-0.9\kappa_\mathrm{cut}, 0)}{\kappa_\mathrm{cut}} \right]^3 \right)
+$$
+
+$\kappa_\eta$ represents turbulent dissipation frequency, and is given as $2\pi
+(\nu^3/\varepsilon)^{-1/4}$ with $\nu$ the kinematic viscosity and
+$\varepsilon$ the turbulent dissipation. $\kappa_\mathrm{cut}$ approximates the
+effective cutoff frequency of the mesh (viewing the mesh as a filter on
+solution over $\Omega$) and is given by:
+
+$$
+\kappa_\mathrm{cut} = \frac{2\pi}{ 2\min\{ [\max(h_y, h_z, 0.3h_{\max}) + 0.1 d_w], h_{\max} \} }
+$$
+
+The enforcement of the boundary condition is identical to the blasius inflow;
+it weakly enforces velocity, with the option of weakly enforcing either density
+or temperature using the the `-weakT` flag.
+
+##### Initialization Data Flow
+
+Data flow for initializing function (which creates the context data struct) is
+given below:
+```{mermaid}
+flowchart LR
+    subgraph STGInflow.dat
+    y
+    lt[l_t]
+    eps
+    Rij[R_ij]
+    ubar
+    end
+
+    subgraph STGRand.dat
+    rand[RN Set];
+    end
+
+    subgraph User Input
+    u0[U0];
+    end
+
+    subgraph init[Create Context Function]
+    ke[k_e]
+    N;
+    end
+    lt --Calc-->ke --Calc-->kn
+    y --Calc-->ke
+
+    subgraph context[Context Data]
+    yC[y]
+    randC[RN Set]
+    Cij[C_ij]
+    u0 --Copy--> u0C[U0]
+    kn[k^n];
+    ubarC[ubar]
+    ltC[l_t]
+    epsC[eps]
+    end
+    ubar --Copy--> ubarC;
+    y --Copy--> yC;
+    lt --Copy--> ltC;
+    eps --Copy--> epsC;
+
+    rand --Copy--> randC;
+    rand --> N --Calc--> kn;
+    Rij --Calc--> Cij[C_ij]
+```
+
+This is done once at runtime. The spatially-varying terms are then evaluated at
+each quadrature point on-the-fly, either by interpolation (for $l_t$,
+$\varepsilon$, $C_{ij}$, and $\overline{\bm u}$) or by calculation (for $q^n$).
+
+The `STGInflow.dat` file is a table of values at given distances from the wall.
+These values are then interpolated to a physical location (node or quadrature
+point). It has the following format:
+```
+[Total number of locations] 14
+[d_w] [u_1] [u_2] [u_3] [R_11] [R_22] [R_33] [R_12] [R_13] [R_23] [sclr_1] [sclr_2] [l_t] [eps]
+```
+where each `[  ]` item is a number in scientific notation (ie. `3.1415E0`), and `sclr_1` and
+`sclr_2` are reserved for turbulence modeling variables. They are not used in
+this example.
+
+The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
+\bm{d}^n, \phi^n\}_{n=1}^N$. It has the format:
+```
+[Number of wavemodes] 7
+[d_1] [d_2] [d_3] [phi] [sigma_1] [sigma_2] [sigma_3]
+```
+
+The following table is presented to help clarify the dimensionality of the
+numerous terms in the STG formulation.
+
+| Math            | Label  | $f(\bm{x})$? | $f(n)$? |
+|-----------------|--------|--------------|---------|
+| $ \{\bm{\sigma}^n, \bm{d}^n, \phi^n\}_{n=1}^N$        | RN Set | No           | Yes     |
+| $\bm{\overline{u}}$ | ubar | Yes | No |
+| $U_0$           | U0     | No           | No      |
+| $l_t$           | l_t    | Yes          | No   |
+| $\varepsilon$   | eps    | Yes          | No   |
+| $\bm{R}$        | R_ij   | Yes          | No      |
+| $\bm{C}$        | C_ij   | Yes          | No      |
+| $q^n$           | q^n    | Yes           | Yes     |
+| $\{\kappa^n\}_{n=1}^N$ | k^n  | No           | Yes      |
+| $h_i$           | h_i    | Yes          | No   |
+| $d_w$           | d_w    | Yes          | No   |
+
+### Meshing
+
+The flat plate boundary layer example has custom meshing features to better
+resolve the flow. One of those is tilting the top of the domain, allowing for
+it to be a outflow boundary condition. The angle of this tilt is controled by
+`-platemesh_top_angle`
+
+The primary meshing feature is the ability to grade the mesh, providing better
+resolution near the wall. There are two methods to do this; algorithmically, or
+specifying the node locations via a file. Algorithmically, a base node
+distribution is defined at the inlet (assumed to be $\min(x)$) and then
+linearly stretched/squeezed to match the slanted top boundary condition. Nodes
+are placed such that `-platemesh_Ndelta` elements are within
+`-platemesh_refine_height` of the wall. They are placed such that the element
+height matches a geometric growth ratio defined by `-platemesh_growth`. The
+remaining elements are then distributed from `-platemesh_refine_height` to the
+top of the domain linearly in logarithmic space.
+
+Alternatively, a file may be specified containing the locations of each node.
+The file should be newline delimited, with the first line specifying the number
+of points and the rest being the locations of the nodes. The node locations
+used exactly at the inlet (assumed to be $\min(x)$) and linearly
+stretched/squeezed to match the slanted top boundary condition. The file is
+specified via `-platemesh_y_node_locs_path`. If this flag is given an empty
+string, then the algorithmic approach will be performed.

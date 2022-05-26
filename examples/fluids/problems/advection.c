@@ -12,44 +12,47 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
                             void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
-  SetupContext         setup_context = *(SetupContext *)setup_ctx;
+  SetupContext         setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   PetscBool            implicit;
   PetscBool            has_curr_time = PETSC_FALSE;
   PetscInt             ierr;
-  PetscFunctionBeginUser;
+  AdvectionContext     advection_ctx;
+  CeedQFunctionContext advection_context;
 
-  ierr = PetscCalloc1(1, &user->phys->advection_ctx); CHKERRQ(ierr);
+  PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &advection_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP ADVECTION
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->ics                     = ICsAdvection;
-  problem->ics_loc                 = ICsAdvection_loc;
-  problem->apply_vol_rhs           = Advection;
-  problem->apply_vol_rhs_loc       = Advection_loc;
-  problem->apply_vol_ifunction     = IFunction_Advection;
-  problem->apply_vol_ifunction_loc = IFunction_Advection_loc;
-  problem->apply_inflow            = Advection_InOutFlow;
-  problem->apply_inflow_loc        = Advection_InOutFlow_loc;
-  problem->bc                      = Exact_Advection;
-  problem->setup_ctx               = SetupContext_ADVECTION;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_ADVECTION;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 10;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->ics.qfunction                     = ICsAdvection;
+  problem->ics.qfunction_loc                 = ICsAdvection_loc;
+  problem->apply_vol_rhs.qfunction           = Advection;
+  problem->apply_vol_rhs.qfunction_loc       = Advection_loc;
+  problem->apply_vol_ifunction.qfunction     = IFunction_Advection;
+  problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection_loc;
+  problem->apply_inflow.qfunction            = Advection_InOutFlow;
+  problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
+  problem->bc                                = Exact_Advection;
+  problem->bc_ctx                            = setup_context;
+  problem->non_zero_time                     = PETSC_FALSE;
+  problem->print_info                        = PRINT_ADVECTION;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -61,7 +64,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   PetscReal wind[3]      = {1., 0, 0}; // m/s
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
 
   // ------------------------------------------------------
@@ -75,8 +78,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for ADVECTION problem", NULL);
   // -- Physics
   ierr = PetscOptionsScalar("-rc", "Characteristic radius of thermal bubble",
                             NULL, rc, &rc, NULL); CHKERRQ(ierr);
@@ -148,7 +150,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
     CHKERRQ(ierr);
   }
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context
@@ -167,7 +169,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   // -- Scale variables to desired units
   E_wind *= Joule;
   rc = fabs(rc) * meter;
-  for (int i=0; i<3; i++) {
+  for (PetscInt i=0; i<3; i++) {
     wind[i] *= (meter/second);
     domain_size[i] *= meter;
   }
@@ -194,43 +196,41 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *setup_ctx,
   //  if passed correctly
   user->phys->implicit                     = implicit;
   user->phys->has_curr_time                = has_curr_time;
-  user->phys->advection_ctx->CtauS         = CtauS;
-  user->phys->advection_ctx->E_wind        = E_wind;
-  user->phys->advection_ctx->implicit      = implicit;
-  user->phys->advection_ctx->strong_form   = strong_form;
-  user->phys->advection_ctx->stabilization = stab;
+  advection_ctx->CtauS         = CtauS;
+  advection_ctx->E_wind        = E_wind;
+  advection_ctx->implicit      = implicit;
+  advection_ctx->strong_form   = strong_form;
+  advection_ctx->stabilization = stab;
 
-  PetscFunctionReturn(0);
-}
+  CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
+  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_context), setup_context);
 
-PetscErrorCode SetupContext_ADVECTION(Ceed ceed, CeedData ceed_data,
-                                      AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
-  PetscFunctionBeginUser;
-  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
-  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
-  CeedQFunctionContextCreate(ceed, &ceed_data->advection_context);
-  CeedQFunctionContextSetData(ceed_data->advection_context, CEED_MEM_HOST,
+  CeedQFunctionContextCreate(user->ceed, &advection_context);
+  CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST,
                               CEED_USE_POINTER,
-                              sizeof(*phys->advection_ctx), phys->advection_ctx);
-  if (ceed_data->qf_rhs_vol)
-    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->advection_context);
-  if (ceed_data->qf_ifunction_vol)
-    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
-                            ceed_data->advection_context);
-  if (ceed_data->qf_apply_inflow)
-    CeedQFunctionSetContext(ceed_data->qf_apply_inflow,
-                            ceed_data->advection_context);
+                              sizeof(*advection_ctx), advection_ctx);
+  CeedQFunctionContextSetDataDestroy(advection_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
+  problem->apply_vol_rhs.qfunction_context = advection_context;
+  CeedQFunctionContextReferenceCopy(advection_context,
+                                    &problem->apply_vol_ifunction.qfunction_context);
+  CeedQFunctionContextReferenceCopy(advection_context,
+                                    &problem->apply_inflow.qfunction_context);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
-                               AppCtx app_ctx) {
+PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
-  PetscFunctionBeginUser;
+  SetupContext   setup_ctx;
+  AdvectionContext advection_ctx;
 
+  PetscFunctionBeginUser;
+  CeedQFunctionContextGetData(problem->ics.qfunction_context,
+                              CEED_MEM_HOST, &setup_ctx);
+  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
+                              CEED_MEM_HOST, &advection_ctx);
   ierr = PetscPrintf(comm,
                      "  Problem:\n"
                      "    Problem Name                       : %s\n"
@@ -238,16 +238,20 @@ PetscErrorCode PRINT_ADVECTION(Physics phys, SetupContext setup_ctx,
                      "    Bubble Type                        : %s (%dD)\n"
                      "    Bubble Continuity                  : %s\n"
                      "    Wind Type                          : %s\n",
-                     app_ctx->problem_name, StabilizationTypes[phys->stab],
-                     BubbleTypes[phys->bubble_type],
-                     phys->bubble_type == BUBBLE_SPHERE ? 3 : 2,
-                     BubbleContinuityTypes[phys->bubble_continuity_type],
-                     WindTypes[phys->wind_type]); CHKERRQ(ierr);
+                     app_ctx->problem_name, StabilizationTypes[advection_ctx->stabilization],
+                     BubbleTypes[setup_ctx->bubble_type],
+                     setup_ctx->bubble_type == BUBBLE_SPHERE ? 3 : 2,
+                     BubbleContinuityTypes[setup_ctx->bubble_continuity_type],
+                     WindTypes[setup_ctx->wind_type]); CHKERRQ(ierr);
 
-  if (phys->wind_type == WIND_TRANSLATION) {
+  if (setup_ctx->wind_type == WIND_TRANSLATION) {
     ierr = PetscPrintf(comm,
                        "    Background Wind                    : %f,%f,%f\n",
                        setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]); CHKERRQ(ierr);
   }
+  CeedQFunctionContextRestoreData(problem->ics.qfunction_context,
+                                  &setup_ctx);
+  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
+                                  &advection_ctx);
   PetscFunctionReturn(0);
 }

@@ -12,89 +12,81 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/newtonian.h"
 
-PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
-                               void *ctx) {
-  SetupContext      setup_context = *(SetupContext *)setup_ctx;
+PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
+  SetupContext      setup_context;
   User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
   PetscBool         has_curr_time = PETSC_FALSE;
   PetscInt          ierr;
-  PetscFunctionBeginUser;
+  NewtonianIdealGasContext newtonian_ig_ctx;
+  CeedQFunctionContext newtonian_ig_context;
 
-  ierr = PetscCalloc1(1, &user->phys->newtonian_ig_ctx); CHKERRQ(ierr);
+  PetscFunctionBeginUser;
+  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &newtonian_ig_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //           Setup Generic Newtonian IG Problem
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 4;
-  problem->setup_vol               = Setup;
-  problem->setup_vol_loc           = Setup_loc;
-  problem->ics                     = ICsNewtonianIG;
-  problem->ics_loc                 = ICsNewtonianIG_loc;
-  problem->setup_sur               = SetupBoundary;
-  problem->setup_sur_loc           = SetupBoundary_loc;
-  problem->apply_vol_rhs           = Newtonian;
-  problem->apply_vol_rhs_loc       = Newtonian_loc;
-  problem->apply_vol_ifunction     = IFunction_Newtonian;
-  problem->apply_vol_ifunction_loc = IFunction_Newtonian_loc;
-  problem->setup_ctx               = SetupContext_DENSITY_CURRENT;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_DENSITY_CURRENT;
+  problem->dim                               = 3;
+  problem->q_data_size_vol                   = 10;
+  problem->q_data_size_sur                   = 10;
+  problem->setup_vol.qfunction               = Setup;
+  problem->setup_vol.qfunction_loc           = Setup_loc;
+  problem->ics.qfunction                     = ICsNewtonianIG;
+  problem->ics.qfunction_loc                 = ICsNewtonianIG_loc;
+  problem->setup_sur.qfunction               = SetupBoundary;
+  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+  problem->apply_vol_rhs.qfunction           = Newtonian;
+  problem->apply_vol_rhs.qfunction_loc       = Newtonian_loc;
+  problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian;
+  problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
+  problem->bc                                = NULL;
+  problem->bc_ctx                            = setup_context;
+  problem->non_zero_time                     = PETSC_FALSE;
+  problem->print_info                        = PRINT_DENSITY_CURRENT;
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar theta0 = 300.;    // K
-  CeedScalar thetaC = -15.;    // K
-  CeedScalar P0     = 1.e5;    // Pa
-  CeedScalar N      = 0.01;    // 1/s
-  CeedScalar cv     = 717.;    // J/(kg K)
-  CeedScalar cp     = 1004.;   // J/(kg K)
-  CeedScalar g      = 9.81;    // m/s^2
-  CeedScalar lambda = -2./3.;  // -
-  CeedScalar mu     = 75.;     // Pa s, dynamic viscosity
-  // mu = 75 is not physical for air, but is good for numerical stability
-  CeedScalar k      = 0.02638; // W/(m K)
-  CeedScalar c_tau  = 0.5;     // -
-  // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
+  CeedScalar cv     = 717.;          // J/(kg K)
+  CeedScalar cp     = 1004.;         // J/(kg K)
+  CeedScalar g[3]   = {0, 0, -9.81}; // m/s^2
+  CeedScalar lambda = -2./3.;        // -
+  CeedScalar mu     = 1.8e-5;        // Pa s, dynamic viscosity
+  CeedScalar k      = 0.02638;       // W/(m K)
+  CeedScalar c_tau  = 0.5;           // -
+  CeedScalar Ctau_t  = 1.0;          // -
+  CeedScalar Ctau_v  = 36.0;         // TODO make function of degree
+  CeedScalar Ctau_C  = 1.0;          // TODO make function of degree
+  CeedScalar Ctau_M  = 1.0;          // TODO make function of degree
+  CeedScalar Ctau_E  = 1.0;          // TODO make function of degree
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (int i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
-  PetscScalar meter    = 1e-2;  // 1 meter in scaled length units
-  PetscScalar kilogram = 1e-6;  // 1 kilogram in scaled mass units
-  PetscScalar second   = 1e-2;  // 1 second in scaled time units
+  PetscScalar meter    = 1;  // 1 meter in scaled length units
+  PetscScalar kilogram = 1;  // 1 kilogram in scaled mass units
+  PetscScalar second   = 1;  // 1 second in scaled time units
   PetscScalar Kelvin   = 1;     // 1 Kelvin in scaled temperature units
   PetscScalar W_per_m_K, Pascal, J_per_kg_K, m_per_squared_s;
 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  ierr = PetscOptionsBegin(comm, NULL,
-                           "Options for Newtonian Ideal Gas based problem",
-                           NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "Options for Newtonian Ideal Gas based problem",
+                    NULL);
+
   // -- Physics
-  ierr = PetscOptionsScalar("-theta0", "Reference potential temperature",
-                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-thetaC", "Perturbation of potential temperature",
-                            NULL, thetaC, &thetaC, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-P0", "Atmospheric pressure",
-                            NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-N", "Brunt-Vaisala frequency",
-                            NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
                             NULL, cv, &cv, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-cp", "Heat capacity at constant pressure",
                             NULL, cp, &cp, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-g", "Gravitational acceleration",
-                            NULL, g, &g, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-lambda",
                             "Stokes hypothesis second viscosity coefficient",
                             NULL, lambda, &lambda, NULL); CHKERRQ(ierr);
@@ -103,11 +95,24 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   ierr = PetscOptionsScalar("-k", "Thermal conductivity",
                             NULL, k, &k, NULL); CHKERRQ(ierr);
 
+  PetscInt dim = problem->dim;
+  ierr = PetscOptionsRealArray("-g", "Gravitational acceleration",
+                               NULL, g, &dim, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
                           StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
                           (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
                             NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_t", "Stabilization time constant",
+                            NULL, Ctau_t, &Ctau_t, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_v", "Stabilization viscous constant",
+                            NULL, Ctau_v, &Ctau_v, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_C", "Stabilization continuity constant",
+                            NULL, Ctau_C, &Ctau_C, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_M", "Stabilization momentum constant",
+                            NULL, Ctau_M, &Ctau_M, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-Ctau_E", "Stabilization energy constant",
+                            NULL, Ctau_E, &Ctau_E, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
   CHKERRQ(ierr);
@@ -133,7 +138,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
                        "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // ------------------------------------------------------
   //           Set up the PETSc context
@@ -157,30 +162,22 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  theta0 *= Kelvin;
-  thetaC *= Kelvin;
-  P0     *= Pascal;
-  N      *= (1./second);
   cv     *= J_per_kg_K;
   cp     *= J_per_kg_K;
-  g      *= m_per_squared_s;
   mu     *= Pascal * second;
   k      *= W_per_m_K;
-  for (int i=0; i<3; i++) domain_size[i] *= meter;
+  for (PetscInt i=0; i<3; i++) domain_size[i] *= meter;
+  for (PetscInt i=0; i<3; i++) g[i]           *= m_per_squared_s;
   problem->dm_scale = meter;
 
   // -- Setup Context
-  setup_context->theta0     = theta0;
-  setup_context->thetaC     = thetaC;
-  setup_context->P0         = P0;
-  setup_context->N          = N;
   setup_context->cv         = cv;
   setup_context->cp         = cp;
-  setup_context->g          = g;
   setup_context->lx         = domain_size[0];
   setup_context->ly         = domain_size[1];
   setup_context->lz         = domain_size[2];
   setup_context->time       = 0;
+  ierr = PetscArraycpy(setup_context->g, g, 3); CHKERRQ(ierr);
 
   // -- Solver Settings
   user->phys->stab          = stab;
@@ -188,33 +185,57 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *setup_ctx,
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
-  user->phys->newtonian_ig_ctx->lambda        = lambda;
-  user->phys->newtonian_ig_ctx->mu            = mu;
-  user->phys->newtonian_ig_ctx->k             = k;
-  user->phys->newtonian_ig_ctx->cv            = cv;
-  user->phys->newtonian_ig_ctx->cp            = cp;
-  user->phys->newtonian_ig_ctx->g             = g;
-  user->phys->newtonian_ig_ctx->c_tau         = c_tau;
-  user->phys->newtonian_ig_ctx->stabilization = stab;
+  newtonian_ig_ctx->lambda        = lambda;
+  newtonian_ig_ctx->mu            = mu;
+  newtonian_ig_ctx->k             = k;
+  newtonian_ig_ctx->cv            = cv;
+  newtonian_ig_ctx->cp            = cp;
+  newtonian_ig_ctx->c_tau         = c_tau;
+  newtonian_ig_ctx->Ctau_t        = Ctau_t;
+  newtonian_ig_ctx->Ctau_v        = Ctau_v;
+  newtonian_ig_ctx->Ctau_C        = Ctau_C;
+  newtonian_ig_ctx->Ctau_M        = Ctau_M;
+  newtonian_ig_ctx->Ctau_E        = Ctau_E;
+  newtonian_ig_ctx->stabilization = stab;
+  ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
+  CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
+  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context,
+                                     "evaluation time",
+                                     (char *)&setup_context->time - (char *)setup_context, 1, "Time of evaluation");
+
+  CeedQFunctionContextCreate(user->ceed, &newtonian_ig_context);
+  CeedQFunctionContextSetData(newtonian_ig_context, CEED_MEM_HOST,
+                              CEED_USE_POINTER,
+                              sizeof(*newtonian_ig_ctx), newtonian_ig_ctx);
+  CeedQFunctionContextSetDataDestroy(newtonian_ig_context, CEED_MEM_HOST,
+                                     FreeContextPetsc);
+  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "timestep size",
+                                     offsetof(struct NewtonianIdealGasContext_, dt), 1, "Size of timestep, delta t");
+  problem->apply_vol_rhs.qfunction_context = newtonian_ig_context;
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context,
+                                    &problem->apply_vol_ifunction.qfunction_context);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupContext_NEWTONIAN_IG(Ceed ceed, CeedData ceed_data,
-    AppCtx app_ctx, SetupContext setup_ctx, Physics phys) {
+PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
+                                     AppCtx app_ctx) {
+  MPI_Comm comm = PETSC_COMM_WORLD;
+  PetscErrorCode ierr;
+  NewtonianIdealGasContext newtonian_ctx;
+
   PetscFunctionBeginUser;
-  CeedQFunctionContextCreate(ceed, &ceed_data->setup_context);
-  CeedQFunctionContextSetData(ceed_data->setup_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*setup_ctx), setup_ctx);
-  CeedQFunctionSetContext(ceed_data->qf_ics, ceed_data->setup_context);
-  CeedQFunctionContextCreate(ceed, &ceed_data->newt_ig_context);
-  CeedQFunctionContextSetData(ceed_data->newt_ig_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*phys->newtonian_ig_ctx), phys->newtonian_ig_ctx);
-  if (ceed_data->qf_rhs_vol)
-    CeedQFunctionSetContext(ceed_data->qf_rhs_vol, ceed_data->newt_ig_context);
-  if (ceed_data->qf_ifunction_vol)
-    CeedQFunctionSetContext(ceed_data->qf_ifunction_vol,
-                            ceed_data->newt_ig_context);
+  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
+                              CEED_MEM_HOST, &newtonian_ctx);
+  ierr = PetscPrintf(comm,
+                     "  Problem:\n"
+                     "    Problem Name                       : %s\n"
+                     "    Stabilization                      : %s\n",
+                     app_ctx->problem_name, StabilizationTypes[newtonian_ctx->stabilization]);
+  CHKERRQ(ierr);
+  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
+                                  &newtonian_ctx);
   PetscFunctionReturn(0);
 }
