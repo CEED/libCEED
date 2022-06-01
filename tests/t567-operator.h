@@ -36,12 +36,13 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
 CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                      CeedScalar *const *out) {
     // *INDENT-OFF*
-  const CeedScalar (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                       (*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  CeedScalar           (*vg)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const CeedScalar (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                       (*ug)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
+  CeedScalar           (*vg)[2][CEED_Q_VLA] = (CeedScalar(*)[2][CEED_Q_VLA])out[0];
     // *INDENT-ON*
 
   const CeedInt dim = 2;
+  const CeedScalar num_comp = 2;
   const CeedScalar scale[2][2] = {
     {1.0, 2.0},
     {3.0, 4.0},
@@ -64,9 +65,12 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
 
     // Apply Poisson operator
     // j = direction of vg
-    for (CeedInt j=0; j<dim; j++)
-      vg[j][i] = (ug[0][i] * dXdxdXdxT[0][j] * scale[0][j] +
-                  ug[1][i] * dXdxdXdxT[1][j] * scale[1][j]);
+    for (CeedInt j=0; j<dim; j++) {
+      for (CeedInt k=0; k<num_comp; k++) {
+        vg[j][k][i] = (ug[0][k][i] * dXdxdXdxT[0][j] * scale[0][j] +
+                       ug[1][k][i] * dXdxdXdxT[1][j] * scale[1][j]);
+      }
+    }
   } // End of Quadrature Point Loop
 
   return 0;
