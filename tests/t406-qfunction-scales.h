@@ -5,17 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _helper_h
-#define _helper_h
+#ifndef _scales_h
+#define _scales_h
 
-#include "t406-qfunction-scales.h"
+#define SCALE_TWO 2
 
-CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) {
-  return SCALE_TWO * x;
-}
-
-CEED_QFUNCTION_HELPER CeedScalar times_three(CeedScalar x) {
-  return SCALE_THREE * x;
-}
+#define SCALE_THREE 3
 
 #endif
