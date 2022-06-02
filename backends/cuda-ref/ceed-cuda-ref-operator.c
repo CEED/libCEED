@@ -1290,7 +1290,7 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
                         cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
       mat_start += esize * nqpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
-      ierr = cudaMemcpy(asmb->d_B_in, grad_in,
+      ierr = cudaMemcpy(&asmb->d_B_in[mat_start], grad_in,
                         dim * esize * nqpts * sizeof(CeedScalar),
                         cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
       mat_start += dim * esize * nqpts;
