@@ -235,6 +235,12 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   blasius_ctx->implicit  = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
+  {
+    PetscReal domain_min[3];
+    ierr = DMGetBoundingBox(dm, domain_min, NULL); CHKERRQ(ierr);
+    blasius_ctx->x_inflow = domain_min[0];
+  }
+
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
 
