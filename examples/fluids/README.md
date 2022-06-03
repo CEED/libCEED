@@ -735,6 +735,11 @@ options:
   - `false`
   -
 
+* - `-stg_strong`
+  - Strongly enforce the STG inflow boundary condition
+  - `false`
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
