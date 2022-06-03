@@ -188,8 +188,8 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
 
   //*INDENT-OFF*
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[3];
 
    CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
 
@@ -289,7 +289,7 @@ CEED_QFUNCTION(STGShur14_Inflow_Strong)(void *ctx, CeedInt Q,
 
   //*INDENT-OFF*
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[1];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
 
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
 

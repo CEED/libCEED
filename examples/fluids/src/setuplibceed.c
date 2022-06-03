@@ -141,6 +141,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                          &op_apply_inflow);
       CeedOperatorSetField(op_apply_inflow, "q", elem_restr_q_sur,
                            ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_apply_inflow, "Grad_q", elem_restr_q_sur,
+                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_apply_inflow, "surface qdata", elem_restr_qd_i_sur,
                            CEED_BASIS_COLLOCATED, q_data_sur);
       CeedOperatorSetField(op_apply_inflow, "x", elem_restr_x_sur,
@@ -226,6 +228,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
       CeedOperatorCreate(ceed, ceed_data->qf_apply_outflow, NULL, NULL,
                          &op_apply_outflow);
       CeedOperatorSetField(op_apply_outflow, "q", elem_restr_q_sur,
+                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_apply_outflow, "Grad_q", elem_restr_q_sur,
                            ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
       CeedOperatorSetField(op_apply_outflow, "surface qdata", elem_restr_qd_i_sur,
                            CEED_BASIS_COLLOCATED, q_data_sur);
@@ -584,6 +588,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "Grad_q", num_comp_q*(dim-1),
+                          CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "surface qdata",
                           q_data_size_sur, CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_apply_inflow, "x", num_comp_x,
@@ -617,6 +623,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionContextDestroy(&problem->apply_outflow.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "q", num_comp_q,
                           CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "Grad_q", num_comp_q*(dim-1),
+                          CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "surface qdata",
                           q_data_size_sur, CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow, "x", num_comp_x,
