@@ -124,6 +124,7 @@ struct Ceed_private {
   int ref_count;
   void *data;
   bool is_debug;
+  bool has_valid_op_fallback_resource;
   bool is_deterministic;
   char err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset *f_offsets;
@@ -386,5 +387,8 @@ struct CeedOperator_private {
   CeedInt max_context_labels;
   CeedContextFieldLabel *context_labels;
 };
+
+CEED_INTERN int CeedOperatorGetFallback(CeedOperator op,
+                                        CeedOperator *op_fallback);
 
 #endif
