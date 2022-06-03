@@ -147,6 +147,11 @@ static int CeedOperatorFieldView(CeedOperatorField field,
           "%s      Name: \"%s\"\n",
           pre, in_out, field_number, pre, qf_field->field_name);
 
+  fprintf(stream, "%s      Size: %d\n", pre, qf_field->size);
+
+  fprintf(stream, "%s      EvalMode: %s\n", pre,
+          CeedEvalModes[qf_field->eval_mode]);
+
   if (field->basis == CEED_BASIS_COLLOCATED)
     fprintf(stream, "%s      Collocated basis\n", pre);
 
@@ -154,6 +159,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
     fprintf(stream, "%s      Active vector\n", pre);
   else if (field->vec == CEED_VECTOR_NONE)
     fprintf(stream, "%s      No vector\n", pre);
+
   return CEED_ERROR_SUCCESS;
 }
 
