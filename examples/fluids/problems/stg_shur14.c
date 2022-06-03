@@ -398,9 +398,11 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   if (use_stgstrong) {
     problem->apply_inflow.qfunction     = STGShur14_Inflow_Strong;
     problem->apply_inflow.qfunction_loc = STGShur14_Inflow_Strong_loc;
+    problem->bc_from_ics                = PETSC_FALSE;
   } else {
     problem->apply_inflow.qfunction     = STGShur14_Inflow;
     problem->apply_inflow.qfunction_loc = STGShur14_Inflow_loc;
+    problem->bc_from_ics                = PETSC_TRUE;
   }
   problem->apply_inflow.qfunction_context = stg_context;
 

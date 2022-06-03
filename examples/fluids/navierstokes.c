@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
   user->app_ctx = app_ctx;
   user->units   = units;
   user->phys    = phys_ctx;
+  problem->bc_from_ics = PETSC_TRUE;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -185,7 +186,9 @@ int main(int argc, char **argv) {
   //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
-  if (0) {ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);}
+  if (problem->bc_from_ics) {
+    ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);
+  }
 
   // ---------------------------------------------------------------------------
   // Create output directory
