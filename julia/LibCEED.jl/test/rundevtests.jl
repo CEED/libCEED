@@ -50,10 +50,14 @@ using Test, LibCEED, LinearAlgebra, StaticArrays
                1 input field:
                  Input field 0:
                    Name: "input"
+                   Size: 1
+                   EvalMode: interpolation
                    Active vector
                1 output field:
                  Output field 0:
                    Name: "output"
+                   Size: 1
+                   EvalMode: interpolation
                    Active vector"""
     end
 end

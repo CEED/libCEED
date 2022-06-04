@@ -24,6 +24,7 @@ struct BlasiusContext_ {
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
+  CeedScalar x_inflow;  // !< Location of inflow in x
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 
@@ -139,6 +140,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const CeedScalar P0     = context->P0;
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
+  const CeedScalar x_inflow   = context->x_inflow;
 
   const CeedScalar e_internal = cv * theta0;
   const CeedScalar rho        = P0 / ((gamma - 1) * e_internal);
@@ -150,7 +152,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
 
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho, &u, &v, &t12,
+    BlasiusSolution(x[1], Uinf, x0, x[0] - x_inflow, rho, &u, &v, &t12,
                     &context->newtonian_ctx);
 
     q0[0][i] = rho;
@@ -183,13 +185,14 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar Rd     = cp - cv;
   const CeedScalar gamma  = cp/cv;
 
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar delta0 = context->delta0;
-  const CeedScalar Uinf   = context->Uinf;
-  const bool weakT        = context->weakT;
-  const CeedScalar rho_0  = P0 / (Rd * theta0);
-  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
+  const CeedScalar theta0   = context->theta0;
+  const CeedScalar P0       = context->P0;
+  const CeedScalar delta0   = context->delta0;
+  const CeedScalar Uinf     = context->Uinf;
+  const CeedScalar x_inflow = context->x_inflow;
+  const bool       weakT    = context->weakT;
+  const CeedScalar rho_0    = P0 / (Rd * theta0);
+  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -205,8 +208,8 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
-                    &t12, &context->newtonian_ctx);
+    BlasiusSolution(x[1], Uinf, x0, x[0] - x_inflow, rho_0, &velocity[0],
+                    &velocity[1], &t12, &context->newtonian_ctx);
 
     // enabling user to choose between weak T and weak rho inflow
     CeedScalar rho,E_internal, P, E_kinetic;
@@ -351,12 +354,13 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
 
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar rho_0  = P0 / (Rd*theta0);
-  const CeedScalar delta0 = context->delta0;
-  const CeedScalar Uinf   = context->Uinf;
-  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
+  const CeedScalar theta0   = context->theta0;
+  const CeedScalar P0       = context->P0;
+  const CeedScalar rho_0    = P0 / (Rd*theta0);
+  const CeedScalar delta0   = context->delta0;
+  const CeedScalar Uinf     = context->Uinf;
+  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
+  const CeedScalar x_inflow = context->x_inflow;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -390,8 +394,8 @@ CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar velocity[3] = {0.};
     CeedScalar t12;
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
-                    &t12, &context->newtonian_ctx);
+    BlasiusSolution(x[1], Uinf, x0, x[0] - x_inflow, rho_0, &velocity[0],
+                    &velocity[1], &t12, &context->newtonian_ctx);
     const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
 
     // -- Density

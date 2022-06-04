@@ -492,6 +492,45 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 }
 
 /**
+  @brief Get the fallback Ceed for CeedOperators
+
+  @param ceed                Ceed context
+  @param[out] fallback_ceed  Variable to store fallback Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
+  int ierr;
+
+  // Create fallback Ceed if uninitalized
+  if (!ceed->op_fallback_ceed) {
+    // Check resource
+    const char *resource, *fallback_resource;
+    ierr = CeedGetResource(ceed, &resource); CeedChk(ierr);
+    ierr = CeedGetOperatorFallbackResource(ceed, &fallback_resource); CeedChk(ierr);
+    if (!strcmp(resource, fallback_resource))
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend %s cannot create an operator"
+                       "fallback to resource %s", resource, fallback_resource);
+    // LCOV_EXCL_STOP
+
+    // Create fallback
+    Ceed fallback_ceed;
+    ierr = CeedInit(fallback_resource, &fallback_ceed); CeedChk(ierr);
+    fallback_ceed->op_fallback_parent = ceed;
+    fallback_ceed->Error = ceed->Error;
+    ceed->op_fallback_ceed = fallback_ceed;
+  }
+  *fallback_ceed = ceed->op_fallback_ceed;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the fallback resource for CeedOperators. The current resource, if
            any, is freed by calling this function. This string is freed upon the
            destruction of the Ceed context.
@@ -1072,7 +1111,7 @@ int CeedDestroy(Ceed *ceed) {
   }
 
   if ((*ceed)->obj_delegate_count > 0) {
-    for (int i = 0; i < (*ceed)->obj_delegate_count; i++) {
+    for (CeedInt i = 0; i < (*ceed)->obj_delegate_count; i++) {
       ierr = CeedDestroy(&((*ceed)->obj_delegates[i].delegate)); CeedChk(ierr);
       ierr = CeedFree(&(*ceed)->obj_delegates[i].obj_name); CeedChk(ierr);
     }
@@ -1083,7 +1122,7 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
 
-  for (int i = 0; i < (*ceed)->num_jit_source_roots; i++) {
+  for (CeedInt i = 0; i < (*ceed)->num_jit_source_roots; i++) {
     ierr = CeedFree(&(*ceed)->jit_source_roots[i]); CeedChk(ierr);
   }
   ierr = CeedFree(&(*ceed)->jit_source_roots); CeedChk(ierr);
@@ -1233,7 +1272,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int line_no,
 int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
   ceed->Error = handler;
   if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, handler);
-  for (int i=0; i<ceed->obj_delegate_count; i++)
+  for (CeedInt i=0; i<ceed->obj_delegate_count; i++)
     CeedSetErrorHandler(ceed->obj_delegates[i].delegate, handler);
   return CEED_ERROR_SUCCESS;
 }

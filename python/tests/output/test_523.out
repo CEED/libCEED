@@ -5,13 +5,19 @@ Composite CeedOperator - setup
     2 input fields:
       Input field 0:
         Name: "weights"
+        Size: 1
+        EvalMode: quadrature weights
         No vector
       Input field 1:
         Name: "dx"
+        Size: 4
+        EvalMode: gradient
         Active vector
     1 output field:
       Output field 0:
         Name: "rho"
+        Size: 1
+        EvalMode: none
         Collocated basis
   SubOperator 1 - quadralateral elements:
     6 elements with 16 quadrature points each
@@ -19,13 +25,19 @@ Composite CeedOperator - setup
     2 input fields:
       Input field 0:
         Name: "weights"
+        Size: 1
+        EvalMode: quadrature weights
         No vector
       Input field 1:
         Name: "dx"
+        Size: 4
+        EvalMode: gradient
         Active vector
     1 output field:
       Output field 0:
         Name: "rho"
+        Size: 1
+        EvalMode: none
         Collocated basis
 
 Composite CeedOperator - mass
@@ -35,13 +47,19 @@ Composite CeedOperator - mass
     2 input fields:
       Input field 0:
         Name: "rho"
+        Size: 1
+        EvalMode: none
         Collocated basis
       Input field 1:
         Name: "u"
+        Size: 1
+        EvalMode: interpolation
         Active vector
     1 output field:
       Output field 0:
         Name: "v"
+        Size: 1
+        EvalMode: interpolation
         Active vector
   SubOperator 1 - quadralateral elements:
     6 elements with 16 quadrature points each
@@ -49,12 +67,18 @@ Composite CeedOperator - mass
     2 input fields:
       Input field 0:
         Name: "rho"
+        Size: 1
+        EvalMode: none
         Collocated basis
       Input field 1:
         Name: "u"
+        Size: 1
+        EvalMode: interpolation
         Active vector
     1 output field:
       Output field 0:
         Name: "v"
+        Size: 1
+        EvalMode: interpolation
         Active vector
 

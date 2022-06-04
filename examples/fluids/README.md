@@ -656,22 +656,22 @@ addition to the Newtonian Ideal Gas options:
   - `1.01E5`
   - `Pa`
 
-* - `-refine_height`
-  - Height at which `-Ndelta` number of elements should refined into
+* - `-platemesh_refine_height`
+  - Height at which `-platemesh_Ndelta` number of elements should refined into
   - `5.9E-4`
   - `m`
 
-* - `-Ndelta`
-  - Number of elements to keep below `-refine_height`
+* - `-platemesh_Ndelta`
+  - Number of elements to keep below `-platemesh_refine_height`
   - `45`
   -
 
-* - `-growth`
+* - `-platemesh_growth`
   - Growth rate of the elements in the refinement region
   - `1.08`
   -
 
-* - `-top_angle`
+* - `-platemesh_top_angle`
   - Downward angle of the top face of the domain. This face serves as an outlet.
   - `5`
   - `degrees`
@@ -679,6 +679,11 @@ addition to the Newtonian Ideal Gas options:
 * - `-stg_use`
   - Whether to use stg for the inflow conditions
   - `false`
+  -
+
+* - `-platemesh_y_node_locs_path`
+  - Path to file with y node locations. If empty, will use mesh warping instead.
+  - `""`
   -
 :::
 
@@ -727,6 +732,11 @@ options:
 
 * - `-stg_mean_only`
   - Only impose the mean velocity (no fluctutations)
+  - `false`
+  -
+
+* - `-stg_strong`
+  - Strongly enforce the STG inflow boundary condition
   - `false`
   -
 

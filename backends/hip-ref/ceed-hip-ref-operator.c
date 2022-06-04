@@ -1285,7 +1285,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
                        hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
       mat_start += esize * nqpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
-      ierr = hipMemcpy(asmb->d_B_in, grad_in,
+      ierr = hipMemcpy(&asmb->d_B_in[mat_start], grad_in,
                        dim * esize * nqpts * sizeof(CeedScalar),
                        hipMemcpyHostToDevice); CeedChk_Hip(ceed, ierr);
       mat_start += dim * esize * nqpts;

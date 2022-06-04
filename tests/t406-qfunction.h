@@ -7,6 +7,7 @@
 
 // Note: intentionally testing strange spacing in '#include's
 #include  <math.h>
+#include "./t406-qfunction-scales.h"
 # include   "t406-qfunction-helper.h"
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
@@ -24,7 +25,8 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
   const CeedScalar *q_data = in[0], *u = in[1];
   CeedScalar *v = out[0];
   for (CeedInt i=0; i<Q; i++) {
-    v[i] = q_data[i] * (times_two(u[i]) + times_three(u[i])) * sqrt(2.);
+    v[i] = q_data[i] * (times_two(u[i]) + times_three(u[i])) * sqrt(
+             1.0 * SCALE_TWO);
   }
   return 0;
 }

@@ -106,7 +106,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   // Global-to-local
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
   ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
@@ -172,7 +172,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   // Global-to-local
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, 0.0,
+  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc);

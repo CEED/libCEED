@@ -147,6 +147,11 @@ static int CeedOperatorFieldView(CeedOperatorField field,
           "%s      Name: \"%s\"\n",
           pre, in_out, field_number, pre, qf_field->field_name);
 
+  fprintf(stream, "%s      Size: %d\n", pre, qf_field->size);
+
+  fprintf(stream, "%s      EvalMode: %s\n", pre,
+          CeedEvalModes[qf_field->eval_mode]);
+
   if (field->basis == CEED_BASIS_COLLOCATED)
     fprintf(stream, "%s      Collocated basis\n", pre);
 
@@ -154,6 +159,7 @@ static int CeedOperatorFieldView(CeedOperatorField field,
     fprintf(stream, "%s      Active vector\n", pre);
   else if (field->vec == CEED_VECTOR_NONE)
     fprintf(stream, "%s      No vector\n", pre);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -213,7 +219,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   *active_basis = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (int i = 0; i < op->qf->num_input_fields; i++)
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_basis = op->input_fields[i]->basis;
       break;
@@ -245,7 +251,7 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op,
     CeedElemRestriction *active_rstr) {
   *active_rstr = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (int i = 0; i < op->qf->num_input_fields; i++)
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++)
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
       *active_rstr = op->input_fields[i]->elem_restr;
       break;
@@ -1693,12 +1699,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   ierr = CeedFree(&(*op)->context_labels); CeedChk(ierr);
 
   // Destroy fallback
-  if ((*op)->op_fallback) {
-    ierr = (*op)->qf_fallback->Destroy((*op)->qf_fallback); CeedChk(ierr);
-    ierr = CeedFree(&(*op)->qf_fallback); CeedChk(ierr);
-    ierr = (*op)->op_fallback->Destroy((*op)->op_fallback); CeedChk(ierr);
-    ierr = CeedFree(&(*op)->op_fallback); CeedChk(ierr);
-  }
+  ierr = CeedOperatorDestroy(&(*op)->op_fallback); CeedChk(ierr);
 
   // Destroy QF assembly cache
   ierr = CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled); CeedChk(ierr);

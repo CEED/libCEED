@@ -9,6 +9,7 @@
 /// Setup DM for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
+#include "../problems/stg_shur14.h"
 
 // Create mesh
 PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
@@ -75,6 +76,21 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
                            bc->num_slip[2], bc->slips[2], 0, 1, comps,
                            (void(*)(void))NULL, NULL, problem->bc_ctx, NULL); CHKERRQ(ierr);
     }
+    {
+      PetscBool use_strongstg = PETSC_FALSE;
+      ierr = PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL);
+      CHKERRQ(ierr);
+      STGShur14Context stg_ctx;
+
+      if (use_strongstg) {
+        CeedQFunctionContextGetData(problem->apply_inflow.qfunction_context,
+                                    CEED_MEM_HOST, &stg_ctx);
+        ierr = SetupStrongSTG(dm, bc, problem, stg_ctx); CHKERRQ(ierr);
+        CeedQFunctionContextRestoreData(problem->apply_inflow.qfunction_context,
+                                        &stg_ctx);
+      }
+    }
+
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);

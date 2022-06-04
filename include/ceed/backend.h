@@ -119,6 +119,7 @@ CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
     const char **resource);
+CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
     const char *resource);
 CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
