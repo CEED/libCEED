@@ -75,8 +75,8 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
     cij[3]  = prof_cij[3*nprofs+idx-1]  + coeff*( prof_cij[3*nprofs+idx]  - prof_cij[3*nprofs+idx-1] );
     cij[4]  = prof_cij[4*nprofs+idx-1]  + coeff*( prof_cij[4*nprofs+idx]  - prof_cij[4*nprofs+idx-1] );
     cij[5]  = prof_cij[5*nprofs+idx-1]  + coeff*( prof_cij[5*nprofs+idx]  - prof_cij[5*nprofs+idx-1] );
-    *eps    = prof_eps[idx-1]     + coeff*( prof_eps[idx]     - prof_eps[idx-1] );
-    *lt     = prof_lt[idx-1]      + coeff*( prof_lt[idx]      - prof_lt[idx-1] );
+    *eps    = prof_eps[idx-1]           + coeff*( prof_eps[idx]           - prof_eps[idx-1] );
+    *lt     = prof_lt[idx-1]            + coeff*( prof_lt[idx]            - prof_lt[idx-1] );
     //*INDENT-ON*
   } else { // y outside bounds of prof_dw
     ubar[0] = prof_ubar[1*nprofs-1];
@@ -129,6 +129,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
     Ektot += qn[n];
   }
 
+  if (Ektot == 0) return;
   for(CeedInt n=0; n<nmodes; n++) qn[n] /= Ektot;
 }
 
@@ -155,7 +156,6 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   const CeedScalar *sigma = &stg_ctx->data[stg_ctx->offsets.sigma];
   const CeedScalar *d     = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
-  const CeedScalar tworoot1p5 = 2*sqrt(1.5);
   CeedScalar xdotd, vp[3] = {0.};
   CeedScalar xhat[] = {0., X[1], X[2]};
 
@@ -165,10 +165,11 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
     xdotd = 0.;
     for(CeedInt i=0; i<3; i++) xdotd += d[i*nmodes+n]*xhat[i];
     const CeedScalar cos_kxdp = cos(kappa[n]*xdotd + phi[n]);
-    vp[0] += tworoot1p5*sqrt(qn[n])*sigma[0*nmodes+n] * cos_kxdp;
-    vp[1] += tworoot1p5*sqrt(qn[n])*sigma[1*nmodes+n] * cos_kxdp;
-    vp[2] += tworoot1p5*sqrt(qn[n])*sigma[2*nmodes+n] * cos_kxdp;
+    vp[0] += sqrt(qn[n])*sigma[0*nmodes+n] * cos_kxdp;
+    vp[1] += sqrt(qn[n])*sigma[1*nmodes+n] * cos_kxdp;
+    vp[2] += sqrt(qn[n])*sigma[2*nmodes+n] * cos_kxdp;
   }
+  for(CeedInt i=0; i<3; i++) vp[i] *= 2*sqrt(1.5);
 
   u[0] = ubar[0] + cij[0]*vp[0];
   u[1] = ubar[1] + cij[3]*vp[0] + cij[1]*vp[1];
@@ -277,5 +278,67 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
   return 0;
 }
 
+/* Compute boundary integral for strong STG enforcement
+ *
+ * This assumes that density is set strongly and temperature is allowed to
+ * float
+ */
+CEED_QFUNCTION(STGShur14_Inflow_Strong)(void *ctx, CeedInt Q,
+                                        const CeedScalar *const *in,
+                                        CeedScalar *const *out) {
+
+  //*INDENT-OFF*
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[1];
+
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+
+  //*INDENT-ON*
+
+  const STGShur14Context stg_ctx = (STGShur14Context) ctx;
+  const bool is_implicit  = stg_ctx->is_implicit;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar gamma  = cp/cv;
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    const CeedScalar rho        = q[0][i];
+    const CeedScalar u[]        = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
+    const CeedScalar E_kinetic  = .5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+    const CeedScalar E_internal = q[4][i] - E_kinetic;
+    const CeedScalar P          = E_internal * (gamma - 1.);
+
+    const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    const CeedScalar E = E_internal + E_kinetic;
+
+    // Velocity normal to the boundary
+    const CeedScalar u_normal = norm[0]*u[0] +
+                                norm[1]*u[1] +
+                                norm[2]*u[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal;
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
+                            norm[j] * P);
+
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * u_normal * (E + P);
+  }
+  return 0;
+}
 
 #endif // stg_shur14_h

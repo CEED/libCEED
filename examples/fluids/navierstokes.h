@@ -209,6 +209,7 @@ struct ProblemData_private {
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   void *bc_ctx;
+  PetscBool bc_from_ics;
   PetscErrorCode    (*print_info)(ProblemData*, AppCtx);
 };
 // *INDENT-ON*

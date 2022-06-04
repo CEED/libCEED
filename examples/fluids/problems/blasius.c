@@ -138,9 +138,9 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  User           user    = *(User *)ctx;
-  MPI_Comm       comm    = PETSC_COMM_WORLD;
-  PetscBool      use_stg = PETSC_FALSE;
+  User      user    = *(User *)ctx;
+  MPI_Comm  comm    = PETSC_COMM_WORLD;
+  PetscBool use_stg = PETSC_FALSE;
   BlasiusContext blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext blasius_context;
@@ -222,7 +222,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   ierr = ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta,
                     mesh_refine_height, mesh_top_angle, mesh_ynodes,
                     mesh_nynodes); CHKERRQ(ierr);
-  ierr = PetscFree(mesh_ynodes); CHKERRQ(ierr);
 
   // Some properties depend on parameters from NewtonianIdealGas
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
@@ -235,6 +234,12 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   blasius_ctx->P0        = P0;
   blasius_ctx->implicit  = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
+
+  {
+    PetscReal domain_min[3];
+    ierr = DMGetBoundingBox(dm, domain_min, NULL); CHKERRQ(ierr);
+    blasius_ctx->x_inflow = domain_min[0];
+  }
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
@@ -252,7 +257,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_outflow.qfunction_context);
   if (use_stg) {
-    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0); CHKERRQ(ierr);
+    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
+                    mesh_nynodes); CHKERRQ(ierr);
   }
+  ierr = PetscFree(mesh_ynodes); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

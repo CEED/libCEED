@@ -12,11 +12,13 @@
 #include "newtonian_types.h"
 
 /* Access data arrays via:
- *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma]; */
+ *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma];
+ *  CeedScalar *eps = &ctx->data[ctx->offsets.eps]; */
 typedef struct STGShur14Context_ *STGShur14Context;
 struct STGShur14Context_ {
   CeedInt    nmodes;      // !< Number of wavemodes
   CeedInt    nprofs;      // !< Number of profile points in STGInflow.dat
+  CeedInt    nynodes;     // !< Number of mesh nodes in the y direction
   CeedScalar alpha;       // !< Geometric growth rate of kappa
   CeedScalar u0;          // !< Convective velocity
   CeedScalar time;        // !< Solution time
@@ -25,6 +27,7 @@ struct STGShur14Context_ {
   bool       is_implicit; // !< Whether using implicit time integration
   bool       mean_only;   // !< Only apply the mean profile
   CeedScalar dx;          // !< dx used for h calculation
+  CeedScalar dz;          // !< dz used for h calculation
   bool       prescribe_T; // !< Prescribe temperature weakly
   struct NewtonianIdealGasContext_ newtonian_ctx;
 
@@ -36,6 +39,7 @@ struct STGShur14Context_ {
     size_t cij;       // !< Cholesky decomposition [nprof, 6]
     size_t eps;       // !< Turbulent Disspation [nprof, 6]
     size_t lt;        // !< Tubulent Length Scale [nprof, 6]
+    size_t ynodes;    // !< Locations of nodes in y direction [nynodes]
   } offsets;          // !< Holds offsets for each array in data
   size_t total_bytes; // !< Total size of struct plus array
   CeedScalar data[1]; // !< Holds concatenated scalar array data

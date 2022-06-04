@@ -13,4 +13,8 @@
 extern PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm,
                                ProblemData *problem, User user,
                                const bool prescribe_T, const CeedScalar theta0,
-                               const CeedScalar P0);
+                               const CeedScalar P0,
+                               const CeedScalar ynodes[], const CeedInt nynodes);
+
+extern PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
+                                     STGShur14Context stg_ctx);
