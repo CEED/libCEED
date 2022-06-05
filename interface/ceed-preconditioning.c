@@ -26,8 +26,9 @@
   @brief Duplicate a CeedQFunction with a reference Ceed to fallback for advanced
          CeedOperator functionality
 
+  @param[in] fallback_ceed Ceed on which to create fallback CeedQFunction
   @param[in] qf            CeedQFunction to create fallback for
-  @param[out] fallback_qf  fallback CeedQFunction
+  @param[out] qf_fallback  fallback CeedQFunction
 
   @return An error code: 0 - success, otherwise - failure
 
