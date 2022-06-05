@@ -82,7 +82,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedInt P_sur, CeedInt Q_sur,
                                        CeedInt q_data_size_sur, CeedInt jac_data_size_sur,
                                        CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
-  //CeedInt        dim;
   DMLabel        domain_label;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
@@ -101,7 +100,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
   if (phys->has_neumann || 1) {
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
-    //ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
     // --- Get number of quadrature points for the boundaries
     CeedInt num_qpts_sur;
