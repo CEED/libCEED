@@ -23,10 +23,10 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY,
                          sY.velocity[2]));
   for (int j=0; j<3; j++) eY.velocity[j] = (aY.velocity[j] - bY.velocity[j]) / u;
   eY.temperature = (aY.temperature - bY.temperature) / sY.temperature;
-  if (fabs(eY.pressure) > rtol_pressure) printf("%s: pressure error %g\n", name,
-        eY.pressure);
-  for (int j=0; j<3;
-       j++) if (fabs(eY.velocity[j]) > rtol_velocity)
+  if (fabs(eY.pressure) > rtol_pressure)
+    printf("%s: pressure error %g\n", name, eY.pressure);
+  for (int j=0; j<3; j++)
+    if (fabs(eY.velocity[j]) > rtol_velocity)
       printf("%s: velocity[%d] error %g\n", name, j, eY.velocity[j]);
   if (fabs(eY.temperature) > rtol_temperature)
     printf("%s: temperature error %g\n", name, eY.temperature);

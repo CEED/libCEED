@@ -437,7 +437,7 @@ $$p = p_0 - \frac{2\rho_0 u_{\max}^2 x_1}{Re_H H}$$
 where $H$ is the channel half-height, $u_{\max}$ is the center velocity, $T_w$ is the temperature at the wall, $Pr=\frac{\mu}{c_p \kappa}$ is the Prandlt number, $\hat E_c = \frac{u_{\max}^2}{c_p T_w}$ is the modified Eckert number, and $Re_h = \frac{u_{\max}H}{\nu}$ is the Reynolds number.
 
 Boundary conditions are periodic in the streamwise direction, and no-slip and non-penetration boundary conditions at the walls.
-The flow is driven by a body force.
+The flow is driven by a body force determined analytically from the fluid properties and setup parameters $H$ and $u_{\max}$.
 
 ## Flat Plate Boundary Layer
 
