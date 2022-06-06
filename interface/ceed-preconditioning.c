@@ -534,8 +534,13 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(
   ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
   ierr = CeedOperatorGetSubList(op, &suboperators); CeedChk(ierr);
   for (CeedInt i = 0; i < num_sub; i++) {
-    ierr = CeedSingleOperatorAssembleAddDiagonal(suboperators[i], request,
-           is_pointblock, assembled); CeedChk(ierr);
+    if (is_pointblock) {
+      ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i],
+             assembled, request); CeedChk(ierr);
+    } else {
+      ierr = CeedOperatorLinearAssembleAddDiagonal(suboperators[i], assembled,
+             request); CeedChk(ierr);
+    }
   }
   return CEED_ERROR_SUCCESS;
 }

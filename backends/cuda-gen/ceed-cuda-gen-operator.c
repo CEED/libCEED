@@ -265,4 +265,5 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
                                 CeedOperatorDestroy_Cuda_gen); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
