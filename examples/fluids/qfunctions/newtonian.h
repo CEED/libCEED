@@ -751,26 +751,23 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
                                  CeedScalar *const *out) {
 
   //*INDENT-OFF*
-  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*Grad_q)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
 
   //*INDENT-ON*
 
-  const NewtonianIdealGasContext newt_ctx = (NewtonianIdealGasContext) ctx;
-  const bool is_implicit  = newt_ctx->is_implicit;
-  const CeedScalar cv     = newt_ctx->cv;
-  const CeedScalar cp     = newt_ctx->cp;
-  const CeedScalar gamma  = cp/cv;
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext) ctx;
+  const bool is_implicit  = context->is_implicit;
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
-    const CeedScalar rho        = q[0][i];
-    const CeedScalar u[]        = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
-    const CeedScalar E_kinetic  = .5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
-    const CeedScalar E_internal = q[4][i] - E_kinetic;
-    const CeedScalar P          = E_internal * (gamma - 1.);
+    const CeedScalar U[5]   = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+    const State      s      = StateFromU(context, U, x_i);
 
     const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
@@ -779,27 +776,47 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
                                 q_data_sur[3][i]
                                };
 
-    const CeedScalar E = E_internal + E_kinetic;
+    const CeedScalar dXdx[2][3] = {
+      {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
+      {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
+    };
 
-    // Velocity normal to the boundary
-    const CeedScalar u_normal = norm[0]*u[0] +
-                                norm[1]*u[1] +
-                                norm[2]*u[2];
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+    State grad_s[3];
+    for (CeedInt j=0; j<3; j++) {
+      CeedScalar dx_i[3] = {0}, dU[5];
+      for (CeedInt k=0; k<5; k++)
+        dU[k] = Grad_q[0][k][i] * dXdx[0][j] +
+                Grad_q[1][k][i] * dXdx[1][j];
+      dx_i[j] = 1.;
+      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
+    }
 
-    // The Physics
+    CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
+    KMStrainRate(grad_s, strain_rate);
+    NewtonianStress(context, strain_rate, kmstress);
+    KMUnpack(kmstress, stress);
+    ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
+
+    StateConservative F_inviscid[3];
+    FluxInviscid(context, s, F_inviscid);
+
+    CeedScalar Flux[5] = {0.};
+    for (int j=0; j<3; j++) {
+      Flux[0] += F_inviscid[j].density * norm[j];
+      for (int k=0; k<3; k++)
+        Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * norm[j];
+      Flux[4] += (F_inviscid[j].E_total + Fe[j])*norm[j];
+    }
+
     // -- Density
-    v[0][i] -= wdetJb * rho * u_normal;
+    v[0][i] = -wdetJb * Flux[0];
 
     // -- Momentum
     for (CeedInt j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
-                            norm[j] * P);
+      v[j+1][i] = -wdetJb * Flux[j+1];
 
     // -- Total Energy Density
-    v[4][i] -= wdetJb * u_normal * (E + P);
+    v[4][i] = -wdetJb * Flux[4];
   }
   return 0;
 }
