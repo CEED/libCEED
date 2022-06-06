@@ -1295,7 +1295,13 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Single operator assembly
+// Assemble matrix data for COO matrix of assembled operator.
+// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
+//
+// Note that this (and other assembly routines) currently assume only one
+// active input restriction/basis per operator (could have multiple basis eval
+// modes).
+// TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
 static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset,
     CeedVector values) {
@@ -1353,21 +1359,6 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset,
 }
 
 //------------------------------------------------------------------------------
-// Assemble matrix data for COO matrix of assembled operator.
-// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
-//
-// Note that this (and other assembly routines) currently assume only one
-// active input restriction/basis per operator (could have multiple basis eval
-// modes).
-// TODO: allow multiple active input restrictions/basis objects
-//------------------------------------------------------------------------------
-int CeedOperatorLinearAssemble_Hip(CeedOperator op, CeedVector values) {
-  int ierr = CeedSingleOperatorAssemble_Hip(op, 0, values);
-  CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Hip(CeedOperator op) {
@@ -1394,7 +1385,7 @@ int CeedOperatorCreate_Hip(CeedOperator op) {
                                 CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Hip);
+                                "LinearAssembleSingle", CeedSingleOperatorAssemble_Hip);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Hip); CeedChkBackend(ierr);

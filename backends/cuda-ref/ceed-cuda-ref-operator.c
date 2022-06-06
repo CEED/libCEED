@@ -1300,7 +1300,13 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Single operator assembly
+// Assemble matrix data for COO matrix of assembled operator.
+// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
+//
+// Note that this (and other assembly routines) currently assume only one
+// active input restriction/basis per operator (could have multiple basis eval
+// modes).
+// TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
 static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
     CeedVector values) {
@@ -1358,20 +1364,6 @@ static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
 }
 
 //------------------------------------------------------------------------------
-// Assemble matrix data for COO matrix of assembled operator.
-// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
-//
-// Note that this (and other assembly routines) currently assume only one
-// active input restriction/basis per operator (could have multiple basis eval
-// modes).
-// TODO: allow multiple active input restrictions/basis objects
-//------------------------------------------------------------------------------
-int CeedOperatorLinearAssemble_Cuda(CeedOperator op, CeedVector values) {
-  int ierr = CeedSingleOperatorAssemble_Cuda(op, 0, values);
-  CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
-//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda(CeedOperator op) {
@@ -1398,7 +1390,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Cuda);
+                                "LinearAssembleSingle", CeedSingleOperatorAssemble_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Cuda); CeedChkBackend(ierr);
@@ -1407,24 +1399,4 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
-//------------------------------------------------------------------------------
-// Composite Operator Create
-//------------------------------------------------------------------------------
-int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleAddDiagonal_Cuda);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Cuda);
-  CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
 //------------------------------------------------------------------------------
