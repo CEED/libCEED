@@ -25,7 +25,7 @@ CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c99 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
-  $(OPT)
+  $(OPT) $(OPT_EXAMPLES)
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))

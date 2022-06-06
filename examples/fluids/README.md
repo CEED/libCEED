@@ -528,7 +528,13 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - Thermal conductivity
   - `0.02638`
   - `W/(m K)`
+
+* - `-newtonian_unit_tests`
+  - Developer option to test properties
+  - `false`
+  - boolean
 :::
+
 
 #### Density current
 
@@ -612,6 +618,11 @@ addition to the Newtonian Ideal Gas options:
   - Atmospheric pressure
   - `1E5`
   - `Pa`
+
+* - `-body_force_scale`
+  - Multiplier for body force (`-1` for flow reversal)
+  - 1
+  -
 :::
 
 This problem can be run with the `channel.yaml` file via:

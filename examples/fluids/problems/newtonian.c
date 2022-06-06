@@ -12,13 +12,66 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/newtonian.h"
 
+// Compute relative error |a - b|/|s|
+static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY,
+    StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
+    PetscReal rtol_velocity, PetscReal rtol_temperature) {
+  PetscFunctionBeginUser;
+  StatePrimitive eY; // relative error
+  eY.pressure = (aY.pressure - bY.pressure) / sY.pressure;
+  PetscScalar u = sqrt(Square(sY.velocity[0]) + Square(sY.velocity[1]) + Square(
+                         sY.velocity[2]));
+  for (int j=0; j<3; j++) eY.velocity[j] = (aY.velocity[j] - bY.velocity[j]) / u;
+  eY.temperature = (aY.temperature - bY.temperature) / sY.temperature;
+  if (fabs(eY.pressure) > rtol_pressure)
+    printf("%s: pressure error %g\n", name, eY.pressure);
+  for (int j=0; j<3; j++)
+    if (fabs(eY.velocity[j]) > rtol_velocity)
+      printf("%s: velocity[%d] error %g\n", name, j, eY.velocity[j]);
+  if (fabs(eY.temperature) > rtol_temperature)
+    printf("%s: temperature error %g\n", name, eY.temperature);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode UnitTests_Newtonian(User user,
+    NewtonianIdealGasContext gas) {
+  Units units = user->units;
+  const CeedScalar eps = 1e-6;
+  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second,
+                   Pascal = units->Pascal;
+
+  PetscFunctionBeginUser;
+  const CeedScalar rho = 1.2 * kg / (m*m*m), u = 40 * m/sec;
+  CeedScalar U[5] = {rho, rho*u, rho *u*1.1, rho *u*1.2, 250e3*Pascal + .5*rho *u*u};
+  const CeedScalar x[3] = {.1, .2, .3};
+  State s = StateFromU(gas, U, x);
+  for (int i=0; i<8; i++) {
+    CeedScalar dU[5] = {0}, dx[3] = {0};
+    if (i < 5) dU[i] = U[i];
+    else dx[i-5] = x[i-5];
+    State ds = StateFromU_fwd(gas, s, dU, x, dx);
+    for (int j=0; j<5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
+    for (int j=0; j<3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+    State t = StateFromU(gas, dU, dx);
+    StatePrimitive dY;
+    dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
+    for (int j=0; j<3; j++)
+      dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
+    dY.temperature = (t.Y.temperature - s.Y.temperature) / eps;
+    char buf[128];
+    snprintf(buf, sizeof buf, "StateFromU_fwd i=%d", i);
+    PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, 5e-6, 1e-6, 1e-6));
+  }
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   SetupContext      setup_context;
   User              user = *(User *)ctx;
   StabilizationType stab;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
-  PetscBool         has_curr_time = PETSC_FALSE;
+  PetscBool         has_curr_time = PETSC_FALSE, unit_tests;
   PetscInt          ierr;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext newtonian_ig_context;
@@ -33,16 +86,19 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->dim                               = 3;
   problem->q_data_size_vol                   = 10;
   problem->q_data_size_sur                   = 10;
+  problem->jac_data_size_sur                 = 5;
   problem->setup_vol.qfunction               = Setup;
   problem->setup_vol.qfunction_loc           = Setup_loc;
   problem->ics.qfunction                     = ICsNewtonianIG;
   problem->ics.qfunction_loc                 = ICsNewtonianIG_loc;
   problem->setup_sur.qfunction               = SetupBoundary;
   problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
-  problem->apply_vol_rhs.qfunction           = Newtonian;
-  problem->apply_vol_rhs.qfunction_loc       = Newtonian_loc;
+  problem->apply_vol_rhs.qfunction           = RHSFunction_Newtonian;
+  problem->apply_vol_rhs.qfunction_loc       = RHSFunction_Newtonian_loc;
   problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian;
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
+  problem->apply_vol_ijacobian.qfunction     = IJacobian_Newtonian;
+  problem->apply_vol_ijacobian.qfunction_loc = IJacobian_Newtonian_loc;
   problem->bc                                = NULL;
   problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
@@ -115,6 +171,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                             NULL, Ctau_E, &Ctau_E, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
                           NULL, implicit=PETSC_FALSE, &implicit, NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-newtonian_unit_tests", "Run Newtonian unit tests",
+                          NULL, unit_tests=PETSC_FALSE, &unit_tests, NULL);
   CHKERRQ(ierr);
 
   // -- Units
@@ -214,9 +273,18 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(newtonian_ig_context, "timestep size",
                                      offsetof(struct NewtonianIdealGasContext_, dt), 1, "Size of timestep, delta t");
+  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "ijacobian time shift",
+                                     offsetof(struct NewtonianIdealGasContext_, ijacobian_time_shift), 1,
+                                     "Shift for mass matrix in IJacobian");
   problem->apply_vol_rhs.qfunction_context = newtonian_ig_context;
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_vol_ifunction.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context,
+                                    &problem->apply_vol_ijacobian.qfunction_context);
+
+  if (unit_tests) {
+    PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));
+  }
   PetscFunctionReturn(0);
 }
 

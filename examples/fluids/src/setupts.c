@@ -214,6 +214,129 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
+  User user;
+  const PetscScalar *q;
+  PetscScalar       *g;
+  Vec               Q_loc, G_loc;
+  PetscMemType      q_mem_type, g_mem_type;
+  PetscErrorCode    ierr;
+  PetscFunctionBeginUser;
+  MatShellGetContext(J, &user);
+  // Get local vectors
+  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+
+  // Global-to-local
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
+
+  // Place PETSc vectors in CEED vectors
+  ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
+  ierr = VecGetArrayAndMemType(G_loc, &g, &g_mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER,
+                     (PetscScalar *)q);
+  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+
+  // Apply CEED operator
+  CeedOperatorApply(user->op_ijacobian, user->q_ceed, user->g_ceed,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // Restore vectors
+  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
+  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
+  ierr = VecRestoreArrayReadAndMemType(Q_loc, &q); CHKERRQ(ierr);
+  ierr = VecRestoreArrayAndMemType(G_loc, &g); CHKERRQ(ierr);
+
+  // Local-to-Global
+  ierr = VecZeroEntries(G); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
+
+  // Restore vectors
+  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode MatGetDiagonal_NS_IJacobian(Mat A, Vec D) {
+  User user;
+  Vec D_loc;
+  PetscScalar *d;
+  PetscMemType mem_type;
+
+  PetscFunctionBeginUser;
+  MatShellGetContext(A, &user);
+  PetscCall(DMGetLocalVector(user->dm, &D_loc));
+  PetscCall(VecGetArrayAndMemType(D_loc, &d, &mem_type));
+  CeedVectorSetArray(user->g_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, d);
+  CeedOperatorLinearAssembleDiagonal(user->op_ijacobian, user->g_ceed,
+                                     CEED_REQUEST_IMMEDIATE);
+  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(mem_type), NULL);
+  PetscCall(VecRestoreArrayAndMemType(D_loc, &d));
+  PetscCall(VecZeroEntries(D));
+  PetscCall(DMLocalToGlobal(user->dm, D_loc, ADD_VALUES, D));
+  PetscCall(DMRestoreLocalVector(user->dm, &D_loc));
+  VecViewFromOptions(D, NULL, "-diag_vec_view");
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
+                                PetscReal shift, Mat J, Mat J_pre,
+                                void *user_data) {
+  User user = *(User *)user_data;
+  PetscBool J_is_shell, J_pre_is_shell;
+  PetscFunctionBeginUser;
+  if (user->phys->ijacobian_time_shift_label)
+    CeedOperatorContextSetDouble(user->op_ijacobian,
+                                 user->phys->ijacobian_time_shift_label, &shift);
+  PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
+  PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  Vec coo_vec = NULL;
+  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL,
+                                   &J_pre_is_shell));
+  if (!user->matrices_set_up) {
+    if (J_is_shell) {
+      PetscCall(MatShellSetContext(J, user));
+      PetscCall(MatShellSetOperation(J, MATOP_MULT,
+                                     (void (*)(void))MatMult_NS_IJacobian));
+      PetscCall(MatShellSetOperation(J, MATOP_GET_DIAGONAL,
+                                     (void (*)(void))MatGetDiagonal_NS_IJacobian));
+      PetscCall(MatSetUp(J));
+    }
+    if (!J_pre_is_shell) {
+      PetscCount ncoo;
+      PetscInt *rows, *cols;
+      PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows,
+                &cols));
+      PetscCall(MatSetPreallocationCOOLocal(J_pre, ncoo, rows, cols));
+      free(rows);
+      free(cols);
+      CeedVectorCreate(user->ceed, ncoo, &user->coo_values);
+      user->matrices_set_up = true;
+      VecCreateSeq(PETSC_COMM_WORLD, ncoo, &coo_vec);
+    }
+  }
+  if (!J_pre_is_shell) {
+    CeedMemType mem_type = CEED_MEM_HOST;
+    const PetscScalar *values;
+    MatType mat_type;
+    PetscCall(MatGetType(J_pre, &mat_type));
+    //if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
+    CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
+    CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
+    if (coo_vec) {
+      VecPlaceArray(coo_vec, values);
+      VecViewFromOptions(coo_vec, NULL, "-coo_vec_view");
+      VecDestroy(&coo_vec);
+    }
+    PetscCall(MatSetValuesCOO(J_pre, values, INSERT_VALUES));
+    CeedVectorRestoreArrayRead(user->coo_values, &values);
+  }
+  PetscFunctionReturn(0);
+}
+
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
                             Vec Q, void *ctx) {
@@ -312,6 +435,9 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
       ierr = TSSetIFunction(*ts, NULL, IFunction_NS, &user); CHKERRQ(ierr);
     } else { // Implicit integrators can fall back to using an RHSFunction
       ierr = TSSetRHSFunction(*ts, NULL, RHS_NS, &user); CHKERRQ(ierr);
+    }
+    if (user->op_ijacobian) {
+      ierr = DMTSSetIJacobian(dm, FormIJacobian_NS, &user); CHKERRQ(ierr);
     }
   } else {
     if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL,
