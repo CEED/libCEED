@@ -152,5 +152,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Hip(CeedOperator op);
 #endif

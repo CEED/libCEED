@@ -1065,37 +1065,13 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Assemble composite diagonal common code
-//------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(
-  CeedOperator op, CeedVector assembled, CeedRequest *request,
-  const bool pointBlock) {
-  int ierr;
-  CeedInt numSub;
-  CeedOperator *subOperators;
-  ierr = CeedOperatorGetNumSub(op, &numSub); CeedChkBackend(ierr);
-  ierr = CeedOperatorGetSubList(op, &subOperators); CeedChkBackend(ierr);
-  for (CeedInt i = 0; i < numSub; i++) {
-    ierr = CeedOperatorAssembleDiagonalCore_Hip(subOperators[i], assembled,
-           request, pointBlock); CeedChkBackend(ierr);
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddDiagonal_Hip(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
-  int ierr;
-  bool isComposite;
-  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
-  if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
-           request, false);
-  } else {
-    return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, false);
-  }
+  int ierr = CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, false);
+  CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1103,15 +1079,9 @@ static int CeedOperatorLinearAssembleAddDiagonal_Hip(CeedOperator op,
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
-  int ierr;
-  bool isComposite;
-  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
-  if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Hip(op, assembled,
-           request, true);
-  } else {
-    return CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, true);
-  }
+  int ierr = CeedOperatorAssembleDiagonalCore_Hip(op, assembled, request, true);
+  CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1392,38 +1362,8 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset,
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
 int CeedOperatorLinearAssemble_Hip(CeedOperator op, CeedVector values) {
-
-  // As done in the default implementation, loop through suboperators
-  // for composite operators, or call single operator assembly otherwise
-  bool is_composite;
-  CeedInt ierr;
-  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
-
-  CeedElemRestriction rstr;
-  CeedInt num_elem, elem_size, num_comp;
-
-  CeedInt offset = 0;
-  if (is_composite) {
-    CeedInt num_suboperators;
-    ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChkBackend(ierr);
-    CeedOperator *sub_operators;
-    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChkBackend(ierr);
-    for (int k = 0; k < num_suboperators; ++k) {
-      ierr = CeedSingleOperatorAssemble_Hip(sub_operators[k], offset, values);
-      CeedChkBackend(ierr);
-      ierr = CeedOperatorGetActiveElemRestriction(sub_operators[k], &rstr);
-      CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(rstr, &elem_size);
-      CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp);
-      CeedChkBackend(ierr);
-      offset += elem_size*num_comp * elem_size*num_comp * num_elem;
-    }
-  } else {
-    ierr = CeedSingleOperatorAssemble_Hip(op, offset, values); CeedChkBackend(ierr);
-  }
-
+  int ierr = CeedSingleOperatorAssemble_Hip(op, 0, values);
+  CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1463,24 +1403,4 @@ int CeedOperatorCreate_Hip(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
-//------------------------------------------------------------------------------
-// Composite Operator Create
-//------------------------------------------------------------------------------
-int CeedCompositeOperatorCreate_Hip(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleAddDiagonal_Hip);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Hip);
-  CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
 //------------------------------------------------------------------------------

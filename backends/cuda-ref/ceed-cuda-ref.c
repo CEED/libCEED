@@ -74,8 +74,6 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
                                 CeedQFunctionContextCreate_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Cuda); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Cuda); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;

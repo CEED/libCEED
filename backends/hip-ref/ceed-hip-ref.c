@@ -72,8 +72,6 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
                                 CeedQFunctionContextCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
                                 CeedOperatorCreate_Hip); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "CompositeOperatorCreate",
-                                CeedCompositeOperatorCreate_Hip); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
                                 CeedDestroy_Hip); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;

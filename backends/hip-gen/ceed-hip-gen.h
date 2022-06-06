@@ -39,6 +39,4 @@ CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Hip_gen(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Hip_gen(CeedOperator op);
-
 #endif // _ceed_hip_gen_h

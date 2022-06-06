@@ -41,6 +41,9 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf,
   // Check if NULL qf passed in
   if (!qf) return CEED_ERROR_SUCCESS;
 
+  CeedDebug256(qf->ceed, 1, "---------- CeedOperator Fallback ----------\n");
+  CeedDebug256(qf->ceed, 255, "Creating fallback CeedQFunction\n");
+
   char *source_path_with_name = "";
   if (qf->source_path) {
     size_t path_len = strlen(qf->source_path),
@@ -88,7 +91,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf,
 
   @ref Developer
 **/
-int CeedOperatorCreateFallback(CeedOperator op) {
+static int CeedOperatorCreateFallback(CeedOperator op) {
   int ierr;
   Ceed ceed_fallback;
 
@@ -97,6 +100,10 @@ int CeedOperatorCreateFallback(CeedOperator op) {
 
   // Fallback Ceed
   ierr = CeedGetOperatorFallbackCeed(op->ceed, &ceed_fallback); CeedChk(ierr);
+  if (!ceed_fallback) return CEED_ERROR_SUCCESS;
+
+  CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
+  CeedDebug256(op->ceed, 255, "Creating fallback CeedOperator\n");
 
   // Clone Op
   CeedOperator op_fallback;
@@ -104,8 +111,11 @@ int CeedOperatorCreateFallback(CeedOperator op) {
     ierr = CeedCompositeOperatorCreate(ceed_fallback, &op_fallback);
     CeedChk(ierr);
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
-      ierr = CeedCompositeOperatorAddSub(op_fallback, op->sub_operators[i]);
+      CeedOperator op_sub_fallback;
+
+      ierr = CeedOperatorGetFallback(op->sub_operators[i], &op_sub_fallback);
       CeedChk(ierr);
+      ierr = CeedCompositeOperatorAddSub(op_fallback, op_sub_fallback); CeedChk(ierr);
     }
   } else {
     CeedQFunction qf_fallback = NULL, dqf_fallback = NULL, dqfT_fallback = NULL;
@@ -143,6 +153,46 @@ int CeedOperatorCreateFallback(CeedOperator op) {
   ierr = CeedOperatorSetName(op_fallback, op->name); CeedChk(ierr);
   ierr = CeedOperatorCheckReady(op_fallback); CeedChk(ierr);
   op->op_fallback = op_fallback;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Retreive fallback CeedOperator with a reference Ceed for advanced CeedOperator functionality
+
+  @param[in] op            CeedOperator to retrieve fallback for
+  @param[out] op_fallback  Fallback CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
+  int ierr;
+
+  // Create if needed
+  if (!op->op_fallback) {
+    ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+  }
+  if (op->op_fallback) {
+    bool is_debug;
+
+    ierr = CeedIsDebug(op->ceed, &is_debug); CeedChk(ierr);
+    if (is_debug) {
+      Ceed ceed_fallback;
+      const char *resource, *resource_fallback;
+
+      ierr = CeedGetOperatorFallbackCeed(op->ceed, &ceed_fallback); CeedChk(ierr);
+      ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
+      ierr = CeedGetResource(ceed_fallback, &resource_fallback); CeedChk(ierr);
+
+      CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
+      CeedDebug256(op->ceed, 255,
+                   "Falling back from %s operator at address %ld to %s operator at address %ld\n",
+                   resource, op, resource_fallback, op->op_fallback);
+    }
+  }
+  *op_fallback = op->op_fallback;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -485,8 +535,13 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(
   ierr = CeedOperatorGetNumSub(op, &num_sub); CeedChk(ierr);
   ierr = CeedOperatorGetSubList(op, &suboperators); CeedChk(ierr);
   for (CeedInt i = 0; i < num_sub; i++) {
-    ierr = CeedSingleOperatorAssembleAddDiagonal(suboperators[i], request,
-           is_pointblock, assembled); CeedChk(ierr);
+    if (is_pointblock) {
+      ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i],
+             assembled, request); CeedChk(ierr);
+    } else {
+      ierr = CeedOperatorLinearAssembleAddDiagonal(suboperators[i], assembled,
+             request); CeedChk(ierr);
+    }
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1340,18 +1395,24 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled,
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Backend version
   if (op->LinearAssembleQFunction) {
+    // Backend version
     ierr = op->LinearAssembleQFunction(op, assembled, rstr, request);
     CeedChk(ierr);
   } else {
-    // Fallback to reference Ceed
-    if (!op->op_fallback) {
-      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleQFunction(op_fallback, assembled,
+             rstr, request); CeedChk(ierr);
+    } else {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support CeedOperatorLinearAssembleQFunction");
+      // LCOV_EXCL_STOP
     }
-    // Assemble
-    ierr = CeedOperatorLinearAssembleQFunction(op->op_fallback, assembled,
-           rstr, request); CeedChk(ierr);
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1379,8 +1440,8 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Backend version
   if (op->LinearAssembleQFunctionUpdate) {
+    // Backend version
     bool qf_assembled_is_setup;
     CeedVector assembled_vec = NULL;
     CeedElemRestriction assembled_rstr = NULL;
@@ -1388,10 +1449,10 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     ierr = CeedQFunctionAssemblyDataIsSetup(op->qf_assembled,
                                             &qf_assembled_is_setup); CeedChk(ierr);
     if (qf_assembled_is_setup) {
+      bool update_needed;
+
       ierr = CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec,
              &assembled_rstr); CeedChk(ierr);
-
-      bool update_needed;
       ierr = CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled,
              &update_needed); CeedChk(ierr);
       if (update_needed) {
@@ -1407,7 +1468,7 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     ierr = CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, false);
     CeedChk(ierr);
 
-    // Copy reference to internally held copy
+    // Copy reference from internally held copy
     *assembled = NULL;
     *rstr = NULL;
     ierr = CeedVectorReferenceCopy(assembled_vec, assembled); CeedChk(ierr);
@@ -1415,13 +1476,19 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op,
     ierr = CeedElemRestrictionReferenceCopy(assembled_rstr, rstr); CeedChk(ierr);
     ierr = CeedElemRestrictionDestroy(&assembled_rstr); CeedChk(ierr);
   } else {
-    // Fallback to reference Ceed
-    if (!op->op_fallback) {
-      ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled,
+             rstr, request); CeedChk(ierr);
+    } else {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
+                       "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
+      // LCOV_EXCL_STOP
     }
-    // Assemble
-    ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op->op_fallback,
-           assembled, rstr, request); CeedChk(ierr);
   }
 
   return CEED_ERROR_SUCCESS;
@@ -1460,36 +1527,31 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled,
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
   // LCOV_EXCL_STOP
 
-  // Use backend version, if available
   if (op->LinearAssembleDiagonal) {
+    // Backend version
     ierr = op->LinearAssembleDiagonal(op, assembled, request); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else if (op->LinearAssembleAddDiagonal) {
+    // Backend version with zeroing first
     ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
     ierr = op->LinearAssembleAddDiagonal(op, assembled, request); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssembleDiagonal(op->op_fallback, assembled, request);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleDiagonal(op_fallback, assembled, request);
       CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
-
   // Default interface implementation
   ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
   ierr = CeedOperatorLinearAssembleAddDiagonal(op, assembled, request);
   CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1526,40 +1588,33 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
   // LCOV_EXCL_STOP
 
-  // Use backend version, if available
   if (op->LinearAssembleAddDiagonal) {
+    // Backend version
     ierr = op->LinearAssembleAddDiagonal(op, assembled, request); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssembleAddDiagonal(op->op_fallback, assembled,
-             request); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleAddDiagonal(op_fallback, assembled, request);
+      CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
-
   // Default interface implementation
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
   if (is_composite) {
     ierr = CeedCompositeOperatorLinearAssembleAddDiagonal(op, request,
            false, assembled); CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
   } else {
     ierr = CeedSingleOperatorAssembleAddDiagonal(op, request, false, assembled);
     CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
   }
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1601,38 +1656,33 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op,
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
   // LCOV_EXCL_STOP
 
-  // Use backend version, if available
   if (op->LinearAssemblePointBlockDiagonal) {
+    // Backend version
     ierr = op->LinearAssemblePointBlockDiagonal(op, assembled, request);
     CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else if (op->LinearAssembleAddPointBlockDiagonal) {
+    // Backend version with zeroing first
     ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
     ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled,
            request); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssemblePointBlockDiagonal(op->op_fallback,
-             assembled, request); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssemblePointBlockDiagonal(op_fallback, assembled,
+             request); CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
-
   // Default interface implementation
   ierr = CeedVectorSetValue(assembled, 0.0); CeedChk(ierr);
   ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled, request);
   CeedChk(ierr);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1675,41 +1725,34 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
   // LCOV_EXCL_STOP
 
-  // Use backend version, if available
   if (op->LinearAssembleAddPointBlockDiagonal) {
+    // Backend version
     ierr = op->LinearAssembleAddPointBlockDiagonal(op, assembled, request);
     CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op->op_fallback,
-             assembled, request); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleAddPointBlockDiagonal(op_fallback, assembled,
+             request); CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
-
   // Default interface implemenation
   bool is_composite;
   ierr = CeedOperatorIsComposite(op, &is_composite); CeedChk(ierr);
   if (is_composite) {
     ierr = CeedCompositeOperatorLinearAssembleAddDiagonal(op, request,
            true, assembled); CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
   } else {
     ierr = CeedSingleOperatorAssembleAddDiagonal(op, request, true, assembled);
     CeedChk(ierr);
-    return CEED_ERROR_SUCCESS;
   }
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1744,24 +1787,18 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries,
   bool is_composite;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Use backend version, if available
   if (op->LinearAssembleSymbolic) {
+    // Backend version
     ierr = op->LinearAssembleSymbolic(op, num_entries, rows, cols); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssembleSymbolic(op->op_fallback, num_entries, rows,
-             cols); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssembleSymbolic(op_fallback, num_entries, rows, cols);
+      CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -1835,23 +1872,17 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   CeedOperator *sub_operators;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Use backend version, if available
   if (op->LinearAssemble) {
+    // Backend version
     ierr = op->LinearAssemble(op, values); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorLinearAssemble(op->op_fallback, values); CeedChk(ierr);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorLinearAssemble(op_fallback, values); CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -2169,29 +2200,23 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv,
   int ierr;
   ierr = CeedOperatorCheckReady(op); CeedChk(ierr);
 
-  // Use backend version, if available
   if (op->CreateFDMElementInverse) {
+    // Backend version
     ierr = op->CreateFDMElementInverse(op, fdm_inv, request); CeedChk(ierr);
     return CEED_ERROR_SUCCESS;
   } else {
-    // Check for valid fallback resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(op->ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(op->ceed, &fallback_resource);
-    CeedChk(ierr);
-    if (strcmp(fallback_resource, "") && strcmp(resource, fallback_resource)) {
-      // Fallback to reference Ceed
-      if (!op->op_fallback) {
-        ierr = CeedOperatorCreateFallback(op); CeedChk(ierr);
-      }
-      // Assemble
-      ierr = CeedOperatorCreateFDMElementInverse(op->op_fallback, fdm_inv, request);
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedOperatorCreateFDMElementInverse(op_fallback, fdm_inv, request);
       CeedChk(ierr);
       return CEED_ERROR_SUCCESS;
     }
   }
 
-  // Interface implementation
+  // Default interface implementation
   Ceed ceed, ceed_parent;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChk(ierr);
   ierr = CeedGetOperatorFallbackParentCeed(ceed, &ceed_parent); CeedChk(ierr);
