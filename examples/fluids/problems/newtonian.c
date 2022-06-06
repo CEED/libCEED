@@ -102,6 +102,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
   problem->apply_vol_ijacobian.qfunction     = IJacobian_Newtonian;
   problem->apply_vol_ijacobian.qfunction_loc = IJacobian_Newtonian_loc;
+  problem->apply_inflow.qfunction            = BoundaryIntegral;
+  problem->apply_inflow.qfunction_loc        = BoundaryIntegral_loc;
   problem->bc                                = NULL;
   problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
@@ -259,6 +261,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->Ctau_M        = Ctau_M;
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
+  newtonian_ig_ctx->is_implicit   = implicit;
   ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
@@ -287,6 +290,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                                     &problem->apply_vol_ifunction.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_vol_ijacobian.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context,
+                                    &problem->apply_inflow.qfunction_context);
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));

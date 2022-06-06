@@ -152,15 +152,13 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   //               SET UP Blasius
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  problem->ics.qfunction               = ICsBlasius;
-  problem->ics.qfunction_loc           = ICsBlasius_loc;
-  problem->apply_inflow.qfunction      = Blasius_Inflow;
-  problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
-  problem->apply_inflow_jacobian.qfunction = Blasius_Inflow_Jacobian;
+  problem->ics.qfunction                       = ICsBlasius;
+  problem->ics.qfunction_loc                   = ICsBlasius_loc;
+  problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
   problem->apply_inflow_jacobian.qfunction_loc = Blasius_Inflow_Jacobian_loc;
-  problem->apply_outflow.qfunction     = Blasius_Outflow;
-  problem->apply_outflow.qfunction_loc = Blasius_Outflow_loc;
-  problem->apply_outflow_jacobian.qfunction = Blasius_Outflow_Jacobian;
+  problem->apply_outflow.qfunction             = Blasius_Outflow;
+  problem->apply_outflow.qfunction_loc         = Blasius_Outflow_loc;
+  problem->apply_outflow_jacobian.qfunction    = Blasius_Outflow_Jacobian;
   problem->apply_outflow_jacobian.qfunction_loc = Blasius_Outflow_Jacobian_loc;
 
   CeedScalar Uinf   = 40;          // m/s
@@ -256,8 +254,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   problem->ics.qfunction_context = blasius_context;
   CeedQFunctionContextReferenceCopy(blasius_context,
-                                    &problem->apply_inflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_inflow_jacobian.qfunction_context);
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_outflow.qfunction_context);
@@ -266,6 +262,11 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   if (use_stg) {
     ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
                     mesh_nynodes); CHKERRQ(ierr);
+  } else {
+    problem->apply_inflow.qfunction     = Blasius_Inflow;
+    problem->apply_inflow.qfunction_loc = Blasius_Inflow_loc;
+    CeedQFunctionContextReferenceCopy(blasius_context,
+                                      &problem->apply_inflow.qfunction_context);
   }
   ierr = PetscFree(mesh_ynodes); CHKERRQ(ierr);
   PetscFunctionReturn(0);

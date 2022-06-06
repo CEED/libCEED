@@ -20,6 +20,8 @@
 #define M_PI    3.14159265358979323846
 #endif
 
+STGShur14Context global_stg_ctx;
+
 /*
  * @brief Perform Cholesky decomposition on array of symmetric 3x3 matrices
  *
@@ -328,7 +330,6 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
              use_stgstrong = PETSC_FALSE;
   CeedScalar u0            = 0.0,
              alpha         = 1.01;
-  STGShur14Context stg_ctx;
   CeedQFunctionContext stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
   PetscFunctionBeginUser;
@@ -351,15 +352,15 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                           NULL, use_stgstrong, &use_stgstrong, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
-  ierr = PetscCalloc1(1, &stg_ctx); CHKERRQ(ierr);
-  stg_ctx->alpha         = alpha;
-  stg_ctx->u0            = u0;
-  stg_ctx->is_implicit   = user->phys->implicit;
-  stg_ctx->prescribe_T   = prescribe_T;
-  stg_ctx->mean_only     = mean_only;
-  stg_ctx->theta0        = theta0;
-  stg_ctx->P0            = P0;
-  stg_ctx->nynodes       = nynodes;
+  ierr = PetscCalloc1(1, &global_stg_ctx); CHKERRQ(ierr);
+  global_stg_ctx->alpha         = alpha;
+  global_stg_ctx->u0            = u0;
+  global_stg_ctx->is_implicit   = user->phys->implicit;
+  global_stg_ctx->prescribe_T   = prescribe_T;
+  global_stg_ctx->mean_only     = mean_only;
+  global_stg_ctx->theta0        = theta0;
+  global_stg_ctx->P0            = P0;
+  global_stg_ctx->nynodes       = nynodes;
 
   {
     // Calculate dx assuming constant spacing
@@ -370,23 +371,23 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
     PetscInt nmax = 3, faces[3];
     ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
                                    NULL); CHKERRQ(ierr);
-    stg_ctx->dx = domain_size[0]/faces[0];
-    stg_ctx->dz = domain_size[2]/faces[2];
+    global_stg_ctx->dx = domain_size[0]/faces[0];
+    global_stg_ctx->dz = domain_size[2]/faces[2];
   }
 
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &newtonian_ig_ctx);
-  stg_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  global_stg_ctx->newtonian_ctx = *newtonian_ig_ctx;
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
 
-  ierr = GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path, &stg_ctx,
-                           ynodes); CHKERRQ(ierr);
+  ierr = GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path,
+                           &global_stg_ctx, ynodes); CHKERRQ(ierr);
 
   CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
   CeedQFunctionContextCreate(user->ceed, &stg_context);
   CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, stg_ctx->total_bytes, stg_ctx);
+                              CEED_USE_POINTER, global_stg_ctx->total_bytes, global_stg_ctx);
   CeedQFunctionContextSetDataDestroy(stg_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(stg_context, "solution time",
@@ -394,15 +395,15 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                                      "Phyiscal time of the solution");
 
   if (use_stgstrong) {
-    problem->apply_inflow.qfunction     = STGShur14_Inflow_Strong;
-    problem->apply_inflow.qfunction_loc = STGShur14_Inflow_Strong_loc;
+    // Use default boundary integral QF (BoundaryIntegral) in newtonian.h
     problem->bc_from_ics                = PETSC_FALSE;
   } else {
-    problem->apply_inflow.qfunction     = STGShur14_Inflow;
-    problem->apply_inflow.qfunction_loc = STGShur14_Inflow_loc;
-    problem->bc_from_ics                = PETSC_TRUE;
+    problem->apply_inflow.qfunction         = STGShur14_Inflow;
+    problem->apply_inflow.qfunction_loc     = STGShur14_Inflow_loc;
+    problem->apply_inflow.qfunction_context = stg_context;
+    problem->bc_from_ics                    = PETSC_TRUE;
   }
-  problem->apply_inflow.qfunction_context = stg_context;
+  // global_stg_ctx = global_stg_ctx;
 
   PetscFunctionReturn(0);
 }
@@ -460,8 +461,7 @@ PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
-                              STGShur14Context stg_ctx) {
+PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem) {
   PetscErrorCode ierr;
   DMLabel label;
   const PetscInt comps[] = {0, 1, 2, 3};
@@ -474,7 +474,7 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "STG", label,
                          bc->num_inflow, bc->inflows, 0, num_comps,
                          comps, (void(*)(void))StrongSTGbcFunc,
-                         NULL, stg_ctx, NULL);  CHKERRQ(ierr);
+                         NULL, global_stg_ctx, NULL);  CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

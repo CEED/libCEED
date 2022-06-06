@@ -41,6 +41,8 @@ struct NewtonianIdealGasContext_ {
   CeedScalar Ctau_E;
   CeedScalar dt;
   CeedScalar ijacobian_time_shift;
+  CeedScalar P0;
+  bool       is_implicit;
   StabilizationType stabilization;
 };
 

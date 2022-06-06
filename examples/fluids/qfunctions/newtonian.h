@@ -744,5 +744,65 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
   } // End Quadrature Point Loop
   return 0;
 }
+
+// Compute boundary integral (ie. for strongly set inflows)
+CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
+                                 const CeedScalar *const *in,
+                                 CeedScalar *const *out) {
+
+  //*INDENT-OFF*
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2];
+
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+
+  //*INDENT-ON*
+
+  const NewtonianIdealGasContext newt_ctx = (NewtonianIdealGasContext) ctx;
+  const bool is_implicit  = newt_ctx->is_implicit;
+  const CeedScalar cv     = newt_ctx->cv;
+  const CeedScalar cp     = newt_ctx->cp;
+  const CeedScalar gamma  = cp/cv;
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    const CeedScalar rho        = q[0][i];
+    const CeedScalar u[]        = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
+    const CeedScalar E_kinetic  = .5 * rho * (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+    const CeedScalar E_internal = q[4][i] - E_kinetic;
+    const CeedScalar P          = E_internal * (gamma - 1.);
+
+    const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    const CeedScalar E = E_internal + E_kinetic;
+
+    // Velocity normal to the boundary
+    const CeedScalar u_normal = norm[0]*u[0] +
+                                norm[1]*u[1] +
+                                norm[2]*u[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal;
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] +
+                            norm[j] * P);
+
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * u_normal * (E + P);
+  }
+  return 0;
+}
+
 // *****************************************************************************
 #endif // newtonian_h
