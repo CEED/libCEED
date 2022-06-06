@@ -122,7 +122,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
     // -- Check for 'include' keyword
     const char *next_e = strchr(first_hash, 'e');
     char keyword[8] = "";
-    if (next_e)
+    if (next_e && next_e - first_hash >= 7)
       memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
     // ---- Spaces allowed in '#  include <header.h>'
