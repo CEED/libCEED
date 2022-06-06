@@ -156,10 +156,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction_loc                   = ICsBlasius_loc;
   problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
   problem->apply_inflow_jacobian.qfunction_loc = Blasius_Inflow_Jacobian_loc;
-  problem->apply_outflow.qfunction             = Blasius_Outflow;
-  problem->apply_outflow.qfunction_loc         = Blasius_Outflow_loc;
-  problem->apply_outflow_jacobian.qfunction    = Blasius_Outflow_Jacobian;
-  problem->apply_outflow_jacobian.qfunction_loc = Blasius_Outflow_Jacobian_loc;
 
   CeedScalar Uinf   = 40;          // m/s
   CeedScalar delta0 = 4.2e-4;      // m
@@ -228,12 +224,13 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &newtonian_ig_ctx);
 
-  blasius_ctx->weakT     = weakT;
-  blasius_ctx->Uinf      = Uinf;
-  blasius_ctx->delta0    = delta0;
-  blasius_ctx->theta0    = theta0;
-  blasius_ctx->P0        = P0;
-  blasius_ctx->implicit  = user->phys->implicit;
+  blasius_ctx->weakT         = weakT;
+  blasius_ctx->Uinf          = Uinf;
+  blasius_ctx->delta0        = delta0;
+  blasius_ctx->theta0        = theta0;
+  blasius_ctx->P0            = P0;
+  newtonian_ig_ctx->P0       = P0;
+  blasius_ctx->implicit      = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
   {
@@ -255,10 +252,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction_context = blasius_context;
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_inflow_jacobian.qfunction_context);
-  CeedQFunctionContextReferenceCopy(blasius_context,
-                                    &problem->apply_outflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(blasius_context,
-                                    &problem->apply_outflow_jacobian.qfunction_context);
   if (use_stg) {
     ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
                     mesh_nynodes); CHKERRQ(ierr);

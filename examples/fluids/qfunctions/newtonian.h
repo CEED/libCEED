@@ -804,5 +804,127 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// Outflow boundary condition, weakly setting a constant pressure
+CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
+                                const CeedScalar *const *in,
+                                CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+  // *INDENT-ON*
+
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const bool       implicit = context->is_implicit;
+  const CeedScalar P0       = context->P0;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar rho      =  q[0][i];
+    const CeedScalar u[3]     = {q[1][i] / rho,
+                                 q[2][i] / rho,
+                                 q[3][i] / rho
+                                };
+    const CeedScalar E        =  q[4][i];
+
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    // Implementing outflow condition
+    const CeedScalar P         = P0; // pressure
+    const CeedScalar u_normal  = Dot3(norm, u); // Normal velocity
+
+    // Calculate prescribed outflow traction values
+    CeedScalar velocity[3] = {0.};
+    // CeedScalar t12;
+    // const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
+    const CeedScalar viscous_flux[3] = {0.};
+
+    // -- Density
+    v[0][i] = -wdetJb * rho * u_normal;
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] = -wdetJb * (rho * u_normal * u[j]
+                             + norm[j] * P + viscous_flux[j]);
+
+    // -- Total Energy Density
+    v[4][i] = -wdetJb * (u_normal * (E + P)
+                         + Dot3(viscous_flux, velocity));
+
+    // Save values for Jacobian
+    jac_data_sur[0][i] = rho;
+    jac_data_sur[1][i] = u[0];
+    jac_data_sur[2][i] = u[1];
+    jac_data_sur[3][i] = u[2];
+    jac_data_sur[4][i] = E;
+  } // End Quadrature Point Loop
+  return 0;
+}
+
+// Jacobian for weak-pressure outflow boundary condition
+CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in,
+    CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const bool implicit     = context->is_implicit;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar rho = jac_data_sur[0][i];
+    const CeedScalar u[3] = {jac_data_sur[1][i], jac_data_sur[2][i], jac_data_sur[3][i]};
+    const CeedScalar E = jac_data_sur[4][i];
+
+    const CeedScalar drho      =  dq[0][i];
+    const CeedScalar dmomentum[3] = {dq[1][i], dq[2][i], dq[3][i]};
+    const CeedScalar dE        =  dq[4][i];
+
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    CeedScalar du[3];
+    for (int j=0; j<3; j++) du[j] = (dmomentum[j] - u[j] * drho) / rho;
+    const CeedScalar u_normal  = Dot3(norm, u);
+    const CeedScalar du_normal = Dot3(norm, du);
+    const CeedScalar dmomentum_normal = drho * u_normal + rho * du_normal;
+    const CeedScalar P = context->P0;
+    const CeedScalar dP = 0;
+
+    v[0][i] = -wdetJb * dmomentum_normal;
+    for (int j=0; j<3; j++)
+      v[j+1][i] = -wdetJb * (dmomentum_normal * u[j] + rho * u_normal * du[j]);
+    v[4][i] = -wdetJb * (du_normal * (E + P) + u_normal * (dE + dP));
+  } // End Quadrature Point Loop
+  return 0;
+}
+
 // *****************************************************************************
 #endif // newtonian_h
