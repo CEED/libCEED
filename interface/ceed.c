@@ -553,7 +553,8 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   CeedChk(ierr);
 
   // Check validity
-  ceed->has_valid_op_fallback_resource = strlen(ceed->op_fallback_resource) > 0 &&
+  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource &&
+                                         ceed->resource &&
                                          strcmp(ceed->op_fallback_resource, ceed->resource);
 
   return CEED_ERROR_SUCCESS;
@@ -927,6 +928,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddPointBlockDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSymbolic),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemble),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSingle),
     CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),

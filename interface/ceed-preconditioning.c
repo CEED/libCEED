@@ -659,6 +659,22 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
                      "Composite operator not supported");
   // LCOV_EXCL_STOP
 
+  if (op->LinearAssembleSingle) {
+    // Backend version
+    ierr = op->LinearAssembleSingle(op, offset, values); CeedChk(ierr);
+    return CEED_ERROR_SUCCESS;
+  } else {
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    ierr = CeedOperatorGetFallback(op, &op_fallback); CeedChk(ierr);
+    if (op_fallback) {
+      ierr = CeedSingleOperatorAssemble(op_fallback, offset, values);
+      CeedChk(ierr);
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
   // Assemble QFunction
   CeedQFunction qf;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChk(ierr);
@@ -1895,7 +1911,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   if (is_composite) {
     ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChk(ierr);
     ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChk(ierr);
-    for (CeedInt k = 0; k < num_suboperators; ++k) {
+    for (CeedInt k = 0; k < num_suboperators; k++) {
       ierr = CeedSingleOperatorAssemble(sub_operators[k], offset, values);
       CeedChk(ierr);
       ierr = CeedSingleOperatorAssemblyCountEntries(sub_operators[k],
