@@ -553,7 +553,8 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   CeedChk(ierr);
 
   // Check validity
-  ceed->has_valid_op_fallback_resource = strlen(ceed->op_fallback_resource) > 0 &&
+  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource &&
+                                         ceed->resource &&
                                          strcmp(ceed->op_fallback_resource, ceed->resource);
 
   return CEED_ERROR_SUCCESS;
