@@ -1220,6 +1220,58 @@ int CeedBasisDestroy(CeedBasis *basis) {
 }
 
 /**
+  @brief Hale and Trefethen strip transformation
+
+  @param[in] Q    Number of quadrature points
+  @param[in] rho  sum of semiminor and major axis
+  @param[out] g   conformal map
+  @param[out] g_prime   derivative of conformal map g
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedHaleTrefethenStripMap(CeedInt Q, CeedInt rho, CeedScalar *g, CeedScalar *g_prime) {
+  CeedScalar tau, d, C, PI2, PI = 4.0*atan(1.0);
+  tau = PI / log(rho);
+  d = .5 + 1. / (exp(tau * PI) + 1.0)
+  PI2 = PI / 2.0;
+  for (int i = 0; i < Q; i++) {
+    u = (PI * i) / Q;
+    // Unscaled function of u
+    g_u = log(1.0 + exp(-tau * (PI2 + u))) - log(1.0 + exp(-tau * (PI2 - u))) + d * tau * u;
+    g_prime_u = 1.0 / (exp(tau * (PI2 + u)) + 1) + 1.0 / (exp(tau * (PI2 - u)) + 1) - d;
+    // Normalizing factor and scaled function
+    C = 1.0 / g_u;
+    g = C * g_u;
+    g_prime = -tau * C ;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Transform quadrature by applying a smooth mapping = (g, g_prime)
+
+  @param Q  Number of quadarture points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedTransformQuadrature(CeeddInt Q, CeedScalar *q_weight_1d) {
+  CeedScalar points, m_points, m_weights;
+  if (!mapping) {
+    if (!q_weight_1d)
+      points = Q;
+      else
+       points = Q;
+       weights = q_weight_1d;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Construct a Gauss-Legendre quadrature
 
   @param Q                 Number of quadrature points (integrates polynomials of
@@ -1270,6 +1322,8 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
+  // Call transformed Gauss-Legendre quadrature
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1342,6 +1396,8 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
+  // Call transformed Gauss-Legendre-Lobatto quadrature
+
   return CEED_ERROR_SUCCESS;
 }
 
