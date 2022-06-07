@@ -450,11 +450,10 @@ the velocity is prescribed by the Blasius soution profile, density is set
 constant, and temperature is allowed to float. Using `weakT: true`, density is
 allowed to float and temperature is set constant. At the outlet, a user-set
 pressure is used for pressure in the inviscid flux terms (all other inviscid
-flux terms use interior solution values). The viscous traction is also set to
-the analytic Blasius profile value at both the inflow and the outflow. The wall
-is a no-slip, no-penetration, no-heat flux condition. The top of the domain is
-treated as an outflow and is tilted at a downward angle to ensure that flow is
-always exiting it.
+flux terms use interior solution values). The wall is a no-slip,
+no-penetration, no-heat flux condition. The top of the domain is treated as an
+outflow and is tilted at a downward angle to ensure that flow is always exiting
+it.
 
 ### Turbulent Boundary Layer
 
