@@ -933,13 +933,15 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar rho = jac_data_sur[0][i];
-    const CeedScalar u[3] = {jac_data_sur[1][i], jac_data_sur[2][i], jac_data_sur[3][i]};
-    const CeedScalar E = jac_data_sur[4][i];
+    CeedScalar U[5], dU[5], x_zeros[3] = {0.};
+    for (int j=0; j<5; j++) U[j]    = jac_data_sur[j][i];
+    for (int j=0; j<3; j++) U[j+1] *= U[0];
+    for (int j=0; j<5; j++) dU[j]   = dq[j][i];
+    State s  = StateFromU(context, U, x_zeros);
+    State ds = StateFromU_fwd(context, s, dU, x_zeros, x_zeros);
+    s.Y.pressure  = context->P0;
+    ds.Y.pressure = 0.;
 
-    const CeedScalar drho      =  dq[0][i];
-    const CeedScalar dmomentum[3] = {dq[1][i], dq[2][i], dq[3][i]};
-    const CeedScalar dE        =  dq[4][i];
 
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
     const CeedScalar norm[3] = {q_data_sur[1][i],
@@ -947,18 +949,19 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
                                 q_data_sur[3][i]
                                };
 
-    CeedScalar du[3];
-    for (int j=0; j<3; j++) du[j] = (dmomentum[j] - u[j] * drho) / rho;
-    const CeedScalar u_normal  = Dot3(norm, u);
-    const CeedScalar du_normal = Dot3(norm, du);
-    const CeedScalar dmomentum_normal = drho * u_normal + rho * du_normal;
-    const CeedScalar P = context->P0;
-    const CeedScalar dP = 0;
+    StateConservative dF_inviscid[3];
+    FluxInviscid_fwd(context, s, ds, dF_inviscid);
 
-    v[0][i] = -wdetJb * dmomentum_normal;
-    for (int j=0; j<3; j++)
-      v[j+1][i] = -wdetJb * (dmomentum_normal * u[j] + rho * u_normal * du[j]);
-    v[4][i] = -wdetJb * (du_normal * (E + P) + u_normal * (dE + dP));
+    CeedScalar dFlux[5] = {0.};
+    for (int j=0; j<3; j++) {
+      dFlux[0] += dF_inviscid[j].density * norm[j];
+      for (int k=0; k<3; k++)
+        dFlux[k+1] += dF_inviscid[j].momentum[k] * norm[j];
+      dFlux[4] += dF_inviscid[j].E_total * norm[j];
+    }
+
+    for (int j=0; j<5; j++)
+      v[j][i] = -wdetJb * dFlux[j];
   } // End Quadrature Point Loop
   return 0;
 }
