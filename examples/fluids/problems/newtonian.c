@@ -104,6 +104,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_loc;
   problem->apply_inflow.qfunction               = BoundaryIntegral;
   problem->apply_inflow.qfunction_loc           = BoundaryIntegral_loc;
+  problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian;
+  problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_loc;
   problem->apply_outflow.qfunction              = PressureOutflow;
   problem->apply_outflow.qfunction_loc          = PressureOutflow_loc;
   problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian;

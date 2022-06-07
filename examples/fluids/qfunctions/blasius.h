@@ -265,8 +265,8 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];

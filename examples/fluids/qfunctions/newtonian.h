@@ -756,7 +756,8 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
                    (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+  CeedScalar (*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA]) out[0],
+             (*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[1];
 
   //*INDENT-ON*
 
@@ -817,7 +818,88 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
     // -- Total Energy Density
     v[4][i] = -wdetJb * Flux[4];
+
+    jac_data_sur[0][i] = s.U.density;
+    jac_data_sur[1][i] = s.Y.velocity[0];
+    jac_data_sur[2][i] = s.Y.velocity[1];
+    jac_data_sur[3][i] = s.Y.velocity[2];
+    jac_data_sur[4][i] = s.U.E_total;
+    for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   }
+  return 0;
+}
+
+// Jacobian for "set nothing" boundary integral
+CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in,
+    CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*Grad_dq)[5][CEED_Q_VLA]   = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const bool implicit     = context->is_implicit;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar x_i[3]  = {x[0][i], x[1][i], x[2][i]};
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+    const CeedScalar dXdx[2][3] = {
+      {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
+      {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
+    };
+
+    CeedScalar U[5], kmstress[6], dU[5], dx_i[3] = {0.};
+    for (int j=0; j<5; j++) U[j]         = jac_data_sur[j][i];
+    for (int j=0; j<6; j++) kmstress[j]  = jac_data_sur[5+j][i];
+    for (int j=0; j<3; j++) U[j+1]      *= U[0];
+    for (int j=0; j<5; j++) dU[j]        = dq[j][i];
+    State s  = StateFromU(context, U, x_i);
+    State ds = StateFromU_fwd(context, s, dU, x_i, dx_i);
+
+    State grad_ds[3];
+    for (CeedInt j=0; j<3; j++) {
+      CeedScalar dx_i[3] = {0}, dUj[5];
+      for (CeedInt k=0; k<5; k++)
+        dUj[k] = Grad_dq[0][k][i] * dXdx[0][j] +
+                 Grad_dq[1][k][i] * dXdx[1][j];
+      dx_i[j] = 1.;
+      grad_ds[j] = StateFromU_fwd(context, s, dUj, x_i, dx_i);
+    }
+
+    CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
+    KMStrainRate(grad_ds, dstrain_rate);
+    NewtonianStress(context, dstrain_rate, dkmstress);
+    KMUnpack(dkmstress, dstress);
+    KMUnpack(kmstress, stress);
+    ViscousEnergyFlux_fwd(context, s.Y, ds.Y, grad_ds, stress, dstress, dFe);
+
+    StateConservative dF_inviscid[3];
+    FluxInviscid_fwd(context, s, ds, dF_inviscid);
+
+    CeedScalar dFlux[5] = {0.};
+    for (int j=0; j<3; j++) {
+      dFlux[0] += dF_inviscid[j].density * norm[j];
+      for (int k=0; k<3; k++)
+        dFlux[k+1] += (dF_inviscid[j].momentum[k] - dstress[k][j]) * norm[j];
+      dFlux[4] += (dF_inviscid[j].E_total + dFe[j]) * norm[j];
+    }
+
+    for (int j=0; j<5; j++)
+      v[j][i] = -wdetJb * dFlux[j];
+  } // End Quadrature Point Loop
   return 0;
 }
 
