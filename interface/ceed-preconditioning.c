@@ -1105,7 +1105,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
     char *prolongation_name;
     ierr = CeedCalloc(18 + name_len, &prolongation_name); CeedChk(ierr);
     sprintf(prolongation_name, "prolongation%s%s", has_name ? " for " : "",
-            op_fine->name);
+            has_name ? op_fine->name : "");
     ierr = CeedOperatorSetName(*op_prolong, prolongation_name); CeedChk(ierr);
     ierr = CeedFree(&prolongation_name); CeedChk(ierr);
   }
@@ -1113,7 +1113,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine,
     char *restriction_name;
     ierr = CeedCalloc(17 + name_len, &restriction_name); CeedChk(ierr);
     sprintf(restriction_name, "restriction%s%s", has_name ? " for " : "",
-            op_fine->name);
+            has_name ? op_fine->name : "");
     ierr = CeedOperatorSetName(*op_restrict, restriction_name); CeedChk(ierr);
     ierr = CeedFree(&restriction_name); CeedChk(ierr);
   }
