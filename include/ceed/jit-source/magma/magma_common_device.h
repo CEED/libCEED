@@ -8,7 +8,7 @@
 #ifndef CEED_MAGMA_COMMON_DEVICE_H
 #define CEED_MAGMA_COMMON_DEVICE_H
 
-#ifdef HAVE_HIP
+#ifdef CEED_MAGMA_USE_HIP
 #define MAGMA_DEVICE_SHARED(type, name) HIP_DYNAMIC_SHARED(type, name)
 #else 
 #define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];

@@ -10,7 +10,7 @@
 #include <ceed/jit-tools.h>
 #include <string.h>
 #include "ceed-magma.h"
-#ifdef HAVE_HIP
+#ifdef CEED_MAGMA_USE_HIP
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #else
@@ -168,7 +168,7 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   }
   Ceed ceed;
   ierr = CeedElemRestrictionGetCeed(r, &ceed); CeedChkBackend(ierr);
-  #ifdef HAVE_HIP
+  #ifdef CEED_MAGMA_USE_HIP
   ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
   #else
   ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);

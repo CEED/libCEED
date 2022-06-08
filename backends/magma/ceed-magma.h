@@ -23,7 +23,7 @@
 // for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
 
-#ifdef HAVE_HIP
+#ifdef CEED_MAGMA_USE_HIP
 #define MAGMA_RTC_MODULE hipModule_t
 #define MAGMA_RTC_FUNCTION hipFunction_t
 #define MAGMA_RTC_COMPILE CeedCompileHip
