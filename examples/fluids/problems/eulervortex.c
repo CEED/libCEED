@@ -13,6 +13,7 @@
 #include "../qfunctions/eulervortex.h"
 
 PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
+
   EulerTestType     euler_test;
   User              user = *(User *)ctx;
   StabilizationType stab;

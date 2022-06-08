@@ -33,7 +33,6 @@
  */
 PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs,
                                   const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
-
   PetscFunctionBeginUser;
   for (PetscInt i=0; i<nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
@@ -196,7 +195,6 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
 static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
                                   const char path[PETSC_MAX_PATH_LEN],
                                   STGShur14Context stg_ctx) {
-
   PetscErrorCode ierr;
   PetscInt ndims, dims[2];
   FILE *fp;
@@ -411,6 +409,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
 
 static inline PetscScalar FindDy(const PetscScalar ynodes[],
                                  const PetscInt nynodes, const PetscScalar y) {
+
   const PetscScalar half_mindy = 0.5 * (ynodes[1] - ynodes[0]);
   // ^^assuming min(dy) is first element off the wall
   PetscInt idx = -1; // Index
@@ -463,7 +462,6 @@ PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time,
 
 PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
                               STGShur14Context stg_ctx) {
-
   PetscErrorCode ierr;
   DMLabel label;
   const PetscInt comps[] = {0, 1, 2, 3};

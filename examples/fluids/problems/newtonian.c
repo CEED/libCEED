@@ -16,6 +16,7 @@
 static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY,
     StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
     PetscReal rtol_velocity, PetscReal rtol_temperature) {
+
   PetscFunctionBeginUser;
   StatePrimitive eY; // relative error
   eY.pressure = (aY.pressure - bY.pressure) / sY.pressure;
@@ -35,6 +36,7 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY,
 
 static PetscErrorCode UnitTests_Newtonian(User user,
     NewtonianIdealGasContext gas) {
+
   Units units = user->units;
   const CeedScalar eps = 1e-6;
   const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second,
@@ -66,6 +68,7 @@ static PetscErrorCode UnitTests_Newtonian(User user,
 }
 
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
+
   SetupContext      setup_context;
   User              user = *(User *)ctx;
   StabilizationType stab;

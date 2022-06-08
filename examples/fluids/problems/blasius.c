@@ -63,7 +63,6 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
                                  PetscReal growth, PetscInt N,
                                  PetscReal refine_height, PetscReal top_angle,
                                  PetscReal node_locs[], PetscInt num_node_locs) {
-
   PetscInt ierr, narr, ncoords;
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;

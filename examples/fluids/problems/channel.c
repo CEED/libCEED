@@ -11,8 +11,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/channel.h"
 
-PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
-                          void *ctx) {
+PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
   User              user = *(User *)ctx;
