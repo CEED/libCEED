@@ -673,6 +673,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
 
   }
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
+  CeedOperatorDestroy(&op_ijacobian_vol);
   CeedVectorDestroy(&jac_data);
   PetscFunctionReturn(0);
 }
