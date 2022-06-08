@@ -13,6 +13,7 @@
 #include "../qfunctions/advection2d.h"
 
 PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
+
   WindType          wind_type;
   StabilizationType stab;
   SetupContext      setup_context;

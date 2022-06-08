@@ -12,8 +12,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
-                            void *ctx) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
