@@ -975,6 +975,8 @@ int main(int argc, char **argv) {
   // -- Function list
   ierr = PetscFunctionListDestroy(&problem_functions->setupPhysics);
   CHKERRQ(ierr);
+  ierr = PetscFunctionListDestroy(&problem_functions->setupSmootherPhysics);
+  CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problem_functions->setupLibceedFineLevel);
   CHKERRQ(ierr);
   ierr = PetscFunctionListDestroy(&problem_functions->setupLibceedLevel);
