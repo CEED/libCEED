@@ -678,23 +678,23 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
     for (CeedInt comp_in = 0; comp_in < num_comp; comp_in++) {
       for (CeedInt comp_out = 0; comp_out < num_comp; comp_out++) {
         // Compute B^T*D
-        const CeedInt mat_size = elem_size * num_qpts*num_eval_mode_in;
-        for (CeedInt i = 0; i < mat_size; i++) BTD_mat[i] = 0.0;
         for (CeedInt n = 0; n < elem_size; n++) {
           for (CeedInt q = 0; q < num_qpts; q++) {
             for (CeedInt e_in = 0; e_in < num_eval_mode_in; e_in++) {
+              const CeedInt btd_index = n*(num_qpts*num_eval_mode_in) +
+                                        (num_eval_mode_in*q + e_in);
+              CeedScalar sum = 0.0;
               for (CeedInt e_out = 0; e_out < num_eval_mode_out; e_out++) {
-                const CeedInt btd_index = n*(num_qpts*num_eval_mode_in) +
-                                          (num_eval_mode_in*q + e_in);
                 const CeedInt b_out_index = (num_eval_mode_out*q + e_out)*elem_size + n;
                 const CeedInt eval_mode_index = ((e_in*num_comp+comp_in)*num_eval_mode_out
                                                  +e_out)*num_comp + comp_out;
                 const CeedInt qf_index = q*layout_qf[0] + eval_mode_index*layout_qf[1] +
                                          e*layout_qf[2];
                 if (fabs(assembled_qf_array[qf_index]) > qf_value_bound) {
-                  BTD_mat[btd_index] += B_mat_out[b_out_index] * assembled_qf_array[qf_index];
+                  sum += B_mat_out[b_out_index] * assembled_qf_array[qf_index];
                 }
               }
+              BTD_mat[btd_index] = sum;
             }
           }
         }
