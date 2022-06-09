@@ -987,9 +987,6 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
   ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembledqf,
          &rstr, request); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChkBackend(ierr);
-  CeedScalar maxnorm = 0;
-  ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm);
-  CeedChkBackend(ierr);
 
   // Setup
   if (!impl->diag) {
@@ -1034,7 +1031,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op,
   // Compute the diagonal of B^T D B
   int elemsPerBlock = 1;
   int grid = nelem/elemsPerBlock+((nelem/elemsPerBlock*elemsPerBlock<nelem)?1:0);
-  void *args[] = {(void *) &nelem, (void *) &maxnorm, &diag->d_identity,
+  void *args[] = {(void *) &nelem, &diag->d_identity,
                   &diag->d_interpin, &diag->d_gradin, &diag->d_interpout,
                   &diag->d_gradout, &diag->d_emodein, &diag->d_emodeout,
                   &assembledqfarray, &elemdiagarray

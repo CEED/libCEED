@@ -54,15 +54,14 @@ extern "C" __device__ void CeedOperatorGetBasisPointer_Cuda(const CeedScalar **b
 // Core code for diagonal assembly
 //------------------------------------------------------------------------------
 __device__ void diagonalCore(const CeedInt nelem,
-    const CeedScalar maxnorm, const bool pointBlock,
-    const CeedScalar *identity,
+    const bool pointBlock, const CeedScalar *identity,
     const CeedScalar *interpin, const CeedScalar *gradin,
     const CeedScalar *interpout, const CeedScalar *gradout,
     const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
     const CeedScalar *__restrict__ assembledqfarray,
     CeedScalar *__restrict__ elemdiagarray) {
   const int tid = threadIdx.x; // running with P threads, tid is evec node
-  const CeedScalar qfvaluebound = maxnorm*1e-12;
+  if (tid >= NNODES) return;
 
   // Compute the diagonal of B^T D B
   // Each element
@@ -94,8 +93,7 @@ __device__ void diagonalCore(const CeedInt nelem,
                 const CeedScalar qfvalue =
                   assembledqfarray[((((ein*NCOMP+compIn)*NUMEMODEOUT+eout)*
                                      NCOMP+compOut)*nelem+e)*NQPTS+q];
-                if (abs(qfvalue) > qfvaluebound)
-                  evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
+                evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
               }
               elemdiagarray[((compOut*NCOMP+compIn)*nelem+e)*NNODES+tid] += evalue;
             }
@@ -106,8 +104,7 @@ __device__ void diagonalCore(const CeedInt nelem,
               const CeedScalar qfvalue =
                 assembledqfarray[((((ein*NCOMP+compOut)*NUMEMODEOUT+eout)*
                                    NCOMP+compOut)*nelem+e)*NQPTS+q];
-              if (abs(qfvalue) > qfvaluebound)
-                evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
+              evalue += bt[q*NNODES+tid] * qfvalue * b[q*NNODES+tid];
             }
             elemdiagarray[(compOut*nelem+e)*NNODES+tid] += evalue;
           }
@@ -121,13 +118,13 @@ __device__ void diagonalCore(const CeedInt nelem,
 // Linear diagonal
 //------------------------------------------------------------------------------
 extern "C" __global__ void linearDiagonal(const CeedInt nelem,
-    const CeedScalar maxnorm, const CeedScalar *identity,
+    const CeedScalar *identity,
     const CeedScalar *interpin, const CeedScalar *gradin,
     const CeedScalar *interpout, const CeedScalar *gradout,
     const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
     const CeedScalar *__restrict__ assembledqfarray,
     CeedScalar *__restrict__ elemdiagarray) {
-  diagonalCore(nelem, maxnorm, false, identity, interpin, gradin, interpout,
+  diagonalCore(nelem, false, identity, interpin, gradin, interpout,
                gradout, emodein, emodeout, assembledqfarray, elemdiagarray);
 }
 
@@ -135,13 +132,13 @@ extern "C" __global__ void linearDiagonal(const CeedInt nelem,
 // Linear point block diagonal
 //------------------------------------------------------------------------------
 extern "C" __global__ void linearPointBlockDiagonal(const CeedInt nelem,
-    const CeedScalar maxnorm, const CeedScalar *identity,
+    const CeedScalar *identity,
     const CeedScalar *interpin, const CeedScalar *gradin,
     const CeedScalar *interpout, const CeedScalar *gradout,
     const CeedEvalMode *emodein, const CeedEvalMode *emodeout,
     const CeedScalar *__restrict__ assembledqfarray,
     CeedScalar *__restrict__ elemdiagarray) {
-  diagonalCore(nelem, maxnorm, true, identity, interpin, gradin, interpout,
+  diagonalCore(nelem, true, identity, interpin, gradin, interpout,
                gradout, emodein, emodeout, assembledqfarray, elemdiagarray);
 }
 
