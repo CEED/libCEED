@@ -339,6 +339,14 @@ struct CeedQFunctionAssemblyData_private {
   CeedElemRestriction rstr;
 };
 
+struct CeedOperatorAssemblyData_private {
+  Ceed ceed;
+  CeedInt num_eval_mode_in, num_eval_mode_out;
+  CeedEvalMode *eval_mode_in, *eval_mode_out;
+  CeedScalar *B_in, *B_out;
+  CeedBasis basis_in, basis_out;
+};
+
 struct CeedOperator_private {
   Ceed ceed;
   CeedOperator op_fallback;
@@ -381,6 +389,7 @@ struct CeedOperator_private {
   bool is_composite;
   bool has_restriction;
   CeedQFunctionAssemblyData qf_assembled;
+  CeedOperatorAssemblyData op_assembled;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;

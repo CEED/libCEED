@@ -418,9 +418,9 @@ int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
 
   @ref Utility
 **/
-int CeedMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
-                       const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m,
-                       CeedInt n, CeedInt kk) {
+int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
+                             const CeedScalar *mat_B, CeedScalar *mat_C,
+                             CeedInt m, CeedInt n, CeedInt kk) {
   for (CeedInt i=0; i<m; i++)
     for (CeedInt j=0; j<n; j++) {
       CeedScalar sum = 0;
@@ -1740,12 +1740,12 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
       mat_C[j*n+i]  = mat_G[i*n+j];
     }
   // -- X = (D^-1/2 G^T) A
-  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_C,
-                            (const CeedScalar *)mat_A, mat_X, n, n, n);
+  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_C,
+                                  (const CeedScalar *)mat_A, mat_X, n, n, n);
   CeedChk(ierr);
   // -- C = (D^-1/2 G^T A) (G D^-1/2)
-  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_X,
-                            (const CeedScalar *)mat_G, mat_C, n, n, n);
+  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_X,
+                                  (const CeedScalar *)mat_G, mat_C, n, n, n);
   CeedChk(ierr);
 
   // Compute Q^T C Q = lambda
@@ -1765,8 +1765,8 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
 
   // Set X = (G D^1/2)^-T Q
   //       = G D^-1/2 Q
-  ierr = CeedMatrixMultiply(ceed, (const CeedScalar *)mat_G,
-                            (const CeedScalar *)mat_C, mat_X, n, n, n);
+  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_G,
+                                  (const CeedScalar *)mat_C, mat_X, n, n, n);
   CeedChk(ierr);
 
   // Cleanup

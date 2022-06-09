@@ -1701,8 +1701,9 @@ int CeedOperatorDestroy(CeedOperator *op) {
   // Destroy fallback
   ierr = CeedOperatorDestroy(&(*op)->op_fallback); CeedChk(ierr);
 
-  // Destroy QF assembly cache
+  // Destroy assembly data
   ierr = CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled); CeedChk(ierr);
+  ierr = CeedOperatorAssemblyDataDestroy(&(*op)->op_assembled); CeedChk(ierr);
 
   ierr = CeedFree(&(*op)->input_fields); CeedChk(ierr);
   ierr = CeedFree(&(*op)->output_fields); CeedChk(ierr);
