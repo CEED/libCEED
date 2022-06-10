@@ -1231,20 +1231,22 @@ int CeedBasisDestroy(CeedBasis *basis) {
 
   @ref Utility
 **/
-int CeedHaleTrefethenStripMap(CeedInt Q, CeedInt rho, CeedScalar *g, CeedScalar *g_prime) {
-  CeedScalar tau, d, C, PI2, PI = 4.0*atan(1.0);
+int CeedHaleTrefethenStripMap(CeedInt Q, CeedScalar rho, CeedScalar *g, CeedScalar *g_prime) {
+  CeedScalar i, tau, d, C, PI2, PI = 4.0*atan(1.0);
+  CeedScalar u[Q];
   tau = PI / log(rho);
   d = .5 + 1. / (exp(tau * PI) + 1.0)
   PI2 = PI / 2.0;
+  // u = asin(s)
   for (int i = 0; i < Q; i++) {
-    u = (PI * i) / Q;
+    u[i] = (asin(PI) * i) / Q;
     // Unscaled function of u
-    g_u = log(1.0 + exp(-tau * (PI2 + u))) - log(1.0 + exp(-tau * (PI2 - u))) + d * tau * u;
-    g_prime_u = 1.0 / (exp(tau * (PI2 + u)) + 1) + 1.0 / (exp(tau * (PI2 - u)) + 1) - d;
-    // Normalizing factor and scaled function
-    C = 1.0 / g_u;
-    g = C * g_u;
-    g_prime = -tau * C ;
+    g_u[i] = log(1.0 + exp(-tau * (PI2 + u[i]))) - log(1.0 + exp(-tau * (PI2 - u[i]))) + d * tau * u[i];
+    g_prime_u[i] = 1.0 / (exp(tau * (PI2 + u[i])) + 1) + 1.0 / (exp(tau * (PI2 - u[i])) + 1) - d;
+    // Normalizing factor and scaled function of s
+    C = 1.0 / log(1.0 + exp(-tau * (PI2 + PI2))) - log(1.0 + exp(-tau * (PI2 - PI2))) + d * tau * PI2;
+    g[i] = C * g_u[i];
+    g_prime[i] = -tau * C / sqrt(1.0 - sin(u[i]) * sin(u[i])) * g_prime_u[u[i]];
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1252,7 +1254,7 @@ int CeedHaleTrefethenStripMap(CeedInt Q, CeedInt rho, CeedScalar *g, CeedScalar 
 /**
   @brief Transform quadrature by applying a smooth mapping = (g, g_prime)
 
-  @param Q  Number of quadarture points
+  @param Q  Number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1264,10 +1266,19 @@ int CeedTransformQuadrature(CeeddInt Q, CeedScalar *q_weight_1d) {
     if (!q_weight_1d)
       points = Q;
       else
-       points = Q;
-       weights = q_weight_1d;
+        points = Q;
+        weights = q_weight_1d;
   }
 
+  m_points = ; // apply map g on quadrature points
+  if (q_weight_1d) {
+    m_weights = ; //apply derivative of map g on quadrature weights evaluated at quadrature points
+    m_points =  ;
+    m_weights = ;
+  }
+  else {
+    m_points = ;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
