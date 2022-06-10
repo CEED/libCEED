@@ -245,9 +245,13 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                            &op_apply_outflow_jacobian);
         CeedOperatorSetField(op_apply_outflow_jacobian, "dq", elem_restr_q_sur,
                              ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "Grad_dq", elem_restr_q_sur,
+                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
         CeedOperatorSetField(op_apply_outflow_jacobian, "surface qdata",
                              elem_restr_qd_i_sur,
                              CEED_BASIS_COLLOCATED, q_data_sur);
+        CeedOperatorSetField(op_apply_outflow_jacobian, "x", elem_restr_x_sur,
+                             ceed_data->basis_x_sur, ceed_data->x_coord);
         CeedOperatorSetField(op_apply_outflow_jacobian, "surface jacobian data",
                              elem_restr_jd_i_sur,
                              CEED_BASIS_COLLOCATED, jac_data_sur);
@@ -643,8 +647,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "dq", num_comp_q,
                           CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "Grad_dq", num_comp_q*dim_sur,
+                          CEED_EVAL_GRAD);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "surface qdata",
                           q_data_size_sur, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian, "x", num_comp_x,
+                          CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_apply_outflow_jacobian,
                           "surface jacobian data",
                           jac_data_size_sur, CEED_EVAL_NONE);
