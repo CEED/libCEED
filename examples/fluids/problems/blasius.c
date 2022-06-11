@@ -100,11 +100,11 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
     for (PetscInt i=0; i<ncoords; i++) {
       PetscInt y_box_index = round(coords[i][1]/dybox);
       if (y_box_index <= N) {
-        coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
+        coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/domain_max[1])
                        * dy1 * (pow(growth, coords[i][1]/dybox)-1)/(growth-1);
       } else {
         PetscInt j = y_box_index - N;
-        coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
+        coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/domain_max[1])
                        * exp(log(refine_height) + logdy*j);
       }
     }
@@ -119,12 +119,14 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
                          "than the mesh has nodes (%d). This maybe unintended.",
                          num_node_locs, faces[1]+1); CHKERRQ(ierr);
     }
+    PetscScalar max_y = node_locs[faces[1]];
 
     for (PetscInt i=0; i<ncoords; i++) {
       // Determine which y-node we're at
       PetscInt y_box_index = round(coords[i][1]/dybox);
-      coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
-                     * node_locs[y_box_index];
+      // coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
+      coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/max_y)
+                    * node_locs[y_box_index];
     }
   }
 
