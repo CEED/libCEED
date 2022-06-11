@@ -315,7 +315,9 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
   CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
   CeedQFunctionDestroy(&ceed_data->qf_apply_inflow);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian);
   CeedQFunctionDestroy(&ceed_data->qf_apply_outflow);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_outflow_jacobian);
 
   // -- Bases
   CeedBasisDestroy(&ceed_data->basis_q);
