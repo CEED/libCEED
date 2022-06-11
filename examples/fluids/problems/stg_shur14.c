@@ -384,7 +384,6 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   ierr = GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path,
                            &global_stg_ctx, ynodes); CHKERRQ(ierr);
 
-  CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
   CeedQFunctionContextCreate(user->ceed, &stg_context);
   CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, global_stg_ctx->total_bytes, global_stg_ctx);
@@ -394,16 +393,20 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                                      offsetof(struct STGShur14Context_, time), 1,
                                      "Phyiscal time of the solution");
 
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  problem->ics.qfunction         = ICsSTG;
+  problem->ics.qfunction_loc     = ICsSTG_loc;
+  problem->ics.qfunction_context = stg_context;
+
   if (use_stgstrong) {
     // Use default boundary integral QF (BoundaryIntegral) in newtonian.h
-    problem->bc_from_ics                = PETSC_FALSE;
+    problem->bc_from_ics           = PETSC_FALSE;
   } else {
     problem->apply_inflow.qfunction         = STGShur14_Inflow;
     problem->apply_inflow.qfunction_loc     = STGShur14_Inflow_loc;
-    problem->apply_inflow.qfunction_context = stg_context;
+    CeedQFunctionContextReferenceCopy(stg_context, &problem->apply_inflow.qfunction_context);
     problem->bc_from_ics                    = PETSC_TRUE;
   }
-  // global_stg_ctx = global_stg_ctx;
 
   PetscFunctionReturn(0);
 }

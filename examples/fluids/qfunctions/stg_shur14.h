@@ -176,6 +176,37 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   u[2] = ubar[2] + cij[4]*vp[0] + cij[5]*vp[1] + cij[2]*vp[2];
 }
 
+// Extrude the STGInflow profile through out the domain for an initial condition
+CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q,
+                       const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+
+  // Outputs
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  const STGShur14Context stg_ctx = (STGShur14Context) ctx;
+  CeedScalar u[3], cij[6], eps, lt;
+  const CeedScalar theta0 = stg_ctx->theta0;
+  const CeedScalar P0     = stg_ctx->P0;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar rho = P0 / (Rd * theta0);
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    InterpolateProfile(X[1][i], u, cij, &eps, &lt, stg_ctx);
+
+    q0[0][i] = rho;
+    q0[1][i] = u[0] * rho;
+    q0[2][i] = u[1] * rho;
+    q0[3][i] = u[2] * rho;
+    q0[4][i] = rho * (0.5 * Dot3(u, u) + cv * theta0);
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
 /********************************************************************
  * @brief QFunction to calculate the inflow boundary condition
  *

@@ -153,7 +153,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP Blasius
   // ------------------------------------------------------
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction                       = ICsBlasius;
   problem->ics.qfunction_loc                   = ICsBlasius_loc;
   problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
@@ -251,6 +250,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
 
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction_context = blasius_context;
   CeedQFunctionContextReferenceCopy(blasius_context,
                                     &problem->apply_inflow_jacobian.qfunction_context);
