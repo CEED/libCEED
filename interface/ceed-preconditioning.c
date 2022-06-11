@@ -642,7 +642,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset,
   Users should generally use CeedOperatorLinearAssemble()
 
   @param[in] op       CeedOperator to assemble
-  @param[out] offset  Offest for number of entries
+  @param[in] offset   Offest for number of entries
   @param[out] values  Values to assemble into matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -658,6 +658,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset,
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "Composite operator not supported");
   // LCOV_EXCL_STOP
+  if (op->num_elem == 0) return CEED_ERROR_SUCCESS;
 
   if (op->LinearAssembleSingle) {
     // Backend version

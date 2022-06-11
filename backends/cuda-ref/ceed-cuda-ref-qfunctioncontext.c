@@ -119,7 +119,7 @@ static inline int CeedQFunctionContextHasValidData_Cuda(
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  *has_valid_data = !!impl->h_data || !!impl->d_data;
+  *has_valid_data = impl && (!!impl->h_data || !!impl->d_data);
 
   return CEED_ERROR_SUCCESS;
 }
