@@ -671,7 +671,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op,
     ierr = CeedOperatorFieldGetVector(op_output_fields[out], &vec);
     CeedChkBackend(ierr);
     // Check if active output
-    if (vec == CEED_VECTOR_ACTIVE) {
+    if (vec == CEED_VECTOR_ACTIVE && num_elem > 0) {
       CeedVectorTakeArray(impl->q_vecs_out[out], CEED_MEM_HOST, NULL);
       CeedChkBackend(ierr);
     }
