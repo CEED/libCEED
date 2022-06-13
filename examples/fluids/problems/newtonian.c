@@ -299,6 +299,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
+                                    &problem->apply_inflow_jacobian.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_outflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_outflow_jacobian.qfunction_context);
