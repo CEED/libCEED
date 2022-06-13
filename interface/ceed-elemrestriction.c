@@ -863,7 +863,9 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
                      "Output vector size %d not compatible with "
                      "element restriction (%d, %d)", ru->length, m, n);
   // LCOV_EXCL_STOP
-  ierr = rstr->Apply(rstr, t_mode, u, ru, request); CeedChk(ierr);
+  if (rstr->num_elem > 0) {
+    ierr = rstr->Apply(rstr, t_mode, u, ru, request); CeedChk(ierr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
