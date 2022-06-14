@@ -57,12 +57,13 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
  * outflow. It's angle is controlled by `top_angle` (in units of degrees).
  *
  * If `node_locs` is not NULL, then the nodes will be placed at `node_locs`
- * locations.
+ * locations. If it is NULL, then the modified coordinate values will be set in
+ * the array, along with `num_node_locs`.
  */
 static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
                                  PetscReal growth, PetscInt N,
                                  PetscReal refine_height, PetscReal top_angle,
-                                 PetscReal node_locs[], PetscInt num_node_locs) {
+                                 PetscReal *node_locs[], PetscInt *num_node_locs) {
   PetscInt ierr, narr, ncoords;
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;
@@ -90,12 +91,16 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
   // Get element size of the box mesh, for indexing each node
   const PetscReal dybox = domain_size[1]/faces[1];
 
-  if (!node_locs) {
+  if (!*node_locs) {
     // Calculate the first element height
     PetscReal dy1   = refine_height*(growth-1)/(pow(growth, N)-1);
 
     // Calculate log of sizing outside BL
     PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
+
+    *num_node_locs = faces[1] + 1;
+    PetscReal *temp_node_locs;
+    ierr = PetscMalloc1(*num_node_locs, &temp_node_locs); CHKERRQ(ierr);
 
     for (PetscInt i=0; i<ncoords; i++) {
       PetscInt y_box_index = round(coords[i][1]/dybox);
@@ -107,26 +112,29 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
         coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/domain_max[1])
                        * exp(log(refine_height) + logdy*j);
       }
+      if (coords[i][0] == domain_min[0] && coords[i][2] == domain_min[2])
+        temp_node_locs[y_box_index] = coords[i][1];
     }
+
+    *node_locs = temp_node_locs;
   } else {
     // Error checking
-    if (num_node_locs < faces[1] +1)
+    if (*num_node_locs < faces[1] +1)
       SETERRQ(comm, -1, "The y_node_locs_path has too few locations; "
               "There are %d + 1 nodes, but only %d locations given",
-              faces[1]+1, num_node_locs);
-    if (num_node_locs > faces[1] +1) {
+              faces[1]+1, *num_node_locs);
+    if (*num_node_locs > faces[1] +1) {
       ierr = PetscPrintf(comm, "WARNING: y_node_locs_path has more locations (%d) "
                          "than the mesh has nodes (%d). This maybe unintended.",
-                         num_node_locs, faces[1]+1); CHKERRQ(ierr);
+                         *num_node_locs, faces[1]+1); CHKERRQ(ierr);
     }
-    PetscScalar max_y = node_locs[faces[1]];
+    PetscScalar max_y = (*node_locs)[faces[1]];
 
     for (PetscInt i=0; i<ncoords; i++) {
       // Determine which y-node we're at
       PetscInt y_box_index = round(coords[i][1]/dybox);
-      // coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
       coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/max_y)
-                    * node_locs[y_box_index];
+                     * (*node_locs)[y_box_index];
     }
   }
 
@@ -216,8 +224,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     CHKERRQ(ierr);
   }
   ierr = ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta,
-                    mesh_refine_height, mesh_top_angle, mesh_ynodes,
-                    mesh_nynodes); CHKERRQ(ierr);
+                    mesh_refine_height, mesh_top_angle, &mesh_ynodes,
+                    &mesh_nynodes); CHKERRQ(ierr);
 
   // Some properties depend on parameters from NewtonianIdealGas
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
