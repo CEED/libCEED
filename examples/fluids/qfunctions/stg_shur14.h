@@ -114,7 +114,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
 
   const CeedScalar hmax = Max( Max(h[0], h[1]), h[2]);
-  const CeedScalar ke   = 2*M_PI/Min(2*dw, 3*lt);
+  const CeedScalar ke   = dw==0 ? 1e16 : 2*M_PI/Min(2*dw, 3*lt);
   const CeedScalar keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
   const CeedScalar kcut =
     M_PI/ Min( Max(Max(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
