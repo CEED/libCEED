@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#define _XOPEN_SOURCE
+
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <ceed-impl.h>
@@ -1222,32 +1224,27 @@ int CeedBasisDestroy(CeedBasis *basis) {
 /**
   @brief Hale and Trefethen strip transformation
 
-  @param[in] Q    Number of quadrature points
   @param[in] rho  sum of semiminor and major axis
-  @param[out] g   conformal map
+  @param[in] s    input coordinate in [-1, 1]
+  @param[out] g   conformal map g(s); will be in [-1, 1]
   @param[out] g_prime   derivative of conformal map g
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-int CeedHaleTrefethenStripMap(CeedInt Q, CeedScalar rho, CeedScalar *g, CeedScalar *g_prime) {
-  CeedScalar i, tau, d, C, PI2, PI = 4.0*atan(1.0);
-  CeedScalar u[Q];
-  tau = PI / log(rho);
-  d = .5 + 1. / (exp(tau * PI) + 1.0)
-  PI2 = PI / 2.0;
-  // u = asin(s)
-  for (int i = 0; i < Q; i++) {
-    u[i] = (asin(PI) * i) / Q;
-    // Unscaled function of u
-    g_u[i] = log(1.0 + exp(-tau * (PI2 + u[i]))) - log(1.0 + exp(-tau * (PI2 - u[i]))) + d * tau * u[i];
-    g_prime_u[i] = 1.0 / (exp(tau * (PI2 + u[i])) + 1) + 1.0 / (exp(tau * (PI2 - u[i])) + 1) - d;
-    // Normalizing factor and scaled function of s
-    C = 1.0 / log(1.0 + exp(-tau * (PI2 + PI2))) - log(1.0 + exp(-tau * (PI2 - PI2))) + d * tau * PI2;
-    g[i] = C * g_u[i];
-    g_prime[i] = -tau * C / sqrt(1.0 - sin(u[i]) * sin(u[i])) * g_prime_u[u[i]];
-  }
+int CeedHaleTrefethenStripMap(CeedScalar rho, CeedScalar s, CeedScalar *g, CeedScalar *g_prime) {
+  const CeedScalar u = asin(s);
+  const CeedScalar tau = M_PI / log(rho);
+  const CeedScalar
+    e_plus = exp(-tau*(M_PI_2 + u)),
+    e_minus = exp(-tau*(M_PI_2 - u)),
+    c2 = .5 + 1/(1 + exp(tau*M_PI)),
+    //C = log1p(exp(-tau*M_PI) - log1p(1) + c2*tau*M_PI_2);
+    C = 1 / log1p(exp(-tau*M_PI) - log1p(1) + c2*tau*M_PI_2);
+    //C = 1 / log1p(exp(-tau*M_PI) - log(2) + c2*tau*M_PI_2);
+  *g = C * (log1p(e_plus) - log1p(e_minus) + c2*tau*u); // g(s)
+  *g_prime = -tau*C/sqrt(1 - s*s) * (1 / (1 + e_plus) + 1 / (1 + e_minus) - c2); // g'(s)
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1260,24 +1257,13 @@ int CeedHaleTrefethenStripMap(CeedInt Q, CeedScalar rho, CeedScalar *g, CeedScal
 
   @ref Utility
 **/
-int CeedTransformQuadrature(CeeddInt Q, CeedScalar *q_weight_1d) {
-  CeedScalar points, m_points, m_weights;
-  if (!mapping) {
-    if (!q_weight_1d)
-      points = Q;
-      else
-        points = Q;
-        weights = q_weight_1d;
-  }
-
-  m_points = ; // apply map g on quadrature points
-  if (q_weight_1d) {
-    m_weights = ; //apply derivative of map g on quadrature weights evaluated at quadrature points
-    m_points =  ;
-    m_weights = ;
-  }
-  else {
-    m_points = ;
+int CeedTransformQuadrature(CeedScalar rho, CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d) {
+  int ierr;
+  for (CeedInt i=0; i<Q; i++) {
+    CeedScalar g, g_prime;
+    ierr = CeedHaleTrefethenStripMap(rho, q_ref_1d[i], &g, &g_prime); CeedChk(ierr);
+    q_ref_1d[i] = g;
+    q_weight_1d[i] *= g_prime;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1333,8 +1319,14 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
-  // Call transformed Gauss-Legendre quadrature
 
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedGaussHaleTrefethenQuadrature(CeedScalar rho, CeedInt Q, CeedScalar *q_ref_1d,
+                        CeedScalar *q_weight_1d) {
+  CeedGaussQuadrature(Q, q_ref_1d, q_weight_1d);
+  CeedTransformQuadrature(rho, Q, q_ref_1d, q_weight_1d);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1407,7 +1399,6 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
-  // Call transformed Gauss-Legendre-Lobatto quadrature
 
   return CEED_ERROR_SUCCESS;
 }
