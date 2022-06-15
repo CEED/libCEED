@@ -176,6 +176,35 @@ static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
 }
 
 //------------------------------------------------------------------------------
+// QFunctionContext destroy user data
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
+  int ierr;
+  CeedQFunctionContext_Memcheck *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
+  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  CeedMemType data_destroy_mem_type;
+  ierr = CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type,
+         &data_destroy_function); CeedChk(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
+
+  if (data_destroy_mem_type != CEED_MEM_HOST)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Can only destroy HOST memory for this backend");
+  // LCOV_EXCL_STOP
+
+  if (data_destroy_function) {
+    ierr = data_destroy_function(impl->data_borrowed ? impl->data_borrowed :
+                                 impl->data_owned); CeedChk(ierr);
+  }
+  ierr = CeedFree(&impl->data_allocated); CeedChkBackend(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // QFunctionContext Destroy
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Memcheck(CeedQFunctionContext ctx) {
@@ -217,6 +246,8 @@ int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
                                 CeedQFunctionContextRestoreData_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreDataRead",
                                 CeedQFunctionContextRestoreData_Memcheck); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "DataDestroy",
+                                CeedQFunctionContextDataDestroy_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",
                                 CeedQFunctionContextDestroy_Memcheck); CeedChkBackend(ierr);
 
