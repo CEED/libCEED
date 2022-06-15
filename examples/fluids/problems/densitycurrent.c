@@ -27,7 +27,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction = ICsDC;
   problem->ics.qfunction_loc = ICsDC_loc;
   problem->bc = Exact_DC;
-  setup_context = problem->bc_ctx;
+  CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST,
+                              &setup_context);
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -107,6 +108,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   setup_context->dc_axis[0] = dc_axis[0];
   setup_context->dc_axis[1] = dc_axis[1];
   setup_context->dc_axis[2] = dc_axis[2];
+
+  problem->bc_ctx =
+    setup_context; // This is bad, context data should only be accessed via Get/Restore
+  CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &setup_context);
 
   PetscFunctionReturn(0);
 }
