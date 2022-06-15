@@ -10,6 +10,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
 
+### New features
+
+- Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)
