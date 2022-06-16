@@ -325,7 +325,8 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
     const PetscScalar *values;
     MatType mat_type;
     PetscCall(MatGetType(J_pre, &mat_type));
-    //if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
+    if (strstr(mat_type, "kokkos")
+        || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
     CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
     CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
     if (coo_vec) {
