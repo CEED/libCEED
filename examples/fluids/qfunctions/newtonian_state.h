@@ -34,6 +34,18 @@ typedef struct {
   StatePrimitive Y;
 } State;
 
+CEED_QFUNCTION_HELPER void UnpackState_U(StateConservative s, CeedScalar U[5]) {
+  U[0] = s.density;
+  for (int i=0; i<3; i++) U[i+1] = s.momentum[i];
+  U[4] = s.E_total;
+}
+
+CEED_QFUNCTION_HELPER void UnpackState_Y(StatePrimitive s, CeedScalar Y[5]) {
+  Y[0] = s.pressure;
+  for (int i=0; i<3; i++) Y[i+1] = s.velocity[i];
+  Y[4] = s.temperature;
+}
+
 CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(
   NewtonianIdealGasContext gas, StateConservative U, const CeedScalar x[3]) {
   StatePrimitive Y;
