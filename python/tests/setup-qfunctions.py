@@ -15,7 +15,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 import os
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 import libceed
 CEED_DIR = os.path.dirname(libceed.__file__)
 
