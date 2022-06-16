@@ -22,7 +22,7 @@ TOL = libceed.EPSILON * 256
 
 
 def load_qfs_so():
-    from distutils.sysconfig import get_config_var
+    from sysconfig import get_config_var
     import ctypes
 
     file_dir = os.path.dirname(os.path.abspath(__file__))
