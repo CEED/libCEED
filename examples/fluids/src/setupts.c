@@ -108,7 +108,6 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
   ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
                                     NULL, NULL, NULL); CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
@@ -177,7 +176,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = VecZeroEntries(Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
@@ -230,7 +228,6 @@ static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
   // Global-to-local
   ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
