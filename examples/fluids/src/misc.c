@@ -98,6 +98,8 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user,
   PetscFunctionReturn(0);
 }
 
+
+// Note: The BCs must be inserted *before* the other values are inserted into Q_loc
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {
@@ -107,6 +109,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
   PetscFunctionBegin;
 
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = VecAXPY(Q_loc, 1., Qbc); CHKERRQ(ierr);
   ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
 
