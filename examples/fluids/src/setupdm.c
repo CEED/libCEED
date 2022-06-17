@@ -20,6 +20,12 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
   // Create DMPLEX
   ierr = DMCreate(comm, dm); CHKERRQ(ierr);
   ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  {
+    PetscBool skip = PETSC_TRUE;
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-dm_mat_preallocate_skip", &skip,
+                                  NULL));
+    PetscCall(DMSetMatrixPreallocateSkip(*dm, skip));
+  }
   ierr = DMSetMatType(*dm, mat_type); CHKERRQ(ierr);
   ierr = DMSetVecType(*dm, vec_type); CHKERRQ(ierr);
 
