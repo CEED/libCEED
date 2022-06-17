@@ -10,6 +10,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
 
+## Bugfix
+
+- Fix bugs in CPU implementation of {c:func}`CeedOperatorLinearAssemble` when there are different number of active input modes and active output modes.
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)
