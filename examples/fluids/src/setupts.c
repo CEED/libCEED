@@ -481,19 +481,40 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   }
 
   // Solve
-  double start, cpu_time_used;
-  start = MPI_Wtime();
-  ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
-  ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
-  cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(*ts, &final_time); CHKERRQ(ierr);
-  *f_time = final_time;
-  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
-                       comm); CHKERRQ(ierr);
+  PetscScalar start_time;
+  ierr = TSGetTime(*ts, &start_time); CHKERRQ(ierr);
+
+  PetscPreLoadBegin(PETSC_FALSE, "Fluids Solve");
+  PetscCall(TSSetTime(*ts, start_time));
+  PetscCall(TSSetStepNumber(*ts, 0));
+  if (PetscPreLoadingOn) {
+    // LCOV_EXCL_START
+    SNES      snes;
+    Vec       Q_preload;
+    PetscReal rtol;
+    PetscCall(VecDuplicate(*Q, &Q_preload));
+    PetscCall(VecCopy(*Q, Q_preload));
+    PetscCall(TSGetSNES(*ts, &snes));
+    PetscCall(SNESGetTolerances(snes, NULL, &rtol, NULL, NULL, NULL));
+    PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, .99, PETSC_DEFAULT,
+                                PETSC_DEFAULT, PETSC_DEFAULT));
+    PetscCall(TSSetSolution(*ts, *Q));
+    PetscCall(TSStep(*ts));
+    PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, rtol, PETSC_DEFAULT,
+                                PETSC_DEFAULT, PETSC_DEFAULT));
+    PetscCall(VecDestroy(&Q_preload));
+    // LCOV_EXCL_STOP
+  } else {
+    ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
+    ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
+  }
+  PetscPreLoadEnd();
+
+  PetscCall(TSGetSolveTime(*ts, &final_time));
   if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time taken for solution (sec): %g\n",
-                       (double)cpu_time_used); CHKERRQ(ierr);
+                       final_time); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
