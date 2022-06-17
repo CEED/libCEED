@@ -294,7 +294,7 @@ static int CeedOperatorCreateActivePointBlockRestriction(
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorAssembleAddDiagonal(CeedOperator op,
+static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op,
     CeedRequest *request, const bool is_pointblock, CeedVector assembled) {
   int ierr;
   Ceed ceed;
@@ -1722,8 +1722,8 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     ierr = CeedCompositeOperatorLinearAssembleAddDiagonal(op, request,
            false, assembled); CeedChk(ierr);
   } else {
-    ierr = CeedSingleOperatorAssembleAddDiagonal(op, request, false, assembled);
-    CeedChk(ierr);
+    ierr = CeedSingleOperatorAssembleAddDiagonal_Core(op, request, false,
+           assembled); CeedChk(ierr);
   }
 
   return CEED_ERROR_SUCCESS;
@@ -1860,7 +1860,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op,
     ierr = CeedCompositeOperatorLinearAssembleAddDiagonal(op, request,
            true, assembled); CeedChk(ierr);
   } else {
-    ierr = CeedSingleOperatorAssembleAddDiagonal(op, request, true, assembled);
+    ierr = CeedSingleOperatorAssembleAddDiagonal_Core(op, request, true, assembled);
     CeedChk(ierr);
   }
 
