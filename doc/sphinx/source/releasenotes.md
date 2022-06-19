@@ -14,6 +14,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Fix storing of indices for `CeedElemRestriction` on the host with GPU backends.
 
+### Examples
+
+- Added various performance enhancements for {ref}`example-petsc-navier-stokes`
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)
