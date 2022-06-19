@@ -12,6 +12,7 @@
 #include <cuda_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 #include "ceed-cuda-ref.h"
 #include "../cuda/ceed-cuda-compile.h"
 
@@ -298,6 +299,12 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode,
       impl->h_ind = (CeedInt *)indices;
       break;
     case CEED_COPY_VALUES:
+      if (indices != NULL) {
+        ierr = CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated);
+        CeedChkBackend(ierr);
+        memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+        impl->h_ind = impl->h_ind_allocated;
+      }
       break;
     }
     if (indices != NULL) {
@@ -329,6 +336,12 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode,
       impl->d_ind = (CeedInt *)indices;
     }
     if (indices != NULL) {
+      ierr = CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated);
+      CeedChkBackend(ierr);
+      ierr = cudaMemcpy(impl->h_ind_allocated, impl->d_ind,
+                        elem_size * num_elem * sizeof(CeedInt), cudaMemcpyDeviceToHost);
+      CeedChk_Cu(ceed, ierr);
+      impl->h_ind = impl->h_ind_allocated;
       ierr = CeedElemRestrictionOffset_Cuda(r, indices); CeedChkBackend(ierr);
     }
   } else {
