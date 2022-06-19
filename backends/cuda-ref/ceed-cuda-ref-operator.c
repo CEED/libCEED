@@ -733,25 +733,25 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
   CeedChkBackend(ierr);
 
   // Expand offsets
-  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *pbOffsets;
+  CeedInt nelem, ncomp, elemsize, compstride, *pbOffsets;
+  CeedSize l_size;
   ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetCompStride(rstr, &compstride);
   CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(rstr, &l_size); CeedChkBackend(ierr);
   CeedInt shift = ncomp;
   if (compstride != 1)
     shift *= ncomp;
   ierr = CeedCalloc(nelem*elemsize, &pbOffsets); CeedChkBackend(ierr);
   for (CeedInt i = 0; i < nelem*elemsize; i++) {
     pbOffsets[i] = offsets[i]*shift;
-    if (pbOffsets[i] > max)
-      max = pbOffsets[i];
   }
 
   // Create new restriction
   ierr = CeedElemRestrictionCreate(ceed, nelem, elemsize, ncomp*ncomp, 1,
-                                   max + ncomp*ncomp, CEED_MEM_HOST,
+                                   l_size * ncomp, CEED_MEM_HOST,
                                    CEED_OWN_POINTER, pbOffsets, pbRstr);
   CeedChkBackend(ierr);
 
