@@ -222,7 +222,8 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
                    (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[2],
                    (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[3];
 
-   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA]) out[0],
+            (*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA]) out[1];
 
   //*INDENT-ON*
 
@@ -263,9 +264,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
-    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] +
-                                 u[1]*u[1] +
-                                 u[2]*u[2]);
+    const CeedScalar E_kinetic = .5 * rho * Dot3(u, u);
     CeedScalar E_internal, P;
     if (prescribe_T) {
       // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
@@ -287,9 +286,8 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar E = E_internal + E_kinetic;
 
     // Velocity normal to the boundary
-    const CeedScalar u_normal = norm[0]*u[0] +
-                                norm[1]*u[1] +
-                                norm[2]*u[2];
+    const CeedScalar u_normal = Dot3(norm, u);
+
     // The Physics
     // Zero v so all future terms can safely sum into it
     for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
@@ -305,7 +303,79 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
+
+    jac_data_sur[0][i] = rho;
+    jac_data_sur[1][i] = u[0];
+    jac_data_sur[2][i] = u[1];
+    jac_data_sur[3][i] = u[2];
+    jac_data_sur[4][i] = E;
+    for (int j=0; j<6; j++) jac_data_sur[5+j][i] = 0.;
   }
+  return 0;
+}
+
+CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in,
+    CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  const STGShur14Context stg_ctx = (STGShur14Context)ctx;
+  const bool implicit     = stg_ctx->is_implicit;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
+
+  const CeedScalar theta0 = stg_ctx->theta0;
+  const bool prescribe_T  = stg_ctx->prescribe_T;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // Setup
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+
+    // Calculate inflow values
+    CeedScalar velocity[3];
+    for (CeedInt j=0; j<3; j++) velocity[j] = jac_data_sur[5+j][i];
+
+    // enabling user to choose between weak T and weak rho inflow
+    CeedScalar drho, dE, dP;
+    if (prescribe_T) {
+      // rho should be from the current solution
+      drho = dq[0][i];
+      CeedScalar dE_internal = drho * cv * theta0;
+      CeedScalar dE_kinetic = .5 * drho * Dot3(velocity, velocity);
+      dE = dE_internal + dE_kinetic;
+      dP = drho * Rd * theta0; // interior rho with exterior T
+    } else { // rho specified, E_internal from solution
+      drho = 0;
+      dE = dq[4][i];
+      dP = dE * (gamma - 1.);
+    }
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    const CeedScalar u_normal = Dot3(norm, velocity);
+
+    v[0][i] = - wdetJb * drho * u_normal;
+    for (int j=0; j<3; j++)
+      v[j+1][i] = -wdetJb * (drho * u_normal * velocity[j] + norm[j] * dP);
+    v[4][i] = - wdetJb * u_normal * (dE + dP);
+  } // End Quadrature Point Loop
   return 0;
 }
 

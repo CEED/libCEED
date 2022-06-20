@@ -262,7 +262,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
                     mesh_nynodes); CHKERRQ(ierr);
   } else {
-    CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context);
     problem->apply_inflow.qfunction              = Blasius_Inflow;
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
     problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
