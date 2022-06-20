@@ -18,6 +18,11 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Added {c:func}`CeedQFunctionSetUserFlopsEstimate` and {c:func}`CeedOperatorGetFlopsEstimate` to facilitate estimating FLOPs in operator application.
 
+### New features
+
+- Switched MAGMA backends to use runtime compilation for tensor basis kernels (and element restriction kernels, in non-deterministic `/gpu/*/magma` backends).
+This reduces time to compile the library and increases the range of parameters for which the MAGMA tensor basis kernels will work.
+
 ### Bugfix
 
 - Install JiT source files in install directory to fix GPU functionality for installed libCEED.
