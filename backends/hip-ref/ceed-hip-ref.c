@@ -40,12 +40,16 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
 static int CeedInit_Hip(const char *resource, Ceed ceed) {
   int ierr;
 
-  if (strcmp(resource, "/gpu/hip/ref"))
+  char *resource_root;
+  ierr = CeedHipGetResourceRoot(ceed, resource, &resource_root);
+  CeedChkBackend(ierr);
+  if (strcmp(resource_root, "/gpu/hip/ref"))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChk(ierr);
+  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
+  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);

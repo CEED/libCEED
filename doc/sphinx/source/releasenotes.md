@@ -6,6 +6,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### Bugfix
+
+- Fix bug in setting device id for GPU backends.
+
 ### Interface changes
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.

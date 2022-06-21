@@ -56,6 +56,9 @@ typedef struct {
   hipblasHandle_t hipblas_handle;
 } Ceed_Hip;
 
+CEED_INTERN int CeedHipGetResourceRoot(Ceed ceed, const char *resource,
+                                       char **resource_root);
+
 CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
