@@ -16,11 +16,15 @@
 static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   int ierr;
 
-  if (strcmp(resource, "/gpu/hip") && strcmp(resource, "/gpu/hip/gen"))
+  char *resource_root;
+  ierr = CeedHipGetResourceRoot(ceed, resource, &resource_root);
+  CeedChkBackend(ierr);
+  if (strcmp(resource_root, "/gpu/hip") && strcmp(resource_root, "/gpu/hip/gen"))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
 
   Ceed_Hip *data;
   ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
