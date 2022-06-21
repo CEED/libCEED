@@ -14,8 +14,6 @@ Discrete element bases and quadrature
    :content-only:
    :members:
 
-.. _CeedBasis-Typedefs and Enumerations:
-
 Typedefs and Enumerations
 --------------------------------------
 
