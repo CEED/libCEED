@@ -223,6 +223,42 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+// This QFunction sets a "still" initial condition for generic Newtonian IG
+//   problems in primitive variables
+// *****************************************************************************
+CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q,
+                                    const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+
+  // Outputs
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // Context
+  const SetupContext context = (SetupContext)ctx;
+  const CeedScalar theta0    = context->theta0;
+  const CeedScalar P0        = context->P0;
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    CeedScalar q[5] = {0.};
+
+    // Initial Conditions
+    q[0] = P0;
+    q[1] = 0.0;
+    q[2] = 0.0;
+    q[3] = 0.0;
+    q[4] = theta0;
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with
 //   explicit time stepping method
 //
@@ -318,7 +354,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
                                     q_data[9][i]}
                                   };
     // *INDENT-ON*
-
     State grad_s[3];
     for (CeedInt j=0; j<3; j++) {
       CeedScalar dx_i[3] = {0}, dU[5];
@@ -426,8 +461,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
-                                    const CeedScalar *const *in,
-                                    CeedScalar *const *out) {
+                                    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -1067,17 +1101,12 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
 // *****************************************************************************
 
 // *****************************************************************************
-// This QFunction implements the Navier-Stokes equations (mentioned above) with
-//   implicit time stepping method
-//
-//  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
-//  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (q_dot + Aj q,j - body force) )
-//                                       (diffussive terms will be added later)
+// This QFunction implements the Navier-Stokes equations (mentioned above) in
+//   primitive variables and with implicit time stepping method
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
-    const CeedScalar *const *in,
-    CeedScalar *const *out) {
+    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
