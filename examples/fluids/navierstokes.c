@@ -166,12 +166,14 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
-  // -- Set up local state vector Q_loc
-  Vec Q_loc;
-  ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+  // -- Set up local state vectors Q_loc, Q_dot_loc
+  ierr = DMCreateLocalVector(dm, &user->Q_loc); CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(dm, &user->Q_dot_loc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(user->Q_dot_loc); CHKERRQ(ierr);
 
   // -- Fix multiplicity for ICs
-  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_loc, Q, 0.0); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0);
+  CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Set up lumped mass matrix
@@ -191,7 +193,7 @@ int main(int argc, char **argv) {
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
   if (problem->bc_from_ics) {
-    ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);
+    ierr = SetBCsFromICs_NS(dm, Q, user->Q_loc); CHKERRQ(ierr);
   }
 
   // ---------------------------------------------------------------------------
@@ -264,7 +266,7 @@ int main(int argc, char **argv) {
     ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
     glob_nodes = glob_dofs/num_comp_q;
     // -- Get local size
-    ierr = VecGetSize(Q_loc, &owned_nodes); CHKERRQ(ierr);
+    ierr = VecGetSize(user->Q_loc, &owned_nodes); CHKERRQ(ierr);
     owned_nodes /= num_comp_q;
     ierr = PetscPrintf(comm,
                        "  Mesh:\n"
@@ -278,8 +280,8 @@ int main(int argc, char **argv) {
                        num_P, num_Q, glob_dofs, owned_dofs, num_comp_q,
                        glob_nodes, owned_nodes); CHKERRQ(ierr);
   }
-  // -- Restore Q_loc
-  ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+  // -- Zero Q_loc
+  ierr = VecZeroEntries(user->Q_loc); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
@@ -345,6 +347,8 @@ int main(int argc, char **argv) {
   // -- Vectors
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Q_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Q_dot_loc); CHKERRQ(ierr);
 
   // -- Matrices
   ierr = MatDestroy(&user->interp_viz); CHKERRQ(ierr);
