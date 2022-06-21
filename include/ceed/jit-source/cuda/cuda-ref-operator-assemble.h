@@ -44,17 +44,16 @@ extern "C" __launch_bounds__(BLOCK_SIZE)
         for (CeedInt emode_in = 0; emode_in < NUMEMODEIN; emode_in++) {
           CeedInt b_in_index = emode_in * NQPTS * NNODES;
       	  for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
-             CeedInt b_out_index = emode_out * NQPTS * NNODES;
-             CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
- 	     // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
+            CeedInt b_out_index = emode_out * NQPTS * NNODES;
+            CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
+ 	        // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
             for (CeedInt j = 0; j < NQPTS; j++) {
      	      result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
-	    }
-
-          }// end of emode_out 
+	        }
+          } // end of emode_out 
         } // end of emode_in
         CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
-   	values_array[val_index] = result;
+   	    values_array[val_index] = result;
       } // end of out component
     } // end of in component
   } // end of element loop
@@ -96,15 +95,14 @@ extern "C" __launch_bounds__(BLOCK_SIZE)
           CeedInt qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e; 
           for (CeedInt emode_in = 0; emode_in < NUMEMODEIN; emode_in++) {
             CeedInt b_in_index = emode_in * NQPTS * NNODES;
-        	  for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
-               CeedInt b_out_index = emode_out * NQPTS * NNODES;
-               CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
-   	     // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
+        	for (CeedInt emode_out = 0; emode_out < NUMEMODEOUT; emode_out++) {
+              CeedInt b_out_index = emode_out * NQPTS * NNODES;
+              CeedInt qf_index = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
+   	          // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
               for (CeedInt j = 0; j < NQPTS; j++) {
-       	      result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
-  	    }
-
-            }// end of emode_out 
+       	        result += B_out[b_out_index + j * NNODES  + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NNODES + l];  
+  	          }
+            } // end of emode_out 
           } // end of emode_in
           CeedInt val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + NNODES * i + l;
      	  values_array[val_index] = result;

@@ -18,6 +18,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Fix storing of indices for `CeedElemRestriction` on the host with GPU backends.
 - Fix `CeedElemRestriction` sizing for {c:func}`CeedOperatorAssemblePointBlockDiagonal`.
+- Fix bugs in CPU implementation of {c:func}`CeedOperatorLinearAssemble` when there are different number of active input modes and active output modes.
 
 ### Examples
 
