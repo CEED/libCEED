@@ -7,6 +7,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <string.h>
 #include <valgrind/memcheck.h>
 #include "ceed-memcheck.h"
 
@@ -33,25 +34,33 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
   CeedInt num_in, num_out;
   ierr = CeedQFunctionGetNumArgs(qf, &num_in, &num_out); CeedChkBackend(ierr);
 
-  for (int i = 0; i<num_in; i++) {
+  for (CeedInt i = 0; i<num_in; i++) {
     ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]);
     CeedChkBackend(ierr);
   }
-  for (int i = 0; i<num_out; i++) {
+  int mem_block_ids[num_out];
+  for (CeedInt i = 0; i<num_out; i++) {
+    CeedSize len;
+    char name[30] = "";
+
     ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_HOST, &impl->outputs[i]);
     CeedChkBackend(ierr);
-    CeedSize len;
+
     ierr = CeedVectorGetLength(V[i], &len); CeedChkBackend(ierr);
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
+
+    snprintf(name, 30, "'QFunction output %d'", i);
+    mem_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
   }
 
   ierr = f(ctxData, Q, impl->inputs, impl->outputs); CeedChkBackend(ierr);
 
-  for (int i = 0; i<num_in; i++) {
+  for (CeedInt i = 0; i<num_in; i++) {
     ierr = CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]); CeedChkBackend(ierr);
   }
-  for (int i = 0; i<num_out; i++) {
+  for (CeedInt i = 0; i<num_out; i++) {
     ierr = CeedVectorRestoreArray(V[i], &impl->outputs[i]); CeedChkBackend(ierr);
+    VALGRIND_DISCARD(mem_block_ids[i]);
   }
   if (ctx) {
     ierr = CeedQFunctionContextRestoreData(ctx, &ctxData); CeedChkBackend(ierr);

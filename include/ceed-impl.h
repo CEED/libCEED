@@ -275,6 +275,7 @@ struct CeedQFunctionContext_private {
   int (*GetDataRead)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*RestoreDataRead)(CeedQFunctionContext);
+  int (*DataDestroy)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
   CeedQFunctionContextDataDestroyUser data_destroy_function;
   CeedMemType data_destroy_mem_type;

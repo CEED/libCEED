@@ -363,8 +363,6 @@ int main(int argc, char **argv) {
   // -- Function list
   ierr = PetscFunctionListDestroy(&app_ctx->problems); CHKERRQ(ierr);
 
-  ierr = PetscFree(problem->bc_ctx); CHKERRQ(ierr);
-
   // -- Structs
   ierr = PetscFree(units); CHKERRQ(ierr);
   ierr = PetscFree(user); CHKERRQ(ierr);
