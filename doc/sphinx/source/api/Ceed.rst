@@ -31,3 +31,6 @@ Typedefs and Enumerations
 
 .. doxygenenum:: CeedMemType
    :project: libCEED
+
+.. doxygenenum:: CeedErrorType
+   :project: libCEED
