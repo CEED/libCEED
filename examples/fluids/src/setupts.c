@@ -512,10 +512,16 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 
   PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
+
   if (!app_ctx->test_mode) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time taken for solution (sec): %g\n",
-                       final_time); CHKERRQ(ierr);
+    PetscLogEvent stage_id;
+    PetscStageLog stage_log;
+
+    PetscCall(PetscLogStageGetId("Fluids Solve", &stage_id));
+    PetscCall(PetscLogGetStageLog(&stage_log));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD,
+                          "Time taken for solution (sec): %g\n",
+                          stage_log->stageInfo[stage_id].perfInfo.time));
   }
   PetscFunctionReturn(0);
 }
