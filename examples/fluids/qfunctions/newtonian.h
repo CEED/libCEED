@@ -1279,7 +1279,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
                                     stab[j][2] * dXdx[k][2]);
       break;
     }
-    for (CeedInt j=0; j<5; j++) jac_data[j][i] = U[j];
+    for (CeedInt j=0; j<5; j++) jac_data[j][i] = Y[j];
     for (CeedInt j=0; j<6; j++) jac_data[5+j][i] = kmstress[j];
     for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
 
@@ -1288,4 +1288,159 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
   // Return
   return 0;
 }
+
+// *****************************************************************************
+CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*Grad_dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*jac_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  // *INDENT-ON*
+  // Context
+  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  const CeedScalar *g = context->g;
+  const CeedScalar cp = context->cp;
+  const CeedScalar cv = context->cv;
+  const CeedScalar Rd = cp - cv;
+  const CeedScalar gamma = cp / cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ      =   q_data[0][i];
+    // -- Interp-to-Grad q_data
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    // *INDENT-OFF*
+    const CeedScalar dXdx[3][3] = {{q_data[1][i],
+                                    q_data[2][i],
+                                    q_data[3][i]},
+                                   {q_data[4][i],
+                                    q_data[5][i],
+                                    q_data[6][i]},
+                                   {q_data[7][i],
+                                    q_data[8][i],
+                                    q_data[9][i]}
+                                  };
+    // *INDENT-ON*
+
+    CeedScalar Y[5], kmstress[6], Tau_d[3] __attribute((unused));
+    for (int j=0; j<5; j++) Y[j] = jac_data[j][i];
+    for (int j=0; j<6; j++) kmstress[j] = jac_data[5+j][i];
+    for (int j=0; j<3; j++) Tau_d[j] = jac_data[5+6+j][i];
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+    State s = StateFromY(context, Y, x_i);
+
+    CeedScalar dY[5], dx0[3] = {0};
+    for (int j=0; j<5; j++) dY[j] = dq[j][i];
+    State ds = StateFromY_fwd(context, s, dY, x_i, dx0);
+
+    State grad_ds[3];
+    for (int j=0; j<3; j++) {
+      CeedScalar dYj[5];
+      for (int k=0; k<5; k++)
+        dYj[k] = Grad_dq[0][k][i] * dXdx[0][j] +
+                 Grad_dq[1][k][i] * dXdx[1][j] +
+                 Grad_dq[2][k][i] * dXdx[2][j];
+      grad_ds[j] = StateFromY_fwd(context, s, dYj, x_i, dx0);
+    }
+
+    CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
+    KMStrainRate(grad_ds, dstrain_rate);
+    NewtonianStress(context, dstrain_rate, dkmstress);
+    KMUnpack(dkmstress, dstress);
+    KMUnpack(kmstress, stress);
+    ViscousEnergyFlux_fwd(context, s.Y, ds.Y, grad_ds, stress, dstress, dFe);
+
+    StateConservative dF_inviscid[3];
+    FluxInviscid_fwd(context, s, ds, dF_inviscid);
+
+    // Total flux
+    CeedScalar dFlux[5][3];
+    for (int j=0; j<3; j++) {
+      dFlux[0][j] = dF_inviscid[j].density;
+      for (int k=0; k<3; k++)
+        dFlux[k+1][j] = dF_inviscid[j].momentum[k] - dstress[k][j];
+      dFlux[4][j] = dF_inviscid[j].E_total + dFe[j];
+    }
+
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<5; k++) {
+        Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * dFlux[k][0] +
+                                    dXdx[j][1] * dFlux[k][1] +
+                                    dXdx[j][2] * dFlux[k][2]);
+      }
+    }
+
+    const CeedScalar dbody_force[5] = {0,
+                                       ds.U.density *g[0],
+                                       ds.U.density *g[1],
+                                       ds.U.density *g[2],
+                                       0
+                                      };
+    CeedScalar dU[5] = {0.};
+    dU[0] = ds.U.density;
+    for (CeedInt j=0; j<3; j++)
+      dU[j+1] = ds.U.momentum[j];
+    dU[4] = ds.U.E_total;
+
+    for (int j=0; j<5; j++)
+      v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
+
+    if (1) {
+      CeedScalar jacob_F_conv[3][5][5] = {0.};
+      computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
+                             gamma, g, x_i);
+      CeedScalar grad_dU[5][3];
+      for (int j=0; j<3; j++) {
+        grad_dU[0][j] = grad_ds[j].U.density;
+        for (int k=0; k<3; k++) grad_dU[k+1][j] = grad_ds[j].U.momentum[k];
+        grad_dU[4][j] = grad_ds[j].U.E_total;
+      }
+      CeedScalar dstrong_conv[5] = {0.};
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            dstrong_conv[k] += jacob_F_conv[j][k][l] * grad_dU[l][j];
+
+      CeedScalar dstrong_res[5];
+      for (int j=0; j<5; j++)
+        dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
+                         dstrong_conv[j] -
+                         dbody_force[j];
+
+      CeedScalar dtau_strong_res[5] = {0.},
+                                      dtau_strong_res_conservative[5] = {0.};
+      dtau_strong_res[0] = Tau_d[0] * dstrong_res[0];
+      dtau_strong_res[1] = Tau_d[1] * dstrong_res[1];
+      dtau_strong_res[2] = Tau_d[1] * dstrong_res[2];
+      dtau_strong_res[3] = Tau_d[1] * dstrong_res[3];
+      dtau_strong_res[4] = Tau_d[2] * dstrong_res[4];
+      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
+                                  dtau_strong_res, dtau_strong_res_conservative);
+      CeedScalar dstab[5][3] = {0.};
+      for (int j=0; j<3; j++)
+        for (int k=0; k<5; k++)
+          for (int l=0; l<5; l++)
+            dstab[k][j] += jacob_F_conv[j][k][l] * dtau_strong_res_conservative[l];
+
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
+                                    dstab[j][1] * dXdx[k][1] +
+                                    dstab[j][2] * dXdx[k][2]);
+
+    }
+  } // End Quadrature Point Loop
+  return 0;
+}
+// *****************************************************************************
+
 #endif // newtonian_h
