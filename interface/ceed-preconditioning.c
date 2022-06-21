@@ -252,12 +252,13 @@ static int CeedOperatorCreateActivePointBlockRestriction(
   CeedChk(ierr);
 
   // Expand offsets
-  CeedInt num_elem, num_comp, elem_size, comp_stride, max = 1,
-                                                      *pointblock_offsets;
+  CeedInt num_elem, num_comp, elem_size, comp_stride, *pointblock_offsets;
+  CeedSize l_size;
   ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChk(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp); CeedChk(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elem_size); CeedChk(ierr);
   ierr = CeedElemRestrictionGetCompStride(rstr, &comp_stride); CeedChk(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(rstr, &l_size); CeedChk(ierr);
   CeedInt shift = num_comp;
   if (comp_stride != 1)
     shift *= num_comp;
@@ -265,13 +266,11 @@ static int CeedOperatorCreateActivePointBlockRestriction(
   CeedChk(ierr);
   for (CeedInt i = 0; i < num_elem*elem_size; i++) {
     pointblock_offsets[i] = offsets[i]*shift;
-    if (pointblock_offsets[i] > max)
-      max = pointblock_offsets[i];
   }
 
   // Create new restriction
   ierr = CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp*num_comp,
-                                   1, max + num_comp*num_comp, CEED_MEM_HOST,
+                                   1, l_size * num_comp, CEED_MEM_HOST,
                                    CEED_OWN_POINTER, pointblock_offsets, pointblock_rstr);
   CeedChk(ierr);
 

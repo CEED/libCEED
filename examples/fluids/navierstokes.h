@@ -144,12 +144,13 @@ struct User_private {
   Mat          interp_viz;
   Ceed         ceed;
   Units        units;
-  Vec          M;
+  Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
   CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian;
   bool matrices_set_up;
+  CeedScalar time, dt;
 };
 
 // Units

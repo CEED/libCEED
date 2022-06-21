@@ -10,9 +10,19 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
 
-## Bugfix
+### New features
 
+- Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
+
+### Bugfix
+
+- Fix storing of indices for `CeedElemRestriction` on the host with GPU backends.
+- Fix `CeedElemRestriction` sizing for {c:func}`CeedOperatorAssemblePointBlockDiagonal`.
 - Fix bugs in CPU implementation of {c:func}`CeedOperatorLinearAssemble` when there are different number of active input modes and active output modes.
+
+### Examples
+
+- Added various performance enhancements for {ref}`example-petsc-navier-stokes`
 
 (v0-10-1)=
 

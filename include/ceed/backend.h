@@ -261,6 +261,8 @@ CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
     CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
     CeedContextFieldLabel field_label, int *values);
+CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx,
+    CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);

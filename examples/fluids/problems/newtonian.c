@@ -264,6 +264,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context,
+                                     CEED_MEM_HOST,
+                                     FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context,
                                      "evaluation time",
                                      (char *)&setup_context->time - (char *)setup_context, 1, "Time of evaluation");

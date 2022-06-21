@@ -81,34 +81,37 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data,
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
-
   User           user = *(User *)user_data;
   PetscScalar    *q, *g;
-  Vec            Q_loc, G_loc;
+  Vec            Q_loc = user->Q_loc, G_loc;
   PetscMemType   q_mem_type, g_mem_type;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Update context field labels
-  if (user->phys->solution_time_label)
-    CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr);
-    CeedOperatorContextSetDouble(user->op_rhs, user->phys->timestep_size_label,
-                                 &dt);
-  }
-
-  // Get local vectors
-  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  // Get local vector
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
+  // Update time dependent data
+  if (user->time != t) {
+    ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
+                                      NULL, NULL, NULL); CHKERRQ(ierr);
+    if (user->phys->solution_time_label) {
+      CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
+    }
+    user->time = t;
+  }
+  if (user->phys->timestep_size_label) {
+    PetscScalar dt;
+    ierr = TSGetTimeStep(ts, &dt); CHKERRQ(ierr);
+    if (user->dt != dt) {
+      CeedOperatorContextSetDouble(user->op_rhs, user->phys->timestep_size_label,
+                                   &dt);
+      user->dt = dt;
+    }
+  }
+
   // Global-to-local
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
-                                    NULL, NULL, NULL); CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type);
@@ -136,7 +139,6 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   ierr = VecPointwiseMult(G, G, user->M); CHKERRQ(ierr);
 
   // Restore vectors
-  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -148,36 +150,38 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   User              user = *(User *)user_data;
   const PetscScalar *q, *q_dot;
   PetscScalar       *g;
-  Vec               Q_loc, Q_dot_loc, G_loc;
+  Vec               Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
   PetscMemType      q_mem_type, q_dot_mem_type, g_mem_type;
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
 
-  // Update context field labels
-  if (user->phys->solution_time_label)
-    CeedOperatorContextSetDouble(user->op_ifunction,
-                                 user->phys->solution_time_label, &t);
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr);
-    CeedOperatorContextSetDouble(user->op_ifunction,
-                                 user->phys->timestep_size_label, &dt);
-  }
-
   // Get local vectors
-  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
+  // Update time dependent data
+  if (user->time != t) {
+    ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
+                                      NULL, NULL, NULL); CHKERRQ(ierr);
+    if (user->phys->solution_time_label) {
+      CeedOperatorContextSetDouble(user->op_ifunction,
+                                   user->phys->solution_time_label, &t);
+    }
+    user->time = t;
+  }
+  if (user->phys->timestep_size_label) {
+    PetscScalar dt;
+    ierr = TSGetTimeStep(ts, &dt); CHKERRQ(ierr);
+    if (user->dt != dt) {
+      CeedOperatorContextSetDouble(user->op_ifunction,
+                                   user->phys->timestep_size_label, &dt);
+      user->dt = dt;
+    }
+  }
+
   // Global-to-local
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t,
-                                    NULL, NULL, NULL); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Q_dot_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc);
   CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
@@ -207,8 +211,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
 
   // Restore vectors
-  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(user->dm, &Q_dot_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -218,19 +220,18 @@ static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
   User user;
   const PetscScalar *q;
   PetscScalar       *g;
-  Vec               Q_loc, G_loc;
   PetscMemType      q_mem_type, g_mem_type;
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
-  MatShellGetContext(J, &user);
+  ierr = MatShellGetContext(J, &user); CHKERRQ(ierr);
+  Vec               Q_loc = user->Q_dot_loc, // Note - Q_dot_loc has zero BCs
+                    G_loc;
+
   // Get local vectors
-  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMGetLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
 
   // Global-to-local
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(G_loc); CHKERRQ(ierr);
 
   // Place PETSc vectors in CEED vectors
   ierr = VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type); CHKERRQ(ierr);
@@ -254,7 +255,6 @@ static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
   ierr = DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G); CHKERRQ(ierr);
 
   // Restore vectors
-  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -323,7 +323,8 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
     const PetscScalar *values;
     MatType mat_type;
     PetscCall(MatGetType(J_pre, &mat_type));
-    //if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
+    if (strstr(mat_type, "kokkos")
+        || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
     CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
     CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
     if (coo_vec) {
@@ -455,6 +456,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
                               1.e-12 * user->units->second,
                               1.e2 * user->units->second); CHKERRQ(ierr);
   ierr = TSSetFromOptions(*ts); CHKERRQ(ierr);
+  user->time = -1.0; // require all BCs and ctx to be updated
+  user->dt   = -1.0;
   if (!app_ctx->cont_steps) { // print initial condition
     if (!app_ctx->test_mode) {
       ierr = TSMonitor_NS(*ts, 0, 0., *Q, user); CHKERRQ(ierr);
@@ -478,19 +481,47 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   }
 
   // Solve
-  double start, cpu_time_used;
-  start = MPI_Wtime();
-  ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
-  ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
-  cpu_time_used = MPI_Wtime() - start;
-  ierr = TSGetSolveTime(*ts, &final_time); CHKERRQ(ierr);
+  PetscScalar start_time;
+  ierr = TSGetTime(*ts, &start_time); CHKERRQ(ierr);
+
+  PetscPreLoadBegin(PETSC_FALSE, "Fluids Solve");
+  PetscCall(TSSetTime(*ts, start_time));
+  PetscCall(TSSetStepNumber(*ts, 0));
+  if (PetscPreLoadingOn) {
+    // LCOV_EXCL_START
+    SNES      snes;
+    Vec       Q_preload;
+    PetscReal rtol;
+    PetscCall(VecDuplicate(*Q, &Q_preload));
+    PetscCall(VecCopy(*Q, Q_preload));
+    PetscCall(TSGetSNES(*ts, &snes));
+    PetscCall(SNESGetTolerances(snes, NULL, &rtol, NULL, NULL, NULL));
+    PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, .99, PETSC_DEFAULT,
+                                PETSC_DEFAULT, PETSC_DEFAULT));
+    PetscCall(TSSetSolution(*ts, *Q));
+    PetscCall(TSStep(*ts));
+    PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, rtol, PETSC_DEFAULT,
+                                PETSC_DEFAULT, PETSC_DEFAULT));
+    PetscCall(VecDestroy(&Q_preload));
+    // LCOV_EXCL_STOP
+  } else {
+    ierr = PetscBarrier((PetscObject) *ts); CHKERRQ(ierr);
+    ierr = TSSolve(*ts, *Q); CHKERRQ(ierr);
+  }
+  PetscPreLoadEnd();
+
+  PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
-  ierr = MPI_Allreduce(MPI_IN_PLACE, &cpu_time_used, 1, MPI_DOUBLE, MPI_MIN,
-                       comm); CHKERRQ(ierr);
+
   if (!app_ctx->test_mode) {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-                       "Time taken for solution (sec): %g\n",
-                       (double)cpu_time_used); CHKERRQ(ierr);
+    PetscLogEvent stage_id;
+    PetscStageLog stage_log;
+
+    PetscCall(PetscLogStageGetId("Fluids Solve", &stage_id));
+    PetscCall(PetscLogGetStageLog(&stage_log));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD,
+                          "Time taken for solution (sec): %g\n",
+                          stage_log->stageInfo[stage_id].perfInfo.time));
   }
   PetscFunctionReturn(0);
 }
