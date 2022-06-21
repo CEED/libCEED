@@ -228,9 +228,6 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
 // *****************************************************************************
 CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q,
                                     const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
@@ -1202,7 +1199,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
       v[j][i] = wdetJ * body_force[j];
 
     // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {0.};
+    CeedScalar jacob_F_conv[3][5][5] = {0};
     computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
                            gamma, g, x_i);
     CeedScalar grad_U[5][3];
@@ -1557,7 +1554,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
     if (1) {
-      CeedScalar jacob_F_conv[3][5][5] = {0.};
+      CeedScalar jacob_F_conv[3][5][5] = {0};
       computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
                              gamma, g, x_i);
       CeedScalar grad_dU[5][3];
@@ -1587,7 +1584,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
       dtau_strong_res[4] = Tau_d[2] * dstrong_res[4];
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   dtau_strong_res, dtau_strong_res_conservative);
-      CeedScalar dstab[5][3] = {0.};
+      CeedScalar dstab[5][3] = {0};
       for (int j=0; j<3; j++)
         for (int k=0; k<5; k++)
           for (int l=0; l<5; l++)

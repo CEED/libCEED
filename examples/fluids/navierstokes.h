@@ -251,20 +251,15 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
-                                        AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
