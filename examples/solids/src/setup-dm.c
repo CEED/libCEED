@@ -132,7 +132,8 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
       // -- Clamp BCs
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
-        snprintf(bcName, sizeof bcName, "clamp_%d", app_ctx->bc_clamp_faces[i]);
+        snprintf(bcName, sizeof bcName, "clamp_%" PetscInt_FMT,
+                 app_ctx->bc_clamp_faces[i]);
         ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, 1,
                              &app_ctx->bc_clamp_faces[i], 0, 0,
                              NULL, (void(*)(void))BCClamp, NULL,

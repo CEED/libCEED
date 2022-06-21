@@ -820,7 +820,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   if (blk_size != 1 && blk_size != 8)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Opt backend cannot use blocksize: %d", blk_size);
+                     "Opt backend cannot use blocksize: %" CeedInt_FMT, blk_size);
   // LCOV_EXCL_STOP
 
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction",

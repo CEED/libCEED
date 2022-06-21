@@ -362,8 +362,8 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode,
         if (offsets[i] < 0 || l_size <= offsets[i] + (num_comp - 1) * comp_stride)
           // LCOV_EXCL_START
           return CeedError(ceed, CEED_ERROR_BACKEND,
-                           "Restriction offset %d (%d) out of range "
-                           "[0, %d]", i, offsets[i], l_size);
+                           "Restriction offset %" CeedInt_FMT " (%" CeedInt_FMT ") out of range "
+                           "[0, %" CeedInt_FMT "]", i, offsets[i], l_size);
       // LCOV_EXCL_STOP
     }
 

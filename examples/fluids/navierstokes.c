@@ -270,8 +270,8 @@ int main(int argc, char **argv) {
     owned_nodes /= num_comp_q;
     ierr = PetscPrintf(comm,
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                        "    Global DoFs                        : %" PetscInt_FMT "\n"
                        "    Owned DoFs                         : %" PetscInt_FMT "\n"
                        "    DoFs per node                      : %" PetscInt_FMT "\n"

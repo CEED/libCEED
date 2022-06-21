@@ -237,7 +237,7 @@ PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
                      "  Problem:\n"
                      "    Problem Name                       : %s\n"
                      "    Stabilization                      : %s\n"
-                     "    Bubble Type                        : %s (%dD)\n"
+                     "    Bubble Type                        : %s (%" CeedInt_FMT "D)\n"
                      "    Bubble Continuity                  : %s\n"
                      "    Wind Type                          : %s\n",
                      app_ctx->problem_name, StabilizationTypes[advection_ctx->stabilization],

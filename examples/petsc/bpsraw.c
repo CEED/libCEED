@@ -546,15 +546,15 @@ int main(int argc, char **argv) {
     ierr = VecGetType(X, &vec_type); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
                        "  PETSc:\n"
                        "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n"
                        "    Process Decomposition              : %" PetscInt_FMT
                        " %" PetscInt_FMT " %" PetscInt_FMT "\n"

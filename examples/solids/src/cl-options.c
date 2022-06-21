@@ -102,7 +102,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
     for (PetscInt j = 0; j < nclamp_params; j++)
       app_ctx->bc_clamp_max[i][j] = 0.;
 
-    snprintf(option_name, sizeof option_name, "-bc_clamp_%d_translate",
+    snprintf(option_name, sizeof option_name,
+             "-bc_clamp_%" PetscInt_FMT "_translate",
              app_ctx->bc_clamp_faces[i]);
     max_n = 3;
     ierr = PetscOptionsScalarArray(option_name,
@@ -112,7 +113,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
 
     // Rotation vector
     max_n = 5;
-    snprintf(option_name, sizeof option_name, "-bc_clamp_%d_rotate",
+    snprintf(option_name, sizeof option_name, "-bc_clamp_%" PetscInt_FMT "_rotate",
              app_ctx->bc_clamp_faces[i]);
     ierr = PetscOptionsScalarArray(option_name,
                                    "Vector with axis of rotation and rotation, in radians",
@@ -142,7 +143,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
     for (PetscInt j = 0; j < 3; j++)
       app_ctx->bc_traction_vector[i][j] = 0.;
 
-    snprintf(option_name, sizeof option_name, "-bc_traction_%d",
+    snprintf(option_name, sizeof option_name, "-bc_traction_%" PetscInt_FMT,
              app_ctx->bc_traction_faces[i]);
     max_n = 3;
     PetscBool set = false;

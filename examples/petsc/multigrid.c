@@ -264,20 +264,20 @@ int main(int argc, char **argv) {
     ierr = VecGetType(X[0], &vec_type); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc + PCMG --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc + PCMG --\n"
                        "  PETSc:\n"
                        "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
                        "    Global Nodes                       : %" PetscInt_FMT "\n"
                        "    Owned Nodes                        : %" PetscInt_FMT "\n"
                        "    DoF per node                       : %" PetscInt_FMT "\n"
                        "  Multigrid:\n"
-                       "    Number of Levels                   : %d\n",
+                       "    Number of Levels                   : %" CeedInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
                        P, Q, g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
@@ -293,11 +293,11 @@ int main(int argc, char **argv) {
 
   // Set up libCEED operators on each level
   ierr = PetscMalloc1(num_levels, &ceed_data); CHKERRQ(ierr);
-  for (int i=0; i<num_levels; i++) {
+  for (PetscInt i=0; i<num_levels; i++) {
     // Print level information
     if (!test_mode && (i == 0 || i == fine_level)) {
       ierr = PetscPrintf(comm,"    Level %" PetscInt_FMT " (%s):\n"
-                         "      Number of 1D Basis Nodes (p)     : %d\n"
+                         "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
                          "      Global Nodes                     : %" PetscInt_FMT "\n"
                          "      Owned Nodes                      : %" PetscInt_FMT "\n",
                          i, (i? "fine" : "coarse"), level_degrees[i] + 1,

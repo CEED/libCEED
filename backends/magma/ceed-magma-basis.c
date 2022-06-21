@@ -54,8 +54,8 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
   ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
 
-  CeedDebug(ceed, "\033[01m[CeedBasisApply_Magma] vsize=%d, comp = %d",
-            ncomp*CeedIntPow(P1d, dim), ncomp);
+  CeedDebug(ceed, "\033[01m[CeedBasisApply_Magma] vsize=%" CeedInt_FMT
+            ", comp = %" CeedInt_FMT, ncomp*CeedIntPow(P1d, dim), ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
     CeedSize length;
@@ -335,8 +335,8 @@ int CeedBasisApplyNonTensor_f64_Magma(CeedBasis basis, CeedInt nelem,
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
-            ncomp*ndof, ncomp);
+  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%" CeedInt_FMT
+            ", comp = %" CeedInt_FMT, ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
     CeedSize length;
@@ -460,8 +460,8 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem,
   CeedBasisNonTensor_Magma *impl;
   ierr = CeedBasisGetData(basis, &impl); CeedChkBackend(ierr);
 
-  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%d, comp = %d",
-            ncomp*ndof, ncomp);
+  CeedDebug(ceed, "\033[01m[CeedBasisApplyNonTensor_Magma] vsize=%" CeedInt_FMT
+            ", comp = %" CeedInt_FMT, ncomp*ndof, ncomp);
 
   if (tmode == CEED_TRANSPOSE) {
     CeedSize length;
@@ -632,7 +632,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   char *interp_name_base = "ceed/jit-source/magma/interp";
   CeedInt interp_name_len = strlen(interp_name_base) + 6;
   char interp_name[interp_name_len];
-  snprintf(interp_name, interp_name_len, "%s-%dd.h", interp_name_base, dim);
+  snprintf(interp_name, interp_name_len, "%s-%" CeedInt_FMT "d.h",
+           interp_name_base, dim);
   ierr = CeedGetJitAbsolutePath(ceed, interp_name, &interp_path);
   CeedChkBackend(ierr);
   ierr = CeedLoadSourceToInitializedBuffer(ceed, interp_path,
@@ -641,7 +642,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   char *grad_name_base = "ceed/jit-source/magma/grad";
   CeedInt grad_name_len = strlen(grad_name_base) + 6;
   char grad_name[grad_name_len];
-  snprintf(grad_name, grad_name_len, "%s-%dd.h", grad_name_base, dim);
+  snprintf(grad_name, grad_name_len, "%s-%" CeedInt_FMT "d.h", grad_name_base,
+           dim);
   ierr = CeedGetJitAbsolutePath(ceed, grad_name, &grad_path);
   CeedChkBackend(ierr);
   ierr = CeedLoadSourceToInitializedBuffer(ceed, grad_path,
@@ -650,7 +652,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   char *weight_name_base = "ceed/jit-source/magma/weight";
   CeedInt weight_name_len = strlen(weight_name_base) + 6;
   char weight_name[weight_name_len];
-  snprintf(weight_name, weight_name_len, "%s-%dd.h", weight_name_base, dim);
+  snprintf(weight_name, weight_name_len, "%s-%" CeedInt_FMT "d.h",
+           weight_name_base, dim);
   ierr = CeedGetJitAbsolutePath(ceed, weight_name, &weight_path);
   CeedChkBackend(ierr);
   ierr = CeedLoadSourceToInitializedBuffer(ceed, weight_path,
