@@ -108,8 +108,8 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
 
   // -- Exner pressure, hydrostatic balance
   const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
-  // -- Density
 
+  // -- Density
   const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
   // Initial Conditions
@@ -147,5 +147,82 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 
   return 0;
 }
+
+// *****************************************************************************
+// This helper function provides support for the exact, time-dependent solution
+//   (currently not implemented) and IC formulation for density current
+//   with primitive variables
+// *****************************************************************************
+CEED_QFUNCTION_HELPER int Exact_DC_Prim(CeedInt dim, CeedScalar time,
+                                        const CeedScalar X[], CeedInt Nf, CeedScalar q[],
+                                        void *ctx) {
+  // Context
+  const SetupContext context = (SetupContext)ctx;
+  const CeedScalar theta0   = context->theta0;
+  const CeedScalar thetaC   = context->thetaC;
+  const CeedScalar N        = context->N;
+  const CeedScalar cp       = context->cp;
+  const CeedScalar *g_vec   = context->g;
+  const CeedScalar rc       = context->rc;
+  const CeedScalar *center  = context->center;
+  const CeedScalar *dc_axis = context->dc_axis;
+  const CeedScalar g = -g_vec[2];
+
+  // Setup
+  // -- Coordinates
+  const CeedScalar x = X[0];
+  const CeedScalar y = X[1];
+  const CeedScalar z = X[2];
+
+  // -- Potential temperature, density current
+  CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
+  // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
+  for (CeedInt i=0; i<3; i++)
+    rr[i] -= dc_axis[i] *
+             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
+  const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
+  const CeedScalar delta_theta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
+  const CeedScalar theta = theta0*exp(N*N*z/g) + delta_theta;
+
+  // -- Exner pressure, hydrostatic balance
+  const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+
+  // Initial Conditions
+  q[0] = Pi;
+  q[1] = 0.0;
+  q[2] = 0.0;
+  q[3] = 0.0;
+  q[4] = theta;
+
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction sets the initial conditions for density current
+//   with primitive variables
+// *****************************************************************************
+CEED_QFUNCTION(ICsDC_Prim)(void *ctx, CeedInt Q,
+                           const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+
+  // Outputs
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q[5] = {0.};
+
+    Exact_DC_Prim(3, 0., x, 5, q, ctx);
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+  } // End of Quadrature Point Loop
+
+  return 0;
+}
+// *****************************************************************************
 
 #endif // densitycurrent_h

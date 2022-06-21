@@ -17,6 +17,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   PetscInt ierr;
   SetupContext setup_context;
   User user = *(User *)ctx;
+  PetscBool prim_var;
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   PetscFunctionBeginUser;
@@ -24,9 +25,22 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  problem->ics.qfunction = ICsDC;
-  problem->ics.qfunction_loc = ICsDC_loc;
-  problem->bc = Exact_DC;
+  // -- Command line for Conservative vs Primitive variables
+  PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem", NULL);
+  ierr = PetscOptionsBool("-primitive", "Use primitive variables",
+                          NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
+  PetscOptionsEnd();
+
+  if(!prim_var) {
+    problem->ics.qfunction = ICsDC;
+    problem->ics.qfunction_loc = ICsDC_loc;
+    problem->bc = Exact_DC;
+  } else {
+    problem->ics.qfunction = ICsDC_Prim;
+    problem->ics.qfunction_loc = ICsDC_Prim_loc;
+    problem->bc = Exact_DC_Prim;
+  }
+
   CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               &setup_context);
 
@@ -85,10 +99,10 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
 
   PetscOptionsEnd();
 
-  PetscScalar meter           = user->units->meter;
-  PetscScalar second          = user->units->second;
-  PetscScalar Kelvin          = user->units->Kelvin;
-  PetscScalar Pascal          = user->units->Pascal;
+  PetscScalar meter  = user->units->meter;
+  PetscScalar second = user->units->second;
+  PetscScalar Kelvin = user->units->Kelvin;
+  PetscScalar Pascal = user->units->Pascal;
   rc = fabs(rc) * meter;
   theta0 *= Kelvin;
   thetaC *= Kelvin;
