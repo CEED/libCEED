@@ -100,6 +100,40 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy user data held by CeedQFunctionContext, using function set by
+     CeedQFunctionContextSetDataDestroy, if applicable
+
+  @param[in,out] ctx  CeedQFunctionContext to destroy user data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
+  int ierr;
+
+  if (ctx->DataDestroy) {
+    ierr = ctx->DataDestroy(ctx); CeedChk(ierr);
+  } else {
+    CeedQFunctionContextDataDestroyUser data_destroy_function;
+    CeedMemType data_destroy_mem_type;
+
+    ierr = CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type,
+           &data_destroy_function); CeedChk(ierr);
+    if (data_destroy_function) {
+      void *data;
+
+      ierr = CeedQFunctionContextGetData(ctx, data_destroy_mem_type, &data);
+      CeedChk(ierr);
+      ierr = data_destroy_function(data); CeedChk(ierr);
+      ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+    }
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -358,40 +392,6 @@ int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx,
                                        CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f) {
   if (f_mem_type) *f_mem_type = ctx->data_destroy_mem_type;
   if (f) *f = ctx->data_destroy_function;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Destroy user data held by CeedQFunctionContext, using function set by
-     CeedQFunctionContextSetDataDestroy, if applicable
-
-  @param[in,out] ctx  CeedQFunctionContext to destroy user data
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
-  int ierr;
-
-  if (ctx->DataDestroy) {
-    ierr = ctx->DataDestroy(ctx); CeedChk(ierr);
-  } else {
-    CeedQFunctionContextDataDestroyUser data_destroy_function;
-    CeedMemType data_destroy_mem_type;
-
-    ierr = CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type,
-           &data_destroy_function); CeedChk(ierr);
-    if (data_destroy_function) {
-      void *data;
-
-      ierr = CeedQFunctionContextGetData(ctx, data_destroy_mem_type, &data);
-      CeedChk(ierr);
-      ierr = data_destroy_function(data); CeedChk(ierr);
-      ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
-    }
-  }
-
   return CEED_ERROR_SUCCESS;
 }
 
