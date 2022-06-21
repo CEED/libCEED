@@ -511,6 +511,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   PetscPreLoadEnd();
 
   PetscCall(TSGetSolveTime(*ts, &final_time));
+  *f_time = final_time;
   if (!app_ctx->test_mode) {
     ierr = PetscPrintf(PETSC_COMM_WORLD,
                        "Time taken for solution (sec): %g\n",
