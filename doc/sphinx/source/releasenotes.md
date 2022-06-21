@@ -7,6 +7,10 @@ for each release of libCEED.
 
 ## Current `main` branch
 
+### Bugfix
+
+- Fix bug in setting device id for GPU backends.
+
 ### Interface changes
 
 (v0-10)=

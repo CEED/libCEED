@@ -17,11 +17,15 @@
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   int ierr;
 
-  if (strcmp(resource, "/gpu/hip/shared"))
+  char *resource_root;
+  ierr = CeedHipGetResourceRoot(ceed, resource, &resource_root);
+  CeedChkBackend(ierr);
+  if (strcmp(resource_root, "/gpu/hip/shared"))
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND,
                      "Hip backend cannot use resource: %s", resource);
   // LCOV_EXCL_STOP
+  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
   ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
 
   Ceed_Hip *data;
