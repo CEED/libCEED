@@ -88,6 +88,39 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
 }
 
 /*
+ * @brief Calculate spectrum coefficient, qn
+ *
+ * Calculates q_n at a given distance to the wall
+ *
+ * @param[in]  kappa  nth wavenumber
+ * @param[in]  dkappa Difference between wavenumbers
+ * @param[in]  keta   Dissipation wavenumber
+ * @param[in]  kcut   Mesh-induced cutoff wavenumber
+ * @param[in]  ke     Energy-containing wavenumber
+ * @param[in]  Ektot  Total turbulent kinetic energy of spectrum
+ * @returns    qn     Spectrum coefficient
+ */
+CeedScalar CEED_QFUNCTION_HELPER(Calc_qn)(const CeedScalar kappa,
+    const CeedScalar dkappa, const CeedScalar keta, const CeedScalar kcut,
+    const CeedScalar ke, const CeedScalar Ektot) {
+  const CeedScalar feta_x_fcut   = exp(-Square(12*kappa/keta)
+                                       -Cube(4*Max(kappa - 0.9*kcut, 0)/kcut) );
+  return pow(kappa/ke, 4.) * pow(1 + 2.4*Square(kappa/ke),-17./6)
+         *feta_x_fcut*dkappa/Ektot;
+}
+
+// Calculate hmax, ke, keta, and kcut
+void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar dw,
+    const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
+    const CeedScalar nu, CeedScalar *hmax, CeedScalar *ke,
+    CeedScalar *keta, CeedScalar *kcut) {
+  *hmax = Max( Max(h[0], h[1]), h[2]);
+  *ke   = dw==0 ? 1e16 : 2*M_PI/Min(2*dw, 3*lt);
+  *keta = 2*M_PI*pow(Cube(nu)/eps, -0.25);
+  *kcut = M_PI/ Min( Max(Max(h[1], h[2]), 0.3*(*hmax)) + 0.1*dw, *hmax );
+}
+
+/*
  * @brief Calculate spectrum coefficients for STG
  *
  * Calculates q_n at a given distance to the wall
@@ -106,20 +139,12 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
 
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
-
-  const CeedScalar hmax = Max( Max(h[0], h[1]), h[2]);
-  const CeedScalar ke   = dw==0 ? 1e16 : 2*M_PI/Min(2*dw, 3*lt);
-  const CeedScalar keta = 2*M_PI*pow(Cube(nu)/eps, -0.25);
-  const CeedScalar kcut =
-    M_PI/ Min( Max(Max(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
-  CeedScalar fcut, feta, Ektot=0.0;
+  CeedScalar hmax, ke, keta, kcut, Ektot=0.0;
+  SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
 
   for(CeedInt n=0; n<nmodes; n++) {
-    feta   = exp(-Square(12*kappa[n]/keta));
-    fcut   = exp( -pow(4*Max(kappa[n] - 0.9*kcut, 0)/kcut, 3.) );
-    qn[n]  = pow(kappa[n]/ke, 4.)
-             * pow(1 + 2.4*Square(kappa[n]/ke),-17./6)*feta*fcut;
-    qn[n] *= n==0 ? kappa[0] : kappa[n] - kappa[n-1];
+    const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
+    qn[n] = Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
     Ektot += qn[n];
   }
 
