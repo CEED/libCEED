@@ -6,13 +6,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
-### Bugfix
-
-- Fix bug in setting device id for GPU backends.
-
 ### Interface changes
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
+- Added {c:func}`CeedBasisCreateProjection` to facilitate interpolation between nodes for separate `CeedBases`.
 
 ### New features
 
@@ -20,6 +17,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Bugfix
 
+- Fix bug in setting device id for GPU backends.
 - Fix storing of indices for `CeedElemRestriction` on the host with GPU backends.
 - Fix `CeedElemRestriction` sizing for {c:func}`CeedOperatorAssemblePointBlockDiagonal`.
 - Fix bugs in CPU implementation of {c:func}`CeedOperatorLinearAssemble` when there are different number of active input modes and active output modes.

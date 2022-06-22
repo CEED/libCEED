@@ -2048,90 +2048,19 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
                                      CeedOperator *op_restrict) {
   int ierr;
   ierr = CeedOperatorCheckReady(op_fine); CeedChk(ierr);
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op_fine, &ceed); CeedChk(ierr);
 
-  // Check for compatible quadrature spaces
-  CeedBasis basis_fine;
+  // Build prolongation matrix
+  CeedBasis basis_fine, basis_c_to_f;
   ierr = CeedOperatorGetActiveBasis(op_fine, &basis_fine); CeedChk(ierr);
-  CeedInt Q_f, Q_c;
-  ierr = CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c); CeedChk(ierr);
-  if (Q_f != Q_c)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Bases must have compatible quadrature spaces");
-  // LCOV_EXCL_STOP
+  ierr = CeedBasisCreateProjection(basis_fine, basis_coarse, &basis_c_to_f);
+  CeedChk(ierr);
 
-  // Coarse to fine basis
-  CeedInt P_f, P_c, Q = Q_f;
-  bool is_tensor_f, is_tensor_c;
-  ierr = CeedBasisIsTensor(basis_fine, &is_tensor_f); CeedChk(ierr);
-  ierr = CeedBasisIsTensor(basis_coarse, &is_tensor_c); CeedChk(ierr);
-  CeedScalar *interp_c, *interp_f, *interp_c_to_f, *tau;
-  if (is_tensor_f && is_tensor_c) {
-    ierr = CeedBasisGetNumNodes1D(basis_fine, &P_f); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes1D(basis_coarse, &P_c); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis_coarse, &Q); CeedChk(ierr);
-  } else if (!is_tensor_f && !is_tensor_c) {
-    ierr = CeedBasisGetNumNodes(basis_fine, &P_f); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes(basis_coarse, &P_c); CeedChk(ierr);
-  } else {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR,
-                     "Bases must both be tensor or non-tensor");
-    // LCOV_EXCL_STOP
-  }
+  // Core code
+  ierr = CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse,
+                                          basis_coarse, basis_c_to_f, op_coarse,
+                                          op_prolong, op_restrict);
+  CeedChk(ierr);
 
-  ierr = CeedMalloc(Q*P_f, &interp_f); CeedChk(ierr);
-  ierr = CeedMalloc(Q*P_c, &interp_c); CeedChk(ierr);
-  ierr = CeedCalloc(P_c*P_f, &interp_c_to_f); CeedChk(ierr);
-  ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
-  const CeedScalar *interp_f_source = NULL, *interp_c_source = NULL;
-  if (is_tensor_f) {
-    ierr = CeedBasisGetInterp1D(basis_fine, &interp_f_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp1D(basis_coarse, &interp_c_source); CeedChk(ierr);
-  } else {
-    ierr = CeedBasisGetInterp(basis_fine, &interp_f_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp(basis_coarse, &interp_c_source); CeedChk(ierr);
-  }
-  memcpy(interp_f, interp_f_source, Q*P_f*sizeof interp_f_source[0]);
-  memcpy(interp_c, interp_c_source, Q*P_c*sizeof interp_c_source[0]);
-
-  // -- QR Factorization, interp_f = Q R
-  ierr = CeedQRFactorization(ceed, interp_f, tau, Q, P_f); CeedChk(ierr);
-
-  // -- Apply Qtranspose, interp_c = Qtranspose interp_c
-  ierr = CeedHouseholderApplyQ(interp_c, interp_f, tau, CEED_TRANSPOSE,
-                               Q, P_c, P_f, P_c, 1); CeedChk(ierr);
-
-  // -- Apply Rinv, interp_c_to_f = Rinv interp_c
-  for (CeedInt j=0; j<P_c; j++) { // Column j
-    interp_c_to_f[j+P_c*(P_f-1)] = interp_c[j+P_c*(P_f-1)]/interp_f[P_f*P_f-1];
-    for (CeedInt i=P_f-2; i>=0; i--) { // Row i
-      interp_c_to_f[j+P_c*i] = interp_c[j+P_c*i];
-      for (CeedInt k=i+1; k<P_f; k++)
-        interp_c_to_f[j+P_c*i] -= interp_f[k+P_f*i]*interp_c_to_f[j+P_c*k];
-      interp_c_to_f[j+P_c*i] /= interp_f[i+P_f*i];
-    }
-  }
-  ierr = CeedFree(&tau); CeedChk(ierr);
-  ierr = CeedFree(&interp_c); CeedChk(ierr);
-  ierr = CeedFree(&interp_f); CeedChk(ierr);
-
-  // Complete with interp_c_to_f versions of code
-  if (is_tensor_f) {
-    ierr = CeedOperatorMultigridLevelCreateTensorH1(op_fine, p_mult_fine,
-           rstr_coarse, basis_coarse, interp_c_to_f, op_coarse, op_prolong, op_restrict);
-    CeedChk(ierr);
-  } else {
-    ierr = CeedOperatorMultigridLevelCreateH1(op_fine, p_mult_fine,
-           rstr_coarse, basis_coarse, interp_c_to_f, op_coarse, op_prolong, op_restrict);
-    CeedChk(ierr);
-  }
-
-  // Cleanup
-  ierr = CeedFree(&interp_c_to_f); CeedChk(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
