@@ -80,14 +80,9 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
       PetscBool use_strongstg = PETSC_FALSE;
       ierr = PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL);
       CHKERRQ(ierr);
-      STGShur14Context stg_ctx;
 
       if (use_strongstg) {
-        CeedQFunctionContextGetData(problem->apply_inflow.qfunction_context,
-                                    CEED_MEM_HOST, &stg_ctx);
-        ierr = SetupStrongSTG(dm, bc, problem, stg_ctx); CHKERRQ(ierr);
-        CeedQFunctionContextRestoreData(problem->apply_inflow.qfunction_context,
-                                        &stg_ctx);
+        ierr = SetupStrongSTG(dm, bc, problem); CHKERRQ(ierr);
       }
     }
 

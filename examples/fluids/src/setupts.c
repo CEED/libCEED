@@ -292,7 +292,6 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
                                  user->phys->ijacobian_time_shift_label, &shift);
   PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
-  Vec coo_vec = NULL;
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL,
                                    &J_pre_is_shell));
@@ -315,7 +314,6 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
       free(cols);
       CeedVectorCreate(user->ceed, ncoo, &user->coo_values);
       user->matrices_set_up = true;
-      VecCreateSeq(PETSC_COMM_WORLD, ncoo, &coo_vec);
     }
   }
   if (!J_pre_is_shell) {
@@ -323,15 +321,10 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
     const PetscScalar *values;
     MatType mat_type;
     PetscCall(MatGetType(J_pre, &mat_type));
-    if (strstr(mat_type, "kokkos")
-        || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
+    if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse"))
+      mem_type = CEED_MEM_DEVICE;
     CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
     CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
-    if (coo_vec) {
-      VecPlaceArray(coo_vec, values);
-      VecViewFromOptions(coo_vec, NULL, "-coo_vec_view");
-      VecDestroy(&coo_vec);
-    }
     PetscCall(MatSetValuesCOO(J_pre, values, INSERT_VALUES));
     CeedVectorRestoreArrayRead(user->coo_values, &values);
   }

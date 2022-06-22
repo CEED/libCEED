@@ -27,6 +27,8 @@ On this page we provide a summary of the main API changes, new features and exam
 ### Examples
 
 - Added various performance enhancements for {ref}`example-petsc-navier-stokes`
+- Refactored {ref}`example-petsc-navier-stokes` to improve code reuse
+- Added Shock Tube, Channel, and Flat Plate boundary layer problems to {ref}`example-petsc-navier-stokes`
 
 (v0-10-1)=
 
