@@ -768,8 +768,9 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
   CeedSize lsize;
   CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
-          numoutputfields, ncomp, dim = 0;
+          numoutputfields, ncomp, dim = 1;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
+  Q1d = Q;
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields);
