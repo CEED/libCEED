@@ -15,6 +15,7 @@
 #include <math.h>
 #include <ceed.h>
 #include "newtonian_types.h"
+#include "utils.h"
 
 typedef struct {
   CeedScalar pressure;
@@ -125,16 +126,6 @@ CEED_QFUNCTION_HELPER void KMStrainRate(const State grad_s[3],
   strain_rate[3] = weight * (grad_s[2].Y.velocity[1] + grad_s[1].Y.velocity[2]);
   strain_rate[4] = weight * (grad_s[2].Y.velocity[0] + grad_s[0].Y.velocity[2]);
   strain_rate[5] = weight * (grad_s[1].Y.velocity[0] + grad_s[0].Y.velocity[1]);
-}
-
-CEED_QFUNCTION_HELPER void KMUnpack(const CeedScalar v[6], CeedScalar A[3][3]) {
-  const CeedScalar weight = 1 / sqrt(2.);
-  A[0][0] = v[0];
-  A[1][1] = v[1];
-  A[2][2] = v[2];
-  A[2][1] = A[1][2] = weight * v[3];
-  A[2][0] = A[0][2] = weight * v[4];
-  A[1][0] = A[0][1] = weight * v[5];
 }
 
 CEED_QFUNCTION_HELPER void NewtonianStress(NewtonianIdealGasContext gas,

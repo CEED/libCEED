@@ -53,10 +53,4 @@ struct NewtonianIdealGasContext_ {
   StabilizationType stabilization;
 };
 
-CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
-CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar u[3],
-                                      const CeedScalar v[3]) {
-  return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
-}
-
 #endif // newtonian_types_h
