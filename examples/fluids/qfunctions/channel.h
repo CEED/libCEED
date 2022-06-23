@@ -64,6 +64,34 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Channel(CeedInt dim, CeedScalar time,
   return 0;
 }
 
+CEED_QFUNCTION_HELPER CeedInt Exact_Channel_Prim(CeedInt dim, CeedScalar time,
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+
+  const ChannelContext context = (ChannelContext)ctx;
+  const CeedScalar theta0 = context->theta0;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar umax   = context->umax;
+  const CeedScalar center = context->center;
+  const CeedScalar H      = context->H;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
+  const CeedScalar mu     = context->newtonian_ctx.mu;
+  const CeedScalar k      = context->newtonian_ctx.k;
+
+  const CeedScalar y=X[1];
+
+  const CeedScalar Pr    = mu / (cp*k);
+  const CeedScalar Ec    = (umax*umax) / (cp*theta0);
+  const CeedScalar theta = theta0*(1 + (Pr*Ec/3)
+                                   * (1 - Square(Square((y-center)/H))));
+  q[0] = P0;
+  q[1] = umax*(1 - Square((y-center)/H));
+  q[2] = 0.;
+  q[3] = 0.;
+  q[4] = theta;
+
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction sets the initial condition
 // *****************************************************************************
@@ -81,6 +109,27 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q,
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
     Exact_Channel(3, 0., x, 5, q, ctx);
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
+CEED_QFUNCTION(ICsChannel_Prim)(void *ctx, CeedInt Q,
+                                const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+
+  // Outputs
+  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q[5] = {0.};
+    Exact_Channel_Prim(3, 0., x, 5, q, ctx);
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -169,6 +218,83 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
 }
 
 // *****************************************************************************
+CEED_QFUNCTION(Channel_Inflow_Prim)(void *ctx, CeedInt Q,
+                                    const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  const ChannelContext context = (ChannelContext)ctx;
+  const bool implicit     = context->implicit;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar P     =  q[0][i];
+
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+
+    // Calcualte prescribed inflow values
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar q_exact[5] = {0.};
+    Exact_Channel_Prim(3, 0., x, 5, q_exact, ctx);
+
+    const CeedScalar u[3] = {q_exact[1],
+                             q_exact[2],
+                             q_exact[3]
+                            };
+    const CeedScalar theta =  q_exact[4];
+    // Find inflow state using input P and prescribed u, theta
+    const CeedScalar rho = P / (Rd * theta);
+    const CeedScalar E_internal = rho * cv * theta;
+    const CeedScalar E_kinetic = .5 * rho * (u[0]*u[0] +
+                                 u[1]*u[1] +
+                                 u[2]*u[2]);
+    const CeedScalar E = E_internal + E_kinetic;
+
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+    // ---- Normal velocity
+    const CeedScalar u_normal = norm[0]*u[0] +
+                                norm[1]*u[1] +
+                                norm[2]*u[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal;
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] -= wdetJb * (rho * u_normal * u[j] + norm[j] * P);
+
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * u_normal * (E + P);
+
+  } // End Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
                                 const CeedScalar *const *in,
                                 CeedScalar *const *out) {
@@ -230,4 +356,77 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
   } // End Quadrature Point Loop
   return 0;
 }
+
+// *****************************************************************************
+CEED_QFUNCTION(Channel_Outflow_Prim)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+
+  const ChannelContext context = (ChannelContext)ctx;
+  const bool implicit     = context->implicit;
+  const CeedScalar P0     = context->P0;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp in
+    const CeedScalar P     =  q[0][i];
+    const CeedScalar u[3]  = {q[1][i],
+                              q[2][i],
+                              q[3][i]
+                             };
+    const CeedScalar theta =  q[4][i];
+
+    const CeedScalar rho        = P / (Rd * theta);
+    const CeedScalar E_internal = rho * cv * theta;
+    const CeedScalar E_kinetic  = .5 * rho * (u[0]*u[0] +
+                                  u[1]*u[1] +
+                                  u[2]*u[2]);
+    const CeedScalar E = E_internal + E_kinetic;
+
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+
+    // ---- Normal vect
+    const CeedScalar norm[3]  = {q_data_sur[1][i],
+                                 q_data_sur[2][i],
+                                 q_data_sur[3][i]
+                                };
+    // Normal velocity
+    const CeedScalar u_normal = norm[0]*u[0] +
+                                norm[1]*u[1] +
+                                norm[2]*u[2];
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal;
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P0);
+
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * u_normal * (E + P0);
+
+  } // End Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 #endif // channel_h

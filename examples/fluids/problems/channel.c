@@ -17,6 +17,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   ChannelContext    channel_ctx;
+  PetscBool prim_var;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext channel_context;
 
@@ -28,12 +29,6 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   //               SET UP Channel
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  problem->ics.qfunction               = ICsChannel;
-  problem->ics.qfunction_loc           = ICsChannel_loc;
-  problem->apply_inflow.qfunction      = Channel_Inflow;
-  problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
-  problem->apply_outflow.qfunction     = Channel_Outflow;
-  problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
 
   // -- Command Line Options
   CeedScalar umax   = 10.;  // m/s
@@ -41,6 +36,23 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar P0     = 1.e5; // Pa
   PetscReal body_force_scale = 1.;
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
+  ierr = PetscOptionsBool("-primitive", "Use primitive variables",
+                          NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
+  if(!prim_var) {
+    problem->ics.qfunction               = ICsChannel;
+    problem->ics.qfunction_loc           = ICsChannel_loc;
+    problem->apply_inflow.qfunction      = Channel_Inflow;
+    problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
+    problem->apply_outflow.qfunction     = Channel_Outflow;
+    problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
+  } else {
+    problem->ics.qfunction               = ICsChannel_Prim;
+    problem->ics.qfunction_loc           = ICsChannel_Prim_loc;
+    problem->apply_inflow.qfunction      = Channel_Inflow_Prim;
+    problem->apply_inflow.qfunction_loc  = Channel_Inflow_Prim_loc;
+    problem->apply_outflow.qfunction     = Channel_Outflow_Prim;
+    problem->apply_outflow.qfunction_loc = Channel_Outflow_Prim_loc;
+  }
   ierr = PetscOptionsScalar("-umax", "Centerline velocity of the Channel",
                             NULL, umax, &umax, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-theta0", "Wall temperature",
