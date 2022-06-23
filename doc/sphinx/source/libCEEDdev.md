@@ -22,13 +22,14 @@ Please check your code for common issues by running
 
 `make tidy`
 
-which uses the `clang-tidy` utility included in recent releases of Clang.  This
-tool is much slower than actual compilation (`make -j8` parallelism helps).  To
-run on a single file, use
+which uses the `clang-tidy` utility included in recent releases of Clang.
+This tool is much slower than actual compilation (`make -j8` parallelism helps).
+To run on a single file, use
 
 `make interface/ceed.c.tidy`
 
-for example.  All issues reported by `make tidy` should be fixed.
+for example.
+All issues reported by `make tidy` should be fixed.
 
 ## Include-What-You-Use
 
@@ -52,11 +53,10 @@ The `ceed-f64.h` and `ceed-f32.h` headers should only be included in `ceed.h`.
 
 ## Shape
 
-Backends often manipulate tensors of dimension greater than 2.  It is
-awkward to pass fully-specified multi-dimensional arrays using C99 and
-certain operations will flatten/reshape the tensors for computational
-convenience.  We frequently use comments to document shapes using a
-lexicographic ordering.  For example, the comment
+Backends often manipulate tensors of dimension greater than 2.
+It is awkward to pass fully-specified multi-dimensional arrays using C99 and certain operations will flatten/reshape the tensors for computational convenience.
+We frequently use comments to document shapes using a lexicographic ordering.
+For example, the comment
 
 ```c
 // u has shape [dim, num_comp, Q, num_elem]
@@ -72,8 +72,8 @@ for (d=0; d<dim; d++)
         u[((d*num_comp + c)*Q + q)*num_elem + e] = ...
 ```
 
-This ordering is sometimes referred to as row-major or C-style.  Note
-that flattening such as
+This ordering is sometimes referred to as row-major or C-style.
+Note that flattening such as
 
 ```c
 // u has shape [dim, num_comp, Q*num_elem]
@@ -85,12 +85,12 @@ and
 // u has shape [dim*num_comp, Q, num_elem]
 ```
 
-are purely implicit -- one just indexes the same array using the
-appropriate convention.
+are purely implicit -- one just indexes the same array using the appropriate convention.
 
 ## `restrict` Semantics
 
-QFunction arguments can be assumed to have `restrict` semantics. That is, each input and output array must reside in distinct memory without overlap.
+QFunction arguments can be assumed to have `restrict` semantics.
+That is, each input and output array must reside in distinct memory without overlap.
 
 ## CeedVector Array Access Semantics
 

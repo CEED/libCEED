@@ -10,45 +10,20 @@
 
 ## Summary and Purpose
 
-libCEED provides fast algebra for element-based discretizations, designed for
-performance portability, run-time flexibility, and clean embedding in higher
-level libraries and applications. It offers a C99 interface as well as bindings
-for Fortran, Python, Julia, and Rust.
-While our focus is on high-order finite elements, the approach is mostly
-algebraic and thus applicable to other discretizations in factored form, as
-explained in the [user manual](https://libceed.org/en/latest/) and
-API implementation portion of the
-[documentation](https://libceed.org/en/latest/api/).
+libCEED provides fast algebra for element-based discretizations, designed for performance portability, run-time flexibility, and clean embedding in higher level libraries and applications.
+It offers a C99 interface as well as bindings for Fortran, Python, Julia, and Rust.
+While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained in the [user manual](https://libceed.org/en/latest/) and API implementation portion of the [documentation](https://libceed.org/en/latest/api/).
 
-One of the challenges with high-order methods is that a global sparse matrix is
-no longer a good representation of a high-order linear operator, both with
-respect to the FLOPs needed for its evaluation, as well as the memory transfer
-needed for a matvec.  Thus, high-order methods require a new "format" that still
-represents a linear (or more generally non-linear) operator, but not through a
-sparse matrix.
+One of the challenges with high-order methods is that a global sparse matrix is no longer a good representation of a high-order linear operator, both with respect to the FLOPs needed for its evaluation, as well as the memory transfer needed for a matvec.
+Thus, high-order methods require a new "format" that still represents a linear (or more generally non-linear) operator, but not through a sparse matrix.
 
-The goal of libCEED is to propose such a format, as well as supporting
-implementations and data structures, that enable efficient operator evaluation
-on a variety of computational device types (CPUs, GPUs, etc.). This new operator
-description is based on algebraically
-[factored form](https://libceed.org/en/latest/libCEEDapi/#finite-element-operator-decomposition),
-which is easy to incorporate in a wide variety of applications, without significant
-refactoring of their own discretization infrastructure.
+The goal of libCEED is to propose such a format, as well as supporting implementations and data structures, that enable efficient operator evaluation on a variety of computational device types (CPUs, GPUs, etc.).
+This new operator description is based on algebraically [factored form](https://libceed.org/en/latest/libCEEDapi/#finite-element-operator-decomposition), which is easy to incorporate in a wide variety of applications, without significant refactoring of their own discretization infrastructure.
 
-The repository is part of the
-[CEED software suite](http://ceed.exascaleproject.org/software/), a collection of
-software benchmarks, miniapps, libraries and APIs for efficient exascale
-discretizations based on high-order finite element and spectral element methods.
+The repository is part of the [CEED software suite](http://ceed.exascaleproject.org/software/), a collection of software benchmarks, miniapps, libraries and APIs for efficient exascale discretizations based on high-order finite element and spectral element methods.
 See <http://github.com/ceed> for more information and source code availability.
 
-The CEED research is supported by the
-[Exascale Computing Project](https://exascaleproject.org/exascale-computing-project)
-(17-SC-20-SC), a collaborative effort of two U.S. Department of Energy
-organizations (Office of Science and the National Nuclear Security
-Administration) responsible for the planning and preparation of a
-[capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including
-software, applications, hardware, advanced system engineering and early testbed
-platforms, in support of the nation’s exascale computing imperative.
+The CEED research is supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project) (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a [capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nation’s exascale computing imperative.
 
 For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
 
@@ -56,8 +31,8 @@ For more details on the CEED API see the [user manual](https://libceed.org/en/la
 
 ## Building
 
-The CEED library, `libceed`, is a C99 library with no required dependencies, and
-with Fortran, Python, Julia, and Rust interfaces.  It can be built using:
+The CEED library, `libceed`, is a C99 library with no required dependencies, and with Fortran, Python, Julia, and Rust interfaces.
+It can be built using:
 
 ```
 make
@@ -69,11 +44,9 @@ or, with optimization flags:
 make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
 ```
 
-These optimization flags are used by all languages (C, C++, Fortran) and this
-makefile variable can also be set for testing and examples (below).
+These optimization flags are used by all languages (C, C++, Fortran) and this makefile variable can also be set for testing and examples (below).
 
-The library attempts to automatically detect support for the AVX
-instruction set using gcc-style compiler options for the host.
+The library attempts to automatically detect support for the AVX instruction set using gcc-style compiler options for the host.
 Support may need to be manually specified via:
 
 ```
@@ -86,13 +59,11 @@ or:
 make AVX=0
 ```
 
-if your compiler does not support gcc-style options, if you are cross
-compiling, etc.
+if your compiler does not support gcc-style options, if you are cross compiling, etc.
 
-To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory
-to your `make` invocation. To enable HIP support, add `HIP_DIR=/opt/rocm` or
-an appropriate directory. To store these or other arguments as defaults for
-future invocations of `make`, use:
+To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to your `make` invocation.
+To enable HIP support, add `HIP_DIR=/opt/rocm` or an appropriate directory.
+To store these or other arguments as defaults for future invocations of `make`, use:
 
 ```
 make configure CUDA_DIR=/usr/local/cuda HIP_DIR=/opt/rocm OPT='-O3 -march=znver2'
@@ -120,8 +91,7 @@ julia> ]
 pkg> add LibCEED
 ```
 
-See the [LibCEED.jl documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev/)
-for more information.
+See the [LibCEED.jl documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev/) for more information.
 
 Rust users can include libCEED via `Cargo.toml`:
 
@@ -191,10 +161,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
 | `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 
-The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes
-with a smaller number of high order elements. The `/cpu/self/*/blocked` backends process
-blocked batches of eight interlaced elements and are intended for meshes with higher numbers
-of elements.
+The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
+The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
 
 The `/cpu/self/ref/*` backends are written in pure C and provide basic functionality.
 
@@ -202,42 +170,34 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](http://valgrind.org/) Memcheck tool
-to help verify that user QFunctions have no undefined values. To use, run your code with
-Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`. A
-'development' or 'debugging' version of Valgrind with headers is required to use this backend.
-This backend can be run in serial or blocked mode and defaults to running in the serial mode
-if `/cpu/self/memcheck` is selected at runtime.
+The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](http://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
+To use, run your code with Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
+A 'development' or 'debugging' version of Valgrind with headers is required to use this backend.
+This backend can be run in serial or blocked mode and defaults to running in the serial mode if `/cpu/self/memcheck` is selected at runtime.
 
-The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package
-to provide vectorized CPU performance. If linking MKL and LIBXSMM is desired but
-the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be
-forced by setting the environment variable `MKL=1`.
+The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package to provide vectorized CPU performance.
+If linking MKL and LIBXSMM is desired but the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be forced by setting the environment variable `MKL=1`.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
-The `/gpu/hip/*` backends provide GPU performance strictly using HIP. They are based on
-the `/gpu/cuda/*` backends.  ROCm version 4.2 or newer is required.
+The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
+They are based on the `/gpu/cuda/*` backends.
+ROCm version 4.2 or newer is required.
 
 The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://bitbucket.org/icl/magma) package.
-To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level
-MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
-By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends
-with a MAGMA installation located elsewhere, create a link to `magma/` in libCEED's parent
-directory, or set `MAGMA_DIR` to the proper location.  MAGMA version 2.5.0 or newer is required.
-Currently, each MAGMA library installation is only built for either CUDA or HIP.  The corresponding
-set of libCEED backends (`/gpu/cuda/magma/*` or `/gpu/hip/magma/*`) will automatically be built
-for the version of the MAGMA library found in `MAGMA_DIR`.
+To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
+By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends with a MAGMA installation located elsewhere, create a link to `magma/` in libCEED's parent directory, or set `MAGMA_DIR` to the proper location.
+MAGMA version 2.5.0 or newer is required.
+Currently, each MAGMA library installation is only built for either CUDA or HIP.
+The corresponding set of libCEED backends (`/gpu/cuda/magma/*` or `/gpu/hip/magma/*`) will automatically be built for the version of the MAGMA library found in `MAGMA_DIR`.
 
-Users can specify a device for all CUDA, HIP, and MAGMA backends through adding `:device_id=#`
-after the resource name.  For example:
+Users can specify a device for all CUDA, HIP, and MAGMA backends through adding `:device_id=#` after the resource name.
+For example:
 
 > - `/gpu/cuda/gen:device_id=1`
 
-The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide
-cross platform performance. To enable the OCCA backend, the environment variable `OCCA_DIR` must point
-to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default,
-`OCCA_DIR` is set to `../occa`).
+The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide cross platform performance.
+To enable the OCCA backend, the environment variable `OCCA_DIR` must point to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default, `OCCA_DIR` is set to `../occa`).
 
 Additionally, users can pass specific OCCA device properties after setting the CEED resource.
 For example:
@@ -250,12 +210,10 @@ The backends which are capable of generating reproducible results, with the prop
 
 ## Examples
 
-libCEED comes with several examples of its usage, ranging from standalone C
-codes in the `/examples/ceed` directory to examples based on external packages,
-such as MFEM, PETSc, and Nek5000. Nek5000 v18.0 or greater is required.
+libCEED comes with several examples of its usage, ranging from standalone C codes in the `/examples/ceed` directory to examples based on external packages, such as MFEM, PETSc, and Nek5000.
+Nek5000 v18.0 or greater is required.
 
-To build the examples, set the `MFEM_DIR`, `PETSC_DIR`, and
-`NEK5K_DIR` variables and run:
+To build the examples, set the `MFEM_DIR`, `PETSC_DIR`, and `NEK5K_DIR` variables and run:
 
 ```
 cd examples/
@@ -338,13 +296,11 @@ make
 cd ..
 ```
 
-For the last example shown, sample meshes to be used in place of
-`[.exo file]` can be found at <https://github.com/jeremylt/ceedSampleMeshes>
+For the last example shown, sample meshes to be used in place of `[.exo file]` can be found at <https://github.com/jeremylt/ceedSampleMeshes>
 
-The above code assumes a GPU-capable machine with the CUDA backends
-enabled. Depending on the available backends, other CEED resource
-specifiers can be provided with the `-ceed` option. Other command line
-arguments can be found in [examples/petsc](https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md).
+The above code assumes a GPU-capable machine with the CUDA backends enabled.
+Depending on the available backends, other CEED resource specifiers can be provided with the `-ceed` option.
+Other command line arguments can be found in [examples/petsc](https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md).
 
 % benchmarks-marker
 
@@ -356,8 +312,7 @@ A sequence of benchmarks for all enabled backends can be run using:
 make benchmarks
 ```
 
-The results from the benchmarks are stored inside the `benchmarks/` directory
-and they can be viewed using the commands (requires python with matplotlib):
+The results from the benchmarks are stored inside the `benchmarks/` directory and they can be viewed using the commands (requires python with matplotlib):
 
 ```
 cd benchmarks
@@ -365,8 +320,8 @@ python postprocess-plot.py petsc-bps-bp1-*-output.txt
 python postprocess-plot.py petsc-bps-bp3-*-output.txt
 ```
 
-Using the `benchmarks` target runs a comprehensive set of benchmarks which may
-take some time to run. Subsets of the benchmarks can be run using the scripts in the `benchmarks` folder.
+Using the `benchmarks` target runs a comprehensive set of benchmarks which may take some time to run.
+Subsets of the benchmarks can be run using the scripts in the `benchmarks` folder.
 
 For more details about the benchmarks, see the `benchmarks/README.md` file.
 
@@ -391,9 +346,8 @@ make for_install=1 prefix=/path/to/install/dir
 make install prefix=/path/to/install/dir
 ```
 
-The usual variables like `CC` and `CFLAGS` are used, and optimization flags
-for all languages can be set using the likes of `OPT='-O3 -march=native'`. Use
-`STATIC=1` to build static libraries (`libceed.a`).
+The usual variables like `CC` and `CFLAGS` are used, and optimization flags for all languages can be set using the likes of `OPT='-O3 -march=native'`.
+Use `STATIC=1` to build static libraries (`libceed.a`).
 
 To install libCEED for Python, run:
 
@@ -405,23 +359,20 @@ with the desired setuptools options, such as `--user`.
 
 ### pkg-config
 
-In addition to library and header, libCEED provides a [pkg-config](https://en.wikipedia.org/wiki/Pkg-config)
-file that can be used to easily compile and link.
-[For example](https://people.freedesktop.org/~dbn/pkg-config-guide.html#faq), if
-`$prefix` is a standard location or you set the environment variable
-`PKG_CONFIG_PATH`:
+In addition to library and header, libCEED provides a [pkg-config](https://en.wikipedia.org/wiki/Pkg-config) file that can be used to easily compile and link.
+[For example](https://people.freedesktop.org/~dbn/pkg-config-guide.html#faq), if `$prefix` is a standard location or you set the environment variable `PKG_CONFIG_PATH`:
 
 ```
 cc `pkg-config --cflags --libs ceed` -o myapp myapp.c
 ```
 
-will build `myapp` with libCEED.  This can be used with the source or
-installed directories.  Most build systems have support for pkg-config.
+will build `myapp` with libCEED.
+This can be used with the source or installed directories.
+Most build systems have support for pkg-config.
 
 ## Contact
 
-You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-users@llnl.gov)
-or by leaving a comment in the [issue tracker](https://github.com/CEED/libCEED/issues).
+You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-users@llnl.gov) or by leaving a comment in the [issue tracker](https://github.com/CEED/libCEED/issues).
 
 ## How to Cite
 
@@ -478,13 +429,11 @@ For libCEED's Python interface please cite:
 }
 ```
 
-The BiBTeX entries for these references can be found in the
-`doc/bib/references.bib` file.
+The BiBTeX entries for these references can be found in the `doc/bib/references.bib` file.
 
 ## Copyright
 
-The following copyright applies to each file in the CEED software suite, unless
-otherwise stated in the file:
+The following copyright applies to each file in the CEED software suite, unless otherwise stated in the file:
 
 > Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at the
 > Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights reserved.
