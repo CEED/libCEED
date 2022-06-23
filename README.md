@@ -341,7 +341,7 @@ cd ..
 For the last example shown, sample meshes to be used in place of
 `[.exo file]` can be found at <https://github.com/jeremylt/ceedSampleMeshes>
 
-The above code assumes a GPU-capable machine with the OCCA backend
+The above code assumes a GPU-capable machine with the CUDA backends
 enabled. Depending on the available backends, other CEED resource
 specifiers can be provided with the `-ceed` option. Other command line
 arguments can be found in [examples/petsc](https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md).

@@ -61,7 +61,7 @@ Programming Interface (API) for user codes so that applications with their own
 discretization infrastructure (e.g., those in [PETSc](https://www.mcs.anl.gov/petsc/),
 [MFEM](https://mfem.org/) and [Nek5000](https://nek5000.mcs.anl.gov/)) can evaluate
 and use the core operations provided by libCEED. GPU implementations are available via
-pure [CUDA](https://developer.nvidia.com/about-cuda) as well as the
+pure [CUDA](https://developer.nvidia.com/about-cuda) and pure [HIP](https://rocmdocs.amd.com) as well as the
 [OCCA](http://github.com/libocca/occa) and [MAGMA](https://bitbucket.org/icl/magma)
 libraries. CPU implementations are available via pure C and AVX intrinsics as well as
 the [LIBXSMM](http://github.com/hfp/libxsmm) library. libCEED provides a unified
