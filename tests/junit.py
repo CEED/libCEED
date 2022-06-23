@@ -55,10 +55,6 @@ def contains_any(resource, substrings):
 
 def skip_rule(test, resource):
     return any((
-        test.startswith('fluids-') and contains_any(resource, ['occa']),
-        test.startswith('solids-') and contains_any(resource, ['occa']),
-        test.startswith('nek') and contains_any(resource, ['occa']),
-        test.startswith('t507') and contains_any(resource, ['occa']),
         test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']),
         test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']),
         ))
@@ -103,9 +99,7 @@ def run(test, backends):
                 ref_stdout = os.path.join('tests/output', test + '.out')
 
             if not case.is_skipped() and proc.stderr:
-                if 'OCCA backend failed to use' in proc.stderr:
-                    case.add_skipped_info('occa mode not supported {} {}'.format(test, ceed_resource))
-                elif 'Backend does not implement' in proc.stderr:
+                if 'Backend does not implement' in proc.stderr:
                     case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
                 elif 'Can only provide HOST memory for this backend' in proc.stderr:
                     case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))

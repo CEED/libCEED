@@ -66,9 +66,6 @@ export CEED_DIR = $(abspath .)
 # XSMM_DIR env variable should point to XSMM master (github.com/hfp/libxsmm)
 XSMM_DIR ?= ../libxsmm
 
-# OCCA_DIR env variable should point to OCCA master (github.com/libocca/occa)
-OCCA_DIR ?= ../occa
-
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
 
@@ -216,7 +213,7 @@ fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
-# Backends/[ref, blocked, memcheck, opt, avx, occa, magma]
+# Backends/[ref, blocked, memcheck, opt, avx, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
@@ -232,7 +229,6 @@ cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
-occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
 magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
@@ -361,22 +357,6 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS_MAKE += $(XSMM_BACKENDS)
-endif
-
-# OCCA Backends
-OCCA_BACKENDS = /cpu/self/occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
-# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
-
-  $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
-  PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
-  LIBCEED_CONTAINS_CXX = 1
-  libceed.cpp += $(occa.cpp)
-  BACKENDS_MAKE += $(OCCA_BACKENDS)
 endif
 
 # CUDA Backends

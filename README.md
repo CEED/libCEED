@@ -153,13 +153,6 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                | Yes                   |
 | `/gpu/hip/magma`           | HIP MAGMA kernels                                 | No                    |
 | `/gpu/hip/magma/det`       | HIP MAGMA kernels                                 | Yes                   |
-||
-| **OCCA**                   |
-| `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
-| `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
-| `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
-| `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
-| `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
 The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -195,14 +188,6 @@ Users can specify a device for all CUDA, HIP, and MAGMA backends through adding 
 For example:
 
 > - `/gpu/cuda/gen:device_id=1`
-
-The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide cross platform performance.
-To enable the OCCA backend, the environment variable `OCCA_DIR` must point to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default, `OCCA_DIR` is set to `../occa`).
-
-Additionally, users can pass specific OCCA device properties after setting the CEED resource.
-For example:
-
-> - `"/*/occa:mode='CUDA',device_id=0"`
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as `atomicAdd` for increased performance.

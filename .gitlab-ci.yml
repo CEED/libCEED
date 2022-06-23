@@ -21,21 +21,14 @@ noether-cpu:
 # -- LIBXSMM v1.17
     - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
-# -- OCCA v1.1.0
-    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
-    - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
   script:
     - rm -f .SUCCESS
 # libCEED
     - make configure OPT='-O -march=native -ffp-contract=fast'
-#    Note: OCCA backends currently disabled in CI
-    - BACKENDS_CPU=$(OCCA_DIR= make info-backends-all | grep -o '/cpu[^ ]*')
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
     - make -j$NPROC_CPU
-# Remove OCCA after verifying it compiles
-# CodeCov of OCCA backend not useful since testing is intentionally disabled
-    - export OCCA_DIR= && make -j$NPROC_CPU -W build/interface/ceed-register.o
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json

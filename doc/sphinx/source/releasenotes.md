@@ -30,6 +30,10 @@ On this page we provide a summary of the main API changes, new features and exam
 - Added Shock Tube, Channel, and Flat Plate boundary layer problems to {ref}`example-petsc-navier-stokes`.
 - Added ability to use QFunctions for strong STG inflow in {ref}`example-petsc-navier-stokes`.
 
+### Deprecated backends
+
+- The OCCA backends have been removed. These backends preformed poorly in comparison to the other backends and had limited functionality.
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)
