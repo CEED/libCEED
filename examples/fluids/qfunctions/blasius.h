@@ -15,6 +15,7 @@
 #include <math.h>
 #include <ceed.h>
 #include "newtonian_types.h"
+#include "utils.h"
 
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
@@ -27,10 +28,6 @@ struct BlasiusContext_ {
   CeedScalar x_inflow;  // !< Location of inflow in x
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
 
 void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     const CeedScalar Uinf, const CeedScalar x0, const CeedScalar x,
@@ -192,7 +189,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar x_inflow = context->x_inflow;
   const bool       weakT    = context->weakT;
   const CeedScalar rho_0    = P0 / (Rd * theta0);
-  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
+  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ Square(delta0) );
 
   CeedPragmaSIMD
   // Quadrature Point Loop

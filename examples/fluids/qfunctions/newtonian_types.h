@@ -1,3 +1,10 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 #ifndef newtonian_types_h
 #define newtonian_types_h
 
@@ -45,11 +52,5 @@ struct NewtonianIdealGasContext_ {
   bool       is_implicit;
   StabilizationType stabilization;
 };
-
-CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
-CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar u[3],
-                                      const CeedScalar v[3]) {
-  return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
-}
 
 #endif // newtonian_types_h

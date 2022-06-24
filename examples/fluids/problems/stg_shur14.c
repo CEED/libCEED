@@ -16,10 +16,6 @@
 #include "stg_shur14.h"
 #include "../qfunctions/stg_shur14.h"
 
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
-
 STGShur14Context global_stg_ctx;
 
 /*

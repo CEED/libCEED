@@ -15,6 +15,7 @@
 #include <math.h>
 #include <ceed/ceed.h>
 #include "newtonian_types.h"
+#include "utils.h"
 
 typedef struct ChannelContext_ *ChannelContext;
 struct ChannelContext_ {
@@ -120,9 +121,8 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q_exact[5] = {0.};
     Exact_Channel(3, 0., x, 5, q_exact, ctx);
-    const CeedScalar E_kinetic_exact = 0.5*(q_exact[1]*q_exact[1] +
-                                            q_exact[2]*q_exact[2] +
-                                            q_exact[3]*q_exact[3]) / q_exact[0];
+    const CeedScalar E_kinetic_exact = 0.5*Dot3(&q_exact[1], &q_exact[1])
+                                       / q_exact[0];
     const CeedScalar velocity[3] = {q_exact[1]/q_exact[0],
                                     q_exact[2]/q_exact[0],
                                     q_exact[3]/q_exact[0]
@@ -132,16 +132,13 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
     // Find pressure using state inside the domain
     const CeedScalar rho = q[0][i];
     const CeedScalar u[3] = {q[1][i]/rho, q[2][i]/rho, q[3][i]/rho};
-    const CeedScalar E_internal = q[4][i] - .5 * rho * (u[0]*u[0] + u[1]*u[1] +
-                                  u[2]*u[2]);
+    const CeedScalar E_internal = q[4][i] - .5 * rho * Dot3(u,u);
     const CeedScalar P = E_internal * (gamma - 1.);
 
     // Find inflow state using calculated P and prescribed velocity, theta0
     const CeedScalar e_internal = cv * theta;
     const CeedScalar rho_in = P / ((gamma - 1) * e_internal);
-    const CeedScalar E_kinetic = .5 * rho_in * (velocity[0]*velocity[0] +
-                                 velocity[1]*velocity[1] +
-                                 velocity[2]*velocity[2]);
+    const CeedScalar E_kinetic = .5 * rho_in * Dot3(velocity, velocity);
     const CeedScalar E = rho_in * e_internal + E_kinetic;
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
@@ -153,9 +150,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
     // Zero v so all future terms can safely sum into it
     for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
 
-    const CeedScalar u_normal = norm[0]*velocity[0] +
-                                norm[1]*velocity[1] +
-                                norm[2]*velocity[2];
+    const CeedScalar u_normal = Dot3(norm, velocity);
 
     // The Physics
     // -- Density
@@ -220,8 +215,7 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q,
 
     // Implementing outflow condition
     const CeedScalar P         = P0; // pressure
-    const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
-                                 norm[2]*u[2]; // Normal velocity
+    const CeedScalar u_normal  = Dot3(norm, u); // Normal velocity
     // The Physics
     // -- Density
     v[0][i] -= wdetJb * rho * u_normal;

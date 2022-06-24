@@ -20,15 +20,9 @@
 #include <ceed.h>
 #include <stdlib.h>
 #include "stg_shur14_type.h"
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+#include "utils.h"
 
 #define STG_NMODES_MAX 1024
-
-CEED_QFUNCTION_HELPER CeedScalar Max(CeedScalar a, CeedScalar b) { return a < b ? b : a; }
-CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b ? a : b; }
 
 /*
  * @brief Interpolate quantities from input profile to given location
@@ -115,7 +109,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
 
   const CeedScalar hmax = Max( Max(h[0], h[1]), h[2]);
   const CeedScalar ke   = dw==0 ? 1e16 : 2*M_PI/Min(2*dw, 3*lt);
-  const CeedScalar keta = 2*M_PI*pow(pow(nu,3.0)/eps, -0.25);
+  const CeedScalar keta = 2*M_PI*pow(Cube(nu)/eps, -0.25);
   const CeedScalar kcut =
     M_PI/ Min( Max(Max(h[1], h[2]), 0.3*hmax) + 0.1*dw, hmax );
   CeedScalar fcut, feta, Ektot=0.0;
@@ -253,7 +247,7 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
 
     CeedScalar h[3];
     for (CeedInt j=0; j<3; j++)
-      h[j] = 2/sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j]);
+      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
     h[0] = dx;
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);

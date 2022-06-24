@@ -18,10 +18,7 @@
 
 #include <math.h>
 #include <ceed.h>
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+#include "utils.h"
 
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
