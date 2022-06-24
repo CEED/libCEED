@@ -842,8 +842,8 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
            `basis_to` has. If `basis_from` has 3 components and `basis_to`
            has 5 components, then `basis_project` will have 3 components.
 
-  @param[in] basis_to        CeedBasis to prolong to
   @param[in] basis_from      CeedBasis to prolong from
+  @param[in] basis_to        CeedBasis to prolong to
   @param[out] basis_project  Address of the variable where the newly created
                                CeedBasis will be stored.
 
@@ -851,7 +851,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
 
   @ref User
 **/
-int CeedBasisCreateProjection(CeedBasis basis_to, CeedBasis basis_from,
+int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to,
                               CeedBasis *basis_project) {
   int ierr;
   Ceed ceed;
@@ -859,7 +859,7 @@ int CeedBasisCreateProjection(CeedBasis basis_to, CeedBasis basis_from,
 
   // Create projectior matrix
   CeedScalar *interp_project;
-  ierr = CeedBasisCreateProjectionMatrix(basis_to, basis_from,
+  ierr = CeedBasisCreateProjectionMatrix(basis_from, basis_to,
                                          &interp_project); CeedChk(ierr);
 
   // Build basis
@@ -910,8 +910,8 @@ int CeedBasisCreateProjection(CeedBasis basis_to, CeedBasis basis_from,
          Note: `basis_from` and `basis_to` must have compatible quadrature
            spaces.
 
-  @param[in] basis_to         CeedBasis to project to
   @param[in] basis_from       CeedBasis to project from
+  @param[in] basis_to         CeedBasis to project to
   @param[out] interp_project  Address of the variable where the newly created
                                 projection matrix will be stored.
 
@@ -919,8 +919,8 @@ int CeedBasisCreateProjection(CeedBasis basis_to, CeedBasis basis_from,
 
   @ref User
 **/
-int CeedBasisCreateProjectionMatrix(CeedBasis basis_to,
-                                    CeedBasis basis_from,
+int CeedBasisCreateProjectionMatrix(CeedBasis basis_from,
+                                    CeedBasis basis_to,
                                     CeedScalar **interp_project) {
   int ierr;
   Ceed ceed;

@@ -2052,7 +2052,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine,
   // Build prolongation matrix
   CeedBasis basis_fine, basis_c_to_f;
   ierr = CeedOperatorGetActiveBasis(op_fine, &basis_fine); CeedChk(ierr);
-  ierr = CeedBasisCreateProjection(basis_fine, basis_coarse, &basis_c_to_f);
+  ierr = CeedBasisCreateProjection(basis_coarse, basis_fine, &basis_c_to_f);
   CeedChk(ierr);
 
   // Core code
