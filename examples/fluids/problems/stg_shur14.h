@@ -17,3 +17,7 @@ extern PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm,
                                const CeedScalar ynodes[], const CeedInt nynodes);
 
 extern PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem);
+
+extern PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem,
+                                        CeedInt num_comp_x, CeedInt num_comp_q,
+                                        CeedInt q_data_size_sur, CeedQFunction *qf_strongbc);

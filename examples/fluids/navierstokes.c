@@ -128,6 +128,7 @@ int main(int argc, char **argv) {
   else mat_type = MATAIJ;
   ierr = CreateDM(comm, problem, mat_type, vec_type, &dm); CHKERRQ(ierr);
   user->dm = dm;
+  PetscCall(DMSetApplicationContext(dm, user));
 
   // ---------------------------------------------------------------------------
   // Choose the problem from the list of registered problems

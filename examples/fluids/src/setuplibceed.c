@@ -716,6 +716,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
       CeedOperatorContextGetFieldLabel(user->op_ijacobian, "ijacobian time shift",
                                        &user->phys->ijacobian_time_shift_label);
     }
+    if (problem->use_dirichlet_ceed) {
+      PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc,
+                                   Q_sur, q_data_size_sur));
+    }
 
   }
   CeedElemRestrictionDestroy(&elem_restr_jd_i);

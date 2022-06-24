@@ -399,7 +399,8 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
 
   if (use_stgstrong) {
     // Use default boundary integral QF (BoundaryIntegral) in newtonian.h
-    problem->bc_from_ics           = PETSC_FALSE;
+    problem->use_dirichlet_ceed = PETSC_TRUE;
+    problem->bc_from_ics        = PETSC_FALSE;
   } else {
     problem->apply_inflow.qfunction              = STGShur14_Inflow;
     problem->apply_inflow.qfunction_loc          = STGShur14_Inflow_loc;
@@ -409,7 +410,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                                       &problem->apply_inflow.qfunction_context);
     CeedQFunctionContextReferenceCopy(stg_context,
                                       &problem->apply_inflow_jacobian.qfunction_context);
-    problem->bc_from_ics                    = PETSC_TRUE;
+    problem->bc_from_ics = PETSC_TRUE;
   }
 
   PetscFunctionReturn(0);
@@ -433,6 +434,7 @@ static inline PetscScalar FindDy(const PetscScalar ynodes[],
 }
 
 // Function passed to DMAddBoundary
+// NOTE: Not used in favor of QFunction-based method
 PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time,
                                const PetscReal x[], PetscInt Nc, PetscScalar bcval[], void *ctx) {
   PetscFunctionBeginUser;
@@ -484,5 +486,24 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem) {
                          NULL, global_stg_ctx, NULL);  CHKERRQ(ierr);
   }
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem,
+                                 CeedInt num_comp_x, CeedInt num_comp_q, CeedInt q_data_size_sur,
+                                 CeedQFunction *pqf_strongbc) {
+
+  CeedQFunction qf_strongbc;
+  PetscFunctionBeginUser;
+  CeedQFunctionCreateInterior(ceed, 1, STGShur14_Inflow_StrongQF,
+                              STGShur14_Inflow_StrongQF_loc, &qf_strongbc);
+  CeedQFunctionAddInput(qf_strongbc, "surface qdata", q_data_size_sur,
+                        CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "x",     num_comp_x, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "scale", 1,          CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_strongbc, "q",     num_comp_q, CEED_EVAL_NONE);
+
+  CeedQFunctionSetContext(qf_strongbc, problem->ics.qfunction_context);
+  *pqf_strongbc = qf_strongbc;
   PetscFunctionReturn(0);
 }
