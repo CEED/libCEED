@@ -837,6 +837,10 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
            the pesudoinverse `interp_to^+` is given by QR factorization.
          Note: `basis_from` and `basis_to` must have compatible quadrature
            spaces.
+         Note: `basis_project` will have the same number of components as
+           `basis_from`, regardless of the number of components that
+           `basis_to` has. If `basis_from` has 3 components and `basis_to`
+           has 5 components, then `basis_project` will have 3 components.
 
   @param[in] basis_to        CeedBasis to prolong to
   @param[in] basis_from      CeedBasis to prolong from
