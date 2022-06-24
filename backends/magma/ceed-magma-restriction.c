@@ -88,11 +88,11 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedInt blocksize = 256;
     // Perform strided restriction with dstrides
     if (tmode == CEED_TRANSPOSE) {
-      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->StridedTranspose,
-                                  grid, blocksize, args); CeedChkBackend(ierr);
+      ierr = CeedRunKernelMagma(ceed, impl->StridedTranspose,
+                                grid, blocksize, args); CeedChkBackend(ierr);
     } else {
-      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->StridedNoTranspose,
-                                  grid, blocksize, args); CeedChkBackend(ierr);
+      ierr = CeedRunKernelMagma(ceed, impl->StridedNoTranspose,
+                                grid, blocksize, args); CeedChkBackend(ierr);
     }
 
     ierr = magma_free(dstrides);  CeedChkBackend(ierr);
@@ -106,11 +106,11 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r,
     CeedInt blocksize = 256;
 
     if (tmode == CEED_TRANSPOSE) {
-      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->OffsetTranspose,
-                                  grid, blocksize, args); CeedChkBackend(ierr);
+      ierr = CeedRunKernelMagma(ceed, impl->OffsetTranspose,
+                                grid, blocksize, args); CeedChkBackend(ierr);
     } else {
-      ierr = MAGMA_RTC_RUN_KERNEL(ceed, impl->OffsetNoTranspose,
-                                  grid, blocksize, args); CeedChkBackend(ierr);
+      ierr = CeedRunKernelMagma(ceed, impl->OffsetNoTranspose,
+                                grid, blocksize, args); CeedChkBackend(ierr);
     }
 
   }
@@ -290,21 +290,21 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   // data
   Ceed delegate;
   ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
-  ierr = MAGMA_RTC_COMPILE(delegate, restriction_kernel_source, &impl->module, 0);
+  ierr = CeedCompileMagma(delegate, restriction_kernel_source, &impl->module, 0);
   CeedChkBackend(ierr);
 
   // Kernel setup
-  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_readDofsStrided_kernel",
-                              &impl->StridedNoTranspose);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_readDofsStrided_kernel",
+                            &impl->StridedNoTranspose);
   CeedChkBackend(ierr);
-  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_readDofsOffset_kernel",
-                              &impl->OffsetNoTranspose);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_readDofsOffset_kernel",
+                            &impl->OffsetNoTranspose);
   CeedChkBackend(ierr);
-  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_writeDofsStrided_kernel",
-                              &impl->StridedTranspose);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_writeDofsStrided_kernel",
+                            &impl->StridedTranspose);
   CeedChkBackend(ierr);
-  ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_writeDofsOffset_kernel",
-                              &impl->OffsetTranspose);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_writeDofsOffset_kernel",
+                            &impl->OffsetTranspose);
   CeedChkBackend(ierr);
 
   ierr = CeedElemRestrictionSetData(r, impl); CeedChkBackend(ierr);

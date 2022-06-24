@@ -141,11 +141,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                    };
 
     if (tmode == CEED_TRANSPOSE) {
-      ierr = MAGMA_RTC_RUN_KERNEL_DIM_SH(ceed, impl->magma_interp_tr, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp_tr, grid,
                                          nthreads, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     } else {
-      ierr = MAGMA_RTC_RUN_KERNEL_DIM_SH(ceed, impl->magma_interp, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp, grid,
                                          nthreads, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     }
@@ -234,11 +234,11 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                    };
 
     if (tmode == CEED_TRANSPOSE) {
-      ierr = MAGMA_RTC_RUN_KERNEL_DIM_SH(ceed, impl->magma_grad_tr, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad_tr, grid,
                                          nthreads, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     } else {
-      ierr = MAGMA_RTC_RUN_KERNEL_DIM_SH(ceed, impl->magma_grad, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad, grid,
                                          nthreads, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     }
@@ -276,7 +276,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     CeedInt grid = (nelem + ntcol-1) / ntcol;
     void *args[] = {&impl->dqweight1d, &v, &eldofssize, &nelem};
 
-    ierr = MAGMA_RTC_RUN_KERNEL_DIM_SH(ceed, impl->magma_weight, grid,
+    ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_weight, grid,
                                        nthreads, ntcol, 1, shmem,
                                        args); CeedChkBackend(ierr);
   }
@@ -662,65 +662,65 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   // data
   Ceed delegate;
   ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
-  ierr = MAGMA_RTC_COMPILE(delegate, basis_kernel_source, &impl->module, 5,
-                           "DIM", dim,
-                           "NCOMP", ncomp,
-                           "P", P1d,
-                           "Q", Q1d,
-                           "MAXPQ", CeedIntMax(P1d, Q1d));
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 5,
+                          "DIM", dim,
+                          "NCOMP", ncomp,
+                          "P", P1d,
+                          "Q", Q1d,
+                          "MAXPQ", CeedIntMax(P1d, Q1d));
   CeedChkBackend(ierr);
 
   // Kernel setup
   switch (dim) {
   case 1:
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpn_1d_kernel",
-                                &impl->magma_interp);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_1d_kernel",
+                              &impl->magma_interp);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpt_1d_kernel",
-                                &impl->magma_interp_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_1d_kernel",
+                              &impl->magma_interp_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradn_1d_kernel",
-                                &impl->magma_grad);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_1d_kernel",
+                              &impl->magma_grad);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradt_1d_kernel",
-                                &impl->magma_grad_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_1d_kernel",
+                              &impl->magma_grad_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_weight_1d_kernel",
-                                &impl->magma_weight);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_1d_kernel",
+                              &impl->magma_weight);
     CeedChkBackend(ierr);
     break;
   case 2:
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpn_2d_kernel",
-                                &impl->magma_interp);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_2d_kernel",
+                              &impl->magma_interp);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpt_2d_kernel",
-                                &impl->magma_interp_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_2d_kernel",
+                              &impl->magma_interp_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradn_2d_kernel",
-                                &impl->magma_grad);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_2d_kernel",
+                              &impl->magma_grad);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradt_2d_kernel",
-                                &impl->magma_grad_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_2d_kernel",
+                              &impl->magma_grad_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_weight_2d_kernel",
-                                &impl->magma_weight);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_2d_kernel",
+                              &impl->magma_weight);
     CeedChkBackend(ierr);
     break;
   case 3:
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpn_3d_kernel",
-                                &impl->magma_interp);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_3d_kernel",
+                              &impl->magma_interp);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_interpt_3d_kernel",
-                                &impl->magma_interp_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_3d_kernel",
+                              &impl->magma_interp_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradn_3d_kernel",
-                                &impl->magma_grad);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_3d_kernel",
+                              &impl->magma_grad);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_gradt_3d_kernel",
-                                &impl->magma_grad_tr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_3d_kernel",
+                              &impl->magma_grad_tr);
     CeedChkBackend(ierr);
-    ierr = MAGMA_RTC_GET_KERNEL(ceed, impl->module, "magma_weight_3d_kernel",
-                                &impl->magma_weight);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_3d_kernel",
+                              &impl->magma_weight);
     CeedChkBackend(ierr);
   }
 

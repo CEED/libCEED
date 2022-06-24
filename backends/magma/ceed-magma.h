@@ -24,21 +24,21 @@
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
 
 #ifdef CEED_MAGMA_USE_HIP
-#define MAGMA_RTC_MODULE hipModule_t
-#define MAGMA_RTC_FUNCTION hipFunction_t
-#define MAGMA_RTC_COMPILE CeedCompileHip
-#define MAGMA_RTC_GET_KERNEL CeedGetKernelHip
-#define MAGMA_RTC_RUN_KERNEL CeedRunKernelHip
-#define MAGMA_RTC_RUN_KERNEL_DIM CeedRunKernelDimHip
-#define MAGMA_RTC_RUN_KERNEL_DIM_SH CeedRunKernelDimSharedHip
+typedef hipModule_t CeedMagmaModule;
+typedef hipFunction_t CeedMagmaFunction;
+#define CeedCompileMagma CeedCompileHip
+#define CeedGetKernelMagma CeedGetKernelHip
+#define CeedRunKernelMagma CeedRunKernelHip
+#define CeedRunKernelDimMagma CeedRunKernelDimHip
+#define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedHip
 #else
-#define MAGMA_RTC_MODULE CUmodule
-#define MAGMA_RTC_FUNCTION CUfunction
-#define MAGMA_RTC_COMPILE CeedCompileCuda
-#define MAGMA_RTC_GET_KERNEL CeedGetKernelCuda
-#define MAGMA_RTC_RUN_KERNEL CeedRunKernelCuda
-#define MAGMA_RTC_RUN_KERNEL_DIM CeedRunKernelDimCuda
-#define MAGMA_RTC_RUN_KERNEL_DIM_SH CeedRunKernelDimSharedCuda
+typedef CUmodule CeedMagmaModule;
+typedef CUfunction CeedMagmaFunction;
+#define CeedCompileMagma CeedCompileCuda
+#define CeedGetKernelMagma CeedGetKernelCuda
+#define CeedRunKernelMagma CeedRunKernelCuda
+#define CeedRunKernelDimMagma CeedRunKernelDimCuda
+#define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedCuda
 #endif
 
 typedef enum {
@@ -53,12 +53,12 @@ typedef struct {
 } Ceed_Magma;
 
 typedef struct {
-  MAGMA_RTC_MODULE module;
-  MAGMA_RTC_FUNCTION magma_interp;
-  MAGMA_RTC_FUNCTION magma_interp_tr;
-  MAGMA_RTC_FUNCTION magma_grad;
-  MAGMA_RTC_FUNCTION magma_grad_tr;
-  MAGMA_RTC_FUNCTION magma_weight;
+  CeedMagmaModule module;
+  CeedMagmaFunction magma_interp;
+  CeedMagmaFunction magma_interp_tr;
+  CeedMagmaFunction magma_grad;
+  CeedMagmaFunction magma_grad_tr;
+  CeedMagmaFunction magma_weight;
   CeedScalar *dqref1d;
   CeedScalar *dinterp1d;
   CeedScalar *dgrad1d;
@@ -79,11 +79,11 @@ typedef enum {
 } OwnershipMode;
 
 typedef struct {
-  MAGMA_RTC_MODULE module;
-  MAGMA_RTC_FUNCTION StridedTranspose;
-  MAGMA_RTC_FUNCTION StridedNoTranspose;
-  MAGMA_RTC_FUNCTION OffsetTranspose;
-  MAGMA_RTC_FUNCTION OffsetNoTranspose;
+  CeedMagmaModule module;
+  CeedMagmaFunction StridedTranspose;
+  CeedMagmaFunction StridedNoTranspose;
+  CeedMagmaFunction OffsetTranspose;
+  CeedMagmaFunction OffsetNoTranspose;
   CeedInt *offsets;
   CeedInt *doffsets;
   OwnershipMode own_;
