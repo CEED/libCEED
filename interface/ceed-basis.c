@@ -864,7 +864,7 @@ int CeedBasisCreateProjection(CeedBasis basis_to, CeedBasis basis_from,
   CeedScalar *q_ref, *q_weight, *grad;
   ierr = CeedBasisIsTensor(basis_to, &is_tensor); CeedChk(ierr);
   ierr = CeedBasisGetDimension(basis_to, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis_to, &num_comp); CeedChk(ierr);
+  ierr = CeedBasisGetNumComponents(basis_from, &num_comp); CeedChk(ierr);
   if (is_tensor) {
     CeedInt P_1d_to, P_1d_from;
     ierr = CeedBasisGetNumNodes1D(basis_from, &P_1d_from); CeedChk(ierr);
