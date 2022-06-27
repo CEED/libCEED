@@ -7,7 +7,16 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
+#include <string.h>
 #include "ceed-magma.h"
+#ifdef CEED_MAGMA_USE_HIP
+#include "../hip/ceed-hip-common.h"
+#include "../hip/ceed-hip-compile.h"
+#else
+#include "../cuda/ceed-cuda-common.h"
+#include "../cuda/ceed-cuda-compile.h"
+#endif
 
 #ifdef __cplusplus
 CEED_INTERN "C"
@@ -60,6 +69,7 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
     }
     ceed_magma_queue_sync( data->queue );
   }
+
   switch (emode) {
   case CEED_EVAL_INTERP: {
     CeedInt P = P1d, Q = Q1d;
@@ -97,14 +107,48 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
       u_compstride = nelem * elquadsize;
     }
 
-    ierr = magma_interp(P, Q, dim, ncomp,
-                        impl->dinterp1d, tmode,
-                        u, u_elstride, u_compstride,
-                        v, v_elstride, v_compstride,
-                        nelem, data->basis_kernel_mode,
-                        data->queue);
-    if (ierr != 0) return CeedError(ceed, CEED_ERROR_BACKEND,
-                                      "MAGMA: launch failure detected for magma_interp");
+    CeedInt nthreads = 1;
+    CeedInt ntcol = 1;
+    CeedInt shmem = 0;
+    CeedInt maxPQ = CeedIntMax(P, Q);
+
+    switch (dim) {
+    case 1:
+      nthreads = maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_1D);
+      shmem += sizeof(CeedScalar) * ntcol * ( ncomp * (1*P + 1*Q) );
+      shmem += sizeof(CeedScalar) * (P*Q);
+      break;
+    case 2:
+      nthreads = maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_2D);
+      shmem += P*Q    *sizeof(CeedScalar);  // for sT
+      shmem += ntcol * ( P*maxPQ*sizeof(
+                           CeedScalar) );  // for reforming rU we need PxP, and for the intermediate output we need PxQ
+      break;
+    case 3:
+      nthreads = maxPQ*maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_3D);
+      shmem += sizeof(CeedScalar)* (P*Q);  // for sT
+      shmem += sizeof(CeedScalar)* ntcol * (CeedIntMax(P*P*maxPQ,
+                                            P*Q*Q));  // rU needs P^2xP, the intermediate output needs max(P^2xQ,PQ^2)
+    }
+    CeedInt grid = (nelem + ntcol-1) / ntcol;
+    void *args[] = {&impl->dinterp1d,
+                    &u, &u_elstride, &u_compstride,
+                    &v, &v_elstride, &v_compstride,
+                    &nelem
+                   };
+
+    if (tmode == CEED_TRANSPOSE) {
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp_tr, grid,
+                                         nthreads, ntcol, 1, shmem,
+                                         args); CeedChkBackend(ierr);
+    } else {
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp, grid,
+                                         nthreads, ntcol, 1, shmem,
+                                         args); CeedChkBackend(ierr);
+    }
   }
   break;
   case CEED_EVAL_GRAD: {
@@ -155,14 +199,49 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
 
     }
 
-    ierr = magma_grad( P, Q, dim, ncomp,
-                       impl->dinterp1d, impl->dgrad1d, tmode,
-                       u, u_elstride, u_compstride, u_dimstride,
-                       v, v_elstride, v_compstride, v_dimstride,
-                       nelem, data->basis_kernel_mode,
-                       data->queue);
-    if (ierr != 0) return CeedError(ceed, CEED_ERROR_BACKEND,
-                                      "MAGMA: launch failure detected for magma_grad");
+    CeedInt nthreads = 1;
+    CeedInt ntcol = 1;
+    CeedInt shmem = 0;
+    CeedInt maxPQ = CeedIntMax(P, Q);
+
+    switch (dim) {
+    case 1:
+      nthreads = maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_1D);
+      shmem += sizeof(CeedScalar) * ntcol * (ncomp * (1*P + 1*Q));
+      shmem += sizeof(CeedScalar) * (P*Q);
+      break;
+    case 2:
+      nthreads = maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_2D);
+      shmem += sizeof(CeedScalar) * 2*P*Q;  // for sTinterp and sTgrad
+      shmem += sizeof(CeedScalar) * ntcol *
+               (P*maxPQ);  // for reforming rU we need PxP, and for the intermediate output we need PxQ
+      break;
+    case 3:
+      nthreads = maxPQ * maxPQ;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_3D);
+      shmem += sizeof(CeedScalar) * 2*P*Q;  // for sTinterp and sTgrad
+      shmem += sizeof(CeedScalar) * ntcol * CeedIntMax(P*P*P,
+               (P*P*Q) +
+               (P*Q*Q));  // rU needs P^2xP, the intermediate outputs need (P^2.Q + P.Q^2)
+    }
+    CeedInt grid = (nelem + ntcol-1) / ntcol;
+    void *args[] = {&impl->dinterp1d, &impl->dgrad1d,
+                    &u, &u_elstride, &u_compstride, &u_dimstride,
+                    &v, &v_elstride, &v_compstride, &v_dimstride,
+                    &nelem
+                   };
+
+    if (tmode == CEED_TRANSPOSE) {
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad_tr, grid,
+                                         nthreads, ntcol, 1, shmem,
+                                         args); CeedChkBackend(ierr);
+    } else {
+      ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad, grid,
+                                         nthreads, ntcol, 1, shmem,
+                                         args); CeedChkBackend(ierr);
+    }
   }
   break;
   case CEED_EVAL_WEIGHT: {
@@ -172,11 +251,34 @@ int CeedBasisApply_Magma(CeedBasis basis, CeedInt nelem,
                        "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
     // LCOV_EXCL_STOP
     CeedInt Q = Q1d;
-    int eldofssize = CeedIntPow(Q, dim);
-    ierr = magma_weight(Q, dim, impl->dqweight1d, v, eldofssize, nelem,
-                        data->basis_kernel_mode, data->queue);
-    if (ierr != 0) return CeedError(ceed, CEED_ERROR_BACKEND,
-                                      "MAGMA: launch failure detected for magma_weight");
+    CeedInt eldofssize = CeedIntPow(Q, dim);
+    CeedInt nthreads = 1;
+    CeedInt ntcol = 1;
+    CeedInt shmem = 0;
+
+    switch (dim) {
+    case 1:
+      nthreads = Q;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_1D);
+      shmem += sizeof(CeedScalar) * Q;  // for dqweight1d
+      shmem += sizeof(CeedScalar) * ntcol * Q; // for output
+      break;
+    case 2:
+      nthreads = Q;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_2D);
+      shmem += sizeof(CeedScalar) * Q;  // for dqweight1d
+      break;
+    case 3:
+      nthreads = Q * Q;
+      ntcol = MAGMA_BASIS_NTCOL(nthreads, MAGMA_MAXTHREADS_3D);
+      shmem += sizeof(CeedScalar) * Q;  // for dqweight1d
+    }
+    CeedInt grid = (nelem + ntcol-1) / ntcol;
+    void *args[] = {&impl->dqweight1d, &v, &eldofssize, &nelem};
+
+    ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_weight, grid,
+                                       nthreads, ntcol, 1, shmem,
+                                       args); CeedChkBackend(ierr);
   }
   break;
   // LCOV_EXCL_START
@@ -465,6 +567,13 @@ int CeedBasisDestroy_Magma(CeedBasis basis) {
   ierr = magma_free(impl->dinterp1d); CeedChkBackend(ierr);
   ierr = magma_free(impl->dgrad1d); CeedChkBackend(ierr);
   ierr = magma_free(impl->dqweight1d); CeedChkBackend(ierr);
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
+  #ifdef CEED_MAGMA_USE_HIP
+  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
+  #else
+  ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);
+  #endif
 
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
 
@@ -499,38 +608,126 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                                   const CeedScalar *qweight1d, CeedBasis basis) {
   int ierr;
   CeedBasis_Magma *impl;
+  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
   Ceed ceed;
   ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
 
   // Check for supported parameters
   CeedInt ncomp = 0;
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
-  if (ncomp > 3)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Magma backend does not support tensor bases with more than 3 components");
-  // LCOV_EXCL_STOP
-  if (P1d > 10)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Magma backend does not support tensor bases with more than 10 nodes in each dimension");
-  // LCOV_EXCL_STOP
-  if (Q1d > 10)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Magma backend does not support tensor bases with more than 10 quadrature points in each dimension");
-  // LCOV_EXCL_STOP
-
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+
+  // Compile kernels
+  char *magma_common_path;
+  char *interp_path, *grad_path, *weight_path;
+  char *basis_kernel_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/magma_common_device.h",
+                                &magma_common_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
+  ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
+                                &basis_kernel_source);
+  CeedChkBackend(ierr);
+  char *interp_name_base = "ceed/jit-source/magma/interp";
+  CeedInt interp_name_len = strlen(interp_name_base) + 6;
+  char interp_name[interp_name_len];
+  snprintf(interp_name, interp_name_len, "%s-%dd.h", interp_name_base, dim);
+  ierr = CeedGetJitAbsolutePath(ceed, interp_name, &interp_path);
+  CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, interp_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+  char *grad_name_base = "ceed/jit-source/magma/grad";
+  CeedInt grad_name_len = strlen(grad_name_base) + 6;
+  char grad_name[grad_name_len];
+  snprintf(grad_name, grad_name_len, "%s-%dd.h", grad_name_base, dim);
+  ierr = CeedGetJitAbsolutePath(ceed, grad_name, &grad_path);
+  CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, grad_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+  char *weight_name_base = "ceed/jit-source/magma/weight";
+  CeedInt weight_name_len = strlen(weight_name_base) + 6;
+  char weight_name[weight_name_len];
+  snprintf(weight_name, weight_name_len, "%s-%dd.h", weight_name_base, dim);
+  ierr = CeedGetJitAbsolutePath(ceed, weight_name, &weight_path);
+  CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, weight_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2,
+               "----- Loading Basis Kernel Source Complete! -----\n");
+  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
+  // data
+  Ceed delegate;
+  ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 5,
+                          "DIM", dim,
+                          "NCOMP", ncomp,
+                          "P", P1d,
+                          "Q", Q1d,
+                          "MAXPQ", CeedIntMax(P1d, Q1d));
+  CeedChkBackend(ierr);
+
+  // Kernel setup
+  switch (dim) {
+  case 1:
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_1d_kernel",
+                              &impl->magma_interp);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_1d_kernel",
+                              &impl->magma_interp_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_1d_kernel",
+                              &impl->magma_grad);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_1d_kernel",
+                              &impl->magma_grad_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_1d_kernel",
+                              &impl->magma_weight);
+    CeedChkBackend(ierr);
+    break;
+  case 2:
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_2d_kernel",
+                              &impl->magma_interp);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_2d_kernel",
+                              &impl->magma_interp_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_2d_kernel",
+                              &impl->magma_grad);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_2d_kernel",
+                              &impl->magma_grad_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_2d_kernel",
+                              &impl->magma_weight);
+    CeedChkBackend(ierr);
+    break;
+  case 3:
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpn_3d_kernel",
+                              &impl->magma_interp);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interpt_3d_kernel",
+                              &impl->magma_interp_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradn_3d_kernel",
+                              &impl->magma_grad);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_gradt_3d_kernel",
+                              &impl->magma_grad_tr);
+    CeedChkBackend(ierr);
+    ierr = CeedGetKernelMagma(ceed, impl->module, "magma_weight_3d_kernel",
+                              &impl->magma_weight);
+    CeedChkBackend(ierr);
+  }
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                 CeedBasisApply_Magma); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
                                 CeedBasisDestroy_Magma); CeedChkBackend(ierr);
-
-  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
-  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
   // Copy qref1d to the GPU
   ierr = magma_malloc((void **)&impl->dqref1d, Q1d*sizeof(qref1d[0]));
@@ -555,6 +752,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedChkBackend(ierr);
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1,
                   data->queue);
+
+  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

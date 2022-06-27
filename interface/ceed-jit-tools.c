@@ -67,7 +67,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 }
 
 /**
-  @brief Load source file into initalized string buffer, including full text
+  @brief Load source file into initialized string buffer, including full text
            of local files in place of `#include "local.h"`
 
   @param ceed                  A Ceed object for error handling
@@ -78,8 +78,8 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 
   @ref Backend
 **/
-static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
-    const char *source_file_path, char **buffer) {
+int CeedLoadSourceToInitializedBuffer(Ceed ceed,
+                                      const char *source_file_path, char **buffer) {
   int ierr;
   FILE *source_file;
   long file_size, file_offset = 0;
@@ -154,7 +154,7 @@ static inline int CeedLoadSourceToInitalizedBuffer(Ceed ceed,
                include_file_name_len);
         memcpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
         // ---- Recursive call to load source to buffer
-        ierr = CeedLoadSourceToInitalizedBuffer(ceed, include_source_path, buffer);
+        ierr = CeedLoadSourceToInitializedBuffer(ceed, include_source_path, buffer);
         CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);
         CeedChk(ierr);
         ierr = CeedFree(&include_source_path); CeedChk(ierr);
@@ -206,7 +206,7 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path,
   ierr = CeedCalloc(1, buffer); CeedChk(ierr);
 
   // Load to initalized buffer
-  ierr = CeedLoadSourceToInitalizedBuffer(ceed, source_file_path, buffer);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, source_file_path, buffer);
   CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;

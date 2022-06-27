@@ -42,7 +42,7 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceedref;
-  #ifdef HAVE_HIP
+  #ifdef CEED_MAGMA_USE_HIP
   CeedInit("/gpu/hip/magma", &ceedref);
   #else
   CeedInit("/gpu/cuda/magma", &ceedref);
@@ -51,7 +51,7 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 
   // Create reference CEED for restriction
   Ceed restrictionceedref;
-  #ifdef HAVE_HIP
+  #ifdef CEED_MAGMA_USE_HIP
   CeedInit("/gpu/hip/ref", &restrictionceedref);
   #else
   CeedInit("/gpu/cuda/ref", &restrictionceedref);
@@ -63,7 +63,7 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 }
 
 CEED_INTERN int CeedRegister_Magma_Det(void) {
-  #ifdef HAVE_HIP
+  #ifdef CEED_MAGMA_USE_HIP
   return CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
   #else
   return CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
