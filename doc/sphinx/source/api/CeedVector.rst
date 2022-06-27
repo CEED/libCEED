@@ -3,8 +3,7 @@
 CeedVector
 **************************************
 
-A `CeedVector` constitutes the main data structure and serves as input/output
-for the :ref:`CeedOperator`\s.
+A `CeedVector` constitutes the main data structure and serves as input/output for the :ref:`CeedOperator`\s.
 
 Basic vector operations
 ======================================
