@@ -166,8 +166,8 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
                     }
                     let qw = weights[i]
                         / (jacobian[i + q * 0] * a[0 * 3 + 0]
-                            + jacobian[i + q * 1] * a[1 * 3 + 1]
-                            + jacobian[i + q * 2] * a[2 * 3 + 2]);
+                            + jacobian[i + q * 1] * a[0 * 3 + 1]
+                            + jacobian[i + q * 2] * a[0 * 3 + 2]);
                     qdata[i + q * 0] = qw
                         * (a[0 * 3 + 0] * a[0 * 3 + 0]
                             + a[0 * 3 + 1] * a[0 * 3 + 1]

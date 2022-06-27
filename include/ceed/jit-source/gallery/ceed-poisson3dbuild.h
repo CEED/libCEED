@@ -42,8 +42,8 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q,
                   J[(k+2)%dim][(j+1)%dim][i]*J[(k+1)%dim][(j+2)%dim][i];
 
     // Compute quadrature weight / det(J)
-    const CeedScalar qw = w[i] / (J[0][0][i]*A[0][0] + J[0][1][i]*A[1][1] +
-                                  J[0][2][i]*A[2][2]);
+    const CeedScalar qw = w[i] / (J[0][0][i]*A[0][0] + J[0][1][i]*A[0][1] +
+                                  J[0][2][i]*A[0][2]);
 
     // Compute geometric factors
     // Stored in Voigt convention
