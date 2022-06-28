@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<Q; i++)
     if (fabs(v[i] - u[i])>1e-14)
       // LCOV_EXCL_START
-      printf("[%d] v %f != u %f\n",i, v[i], u[i]);
+      printf("[%" CeedInt_FMT "] v %f != u %f\n",i, v[i], u[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 

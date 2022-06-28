@@ -153,7 +153,8 @@ int main(int argc, char **argv) {
           if (fabs(assembled_value - assembled_true_value) >
               100.*CEED_EPSILON)
             // LCOV_EXCL_START
-            printf("[(%d, %d), (%d, %d)] Error in assembly: %f != %f\n",
+            printf("[(%" CeedInt_FMT ", %" CeedInt_FMT "), (%" CeedInt_FMT
+                   ", %" CeedInt_FMT ")] Error in assembly: %f != %f\n",
                    node_out, comp_out, node_in, comp_in,
                    assembled_value, assembled_true_value);
           // LCOV_EXCL_STOP

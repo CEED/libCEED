@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   CeedReferenceCopy(ceed, &ceed_2); // This destroys the previous ceed_2
   if (ceed != ceed_2)
     // LCOV_EXCL_START
-    printf("Error copying Ceed reference.");
+    printf("Error copying Ceed reference\n");
   // LCOV_EXCL_STOP
 
   CeedDestroy(&ceed);

@@ -47,12 +47,12 @@ int main(int argc, char **argv) {
     mult = i>0&&i<num_elem ? 2 : 1;
     if (yy[i] != i*mult)
       // LCOV_EXCL_START
-      printf("Error in restricted array y[%d] = %f != %f\n",
+      printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n",
              i, (CeedScalar)yy[i], i*mult);
     // LCOV_EXCL_STOP
     if (yy[i+num_elem+1] != (10+i)*mult)
       // LCOV_EXCL_START
-      printf("Error in restricted array y[%d] = %f != %f\n",
+      printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n",
              i+num_elem+1, (CeedScalar)yy[i+num_elem+1], (10.+i)*mult);
     // LCOV_EXCL_STOP
   }

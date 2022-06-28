@@ -145,8 +145,8 @@ int main(int argc, char **argv) {
                +i]) >
           100.*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("[%d,%d] Error in assembly: %f != %f\n", i, j,
-               assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n",
+               i, j, assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);
   // LCOV_EXCL_STOP
 
   // Cleanup

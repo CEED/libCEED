@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<Q; i++)
     if (fabs(v[i] - ctx_data[1]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("v[%d] %f != 2.0\n", i, v[i]);
+      printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 

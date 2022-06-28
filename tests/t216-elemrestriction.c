@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionGetCompStride(r_2, &comp_stride_2);
   if (comp_stride_2 != comp_stride)
     // LCOV_EXCL_START
-    printf("Error copying CeedElemRestriction reference.");
+    printf("Error copying CeedElemRestriction reference\n");
   // LCOV_EXCL_STOP
 
   CeedElemRestrictionDestroy(&r_2);

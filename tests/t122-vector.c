@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in w = x .* y, computed: %f actual: %f\n", b[i], 1.0*i*i);
+      printf("Error in w = x .* y at index %" CeedInt_FMT
+             ", computed: %f actual: %f\n", i, b[i], 1.0*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -38,7 +39,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in w = w .* y, computed: %f actual: %f\n", b[i], 1.0*i*i*i);
+      printf("Error in w = w .* y at index %" CeedInt_FMT
+             ", computed: %f actual: %f\n", i, b[i], 1.0*i*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -48,7 +50,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i*i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in w = x .* w, computed: %f actual: %f\n", b[i], 1.0*i*i*i*i);
+      printf("Error in w = x .* w at index %" CeedInt_FMT
+             ", computed: %f actual: %f\n", i, b[i], 1.0*i*i*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(w, &b);
 
@@ -64,7 +67,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] - i*i ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in y = y .* y, computed: %f actual: %f\n", b[i], 1.0*i*i);
+      printf("Error in y = y .* y at index %" CeedInt_FMT
+             ", computed: %f actual: %f\n", i, b[i], 1.0*i*i);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &b);
 

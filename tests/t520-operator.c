@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
   // Check output
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &hv);
   for (CeedInt i=0; i<num_dofs; i++)
-    if (fabs(hv[i]) > 1e-14) printf("[%d] v %g != 0.0\n",i, hv[i]);
+    if (fabs(hv[i]) > 1e-14) printf("[%" CeedInt_FMT "] v %g != 0.0\n",i, hv[i]);
   CeedVectorRestoreArrayRead(V, &hv);
 
   // Cleanup

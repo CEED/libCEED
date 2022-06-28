@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     CeedScalar j[num_qpts * dim * dim], w[num_qpts], u[num_qpts * num_comp];
 
     char name[13] = "";
-    snprintf(name, sizeof name, "Mass%dDBuild", dim);
+    snprintf(name, sizeof name, "Mass%" CeedInt_FMT "DBuild", dim);
     CeedQFunctionCreateInteriorByName(ceed, name, &qf_setup);
     CeedQFunctionCreateInteriorByName(ceed, "Vector3MassApply", &qf_mass);
 
@@ -72,8 +72,8 @@ int main(int argc, char **argv) {
         sum += vv[i + c * num_qpts];
       if (fabs(sum - (c + 1)) > 10*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("%dD volume error in component %d: %f != %f\n",
-               dim, c, sum, (c + 1.0));
+        printf("%" CeedInt_FMT "D volume error in component %" CeedInt_FMT
+               ": %f != %f\n", dim, c, sum, (c + 1.0));
       // LCOV_EXCL_STOP
     }
     CeedVectorRestoreArrayRead(V, &vv);

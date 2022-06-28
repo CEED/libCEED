@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<P; i++)
     if (fabs(colsum[i] - out[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[i], colsum[i]);
+      printf("[%" CeedInt_FMT "] %f != %f\n", i, out[i], colsum[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(Out, &out);
 
