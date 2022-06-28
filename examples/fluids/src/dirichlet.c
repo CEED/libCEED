@@ -132,20 +132,26 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
 PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {
-
+  Vec boundary_mask;
   User user;
   PetscScalar *q;
   PetscMemType q_mem_type;
   PetscFunctionBeginUser;
 
   PetscCall(DMGetApplicationContext(dm, &user));
+
+  // Mask Dirichlet entries
+  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
+  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+
   // Setup libCEED vector
   PetscCall(VecGetArrayAndMemType(Q_loc, &q, &q_mem_type));
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
 
   // Apply libCEED operator
-  CeedOperatorApply(user->op_dirichlet, CEED_VECTOR_NONE, user->q_ceed,
-                    CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApplyAdd(user->op_dirichlet, CEED_VECTOR_NONE, user->q_ceed,
+                       CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
   CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
@@ -158,6 +164,18 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
                                   User user, AppCtx app_ctx, ProblemData *problem,
                                   SimpleBC bc, CeedInt Q_sur, CeedInt q_data_size_sur) {
   PetscFunctionBeginUser;
+
+  {
+    Vec boundary_mask, global_vec;
+
+    PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+    PetscCall(DMGetGlobalVector(dm, &global_vec));
+    PetscCall(VecZeroEntries(boundary_mask));
+    PetscCall(VecSet(global_vec, 1.0));
+    PetscCall(DMGlobalToLocal(dm, global_vec, INSERT_VALUES, boundary_mask));
+    PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+    PetscCall(DMRestoreGlobalVector(dm, &global_vec));
+  }
 
   CeedCompositeOperatorCreate(ceed, &user->op_dirichlet);
   {
