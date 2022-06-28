@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
       CeedScalar fx = Eval(dim, xx);
       if (fabs(u[i] - fx) > 1E-4) {
         // LCOV_EXCL_START
-        printf("[%d] %f != %f=f(%f", dim, u[i], fx, xx[0]);
+        printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, u[i], fx, xx[0]);
         for (CeedInt d=1; d<dim; d++) printf(",%f", xx[d]);
         puts(")");
         // LCOV_EXCL_STOP

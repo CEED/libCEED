@@ -318,7 +318,8 @@ int main(int argc, char **argv) {
       for (CeedInt j=0; j<P; j++)
         if (fabs(u[i*P+j] - w[i*P+j]) > 2e-3)
           // LCOV_EXCL_START
-          printf("[%d, %d] Error in inverse: %e != %e\n", i, j, w[i*P+j], u[i*P+j]);
+          printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in inverse: %e != %e\n",
+                 i, j, w[i*P+j], u[i*P+j]);
     // LCOV_EXCL_STOP
     CeedVectorRestoreArrayRead(U, &u);
     CeedVectorRestoreArrayRead(W, &w);

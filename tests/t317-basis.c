@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     CeedScalar px = PolyEval(xq[i], ALEN(dp), dp);
     if (fabs(uuq[i] - px) > 1000.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("%f != %f=p(%f)\n", uuq[i], px, xq[i]);
+      printf("%f != %f = p(%f)\n", uuq[i], px, xq[i]);
     // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(X_q, &xq);

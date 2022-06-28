@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextGetAllFieldLabels(ctx, &field_labels, &num_fields);
   if (num_fields != 2)
     // LCOV_EXCL_START
-    printf("Incorrect number of fields set: %d != 2\n", num_fields);
+    printf("Incorrect number of fields set: %" CeedInt_FMT " != 2\n", num_fields);
   // LCOV_EXCL_STOP
 
   const char *name;
@@ -92,11 +92,13 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetInt32(ctx, count_label, (int *)&values_count);
   if (ctx_data.count[0] != 14)
     // LCOV_EXCL_START
-    printf("Incorrect context data for count[0]: %d != 14\n", ctx_data.count[0]);
+    printf("Incorrect context data for count[0]: %" CeedInt_FMT " != 14\n",
+           ctx_data.count[0]);
   // LCOV_EXCL_STOP
   if (ctx_data.count[1] != 43)
     // LCOV_EXCL_START
-    printf("Incorrect context data for count[1]: %d != 43\n", ctx_data.count[1]);
+    printf("Incorrect context data for count[1]: %" CeedInt_FMT " != 43\n",
+           ctx_data.count[1]);
   // LCOV_EXCL_STOP
 
   CeedQFunctionContextDestroy(&ctx);

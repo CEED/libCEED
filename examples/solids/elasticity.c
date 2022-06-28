@@ -386,14 +386,14 @@ int main(int argc, char **argv) {
                        "    Forcing Function                   : %s\n"
                        "  Mesh:\n"
                        "    File                               : %s\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n"
                        "    Owned nodes                        : %" PetscInt_FMT "\n"
                        "    DoF per node                       : %" PetscInt_FMT "\n"
                        "  Multigrid:\n"
                        "    Type                               : %s\n"
-                       "    Number of Levels                   : %d\n",
+                       "    Number of Levels                   : %" CeedInt_FMT "\n",
                        app_ctx->name_for_disp,
                        forcing_types_for_disp[app_ctx->forcing_choice],
                        app_ctx->mesh_file[0] ? app_ctx->mesh_file : "Box Mesh",
@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
         CeedInt level = i ? fine_level : 0;
         ierr = PetscPrintf(comm,
                            "    Level %" PetscInt_FMT " (%s):\n"
-                           "      Number of 1D Basis Nodes (p)     : %d\n"
+                           "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
                            "      Global Nodes                     : %" PetscInt_FMT "\n"
                            "      Owned Nodes                      : %" PetscInt_FMT "\n",
                            level, i ? "fine" : "coarse",
@@ -690,7 +690,7 @@ int main(int argc, char **argv) {
   for (increment = 1; increment <= app_ctx->num_increments; increment++) {
     // -- Log increment count
     if (snes_monitor) {
-      ierr = PetscPrintf(comm, "%d Load Increment\n", increment - 1);
+      ierr = PetscPrintf(comm, "%" PetscInt_FMT " Load Increment\n", increment - 1);
       CHKERRQ(ierr);
     }
 
@@ -761,8 +761,8 @@ int main(int argc, char **argv) {
                        "  SNES:\n"
                        "    SNES Type                          : %s\n"
                        "    SNES Convergence                   : %s\n"
-                       "    Number of Load Increments          : %d\n"
-                       "    Completed Load Increments          : %d\n"
+                       "    Number of Load Increments          : %" PetscInt_FMT "\n"
+                       "    Completed Load Increments          : %" PetscInt_FMT "\n"
                        "    Total SNES Iterations              : %" PetscInt_FMT "\n"
                        "    Final rnorm                        : %e\n",
                        snes_type, SNESConvergedReasons[reason],

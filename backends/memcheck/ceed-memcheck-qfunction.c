@@ -49,7 +49,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q,
     ierr = CeedVectorGetLength(V[i], &len); CeedChkBackend(ierr);
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
 
-    snprintf(name, 30, "'QFunction output %d'", i);
+    snprintf(name, 30, "'QFunction output %" CeedInt_FMT "'", i);
     mem_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
   }
 

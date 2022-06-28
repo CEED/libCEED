@@ -49,12 +49,12 @@ int main(int argc, char **argv) {
     value = dfeval(xq[0*Q+i], xq[1*Q+i]);
     if (fabs(out[0*Q+i] - value) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[0*Q+i], value);
+      printf("[%" CeedInt_FMT "] %f != %f\n", i, out[0*Q+i], value);
     // LCOV_EXCL_STOP
     value = dfeval(xq[1*Q+i], xq[0*Q+i]);
     if (fabs(out[1*Q+i] - value) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", i, out[1*Q+i], value);
+      printf("[%" CeedInt_FMT "] %f != %f\n", i, out[1*Q+i], value);
     // LCOV_EXCL_STOP
   }
   CeedVectorRestoreArrayRead(Out, &out);

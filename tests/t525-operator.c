@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
   CeedOperatorContextSetInt32(op_sub_1, count_label, &value_count);
   if (ctx_data_1.count != 43)
     // LCOV_EXCL_START
-    printf("Incorrect context data for count: %d != 43", ctx_data_1.count);
+    printf("Incorrect context data for count: %" CeedInt_FMT " != 43",
+           ctx_data_1.count);
   // LCOV_EXCL_STOP
 
   // Second sub-operator
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
   CeedOperatorContextSetDouble(op_composite, time_label, &value_time);
   if (ctx_data_2.time != 2.0)
     // LCOV_EXCL_START
-    printf("Incorrect context data for time: %f != 2.0", ctx_data_2.time);
+    printf("Incorrect context data for time: %f != 2.0\n", ctx_data_2.time);
   // LCOV_EXCL_STOP
 
   // Check setting field in context of multiple sub-operators for composite operator
@@ -98,18 +99,18 @@ int main(int argc, char **argv) {
   CeedOperatorContextSetDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0)
     // LCOV_EXCL_START
-    printf("Incorrect context data for other: %f != 2.0", ctx_data_1.other);
+    printf("Incorrect context data for other: %f != 2.0\n", ctx_data_1.other);
   // LCOV_EXCL_STOP
   if (ctx_data_2.other != 9000.0)
     // LCOV_EXCL_START
-    printf("Incorrect context data for other: %f != 2.0", ctx_data_2.other);
+    printf("Incorrect context data for other: %f != 2.0\n", ctx_data_2.other);
   // LCOV_EXCL_STOP
 
   // Check requesting label for field that doesn't exist returns NULL
   CeedOperatorContextGetFieldLabel(op_composite, "bad", &bad_label);
   if (bad_label)
     // LCOV_EXCL_START
-    printf("Incorrect context label returned");
+    printf("Incorrect context label returned\n");
   // LCOV_EXCL_STOP
 
   CeedQFunctionContextDestroy(&qf_ctx_sub_1);

@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (fabs(b[i] + (10.0 + i)/2 ) > 1e-14)
       // LCOV_EXCL_START
-      printf("Error in alpha x, computed: %f actual: %f\n", b[i],
-             -(10.0 + i)/2);
+      printf("Error in alpha x at index %" CeedInt_FMT
+             ", computed: %f actual: %f\n", i, b[i], -(10.0 + i)/2);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, &b);
 

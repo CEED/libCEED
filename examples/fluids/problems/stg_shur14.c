@@ -41,8 +41,8 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs,
     Cij[2][i] = sqrt(Rij[2][i] - pow(Cij[4][i], 2) - pow(Cij[5][i], 2));
 
     if (isnan(Cij[0][i]) || isnan(Cij[1][i]) || isnan(Cij[2][i]))
-      SETERRQ(comm, -1, "Cholesky decomposition failed at profile point %d. "
-              "Either STGInflow has non-SPD matrix or contains nan.", i+1);
+      SETERRQ(comm, -1, "Cholesky decomposition failed at profile point %"
+              PetscInt_FMT ". Either STGInflow has non-SPD matrix or contains nan.", i+1);
   }
   PetscFunctionReturn(0);
 }
@@ -78,7 +78,7 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm,
   ierr = PetscSynchronizedFGets(comm, *fp, char_array_len, line); CHKERRQ(ierr);
   ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
   if (ndims != 2) SETERRQ(comm, -1,
-                            "Found %d dimensions instead of 2 on the first line of %s",
+                            "Found %" PetscInt_FMT" dimensions instead of 2 on the first line of %s",
                             ndims, path);
 
   for (PetscInt i=0; i<ndims; i++)  dims[i] = atoi(array[i]);
@@ -148,7 +148,8 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm,
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if (ndims < dims[1]) SETERRQ(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   "Line %" PetscInt_FMT" of %s does not contain enough columns (%"
+                                   PetscInt_FMT" instead of %" PetscInt_FMT")", i,
                                    path, ndims, dims[1]);
 
     prof_dw[i] = (CeedScalar) atof(array[0]);
@@ -213,7 +214,8 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm,
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if (ndims < dims[1]) SETERRQ(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   "Line %" PetscInt_FMT" of %s does not contain enough columns (%"
+                                   PetscInt_FMT" instead of %" PetscInt_FMT")", i,
                                    path, ndims, dims[1]);
 
     d[0][i]     = (CeedScalar) atof(array[0]);
@@ -255,7 +257,8 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm,
   ierr = GetNRows(comm, stg_rand_path, &nmodes); CHKERRQ(ierr);
   ierr = GetNRows(comm, stg_inflow_path, &nprofs); CHKERRQ(ierr);
   if (nmodes > STG_NMODES_MAX)
-    SETERRQ(comm, 1, "Number of wavemodes in %s (%d) exceeds STG_NMODES_MAX (%d). "
+    SETERRQ(comm, 1, "Number of wavemodes in %s (%"
+            PetscInt_FMT") exceeds STG_NMODES_MAX (%" PetscInt_FMT"). "
             "Change size of STG_NMODES_MAX and recompile", stg_rand_path, nmodes,
             STG_NMODES_MAX);
 

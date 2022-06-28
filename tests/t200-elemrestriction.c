@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_elem*2; i++)
     if (10+(i+1)/2 != yy[i])
       // LCOV_EXCL_START
-      printf("Error in restricted array y[%d] = %f",
+      printf("Error in restricted array y[%" CeedInt_FMT "] = %f\n",
              i, (CeedScalar)yy[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(y, &yy);

@@ -188,8 +188,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n"
                        "    DoF per node                       : %" PetscInt_FMT "\n"
                        "    Global DoFs                        : %" PetscInt_FMT "\n",

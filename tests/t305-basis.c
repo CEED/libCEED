@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
     for (int j=0; j<P; j++)
       if (fabs(M[P*i+j] - (i == j ? 1.0 : 0.0)) > 100.*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("Error in diagonalization of M [%d, %d]: %f != %f\n",
+        printf("Error in diagonalization of M [%" CeedInt_FMT
+               ", %" CeedInt_FMT "]: %f != %f\n",
                i, j, M[P*i+j], (i == j ? 1.0 : 0.0));
   // LCOV_EXCL_STOP
 
@@ -74,7 +75,8 @@ int main(int argc, char **argv) {
     for (int j=0; j<P; j++)
       if (fabs(K[P*i+j] - (i == j ? lambda[i] : 0.0)) > 100.*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("Error in diagonalization of K [%d, %d]: %f != %f\n",
+        printf("Error in diagonalization of K [%" CeedInt_FMT
+               ", %" CeedInt_FMT "]: %f != %f\n",
                i, j, K[P*i+j], (i == j ? lambda[i] : 0.0));
   // LCOV_EXCL_STOP
 

@@ -507,13 +507,13 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 
   if (ceed->has_valid_op_fallback_resource) {
     CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
-    CeedDebug256(ceed, 255, "Getting fallback from %s to %s\n", ceed->resource,
-                 ceed->op_fallback_resource);
+    CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource,
+              ceed->op_fallback_resource);
   }
 
   // Create fallback Ceed if uninitalized
   if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
-    CeedDebug256(ceed, 255, "Creating fallback Ceed");
+    CeedDebug(ceed, "Creating fallback Ceed");
 
     Ceed fallback_ceed;
     const char *fallback_resource;
@@ -1217,7 +1217,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no,
                           err_code, format, args);
 
   // Build message
-  CeedInt len;
+  int len;
   len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
                  filename, line_no, func);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized

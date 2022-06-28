@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<elem_size*num_elem; i++)
     if (fabs(hv[i]-3.)>1e-14)
       // LCOV_EXCL_START
-      printf("%d: Computed Value: %f != True Value: 1.0\n", i, hv[i]);
+      printf("[%" CeedInt_FMT "] Computed Value: %f != True Value: 1.0\n", i, hv[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &hv);
 

@@ -160,7 +160,7 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m,
                           CeedInt n, const CeedScalar *a, FILE *stream) {
   for (CeedInt i=0; i<m; i++) {
     if (m > 1)
-      fprintf(stream, "%12s[%d]:", name, i);
+      fprintf(stream, "%12s[%" CeedInt_FMT "]:", name, i);
     else
       fprintf(stream, "%12s:", name);
     for (CeedInt j=0; j<n; j++)
@@ -1039,11 +1039,13 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   CeedElemTopology topo = basis->topo;
   // Print FE space and element topology of the basis
   if (basis->tensor_basis) {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%d P=%d Q=%d\n",
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%"
+            CeedInt_FMT " Q=%" CeedInt_FMT "\n",
             CeedFESpaces[FE_space], CeedElemTopologies[topo],
             basis->dim, basis->P_1d, basis->Q_1d);
   } else {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%d P=%d Q=%d\n",
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%"
+            CeedInt_FMT " Q=%" CeedInt_FMT "\n",
             CeedFESpaces[FE_space], CeedElemTopologies[topo],
             basis->dim, basis->P, basis->Q);
   }
@@ -1594,7 +1596,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
   if (Q < 2)
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_DIMENSION,
-                     "Cannot create Lobatto quadrature with Q=%d < 2 points", Q);
+                     "Cannot create Lobatto quadrature with Q=%" CeedInt_FMT " < 2 points", Q);
   // LCOV_EXCL_STOP
   wi = 2.0/((CeedScalar)(Q*(Q-1)));
   if (q_weight_1d) {

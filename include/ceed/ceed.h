@@ -134,6 +134,7 @@
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
+#define CeedInt_FMT "d"
 
 /// Integer type, used array sizes
 /// @ingroup Ceed

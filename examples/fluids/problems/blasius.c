@@ -37,7 +37,8 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if (ndims < dims[1]) SETERRQ(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   "Line %" PetscInt_FMT" of %s does not contain enough columns (%"
+                                   PetscInt_FMT" instead of %" PetscInt_FMT ")", i,
                                    path, ndims, dims[1]);
 
     node_locs[i] = (PetscReal) atof(array[0]);
