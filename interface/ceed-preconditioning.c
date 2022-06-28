@@ -43,7 +43,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf,
   if (!qf) return CEED_ERROR_SUCCESS;
 
   CeedDebug256(qf->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-  CeedDebug256(qf->ceed, 255, "Creating fallback CeedQFunction\n");
+  CeedDebug(qf->ceed, "Creating fallback CeedQFunction\n");
 
   char *source_path_with_name = "";
   if (qf->source_path) {
@@ -104,7 +104,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
   if (!ceed_fallback) return CEED_ERROR_SUCCESS;
 
   CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-  CeedDebug256(op->ceed, 255, "Creating fallback CeedOperator\n");
+  CeedDebug(op->ceed, "Creating fallback CeedOperator\n");
 
   // Clone Op
   CeedOperator op_fallback;
@@ -188,9 +188,9 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
       ierr = CeedGetResource(ceed_fallback, &resource_fallback); CeedChk(ierr);
 
       CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug256(op->ceed, 255,
-                   "Falling back from %s operator at address %ld to %s operator at address %ld\n",
-                   resource, op, resource_fallback, op->op_fallback);
+      CeedDebug(op->ceed,
+                "Falling back from %s operator at address %ld to %s operator at address %ld\n",
+                resource, op, resource_fallback, op->op_fallback);
     }
   }
   *op_fallback = op->op_fallback;

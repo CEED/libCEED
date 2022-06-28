@@ -43,7 +43,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 
   // Debug
   CeedDebug256(ceed, 1, "Checking for source file: ");
-  CeedDebug256(ceed, 255, "%s\n", source_file_path_only);
+  CeedDebug(ceed, "%s\n", source_file_path_only);
 
   // Check for valid file path
   FILE *source_file;
@@ -53,7 +53,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
   if (*is_valid) {
     // Debug
     CeedDebug256(ceed, 1, "Found JiT source file: ");
-    CeedDebug256(ceed, 255, "%s\n", source_file_path_only);
+    CeedDebug(ceed, "%s\n", source_file_path_only);
 
     fclose(source_file);
   }
@@ -88,9 +88,9 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed,
   // Debug
   CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
   CeedDebug256(ceed, 1, "Current source file: ");
-  CeedDebug256(ceed, 255, "%s\n", source_file_path);
+  CeedDebug(ceed, "%s\n", source_file_path);
   CeedDebug256(ceed, 1, "Current buffer:\n");
-  CeedDebug256(ceed, 255, "%s\n", *buffer);
+  CeedDebug(ceed, "%s\n", *buffer);
 
   // Read file to temporary buffer
   source_file = fopen(source_file_path, "rb");
@@ -178,9 +178,9 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed,
   // Debug
   CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
   CeedDebug256(ceed, 1, "Current source file: ");
-  CeedDebug256(ceed, 255, "%s\n", source_file_path);
+  CeedDebug(ceed, "%s\n", source_file_path);
   CeedDebug256(ceed, 1, "Final buffer:\n");
-  CeedDebug256(ceed, 255, "%s\n", *buffer);
+  CeedDebug(ceed, "%s\n", *buffer);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -284,7 +284,7 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
   // Debug
   CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
   CeedDebug256(ceed, 1, "Relative JiT source file: ");
-  CeedDebug256(ceed, 255, "%s\n", relative_file_path);
+  CeedDebug(ceed, "%s\n", relative_file_path);
 
 
   ierr = CeedGetParent(ceed, &ceed_parent); CeedChk(ierr);
@@ -293,7 +293,7 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
 
     // Debug
     CeedDebug256(ceed, 1, "Checking JiT root: ");
-    CeedDebug256(ceed, 255, "%s\n", ceed_parent->jit_source_roots[i]);
+    CeedDebug(ceed, "%s\n", ceed_parent->jit_source_roots[i]);
 
     // Build  and check absolute path with current root
     ierr = CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i],
