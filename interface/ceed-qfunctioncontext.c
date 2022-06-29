@@ -726,7 +726,7 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 
   ctx->num_readers--;
   if (ctx->num_readers == 0 && ctx->RestoreDataRead) {
-    ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+    ierr = ctx->RestoreDataRead(ctx); CeedChk(ierr);
   }
   *(void **)data = NULL;
 
