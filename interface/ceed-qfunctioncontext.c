@@ -724,11 +724,12 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
                      "access was not granted");
   // LCOV_EXCL_STOP
 
-  if (ctx->RestoreDataRead) {
+  ctx->num_readers--;
+  if (ctx->num_readers == 0 && ctx->RestoreDataRead) {
     ierr = ctx->RestoreData(ctx); CeedChk(ierr);
   }
   *(void **)data = NULL;
-  ctx->num_readers--;
+
   return CEED_ERROR_SUCCESS;
 }
 

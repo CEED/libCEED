@@ -594,11 +594,12 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
                      "access was not granted");
   // LCOV_EXCL_STOP
 
-  if (vec->RestoreArrayRead) {
+  vec->num_readers--;
+  if (vec->num_readers == 0 && vec->RestoreArrayRead) {
     ierr = vec->RestoreArrayRead(vec); CeedChk(ierr);
   }
   *array = NULL;
-  vec->num_readers--;
+
   return CEED_ERROR_SUCCESS;
 }
 
