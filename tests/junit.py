@@ -133,6 +133,8 @@ def run(test, backends):
                     check_required_failure(case, proc.stderr, 'Length of input/output vectors incompatible with basis dimensions')
                 if test[:4] in 't408'.split():
                     check_required_failure(case, proc.stderr, 'CeedQFunctionContextGetData(): Cannot grant CeedQFunctionContext data access, a process has read access')
+                if test[:4] in 't409'.split() and contains_any(ceed_resource, ['memcheck']):
+                    check_required_failure(case, proc.stderr, 'Context data changed while accessed in read-only mode')
 
             if not case.is_skipped() and not case.status:
                 if proc.stderr:
