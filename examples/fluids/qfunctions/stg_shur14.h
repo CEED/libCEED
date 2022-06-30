@@ -428,6 +428,7 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
     bcval[1][i] = scale[i] * rho * u[0];
     bcval[2][i] = scale[i] * rho * u[1];
     bcval[3][i] = scale[i] * rho * u[2];
+    bcval[4][i] = 0.;
   }
   return 0;
 }
