@@ -98,18 +98,20 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user,
   PetscFunctionReturn(0);
 }
 
-
-// Note: The BCs must be inserted *before* the other values are inserted into Q_loc
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm,
     PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
     Vec cell_geom_FVM, Vec grad_FVM) {
 
-  Vec            Qbc;
+  Vec            Qbc, boundary_mask;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
+  // Mask (zero) Dirichlet entries
+  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
+  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+
   ierr = DMGetNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
   ierr = VecAXPY(Q_loc, 1., Qbc); CHKERRQ(ierr);
   ierr = DMRestoreNamedLocalVector(dm, "Qbc", &Qbc); CHKERRQ(ierr);
 
@@ -246,7 +248,7 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
 
-  Vec            Qbc;
+  Vec            Qbc, boundary_mask;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -259,6 +261,13 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   ierr = PetscObjectComposeFunction((PetscObject)dm,
                                     "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS);
   CHKERRQ(ierr);
+
+  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscCall(DMGetGlobalVector(dm, &Q));
+  PetscCall(VecZeroEntries(boundary_mask));
+  PetscCall(VecSet(Q, 1.0));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
+  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
   PetscFunctionReturn(0);
 }
