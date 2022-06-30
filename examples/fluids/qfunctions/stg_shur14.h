@@ -195,6 +195,106 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
   u[2] = ubar[2] + cij[4]*vp[0] + cij[5]*vp[1] + cij[2]*vp[2];
 }
 
+/******************************************************
+ * @brief Calculate u(x,t) for STG inflow condition
+ *
+ * @param[in]  X       Location to evaluate u(X,t)
+ * @param[in]  t       Time to evaluate u(X,t)
+ * @param[in]  ubar    Mean velocity at X
+ * @param[in]  cij     Cholesky decomposition at X
+ * @param[in]  qn      Wavemode amplitudes at X, [nmodes]
+ * @param[out] u       Velocity at X and t
+ * @param[in]  stg_ctx STGShur14Context for the problem
+ */
+void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
+    const CeedScalar t, const CeedScalar ubar[3], const CeedScalar cij[6],
+    const CeedScalar Ektot, const CeedScalar h[3], const CeedScalar dw,
+    const CeedScalar eps, const CeedScalar lt, const CeedScalar nu, CeedScalar u[3],
+    const STGShur14Context stg_ctx) {
+
+  //*INDENT-OFF*
+  const CeedInt    nmodes = stg_ctx->nmodes;
+  const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
+  const CeedScalar *phi   = &stg_ctx->data[stg_ctx->offsets.phi];
+  const CeedScalar *sigma = &stg_ctx->data[stg_ctx->offsets.sigma];
+  const CeedScalar *d     = &stg_ctx->data[stg_ctx->offsets.d];
+  //*INDENT-ON*
+  CeedScalar hmax, ke, keta, kcut;
+  SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
+  CeedScalar xdotd, vp[3] = {0.};
+  CeedScalar xhat[] = {0., X[1], X[2]};
+
+  CeedPragmaSIMD
+  for(CeedInt n=0; n<nmodes; n++) {
+    xhat[0] = (X[0] - stg_ctx->u0*t)*Max(2*kappa[0]/kappa[n], 0.1);
+    xdotd = 0.;
+    for(CeedInt i=0; i<3; i++) xdotd += d[i*nmodes+n]*xhat[i];
+    const CeedScalar cos_kxdp = cos(kappa[n]*xdotd + phi[n]);
+    const CeedScalar dkappa   = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
+    const CeedScalar qn       = Calc_qn(kappa[n], dkappa, keta, kcut, ke, Ektot);
+    vp[0] += sqrt(qn)*sigma[0*nmodes+n] * cos_kxdp;
+    vp[1] += sqrt(qn)*sigma[1*nmodes+n] * cos_kxdp;
+    vp[2] += sqrt(qn)*sigma[2*nmodes+n] * cos_kxdp;
+  }
+  for(CeedInt i=0; i<3; i++) vp[i] *= 2*sqrt(1.5);
+
+  u[0] = ubar[0] + cij[0]*vp[0];
+  u[1] = ubar[1] + cij[3]*vp[0] + cij[1]*vp[1];
+  u[2] = ubar[2] + cij[4]*vp[0] + cij[5]*vp[1] + cij[2]*vp[2];
+}
+
+CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
+                       const CeedScalar *const *in, CeedScalar *const *out) {
+  //*INDENT-OFF*
+  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+                   (*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[1];
+
+  CeedScalar (*stg_data) = (CeedScalar(*)) out[0];
+
+  //*INDENT-ON*
+  CeedScalar ubar[3], cij[6], eps, lt;
+  const STGShur14Context stg_ctx = (STGShur14Context) ctx;
+  const CeedScalar dx     = stg_ctx->dx;
+  const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
+  const CeedScalar theta0 = stg_ctx->theta0;
+  const CeedScalar P0     = stg_ctx->P0;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar rho    = P0 / (Rd * theta0);
+  const CeedScalar nu     = mu / rho;
+
+  const CeedInt    nmodes = stg_ctx->nmodes;
+  const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
+  CeedScalar hmax, ke, keta, kcut, Ektot=0.0;
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    const CeedScalar dw = x[1][i];
+    const CeedScalar dXdx[2][3] = {
+      {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
+      {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
+    };
+
+    CeedScalar h[3];
+    h[0] = dx;
+    for (CeedInt j=1; j<3; j++)
+      h[j] = 2/sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j]);
+
+    InterpolateProfile(dw, ubar, cij, &eps, &lt, stg_ctx);
+    SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
+
+    // Calculate total TKE per spectrum
+    stg_data[i] = 0.;
+    CeedPragmaSIMD
+    for(CeedInt n=0; n<nmodes; n++) {
+      const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
+      stg_data[i] += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
+    }
+  }
+  return 0;
+}
+
 // Extrude the STGInflow profile through out the domain for an initial condition
 CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q,
                        const CeedScalar *const *in, CeedScalar *const *out) {
@@ -211,7 +311,7 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q,
   const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
   const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
   const CeedScalar Rd     = cp - cv;
-  const CeedScalar rho = P0 / (Rd * theta0);
+  const CeedScalar rho    = P0 / (Rd * theta0);
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
