@@ -246,9 +246,9 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     };
 
     CeedScalar h[3];
-    for (CeedInt j=0; j<3; j++)
-      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
     h[0] = dx;
+    for (CeedInt j=1; j<3; j++)
+      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
@@ -412,9 +412,9 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
     };
 
     CeedScalar h[3];
-    for (CeedInt j=0; j<3; j++)
-      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
     h[0] = dx;
+    for (CeedInt j=1; j<3; j++)
+      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
 
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {

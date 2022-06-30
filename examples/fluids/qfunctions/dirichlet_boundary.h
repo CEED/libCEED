@@ -14,8 +14,10 @@ CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in,
                                  CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*coords)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar (*multiplicity)       = (const CeedScalar(*))in[1];
+  // *INDENT-OFF*
+  const CeedScalar (*coords)[CEED_Q_VLA]       = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar (*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  // *INDENT-ON*
 
   // Outputs
   CeedScalar (*coords_stored)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -24,7 +26,7 @@ CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
     for (int j=0; j<3; j++) coords_stored[j][i] = coords[j][i];
-    scale_stored[i] = 1.0 / multiplicity[i];
+    scale_stored[i] = 1.0 / multiplicity[0][i];
   }
   return 0;
 }
