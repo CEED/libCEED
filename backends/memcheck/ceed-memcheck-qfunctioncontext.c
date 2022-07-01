@@ -155,6 +155,31 @@ static int CeedQFunctionContextGetData_Memcheck(CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
+// QFunctionContext Get Data Read-Only
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextGetDataRead_Memcheck(CeedQFunctionContext ctx,
+    CeedMemType mem_type, void *data) {
+  int ierr;
+  CeedQFunctionContext_Memcheck *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
+  CeedChkBackend(ierr);
+  size_t ctx_size;
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_size); CeedChkBackend(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
+
+  ierr = CeedQFunctionContextGetData_Memcheck(ctx, mem_type, data);
+  CeedChkBackend(ierr);
+
+  // Make copy to verify no write occured
+  ierr = CeedMallocArray(1, ctx_size, &impl->data_read_only_copy);
+  CeedChkBackend(ierr);
+  memcpy(impl->data_read_only_copy, *(void **)data, ctx_size);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // QFunctionContext Restore Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
@@ -171,6 +196,31 @@ static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
   if (impl->data_owned) {
     memcpy(impl->data_owned, impl->data, ctx_size);
   }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// QFunctionContext Restore Data Read-Only
+//------------------------------------------------------------------------------
+static int CeedQFunctionContextRestoreDataRead_Memcheck(
+  CeedQFunctionContext ctx) {
+  int ierr;
+  size_t ctx_size;
+  ierr = CeedQFunctionContextGetContextSize(ctx, &ctx_size); CeedChkBackend(ierr);
+  CeedQFunctionContext_Memcheck *impl;
+  ierr = CeedQFunctionContextGetBackendData(ctx, (void *)&impl);
+  CeedChkBackend(ierr);
+  Ceed ceed;
+  ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChkBackend(ierr);
+
+  if (memcmp(impl->data, impl->data_read_only_copy, ctx_size))
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND,
+                     "Context data changed while accessed in read-only mode");
+  // LCOV_EXCL_STOP
+
+  ierr = CeedFree(&impl->data_read_only_copy);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -241,11 +291,11 @@ int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetData",
                                 CeedQFunctionContextGetData_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "GetDataRead",
-                                CeedQFunctionContextGetData_Memcheck); CeedChkBackend(ierr);
+                                CeedQFunctionContextGetDataRead_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData",
                                 CeedQFunctionContextRestoreData_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreDataRead",
-                                CeedQFunctionContextRestoreData_Memcheck); CeedChkBackend(ierr);
+                                CeedQFunctionContextRestoreDataRead_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "DataDestroy",
                                 CeedQFunctionContextDataDestroy_Memcheck); CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy",

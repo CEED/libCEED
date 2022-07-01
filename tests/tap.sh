@@ -175,6 +175,15 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
+    # t409 must fail for memcheck backends
+    if grep -F -q -e 'Context data changed while accessed in read-only mode' ${output}.err \
+            && [[ "$backend" = *memcheck* && "$1" = "t409"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
+        continue
+    fi
+
     # grep to pass test t541 for single precision
     if grep -F -q -e 'Test not implemented in single precision' ${output}.err \
             && [[ "$1" = "t541"* ]] ; then
