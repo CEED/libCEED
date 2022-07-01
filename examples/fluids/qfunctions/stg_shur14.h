@@ -244,7 +244,7 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
 }
 
 CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
-                       const CeedScalar *const *in, CeedScalar *const *out) {
+                                     const CeedScalar *const *in, CeedScalar *const *out) {
   //*INDENT-OFF*
   const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
                    (*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA]) in[1];
@@ -266,7 +266,7 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
 
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
-  CeedScalar hmax, ke, keta, kcut, Ektot=0.0;
+  CeedScalar hmax, ke, keta, kcut;
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
@@ -510,7 +510,8 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
   //*INDENT-OFF*
   const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
                    (*coords)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
-                   (*scale)                  = (const CeedScalar(*)) in[2];
+                   (*scale)                  = (const CeedScalar(*)) in[2],
+                   (*stg_data)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA]) in[3];
 
   CeedScalar(*bcval)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA]) out[0];
   //*INDENT-ON*
@@ -543,8 +544,10 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
 
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
-      CalcSpectrum(coords[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
-      STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+      STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i],
+                                  h, x[1], eps, lt, mu/rho, u, stg_ctx);
+      // CalcSpectrum(coords[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
+      // STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
     } else {
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
