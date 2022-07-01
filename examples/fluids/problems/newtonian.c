@@ -116,7 +116,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->bc                                   = NULL;
   problem->bc_ctx                               = setup_context;
   problem->non_zero_time                        = PETSC_FALSE;
-  problem->print_info                           = PRINT_DENSITY_CURRENT;
+  problem->print_info                           = PRINT_NEWTONIAN;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -154,16 +154,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // -- Conservative vs Primitive variables
   ierr = PetscOptionsBool("-primitive", "Use primitive variables",
                           NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
-  if (!prim_var) {
-    problem->ics.qfunction                     = ICsNewtonianIG;
-    problem->ics.qfunction_loc                 = ICsNewtonianIG_loc;
-    problem->apply_vol_rhs.qfunction           = RHSFunction_Newtonian;
-    problem->apply_vol_rhs.qfunction_loc       = RHSFunction_Newtonian_loc;
-    problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian;
-    problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_loc;
-    problem->apply_vol_ijacobian.qfunction     = IJacobian_Newtonian;
-    problem->apply_vol_ijacobian.qfunction_loc = IJacobian_Newtonian_loc;
-  } else {
+  if (prim_var) {
     problem->ics.qfunction                     = ICsNewtonianIG_Prim;
     problem->ics.qfunction_loc                 = ICsNewtonianIG_Prim_loc;
     problem->apply_vol_rhs.qfunction           = RHSFunction_Newtonian_Prim;
