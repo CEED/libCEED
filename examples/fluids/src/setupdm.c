@@ -25,6 +25,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
 
   // Set Tensor elements
   ierr = PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"); CHKERRQ(ierr);
+  ierr = PetscOptionsSetValue(NULL, "-dm_sparse_localize", "0"); CHKERRQ(ierr);
   // Set CL options
   ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
