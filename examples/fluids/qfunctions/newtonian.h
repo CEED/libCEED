@@ -548,13 +548,13 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // strong_conv = dF/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0};
-    CeedScalar grad_F[3][5];
     for (CeedInt j=0; j<3; j++) {
       StateConservative dF[3];
       FluxInviscid_fwd(s, grad_s[j], dF);
-      UnpackState_U(dF[j], grad_F[j]);
+      CeedScalar dF_j[5];
+      UnpackState_U(dF[j], dF_j);
       for (CeedInt k=0; k<5; k++)
-        strong_conv[k] += grad_F[j][k];
+        strong_conv[k] += dF_j[k];
     }
 
     // Strong residual
@@ -581,7 +581,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
                                   tau_strong_conv, tau_strong_conv_conservative);
       for (CeedInt j=0; j<3; j++)
         for (CeedInt k=0; k<5; k++)
-          stab[k][j] += grad_F[j][k] * tau_strong_conv_conservative[k];
+          stab[k][j] += 0 * tau_strong_conv_conservative[k];
 
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
@@ -606,10 +606,16 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       //  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_res, tau_strong_res_conservative);
-      for (CeedInt j=0; j<3; j++)
+      StateConservative dF[3];
+      const CeedScalar dx_i[3] = {0};
+      State tsrc = StateFromU_fwd(context, s, tau_strong_res_conservative, x_i, dx_i);
+      FluxInviscid_fwd(s, tsrc, dF);
+      for (CeedInt j=0; j<3; j++) {
+        CeedScalar dF_j[5];
+        UnpackState_U(dF[j], dF_j);
         for (CeedInt k=0; k<5; k++)
-          stab[k][j] += grad_F[j][k] * tau_strong_res_conservative[k];
-
+          stab[k][j] += dF_j[k];
+      }
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
