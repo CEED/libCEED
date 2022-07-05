@@ -157,8 +157,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   if (prim_var) {
     problem->ics.qfunction                     = ICsNewtonianIG_Prim;
     problem->ics.qfunction_loc                 = ICsNewtonianIG_Prim_loc;
-    problem->apply_vol_rhs.qfunction           = RHSFunction_Newtonian_Prim;
-    problem->apply_vol_rhs.qfunction_loc       = RHSFunction_Newtonian_Prim_loc;
     problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian_Prim;
     problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_Prim_loc;
     problem->apply_vol_ijacobian.qfunction     = IJacobian_Newtonian_Prim;
@@ -223,6 +221,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
     ierr = PetscPrintf(comm,
                        "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
+  }
+  if (prim_var && !implicit) {
+    SETERRQ(comm, PETSC_ERR_ARG_NULL,
+            "RHSFunction is not provided for primitive variables (use -primitive only with -implicit)\n");
   }
   PetscOptionsEnd();
 
