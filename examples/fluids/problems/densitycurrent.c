@@ -17,7 +17,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   PetscInt ierr;
   SetupContext setup_context;
   User user = *(User *)ctx;
-  PetscBool prim_var;
   MPI_Comm comm = PETSC_COMM_WORLD;
 
   PetscFunctionBeginUser;
@@ -25,13 +24,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  // -- Command line for Conservative vs Primitive variables
-  PetscOptionsBegin(comm, NULL, "Options for DENSITY_CURRENT problem", NULL);
-  ierr = PetscOptionsBool("-primitive", "Use primitive variables",
-                          NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
-  PetscOptionsEnd();
-
-  if(!prim_var) {
+  if(!user->phys->primitive) {
     problem->ics.qfunction = ICsDC;
     problem->ics.qfunction_loc = ICsDC_loc;
     problem->bc = Exact_DC;
@@ -40,7 +33,6 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
     problem->ics.qfunction_loc = ICsDC_Prim_loc;
     problem->bc = Exact_DC_Prim;
   }
-
   CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               &setup_context);
 

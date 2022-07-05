@@ -194,6 +194,7 @@ struct Physics_private {
   EulerTestType            euler_test;
   StabilizationType        stab;
   PetscBool                implicit;
+  PetscBool                primitive;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;

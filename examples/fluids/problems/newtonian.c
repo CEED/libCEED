@@ -268,6 +268,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // -- Solver Settings
   user->phys->stab          = stab;
   user->phys->implicit      = implicit;
+  user->phys->primitive     = prim_var;
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context

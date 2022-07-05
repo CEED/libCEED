@@ -97,11 +97,12 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
-  {
-    // Empty name for conserved field (because there is only one field)
-    PetscSection section;
-    ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+
+  // Empty name for conserved field (because there is only one field)
+  PetscSection section;
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+  if (!phys->primitive) {
     ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 1, "Momentum X");
@@ -111,6 +112,17 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     ierr = PetscSectionSetComponentName(section, 0, 3, "Momentum Z");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 4, "Energy Density");
+    CHKERRQ(ierr);
+  } else {
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Pressure");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "Velocity X");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "Velocity Y");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Velocity Z");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "Temperature");
     CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);

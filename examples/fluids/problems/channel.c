@@ -17,7 +17,6 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   ChannelContext    channel_ctx;
-  PetscBool prim_var;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext channel_context;
 
@@ -29,16 +28,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   //               SET UP Channel
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-
-  // -- Command Line Options
-  CeedScalar umax   = 10.;  // m/s
-  CeedScalar theta0 = 300.; // K
-  CeedScalar P0     = 1.e5; // Pa
-  PetscReal body_force_scale = 1.;
-  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
-  ierr = PetscOptionsBool("-primitive", "Use primitive variables",
-                          NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
-  if(!prim_var) {
+  if(!user->phys->primitive) {
     problem->ics.qfunction               = ICsChannel;
     problem->ics.qfunction_loc           = ICsChannel_loc;
     problem->apply_inflow.qfunction      = Channel_Inflow;
@@ -53,6 +43,13 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
     problem->apply_outflow.qfunction     = Channel_Outflow_Prim;
     problem->apply_outflow.qfunction_loc = Channel_Outflow_Prim_loc;
   }
+
+  // -- Command Line Options
+  CeedScalar umax   = 10.;  // m/s
+  CeedScalar theta0 = 300.; // K
+  CeedScalar P0     = 1.e5; // Pa
+  PetscReal body_force_scale = 1.;
+  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
   ierr = PetscOptionsScalar("-umax", "Centerline velocity of the Channel",
                             NULL, umax, &umax, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-theta0", "Wall temperature",
