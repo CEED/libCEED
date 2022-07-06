@@ -80,9 +80,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
     // -- Compute QData for the surface
     CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
     CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
-                         ceed_data->basis_x_sur, CEED_VECTOR_ACTIVE);
+                         ceed_data->basis_xc_sur, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
-                         ceed_data->basis_x_sur, CEED_VECTOR_NONE);
+                         ceed_data->basis_xc_sur, CEED_VECTOR_NONE);
     CeedOperatorSetField(op_setup_sur, "surface qdata", elem_restr_qd_sur,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 

@@ -131,7 +131,8 @@ struct CeedData_private {
                        qf_setup_sur,
                        qf_apply_inflow, qf_apply_inflow_jacobian,
                        qf_apply_outflow, qf_apply_outflow_jacobian;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur,
+                       basis_xc_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };

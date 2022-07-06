@@ -585,6 +585,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                   CEED_GAUSS, &ceed_data->basis_q_sur);
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, Q_sur, CEED_GAUSS,
                                   &ceed_data->basis_x_sur);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, P_sur,
+                                  CEED_GAUSS_LOBATTO, &ceed_data->basis_xc_sur);
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions
