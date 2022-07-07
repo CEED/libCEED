@@ -56,7 +56,10 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   CHKERRQ(ierr);
   if (elem_restr_q) *elem_restr_q = elem_restr_tmp;
   if (elem_restr_x) {
-    ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    ierr = DMGetCellCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    if (!dm_coord) {
+      ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+    }
     ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, value,
@@ -462,7 +465,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   // -- Copy PETSc vector in CEED vector
   Vec               X_loc;
   const PetscScalar *X_loc_array;
-  ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);
+  {
+    DM cdm;
+    ierr = DMGetCellCoordinateDM(dm, &cdm); CHKERRQ(ierr);
+    if (cdm) {ierr = DMGetCellCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);}
+    else {ierr = DMGetCoordinatesLocal(dm, &X_loc); CHKERRQ(ierr);}
+  }
   ierr = VecScale(X_loc, problem->dm_scale); CHKERRQ(ierr);
   ierr = VecGetArrayRead(X_loc, &X_loc_array); CHKERRQ(ierr);
   CeedVectorSetArray(ceed_data->x_coord, CEED_MEM_HOST, CEED_COPY_VALUES,
