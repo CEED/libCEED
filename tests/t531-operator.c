@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_dofs; i++)
     if (fabs(vv[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("Error: Operator computed v[i] = %f != 0.0\n", vv[i]);
+      printf("Error: Operator computed v[%" CeedInt_FMT "] = %f != 0.0\n", i, vv[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(v, &vv);
 

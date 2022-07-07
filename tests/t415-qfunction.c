@@ -22,9 +22,10 @@ int main(int argc, char **argv) {
                du[num_qpts * dim * num_comp];
 
     char name_setup[26] = "", name_apply[26] = "";
-    snprintf(name_setup, sizeof name_setup, "Poisson%dDBuild", dim);
+    snprintf(name_setup, sizeof name_setup, "Poisson%" CeedInt_FMT "DBuild", dim);
     CeedQFunctionCreateInteriorByName(ceed, name_setup, &qf_setup);
-    snprintf(name_apply, sizeof name_apply, "Vector3Poisson%dDApply", dim);
+    snprintf(name_apply, sizeof name_apply, "Vector3Poisson%" CeedInt_FMT "DApply",
+             dim);
     CeedQFunctionCreateInteriorByName(ceed, name_apply, &qf_diff);
 
     for (CeedInt i=0; i<num_qpts; i++) {
@@ -77,8 +78,8 @@ int main(int argc, char **argv) {
           sum += vv[i + (g * num_comp + c) * num_qpts];
       if (fabs(sum - dim * (c + 1)) > 10*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("%dD volume error in component %d: %f != %f\n",
-               dim, c, sum, dim * (c + 1.0));
+        printf("%" CeedInt_FMT "D volume error in component %" CeedInt_FMT
+               ": %f != %f\n", dim, c, sum, dim * (c + 1.0));
       // LCOV_EXCL_STOP
     }
     CeedVectorRestoreArrayRead(dV, &vv);

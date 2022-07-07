@@ -124,6 +124,7 @@ struct Ceed_private {
   int ref_count;
   void *data;
   bool is_debug;
+  bool has_valid_op_fallback_resource;
   bool is_deterministic;
   char err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset *f_offsets;
@@ -274,7 +275,10 @@ struct CeedQFunctionContext_private {
   int (*GetDataRead)(CeedQFunctionContext, CeedMemType, void *);
   int (*RestoreData)(CeedQFunctionContext);
   int (*RestoreDataRead)(CeedQFunctionContext);
+  int (*DataDestroy)(CeedQFunctionContext);
   int (*Destroy)(CeedQFunctionContext);
+  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  CeedMemType data_destroy_mem_type;
   CeedInt num_fields;
   CeedInt max_fields;
   CeedContextFieldLabel *field_labels;
@@ -336,10 +340,17 @@ struct CeedQFunctionAssemblyData_private {
   CeedElemRestriction rstr;
 };
 
+struct CeedOperatorAssemblyData_private {
+  Ceed ceed;
+  CeedInt num_eval_mode_in, num_eval_mode_out;
+  CeedEvalMode *eval_mode_in, *eval_mode_out;
+  CeedScalar *B_in, *B_out;
+  CeedBasis basis_in, basis_out;
+};
+
 struct CeedOperator_private {
   Ceed ceed;
   CeedOperator op_fallback;
-  CeedQFunction qf_fallback;
   int ref_count;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *,
                                  CeedElemRestriction *, CeedRequest *);
@@ -354,6 +365,7 @@ struct CeedOperator_private {
   int (*LinearAssembleSymbolic)(CeedOperator, CeedSize *, CeedInt **,
                                 CeedInt **);
   int (*LinearAssemble)(CeedOperator, CeedVector);
+  int (*LinearAssembleSingle)(CeedOperator, CeedInt, CeedVector);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
@@ -371,12 +383,14 @@ struct CeedOperator_private {
   CeedQFunction qf;
   CeedQFunction dqf;
   CeedQFunction dqfT;
+  const char *name;
   bool is_immutable;
   bool is_interface_setup;
   bool is_backend_setup;
   bool is_composite;
   bool has_restriction;
   CeedQFunctionAssemblyData qf_assembled;
+  CeedOperatorAssemblyData op_assembled;
   CeedOperator *sub_operators;
   CeedInt num_suboperators;
   void *data;
@@ -384,5 +398,8 @@ struct CeedOperator_private {
   CeedInt max_context_labels;
   CeedContextFieldLabel *context_labels;
 };
+
+CEED_INTERN int CeedOperatorGetFallback(CeedOperator op,
+                                        CeedOperator *op_fallback);
 
 #endif

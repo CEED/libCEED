@@ -22,7 +22,7 @@ TOL = libceed.EPSILON * 256
 
 
 def load_qfs_so():
-    from distutils.sysconfig import get_config_var
+    from sysconfig import get_config_var
     import ctypes
 
     file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1224,6 +1224,7 @@ def test_523(ceed_resource, capsys):
 
     # Operators
     op_setup_tet = ceed.Operator(qf_setup_tet)
+    op_setup_tet.name('triangle elements')
     op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
                            libceed.VECTOR_NONE)
     op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
@@ -1231,6 +1232,7 @@ def test_523(ceed_resource, capsys):
                            qdata_tet)
 
     op_mass_tet = ceed.Operator(qf_mass_tet)
+    op_mass_tet.name('triangle elements')
     op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED, qdata_tet)
     op_mass_tet.set_field("u", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
     op_mass_tet.set_field("v", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
@@ -1278,6 +1280,7 @@ def test_523(ceed_resource, capsys):
 
     # Operators
     op_setup_hex = ceed.Operator(qf_setup_tet)
+    op_setup_hex.name("quadralateral elements")
     op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
                            libceed.VECTOR_NONE)
     op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
@@ -1285,6 +1288,7 @@ def test_523(ceed_resource, capsys):
                            qdata_hex)
 
     op_mass_hex = ceed.Operator(qf_mass_hex)
+    op_mass_hex.name("quadralateral elements")
     op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED, qdata_hex)
     op_mass_hex.set_field("u", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
     op_mass_hex.set_field("v", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
@@ -1293,11 +1297,13 @@ def test_523(ceed_resource, capsys):
 
     # Setup
     op_setup = ceed.CompositeOperator()
+    op_setup.name('setup')
     op_setup.add_sub(op_setup_tet)
     op_setup.add_sub(op_setup_hex)
 
     # Apply mass matrix
     op_mass = ceed.CompositeOperator()
+    op_mass.name('mass')
     op_mass.add_sub(op_mass_tet)
     op_mass.add_sub(op_mass_hex)
 

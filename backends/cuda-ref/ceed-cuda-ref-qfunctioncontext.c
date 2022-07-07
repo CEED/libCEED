@@ -72,7 +72,7 @@ static inline int CeedQFunctionContextSyncD2H_Cuda(
   } else if (impl->h_data_owned) {
     impl->h_data = impl->h_data_owned;
   } else {
-    ierr = CeedMalloc(ctxsize, &impl->h_data_owned);
+    ierr = CeedMallocArray(1, ctxsize, &impl->h_data_owned);
     CeedChkBackend(ierr);
     impl->h_data = impl->h_data_owned;
   }
@@ -119,7 +119,7 @@ static inline int CeedQFunctionContextHasValidData_Cuda(
   CeedQFunctionContext_Cuda *impl;
   ierr = CeedQFunctionContextGetBackendData(ctx, &impl); CeedChkBackend(ierr);
 
-  *has_valid_data = !!impl->h_data || !!impl->d_data;
+  *has_valid_data = impl && (!!impl->h_data || !!impl->d_data);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -184,7 +184,8 @@ static int CeedQFunctionContextSetDataHost_Cuda(const CeedQFunctionContext ctx,
   case CEED_COPY_VALUES: {
     size_t ctxsize;
     ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
-    ierr = CeedMalloc(ctxsize, &impl->h_data_owned); CeedChkBackend(ierr);
+    ierr = CeedMallocArray(1, ctxsize, &impl->h_data_owned);
+    CeedChkBackend(ierr);
     impl->h_data_borrowed = NULL;
     impl->h_data = impl->h_data_owned;
     memcpy(impl->h_data, data, ctxsize);

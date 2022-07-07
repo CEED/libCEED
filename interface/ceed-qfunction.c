@@ -143,9 +143,9 @@ static int CeedQFunctionFieldView(CeedQFunctionField field,
   ierr = CeedQFunctionFieldGetSize(field, &size); CeedChk(ierr);
   CeedEvalMode eval_mode;
   ierr = CeedQFunctionFieldGetEvalMode(field, &eval_mode); CeedChk(ierr);
-  fprintf(stream, "    %s Field [%d]:\n"
+  fprintf(stream, "    %s field %" CeedInt_FMT ":\n"
           "      Name: \"%s\"\n"
-          "      Size: %d\n"
+          "      Size: %" CeedInt_FMT "\n"
           "      EvalMode: \"%s\"\n",
           inout, field_number, field_name, size, CeedEvalModes[eval_mode]);
   return CEED_ERROR_SUCCESS;
@@ -616,12 +616,12 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length,
     const char *kernel_name = strrchr(absolute_path, ':') + 1;
     size_t kernel_name_len = strlen(kernel_name);
     ierr = CeedCalloc(kernel_name_len + 1, &kernel_name_copy); CeedChk(ierr);
-    strncpy(kernel_name_copy, kernel_name, kernel_name_len);
+    memcpy(kernel_name_copy, kernel_name, kernel_name_len);
     (*qf)->kernel_name = kernel_name_copy;
 
     size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
     ierr = CeedCalloc(source_len + 1, &source_copy); CeedChk(ierr);
-    strncpy(source_copy, absolute_path, source_len);
+    memcpy(source_copy, absolute_path, source_len);
     (*qf)->source_path = source_copy;
 
     if (!is_absolute_path) {
@@ -907,7 +907,9 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   int ierr;
   ierr = CeedQFunctionContextDestroy(&qf->ctx); CeedChk(ierr);
   qf->ctx = ctx;
-  ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  if (ctx) {
+    ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -968,18 +970,18 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   int ierr;
 
-  fprintf(stream, "%sCeedQFunction %s\n",
+  fprintf(stream, "%sCeedQFunction - %s\n",
           qf->is_gallery ? "Gallery " : "User ",
           qf->is_gallery ? qf->gallery_name : qf->kernel_name);
 
-  fprintf(stream, "  %d Input Field%s:\n", qf->num_input_fields,
+  fprintf(stream, "  %" CeedInt_FMT " input field%s:\n", qf->num_input_fields,
           qf->num_input_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_input_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->input_fields[i], i, 1, stream);
     CeedChk(ierr);
   }
 
-  fprintf(stream, "  %d Output Field%s:\n", qf->num_output_fields,
+  fprintf(stream, "  %" CeedInt_FMT " output field%s:\n", qf->num_output_fields,
           qf->num_output_fields>1 ? "s" : "");
   for (CeedInt i=0; i<qf->num_output_fields; i++) {
     ierr = CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream);
@@ -1029,8 +1031,8 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q,
   if (Q % qf->vec_length)
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_DIMENSION,
-                     "Number of quadrature points %d must be a "
-                     "multiple of %d", Q, qf->vec_length);
+                     "Number of quadrature points %" CeedInt_FMT " must be a "
+                     "multiple of %" CeedInt_FMT, Q, qf->vec_length);
   // LCOV_EXCL_STOP
   qf->is_immutable = true;
   ierr = qf->Apply(qf, Q, u, v); CeedChk(ierr);
@@ -1055,11 +1057,11 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
     ierr = (*qf)->Destroy(*qf); CeedChk(ierr);
   }
   // Free fields
-  for (int i=0; i<(*qf)->num_input_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_input_fields; i++) {
     ierr = CeedFree(&(*(*qf)->input_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->input_fields[i]); CeedChk(ierr);
   }
-  for (int i=0; i<(*qf)->num_output_fields; i++) {
+  for (CeedInt i=0; i<(*qf)->num_output_fields; i++) {
     ierr = CeedFree(&(*(*qf)->output_fields[i]).field_name); CeedChk(ierr);
     ierr = CeedFree(&(*qf)->output_fields[i]); CeedChk(ierr);
   }

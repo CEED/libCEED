@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
   if (!is_exact_match && !is_match_with_query_arguments) {
     // LCOV_EXCL_START
-    return CeedError(ceed, 1, "Incorrect full resource name: %s != %s",
+    return CeedError(ceed, 1, "Incorrect full resource name: %s != %s\n",
                      resource, backend);
     // LCOV_EXCL_STOP
   }

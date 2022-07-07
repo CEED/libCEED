@@ -17,35 +17,8 @@
 
 #include <math.h>
 #include <ceed.h>
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
-
-#ifndef setup_context_struct
-#define setup_context_struct
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
-  CeedScalar wind[3];
-  CeedScalar time;
-  int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
-};
-#endif
+#include "newtonian_types.h"
+#include "utils.h"
 
 // *****************************************************************************
 // This function sets the initial conditions and the boundary conditions
@@ -110,11 +83,12 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
   const CeedScalar N        = context->N;
   const CeedScalar cv       = context->cv;
   const CeedScalar cp       = context->cp;
-  const CeedScalar g        = context->g;
+  const CeedScalar *g_vec   = context->g;
   const CeedScalar rc       = context->rc;
   const CeedScalar *center  = context->center;
   const CeedScalar *dc_axis = context->dc_axis;
   const CeedScalar Rd       = cp - cv;
+  const CeedScalar g = -g_vec[2];
 
   // Setup
   // -- Coordinates

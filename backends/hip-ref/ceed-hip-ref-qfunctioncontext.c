@@ -72,7 +72,7 @@ static inline int CeedQFunctionContextSyncD2H_Hip(
   } else if (impl->h_data_owned) {
     impl->h_data = impl->h_data_owned;
   } else {
-    ierr = CeedMalloc(ctxsize, &impl->h_data_owned);
+    ierr = CeedMallocArray(1, ctxsize, &impl->h_data_owned);
     CeedChkBackend(ierr);
     impl->h_data = impl->h_data_owned;
   }
@@ -184,7 +184,8 @@ static int CeedQFunctionContextSetDataHost_Hip(const CeedQFunctionContext ctx,
   case CEED_COPY_VALUES: {
     size_t ctxsize;
     ierr = CeedQFunctionContextGetContextSize(ctx, &ctxsize); CeedChkBackend(ierr);
-    ierr = CeedMalloc(ctxsize, &impl->h_data_owned); CeedChkBackend(ierr);
+    ierr = CeedMallocArray(1, ctxsize, &impl->h_data_owned);
+    CeedChkBackend(ierr);
     impl->h_data_borrowed = NULL;
     impl->h_data = impl->h_data_owned;
     memcpy(impl->h_data, data, ctxsize);

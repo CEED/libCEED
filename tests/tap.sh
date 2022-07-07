@@ -99,14 +99,6 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue;
     fi
 
-    # Navier-Stokes test problem has too many components for MAGMA backends
-    if [[ "$backend" = *magma* && ( "$1" = fluids-* ) ]]; then
-        printf "ok $i0 # SKIP - backend basis kernel not available $backend\n"
-        printf "ok $i1 # SKIP - backend basis kernel not available $backend stdout\n"
-        printf "ok $i2 # SKIP - backend basis kernel not available $backend stderr\n"
-        continue;
-    fi
-
     # Run in subshell
     (build/$1 ${args/\{ceed_resource\}/$backend} || false) > ${output}.out 2> ${output}.err
     status=$?
@@ -174,8 +166,8 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip t318 for cuda/ref and MAGMA, Q is too large for these backends
-    if [[ "$backend" = *magma* || "$backend" = *cuda/ref ]] \
+    # grep to skip t318 for cuda/ref, Q is too large
+    if [[ "$backend" = *cuda/ref ]] \
             && [[ "$1" = t318* ]] ; then
         printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
         printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
@@ -183,12 +175,12 @@ for ((i=0;i<${#backends[@]};++i)); do
         continue
     fi
 
-    # grep to skip t506 for MAGMA, range of basis kernels limited for now
-    if [[ "$backend" = *magma* ]] \
-            && [[ "$1" = t506* ]] ; then
-        printf "ok $i0 # SKIP - backend basis kernel not available $1 $backend\n"
-        printf "ok $i1 # SKIP - backend basis kernel not available $1 $backend stdout\n"
-        printf "ok $i2 # SKIP - backend basis kernel not available $1 $backend stderr\n"
+    # t409 must fail for memcheck backends
+    if grep -F -q -e 'Context data changed while accessed in read-only mode' ${output}.err \
+            && [[ "$backend" = *memcheck* && "$1" = "t409"* ]] ; then
+        printf "ok $i0 PASS - expected failure $1 $backend\n"
+        printf "ok $i1 PASS - expected failure $1 $backend stdout\n"
+        printf "ok $i2 PASS - expected failure $1 $backend stderr\n"
         continue
     fi
 

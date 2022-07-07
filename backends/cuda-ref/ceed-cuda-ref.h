@@ -150,5 +150,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Cuda(CeedOperator op);
 #endif

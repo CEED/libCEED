@@ -1,0 +1,19 @@
+problem: 'channel'
+mu: .01
+
+umax: 40
+implicit: true
+ts:
+  type: 'beuler'
+  adapt_type: 'none'
+  dt: 5e-6
+
+dm_plex_box_lower: 0,0,0
+dm_plex_box_upper: .01,.01,.001
+dm_plex_dim: 3
+degree: 1
+dm_plex_box_faces: 10,10,1
+bc_slip_z: 1,2
+bc_wall: 3,4
+wall_comps: 1,2,3
+dm_plex_box_bd: 'periodic,none,none'

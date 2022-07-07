@@ -30,6 +30,8 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 
   ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
                                 CeedQFunctionCreate_Memcheck); CeedChkBackend(ierr);
+  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
+                                CeedQFunctionContextCreate_Memcheck); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

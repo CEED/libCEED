@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
   // Check error message
   CeedGetErrorMessage(ceed, &err_msg);
-  if (!err_msg || !strcmp(err_msg, "No error message stored"))
+  if (!err_msg || !strcmp(err_msg, "No error message stored\n"))
     // LCOV_EXCL_START
     printf("Unexpected error message received: \"%s\"\n", err_msg);
   // LCOV_EXCL_STOP

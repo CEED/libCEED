@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<Q; i++)
     if (fabs(5*v[i]*sqrt(2.) - vv[i]) > 1E3*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] v %f != vv %f\n",i, 5*v[i]*sqrt(2.), vv[i]);
+      printf("[%" CeedInt_FMT "] v %f != vv %f\n",i, 5*v[i]*sqrt(2.), vv[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &vv);
 

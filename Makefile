@@ -443,11 +443,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.c  += $(magma.c)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       else
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       endif
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -687,7 +687,7 @@ style : style-c style-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include

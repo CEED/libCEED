@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<num_qpts; i++)
     if (fabs(q[i] - a[i]) > 1e-9)
       // LCOV_EXCL_START
-      printf("Error: A[%d] = %f != %f\n", i, a[i], q[i]);
+      printf("Error: A[%" CeedInt_FMT "] = %f != %f\n", i, a[i], q[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(A, &a);
   CeedVectorRestoreArrayRead(q_data, &q);

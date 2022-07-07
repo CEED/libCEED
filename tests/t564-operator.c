@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
 
   // Fuly assemble operator
-  for (int k=0; k<num_comp*num_comp*num_dofs*num_dofs; ++k) {
+  for (CeedInt k=0; k<num_comp*num_comp*num_dofs*num_dofs; k++) {
     assembled[k] = 0.0;
     assembled_true[k] = 0.0;
   }
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   CeedOperatorLinearAssemble(op_mass, values);
   const CeedScalar *vals;
   CeedVectorGetArrayRead(values, CEED_MEM_HOST, &vals);
-  for (int k=0; k<nentries; ++k) {
+  for (CeedInt k=0; k<nentries; ++k) {
     assembled[rows[k]*num_comp*num_dofs + cols[k]] += vals[k];
   }
   CeedVectorRestoreArrayRead(values, &vals);
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(U, 0.0);
   CeedVectorCreate(ceed, num_comp*num_dofs, &V);
   CeedInt indOld = -1;
-  for (int j=0; j<num_dofs*num_comp; j++) {
+  for (CeedInt j=0; j<num_dofs*num_comp; j++) {
     // Set input
     CeedVectorGetArray(U, CEED_MEM_HOST, &u);
     CeedInt ind = j;
@@ -132,21 +132,21 @@ int main(int argc, char **argv) {
     CeedOperatorApply(op_mass, U, V, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-    for (int k=0; k<num_dofs*num_comp; k++) {
+    for (CeedInt k=0; k<num_dofs*num_comp; k++) {
       assembled_true[j*num_dofs*num_comp + k] = v[k];
     }
     CeedVectorRestoreArrayRead(V, &v);
   }
 
   // Check output
-  for (int i=0; i<num_comp*num_dofs; i++)
-    for (int j=0; j<num_comp*num_dofs; j++)
+  for (CeedInt i=0; i<num_comp*num_dofs; i++)
+    for (CeedInt j=0; j<num_comp*num_dofs; j++)
       if (fabs(assembled[j*num_dofs*num_comp+i] - assembled_true[j*num_dofs*num_comp
                +i]) >
           100.*CEED_EPSILON)
         // LCOV_EXCL_START
-        printf("[%d,%d] Error in assembly: %f != %f\n", i, j,
-               assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n",
+               i, j, assembled[j*num_dofs*num_comp+i], assembled_true[j*num_dofs*num_comp+i]);
   // LCOV_EXCL_STOP
 
   // Cleanup
@@ -163,7 +163,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basis_u);
   CeedBasisDestroy(&basis_x);
   CeedVectorDestroy(&X);
-  // CeedVectorDestroy(&A);
   CeedVectorDestroy(&q_data);
   CeedVectorDestroy(&U);
   CeedVectorDestroy(&V);

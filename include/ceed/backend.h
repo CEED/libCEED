@@ -82,6 +82,10 @@ typedef struct CeedTensorContract_private *CeedTensorContract;
 /// @ingroup CeedOperator
 typedef struct CeedQFunctionAssemblyData_private *CeedQFunctionAssemblyData;
 
+/// Handle for object handling assembled Operator data
+/// @ingroup CeedOperator
+typedef struct CeedOperatorAssemblyData_private *CeedOperatorAssemblyData;
+
 /* In the next 3 functions, p has to be the address of a pointer type, i.e. p
    has to be a pointer to a pointer. */
 CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
@@ -114,11 +118,9 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate,
                                       const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate,
                                       const char *obj_name);
-CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
-                                      CeedBasis *active_basis);
-CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed,
     const char **resource);
+CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed,
     const char *resource);
 CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
@@ -250,9 +252,17 @@ CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx,
     void *data);
 CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx,
     void *data);
+CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
+    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
                                    CeedContextFieldLabel field_label,
                                    CeedContextFieldType field_type, void *value);
+CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
+    CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
+    CeedContextFieldLabel field_label, int *values);
+CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx,
+    CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);
@@ -266,6 +276,15 @@ CEED_EXTERN int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData da
 CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
 
+CEED_EXTERN int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssemblyData *data);
+CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_eval_mode_in, const CeedEvalMode **eval_mode_in, CeedInt *num_eval_mode_out, const CeedEvalMode **eval_mode_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedBasis *basis_in, const CeedScalar **B_in, CeedBasis *basis_out, const CeedScalar **B_out);
+CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
+
+CEED_EXTERN int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyData *data);
+CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op,
+                                      CeedBasis *active_basis);
+CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
@@ -278,7 +297,7 @@ CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorReference(CeedOperator op);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
-CEED_INTERN int CeedMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
+CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
                                    const CeedScalar *mat_B, CeedScalar *mat_C,
                                    CeedInt m, CeedInt n, CeedInt kk);
 

@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<Q; i++)
     if (fabs(v[i] - ctx_data[1]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("v[%d] %f != 2.0\n", i, v[i]);
+      printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 
@@ -61,12 +61,18 @@ int main(int argc, char **argv) {
   // Note: The interface cannot enforce this in user code
   //   so setting is_writable == false and then calling
   //   CeedQFunctionApply to mutate the context would lead
-  //   to inconsistent data on the GPU
+  //   to inconsistent data on the GPU.
+  //   Only the `/cpu/self/memcheck/*` backends verify that
+  //   read-only access resulted in no changes to the context data
+  CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctx_data_new);
+  ctx_data_new[0] = 5;
+  CeedQFunctionContextRestoreData(ctx, &ctx_data_new);
   is_writable = false;
   CeedQFunctionSetContextWritable(qf, is_writable);
   {
     in[0] = U;
     out[0] = V;
+    // Will only error in `/cpu/self/memcheck/*` backends
     CeedQFunctionApply(qf, Q, in, out);
   }
 

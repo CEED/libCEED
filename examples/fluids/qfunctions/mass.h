@@ -12,6 +12,7 @@
 #define mass_h
 
 #include <math.h>
+#include <ceed.h>
 
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.

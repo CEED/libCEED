@@ -7,7 +7,7 @@
 
 #include "ceed-magma.h"
 
-#ifdef HAVE_HIP
+#ifdef CEED_MAGMA_USE_HIP
 // TODO: Tune for HIP
 int
 magma_dgemm_nontensor(

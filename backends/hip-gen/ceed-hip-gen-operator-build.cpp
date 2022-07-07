@@ -768,8 +768,9 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
   CeedSize lsize;
   CeedInt Q, P1d = 0, Q1d = 0, numelements, elemsize, numinputfields,
-          numoutputfields, ncomp, dim = 0;
+          numoutputfields, ncomp, dim = 1;
   ierr = CeedOperatorGetNumQuadraturePoints(op, &Q); CeedChkBackend(ierr);
+  Q1d = Q;
   ierr = CeedOperatorGetNumElements(op, &numelements); CeedChkBackend(ierr);
   CeedOperatorField *opinputfields, *opoutputfields;
   ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields);
@@ -807,16 +808,18 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   oper = "CeedKernel_Hip_gen_" + qFunctionName;
 
   code << "\n#define CEED_QFUNCTION(name) inline __device__ int name\n";
-  code << "#define CEED_QFUNCTION_HELPER inline __device__ __forceinline__\n";
+  code << "#define CEED_QFUNCTION_HELPER __device__ __forceinline__\n";
   code << "#define CeedPragmaSIMD\n";
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
   // Find dim and Q1d
   bool useCollograd = true;
+  bool allCollograd = true;
   data->maxP1d = 0;
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
+      allCollograd = false;
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
       CeedChkBackend(ierr);
@@ -845,6 +848,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
 
     if (basis != CEED_BASIS_COLLOCATED) {
+      allCollograd = false;
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
       CeedChkBackend(ierr);
@@ -867,6 +871,8 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   }
   data->dim = dim;
   data->Q1d = Q1d;
+  // TODO: https://github.com/CEED/libCEED/pull/1009#issuecomment-1176751436
+  useCollograd &= !allCollograd;
 
   // Define CEED_Q_VLA
   if (dim != 3 || useCollograd) {

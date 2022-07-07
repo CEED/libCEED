@@ -1,7 +1,6 @@
 # Changes/Release Notes
 
-On this page we provide a summary of the main API changes, new features and examples
-for each release of libCEED.
+On this page we provide a summary of the main API changes, new features and examples for each release of libCEED.
 
 (main)=
 
@@ -9,7 +8,40 @@ for each release of libCEED.
 
 ### Interface changes
 
+- Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
+- Added {c:func}`CeedBasisCreateProjection` to facilitate interpolation between nodes for separate `CeedBases`.
+
+### New features
+
+- Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
+- Added `CeedInt_FMT` to support potential future use of larger interger sizes.
+
+### Bugfix
+
+- Fix bug in setting device id for GPU backends.
+- Fix storing of indices for `CeedElemRestriction` on the host with GPU backends.
+- Fix `CeedElemRestriction` sizing for {c:func}`CeedOperatorAssemblePointBlockDiagonal`.
+- Fix bugs in CPU implementation of {c:func}`CeedOperatorLinearAssemble` when there are different number of active input modes and active output modes.
+
+### Examples
+
+- Added various performance enhancements for {ref}`example-petsc-navier-stokes`.
+- Refactored {ref}`example-petsc-navier-stokes` to improve code reuse.
+- Added Shock Tube, Channel, and Flat Plate boundary layer problems to {ref}`example-petsc-navier-stokes`.
+- Added ability to use QFunctions for strong STG inflow in {ref}`example-petsc-navier-stokes`.
+
+(v0-10-1)=
+
+## v0.10.1 (Apr 11, 2022)
+
+### Interface changes
+
 - Added {c:func}`CeedQFunctionSetUserFlopsEstimate` and {c:func}`CeedOperatorGetFlopsEstimate` to facilitate estimating FLOPs in operator application.
+
+### New features
+
+- Switched MAGMA backends to use runtime compilation for tensor basis kernels (and element restriction kernels, in non-deterministic `/gpu/*/magma` backends).
+This reduces time to compile the library and increases the range of parameters for which the MAGMA tensor basis kernels will work.
 
 ### Bugfix
 

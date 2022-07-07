@@ -39,6 +39,4 @@ CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Cuda_gen(CeedOperator op);
-
 #endif // _ceed_cuda_gen_h

@@ -1,0 +1,40 @@
+problem: 'blasius'
+
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 2e-6
+  max_steps: 10
+output_freq: 10
+
+dm_plex_box_faces: 3,30,1
+platemesh:
+  Ndelta: 22
+  growth: 1.1664 # 1.08^2
+
+stab: 'supg'
+Ctau_t: 1
+Ctau_v: 36
+Ctau_C: 0.25
+Ctau_M: 0.25
+Ctau_E: 0.125
+
+q_extra: 0
+
+dm_plex_box_lower: 0,0,0
+dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-4
+dm_plex_dim: 3
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+bc_slip_z: 1,2
+bc_wall: 3
+wall_comps: 1,2,3
+bc_inflow: 6
+bc_outflow: 5,4
+g: 0,0,0
+
+stg:
+  use: true
+  inflow_path: "./examples/fluids/STGInflow_blasius.dat"
+  rand_path: "./examples/fluids/STGRand.dat"
+  mean_only: false

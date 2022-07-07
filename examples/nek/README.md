@@ -2,17 +2,16 @@
 
 ### Prerequisites
 
-Nek5000 v18.0 or greater must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run
-these examples.  It is assumed to exist at `../../../Nek5000` (a sibling to the
-libCEED directory) or at a path defined in the environment variable `NEK5K_DIR`.
+Nek5000 v18.0 or greater must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run these examples.
+It is assumed to exist at `../../../Nek5000` (a sibling to the libCEED directory) or at a path defined in the environment variable `NEK5K_DIR`.
 For example, you could set
 ```sh
     export NEK5K_DIR=/scratch/Nek5000
 ```
 if that is where it is located.
 
-The Nek5000 examples depend on the Nek5000 tools: `genbox`, `genmap`,
-and `reatore2`. They can be built using
+The Nek5000 examples depend on the Nek5000 tools: `genbox`, `genmap`, and `reatore2`.
+They can be built using
 ```sh
    ( cd $NEK5K_DIR/tools && ./maketools genbox genmap reatore2 )
 ```
@@ -27,18 +26,17 @@ You can also build the Nek5000 libCEED examples by invoking `nek-examples.sh` sc
   ./nek-examples.sh -m
 ```
 
-By default, the examples are built with MPI. To build the examples without MPI,
-set the environment variable `MPI=0`.
+By default, the examples are built with MPI.
+To build the examples without MPI, set the environment variable `MPI=0`.
 
-Note: Nek5000 examples must be built sequentially. Due to the Nek5000 build
-process, multiple examples cannot be built in parallel. At present, there is
-only one Nek5000 example file to build, which handles both CEED BP 1 and
-CEED BP 3.
+Note: Nek5000 examples must be built sequentially.
+Due to the Nek5000 build process, multiple examples cannot be built in parallel.
+At present, there is only one Nek5000 example file to build, which handles both CEED BP 1 and CEED BP 3.
 
 ### Running Nek5000 examples
 
-You can run the Nek5000 libCEED examples by invoking `nek-examples.sh`
-script. The syntax is:
+You can run the Nek5000 libCEED examples by invoking `nek-examples.sh` script.
+The syntax is:
 ```sh
   ./nek-examples.sh -c <ceed_backend> -e <example_name> \
                    -n <mpi_ranks> -b <box_geometry>
@@ -55,8 +53,8 @@ options:
    -clean       clean the examples directory
    -m|-make     Make the examples
 ```
-The only mandatory argument is `-b` or `-box` which sets the box geometry to be
-used. This geometry should be found in `./boxes` directory.
+The only mandatory argument is `-b` or `-box` which sets the box geometry to be used.
+This geometry should be found in `./boxes` directory.
 
 For example, you can run bp1 as follows:
 ```sh

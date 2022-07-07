@@ -439,7 +439,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP1;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -480,7 +480,7 @@ int main(int argc, char **argv) {
                               "Min and max number of iterations to use during benchmarking",
                               NULL, ksp_max_it_clip, &two, NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
   P = degree + 1;
   Q = P + q_extra;
 
@@ -546,20 +546,23 @@ int main(int argc, char **argv) {
     ierr = VecGetType(X, &vec_type); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
                        "  PETSc:\n"
                        "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    Process Decomposition              : %D %D %D\n"
-                       "    Local Elements                     : %D = %D %D %D\n"
-                       "    Owned nodes                        : %D = %D %D %D\n"
-                       "    DoF per node                       : %D\n",
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Process Decomposition              : %" PetscInt_FMT
+                       " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Local Elements                     : %" PetscInt_FMT
+                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT
+                       " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
                        P, Q,  gsize/num_comp_u, p[0], p[1], p[2], local_elem,
@@ -903,7 +906,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

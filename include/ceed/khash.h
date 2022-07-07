@@ -82,8 +82,8 @@ int main() {
 	* Added destructor
 */
 
-#ifndef _ceed_khash_h
-#define _ceed_khash_h
+#ifndef __AC_KHASH_H
+#define __AC_KHASH_H
 
 /*!
   @header
@@ -589,4 +589,4 @@ typedef const char *kh_cstr_t;
 #define KHASH_MAP_INIT_STR(name, khval_t)								\
 	KHASH_INIT(name, kh_cstr_t, khval_t, 1, kh_str_hash_func, kh_str_hash_equal)
 
-#endif /* _ceed_khash_h */
+#endif /* __AC_KHASH_H */

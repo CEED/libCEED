@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
   // ---- Setup _tet
   CeedOperatorCreate(ceed, qf_setup_tet, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setup_tet);
+  CeedOperatorSetName(op_setup_tet, "triangle elements");
   CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x_tet,
                        CEED_VECTOR_NONE);
@@ -119,6 +120,7 @@ int main(int argc, char **argv) {
   // ---- Mass _tet
   CeedOperatorCreate(ceed, qf_mass_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_mass_tet);
+  CeedOperatorSetName(op_mass_tet, "triangle elements");
   CeedOperatorSetField(op_mass_tet, "rho", elem_restr_qd_tet,
                        CEED_BASIS_COLLOCATED,
                        q_data_tet);
@@ -170,6 +172,7 @@ int main(int argc, char **argv) {
   // -- Operators
   CeedOperatorCreate(ceed, qf_setup_hex, CEED_QFUNCTION_NONE,
                      CEED_QFUNCTION_NONE, &op_setup_hex);
+  CeedOperatorSetName(op_setup_hex, "quadralateral elements");
   CeedOperatorSetField(op_setup_hex, "weight", CEED_ELEMRESTRICTION_NONE,
                        basis_x_hex,
                        CEED_VECTOR_NONE);
@@ -180,6 +183,7 @@ int main(int argc, char **argv) {
 
   CeedOperatorCreate(ceed, qf_mass_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
                      &op_mass_hex);
+  CeedOperatorSetName(op_mass_hex, "quadralateral elements");
   CeedOperatorSetField(op_mass_hex, "rho", elem_restr_qd_i_hex,
                        CEED_BASIS_COLLOCATED,
                        q_data_hex);
@@ -191,12 +195,14 @@ int main(int argc, char **argv) {
   // Set up Composite Operators
   // -- Create
   CeedCompositeOperatorCreate(ceed, &op_setup);
+  CeedOperatorSetName(op_setup, "setup");
   // -- Add SubOperators
   CeedCompositeOperatorAddSub(op_setup, op_setup_tet);
   CeedCompositeOperatorAddSub(op_setup, op_setup_hex);
 
   // -- Create
   CeedCompositeOperatorCreate(ceed, &op_mass);
+  CeedOperatorSetName(op_mass, "mass");
   // -- Add SubOperators
   CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
   CeedCompositeOperatorAddSub(op_mass, op_mass_hex);

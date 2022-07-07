@@ -134,6 +134,7 @@
 /// Integer type, used for indexing
 /// @ingroup Ceed
 typedef int32_t CeedInt;
+#define CeedInt_FMT "d"
 
 /// Integer type, used array sizes
 /// @ingroup Ceed
@@ -241,7 +242,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
 #define CEED_VERSION_MINOR 10
-#define CEED_VERSION_PATCH 0
+#define CEED_VERSION_PATCH 1
 #define CEED_VERSION_RELEASE false
 
 /// Compile-time check that the the current library version is at least as
@@ -381,9 +382,7 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Argument for CeedOperatorSetField that vector is collocated with
-/// quadrature points, used with QFunction eval mode CEED_EVAL_NONE
-/// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
-/// or CEED_EVAL_CURL
+/// quadrature points, only used with CeedEvalMode CEED_EVAL_NONE
 /// @ingroup CeedBasis
 CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
@@ -552,6 +551,8 @@ CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo,
                                     const CeedScalar *div,
                                     const CeedScalar *q_ref,
                                     const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
+CEED_EXTERN int CeedBasisCreateProjectionMatrix(CeedBasis basis_from, CeedBasis basis_to, CeedScalar **interp_project);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem,
@@ -655,6 +656,16 @@ typedef enum {
 } CeedContextFieldType;
 CEED_EXTERN const char *const CeedContextFieldTypes[];
 
+/** Handle for the user provided CeedQFunctionContextDataDestroy callback function
+
+ @param[in,out] data  User-CeedQFunctionContext data
+
+ @return An error code: 0 - success, otherwise - failure
+
+ @ingroup CeedQFunction
+**/
+typedef int (*CeedQFunctionContextDataDestroyUser)(void *data);
+
 CEED_EXTERN int CeedQFunctionContextCreate(Ceed ceed,
     CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
@@ -677,21 +688,17 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
     const char *field_name, size_t field_offset, size_t num_values,
     const char *field_description);
-CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-    const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
     const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
     const char **field_name, const char **field_description, size_t *num_values,
     CeedContextFieldType *field_type);
-CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-    CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
+CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
+    CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,
@@ -742,6 +749,7 @@ CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine,
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op,
     CeedOperator *fdm_inv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts);
+CEED_EXTERN int CeedOperatorSetName(CeedOperator op, const char *name);
 CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);

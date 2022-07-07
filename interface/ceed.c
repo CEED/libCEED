@@ -302,7 +302,7 @@ int CeedStringAllocCopy(const char *source, char **copy) {
   int ierr;
   size_t len = strlen(source);
   ierr = CeedCalloc(len + 1, copy); CeedChk(ierr);
-  memcpy(*copy, source, len + 1);
+  memcpy(*copy, source, len);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -492,6 +492,44 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 }
 
 /**
+  @brief Get the fallback Ceed for CeedOperators
+
+  @param ceed                Ceed context
+  @param[out] fallback_ceed  Variable to store fallback Ceed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
+  int ierr;
+
+  if (ceed->has_valid_op_fallback_resource) {
+    CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+    CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource,
+              ceed->op_fallback_resource);
+  }
+
+  // Create fallback Ceed if uninitalized
+  if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
+    CeedDebug(ceed, "Creating fallback Ceed");
+
+    Ceed fallback_ceed;
+    const char *fallback_resource;
+
+    ierr = CeedGetOperatorFallbackResource(ceed, &fallback_resource); CeedChk(ierr);
+    ierr = CeedInit(fallback_resource, &fallback_ceed); CeedChk(ierr);
+    fallback_ceed->op_fallback_parent = ceed;
+    fallback_ceed->Error = ceed->Error;
+    ceed->op_fallback_ceed = fallback_ceed;
+  }
+  *fallback_ceed = ceed->op_fallback_ceed;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the fallback resource for CeedOperators. The current resource, if
            any, is freed by calling this function. This string is freed upon the
            destruction of the Ceed context.
@@ -513,6 +551,12 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   // Set new
   ierr = CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource);
   CeedChk(ierr);
+
+  // Check validity
+  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource &&
+                                         ceed->resource &&
+                                         strcmp(ceed->op_fallback_resource, ceed->resource);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -843,6 +887,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedVector, SetArray),
     CEED_FTABLE_ENTRY(CeedVector, TakeArray),
     CEED_FTABLE_ENTRY(CeedVector, SetValue),
+    CEED_FTABLE_ENTRY(CeedVector, SyncArray),
     CEED_FTABLE_ENTRY(CeedVector, GetArray),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayRead),
     CEED_FTABLE_ENTRY(CeedVector, GetArrayWrite),
@@ -874,6 +919,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetDataRead),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreDataRead),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, DataDestroy),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunctionUpdate),
@@ -883,6 +929,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddPointBlockDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSymbolic),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemble),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSingle),
     CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),
@@ -905,9 +952,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") ||
                       !!getenv("DBG");
 
-  // Backend specific setup
-  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
-
   // Copy resource prefix, if backend setup successful
   ierr = CeedStringAllocCopy(backends[match_index].prefix,
                              (char **)&(*ceed)->resource);
@@ -918,6 +962,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // but all additional paths are added to the top-most parent
   ierr = CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault);
   CeedChk(ierr);
+
+  // Backend specific setup
+  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1025,7 +1072,7 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   ierr = CeedRealloc(index + 1, &ceed_parent->jit_source_roots); CeedChk(ierr);
   ierr = CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]);
   CeedChk(ierr);
-  strncpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
+  memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
   ceed_parent->num_jit_source_roots++;
 
   return CEED_ERROR_SUCCESS;
@@ -1071,7 +1118,7 @@ int CeedDestroy(Ceed *ceed) {
   }
 
   if ((*ceed)->obj_delegate_count > 0) {
-    for (int i = 0; i < (*ceed)->obj_delegate_count; i++) {
+    for (CeedInt i = 0; i < (*ceed)->obj_delegate_count; i++) {
       ierr = CeedDestroy(&((*ceed)->obj_delegates[i].delegate)); CeedChk(ierr);
       ierr = CeedFree(&(*ceed)->obj_delegates[i].obj_name); CeedChk(ierr);
     }
@@ -1082,7 +1129,7 @@ int CeedDestroy(Ceed *ceed) {
     ierr = (*ceed)->Destroy(*ceed); CeedChk(ierr);
   }
 
-  for (int i = 0; i < (*ceed)->num_jit_source_roots; i++) {
+  for (CeedInt i = 0; i < (*ceed)->num_jit_source_roots; i++) {
     ierr = CeedFree(&(*ceed)->jit_source_roots[i]); CeedChk(ierr);
   }
   ierr = CeedFree(&(*ceed)->jit_source_roots); CeedChk(ierr);
@@ -1170,7 +1217,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no,
                           err_code, format, args);
 
   // Build message
-  CeedInt len;
+  int len;
   len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
                  filename, line_no, func);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
@@ -1232,7 +1279,7 @@ int CeedErrorExit(Ceed ceed, const char *filename, int line_no,
 int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
   ceed->Error = handler;
   if (ceed->delegate) CeedSetErrorHandler(ceed->delegate, handler);
-  for (int i=0; i<ceed->obj_delegate_count; i++)
+  for (CeedInt i=0; i<ceed->obj_delegate_count; i++)
     CeedSetErrorHandler(ceed->obj_delegates[i].delegate, handler);
   return CEED_ERROR_SUCCESS;
 }

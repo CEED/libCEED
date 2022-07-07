@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Parse command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL); CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   bp_choice = CEED_BP3;
   ierr = PetscOptionsEnum("-problem",
                           "CEED benchmark problem to solve", NULL,
@@ -112,12 +112,12 @@ int main(int argc, char **argv) {
                             "Epsilon parameter for Kershaw mesh transformation",
                             NULL, eps, &eps, NULL);
   if (eps > 1 || eps <= 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                                     "-eps %D must be (0,1]", eps);
+                                     "-eps %g must be (0,1]", (double)PetscRealPart(eps));
   degree = test_mode ? 3 : 2;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
   if (degree < 1) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE,
-                            "-degree %D must be at least 1", degree);
+                            "-degree %" PetscInt_FMT " must be at least 1", degree);
   q_extra = bp_options[bp_choice].q_extra;
   ierr = PetscOptionsInt("-q_extra", "Number of extra quadrature points",
                          NULL, q_extra, &q_extra, NULL); CHKERRQ(ierr);
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     ierr = PetscOptionsIntArray("-cells","Number of cells per dimension", NULL,
                                 mesh_elem, &tmp, NULL); CHKERRQ(ierr);
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);
@@ -264,20 +264,20 @@ int main(int argc, char **argv) {
     ierr = VecGetType(X[0], &vec_type); CHKERRQ(ierr);
 
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc + PCMG --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc + PCMG --\n"
                        "  PETSc:\n"
                        "    PETSc Vec Type                     : %s\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global Nodes                       : %D\n"
-                       "    Owned Nodes                        : %D\n"
-                       "    DoF per node                       : %D\n"
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
+                       "    Global Nodes                       : %" PetscInt_FMT "\n"
+                       "    Owned Nodes                        : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n"
                        "  Multigrid:\n"
-                       "    Number of Levels                   : %d\n",
+                       "    Number of Levels                   : %" CeedInt_FMT "\n",
                        bp_choice+1, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
                        P, Q, g_size[fine_level]/num_comp_u, l_size[fine_level]/num_comp_u,
@@ -293,13 +293,13 @@ int main(int argc, char **argv) {
 
   // Set up libCEED operators on each level
   ierr = PetscMalloc1(num_levels, &ceed_data); CHKERRQ(ierr);
-  for (int i=0; i<num_levels; i++) {
+  for (PetscInt i=0; i<num_levels; i++) {
     // Print level information
     if (!test_mode && (i == 0 || i == fine_level)) {
-      ierr = PetscPrintf(comm,"    Level %D (%s):\n"
-                         "      Number of 1D Basis Nodes (p)     : %d\n"
-                         "      Global Nodes                     : %D\n"
-                         "      Owned Nodes                      : %D\n",
+      ierr = PetscPrintf(comm,"    Level %" PetscInt_FMT " (%s):\n"
+                         "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
+                         "      Global Nodes                     : %" PetscInt_FMT "\n"
+                         "      Owned Nodes                      : %" PetscInt_FMT "\n",
                          i, (i? "fine" : "coarse"), level_degrees[i] + 1,
                          g_size[i]/num_comp_u, l_size[i]/num_comp_u); CHKERRQ(ierr);
     }
@@ -562,7 +562,7 @@ int main(int argc, char **argv) {
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   CeedOperatorReferenceCopy(op, &op_2); // This destroys the previous op_2
   if (op != op_2)
     // LCOV_EXCL_START
-    printf("Error copying CeedOperator reference.");
+    printf("Error copying CeedOperator reference\n");
   // LCOV_EXCL_STOP
 
   CeedQFunctionDestroy(&qf);

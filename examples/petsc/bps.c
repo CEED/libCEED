@@ -170,7 +170,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     PetscMPIInt comm_size;
     ierr = MPI_Comm_size(rp->comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(rp->comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
                        "  MPI:\n"
                        "    Hostname                           : %s\n"
                        "    Total ranks                        : %d\n"
@@ -181,12 +181,12 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    Local Elements                     : %D\n"
-                       "    Owned nodes                        : %D\n"
-                       "    DoF per node                       : %D\n",
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    Local Elements                     : %" PetscInt_FMT "\n"
+                       "    Owned nodes                        : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n",
                        rp->bp_choice+1, rp->hostname, comm_size,
                        rp->ranks_per_node, vec_type, used_resource,
                        CeedMemTypes[mem_type_backend],
@@ -308,7 +308,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                          "  KSP:\n"
                          "    KSP Type                           : %s\n"
                          "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %D\n"
+                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
                          "    Final rnorm                        : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
@@ -469,8 +469,7 @@ int main(int argc, char **argv) {
   rp->comm = comm;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED BPs in PETSc", NULL);
   {
     PetscBool set;
     ierr = PetscOptionsEnumArray("-problem", "CEED benchmark problem to solve",
@@ -558,8 +557,7 @@ int main(int argc, char **argv) {
     if (flg) ranks_per_node = p;
   }
 
-  ierr = PetscOptionsEnd();
-  CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Register PETSc logging stage
   ierr = PetscLogStageRegister("Solve Stage", &rp->solve_stage);

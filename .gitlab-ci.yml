@@ -55,7 +55,7 @@ noether-cpu:
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
@@ -123,7 +123,7 @@ noether-rocm:
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
@@ -240,8 +240,7 @@ lv-cuda:
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-#     Note: Skipping fluids and solids due to CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES on RTX 2080 Super
-    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc"
+    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status
     - touch .SUCCESS
   after_script:

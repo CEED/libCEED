@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   CeedVectorGetLength(x_2, &len); // Second reference still valid
   if (len != n)
     // LCOV_EXCL_START
-    printf("Error copying CeedVector reference.");
+    printf("Error copying CeedVector reference\n");
   // LCOV_EXCL_STOP
 
   CeedVectorDestroy(&x_2);

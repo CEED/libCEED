@@ -12,38 +12,19 @@
 #define advection2d_h
 
 #include <math.h>
+#include <ceed.h>
+#include "utils.h"
 
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
-
-#ifndef setup_context_struct
-#define setup_context_struct
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
-  CeedScalar theta0;
-  CeedScalar thetaC;
-  CeedScalar P0;
-  CeedScalar N;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g;
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar center[3];
-  CeedScalar dc_axis[3];
   CeedScalar wind[3];
   CeedScalar time;
   int wind_type;              // See WindType: 0=ROTATION, 1=TRANSLATION
-  int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
-#endif
 
-#ifndef advection_context_struct
-#define advection_context_struct
 typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
@@ -52,7 +33,6 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-#endif
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
@@ -105,7 +85,7 @@ struct AdvectionContext_ {
 // This helper function provides the exact, time-dependent solution
 //   and IC formulation for 2D advection
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
+CEED_QFUNCTION_HELPER CeedInt Exact_Advection2d(CeedInt dim, CeedScalar time,
     const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   const SetupContext context = (SetupContext)ctx;
   const CeedScalar rc    = context->rc;
@@ -142,15 +122,15 @@ CEED_QFUNCTION_HELPER int Exact_Advection2d(CeedInt dim, CeedScalar time,
     return 1;
   }
 
-  CeedScalar r = sqrt(pow(x - x0[0], 2) + pow(y - x0[1], 2));
+  CeedScalar r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
   CeedScalar E = 1 - r/rc;
 
   if (0) { // non-smooth initial conditions
     if (q[4] < E) q[4] = E;
-    r = sqrt(pow(x - x1[0], 2) + pow(y - x1[1], 2));
+    r = sqrt(Square(x - x1[0]) + Square(y - x1[1]));
     if (r <= rc) q[4] = 1;
   }
-  r = sqrt(pow(x - x2[0], 2) + pow(y - x2[1], 2));
+  r = sqrt(Square(x - x2[0]) + Square(y - x2[1]));
   E = (r <= rc) ? .5 + .5*cos(r*M_PI/rc) : 0;
   if (q[4] < E) q[4] = E;
 
@@ -428,8 +408,8 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q,
                                       CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*

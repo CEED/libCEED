@@ -50,7 +50,8 @@ int main(int argc, char **argv) {
                         block*layout[2]*blk_size;
         if (yy[index] != a[ind[k*elem_size + i]+j*(num_elem+1)])
           // LCOV_EXCL_START
-          printf("Error in restricted array y[%d][%d][%d] = %f\n",
+          printf("Error in restricted array y[%" CeedInt_FMT
+                 "][%" CeedInt_FMT "][%" CeedInt_FMT "] = %f\n",
                  i, j, k, (double)yy[index]);
         // LCOV_EXCL_STOP
       }
@@ -64,7 +65,8 @@ int main(int argc, char **argv) {
     for (CeedInt j=0; j<num_comp; j++) {
       if (xx[i+j*(num_elem+1)] != ((j+1)*10+i)*(i > 0 && i < num_elem ? 2.0 : 1.0))
         // LCOV_EXCL_START
-        printf("Error in restricted array x[%d][%d] = %f\n",
+        printf("Error in restricted array x[%" CeedInt_FMT
+               "][%" CeedInt_FMT "] = %f\n",
                j, i, (double)xx[i+j*(num_elem+1)]);
       // LCOV_EXCL_STOP
     }

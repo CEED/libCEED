@@ -92,9 +92,7 @@ int main(int argc, char **argv) {
   comm = PETSC_COMM_WORLD;
 
   // Read command line options
-  ierr = PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc",
-                           NULL);
-  CHKERRQ(ierr);
+  PetscOptionsBegin(comm, NULL, "CEED surface area problem with PETSc", NULL);
   problem_choice = SPHERE;
   ierr = PetscOptionsEnum("-problem",
                           "Problem to solve", NULL,
@@ -116,7 +114,7 @@ int main(int argc, char **argv) {
                           NULL, simplex, &simplex, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-degree", "Polynomial degree of tensor product basis",
                          NULL, degree, &degree, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Setup DM
   if (read_mesh) {
@@ -190,11 +188,11 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
-                       "    Global nodes                       : %D\n"
-                       "    DoF per node                       : %D\n"
-                       "    Global DoFs                        : %D\n",
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
+                       "    Global nodes                       : %" PetscInt_FMT "\n"
+                       "    DoF per node                       : %" PetscInt_FMT "\n"
+                       "    Global DoFs                        : %" PetscInt_FMT "\n",
                        used_resource, CeedMemTypes[mem_type_backend], P, Q,
                        g_size/num_comp_u, num_comp_u, g_size); CHKERRQ(ierr);
   }

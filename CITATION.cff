@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: "libCEED: Efficient Extensible Discretization"
-version: 0.10.0
+version: 0.10.1
 date-released: 2021-07-07
 license:  BSD-2-Clause
 message: "Please cite the following works when using this software."

@@ -2,8 +2,7 @@
 
 This page provides a brief description of the tests for the libCEED library.
 
-The tests are organized by API object, and some tests are further organized,
-as required.
+The tests are organized by API object, and some tests are further organized, as required.
 
 0. Ceed Tests
 1. CeedVector Tests  

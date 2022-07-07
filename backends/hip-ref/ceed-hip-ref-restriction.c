@@ -11,6 +11,7 @@
 #include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 #include "ceed-hip-ref.h"
 #include "../hip/ceed-hip-compile.h"
 
@@ -296,6 +297,12 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
       impl->h_ind = (CeedInt *)indices;
       break;
     case CEED_COPY_VALUES:
+      if (indices != NULL) {
+        ierr = CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated);
+        CeedChkBackend(ierr);
+        memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+        impl->h_ind = impl->h_ind_allocated;
+      }
       break;
     }
     if (indices != NULL) {
@@ -327,6 +334,12 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode,
       impl->d_ind = (CeedInt *)indices;
     }
     if (indices != NULL) {
+      ierr = CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated);
+      CeedChkBackend(ierr);
+      ierr = hipMemcpy(impl->h_ind_allocated, impl->d_ind,
+                       elem_size * num_elem * sizeof(CeedInt), hipMemcpyDeviceToHost);
+      CeedChk_Hip(ceed, ierr);
+      impl->h_ind = impl->h_ind_allocated;
       ierr = CeedElemRestrictionOffset_Hip(r, indices); CeedChkBackend(ierr);
     }
   } else {
