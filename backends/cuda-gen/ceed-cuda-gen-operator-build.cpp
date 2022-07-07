@@ -813,7 +813,20 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
   // Find dim and Q1d
-  bool useCollograd = true;
+  bool useCollograd = false;
+  // Only use collocated gradient algorithm when we actually compute a gradient.
+  for (CeedInt i = 0; i < numinputfields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+    if (emode == CEED_EVAL_GRAD) {
+      useCollograd = true;
+    }
+  }
+  for (CeedInt i = 0; i < numoutputfields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+    if (emode == CEED_EVAL_GRAD) {
+      useCollograd = true;
+    }
+  }
   data->maxP1d = 0;
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
@@ -837,11 +850,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
         // LCOV_EXCL_STOP
-        }
+      }
     }
   }
   // Check output bases for Q1d, dim as well
-  //   The only imput basis might be CEED_BASIS_COLLOCATED
+  //   The only input basis might be CEED_BASIS_COLLOCATED
   for (CeedInt i = 0; i < numoutputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
 
@@ -860,7 +873,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
         // LCOV_EXCL_STOP
-        }
+      }
 
       // Check for collocated gradient
       useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
@@ -1124,16 +1137,14 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChkBackend(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
+      code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
       if (useCollograd) {
         //Accumulator for gradient slices
-        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
         code << "    for (CeedInt i = 0; i < ncomp_out_"<<i<<"; ++i) {\n";
         code << "      for (CeedInt j = 0; j < Q1d; ++j) {\n";
         code << "        r_tt"<<i<<"[j + i*Q1d] = 0.0;\n";
         code << "      }\n";
         code << "    }\n";
-      } else {
-        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Dim*Q1d];\n";
       }
     }
     if (emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP)
@@ -1160,7 +1171,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
         bool isStrided;
         ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict); CeedChkBackend(ierr);
-        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChkBackend(ierr);
         ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
         if (!isStrided) {
           ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
@@ -1173,6 +1183,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           data->indices.in[i] = restr_data->d_ind;
           code << "      readSliceQuadsOffset"<<"3d<ncomp_in_"<<i<<", "<<compstride<<", Q1d>(data, lsize_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
+          ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChkBackend(ierr);
           bool backendstrides;
           ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
           CeedChkBackend(ierr);
