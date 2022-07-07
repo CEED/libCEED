@@ -131,7 +131,8 @@ struct CeedData_private {
                        qf_setup_sur,
                        qf_apply_inflow, qf_apply_inflow_jacobian,
                        qf_apply_outflow, qf_apply_outflow_jacobian;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur,
+                       basis_xc_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
@@ -147,8 +148,9 @@ struct User_private {
   Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values, x_ceed;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian,
+               op_dirichlet;
   bool matrices_set_up;
   CeedScalar time, dt;
 };
@@ -215,7 +217,7 @@ struct ProblemData_private {
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   void *bc_ctx;
-  PetscBool bc_from_ics;
+  PetscBool bc_from_ics, use_dirichlet_ceed;
   PetscErrorCode    (*print_info)(ProblemData*, AppCtx);
 };
 // *INDENT-ON*
@@ -368,5 +370,12 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // -----------------------------------------------------------------------------
+// Boundary Condition Related Functions
+// -----------------------------------------------------------------------------
+
+// Setup StrongBCs that use QFunctions
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
+                                  User user, AppCtx app_ctx, ProblemData *problem,
+                                  SimpleBC bc, CeedInt Q_sur, CeedInt q_data_size_sur);
 
 #endif // libceed_fluids_examples_navier_stokes_h

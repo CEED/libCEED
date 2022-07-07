@@ -246,9 +246,9 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q,
     };
 
     CeedScalar h[3];
-    for (CeedInt j=0; j<3; j++)
-      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
     h[0] = dx;
+    for (CeedInt j=1; j<3; j++)
+      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
 
     InterpolateProfile(X[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
@@ -370,6 +370,66 @@ CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q,
       v[j+1][i] = -wdetJb * (drho * u_normal * velocity[j] + norm[j] * dP);
     v[4][i] = - wdetJb * u_normal * (dE + dP);
   } // End Quadrature Point Loop
+  return 0;
+}
+
+/********************************************************************
+ * @brief QFunction to calculate the strongly enforce inflow BC
+ *
+ * This QF is for the strong application of STG via libCEED (rather than
+ * through the native PETSc `DMAddBoundary` -> `bcFunc` method.
+ */
+CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+
+  //*INDENT-OFF*
+  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA]) in[0],
+                   (*coords)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA]) in[1],
+                   (*scale)                  = (const CeedScalar(*)) in[2];
+
+  CeedScalar(*bcval)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA]) out[0];
+  //*INDENT-ON*
+
+  const STGShur14Context stg_ctx = (STGShur14Context) ctx;
+  CeedScalar qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
+  const bool mean_only    = stg_ctx->mean_only;
+  const CeedScalar dx     = stg_ctx->dx;
+  const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
+  const CeedScalar time   = stg_ctx->time;
+  const CeedScalar theta0 = stg_ctx->theta0;
+  const CeedScalar P0     = stg_ctx->P0;
+  const CeedScalar cv     = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar cp     = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar rho    = P0 / (Rd * theta0);
+
+  CeedPragmaSIMD
+  for(CeedInt i=0; i<Q; i++) {
+    const CeedScalar x[] = { coords[0][i], coords[1][i], coords[2][i] };
+    const CeedScalar dXdx[2][3] = {
+      {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
+      {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
+    };
+
+    CeedScalar h[3];
+    h[0] = dx;
+    for (CeedInt j=1; j<3; j++)
+      h[j] = 2/sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
+
+    InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
+    if (!mean_only) {
+      CalcSpectrum(coords[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
+      STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+    } else {
+      for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
+    }
+
+    bcval[0][i] = scale[i] * rho;
+    bcval[1][i] = scale[i] * rho * u[0];
+    bcval[2][i] = scale[i] * rho * u[1];
+    bcval[3][i] = scale[i] * rho * u[2];
+    bcval[4][i] = 0.;
+  }
   return 0;
 }
 

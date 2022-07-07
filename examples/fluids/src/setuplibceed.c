@@ -585,6 +585,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                                   CEED_GAUSS, &ceed_data->basis_q_sur);
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, Q_sur, CEED_GAUSS,
                                   &ceed_data->basis_x_sur);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, P_sur,
+                                  CEED_GAUSS_LOBATTO, &ceed_data->basis_xc_sur);
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions
@@ -715,6 +717,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
     if (user->op_ijacobian) {
       CeedOperatorContextGetFieldLabel(user->op_ijacobian, "ijacobian time shift",
                                        &user->phys->ijacobian_time_shift_label);
+    }
+    if (problem->use_dirichlet_ceed) {
+      PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc,
+                                   Q_sur, q_data_size_sur));
     }
 
   }
