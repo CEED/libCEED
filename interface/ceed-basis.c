@@ -170,6 +170,103 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Create the interpolation matrix for projection from the nodes of
+           `basis_from` to the nodes of `basis_to`. This projection is
+           given by `interp_project = interp_to^+ * interp_from`, where
+           the pesudoinverse `interp_to^+` is given by QR factorization.
+         Note: `basis_from` and `basis_to` must have compatible quadrature
+           spaces.
+
+  @param[in] basis_from       CeedBasis to project from
+  @param[in] basis_to         CeedBasis to project to
+  @param[out] interp_project  Address of the variable where the newly created
+                                projection matrix will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisCreateProjectionMatrix(CeedBasis basis_from,
+                                    CeedBasis basis_to,
+                                    CeedScalar **interp_project) {
+  int ierr;
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis_to, &ceed); CeedChk(ierr);
+
+  // Check for compatible quadrature spaces
+  CeedInt Q_to, Q_from;
+  ierr = CeedBasisGetNumQuadraturePoints(basis_to, &Q_to); CeedChk(ierr);
+  ierr = CeedBasisGetNumQuadraturePoints(basis_from, &Q_from); CeedChk(ierr);
+  if (Q_to != Q_from)
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION,
+                     "Bases must have compatible quadrature spaces");
+  // LCOV_EXCL_STOP
+
+  // Coarse to fine basis
+  CeedInt P_to, P_from, Q = Q_to;
+  bool is_tensor_to, is_tensor_from;
+  ierr = CeedBasisIsTensor(basis_to, &is_tensor_to); CeedChk(ierr);
+  ierr = CeedBasisIsTensor(basis_from, &is_tensor_from); CeedChk(ierr);
+  CeedScalar *interp_to, *interp_from, *tau;
+  if (is_tensor_to && is_tensor_from) {
+    ierr = CeedBasisGetNumNodes1D(basis_to, &P_to); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes1D(basis_from, &P_from); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadraturePoints1D(basis_from, &Q); CeedChk(ierr);
+  } else if (!is_tensor_to && !is_tensor_from) {
+    ierr = CeedBasisGetNumNodes(basis_to, &P_to); CeedChk(ierr);
+    ierr = CeedBasisGetNumNodes(basis_from, &P_from); CeedChk(ierr);
+  } else {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_MINOR,
+                     "Bases must both be tensor or non-tensor");
+    // LCOV_EXCL_STOP
+  }
+
+  ierr = CeedMalloc(Q * P_from, &interp_from); CeedChk(ierr);
+  ierr = CeedMalloc(Q * P_to, &interp_to); CeedChk(ierr);
+  ierr = CeedCalloc(P_to * P_from, interp_project); CeedChk(ierr);
+  ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
+  const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL;
+  if (is_tensor_to) {
+    ierr = CeedBasisGetInterp1D(basis_to, &interp_to_source); CeedChk(ierr);
+    ierr = CeedBasisGetInterp1D(basis_from, &interp_from_source); CeedChk(ierr);
+  } else {
+    ierr = CeedBasisGetInterp(basis_to, &interp_to_source); CeedChk(ierr);
+    ierr = CeedBasisGetInterp(basis_from, &interp_from_source); CeedChk(ierr);
+  }
+  memcpy(interp_to, interp_to_source, Q * P_to * sizeof(interp_to_source[0]));
+  memcpy(interp_from, interp_from_source,
+         Q * P_from * sizeof(interp_from_source[0]));
+
+  // -- QR Factorization, interp_to = Q R
+  ierr = CeedQRFactorization(ceed, interp_to, tau, Q, P_to); CeedChk(ierr);
+
+  // -- Apply Qtranspose, interp_to = Qtranspose interp_from
+  ierr = CeedHouseholderApplyQ(interp_from, interp_to, tau, CEED_TRANSPOSE,
+                               Q, P_from, P_to, P_from, 1); CeedChk(ierr);
+
+  // -- Apply Rinv, interp_project = Rinv interp_c
+  for (CeedInt j = 0; j < P_from; j++) { // Column j
+    (*interp_project)[j + P_from * (P_to - 1)] = interp_from[j + P_from *
+        (P_to - 1)] / interp_to[P_to * P_to - 1];
+    for (CeedInt i = P_to - 2; i >= 0; i--) { // Row i
+      (*interp_project)[j + P_from * i] = interp_from[j + P_from * i];
+      for (CeedInt k = i+1; k < P_to; k++) {
+        (*interp_project)[j + P_from * i] -= interp_to[k + P_to * i]*
+                                             (*interp_project)[j + P_from * k];
+      }
+      (*interp_project)[j + P_from * i] /= interp_to[i + P_to * i];
+    }
+  }
+  ierr = CeedFree(&tau); CeedChk(ierr);
+  ierr = CeedFree(&interp_to); CeedChk(ierr);
+  ierr = CeedFree(&interp_from); CeedChk(ierr);
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -898,103 +995,6 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to,
   ierr = CeedFree(&q_ref); CeedChk(ierr);
   ierr = CeedFree(&q_weight); CeedChk(ierr);
   ierr = CeedFree(&grad); CeedChk(ierr);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Create the interpolation matrix for projection from the nodes of
-           `basis_from` to the nodes of `basis_to`. This projection is
-           given by `interp_project = interp_to^+ * interp_from`, where
-           the pesudoinverse `interp_to^+` is given by QR factorization.
-         Note: `basis_from` and `basis_to` must have compatible quadrature
-           spaces.
-
-  @param[in] basis_from       CeedBasis to project from
-  @param[in] basis_to         CeedBasis to project to
-  @param[out] interp_project  Address of the variable where the newly created
-                                projection matrix will be stored.
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedBasisCreateProjectionMatrix(CeedBasis basis_from,
-                                    CeedBasis basis_to,
-                                    CeedScalar **interp_project) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedBasisGetCeed(basis_to, &ceed); CeedChk(ierr);
-
-  // Check for compatible quadrature spaces
-  CeedInt Q_to, Q_from;
-  ierr = CeedBasisGetNumQuadraturePoints(basis_to, &Q_to); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis_from, &Q_from); CeedChk(ierr);
-  if (Q_to != Q_from)
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Bases must have compatible quadrature spaces");
-  // LCOV_EXCL_STOP
-
-  // Coarse to fine basis
-  CeedInt P_to, P_from, Q = Q_to;
-  bool is_tensor_to, is_tensor_from;
-  ierr = CeedBasisIsTensor(basis_to, &is_tensor_to); CeedChk(ierr);
-  ierr = CeedBasisIsTensor(basis_from, &is_tensor_from); CeedChk(ierr);
-  CeedScalar *interp_to, *interp_from, *tau;
-  if (is_tensor_to && is_tensor_from) {
-    ierr = CeedBasisGetNumNodes1D(basis_to, &P_to); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes1D(basis_from, &P_from); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis_from, &Q); CeedChk(ierr);
-  } else if (!is_tensor_to && !is_tensor_from) {
-    ierr = CeedBasisGetNumNodes(basis_to, &P_to); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes(basis_from, &P_from); CeedChk(ierr);
-  } else {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR,
-                     "Bases must both be tensor or non-tensor");
-    // LCOV_EXCL_STOP
-  }
-
-  ierr = CeedMalloc(Q * P_from, &interp_from); CeedChk(ierr);
-  ierr = CeedMalloc(Q * P_to, &interp_to); CeedChk(ierr);
-  ierr = CeedCalloc(P_to * P_from, interp_project); CeedChk(ierr);
-  ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
-  const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL;
-  if (is_tensor_to) {
-    ierr = CeedBasisGetInterp1D(basis_to, &interp_to_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp1D(basis_from, &interp_from_source); CeedChk(ierr);
-  } else {
-    ierr = CeedBasisGetInterp(basis_to, &interp_to_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp(basis_from, &interp_from_source); CeedChk(ierr);
-  }
-  memcpy(interp_to, interp_to_source, Q * P_to * sizeof(interp_to_source[0]));
-  memcpy(interp_from, interp_from_source,
-         Q * P_from * sizeof(interp_from_source[0]));
-
-  // -- QR Factorization, interp_to = Q R
-  ierr = CeedQRFactorization(ceed, interp_to, tau, Q, P_to); CeedChk(ierr);
-
-  // -- Apply Qtranspose, interp_to = Qtranspose interp_from
-  ierr = CeedHouseholderApplyQ(interp_from, interp_to, tau, CEED_TRANSPOSE,
-                               Q, P_from, P_to, P_from, 1); CeedChk(ierr);
-
-  // -- Apply Rinv, interp_project = Rinv interp_c
-  for (CeedInt j = 0; j < P_from; j++) { // Column j
-    (*interp_project)[j + P_from * (P_to - 1)] = interp_from[j + P_from *
-        (P_to - 1)] / interp_to[P_to * P_to - 1];
-    for (CeedInt i = P_to - 2; i >= 0; i--) { // Row i
-      (*interp_project)[j + P_from * i] = interp_from[j + P_from * i];
-      for (CeedInt k = i+1; k < P_to; k++) {
-        (*interp_project)[j + P_from * i] -= interp_to[k + P_to * i]*
-                                             (*interp_project)[j + P_from * k];
-      }
-      (*interp_project)[j + P_from * i] /= interp_to[i + P_to * i];
-    }
-  }
-  ierr = CeedFree(&tau); CeedChk(ierr);
-  ierr = CeedFree(&interp_to); CeedChk(ierr);
-  ierr = CeedFree(&interp_from); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
