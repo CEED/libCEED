@@ -815,10 +815,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   // Find dim and Q1d
   bool useCollograd = true;
+  bool allCollograd = true;
   data->maxP1d = 0;
   for (CeedInt i = 0; i < numinputfields; i++) {
     ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
+      allCollograd = false;
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
       CeedChkBackend(ierr);
@@ -847,6 +849,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
 
     if (basis != CEED_BASIS_COLLOCATED) {
+      allCollograd = false;
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
       CeedChkBackend(ierr);
@@ -869,6 +872,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   data->dim = dim;
   data->Q1d = Q1d;
+  // TODO: https://github.com/CEED/libCEED/pull/1009#issuecomment-1176751436
+  useCollograd &= !allCollograd;
 
   // Define CEED_Q_VLA
   if (dim != 3 || useCollograd) {
