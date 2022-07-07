@@ -382,9 +382,7 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Argument for CeedOperatorSetField that vector is collocated with
-/// quadrature points, used with QFunction eval mode CEED_EVAL_NONE
-/// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
-/// or CEED_EVAL_CURL
+/// quadrature points, only used with CeedEvalMode CEED_EVAL_NONE
 /// @ingroup CeedBasis
 CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
