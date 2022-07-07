@@ -64,8 +64,8 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
       return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
                        "Field '%s' configured with CEED_EVAL_NONE must "
                        "be used with CEED_BASIS_COLLOCATED",
-                       // LCOV_EXCL_STOP
                        qf_field->field_name);
+    // LCOV_EXCL_STOP
     ierr = CeedBasisGetDimension(b, &dim); CeedChk(ierr);
     ierr = CeedBasisGetNumComponents(b, &num_comp); CeedChk(ierr);
     if (r != CEED_ELEMRESTRICTION_NONE && restr_num_comp != num_comp) {
@@ -78,6 +78,14 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
                        num_comp);
       // LCOV_EXCL_STOP
     }
+  } else if (eval_mode != CEED_EVAL_NONE) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE,
+                     "Field '%s' configured with %s cannot "
+                     "be used with CEED_BASIS_COLLOCATED",
+                     qf_field->field_name, CeedEvalModes[eval_mode]);
+    // LCOV_EXCL_STOP
+
   }
   // Field size
   switch(eval_mode) {
