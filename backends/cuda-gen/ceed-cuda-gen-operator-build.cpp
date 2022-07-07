@@ -815,16 +815,18 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   // Find dim and Q1d
   bool useCollograd = false;
   // Only use collocated gradient algorithm when we actually compute a gradient.
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    if (emode == CEED_EVAL_GRAD) {
-      useCollograd = true;
+  if ( dim == 3 ) {
+    for (CeedInt i = 0; i < numinputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+      if (emode == CEED_EVAL_GRAD) {
+        useCollograd = true;
+      }
     }
-  }
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    if (emode == CEED_EVAL_GRAD) {
-      useCollograd = true;
+    for (CeedInt i = 0; i < numoutputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+      if (emode == CEED_EVAL_GRAD) {
+        useCollograd = true;
+      }
     }
   }
   data->maxP1d = 0;
