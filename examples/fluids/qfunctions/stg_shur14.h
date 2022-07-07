@@ -102,11 +102,11 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
  */
 CeedScalar CEED_QFUNCTION_HELPER(Calc_qn)(const CeedScalar kappa,
     const CeedScalar dkappa, const CeedScalar keta, const CeedScalar kcut,
-    const CeedScalar ke, const CeedScalar Ektot) {
+    const CeedScalar ke, const CeedScalar Ektot_inv) {
   const CeedScalar feta_x_fcut   = exp(-Square(12*kappa/keta)
                                        -Cube(4*Max(kappa - 0.9*kcut, 0)/kcut) );
   return pow(kappa/ke, 4.) * pow(1 + 2.4*Square(kappa/ke),-17./6)
-         *feta_x_fcut*dkappa/Ektot;
+         *feta_x_fcut*dkappa * Ektot_inv;
 }
 
 // Calculate hmax, ke, keta, and kcut
@@ -243,6 +243,9 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
   u[2] = ubar[2] + cij[4]*vp[0] + cij[5]*vp[1] + cij[2]*vp[2];
 }
 
+// Create preprocessed input for the stg calculation
+//
+// stg_data[0] = 1 / Ektot (inverse of total spectrum energy)
 CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
                                      const CeedScalar *const *in, CeedScalar *const *out) {
   //*INDENT-OFF*
@@ -291,6 +294,7 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
       const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
       stg_data[i] += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
     }
+    stg_data[i] = 1/stg_data[i];
   }
   return 0;
 }
@@ -517,7 +521,7 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
   //*INDENT-ON*
 
   const STGShur14Context stg_ctx = (STGShur14Context) ctx;
-  CeedScalar qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
+  CeedScalar u[3], ubar[3], cij[6], eps, lt;
   const bool mean_only    = stg_ctx->mean_only;
   const CeedScalar dx     = stg_ctx->dx;
   const CeedScalar mu     = stg_ctx->newtonian_ctx.mu;
@@ -544,10 +548,14 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
 
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
-      STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i],
-                                  h, x[1], eps, lt, mu/rho, u, stg_ctx);
-      // CalcSpectrum(coords[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
-      // STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+      if (1) {
+        STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i],
+                                    h, x[1], eps, lt, mu/rho, u, stg_ctx);
+      } else { // Original way
+        CeedScalar qn[STG_NMODES_MAX];
+        CalcSpectrum(coords[1][i], eps, lt, h, mu/rho, qn, stg_ctx);
+        STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
+      }
     } else {
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
