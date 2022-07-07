@@ -933,7 +933,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     if (emode != CEED_EVAL_WEIGHT) {
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       if (basis != CEED_BASIS_COLLOCATED) {
-        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+        bool isTensor;
+        ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+        if (isTensor) {
+          ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+        } else {
+          ierr = CeedBasisGetNumNodes(basis, &P1d); CeedChkBackend(ierr);
+        }
         code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       } else {
         code << "  const CeedInt P_in_"<<i<<" = "<<Q1d<<";\n";
