@@ -220,7 +220,7 @@ static int CeedQFunctionContextRestoreDataRead_Memcheck(
                      "Context data changed while accessed in read-only mode");
   // LCOV_EXCL_STOP
 
-  ierr = CeedFree(&impl->data_read_only_copy);
+  ierr = CeedFree(&impl->data_read_only_copy); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
