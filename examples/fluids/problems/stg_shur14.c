@@ -390,7 +390,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(stg_context, "solution time",
                                      offsetof(struct STGShur14Context_, time), 1,
-                                     "Phyiscal time of the solution");
+                                     "Physical time of the solution");
 
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction         = ICsSTG;

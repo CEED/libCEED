@@ -164,7 +164,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextSetDataDestroy(euler_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
   CeedQFunctionContextRegisterDouble(euler_context, "solution time",
-                                     offsetof(struct EulerContext_, curr_time), 1, "Phyiscal time of the solution");
+                                     offsetof(struct EulerContext_, curr_time), 1, "Physical time of the solution");
   CeedQFunctionContextReferenceCopy(euler_context,
                                     &problem->ics.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context,
