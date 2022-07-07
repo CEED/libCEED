@@ -814,6 +814,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
   // Find dim and Q1d
+  bool hasTensorBasis = false;
+  bool hasNonTensorBasis = false;
   bool useCollograd = true;
   bool allCollograd = true;
   data->maxP1d = 0;
@@ -835,8 +837,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+        hasTensorBasis = true;
       } else {
         ierr = CeedBasisGetNumNodes(basis, &P1d); CeedChkBackend(ierr);
+        hasNonTensorBasis = true;
       }
       if (P1d>data->maxP1d) data->maxP1d = P1d;
     }
@@ -858,11 +862,18 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       if (isTensor) {
         ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
+        hasTensorBasis = true;
+      } else {
+        hasNonTensorBasis = true;
       }
 
       // Check for collocated gradient
       useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
     }
+  }
+  if ( hasTensorBasis && hasNonTensorBasis )
+  {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with mixed tensor and non-tensor basis");
   }
   data->dim = dim;
   data->Q1d = Q1d;
