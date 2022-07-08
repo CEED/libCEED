@@ -88,6 +88,8 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
 
   }
   // Field size
+  CeedInt Q_comp;
+  ierr = CeedBasisGetNumQuadratureComponents(b, &Q_comp); CeedChk(ierr);
   switch(eval_mode) {
   case CEED_EVAL_NONE:
     if (size != restr_num_comp)
@@ -100,14 +102,14 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_INTERP:
-    if (size != num_comp)
+    if (size != num_comp*Q_comp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Field '%s' of size %" CeedInt_FMT
                        " and EvalMode %s: ElemRestriction/Basis has "
                        CeedInt_FMT " components",
                        qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode],
-                       num_comp);
+                       num_comp*Q_comp);
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_GRAD:
@@ -125,7 +127,15 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // No additional checks required
     break;
   case CEED_EVAL_DIV:
-    // Not implemented
+    if (size != num_comp)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
+                       "Field '%s' of size %" CeedInt_FMT
+                       " and EvalMode %s: ElemRestriction/Basis has "
+                       CeedInt_FMT " components",
+                       qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode],
+                       num_comp);
+    // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_CURL:
     // Not implemented
