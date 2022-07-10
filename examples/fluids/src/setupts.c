@@ -338,13 +338,12 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
                                 PetscReal shift, Mat J, Mat J_pre,
                                 void *user_data) {
   User user = *(User *)user_data;
-  PetscBool J_is_shell, J_pre_is_shell;
+  PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
   PetscFunctionBeginUser;
   if (user->phys->ijacobian_time_shift_label)
     CeedOperatorContextSetDouble(user->op_ijacobian,
                                  user->phys->ijacobian_time_shift_label, &shift);
-  PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
-  PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL,
                                    &J_pre_is_shell));
@@ -361,7 +360,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
       PetscCall(FormPreallocation(user,user->app_ctx->pmat_pbdiagonal,J_pre,
                                   &user->coo_values_pmat));
     }
-    if (J != J_pre && !J_is_shell) {
+    if (J != J_pre && !J_is_shell && !J_is_mffd) {
       PetscCall(FormPreallocation(user,PETSC_FALSE,J, &user->coo_values_amat));
     }
     user->matrices_set_up = true;
@@ -370,8 +369,12 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
     PetscCall(FormSetValues(user, user->app_ctx->pmat_pbdiagonal, J_pre,
                             user->coo_values_pmat));
   }
-  if (user->coo_values_amat) PetscCall(FormSetValues(user, PETSC_FALSE, J,
-                                         user->coo_values_amat));
+  if (user->coo_values_amat) {
+    PetscCall(FormSetValues(user, PETSC_FALSE, J, user->coo_values_amat));
+  } else if (J_is_mffd) {
+    PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  }
   PetscFunctionReturn(0);
 }
 
