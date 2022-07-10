@@ -307,7 +307,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
   CeedVectorDestroy(&user->g_ceed);
-  CeedVectorDestroy(&user->coo_values);
+  CeedVectorDestroy(&user->coo_values_amat);
+  CeedVectorDestroy(&user->coo_values_pmat);
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
@@ -365,6 +366,8 @@ int main(int argc, char **argv) {
 
   // -- Function list
   ierr = PetscFunctionListDestroy(&app_ctx->problems); CHKERRQ(ierr);
+
+  PetscCall(PetscFree(app_ctx->amat_type));
 
   // -- Structs
   ierr = PetscFree(units); CHKERRQ(ierr);
