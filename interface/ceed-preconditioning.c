@@ -1455,6 +1455,8 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
   ierr = CeedDestroy(&(*data)->ceed); CeedChk(ierr);
   ierr = CeedBasisDestroy(&(*data)->basis_in); CeedChk(ierr);
   ierr = CeedBasisDestroy(&(*data)->basis_out); CeedChk(ierr);
+  ierr = CeedFree(&(*data)->eval_mode_in); CeedChk(ierr);
+  ierr = CeedFree(&(*data)->eval_mode_out); CeedChk(ierr);
   ierr = CeedFree(&(*data)->B_in); CeedChk(ierr);
   ierr = CeedFree(&(*data)->B_out); CeedChk(ierr);
 
