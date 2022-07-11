@@ -254,7 +254,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from,
   output_project[0] = *interp_project;
   for (CeedInt m = 1; m < num_matrices; m++) {
     input_from[m] = (CeedScalar *)&grad_from_source[(m - 1) * Q * P_from];
-    output_project[m] = &(*grad_project[(m - 1) * P_to * P_from]);
+    output_project[m] = &((*grad_project)[(m - 1) * P_to * P_from]);
   }
   for (CeedInt m = 0; m < num_matrices; m++) {
     // -- QR Factorization, interp_to = Q R
