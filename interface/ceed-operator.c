@@ -645,6 +645,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
+  (*op)->ref_count = 1;
   (*op)->is_composite = true;
   ierr = CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators); CeedChk(ierr);
   (*op)->input_size = -1;

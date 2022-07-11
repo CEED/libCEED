@@ -110,6 +110,9 @@ struct AppCtx_private {
   char              ceed_resource[PETSC_MAX_PATH_LEN]; // libCEED backend
   PetscInt          degree;
   PetscInt          q_extra;
+  // Solver arguments
+  MatType           amat_type;
+  PetscBool         pmat_pbdiagonal;
   // Post-processing arguments
   PetscInt          output_freq;
   PetscInt          viz_refine;
@@ -148,7 +151,8 @@ struct User_private {
   Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values, x_ceed;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat,
+               x_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian,
                op_dirichlet;
   bool matrices_set_up;

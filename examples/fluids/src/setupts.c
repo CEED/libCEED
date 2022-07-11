@@ -281,17 +281,69 @@ PetscErrorCode MatGetDiagonal_NS_IJacobian(Mat A, Vec D) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J,
+                                        CeedVector *coo_values) {
+  PetscCount ncoo;
+  PetscInt *rows, *cols;
+
+  PetscFunctionBeginUser;
+  if (pbdiagonal) {
+    CeedSize l_size;
+    CeedOperatorGetActiveVectorLengths(user->op_ijacobian, &l_size, NULL);
+    ncoo = l_size * 5;
+    rows = malloc(ncoo*sizeof(rows[0]));
+    cols = malloc(ncoo*sizeof(cols[0]));
+    for (PetscCount n=0; n<l_size/5; n++) {
+      for (PetscInt i=0; i<5; i++) {
+        for (PetscInt j=0; j<5; j++) {
+          rows[(n*5+i)*5+j] = n * 5 + i;
+          cols[(n*5+i)*5+j] = n * 5 + j;
+        }
+      }
+    }
+  } else {
+    PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows,
+              &cols));
+  }
+  PetscCall(MatSetPreallocationCOOLocal(J, ncoo, rows, cols));
+  free(rows);
+  free(cols);
+  CeedVectorCreate(user->ceed, ncoo, coo_values);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J,
+                                    CeedVector coo_values) {
+  CeedMemType mem_type = CEED_MEM_HOST;
+  const PetscScalar *values;
+  MatType mat_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatGetType(J, &mat_type));
+  if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse"))
+    mem_type = CEED_MEM_DEVICE;
+  if (user->app_ctx->pmat_pbdiagonal) {
+    CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian,
+        coo_values, CEED_REQUEST_IMMEDIATE);
+  } else {
+    CeedOperatorLinearAssemble(user->op_ijacobian, coo_values);
+  }
+  CeedVectorGetArrayRead(coo_values, mem_type, &values);
+  PetscCall(MatSetValuesCOO(J, values, INSERT_VALUES));
+  CeedVectorRestoreArrayRead(coo_values, &values);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
                                 PetscReal shift, Mat J, Mat J_pre,
                                 void *user_data) {
   User user = *(User *)user_data;
-  PetscBool J_is_shell, J_pre_is_shell;
+  PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
   PetscFunctionBeginUser;
   if (user->phys->ijacobian_time_shift_label)
     CeedOperatorContextSetDouble(user->op_ijacobian,
                                  user->phys->ijacobian_time_shift_label, &shift);
-  PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
-  PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL,
                                    &J_pre_is_shell));
@@ -305,28 +357,23 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
       PetscCall(MatSetUp(J));
     }
     if (!J_pre_is_shell) {
-      PetscCount ncoo;
-      PetscInt *rows, *cols;
-      PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows,
-                &cols));
-      PetscCall(MatSetPreallocationCOOLocal(J_pre, ncoo, rows, cols));
-      free(rows);
-      free(cols);
-      CeedVectorCreate(user->ceed, ncoo, &user->coo_values);
-      user->matrices_set_up = true;
+      PetscCall(FormPreallocation(user,user->app_ctx->pmat_pbdiagonal,J_pre,
+                                  &user->coo_values_pmat));
     }
+    if (J != J_pre && !J_is_shell && !J_is_mffd) {
+      PetscCall(FormPreallocation(user,PETSC_FALSE,J, &user->coo_values_amat));
+    }
+    user->matrices_set_up = true;
   }
   if (!J_pre_is_shell) {
-    CeedMemType mem_type = CEED_MEM_HOST;
-    const PetscScalar *values;
-    MatType mat_type;
-    PetscCall(MatGetType(J_pre, &mat_type));
-    if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse"))
-      mem_type = CEED_MEM_DEVICE;
-    CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
-    CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
-    PetscCall(MatSetValuesCOO(J_pre, values, INSERT_VALUES));
-    CeedVectorRestoreArrayRead(user->coo_values, &values);
+    PetscCall(FormSetValues(user, user->app_ctx->pmat_pbdiagonal, J_pre,
+                            user->coo_values_pmat));
+  }
+  if (user->coo_values_amat) {
+    PetscCall(FormSetValues(user, PETSC_FALSE, J, user->coo_values_amat));
+  } else if (J_is_mffd) {
+    PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
   }
   PetscFunctionReturn(0);
 }
@@ -432,6 +479,15 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
     }
     if (user->op_ijacobian) {
       ierr = DMTSSetIJacobian(dm, FormIJacobian_NS, &user); CHKERRQ(ierr);
+      if (app_ctx->amat_type) {
+        Mat Pmat,Amat;
+        ierr = DMCreateMatrix(dm, &Pmat); CHKERRQ(ierr);
+        ierr = DMSetMatType(dm, app_ctx->amat_type); CHKERRQ(ierr);
+        ierr = DMCreateMatrix(dm, &Amat); CHKERRQ(ierr);
+        ierr = TSSetIJacobian(*ts, Amat, Pmat, NULL, NULL); CHKERRQ(ierr);
+        ierr = MatDestroy(&Amat); CHKERRQ(ierr);
+        ierr = MatDestroy(&Pmat); CHKERRQ(ierr);
+      }
     }
   } else {
     if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL,
