@@ -176,7 +176,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscReal  mesh_top_angle     = 5;      // degrees
   char mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
 
-  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
+  PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   ierr = PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow",
                           NULL, weakT, &weakT, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
