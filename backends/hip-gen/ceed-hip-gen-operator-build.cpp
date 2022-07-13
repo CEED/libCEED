@@ -1140,16 +1140,14 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     CeedChkBackend(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
+      code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
       if (useCollograd) {
         //Accumulator for gradient slices
-        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
         code << "    for (CeedInt i = 0; i < ncomp_out_"<<i<<"; ++i) {\n";
         code << "      for (CeedInt j = 0; j < Q1d; ++j) {\n";
         code << "        r_tt"<<i<<"[j + i*Q1d] = 0.0;\n";
         code << "      }\n";
         code << "    }\n";
-      } else {
-        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Dim*Q1d];\n";
       }
     }
     if (emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP)
@@ -1176,7 +1174,6 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
 
         bool isStrided;
         ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict); CeedChkBackend(ierr);
-        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChkBackend(ierr);
         ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
         if (!isStrided) {
           ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
@@ -1189,6 +1186,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
           data->indices.in[i] = restr_data->d_ind;
           code << "      readSliceQuadsOffset"<<"3d<ncomp_in_"<<i<<", "<<compstride<<", Q1d>(data, lsize_in_"<<i<<", elem, q, indices.in["<<i<<"], d_u"<<i<<", r_q"<<i<<");\n";
         } else {
+        ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize); CeedChkBackend(ierr);
           bool backendstrides;
           ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
           CeedChkBackend(ierr);
