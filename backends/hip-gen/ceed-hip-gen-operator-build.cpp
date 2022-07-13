@@ -813,7 +813,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   code << "#define CEED_ERROR_SUCCESS 0\n\n";
 
   // Find dim and Q1d
-  bool useCollograd = true;
+  bool useCollograd = false;
   // Only use collocated gradient algorithm when we actually compute a gradient.
   if ( dim == 3 ) {
     for (CeedInt i = 0; i < numinputfields; i++) {
