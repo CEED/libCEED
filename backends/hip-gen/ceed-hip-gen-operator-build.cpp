@@ -1140,14 +1140,16 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     CeedChkBackend(ierr);
     if (emode==CEED_EVAL_GRAD)
     {
-      code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
       if (useCollograd) {
         //Accumulator for gradient slices
+        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Q1d];\n";
         code << "    for (CeedInt i = 0; i < ncomp_out_"<<i<<"; ++i) {\n";
         code << "      for (CeedInt j = 0; j < Q1d; ++j) {\n";
         code << "        r_tt"<<i<<"[j + i*Q1d] = 0.0;\n";
         code << "      }\n";
         code << "    }\n";
+      } else {
+        code << "    CeedScalar r_tt"<<i<<"[ncomp_out_"<<i<<"*Dim*Q1d];\n";
       }
     }
     if (emode==CEED_EVAL_NONE || emode==CEED_EVAL_INTERP)
