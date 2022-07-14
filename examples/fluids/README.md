@@ -69,7 +69,7 @@ The following options are common among all problem types:
   - `0`
 
 * - `-output_freq`
-  - Frequency of output, in number of steps
+  - Frequency of output, in number of steps. `0` results in no output
   - `10`
 
 * - `-continue`
