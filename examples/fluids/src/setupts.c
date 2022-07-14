@@ -389,7 +389,8 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
   PetscFunctionBeginUser;
 
   // Print every 'output_freq' steps
-  if (step_no % user->app_ctx->output_freq != 0)
+  if (user->app_ctx->output_freq == 0
+      || step_no % user->app_ctx->output_freq != 0)
     PetscFunctionReturn(0);
 
   // Set up output
