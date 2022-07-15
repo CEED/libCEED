@@ -149,7 +149,7 @@ typedef enum {
   /// Double precision
   CEED_SCALAR_FP64
 } CeedScalarType;
-/// Base scalar type for the library to use: change which header is 
+/// Base scalar type for the library to use: change which header is
 /// included to change the precision.
 #include "ceed-f64.h"
 
@@ -582,6 +582,10 @@ CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
                                     CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
                                       CeedScalar *q_weight_1d);
+CEED_EXTERN int CeedHaleTrefethenStripMap(CeedScalar rho, CeedScalar s,
+                                          CeedScalar *g, CeedScalar *g_prime);
+CEED_EXTERN int CeedGaussHaleTrefethenQuadrature(CeedScalar rho, CeedInt Q,
+                                                 CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
                                     CeedInt m, CeedInt n);
 CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,

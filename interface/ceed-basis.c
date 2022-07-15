@@ -5,6 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#define _XOPEN_SOURCE
+
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <ceed-impl.h>
@@ -1544,6 +1546,53 @@ int CeedBasisDestroy(CeedBasis *basis) {
 }
 
 /**
+  @brief Hale and Trefethen strip transformation
+
+  @param[in] rho  sum of semiminor and major axis
+  @param[in] s    input coordinate in [-1, 1]
+  @param[out] g   conformal map g(s); will be in [-1, 1]
+  @param[out] g_prime   derivative of conformal map g
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedHaleTrefethenStripMap(CeedScalar rho, CeedScalar s, CeedScalar *g, CeedScalar *g_prime) {
+  const CeedScalar u = asin(s);
+  const CeedScalar tau = M_PI / log(rho);
+  const CeedScalar
+    e_plus = exp(-tau*(M_PI_2 + u)),
+    e_minus = exp(-tau*(M_PI_2 - u)),
+    c2 = .5 + 1/(1 + exp(tau*M_PI)),
+    //C = log1p(exp(-tau*M_PI) - log1p(1) + c2*tau*M_PI_2);
+    C = 1 / log1p(exp(-tau*M_PI) - log1p(1) + c2*tau*M_PI_2);
+    //C = 1 / log1p(exp(-tau*M_PI) - log(2) + c2*tau*M_PI_2);
+  *g = C * (log1p(e_plus) - log1p(e_minus) + c2*tau*u); // g(s)
+  *g_prime = -tau*C/sqrt(1 - s*s) * (1 / (1 + e_plus) + 1 / (1 + e_minus) - c2); // g'(s)
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Transform quadrature by applying a smooth mapping = (g, g_prime)
+
+  @param Q  Number of quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedTransformQuadrature(CeedScalar rho, CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d) {
+  int ierr;
+  for (CeedInt i=0; i<Q; i++) {
+    CeedScalar g, g_prime;
+    ierr = CeedHaleTrefethenStripMap(rho, q_ref_1d[i], &g, &g_prime); CeedChk(ierr);
+    q_ref_1d[i] = g;
+    q_weight_1d[i] *= g_prime;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Construct a Gauss-Legendre quadrature
 
   @param Q                 Number of quadrature points (integrates polynomials of
@@ -1594,6 +1643,14 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedGaussHaleTrefethenQuadrature(CeedScalar rho, CeedInt Q, CeedScalar *q_ref_1d,
+                        CeedScalar *q_weight_1d) {
+  CeedGaussQuadrature(Q, q_ref_1d, q_weight_1d);
+  CeedTransformQuadrature(rho, Q, q_ref_1d, q_weight_1d);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1666,6 +1723,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
     q_ref_1d[i] = -xi;
     q_ref_1d[Q-1-i]= xi;
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
