@@ -378,84 +378,94 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
   PetscFunctionReturn(0);
 }
 
-// User provided TS Monitor
-PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
-                            Vec Q, void *ctx) {
-  User           user = ctx;
+PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
+                           PetscScalar time)  {
   Vec            Q_loc;
   char           file_path[PETSC_MAX_PATH_LEN];
   PetscViewer    viewer;
-  PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
-  // Print every 'output_freq' steps
-  if (user->app_ctx->output_freq == 0
-      || step_no % user->app_ctx->output_freq != 0)
-    PetscFunctionReturn(0);
-
   // Set up output
-  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject)Q_loc, "StateVec"); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
+  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
+  PetscCall(PetscObjectSetName((PetscObject)Q_loc, "StateVec"));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // Output
-  ierr = PetscSNPrintf(file_path, sizeof file_path,
-                       "%s/ns-%03" PetscInt_FMT ".vtu",
-                       user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
-  CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
-                            FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-  ierr = VecView(Q_loc, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+                          "%s/ns-%03" PetscInt_FMT ".vtu",
+                          user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+
+  PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
+                               FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(Q_loc, viewer));
+  PetscCall(PetscViewerDestroy(&viewer));
   if (user->dm_viz) {
     Vec         Q_refined, Q_refined_loc;
     char        file_path_refined[PETSC_MAX_PATH_LEN];
     PetscViewer viewer_refined;
 
-    ierr = DMGetGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
-    ierr = DMGetLocalVector(user->dm_viz, &Q_refined_loc); CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)Q_refined_loc, "Refined");
-    CHKERRQ(ierr);
-    ierr = MatInterpolate(user->interp_viz, Q, Q_refined); CHKERRQ(ierr);
-    ierr = VecZeroEntries(Q_refined_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc);
-    CHKERRQ(ierr);
-    ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
-                         "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
-                         step_no + user->app_ctx->cont_steps);
-    CHKERRQ(ierr);
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
-                              file_path_refined, FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
-    ierr = VecView(Q_refined_loc, viewer_refined); CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(user->dm_viz, &Q_refined_loc); CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
+    PetscCall(DMGetGlobalVector(user->dm_viz, &Q_refined));
+    PetscCall(DMGetLocalVector(user->dm_viz, &Q_refined_loc));
+    PetscCall(PetscObjectSetName((PetscObject)Q_refined_loc, "Refined"));
+
+    PetscCall(MatInterpolate(user->interp_viz, Q, Q_refined));
+    PetscCall(VecZeroEntries(Q_refined_loc));
+    PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES,
+                              Q_refined_loc));
+
+    PetscCall(PetscSNPrintf(file_path_refined, sizeof file_path_refined,
+                            "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
+                            step_no + user->app_ctx->cont_steps));
+
+    PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
+                                 file_path_refined, FILE_MODE_WRITE, &viewer_refined));
+    PetscCall(VecView(Q_refined_loc, viewer_refined));
+    PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
+    PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
+    PetscCall(PetscViewerDestroy(&viewer_refined));
   }
-  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
+  PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
   // Save data in a binary file for continuation of simulations
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                       user->app_ctx->output_dir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
-  ierr = VecView(Q, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
+                          user->app_ctx->output_dir));
+  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+                                  &viewer));
+
+  PetscCall(VecView(Q, viewer));
+  PetscCall(PetscViewerDestroy(&viewer));
 
   // Save time stamp
   // Dimensionalize time back
   time /= user->units->second;
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
-                       user->app_ctx->output_dir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+                          user->app_ctx->output_dir));
+  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+                                  &viewer));
+
   #if PETSC_VERSION_GE(3,13,0)
-  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL);
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
   #else
-  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true);
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
   #endif
-  CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscCall(PetscViewerDestroy(&viewer));
+
+  PetscFunctionReturn(0);
+}
+
+// User provided TS Monitor
+PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
+                            Vec Q, void *ctx) {
+  User           user = ctx;
+  PetscFunctionBeginUser;
+
+  // Print every 'output_freq' steps
+  if (user->app_ctx->output_freq <= 0
+      || step_no % user->app_ctx->output_freq != 0)
+    PetscFunctionReturn(0);
+
+  PetscCall(WriteOutput(user, Q, step_no, time));
 
   PetscFunctionReturn(0);
 }
@@ -563,7 +573,14 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
 
+
   if (!app_ctx->test_mode) {
+    if (user->app_ctx->output_freq > 0 || user->app_ctx->output_freq == -1) {
+      PetscInt step_no;
+      PetscCall(TSGetStepNumber(*ts, &step_no));
+      PetscCall(WriteOutput(user, *Q, step_no, final_time));
+    }
+
     PetscLogEvent stage_id;
     PetscStageLog stage_log;
 
