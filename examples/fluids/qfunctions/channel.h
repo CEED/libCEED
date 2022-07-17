@@ -30,55 +30,38 @@ struct ChannelContext_ {
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 
-CEED_QFUNCTION_HELPER CeedInt Exact_Channel_Prim(CeedInt dim, CeedScalar time,
-    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
+CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time,
+    const CeedScalar X[], CeedInt Nf, void *ctx) {
 
   const ChannelContext context = (ChannelContext)ctx;
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar umax   = context->umax;
-  const CeedScalar center = context->center;
-  const CeedScalar H      = context->H;
-  const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar mu     = context->newtonian_ctx.mu;
-  const CeedScalar k      = context->newtonian_ctx.k;
-
-  const CeedScalar y=X[1];
-
-  const CeedScalar Pr    = mu / (cp*k);
-  const CeedScalar Ec    = (umax*umax) / (cp*theta0);
-  const CeedScalar theta = theta0*(1 + (Pr*Ec/3)
-                                   * (1 - Square(Square((y-center)/H))));
-  q[0] = P0;
-  q[1] = umax*(1 - Square((y-center)/H));
-  q[2] = 0.;
-  q[3] = 0.;
-  q[4] = theta;
-
-  return 0;
-}
-
-CEED_QFUNCTION_HELPER CeedInt Exact_Channel(CeedInt dim, CeedScalar time,
-    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-
-  const ChannelContext context = (ChannelContext)ctx;
+  const CeedScalar theta0      = context->theta0;
+  const CeedScalar P0          = context->P0;
+  const CeedScalar umax        = context->umax;
+  const CeedScalar center      = context->center;
+  const CeedScalar H           = context->H;
   NewtonianIdealGasContext gas = &context->newtonian_ctx;
+  const CeedScalar cp          = gas->cp;
+  const CeedScalar mu          = gas->mu;
+  const CeedScalar k           = gas->k;
   // There is a gravity body force but it is excluded from
   //   the potential energy due to periodicity.
   gas->g[0] = 0.;
   gas->g[1] = 0.;
   gas->g[2] = 0.;
 
+  const CeedScalar y     = X[1];
+  const CeedScalar Pr    = mu / (cp*k);
+  const CeedScalar Ec    = (umax*umax) / (cp*theta0);
+  const CeedScalar theta = theta0*(1 + (Pr*Ec/3)
+                                   * (1 - Square(Square((y-center)/H))));
   CeedScalar Y[5] = {0.};
-  Exact_Channel_Prim(dim, time, X, Nf, Y, context);
-  State s = StateFromY(gas, Y, X);
+  Y[0] = P0;
+  Y[1] = umax*(1 - Square((y-center)/H));
+  Y[2] = 0.;
+  Y[3] = 0.;
+  Y[4] = theta;
 
-  q[0] = s.U.density;
-  for (CeedInt j=0; j<3; j++)
-    q[j+1] = s.U.momentum[j];
-  q[4] = s.U.E_total;
-
-  return 0;
+  return StateFromY(gas, Y, X);
 }
 
 // *****************************************************************************
@@ -96,8 +79,12 @@ CEED_QFUNCTION(ICsChannel_Prim)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    State s = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar q[5] = {0.};
-    Exact_Channel_Prim(3, 0., x, 5, q, ctx);
+    q[0] = s.Y.pressure;
+    for (CeedInt j=0; j<3; j++)
+      q[j+1] = s.Y.velocity[j];
+    q[4] = s.Y.temperature;
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -105,8 +92,8 @@ CEED_QFUNCTION(ICsChannel_Prim)(void *ctx, CeedInt Q,
   return 0;
 }
 
-CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q,
-                           const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ICsChannel_Cons)(void *ctx, CeedInt Q,
+                                const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
@@ -117,8 +104,12 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q,
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    State s = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar q[5] = {0.};
-    Exact_Channel(3, 0., x, 5, q, ctx);
+    q[0] = s.U.density;
+    for (CeedInt j=0; j<3; j++)
+      q[j+1] = s.U.momentum[j];
+    q[4] = s.U.E_total;
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
@@ -158,8 +149,12 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
 
     // Calcualte prescribed inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    State s = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar q_exact[5] = {0.};
-    Exact_Channel(3, 0., x, 5, q_exact, ctx);
+    q_exact[0] = s.U.density;
+    for (CeedInt j=0; j<3; j++)
+      q_exact[j+1] = s.U.momentum[j];
+    q_exact[4] = s.U.E_total;
     const CeedScalar E_kinetic_exact = 0.5*Dot3(&q_exact[1], &q_exact[1])
                                        / q_exact[0];
     const CeedScalar velocity[3] = {q_exact[1]/q_exact[0],
