@@ -95,24 +95,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->jac_data_size_sur                    = 11;
   problem->setup_vol.qfunction                  = Setup;
   problem->setup_vol.qfunction_loc              = Setup_loc;
-  problem->ics.qfunction                        = ICsNewtonianIG;
-  problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
   problem->setup_sur.qfunction                  = SetupBoundary;
   problem->setup_sur.qfunction_loc              = SetupBoundary_loc;
-  problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
-  problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
-  problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian;
-  problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_loc;
-  problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian;
-  problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_loc;
-  problem->apply_inflow.qfunction               = BoundaryIntegral;
-  problem->apply_inflow.qfunction_loc           = BoundaryIntegral_loc;
-  problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian;
-  problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_loc;
-  problem->apply_outflow.qfunction              = PressureOutflow;
-  problem->apply_outflow.qfunction_loc          = PressureOutflow_loc;
-  problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian;
-  problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_loc;
   problem->bc                                   = NULL;
   problem->bc_ctx                               = setup_context;
   problem->non_zero_time                        = PETSC_FALSE;
@@ -155,12 +139,29 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   ierr = PetscOptionsBool("-primitive", "Use primitive variables",
                           NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
   if (prim_var) {
-    problem->ics.qfunction                     = ICsNewtonianIG_Prim;
-    problem->ics.qfunction_loc                 = ICsNewtonianIG_Prim_loc;
-    problem->apply_vol_ifunction.qfunction     = IFunction_Newtonian_Prim;
-    problem->apply_vol_ifunction.qfunction_loc = IFunction_Newtonian_Prim_loc;
-    problem->apply_vol_ijacobian.qfunction     = IJacobian_Newtonian_Prim;
-    problem->apply_vol_ijacobian.qfunction_loc = IJacobian_Newtonian_Prim_loc;
+    problem->ics.qfunction                        = ICsNewtonianIG_Prim;
+    problem->ics.qfunction_loc                    = ICsNewtonianIG_Prim_loc;
+    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Prim;
+    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Prim_loc;
+    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Prim;
+    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Prim_loc;
+  } else {
+    problem->ics.qfunction                        = ICsNewtonianIG;
+    problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
+    problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
+    problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
+    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian;
+    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_loc;
+    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian;
+    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_loc;
+    problem->apply_inflow.qfunction               = BoundaryIntegral;
+    problem->apply_inflow.qfunction_loc           = BoundaryIntegral_loc;
+    problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian;
+    problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_loc;
+    problem->apply_outflow.qfunction              = PressureOutflow;
+    problem->apply_outflow.qfunction_loc          = PressureOutflow_loc;
+    problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian;
+    problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_loc;
   }
 
   // -- Physics
