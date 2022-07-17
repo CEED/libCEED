@@ -63,6 +63,8 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Channel(CeedInt dim, CeedScalar time,
 
   const ChannelContext context = (ChannelContext)ctx;
   NewtonianIdealGasContext gas = &context->newtonian_ctx;
+  // There is a gravity body force but it is excluded from
+  //   the potential energy due to periodicity.
   gas->g[0] = 0.;
   gas->g[1] = 0.;
   gas->g[2] = 0.;
