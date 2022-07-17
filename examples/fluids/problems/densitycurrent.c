@@ -24,14 +24,12 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  if(!user->phys->primitive) {
-    problem->ics.qfunction = ICsDC;
-    problem->ics.qfunction_loc = ICsDC_loc;
-    problem->bc = Exact_DC;
-  } else {
-    problem->ics.qfunction = ICsDC_Prim;
+  if(user->phys->primitive) {
+    problem->ics.qfunction     = ICsDC_Prim;
     problem->ics.qfunction_loc = ICsDC_Prim_loc;
-    problem->bc = Exact_DC_Prim;
+  } else {
+    problem->ics.qfunction     = ICsDC_Cons;
+    problem->ics.qfunction_loc = ICsDC_Cons_loc;
   }
   CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               &setup_context);
