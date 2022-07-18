@@ -152,7 +152,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     State s = Exact_DC(3, 0., x, 5, ctx);
-    if (context->newtonian_ctx.primitive) {
+    if (context->newtonian_ctx.is_primitive) {
       q0[0][i] = s.Y.pressure;
       for (CeedInt j=0; j<3; j++)
         q0[j+1][i] = s.Y.velocity[j];
