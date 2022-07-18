@@ -124,7 +124,7 @@ CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time,
 
   // Initial Conditions
   CeedScalar Y[5] = {0.};
-  Y[0] = P0 * pow(Pi, cv/Rd);
+  Y[0] = P0 * pow(Pi, cp/Rd);
   Y[1] = 0.0;
   Y[2] = 0.0;
   Y[3] = 0.0;
