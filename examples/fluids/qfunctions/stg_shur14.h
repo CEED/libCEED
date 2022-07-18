@@ -321,11 +321,19 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q,
   for(CeedInt i=0; i<Q; i++) {
     InterpolateProfile(X[1][i], u, cij, &eps, &lt, stg_ctx);
 
-    q0[0][i] = rho;
-    q0[1][i] = u[0] * rho;
-    q0[2][i] = u[1] * rho;
-    q0[3][i] = u[2] * rho;
-    q0[4][i] = rho * (0.5 * Dot3(u, u) + cv * theta0);
+    if (stg_ctx->newtonian_ctx.is_primitive) {
+      q0[0][i] = P0;
+      q0[1][i] = u[0];
+      q0[2][i] = u[1];
+      q0[3][i] = u[2];
+      q0[4][i] = theta0;
+    } else {
+      q0[0][i] = rho;
+      q0[1][i] = u[0] * rho;
+      q0[2][i] = u[1] * rho;
+      q0[3][i] = u[2] * rho;
+      q0[4][i] = rho * (0.5 * Dot3(u, u) + cv * theta0);
+    }
   } // End of Quadrature Point Loop
   return 0;
 }
@@ -560,11 +568,20 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
-    bcval[0][i] = scale[i] * rho;
-    bcval[1][i] = scale[i] * rho * u[0];
-    bcval[2][i] = scale[i] * rho * u[1];
-    bcval[3][i] = scale[i] * rho * u[2];
-    bcval[4][i] = 0.;
+    if (stg_ctx->newtonian_ctx.is_primitive) {
+      bcval[0][i] = 0;
+      bcval[1][i] = scale[i] * u[0];
+      bcval[2][i] = scale[i] * u[1];
+      bcval[3][i] = scale[i] * u[2];
+      bcval[4][i] = scale[i] * theta0;
+
+    } else {
+      bcval[0][i] = scale[i] * rho;
+      bcval[1][i] = scale[i] * rho * u[0];
+      bcval[2][i] = scale[i] * rho * u[1];
+      bcval[3][i] = scale[i] * rho * u[2];
+      bcval[4][i] = 0.;
+    }
   }
   return 0;
 }
