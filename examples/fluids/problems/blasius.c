@@ -126,7 +126,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
               faces[1]+1, *num_node_locs);
     if (*num_node_locs > faces[1] +1) {
       ierr = PetscPrintf(comm, "WARNING: y_node_locs_path has more locations (%d) "
-                         "than the mesh has nodes (%d). This maybe unintended.",
+                         "than the mesh has nodes (%d). This maybe unintended.\n",
                          *num_node_locs, faces[1]+1); CHKERRQ(ierr);
     }
     PetscScalar max_y = (*node_locs)[faces[1]];
