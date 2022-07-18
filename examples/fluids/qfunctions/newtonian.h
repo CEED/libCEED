@@ -793,9 +793,10 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
-    const CeedScalar U[5]   = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromU(context, U, x_i);
+    const CeedScalar solution_state[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State s = context->is_primitive ? StateFromY(context, solution_state, x_i)
+              : StateFromU(context, solution_state, x_i);
 
     const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
@@ -846,11 +847,15 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
     // -- Total Energy Density
     v[4][i] = -wdetJb * Flux[4];
 
-    jac_data_sur[0][i] = s.U.density;
-    jac_data_sur[1][i] = s.Y.velocity[0];
-    jac_data_sur[2][i] = s.Y.velocity[1];
-    jac_data_sur[3][i] = s.Y.velocity[2];
-    jac_data_sur[4][i] = s.U.E_total;
+    if (context->is_primitive) {
+      jac_data_sur[0][i] = s.Y.pressure;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
+      jac_data_sur[4][i] = s.Y.temperature;
+    } else {
+      jac_data_sur[0][i] = s.U.density;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
+      jac_data_sur[4][i] = s.U.E_total;
+    }
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   }
   return 0;
@@ -888,13 +893,19 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
     };
 
-    CeedScalar U[5], kmstress[6], dU[5], dx_i[3] = {0.};
-    for (int j=0; j<5; j++) U[j]         = jac_data_sur[j][i];
-    for (int j=0; j<6; j++) kmstress[j]  = jac_data_sur[5+j][i];
-    for (int j=0; j<3; j++) U[j+1]      *= U[0];
-    for (int j=0; j<5; j++) dU[j]        = dq[j][i];
-    State s  = StateFromU(context, U, x_i);
-    State ds = StateFromU_fwd(context, s, dU, x_i, dx_i);
+    CeedScalar state[5], kmstress[6], dstate[5], dx_i[3] = {0.};
+    for (int j=0; j<5; j++) state[j]    = jac_data_sur[j][i];
+    for (int j=0; j<6; j++) kmstress[j] = jac_data_sur[5+j][i];
+    for (int j=0; j<5; j++) dstate[j]   = dq[j][i];
+
+    State s, ds;
+    if (context->is_primitive) {
+      s  = StateFromY(context, state, x_i);
+      ds = StateFromY_fwd(context, s, dstate, x_i, dx_i);
+    } else {
+      s  = StateFromU(context, state, x_i);
+      ds = StateFromU_fwd(context, s, dstate, x_i, dx_i);
+    }
 
     State grad_ds[3];
     for (CeedInt j=0; j<3; j++) {
@@ -954,9 +965,10 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar U[5]   = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    State            s      = StateFromU(context, U, x_i);
+    const CeedScalar solution_state[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State s = context->is_primitive ? StateFromY(context, solution_state, x_i)
+              : StateFromU(context, solution_state, x_i);
     s.Y.pressure = P0;
 
     // -- Interp-to-Interp q_data
@@ -1014,11 +1026,15 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
     v[4][i] = -wdetJb * Flux[4];
 
     // Save values for Jacobian
-    jac_data_sur[0][i] = s.U.density;
-    jac_data_sur[1][i] = s.Y.velocity[0];
-    jac_data_sur[2][i] = s.Y.velocity[1];
-    jac_data_sur[3][i] = s.Y.velocity[2];
-    jac_data_sur[4][i] = s.U.E_total;
+    if (context->is_primitive) {
+      jac_data_sur[0][i] = s.Y.pressure;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
+      jac_data_sur[4][i] = s.Y.temperature;
+    } else {
+      jac_data_sur[0][i] = s.U.density;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
+      jac_data_sur[4][i] = s.U.E_total;
+    }
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   } // End Quadrature Point Loop
   return 0;
@@ -1056,13 +1072,19 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
     };
 
-    CeedScalar U[5], kmstress[6], dU[5], dx_i[3] = {0.};
-    for (int j=0; j<5; j++) U[j]         = jac_data_sur[j][i];
-    for (int j=0; j<6; j++) kmstress[j]  = jac_data_sur[5+j][i];
-    for (int j=0; j<3; j++) U[j+1]      *= U[0];
-    for (int j=0; j<5; j++) dU[j]        = dq[j][i];
-    State s  = StateFromU(context, U, x_i);
-    State ds = StateFromU_fwd(context, s, dU, x_i, dx_i);
+    CeedScalar state[5], kmstress[6], dstate[5], dx_i[3] = {0.};
+    for (int j=0; j<5; j++) state[j]    = jac_data_sur[j][i];
+    for (int j=0; j<6; j++) kmstress[j] = jac_data_sur[5+j][i];
+    for (int j=0; j<5; j++) dstate[j]   = dq[j][i];
+
+    State s, ds;
+    if (context->is_primitive) {
+      s  = StateFromY(context, state, x_i);
+      ds = StateFromY_fwd(context, s, dstate, x_i, dx_i);
+    } else {
+      s  = StateFromU(context, state, x_i);
+      ds = StateFromU_fwd(context, s, dstate, x_i, dx_i);
+    }
     s.Y.pressure  = context->P0;
     ds.Y.pressure = 0.;
 
