@@ -28,13 +28,8 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  if(user->phys->primitive) {
-    problem->ics.qfunction     = ICsDC_Prim;
-    problem->ics.qfunction_loc = ICsDC_Prim_loc;
-  } else {
-    problem->ics.qfunction     = ICsDC_Cons;
-    problem->ics.qfunction_loc = ICsDC_Cons_loc;
-  }
+  problem->ics.qfunction     = ICsDC;
+  problem->ics.qfunction_loc = ICsDC_loc;
 
   // ------------------------------------------------------
   //             Create the libCEED context

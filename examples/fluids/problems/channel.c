@@ -28,12 +28,9 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   //               SET UP Channel
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  if(user->phys->primitive) {
-    problem->ics.qfunction               = ICsChannel_Prim;
-    problem->ics.qfunction_loc           = ICsChannel_Prim_loc;
-  } else {
-    problem->ics.qfunction               = ICsChannel_Cons;
-    problem->ics.qfunction_loc           = ICsChannel_Cons_loc;
+  problem->ics.qfunction     = ICsChannel;
+  problem->ics.qfunction_loc = ICsChannel_loc;
+  if (!user->phys->primitive) {
     problem->apply_inflow.qfunction      = Channel_Inflow;
     problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
     problem->apply_outflow.qfunction     = Channel_Outflow;
