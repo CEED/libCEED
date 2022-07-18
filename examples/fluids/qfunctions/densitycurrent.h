@@ -18,7 +18,20 @@
 #include <math.h>
 #include <ceed.h>
 #include "newtonian_types.h"
+#include "newtonian_state.h"
 #include "utils.h"
+
+typedef struct DensityCurrentContext_ *DensityCurrentContext;
+struct DensityCurrentContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar rc;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+};
 
 // *****************************************************************************
 // This function sets the initial conditions and the boundary conditions
@@ -72,23 +85,23 @@
 // This helper function provides support for the exact, time-dependent solution
 //   (currently not implemented) and IC formulation for density current
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
-                                   const CeedScalar X[], CeedInt Nf, CeedScalar q[],
-                                   void *ctx) {
+CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time,
+                                     const CeedScalar X[], CeedInt Nf, void *ctx) {
   // Context
-  const SetupContext context = (SetupContext)ctx;
-  const CeedScalar theta0   = context->theta0;
-  const CeedScalar thetaC   = context->thetaC;
-  const CeedScalar P0       = context->P0;
-  const CeedScalar N        = context->N;
-  const CeedScalar cv       = context->cv;
-  const CeedScalar cp       = context->cp;
-  const CeedScalar *g_vec   = context->g;
-  const CeedScalar rc       = context->rc;
-  const CeedScalar *center  = context->center;
-  const CeedScalar *dc_axis = context->dc_axis;
-  const CeedScalar Rd       = cp - cv;
-  const CeedScalar g = -g_vec[2];
+  const DensityCurrentContext context = (DensityCurrentContext)ctx;
+  const CeedScalar theta0      = context->theta0;
+  const CeedScalar thetaC      = context->thetaC;
+  const CeedScalar P0          = context->P0;
+  const CeedScalar N           = context->N;
+  const CeedScalar rc          = context->rc;
+  const CeedScalar *center     = context->center;
+  const CeedScalar *dc_axis    = context->dc_axis;
+  NewtonianIdealGasContext gas = &context->newtonian_ctx;
+  const CeedScalar cp          = gas->cp;
+  const CeedScalar cv          = gas->cv;
+  const CeedScalar Rd          = cp - cv;
+  const CeedScalar *g_vec      = gas->g;
+  const CeedScalar g           = -g_vec[2];
 
   // Setup
   // -- Coordinates
@@ -108,18 +121,16 @@ CEED_QFUNCTION_HELPER int Exact_DC(CeedInt dim, CeedScalar time,
 
   // -- Exner pressure, hydrostatic balance
   const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
-  // -- Density
-
-  const CeedScalar rho = P0 * pow(Pi, cv/Rd) / (Rd*theta);
 
   // Initial Conditions
-  q[0] = rho;
-  q[1] = 0.0;
-  q[2] = 0.0;
-  q[3] = 0.0;
-  q[4] = rho * (cv*theta*Pi + g*z);
+  CeedScalar Y[5] = {0.};
+  Y[0] = P0 * pow(Pi, cp/Rd);
+  Y[1] = 0.0;
+  Y[2] = 0.0;
+  Y[3] = 0.0;
+  Y[4] = Pi * theta;
 
-  return 0;
+  return StateFromY(gas, Y, X);
 }
 
 // *****************************************************************************
@@ -133,19 +144,30 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
+  // Context
+  const DensityCurrentContext context = (DensityCurrentContext)ctx;
+
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar q[5] = {0.};
-
-    Exact_DC(3, 0., x, 5, q, ctx);
-
-    for (CeedInt j=0; j<5; j++)
-      q0[j][i] = q[j];
+    State s = Exact_DC(3, 0., x, 5, ctx);
+    if (context->newtonian_ctx.primitive) {
+      q0[0][i] = s.Y.pressure;
+      for (CeedInt j=0; j<3; j++)
+        q0[j+1][i] = s.Y.velocity[j];
+      q0[4][i] = s.Y.temperature;
+    } else {
+      q0[0][i] = s.U.density;
+      for (CeedInt j=0; j<3; j++)
+        q0[j+1][i] = s.U.momentum[j];
+      q0[4][i] = s.U.E_total;
+    }
   } // End of Quadrature Point Loop
 
   return 0;
 }
+
+// *****************************************************************************
 
 #endif // densitycurrent_h
