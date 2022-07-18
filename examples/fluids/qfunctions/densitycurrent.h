@@ -128,7 +128,7 @@ CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time,
   Y[1] = 0.0;
   Y[2] = 0.0;
   Y[3] = 0.0;
-  Y[4] = theta;
+  Y[4] = Pi * theta;
 
   return StateFromY(gas, Y, X);
 }
@@ -146,20 +146,13 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 
   // Context
   const DensityCurrentContext context = (DensityCurrentContext)ctx;
-  const CeedScalar theta0      = context->theta0;
-  const CeedScalar N           = context->N;
-  NewtonianIdealGasContext gas = &context->newtonian_ctx;
-  const CeedScalar cp          = gas->cp;
-  const CeedScalar cv          = gas->cv;
-  const CeedScalar *g_vec      = gas->g;
-  const CeedScalar g           = -g_vec[2];
 
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     State s = Exact_DC(3, 0., x, 5, ctx);
-    if (gas->primitive) {
+    if (context->newtonian_ctx.primitive) {
       q0[0][i] = s.Y.pressure;
       for (CeedInt j=0; j<3; j++)
         q0[j+1][i] = s.Y.velocity[j];
@@ -168,9 +161,7 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
       q0[0][i] = s.U.density;
       for (CeedInt j=0; j<3; j++)
         q0[j+1][i] = s.U.momentum[j];
-      const CeedScalar Pi = 1. + g*g*(exp(-N*N*x[2]/g) - 1.) / (cp*theta0*N*N);
-      // Multiply internal energy by Exner pressure (Pi)
-      q0[4][i] = s.U.density * (cv*s.Y.temperature*Pi + g*x[2]);
+      q0[4][i] = s.U.E_total;
     }
   } // End of Quadrature Point Loop
 
