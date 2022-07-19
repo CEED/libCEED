@@ -77,7 +77,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   StateVariable     state_var;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
-  PetscBool         has_curr_time = PETSC_FALSE, unit_tests;
+  PetscBool         has_curr_time = PETSC_FALSE, unit_tests, use_fluxproj;
   PetscInt          ierr;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext newtonian_ig_context;
@@ -159,6 +159,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
     problem->apply_outflow.qfunction_loc          = PressureOutflow_Conserv_loc;
     problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Conserv;
     problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Conserv_loc;
+    problem->apply_fluxproj.qfunction             = DivDiffusiveFlux_Conserv;
+    problem->apply_fluxproj.qfunction_loc         = DivDiffusiveFlux_Conserv_loc;
     break;
 
   case STATEVAR_PRIMITIVE:
@@ -176,6 +178,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
     problem->apply_outflow.qfunction_loc          = PressureOutflow_Prim_loc;
     problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Prim;
     problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Prim_loc;
+    problem->apply_fluxproj.qfunction             = DivDiffusiveFlux_Prim;
+    problem->apply_fluxproj.qfunction_loc         = DivDiffusiveFlux_Prim_loc;
     break;
   }
   // *INDENT-ON*
@@ -217,6 +221,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   ierr = PetscOptionsBool("-newtonian_unit_tests", "Run Newtonian unit tests",
                           NULL, unit_tests=PETSC_FALSE, &unit_tests, NULL);
   CHKERRQ(ierr);
+  PetscCall(PetscOptionsBool("-use_fluxproj", "Use flux projection",
+                             NULL, use_fluxproj=PETSC_TRUE, &use_fluxproj, NULL));
 
   // -- Units
   ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
@@ -288,6 +294,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   user->phys->stab          = stab;
   user->phys->implicit      = implicit;
   user->phys->state_var     = state_var;
+  user->phys->use_fluxproj  = use_fluxproj;
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
@@ -305,6 +312,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
   newtonian_ig_ctx->state_var = state_var;
+  newtonian_ig_ctx->use_fluxproj  = use_fluxproj;
   ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
@@ -341,6 +349,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                                     &problem->apply_outflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context,
                                     &problem->apply_outflow_jacobian.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context,
+                                    &problem->apply_fluxproj.qfunction_context);
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));

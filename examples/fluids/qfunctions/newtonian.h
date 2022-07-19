@@ -219,9 +219,10 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
       v[j][i] = wdetJ * body_force[j];
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
-    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0};
+    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, divFdiff_i[5] = {0.};
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, divFdiff_i, x_i,
+                  stab);
 
     for (CeedInt j=0; j<5; j++)
       for (CeedInt k=0; k<3; k++)
@@ -253,7 +254,8 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
                    (*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
                    (*q_dot)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[3],
-                   (*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+                   (*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[4],
+                   (*divFdiff)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[5];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1],
@@ -322,8 +324,14 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
 
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
+
+    CeedScalar divFdiff_i[5] = {0.};
+    if (context->use_fluxproj) {
+      for (CeedInt j=0; j<5; j++) divFdiff_i[j] = divFdiff[j][i];
+    }
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, divFdiff_i, x_i,
+                  stab);
 
     for (CeedInt j=0; j<5; j++)
       for (CeedInt k=0; k<3; k++)
@@ -435,9 +443,10 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q,
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
-    CeedScalar dstab[5][3], U_dot[5] = {0};
+    CeedScalar dstab[5][3], U_dot[5] = {0}, divFdiff_i[5] = {0.};
     for (CeedInt j=0; j<5; j++) U_dot[j] = context->ijacobian_time_shift * dU[j];
-    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, x_i, dstab);
+    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, divFdiff_i, x_i,
+                  dstab);
 
     for (int j=0; j<5; j++)
       for (int k=0; k<3; k++)
@@ -794,10 +803,10 @@ CEED_QFUNCTION_HELPER int DivDiffusiveFlux(void *ctx, CeedInt Q,
     StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+  const CeedScalar (*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0],
                    (*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3],
-                   (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+                   (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -808,7 +817,7 @@ CEED_QFUNCTION_HELPER int DivDiffusiveFlux(void *ctx, CeedInt Q,
 
   CeedPragmaSIMD
   // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
+  for(CeedInt i=0; i<Q; i++) {
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const State s = StateFromQi(context, qi, x_i);

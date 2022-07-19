@@ -63,6 +63,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar P0;
   bool       is_implicit;
   StateVariable state_var;
+  bool       use_fluxproj;
   StabilizationType stabilization;
 };
 

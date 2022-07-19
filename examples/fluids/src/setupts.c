@@ -150,7 +150,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
   User              user = *(User *)user_data;
   const PetscScalar *q, *q_dot;
   PetscScalar       *g;
-  Vec               Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
+  Vec               Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc,
+                    Flux_loc, Flux;
   PetscMemType      q_mem_type, q_dot_mem_type, g_mem_type;
   PetscErrorCode    ierr;
   PetscFunctionBeginUser;
@@ -194,6 +195,34 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
                      CEED_USE_POINTER, (PetscScalar *)q_dot);
   CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
 
+  PetscCall(DMGetLocalVector(user->dm, &Flux_loc));
+  if (user->op_fluxproj) {
+    PetscMemType flux_mem_type;
+    PetscScalar *flux;
+    PetscCall(DMGetGlobalVector(user->dm, &Flux));
+    PetscCall(VecGetArrayAndMemType(Flux_loc, &flux, &flux_mem_type));
+    CeedVectorSetArray(user->flux_ceed, MemTypeP2C(flux_mem_type), CEED_USE_POINTER,
+                       flux);
+
+    CeedOperatorApply(user->op_fluxproj, user->q_ceed, user->flux_ceed,
+                      CEED_REQUEST_IMMEDIATE);
+
+    CeedVectorTakeArray(user->flux_ceed, MemTypeP2C(flux_mem_type), &flux);
+    PetscCall(VecRestoreArrayAndMemType(Flux_loc, &flux));
+    PetscCall(VecZeroEntries(Flux));
+    PetscCall(DMLocalToGlobal(user->dm, Flux_loc, ADD_VALUES, Flux));
+
+    // Inverse of the lumped mass matrix (M is Minv)
+    PetscCall(VecPointwiseMult(Flux, Flux, user->M));
+
+    PetscCall(DMGlobalToLocal(user->dm, Flux, INSERT_VALUES, Flux_loc));
+    PetscCall(VecGetArrayAndMemType(Flux_loc, &flux, &flux_mem_type));
+    CeedVectorSetArray(user->flux_ceed, MemTypeP2C(flux_mem_type), CEED_USE_POINTER,
+                       flux);
+
+    PetscCall(DMRestoreGlobalVector(user->dm, &Flux));
+  }
+
   // Apply CEED operator
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed,
                     CEED_REQUEST_IMMEDIATE);
@@ -212,6 +241,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G,
 
   // Restore vectors
   ierr = DMRestoreLocalVector(user->dm, &G_loc); CHKERRQ(ierr);
+  PetscCall(DMRestoreLocalVector(user->dm, &Flux_loc));
 
   PetscFunctionReturn(0);
 }

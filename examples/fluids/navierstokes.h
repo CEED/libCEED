@@ -132,7 +132,7 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector           x_coord, q_data;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur,
+                       qf_setup_sur, qf_fluxproj,
                        qf_apply_inflow, qf_apply_inflow_jacobian,
                        qf_apply_outflow, qf_apply_outflow_jacobian;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur,
@@ -153,9 +153,9 @@ struct User_private {
   Physics      phys;
   AppCtx       app_ctx;
   CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat,
-               x_ceed;
+               x_ceed, flux_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian,
-               op_dirichlet;
+               op_dirichlet, op_fluxproj;
   bool matrices_set_up;
   CeedScalar time, dt;
 };
@@ -196,6 +196,7 @@ struct Physics_private {
   StabilizationType        stab;
   PetscBool                implicit;
   StateVariable            state_var;
+  PetscBool                use_fluxproj;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
@@ -219,7 +220,7 @@ struct ProblemData_private {
   CeedScalar        dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
     apply_vol_ijacobian, apply_inflow, apply_outflow,
-    apply_inflow_jacobian, apply_outflow_jacobian;
+    apply_inflow_jacobian, apply_outflow_jacobian, apply_fluxproj;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
