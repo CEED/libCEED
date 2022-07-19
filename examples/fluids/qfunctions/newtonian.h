@@ -19,33 +19,6 @@
 #include "utils.h"
 
 // *****************************************************************************
-// Helper function for computing flux Jacobian
-// *****************************************************************************
-CEED_QFUNCTION_HELPER void computeFluxJacobian_NS(CeedScalar dF[3][5][5],
-    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
-    const CeedScalar gamma, const CeedScalar g[3], const CeedScalar x[3]) {
-  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
-  CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
-  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
-    for (CeedInt j=0; j<3; j++) { // Rows of each Jacobian matrix
-      dF[i][j+1][0] = ((i==j) ? ((gamma-1.)*(u_sq/2. - e_potential)) : 0.) -
-                      u[i]*u[j];
-      for (CeedInt k=0; k<3; k++) { // Columns of each Jacobian matrix
-        dF[i][0][k+1]   = ((i==k) ? 1. : 0.);
-        dF[i][j+1][k+1] = ((j==k) ? u[i] : 0.) +
-                          ((i==k) ? u[j] : 0.) -
-                          ((i==j) ? u[k] : 0.) * (gamma-1.);
-        dF[i][4][k+1]   = ((i==k) ? (E*gamma/rho - (gamma-1.)*u_sq/2.) : 0.) -
-                          (gamma-1.)*u[i]*u[k];
-      }
-      dF[i][j+1][4] = ((i==j) ? (gamma-1.) : 0.);
-    }
-    dF[i][4][0] = u[i] * ((gamma-1.)*u_sq - E*gamma/rho);
-    dF[i][4][4] = u[i] * gamma;
-  }
-}
-
-// *****************************************************************************
 // Helper function for computing flux Jacobian of Primitive variables
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
@@ -82,23 +55,6 @@ CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
   }
 }
 
-CEED_QFUNCTION_HELPER void PrimitiveToConservative_fwd(const CeedScalar rho,
-    const CeedScalar u[3], const CeedScalar E, const CeedScalar Rd,
-    const CeedScalar cv, const CeedScalar dY[5], CeedScalar dU[5]) {
-  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2];
-  CeedScalar T    = ( E / rho - u_sq / 2. ) / cv;
-  CeedScalar drdT = -rho / T;
-  CeedScalar drdP = 1. / ( Rd * T);
-  dU[0] = drdP * dY[0] + drdT * dY[4];
-  CeedScalar de_kinetic = 0;
-  for (CeedInt i=0; i<3; i++) {
-    dU[1+i] = dU[0] * u[i] + rho * dY[1+i];
-    de_kinetic += u[i] * dY[1+i];
-  }
-  dU[4] = rho * cv * dY[4] + dU[0] * cv * T // internal energy: rho * e
-          + rho * de_kinetic + .5 * dU[0] * u_sq; // kinetic energy: .5 * rho * |u|^2
-}
-
 // *****************************************************************************
 // Helper function for computing Tau elements (stabilization constant)
 //   Model from:
@@ -108,17 +64,20 @@ CEED_QFUNCTION_HELPER void PrimitiveToConservative_fwd(const CeedScalar rho,
 //
 // Where NOT UPDATED YET
 // *****************************************************************************
-CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
-                                        const CeedScalar dXdx[3][3], const CeedScalar u[3],
-                                        const CeedScalar cv, const NewtonianIdealGasContext newt_ctx,
-                                        const CeedScalar mu, const CeedScalar dt,
-                                        const CeedScalar rho) {
+CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s,
+                                        const CeedScalar dXdx[3][3],
+                                        const CeedScalar dt, CeedScalar Tau_d[3]) {
   // Context
-  const CeedScalar Ctau_t = newt_ctx->Ctau_t;
-  const CeedScalar Ctau_v = newt_ctx->Ctau_v;
-  const CeedScalar Ctau_C = newt_ctx->Ctau_C;
-  const CeedScalar Ctau_M = newt_ctx->Ctau_M;
-  const CeedScalar Ctau_E = newt_ctx->Ctau_E;
+  const CeedScalar Ctau_t = gas->Ctau_t;
+  const CeedScalar Ctau_v = gas->Ctau_v;
+  const CeedScalar Ctau_C = gas->Ctau_C;
+  const CeedScalar Ctau_M = gas->Ctau_M;
+  const CeedScalar Ctau_E = gas->Ctau_E;
+  const CeedScalar cv = gas->cv;
+  const CeedScalar mu = gas->mu;
+  const CeedScalar u[3] = {s.Y.velocity[0], s.Y.velocity[1], s.Y.velocity[2]};
+  const CeedScalar rho = s.U.density;
+
   CeedScalar gijd[6];
   CeedScalar tau;
   CeedScalar dts;
@@ -167,13 +126,36 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(CeedScalar Tau_d[3],
   Tau_d[1] = Ctau_M / fact;
   Tau_d[2] = Ctau_E / ( fact * cv );
 
-// consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv
-//  to avoid a division if the compiler is smart enough to see that cv IS
-// a constant that it could invert once for all elements
-// but in that case energy tau is scaled by the product of Ctau_E * Ctau_M
-// OR we could absorb cv into Ctau_E but this puts more burden on user to
-// know how to change constants with a change of fluid or units.  Same for
-// Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
+  // consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv
+  //  to avoid a division if the compiler is smart enough to see that cv IS
+  // a constant that it could invert once for all elements
+  // but in that case energy tau is scaled by the product of Ctau_E * Ctau_M
+  // OR we could absorb cv into Ctau_E but this puts more burden on user to
+  // know how to change constants with a change of fluid or units.  Same for
+  // Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
+}
+
+CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
+    CeedScalar dY[5], const CeedScalar x[3], CeedScalar stab[5][3]) {
+  const CeedScalar dx_i[3] = {0};
+  StateConservative dF[3];
+  State ds = StateFromY_fwd(gas, s, dY, x, dx_i);
+  FluxInviscid_fwd(gas, s, ds, dF);
+  for (CeedInt j=0; j<3; j++) {
+    CeedScalar dF_j[5];
+    UnpackState_U(dF[j], dF_j);
+    for (CeedInt k=0; k<5; k++)
+      stab[k][j] += dF_j[k];
+  }
+}
+
+CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3],
+                                     CeedScalar dY[5]) {
+  dY[0] = Tau_d[0] * Y[0];
+  dY[1] = Tau_d[1] * Y[1];
+  dY[2] = Tau_d[1] * Y[2];
+  dY[3] = Tau_d[1] * Y[3];
+  dY[4] = Tau_d[2] * Y[4];
 }
 
 // *****************************************************************************
@@ -319,13 +301,8 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar mu     = context->mu;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar dt     = context->dt;
-  const CeedScalar gamma  = cp / cv;
-  const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -392,52 +369,28 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * body_force[j];
 
-    // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {0};
-    computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
-                           gamma, g, x_i);
-    CeedScalar grad_U[5][3];
+    // -- Stabilization method: none, SU, or SUPG
+    // Strong convective flux
+    CeedScalar strong_conv[5] = {0};
     for (CeedInt j=0; j<3; j++) {
-      grad_U[0][j] = grad_s[j].U.density;
-      for (CeedInt k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
-      grad_U[4][j] = grad_s[j].U.E_total;
+      StateConservative dF[3];
+      FluxInviscid_fwd(context, s, grad_s[j], dF);
+      CeedScalar dF_j[5];
+      UnpackState_U(dF[j], dF_j);
+      for (CeedInt k=0; k<5; k++)
+        strong_conv[k] += dF_j[k];
     }
 
-    // strong_conv = dF/dq * dq/dx    (Strong convection)
-    CeedScalar strong_conv[5] = {0};
-    for (CeedInt j=0; j<3; j++)
-      for (CeedInt k=0; k<5; k++)
-        for (CeedInt l=0; l<5; l++)
-          strong_conv[k] += jacob_F_conv[j][k][l] * grad_U[l][j];
-
-    // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3] = {{0.}};
-    CeedScalar tau_strong_conv[5] = {0.}, tau_strong_conv_conservative[5] = {0};
-    CeedScalar Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}},
+    tau_strong_conv[5] = {0.},
+                         Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
     case STAB_SU:        // SU
-      Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
-      tau_strong_conv[0] = Tau_d[0] * strong_conv[0];
-      tau_strong_conv[1] = Tau_d[1] * strong_conv[1];
-      tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
-      tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
-      tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
-      // Alternate route (useful later with primitive variable code)
-      // this function was verified against PHASTA for as IC that was as close as possible
-      //    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
-      // it has also been verified to compute a correct through the following
-      //   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
-      // applied in the triple loop below
-      //  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  tau_strong_conv, tau_strong_conv_conservative);
-      for (CeedInt j=0; j<3; j++)
-        for (CeedInt k=0; k<5; k++)
-          for (CeedInt l=0; l<5; l++)
-            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
-
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+      dYFromTau(strong_conv, Tau_d, tau_strong_conv);
+      Stabilization(context, s, tau_strong_conv, x_i, stab);
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
@@ -479,12 +432,8 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar mu     = context->mu;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar dt     = context->dt;
-  const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -551,7 +500,8 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (q_dot[j][i] - body_force[j]);
 
-    // strong_conv = dF/dx    (Strong convection)
+    // -- Stabilization method: none, SU, or SUPG
+    // Strong convective flux
     CeedScalar strong_conv[5] = {0};
     for (CeedInt j=0; j<3; j++) {
       StateConservative dF[3];
@@ -568,36 +518,17 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       strong_res[j] = q_dot[j][i] + strong_conv[j] - body_force[j];
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3] = {{0.}};
-    CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
-    CeedScalar tau_strong_conv[5] = {0.}, tau_strong_conv_conservative[5] = {0};
-    CeedScalar Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}},
+    tau_strong_conv[5] = {0.},
+                         tau_strong_res[5] = {0.},
+                             Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
     case STAB_SU:        // SU
-      Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
-      tau_strong_conv[0] = Tau_d[0] * strong_conv[0];
-      tau_strong_conv[1] = Tau_d[1] * strong_conv[1];
-      tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
-      tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
-      tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  tau_strong_conv, tau_strong_conv_conservative);
-      {
-        StateConservative dF[3];
-        const CeedScalar dx_i[3] = {0};
-        State tsrc = StateFromU_fwd(context, s, tau_strong_conv_conservative,
-                                    x_i, dx_i);
-        FluxInviscid_fwd(context, s, tsrc, dF);
-        for (CeedInt j=0; j<3; j++) {
-          CeedScalar dF_j[5];
-          UnpackState_U(dF[j], dF_j);
-          for (CeedInt k=0; k<5; k++)
-            stab[k][j] += dF_j[k];
-        }
-      }
-
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+      dYFromTau(strong_conv, Tau_d, tau_strong_conv);
+      Stabilization(context, s, tau_strong_conv, x_i, stab);
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
@@ -606,28 +537,9 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
       break;
     case STAB_SUPG:        // SUPG
-      Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
-      tau_strong_res[0] = Tau_d[0] * strong_res[0];
-      tau_strong_res[1] = Tau_d[1] * strong_res[1];
-      tau_strong_res[2] = Tau_d[1] * strong_res[2];
-      tau_strong_res[3] = Tau_d[1] * strong_res[3];
-      tau_strong_res[4] = Tau_d[2] * strong_res[4];
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  tau_strong_res, tau_strong_res_conservative);
-      {
-        StateConservative dF[3];
-        const CeedScalar dx_i[3] = {0};
-        State tsrc = StateFromU_fwd(context, s, tau_strong_res_conservative,
-                                    x_i, dx_i);
-        FluxInviscid_fwd(context, s, tsrc, dF);
-        for (CeedInt j=0; j<3; j++) {
-          CeedScalar dF_j[5];
-          UnpackState_U(dF[j], dF_j);
-          for (CeedInt k=0; k<5; k++)
-            stab[k][j] += dF_j[k];
-        }
-      }
-
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+      dYFromTau(strong_res, Tau_d, tau_strong_res);
+      Stabilization(context, s, tau_strong_res, x_i, stab);
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
@@ -667,10 +579,6 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar *g = context->g;
-  const CeedScalar cp = context->cp;
-  const CeedScalar cv = context->cv;
-  const CeedScalar Rd = cp - cv;
-  const CeedScalar gamma = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -744,44 +652,49 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    if (1) {
-      CeedScalar jacob_F_conv[3][5][5] = {0};
-      computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
-                             gamma, g, x_i);
-      CeedScalar grad_dU[5][3];
-      for (int j=0; j<3; j++) {
-        grad_dU[0][j] = grad_ds[j].U.density;
-        for (int k=0; k<3; k++) grad_dU[k+1][j] = grad_ds[j].U.momentum[k];
-        grad_dU[4][j] = grad_ds[j].U.E_total;
-      }
-      CeedScalar dstrong_conv[5] = {0};
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
-            dstrong_conv[k] += jacob_F_conv[j][k][l] * grad_dU[l][j];
-      CeedScalar dstrong_res[5];
-      for (int j=0; j<5; j++)
-        dstrong_res[j] = context->ijacobian_time_shift * dU[j] + dstrong_conv[j] -
-                         dbody_force[j];
-      CeedScalar dtau_strong_res[5] = {0.}, dtau_strong_res_conservative[5] = {0};
-      dtau_strong_res[0] = Tau_d[0] * dstrong_res[0];
-      dtau_strong_res[1] = Tau_d[1] * dstrong_res[1];
-      dtau_strong_res[2] = Tau_d[1] * dstrong_res[2];
-      dtau_strong_res[3] = Tau_d[1] * dstrong_res[3];
-      dtau_strong_res[4] = Tau_d[2] * dstrong_res[4];
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  dtau_strong_res, dtau_strong_res_conservative);
-      CeedScalar dstab[5][3] = {0};
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
-            dstab[k][j] += jacob_F_conv[j][k][l] * dtau_strong_res_conservative[l];
+    // -- Stabilization method: none, SU, or SUPG
+    // Strong convective flux
+    CeedScalar dstrong_conv[5] = {0};
+    for (CeedInt j=0; j<3; j++) {
+      StateConservative dF[3];
+      FluxInviscid_fwd(context, s, grad_ds[j], dF);
+      CeedScalar dF_j[5];
+      UnpackState_U(dF[j], dF_j);
+      for (CeedInt k=0; k<5; k++)
+        dstrong_conv[k] += dF_j[k];
+    }
+
+    // Strong residual
+    CeedScalar dstrong_res[5];
+    for (int j=0; j<5; j++)
+      dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
+                       dstrong_conv[j] -
+                       dbody_force[j];
+
+    CeedScalar dtau_strong_res[5] = {0.},
+                                    dtau_strong_conv[5] = {0.},
+                                        dstab[5][3] = {0};
+    switch (context->stabilization) {
+    case STAB_NONE:      // Galerkin
+      break;
+    case STAB_SU:        // SU
+      dYFromTau(dstrong_conv, Tau_d, dtau_strong_conv);
+      Stabilization(context, s, dtau_strong_conv, x_i, dstab);
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
                                     dstab[j][1] * dXdx[k][1] +
                                     dstab[j][2] * dXdx[k][2]);
-
+      break;
+    case STAB_SUPG:      // SUPG
+      dYFromTau(dstrong_res, Tau_d, dtau_strong_res);
+      Stabilization(context, s, dtau_strong_res, x_i, dstab);
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
+                                    dstab[j][1] * dXdx[k][1] +
+                                    dstab[j][2] * dXdx[k][2]);
+      break;
     }
   } // End Quadrature Point Loop
   return 0;
@@ -1174,13 +1087,8 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar mu     = context->mu;
-  const CeedScalar cv     = context->cv;
-  const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar dt     = context->dt;
-  const CeedScalar gamma  = cp / cv;
-  const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -1258,51 +1166,34 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
 
-    // jacob_F_conv[3][5][5] = dF(convective)/dq at each direction
-    CeedScalar jacob_F_conv[3][5][5] = {0};
-    computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
-                           gamma, g, x_i);
-    CeedScalar grad_U[5][3];
-    for (CeedInt j=0; j<3; j++) {
-      grad_U[0][j] = grad_s[j].U.density;
-      for (CeedInt k=0; k<3; k++) grad_U[k+1][j] = grad_s[j].U.momentum[k];
-      grad_U[4][j] = grad_s[j].U.E_total;
-    }
-
-    // strong_conv = dF/dq * dq/dx    (Strong convection)
+    // -- Stabilization method: none, SU, or SUPG
+    // Strong convective flux
     CeedScalar strong_conv[5] = {0};
-    for (CeedInt j=0; j<3; j++)
+    for (CeedInt j=0; j<3; j++) {
+      StateConservative dF[3];
+      FluxInviscid_fwd(context, s, grad_s[j], dF);
+      CeedScalar dF_j[5];
+      UnpackState_U(dF[j], dF_j);
       for (CeedInt k=0; k<5; k++)
-        for (CeedInt l=0; l<5; l++)
-          strong_conv[k] += jacob_F_conv[j][k][l] * grad_U[l][j];
+        strong_conv[k] += dF_j[k];
+    }
 
     // Strong residual
     CeedScalar strong_res[5];
     for (CeedInt j=0; j<5; j++)
       strong_res[j] = U_dot[j] + strong_conv[j] - body_force[j];
 
-    // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3] = {{0.}};
-    CeedScalar tau_strong_res[5] = {0.}, tau_strong_res_conservative[5] = {0};
-    CeedScalar tau_strong_conv[5] = {0.}, tau_strong_conv_conservative[5] = {0};
-    CeedScalar Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}},
+    tau_strong_res[5] = {0.},
+                        tau_strong_conv[5] = {0.},
+                            Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
     case STAB_SU:        // SU
-      Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
-      tau_strong_conv[0] = Tau_d[0] * strong_conv[0];
-      tau_strong_conv[1] = Tau_d[1] * strong_conv[1];
-      tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
-      tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
-      tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  tau_strong_conv, tau_strong_conv_conservative);
-      for (CeedInt j=0; j<3; j++)
-        for (CeedInt k=0; k<5; k++)
-          for (CeedInt l=0; l<5; l++)
-            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_conv_conservative[l];
-
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+      dYFromTau(strong_conv, Tau_d, tau_strong_conv);
+      Stabilization(context, s, tau_strong_conv, x_i, stab);
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
@@ -1311,20 +1202,9 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
 
       break;
     case STAB_SUPG:        // SUPG
-      Tau_diagPrim(Tau_d, dXdx, s.Y.velocity, cv, context, mu, dt, s.U.density);
-      tau_strong_res[0] = Tau_d[0] * strong_res[0];
-      tau_strong_res[1] = Tau_d[1] * strong_res[1];
-      tau_strong_res[2] = Tau_d[1] * strong_res[2];
-      tau_strong_res[3] = Tau_d[1] * strong_res[3];
-      tau_strong_res[4] = Tau_d[2] * strong_res[4];
-
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  tau_strong_res, tau_strong_res_conservative);
-      for (CeedInt j=0; j<3; j++)
-        for (CeedInt k=0; k<5; k++)
-          for (CeedInt l=0; l<5; l++)
-            stab[k][j] += jacob_F_conv[j][k][l] * tau_strong_res_conservative[l];
-
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+      dYFromTau(strong_res, Tau_d, tau_strong_res);
+      Stabilization(context, s, tau_strong_res, x_i, stab);
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
@@ -1363,10 +1243,6 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar *g = context->g;
-  const CeedScalar cp = context->cp;
-  const CeedScalar cv = context->cv;
-  const CeedScalar Rd = cp - cv;
-  const CeedScalar gamma = cp / cv;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -1436,12 +1312,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
       }
     }
 
-    const CeedScalar dbody_force[5] = {0,
-                                       ds.U.density *g[0],
-                                       ds.U.density *g[1],
-                                       ds.U.density *g[2],
-                                       0
-                                      };
+    const CeedScalar dbody_force[5] = {0, ds.U.density *g[0], ds.U.density *g[1], ds.U.density *g[2], 0};
     CeedScalar dU[5] = {0.};
     dU[0] = ds.U.density;
     for (CeedInt j=0; j<3; j++)
@@ -1451,49 +1322,49 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    if (1) {
-      CeedScalar jacob_F_conv[3][5][5] = {0};
-      computeFluxJacobian_NS(jacob_F_conv, s.U.density, s.Y.velocity, s.U.E_total,
-                             gamma, g, x_i);
-      CeedScalar grad_dU[5][3];
-      for (int j=0; j<3; j++) {
-        grad_dU[0][j] = grad_ds[j].U.density;
-        for (int k=0; k<3; k++) grad_dU[k+1][j] = grad_ds[j].U.momentum[k];
-        grad_dU[4][j] = grad_ds[j].U.E_total;
-      }
-      CeedScalar dstrong_conv[5] = {0.};
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
-            dstrong_conv[k] += jacob_F_conv[j][k][l] * grad_dU[l][j];
+    // -- Stabilization method: none, SU, or SUPG
+    // Strong convective flux
+    CeedScalar dstrong_conv[5] = {0};
+    for (CeedInt j=0; j<3; j++) {
+      StateConservative dF[3];
+      FluxInviscid_fwd(context, s, grad_ds[j], dF);
+      CeedScalar dF_j[5];
+      UnpackState_U(dF[j], dF_j);
+      for (CeedInt k=0; k<5; k++)
+        dstrong_conv[k] += dF_j[k];
+    }
 
-      CeedScalar dstrong_res[5];
-      for (int j=0; j<5; j++)
-        dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
-                         dstrong_conv[j] -
-                         dbody_force[j];
+    // Strong residual
+    CeedScalar dstrong_res[5];
+    for (int j=0; j<5; j++)
+      dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
+                       dstrong_conv[j] -
+                       dbody_force[j];
 
-      CeedScalar dtau_strong_res[5] = {0.},
-                                      dtau_strong_res_conservative[5] = {0.};
-      dtau_strong_res[0] = Tau_d[0] * dstrong_res[0];
-      dtau_strong_res[1] = Tau_d[1] * dstrong_res[1];
-      dtau_strong_res[2] = Tau_d[1] * dstrong_res[2];
-      dtau_strong_res[3] = Tau_d[1] * dstrong_res[3];
-      dtau_strong_res[4] = Tau_d[2] * dstrong_res[4];
-      PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
-                                  dtau_strong_res, dtau_strong_res_conservative);
-      CeedScalar dstab[5][3] = {0};
-      for (int j=0; j<3; j++)
-        for (int k=0; k<5; k++)
-          for (int l=0; l<5; l++)
-            dstab[k][j] += jacob_F_conv[j][k][l] * dtau_strong_res_conservative[l];
-
+    CeedScalar dtau_strong_res[5] = {0.},
+                                    dtau_strong_conv[5] = {0.},
+                                        dstab[5][3] = {0};
+    switch (context->stabilization) {
+    case STAB_NONE:      // Galerkin
+      break;
+    case STAB_SU:        // SU
+      dYFromTau(dstrong_conv, Tau_d, dtau_strong_conv);
+      Stabilization(context, s, dtau_strong_conv, x_i, dstab);
       for (int j=0; j<5; j++)
         for (int k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
                                     dstab[j][1] * dXdx[k][1] +
                                     dstab[j][2] * dXdx[k][2]);
-
+      break;
+    case STAB_SUPG:      // SUPG
+      dYFromTau(dstrong_res, Tau_d, dtau_strong_res);
+      Stabilization(context, s, dtau_strong_res, x_i, dstab);
+      for (int j=0; j<5; j++)
+        for (int k=0; k<3; k++)
+          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
+                                    dstab[j][1] * dXdx[k][1] +
+                                    dstab[j][2] * dXdx[k][2]);
+      break;
     }
   } // End Quadrature Point Loop
   return 0;
