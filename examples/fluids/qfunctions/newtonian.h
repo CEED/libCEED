@@ -477,7 +477,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
   const CeedScalar cp     = context->cp;
   const CeedScalar *g     = context->g;
   const CeedScalar dt     = context->dt;
-  const CeedScalar gamma  = cp / cv;
   const CeedScalar Rd     = cp - cv;
 
   CeedPragmaSIMD
@@ -524,7 +523,6 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     StateConservative F_inviscid[3];
     FluxInviscid(context, s, F_inviscid);
 
-
     // Total flux
     CeedScalar Flux[5][3];
     for (CeedInt j=0; j<3; j++) {
@@ -550,7 +548,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar strong_conv[5] = {0};
     for (CeedInt j=0; j<3; j++) {
       StateConservative dF[3];
-      FluxInviscid_fwd(s, grad_s[j], dF);
+      FluxInviscid_fwd(context, s, grad_s[j], dF);
       CeedScalar dF_j[5];
       UnpackState_U(dF[j], dF_j);
       for (CeedInt k=0; k<5; k++)
@@ -609,7 +607,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       StateConservative dF[3];
       const CeedScalar dx_i[3] = {0};
       State tsrc = StateFromU_fwd(context, s, tau_strong_res_conservative, x_i, dx_i);
-      FluxInviscid_fwd(s, tsrc, dF);
+      FluxInviscid_fwd(context, s, tsrc, dF);
       for (CeedInt j=0; j<3; j++) {
         CeedScalar dF_j[5];
         UnpackState_U(dF[j], dF_j);
@@ -709,7 +707,7 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
     ViscousEnergyFlux_fwd(context, s.Y, ds.Y, grad_ds, stress, dstress, dFe);
 
     StateConservative dF_inviscid[3];
-    FluxInviscid_fwd(s, ds, dF_inviscid);
+    FluxInviscid_fwd(context, s, ds, dF_inviscid);
 
     // Total flux
     CeedScalar dFlux[5][3];
