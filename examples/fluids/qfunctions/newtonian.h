@@ -424,6 +424,13 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_conv[2] = Tau_d[1] * strong_conv[2];
       tau_strong_conv[3] = Tau_d[1] * strong_conv[3];
       tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
+      // Alternate route (useful later with primitive variable code)
+      // this function was verified against PHASTA for as IC that was as close as possible
+      //    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
+      // it has also been verified to compute a correct through the following
+      //   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
+      // applied in the triple loop below
+      //  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_conv, tau_strong_conv_conservative);
       for (CeedInt j=0; j<3; j++)
@@ -577,9 +584,19 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_conv[4] = Tau_d[2] * strong_conv[4];
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_conv, tau_strong_conv_conservative);
-      for (CeedInt j=0; j<3; j++)
-        for (CeedInt k=0; k<5; k++)
-          stab[k][j] += 0 * tau_strong_conv_conservative[k];
+      {
+        StateConservative dF[3];
+        const CeedScalar dx_i[3] = {0};
+        State tsrc = StateFromU_fwd(context, s, tau_strong_conv_conservative,
+                                    x_i, dx_i);
+        FluxInviscid_fwd(context, s, tsrc, dF);
+        for (CeedInt j=0; j<3; j++) {
+          CeedScalar dF_j[5];
+          UnpackState_U(dF[j], dF_j);
+          for (CeedInt k=0; k<5; k++)
+            stab[k][j] += dF_j[k];
+        }
+      }
 
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
@@ -595,25 +612,22 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       tau_strong_res[2] = Tau_d[1] * strong_res[2];
       tau_strong_res[3] = Tau_d[1] * strong_res[3];
       tau_strong_res[4] = Tau_d[2] * strong_res[4];
-      // Alternate route (useful later with primitive variable code)
-      // this function was verified against PHASTA for as IC that was as close as possible
-      //    computeFluxJacobian_NSp(jacob_F_conv_p, rho, u, E, Rd, cv);
-      // it has also been verified to compute a correct through the following
-      //   stab[k][j] += jacob_F_conv_p[j][k][l] * tau_strong_res[l] // flux Jacobian wrt primitive
-      // applied in the triple loop below
-      //  However, it is more flops than using the existing Jacobian wrt q after q_{,Y} viz
       PrimitiveToConservative_fwd(s.U.density, s.Y.velocity, s.U.E_total, Rd, cv,
                                   tau_strong_res, tau_strong_res_conservative);
-      StateConservative dF[3];
-      const CeedScalar dx_i[3] = {0};
-      State tsrc = StateFromU_fwd(context, s, tau_strong_res_conservative, x_i, dx_i);
-      FluxInviscid_fwd(context, s, tsrc, dF);
-      for (CeedInt j=0; j<3; j++) {
-        CeedScalar dF_j[5];
-        UnpackState_U(dF[j], dF_j);
-        for (CeedInt k=0; k<5; k++)
-          stab[k][j] += dF_j[k];
+      {
+        StateConservative dF[3];
+        const CeedScalar dx_i[3] = {0};
+        State tsrc = StateFromU_fwd(context, s, tau_strong_res_conservative,
+                                    x_i, dx_i);
+        FluxInviscid_fwd(context, s, tsrc, dF);
+        for (CeedInt j=0; j<3; j++) {
+          CeedScalar dF_j[5];
+          UnpackState_U(dF[j], dF_j);
+          for (CeedInt k=0; k<5; k++)
+            stab[k][j] += dF_j[k];
+        }
       }
+
       for (CeedInt j=0; j<5; j++)
         for (CeedInt k=0; k<3; k++)
           Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
