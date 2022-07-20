@@ -470,12 +470,20 @@ PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem) {
+PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
+                              Physics phys) {
   PetscErrorCode ierr;
   DMLabel label;
-  const PetscInt comps[] = {0, 1, 2, 3};
-  const PetscInt num_comps = 4;
   PetscFunctionBeginUser;
+
+  PetscInt comps[5], num_comps=4;
+  if (phys->primitive)  {
+    // {1,2,3,4} for u, v, w, T
+    for(int i=0; i<4; i++) comps[i] = i+1;
+  } else {
+    // {0,1,2,3} for rho, rho*u, rho*v, rho*w
+    for(int i=0; i<4; i++) comps[i] = i;
+  }
 
   ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
   // Set wall BCs

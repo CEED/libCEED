@@ -790,12 +790,20 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext) ctx;
   const bool is_implicit  = context->is_implicit;
+  State (*StateFromQi)(NewtonianIdealGasContext gas,
+                       const CeedScalar qi[5], const CeedScalar x[3]);
+  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
+                           State s, const CeedScalar dqi[5],
+                           const CeedScalar x[3], const CeedScalar dx[3]);
+  StateFromQi     = context->is_primitive ? &StateFromY     : &StateFromU;
+  StateFromQi_fwd = context->is_primitive ? &StateFromY_fwd : &StateFromU_fwd;
+
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
-    const CeedScalar U[5]   = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromU(context, U, x_i);
+    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State s = StateFromQi(context, qi, x_i);
 
     const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
@@ -811,12 +819,12 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
     State grad_s[3];
     for (CeedInt j=0; j<3; j++) {
-      CeedScalar dx_i[3] = {0}, dU[5];
+      CeedScalar dx_i[3] = {0}, dqi[5];
       for (CeedInt k=0; k<5; k++)
-        dU[k] = Grad_q[0][k][i] * dXdx[0][j] +
-                Grad_q[1][k][i] * dXdx[1][j];
+        dqi[k] = Grad_q[0][k][i] * dXdx[0][j] +
+                 Grad_q[1][k][i] * dXdx[1][j];
       dx_i[j] = 1.;
-      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
+      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -846,11 +854,15 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
     // -- Total Energy Density
     v[4][i] = -wdetJb * Flux[4];
 
-    jac_data_sur[0][i] = s.U.density;
-    jac_data_sur[1][i] = s.Y.velocity[0];
-    jac_data_sur[2][i] = s.Y.velocity[1];
-    jac_data_sur[3][i] = s.Y.velocity[2];
-    jac_data_sur[4][i] = s.U.E_total;
+    if (context->is_primitive) {
+      jac_data_sur[0][i] = s.Y.pressure;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
+      jac_data_sur[4][i] = s.Y.temperature;
+    } else {
+      jac_data_sur[0][i] = s.U.density;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
+      jac_data_sur[4][i] = s.U.E_total;
+    }
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   }
   return 0;
@@ -873,6 +885,13 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
+  State (*StateFromQi)(NewtonianIdealGasContext gas,
+                       const CeedScalar qi[5], const CeedScalar x[3]);
+  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
+                           State s, const CeedScalar dqi[5],
+                           const CeedScalar x[3], const CeedScalar dx[3]);
+  StateFromQi     = context->is_primitive ? &StateFromY     : &StateFromU;
+  StateFromQi_fwd = context->is_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -888,22 +907,22 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
     };
 
-    CeedScalar U[5], kmstress[6], dU[5], dx_i[3] = {0.};
-    for (int j=0; j<5; j++) U[j]         = jac_data_sur[j][i];
-    for (int j=0; j<6; j++) kmstress[j]  = jac_data_sur[5+j][i];
-    for (int j=0; j<3; j++) U[j+1]      *= U[0];
-    for (int j=0; j<5; j++) dU[j]        = dq[j][i];
-    State s  = StateFromU(context, U, x_i);
-    State ds = StateFromU_fwd(context, s, dU, x_i, dx_i);
+    CeedScalar qi[5], kmstress[6], dqi[5], dx_i[3] = {0.};
+    for (int j=0; j<5; j++) qi[j]    = jac_data_sur[j][i];
+    for (int j=0; j<6; j++) kmstress[j] = jac_data_sur[5+j][i];
+    for (int j=0; j<5; j++) dqi[j]   = dq[j][i];
+
+    State s  = StateFromQi(context, qi, x_i);
+    State ds = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
 
     State grad_ds[3];
     for (CeedInt j=0; j<3; j++) {
-      CeedScalar dx_i[3] = {0}, dUj[5];
+      CeedScalar dx_i[3] = {0}, dqi_j[5];
       for (CeedInt k=0; k<5; k++)
-        dUj[k] = Grad_dq[0][k][i] * dXdx[0][j] +
-                 Grad_dq[1][k][i] * dXdx[1][j];
+        dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] +
+                   Grad_dq[1][k][i] * dXdx[1][j];
       dx_i[j] = 1.;
-      grad_ds[j] = StateFromU_fwd(context, s, dUj, x_i, dx_i);
+      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -949,14 +968,22 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   const bool       implicit = context->is_implicit;
   const CeedScalar P0       = context->P0;
 
+  State (*StateFromQi)(NewtonianIdealGasContext gas,
+                       const CeedScalar qi[5], const CeedScalar x[3]);
+  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
+                           State s, const CeedScalar dqi[5],
+                           const CeedScalar x[3], const CeedScalar dx[3]);
+  StateFromQi     = context->is_primitive ? &StateFromY     : &StateFromU;
+  StateFromQi_fwd = context->is_primitive ? &StateFromY_fwd : &StateFromU_fwd;
+
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar U[5]   = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    State            s      = StateFromU(context, U, x_i);
+    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State s = StateFromQi(context, qi, x_i);
     s.Y.pressure = P0;
 
     // -- Interp-to-Interp q_data
@@ -978,12 +1005,12 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
 
     State grad_s[3];
     for (CeedInt j=0; j<3; j++) {
-      CeedScalar dx_i[3] = {0}, dU[5];
+      CeedScalar dx_i[3] = {0}, dqi[5];
       for (CeedInt k=0; k<5; k++)
-        dU[k] = Grad_q[0][k][i] * dXdx[0][j] +
-                Grad_q[1][k][i] * dXdx[1][j];
+        dqi[k] = Grad_q[0][k][i] * dXdx[0][j] +
+                 Grad_q[1][k][i] * dXdx[1][j];
       dx_i[j] = 1.;
-      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
+      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -1014,11 +1041,15 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
     v[4][i] = -wdetJb * Flux[4];
 
     // Save values for Jacobian
-    jac_data_sur[0][i] = s.U.density;
-    jac_data_sur[1][i] = s.Y.velocity[0];
-    jac_data_sur[2][i] = s.Y.velocity[1];
-    jac_data_sur[3][i] = s.Y.velocity[2];
-    jac_data_sur[4][i] = s.U.E_total;
+    if (context->is_primitive) {
+      jac_data_sur[0][i] = s.Y.pressure;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
+      jac_data_sur[4][i] = s.Y.temperature;
+    } else {
+      jac_data_sur[0][i] = s.U.density;
+      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
+      jac_data_sur[4][i] = s.U.E_total;
+    }
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   } // End Quadrature Point Loop
   return 0;
@@ -1026,8 +1057,7 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
 
 // Jacobian for weak-pressure outflow boundary condition
 CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
-    const CeedScalar *const *in,
-    CeedScalar *const *out) {
+    const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -1041,6 +1071,14 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
+
+  State (*StateFromQi)(NewtonianIdealGasContext gas,
+                       const CeedScalar qi[5], const CeedScalar x[3]);
+  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
+                           State s, const CeedScalar dQi[5],
+                           const CeedScalar x[3], const CeedScalar dx[3]);
+  StateFromQi     = context->is_primitive ? &StateFromY     : &StateFromU;
+  StateFromQi_fwd = context->is_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -1056,24 +1094,24 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
     };
 
-    CeedScalar U[5], kmstress[6], dU[5], dx_i[3] = {0.};
-    for (int j=0; j<5; j++) U[j]         = jac_data_sur[j][i];
-    for (int j=0; j<6; j++) kmstress[j]  = jac_data_sur[5+j][i];
-    for (int j=0; j<3; j++) U[j+1]      *= U[0];
-    for (int j=0; j<5; j++) dU[j]        = dq[j][i];
-    State s  = StateFromU(context, U, x_i);
-    State ds = StateFromU_fwd(context, s, dU, x_i, dx_i);
+    CeedScalar qi[5], kmstress[6], dqi[5], dx_i[3] = {0.};
+    for (int j=0; j<5; j++) qi[j]    = jac_data_sur[j][i];
+    for (int j=0; j<6; j++) kmstress[j] = jac_data_sur[5+j][i];
+    for (int j=0; j<5; j++) dqi[j]   = dq[j][i];
+
+    State s  = StateFromQi(context, qi, x_i);
+    State ds = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     s.Y.pressure  = context->P0;
     ds.Y.pressure = 0.;
 
     State grad_ds[3];
     for (CeedInt j=0; j<3; j++) {
-      CeedScalar dx_i[3] = {0}, dUj[5];
+      CeedScalar dx_i[3] = {0}, dqi_j[5];
       for (CeedInt k=0; k<5; k++)
-        dUj[k] = Grad_dq[0][k][i] * dXdx[0][j] +
-                 Grad_dq[1][k][i] * dXdx[1][j];
+        dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] +
+                   Grad_dq[1][k][i] * dXdx[1][j];
       dx_i[j] = 1.;
-      grad_ds[j] = StateFromU_fwd(context, s, dUj, x_i, dx_i);
+      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];

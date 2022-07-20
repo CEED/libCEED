@@ -89,7 +89,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
       CHKERRQ(ierr);
 
       if (use_strongstg) {
-        ierr = SetupStrongSTG(dm, bc, problem); CHKERRQ(ierr);
+        ierr = SetupStrongSTG(dm, bc, problem, phys); CHKERRQ(ierr);
       }
     }
 

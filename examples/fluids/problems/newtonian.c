@@ -145,6 +145,14 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
     problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Prim_loc;
     problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Prim;
     problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Prim_loc;
+    problem->apply_inflow.qfunction               = BoundaryIntegral;
+    problem->apply_inflow.qfunction_loc           = BoundaryIntegral_loc;
+    problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian;
+    problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_loc;
+    problem->apply_outflow.qfunction              = PressureOutflow;
+    problem->apply_outflow.qfunction_loc          = PressureOutflow_loc;
+    problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian;
+    problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_loc;
   } else {
     problem->ics.qfunction                        = ICsNewtonianIG;
     problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
@@ -288,7 +296,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
-  newtonian_ig_ctx->primitive     = prim_var;
+  newtonian_ig_ctx->is_primitive  = prim_var;
   ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);

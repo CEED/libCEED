@@ -534,6 +534,11 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - Developer option to test properties
   - `false`
   - boolean
+
+* - `-primitive`
+  - Use primitive variables (pressure, velocity, temperature) instead of conservative variables (density, momentum, total energy)
+  - `false`
+  - boolean
 :::
 
 
