@@ -242,9 +242,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
         strong_conv[k] += dF_j[k];
     }
 
-    CeedScalar stab[5][3] = {{0.}},
-    tau_strong_conv[5] = {0.},
-                         Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar Tau_d[3] = {0.};
+    CeedScalar tau_strong_conv[5] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
@@ -379,10 +379,10 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       strong_res[j] = q_dot[j][i] + strong_conv[j] - body_force[j];
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3] = {{0.}},
-    tau_strong_conv[5] = {0.},
-                         tau_strong_res[5] = {0.},
-                             Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar Tau_d[3] = {0.};
+    CeedScalar tau_strong_conv[5] = {0.};
+    CeedScalar tau_strong_res[5] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
@@ -532,9 +532,9 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
                        dstrong_conv[j] -
                        dbody_force[j];
 
-    CeedScalar dtau_strong_res[5] = {0.},
-                                    dtau_strong_conv[5] = {0.},
-                                        dstab[5][3] = {0};
+    CeedScalar dstab[5][3] = {{0.}};
+    CeedScalar dtau_strong_conv[5] = {0.};
+    CeedScalar dtau_strong_res[5] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:      // Galerkin
       break;
@@ -561,7 +561,9 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 // Compute boundary integral (ie. for strongly set inflows)
+// *****************************************************************************
 CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in,
                                  CeedScalar *const *out) {
@@ -657,7 +659,9 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 // Jacobian for "set nothing" boundary integral
+// *****************************************************************************
 CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
     const CeedScalar *const *in,
     CeedScalar *const *out) {
@@ -738,7 +742,9 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 // Outflow boundary condition, weakly setting a constant pressure
+// *****************************************************************************
 CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
                                 const CeedScalar *const *in,
                                 CeedScalar *const *out) {
@@ -844,7 +850,9 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   return 0;
 }
 
+// *****************************************************************************
 // Jacobian for weak-pressure outflow boundary condition
+// *****************************************************************************
 CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
@@ -1044,10 +1052,10 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       strong_res[j] = U_dot[j] + strong_conv[j] - body_force[j];
 
-    CeedScalar stab[5][3] = {{0.}},
-    tau_strong_res[5] = {0.},
-                        tau_strong_conv[5] = {0.},
-                            Tau_d[3] = {0.};
+    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar Tau_d[3] = {0.};
+    CeedScalar tau_strong_conv[5] = {0.};
+    CeedScalar tau_strong_res[5] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
       break;
@@ -1202,9 +1210,9 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
                        dstrong_conv[j] -
                        dbody_force[j];
 
-    CeedScalar dtau_strong_res[5] = {0.},
-                                    dtau_strong_conv[5] = {0.},
-                                        dstab[5][3] = {0};
+    CeedScalar dstab[5][3] = {{0.}};
+    CeedScalar dtau_strong_conv[5] = {0.};
+    CeedScalar dtau_strong_res[5] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:      // Galerkin
       break;
