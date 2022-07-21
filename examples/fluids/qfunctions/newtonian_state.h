@@ -189,6 +189,18 @@ CEED_QFUNCTION_HELPER void FluxInviscid_fwd(NewtonianIdealGasContext gas,
   }
 }
 
+CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
+    State s, State ds[3], CeedScalar strong_conv[5]) {
+  for (CeedInt j=0; j<3; j++) {
+    StateConservative dF[3];
+    FluxInviscid_fwd(gas, s, ds[j], dF);
+    CeedScalar dF_j[5];
+    UnpackState_U(dF[j], dF_j);
+    for (CeedInt k=0; k<5; k++)
+      strong_conv[k] += dF_j[k];
+  }
+}
+
 // Kelvin-Mandel notation
 CEED_QFUNCTION_HELPER void KMStrainRate(const State grad_s[3],
                                         CeedScalar strain_rate[6]) {

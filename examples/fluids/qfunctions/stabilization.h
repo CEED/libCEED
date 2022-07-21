@@ -13,23 +13,6 @@
 #define stabilization_h
 
 // *****************************************************************************
-// Helper function for computing the stabilization terms
-// *****************************************************************************
-CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
-    CeedScalar dY[5], const CeedScalar x[3], CeedScalar stab[5][3]) {
-  const CeedScalar dx_i[3] = {0};
-  StateConservative dF[3];
-  State ds = StateFromY_fwd(gas, s, dY, x, dx_i);
-  FluxInviscid_fwd(gas, s, ds, dF);
-  for (CeedInt j=0; j<3; j++) {
-    CeedScalar dF_j[5];
-    UnpackState_U(dF[j], dF_j);
-    for (CeedInt k=0; k<5; k++)
-      stab[k][j] += dF_j[k];
-  }
-}
-
-// *****************************************************************************
 // Helper function for computing the variation in primitive variables,
 //   given Tau_d
 // *****************************************************************************
@@ -40,6 +23,26 @@ CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3],
   dY[2] = Tau_d[1] * Y[2];
   dY[3] = Tau_d[1] * Y[3];
   dY[4] = Tau_d[2] * Y[4];
+}
+
+// *****************************************************************************
+// Helper function for computing the stabilization terms
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
+    CeedScalar Tau_d[3], CeedScalar Y[5], const CeedScalar x[3],
+    CeedScalar stab[5][3]) {
+  CeedScalar dY[5];
+  const CeedScalar dx_i[3] = {0};
+  StateConservative dF[3];
+  dYFromTau(Y, Tau_d, dY);
+  State ds = StateFromY_fwd(gas, s, dY, x, dx_i);
+  FluxInviscid_fwd(gas, s, ds, dF);
+  for (CeedInt j=0; j<3; j++) {
+    CeedScalar dF_j[5];
+    UnpackState_U(dF[j], dF_j);
+    for (CeedInt k=0; k<5; k++)
+      stab[k][j] += dF_j[k];
+  }
 }
 
 // *****************************************************************************
