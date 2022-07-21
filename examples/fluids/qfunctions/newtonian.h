@@ -219,13 +219,11 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
       Flux[4][j] = F_inviscid[j].E_total + Fe[j];
     }
 
-    for (CeedInt j=0; j<3; j++) {
-      for (CeedInt k=0; k<5; k++) {
+    for (CeedInt j=0; j<3; j++)
+      for (CeedInt k=0; k<5; k++)
         Grad_v[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] +
                                    dXdx[j][1] * Flux[k][1] +
                                    dXdx[j][2] * Flux[k][2]);
-      }
-    }
 
     const CeedScalar body_force[5] = {0, s.U.density *g[0], s.U.density *g[1], s.U.density *g[2], 0};
     for (int j=0; j<5; j++)
@@ -1028,10 +1026,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     State s_dot = StateFromY_fwd(context, s, Y_dot, x_i, dx0);
 
     CeedScalar U_dot[5] = {0.};
-    U_dot[0] = s_dot.U.density;
-    for (CeedInt j=0; j<3; j++)
-      U_dot[j+1] = s_dot.U.momentum[j];
-    U_dot[4] = s_dot.U.E_total;
+    UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
@@ -1184,10 +1179,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
 
     const CeedScalar dbody_force[5] = {0, ds.U.density *g[0], ds.U.density *g[1], ds.U.density *g[2], 0};
     CeedScalar dU[5] = {0.};
-    dU[0] = ds.U.density;
-    for (CeedInt j=0; j<3; j++)
-      dU[j+1] = ds.U.momentum[j];
-    dU[4] = ds.U.E_total;
+    UnpackState_U(ds.U, dU);
 
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);

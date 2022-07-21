@@ -152,17 +152,15 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     State s = Exact_DC(3, 0., x, 5, ctx);
-    if (context->newtonian_ctx.is_primitive) {
-      q0[0][i] = s.Y.pressure;
-      for (CeedInt j=0; j<3; j++)
-        q0[j+1][i] = s.Y.velocity[j];
-      q0[4][i] = s.Y.temperature;
-    } else {
-      q0[0][i] = s.U.density;
-      for (CeedInt j=0; j<3; j++)
-        q0[j+1][i] = s.U.momentum[j];
-      q0[4][i] = s.U.E_total;
-    }
+    CeedScalar q[5] = {0};
+    if (context->newtonian_ctx.is_primitive)
+      UnpackState_Y(s.Y, q);
+    else
+      UnpackState_U(s.U, q);
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+
   } // End of Quadrature Point Loop
 
   return 0;
