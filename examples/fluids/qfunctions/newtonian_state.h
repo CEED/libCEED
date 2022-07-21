@@ -201,6 +201,16 @@ CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
   }
 }
 
+CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3],
+                                     CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
+  for (CeedInt j=0; j<3; j++) {
+    Flux[0][j] = F_inviscid[j].density;
+    for (CeedInt k=0; k<3; k++)
+      Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
+    Flux[4][j] = F_inviscid[j].E_total + Fe[j];
+  }
+}
+
 // Kelvin-Mandel notation
 CEED_QFUNCTION_HELPER void KMStrainRate(const State grad_s[3],
                                         CeedScalar strain_rate[6]) {

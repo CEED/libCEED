@@ -212,12 +212,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar Flux[5][3];
-    for (CeedInt j=0; j<3; j++) {
-      Flux[0][j] = F_inviscid[j].density;
-      for (CeedInt k=0; k<3; k++)
-        Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
-      Flux[4][j] = F_inviscid[j].E_total + Fe[j];
-    }
+    FluxTotal(F_inviscid, stress, Fe, Flux);
 
     for (CeedInt j=0; j<3; j++)
       for (CeedInt k=0; k<5; k++)
@@ -332,12 +327,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar Flux[5][3];
-    for (CeedInt j=0; j<3; j++) {
-      Flux[0][j] = F_inviscid[j].density;
-      for (CeedInt k=0; k<3; k++)
-        Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
-      Flux[4][j] = F_inviscid[j].E_total + Fe[j];
-    }
+    FluxTotal(F_inviscid, stress, Fe, Flux);
 
     for (CeedInt j=0; j<3; j++) {
       for (CeedInt k=0; k<5; k++) {
@@ -473,12 +463,7 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar dFlux[5][3];
-    for (int j=0; j<3; j++) {
-      dFlux[0][j] = dF_inviscid[j].density;
-      for (int k=0; k<3; k++)
-        dFlux[k+1][j] = dF_inviscid[j].momentum[k] - dstress[k][j];
-      dFlux[4][j] = dF_inviscid[j].E_total + dFe[j];
-    }
+    FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
     for (int j=0; j<3; j++) {
       for (int k=0; k<5; k++) {
@@ -600,7 +585,7 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
       Flux[0] += F_inviscid[j].density * norm[j];
       for (int k=0; k<3; k++)
         Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * norm[j];
-      Flux[4] += (F_inviscid[j].E_total + Fe[j])*norm[j];
+      Flux[4] += (F_inviscid[j].E_total + Fe[j]) * norm[j];
     }
 
     // -- Density
@@ -973,12 +958,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar Flux[5][3];
-    for (CeedInt j=0; j<3; j++) {
-      Flux[0][j] = F_inviscid[j].density;
-      for (CeedInt k=0; k<3; k++)
-        Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
-      Flux[4][j] = F_inviscid[j].E_total + Fe[j];
-    }
+    FluxTotal(F_inviscid, stress, Fe, Flux);
 
     for (CeedInt j=0; j<3; j++) {
       for (CeedInt k=0; k<5; k++) {
@@ -1120,12 +1100,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
 
     // Total flux
     CeedScalar dFlux[5][3];
-    for (int j=0; j<3; j++) {
-      dFlux[0][j] = dF_inviscid[j].density;
-      for (int k=0; k<3; k++)
-        dFlux[k+1][j] = dF_inviscid[j].momentum[k] - dstress[k][j];
-      dFlux[4][j] = dF_inviscid[j].E_total + dFe[j];
-    }
+    FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
     for (int j=0; j<3; j++) {
       for (int k=0; k<5; k++) {
