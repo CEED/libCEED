@@ -47,7 +47,7 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
     // Setup
     // -- Coordinates
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-    const CeedScalar e_potential = -(g[0]*x[0] + g[1]*x[1] + g[2]*x[2]);
+    const CeedScalar e_potential = -Dot3(g, x);
 
     // -- Density
     const CeedScalar rho = P0 / (Rd*theta0);
@@ -61,6 +61,7 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q,
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
+
   } // End of Quadrature Point Loop
   return 0;
 }
@@ -162,8 +163,8 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const CeedScalar *g     = context->g;
-  const CeedScalar dt     = context->dt;
+  const CeedScalar *g = context->g;
+  const CeedScalar dt = context->dt;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
