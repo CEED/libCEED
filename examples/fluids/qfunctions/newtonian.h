@@ -329,13 +329,11 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j=0; j<3; j++) {
-      for (CeedInt k=0; k<5; k++) {
+    for (CeedInt j=0; j<3; j++)
+      for (CeedInt k=0; k<5; k++)
         Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] +
                                     dXdx[j][1] * Flux[k][1] +
                                     dXdx[j][2] * Flux[k][2]);
-      }
-    }
 
     const CeedScalar body_force[5] = {0, s.U.density *g[0], s.U.density *g[1], s.U.density *g[2], 0};
     for (CeedInt j=0; j<5; j++)
@@ -465,13 +463,11 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar dFlux[5][3];
     FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<5; k++) {
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
         Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * dFlux[k][0] +
                                     dXdx[j][1] * dFlux[k][1] +
                                     dXdx[j][2] * dFlux[k][2]);
-      }
-    }
 
     const CeedScalar dbody_force[5] = {0, ds.U.density *g[0], ds.U.density *g[1], ds.U.density *g[2], 0};
     for (int j=0; j<5; j++)
@@ -486,8 +482,7 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar dstrong_res[5];
     for (int j=0; j<5; j++)
       dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
-                       dstrong_conv[j] -
-                       dbody_force[j];
+                       dstrong_conv[j] - dbody_force[j];
 
     CeedScalar dstab[5][3] = {{0.}};
     switch (context->stabilization) {
@@ -960,13 +955,11 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j=0; j<3; j++) {
-      for (CeedInt k=0; k<5; k++) {
+    for (CeedInt j=0; j<3; j++)
+      for (CeedInt k=0; k<5; k++)
         Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] +
                                     dXdx[j][1] * Flux[k][1] +
                                     dXdx[j][2] * Flux[k][2]);
-      }
-    }
 
     const CeedScalar body_force[5] = {0, s.U.density *g[0], s.U.density *g[1], s.U.density *g[2], 0};
 
@@ -1102,13 +1095,11 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
     CeedScalar dFlux[5][3];
     FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
-    for (int j=0; j<3; j++) {
-      for (int k=0; k<5; k++) {
+    for (int j=0; j<3; j++)
+      for (int k=0; k<5; k++)
         Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * dFlux[k][0] +
                                     dXdx[j][1] * dFlux[k][1] +
                                     dXdx[j][2] * dFlux[k][2]);
-      }
-    }
 
     const CeedScalar dbody_force[5] = {0, ds.U.density *g[0], ds.U.density *g[1], ds.U.density *g[2], 0};
     CeedScalar dU[5] = {0.};
@@ -1126,8 +1117,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
     CeedScalar dstrong_res[5];
     for (int j=0; j<5; j++)
       dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
-                       dstrong_conv[j] -
-                       dbody_force[j];
+                       dstrong_conv[j] - dbody_force[j];
 
     CeedScalar dstab[5][3] = {{0.}};
     switch (context->stabilization) {
