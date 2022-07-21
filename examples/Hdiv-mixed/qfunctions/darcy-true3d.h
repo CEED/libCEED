@@ -21,6 +21,7 @@
 #define DARCY_TRUE3D_H
 
 #include <math.h>
+#include <ceed.h>
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -76,20 +77,26 @@ CEED_QFUNCTION(DarcyTrue3D)(void *ctx, const CeedInt Q,
     CeedScalar x = coords[i+0*Q], y = coords[i+1*Q], z = coords[i+2*Q];
     CeedScalar psi   = sin(PI_DOUBLE*x) * sin(PI_DOUBLE*y) * sin(PI_DOUBLE*z);
     CeedScalar psi_x = PI_DOUBLE*cos(PI_DOUBLE*x) *sin(PI_DOUBLE*y) *sin(PI_DOUBLE*z);
+    CeedScalar psi_xx = -PI_DOUBLE*PI_DOUBLE*psi;
     CeedScalar psi_y = PI_DOUBLE*sin(PI_DOUBLE*x) *cos(PI_DOUBLE*y) *sin(PI_DOUBLE*z);
+    CeedScalar psi_yy = -PI_DOUBLE*PI_DOUBLE*psi;
     CeedScalar psi_z = PI_DOUBLE*sin(PI_DOUBLE*x) *sin(PI_DOUBLE*y) *cos(PI_DOUBLE*z);
+    CeedScalar psi_zz = -PI_DOUBLE*PI_DOUBLE*psi;
 
     // k_r = b_a + alpha_a * (psi - x2)
     CeedScalar k_r = b_a + alpha_a*(1-x*y*z);
+    CeedScalar k_rx = -alpha_a*y*z;
+    CeedScalar k_ry = -alpha_a*x*z;
+    CeedScalar k_rz = -alpha_a*x*y;
     // rho = rho_a/rho_a0
     CeedScalar rho = 1.;
     // u = -rho*k_r*K *[grad(\psi) - rho*g_u]
-    CeedScalar u[3] = {-rho*k_r*kappa*psi_x,
-                       -rho*k_r*kappa*psi_y,
-                       -rho*k_r*kappa*(psi_z-1)};
-    CeedScalar div_u = -rho*kappa*(-alpha_a*y*z*psi_x - k_r*PI_DOUBLE*PI_DOUBLE*psi
-                                   -alpha_a*x*z*psi_y - k_r*PI_DOUBLE*PI_DOUBLE*psi
-                                   -alpha_a*x*y*psi_z - k_r*PI_DOUBLE*PI_DOUBLE*psi);
+    CeedScalar u[3] = {-rho*kappa*k_r*psi_x,
+                       -rho*kappa*k_r*psi_y,
+                       -rho*kappa*k_r*(psi_z-1)};
+    CeedScalar div_u = -rho*kappa*(k_rx*psi_x + k_r*psi_xx +
+                                   k_ry*psi_y + k_r*psi_yy + 
+                                   k_rz*(psi_z-1) + k_r*psi_zz);
 
     // True Force: f = \div(u)
     true_force[i+0*Q] = div_u;

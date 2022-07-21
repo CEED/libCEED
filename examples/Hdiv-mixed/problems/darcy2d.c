@@ -21,7 +21,7 @@
 #include "../qfunctions/darcy-true2d.h"
 #include "../qfunctions/darcy-system2d.h"
 #include "../qfunctions/darcy-error2d.h"
-#include "../qfunctions/pressure-boundary2d.h"
+//#include "../qfunctions/pressure-boundary2d.h"
 
 PetscErrorCode Hdiv_DARCY2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   AppCtx               app_ctx = *(AppCtx *)ctx;
@@ -47,14 +47,14 @@ PetscErrorCode Hdiv_DARCY2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->jacobian_loc            = JacobianDarcySystem2D_loc;
   problem_data->error                   = DarcyError2D;
   problem_data->error_loc               = DarcyError2D_loc;
-  problem_data->bc_pressure             = BCPressure2D;
-  problem_data->bc_pressure_loc         = BCPressure2D_loc;
+  //problem_data->bc_pressure             = BCPressure2D;
+  //problem_data->bc_pressure_loc         = BCPressure2D_loc;
   problem_data->has_ts                  = PETSC_FALSE;
 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
-  CeedScalar kappa = 1., rho_a0 = 998.2, g = 9.8, alpha_a = 1., b_a = 10.;
+  CeedScalar kappa = 10., rho_a0 = 998.2, g = 9.8, alpha_a = 1., b_a = 10.;
   PetscOptionsBegin(app_ctx->comm, NULL, "Options for Hdiv-mixed problem", NULL);
   PetscCall( PetscOptionsScalar("-kappa", "Hydraulic Conductivity", NULL,
                                 kappa, &kappa, NULL));
@@ -77,9 +77,17 @@ PetscErrorCode Hdiv_DARCY2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   CeedQFunctionContextCreate(ceed, &darcy_context);
   CeedQFunctionContextSetData(darcy_context, CEED_MEM_HOST, CEED_COPY_VALUES,
                               sizeof(*darcy_ctx), darcy_ctx);
-  problem_data->qfunction_context = darcy_context;
-  CeedQFunctionContextSetDataDestroy(darcy_context, CEED_MEM_HOST,
-                                     FreeContextPetsc);
+  //CeedQFunctionContextSetDataDestroy(darcy_context, CEED_MEM_HOST,
+  //                                   FreeContextPetsc);
+  problem_data->true_qfunction_ctx = darcy_context;
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->residual_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->jacobian_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->error_qfunction_ctx);
+
   PetscCall( PetscFree(darcy_ctx) );
+
   PetscFunctionReturn(0);
 }

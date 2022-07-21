@@ -11,6 +11,9 @@
 #ifndef pressure_bc_3d_h
 #define pressure_bc_3d_h
 
+#include <math.h>
+#include <ceed.h>
+#include "utils.h"
 // -----------------------------------------------------------------------------
 // Strong form:
 //  u       = -\grad(p)      on \Omega

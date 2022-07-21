@@ -19,8 +19,10 @@
 
 #include "../include/register-problem.h"
 #include "../qfunctions/richard-system2d.h"
-#include "../qfunctions/richard-mms2d.h"
-#include "../qfunctions/pressure-boundary2d.h"
+#include "../qfunctions/richard-true2d.h"
+#include "../qfunctions/richard-ics2d.h"
+#include "../qfunctions/darcy-error2d.h"
+//#include "../qfunctions/pressure-boundary2d.h"
 #include "petscsystypes.h"
 
 PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, void *ctx) {
@@ -39,18 +41,24 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->elem_node               = 4;
   problem_data->q_data_size_face        = 3;
   problem_data->quadrature_mode         = CEED_GAUSS;
-  problem_data->ics                     = RichardICs2D;
-  problem_data->ics_loc                 = RichardICs2D_loc;
-  //problem_data->force                   = RichardTrue2D;
-  //problem_data->force_loc               = RichardTrue2D_loc;
-  //problem_data->residual                = RichardSystem2D;
-  //problem_data->residual_loc            = RichardSystem2D_loc;
+  problem_data->true_solution           = RichardTrue2D;
+  problem_data->true_solution_loc       = RichardTrue2D_loc;
+  problem_data->rhs_u0                  = RichardRhsU02D;
+  problem_data->rhs_u0_loc              = RichardRhsU02D_loc;
+  problem_data->ics_u                   = RichardICsU2D;
+  problem_data->ics_u_loc               = RichardICsU2D_loc;
+  problem_data->rhs_p0                  = RichardRhsP02D;
+  problem_data->rhs_p0_loc              = RichardRhsP02D_loc;
+  problem_data->ics_p                   = RichardICsP2D;
+  problem_data->ics_p_loc               = RichardICsP2D_loc;
+  problem_data->residual                = RichardSystem2D;
+  problem_data->residual_loc            = RichardSystem2D_loc;
   //problem_data->jacobian                = JacobianRichardSystem2D;
   //problem_data->jacobian_loc            = JacobianRichardSystem2D_loc;
-  //problem_data->error                   = DarcyError2D;
-  //problem_data->error_loc               = DarcyError2D_loc;
-  problem_data->bc_pressure             = BCPressure2D;
-  problem_data->bc_pressure_loc         = BCPressure2D_loc;
+  problem_data->error                   = DarcyError2D;
+  problem_data->error_loc               = DarcyError2D_loc;
+  //problem_data->bc_pressure             = BCPressure2D;
+  //problem_data->bc_pressure_loc         = BCPressure2D_loc;
   problem_data->has_ts                  = PETSC_TRUE;
 
   // ------------------------------------------------------
@@ -72,6 +80,9 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, void *ctx) {
                                 rho_a0, &rho_a0, NULL));
   PetscCall( PetscOptionsScalar("-beta", "Water compressibility", NULL,
                                 beta, &beta, NULL));
+  app_ctx->t_final = 0.5;
+  PetscCall( PetscOptionsScalar("-t_final", "End time", NULL,
+                                app_ctx->t_final, &app_ctx->t_final, NULL));
   PetscOptionsEnd();
 
   richard_ctx->kappa = kappa;
@@ -81,15 +92,28 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   richard_ctx->beta = beta;
   richard_ctx->g = g;
   richard_ctx->p0 = p0;
-  richard_ctx->time = 0.;
   richard_ctx->gamma = 5.;
+  richard_ctx->t = 0.;
+  richard_ctx->t_final = app_ctx->t_final;
   CeedQFunctionContextCreate(ceed, &richard_context);
   CeedQFunctionContextSetData(richard_context, CEED_MEM_HOST, CEED_COPY_VALUES,
                               sizeof(*richard_ctx), richard_ctx);
-  problem_data->qfunction_context = richard_context;
-  CeedQFunctionContextSetDataDestroy(richard_context, CEED_MEM_HOST,
-                                     FreeContextPetsc);
-
+  //CeedQFunctionContextSetDataDestroy(richard_context, CEED_MEM_HOST,
+  //                                   FreeContextPetsc);
+  CeedQFunctionContextRegisterDouble(richard_context, "time",
+                                     offsetof(struct RICHARDContext_, t), 1, "current solver time");
+  CeedQFunctionContextRegisterDouble(richard_context, "final_time",
+                                     offsetof(struct RICHARDContext_, t_final), 1, "final time");
+  CeedQFunctionContextRegisterDouble(richard_context, "time_step",
+                                     offsetof(struct RICHARDContext_, dt), 1, "time step");
+  problem_data->true_qfunction_ctx = richard_context;
+  CeedQFunctionContextReferenceCopy(richard_context,
+                                    &problem_data->rhs_u0_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(richard_context,
+                                    &problem_data->residual_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(richard_context,
+                                    &problem_data->error_qfunction_ctx);
   PetscCall( PetscFree(richard_ctx) );
+
   PetscFunctionReturn(0);
 }

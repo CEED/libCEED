@@ -21,7 +21,7 @@
 #define DARCY_SYSTEM2D_H
 
 #include <math.h>
-#include "ceed/ceed-f64.h"
+#include <ceed.h>
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -172,7 +172,7 @@ CEED_QFUNCTION(JacobianDarcySystem2D)(void *ctx, CeedInt Q,
 
   // *INDENT-ON*
   DARCYContext  context = (DARCYContext)ctx;
-  const CeedScalar  kappa   = context->kappa;
+  const CeedScalar kappa    = context->kappa;
   const CeedScalar rho_a0   = context->rho_a0;
   const CeedScalar g        = context->g;
   const CeedScalar alpha_a  = context->alpha_a;

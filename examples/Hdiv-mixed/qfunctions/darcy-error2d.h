@@ -21,6 +21,7 @@
 #define DARCY_ERROR2D_H
 
 #include <math.h>
+#include <ceed.h>
 #include "utils.h"
 
 // -----------------------------------------------------------------------------

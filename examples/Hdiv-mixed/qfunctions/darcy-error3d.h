@@ -21,6 +21,7 @@
 #define DARCY_ERROR3D_H
 
 #include <math.h>
+#include <ceed.h>
 #include "utils.h"
 
 

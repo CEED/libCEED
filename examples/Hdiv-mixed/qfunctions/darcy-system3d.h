@@ -21,6 +21,7 @@
 #define DARCY_SYSTEM3D_H
 
 #include <math.h>
+#include <ceed.h>
 #include "utils.h"
 
 // -----------------------------------------------------------------------------

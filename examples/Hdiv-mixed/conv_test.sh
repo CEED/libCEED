@@ -32,7 +32,7 @@ declare -A run_flags
     run_flags[pc_type]=svd
     if [[ $dim -eq 2 ]];
     then
-        run_flags[problem]=darcy2d
+        run_flags[problem]=richard2d
         run_flags[dm_plex_dim]=$dim
         run_flags[dm_plex_box_faces]=2,2
     else
@@ -43,8 +43,8 @@ declare -A run_flags
 
 declare -A test_flags
     test_flags[res_start]=2
-    test_flags[res_stride]=1
-    test_flags[res_end]=12
+    test_flags[res_stride]=2
+    test_flags[res_end]=10
 
 file_name=conv_test_result.csv
 

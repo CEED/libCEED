@@ -18,49 +18,7 @@ struct AppCtx_ {
   // Problem type arguments
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];
-};
-
-// 2) richard
-// We have 3 experiment parameters as described in Table 1:P1, P2, P3
-// Matthew Farthing, Christopher Kees, Cass Miller (2003)
-// https://www.sciencedirect.com/science/article/pii/S0309170802001872
-
-#ifndef PHYSICS_RICHARDP2_STRUCT
-#define PHYSICS_RICHARDP2_STRUCT
-typedef struct RICHARDP2Context_ *RICHARDP2Context;
-struct RICHARDP2Context_ {
-  CeedScalar K_star;
-  CeedScalar theta_s;
-  CeedScalar theta_r;
-  CeedScalar alpha_v;
-  CeedScalar n_v;
-  CeedScalar m_v;
-  CeedScalar m_r;
-  CeedScalar rho_0;
-  CeedScalar beta;
-};
-#endif
-
-#ifndef PHYSICS_RICHARDP3_STRUCT
-#define PHYSICS_RICHARDP3_STRUCT
-typedef struct RICHARDP3Context_ *RICHARDP3Context;
-struct RICHARDP3Context_ {
-  CeedScalar K_star;
-  CeedScalar theta_s;
-  CeedScalar theta_r;
-  CeedScalar alpha_star_v;
-  CeedScalar n_v;
-  CeedScalar m_v;
-  CeedScalar rho_0;
-  CeedScalar beta;
-};
-#endif
-
-// Struct that contains all enums and structs used for the physics of all problems
-typedef struct Physics_ *Physics;
-struct Physics_ {
-  RICHARDP2Context        richard_p2_ctx;
-  RICHARDP3Context        richard_p3_ctx;
+  CeedScalar        t_final, t;
 };
 
 // PETSc operator contexts
@@ -72,6 +30,9 @@ struct OperatorApplyContext_ {
   CeedOperator    op_apply;
   DM              dm;
   Ceed            ceed;
+  CeedScalar      t, dt;
+  CeedContextFieldLabel solution_time_label, final_time_label,
+                        timestep_label;   ;
 };
 
 // libCEED data struct
@@ -79,23 +40,32 @@ typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   CeedBasis            basis_x, basis_u, basis_p, basis_u_face;
   CeedElemRestriction  elem_restr_x, elem_restr_u, elem_restr_U_i,
-                       elem_restr_p, elem_restr_p_i;
-  CeedQFunction        qf_residual, qf_jacobian, qf_error, qf_ics;
-  CeedOperator         op_residual, op_jacobian, op_error, op_ics;
-  CeedVector           x_ceed, y_ceed, x_coord, U0_ceed, x_t_ceed;
-  OperatorApplyContext ctx_residual, ctx_jacobian, ctx_error, ctx_residual_ut;
+                       elem_restr_p, elem_restr_p_i, elem_restr_u0,
+                       elem_restr_p0;
+  CeedQFunction        qf_residual, qf_jacobian, qf_error, qf_ics_u, qf_ics_p,
+                       qf_rhs_u0, qf_rhs_p0;
+  CeedOperator         op_residual, op_jacobian, op_error, op_ics_u, op_ics_p,
+                       op_rhs_u0, op_rhs_p0;
+  CeedVector           x_ceed, y_ceed, x_coord, x_t_ceed, rhs_u0_ceed,
+                       u0_ceed, v0_ceed, rhs_p0_ceed, p0_ceed, q0_ceed;
+  OperatorApplyContext ctx_residual, ctx_jacobian, ctx_error, ctx_residual_ut,
+                       ctx_initial_u0, ctx_initial_p0;
+  CeedInt              num_elem;
 };
 
 // Problem specific data
 typedef struct ProblemData_ *ProblemData;
 struct ProblemData_ {
-  CeedQFunctionUser true_solution, residual, jacobian, error, ics,
-                    bc_pressure;
+  CeedQFunctionUser true_solution, residual, jacobian, error, ics_u, ics_p,
+                    bc_pressure, rhs_u0, rhs_p0;
   const char        *true_solution_loc, *residual_loc, *jacobian_loc,
-        *error_loc, *bc_pressure_loc, *ics_loc;
+        *error_loc, *bc_pressure_loc, *ics_u_loc, *ics_p_loc, *rhs_u0_loc,
+        *rhs_p0_loc;
   CeedQuadMode      quadrature_mode;
   CeedInt           elem_node, dim, q_data_size_face;
-  CeedQFunctionContext qfunction_context;
+  CeedQFunctionContext true_qfunction_ctx, error_qfunction_ctx,
+                       residual_qfunction_ctx, jacobian_qfunction_ctx,
+                       rhs_u0_qfunction_ctx ;
   PetscBool         has_ts;
 };
 

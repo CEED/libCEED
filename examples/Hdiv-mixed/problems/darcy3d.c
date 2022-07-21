@@ -21,7 +21,7 @@
 #include "../qfunctions/darcy-true3d.h"
 #include "../qfunctions/darcy-system3d.h"
 #include "../qfunctions/darcy-error3d.h"
-#include "../qfunctions/pressure-boundary3d.h"
+//#include "../qfunctions/pressure-boundary3d.h"
 
 PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   AppCtx            app_ctx = *(AppCtx *)ctx;
@@ -47,8 +47,8 @@ PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->jacobian_loc            = JacobianDarcySystem3D_loc;
   problem_data->error                   = DarcyError3D;
   problem_data->error_loc               = DarcyError3D_loc;
-  problem_data->bc_pressure             = BCPressure3D;
-  problem_data->bc_pressure_loc         = BCPressure3D_loc;
+  //problem_data->bc_pressure             = BCPressure3D;
+  //problem_data->bc_pressure_loc         = BCPressure3D_loc;
   problem_data->has_ts                  = PETSC_FALSE;
 
   // ------------------------------------------------------
@@ -77,9 +77,17 @@ PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   CeedQFunctionContextCreate(ceed, &darcy_context);
   CeedQFunctionContextSetData(darcy_context, CEED_MEM_HOST, CEED_COPY_VALUES,
                               sizeof(*darcy_ctx), darcy_ctx);
-  problem_data->qfunction_context = darcy_context;
-  CeedQFunctionContextSetDataDestroy(darcy_context, CEED_MEM_HOST,
-                                     FreeContextPetsc);
+  //CeedQFunctionContextSetDataDestroy(darcy_context, CEED_MEM_HOST,
+  //                                   FreeContextPetsc);
+  problem_data->true_qfunction_ctx = darcy_context;
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->residual_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->jacobian_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(darcy_context,
+                                    &problem_data->error_qfunction_ctx);
+
   PetscCall( PetscFree(darcy_ctx) );
+
   PetscFunctionReturn(0);
 }
