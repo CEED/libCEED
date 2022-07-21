@@ -113,14 +113,14 @@ CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time,
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
   for (CeedInt i=0; i<3; i++)
-    rr[i] -= dc_axis[i] *
-             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
-  const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
+    rr[i] -= dc_axis[i] * Dot3(dc_axis, rr);
+  const CeedScalar r = sqrt(Dot3(rr, rr));
   const CeedScalar delta_theta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-  const CeedScalar theta = theta0*exp(N*N*z/g) + delta_theta;
+  const CeedScalar theta = theta0*exp(Square(N)*z/g) + delta_theta;
 
   // -- Exner pressure, hydrostatic balance
-  const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+  const CeedScalar Pi = 1. + Square(g)*(exp(-Square(N)*z/g) - 1.) /
+                        (cp*theta0*Square(N));
 
   // Initial Conditions
   CeedScalar Y[5] = {0.};
