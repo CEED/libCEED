@@ -12,6 +12,9 @@
 #ifndef stabilization_h
 #define stabilization_h
 
+#include "newtonian_state.h"
+#include <ceed.h>
+
 // *****************************************************************************
 // Helper function for computing the variation in primitive variables,
 //   given Tau_d
@@ -34,14 +37,18 @@ CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
   CeedScalar dY[5];
   const CeedScalar dx_i[3] = {0};
   StateConservative dF[3];
+  // Zero stab so all future terms can safely sum into it
+  for (CeedInt i=0; i<5; i++)
+    for (CeedInt j=0; j<3; j++)
+      stab[i][j] = 0;
   dYFromTau(Y, Tau_d, dY);
   State ds = StateFromY_fwd(gas, s, dY, x, dx_i);
   FluxInviscid_fwd(gas, s, ds, dF);
-  for (CeedInt j=0; j<3; j++) {
-    CeedScalar dF_j[5];
-    UnpackState_U(dF[j], dF_j);
-    for (CeedInt k=0; k<5; k++)
-      stab[k][j] += dF_j[k];
+  for (CeedInt i=0; i<3; i++) {
+    CeedScalar dF_i[5];
+    UnpackState_U(dF[i], dF_i);
+    for (CeedInt j=0; j<5; j++)
+      stab[j][i] += dF_i[j];
   }
 }
 
@@ -52,7 +59,6 @@ CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
 //
 //   Tau[i] = itau=0 which is diagonal-Shakib (3 values still but not spatial)
 //
-// Where NOT UPDATED YET
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s,
                                         const CeedScalar dXdx[3][3],
@@ -123,43 +129,6 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s,
   // OR we could absorb cv into Ctau_E but this puts more burden on user to
   // know how to change constants with a change of fluid or units.  Same for
   // Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
-}
-
-// *****************************************************************************
-// Helper function for computing flux Jacobian of Primitive variables
-// *****************************************************************************
-CEED_QFUNCTION_HELPER void computeFluxJacobian_NSp(CeedScalar dF[3][5][5],
-    const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
-    const CeedScalar Rd, const CeedScalar cv) {
-  CeedScalar u_sq = u[0]*u[0] + u[1]*u[1] + u[2]*u[2]; // Velocity square
-  // TODO Add in gravity's contribution
-
-  CeedScalar T    = ( E / rho - u_sq / 2. ) / cv;
-  CeedScalar drdT = -rho / T;
-  CeedScalar drdP = 1. / ( Rd * T);
-  CeedScalar etot =  E / rho ;
-  CeedScalar e2p  = drdP * etot + 1. ;
-  CeedScalar e3p  = ( E  + rho * Rd * T );
-  CeedScalar e4p  = drdT * etot + rho * cv ;
-
-  for (CeedInt i=0; i<3; i++) { // Jacobian matrices for 3 directions
-    for (CeedInt j=0; j<3; j++) { // j counts F^{m_j}
-      //   [row][col] of A_i
-      dF[i][j+1][0] = drdP * u[i] * u[j] + ((i==j) ? 1. : 0.); // F^{{m_j} wrt p
-      for (CeedInt k=0; k<3; k++) { // k counts the wrt vel_k
-        dF[i][0][k+1]   =  ((i==k) ? rho  : 0.);   // F^c wrt u_k
-        dF[i][j+1][k+1] = (((j==k) ? u[i] : 0.) +  // F^m_j wrt u_k
-                           ((i==k) ? u[j] : 0.) ) * rho;
-        dF[i][4][k+1]   = rho * u[i] * u[k]
-                          + ((i==k) ? e3p  : 0.) ; // F^e wrt u_k
-      }
-      dF[i][j+1][4] = drdT * u[i] * u[j]; // F^{m_j} wrt T
-    }
-    dF[i][4][0] = u[i] * e2p; // F^e wrt p
-    dF[i][4][4] = u[i] * e4p; // F^e wrt T
-    dF[i][0][0] = u[i] * drdP; // F^c wrt p
-    dF[i][0][4] = u[i] * drdT; // F^c wrt T
-  }
 }
 
 // *****************************************************************************

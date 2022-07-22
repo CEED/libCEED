@@ -229,7 +229,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     CeedScalar strong_conv[5] = {0};
     FluxInviscidStrong(context, s, grad_s, strong_conv);
 
-    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar stab[5][3];
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
@@ -350,7 +350,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
       strong_res[j] = q_dot[j][i] + strong_conv[j] - body_force[j];
 
     // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar stab[5][3];
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
@@ -484,7 +484,7 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
       dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
                        dstrong_conv[j] - dbody_force[j];
 
-    CeedScalar dstab[5][3] = {{0.}};
+    CeedScalar dstab[5][3];
     switch (context->stabilization) {
     case STAB_NONE:      // Galerkin
       break;
@@ -983,7 +983,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       strong_res[j] = U_dot[j] + strong_conv[j] - body_force[j];
 
-    CeedScalar stab[5][3] = {{0.}};
+    CeedScalar stab[5][3];
     CeedScalar Tau_d[3] = {0.};
     switch (context->stabilization) {
     case STAB_NONE:        // Galerkin
@@ -1119,7 +1119,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
       dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
                        dstrong_conv[j] - dbody_force[j];
 
-    CeedScalar dstab[5][3] = {{0.}};
+    CeedScalar dstab[5][3];
     switch (context->stabilization) {
     case STAB_NONE:      // Galerkin
       break;
