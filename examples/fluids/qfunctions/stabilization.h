@@ -32,8 +32,7 @@ CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3],
 // Helper functions for computing the stabilization terms
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas,
-    State s,
-    CeedScalar Tau_d[3], CeedScalar Y[5], const CeedScalar x[3],
+    State s, CeedScalar Tau_d[3], CeedScalar R[5], const CeedScalar x[3],
     CeedScalar stab[5][3]) {
   CeedScalar dY[5];
   const CeedScalar dx_i[3] = {0};
@@ -42,7 +41,7 @@ CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas,
   for (CeedInt i=0; i<5; i++)
     for (CeedInt j=0; j<3; j++)
       stab[i][j] = 0;
-  dYFromTau(Y, Tau_d, dY);
+  dYFromTau(R, Tau_d, dY);
   State ds = StateFromY_fwd(gas, s, dY, x, dx_i);
   FluxInviscid_fwd(gas, s, ds, dF);
   for (CeedInt i=0; i<3; i++) {
@@ -57,19 +56,19 @@ CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s,
     CeedScalar Tau_d[3], State ds[3], CeedScalar U_dot[5],
     const CeedScalar body_force[5], const CeedScalar x[3], CeedScalar stab[5][3]) {
   // -- Stabilization method: none (Galerkin), SU, or SUPG
-  CeedScalar Y[5] = {0};
+  CeedScalar R[5] = {0};
   switch (gas->stabilization) {
   case STAB_NONE:
     break;
   case STAB_SU:
-    FluxInviscidStrong(gas, s, ds, Y);
+    FluxInviscidStrong(gas, s, ds, R);
     break;
   case STAB_SUPG:
-    FluxInviscidStrong(gas, s, ds, Y);
-    for (CeedInt j=0; j<5; j++) Y[j] += U_dot[j] - body_force[j];
+    FluxInviscidStrong(gas, s, ds, R);
+    for (CeedInt j=0; j<5; j++) R[j] += U_dot[j] - body_force[j];
     break;
   }
-  StabilizationMatrix(gas, s, Tau_d, Y, x, stab);
+  StabilizationMatrix(gas, s, Tau_d, R, x, stab);
 }
 
 // *****************************************************************************
