@@ -77,7 +77,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
   PetscBool         has_curr_time = PETSC_FALSE,
-                    prim_var, unit_tests;
+                    use_primitive, unit_tests;
   PetscInt          ierr;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext newtonian_ig_context;
@@ -137,8 +137,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                     NULL);
   // -- Conservative vs Primitive variables
   ierr = PetscOptionsBool("-primitive", "Use primitive variables",
-                          NULL, prim_var=PETSC_FALSE, &prim_var, NULL); CHKERRQ(ierr);
-  if (prim_var) {
+                          NULL, use_primitive=PETSC_FALSE, &use_primitive, NULL); CHKERRQ(ierr);
+  if (use_primitive) {
     problem->ics.qfunction                        = ICsNewtonianIG_Prim;
     problem->ics.qfunction_loc                    = ICsNewtonianIG_Prim_loc;
     problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Prim;
@@ -231,7 +231,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                        "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
-  if (prim_var && !implicit) {
+  if (use_primitive && !implicit) {
     SETERRQ(comm, PETSC_ERR_ARG_NULL,
             "RHSFunction is not provided for primitive variables (use -primitive only with -implicit)\n");
   }
@@ -279,7 +279,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // -- Solver Settings
   user->phys->stab          = stab;
   user->phys->implicit      = implicit;
-  user->phys->primitive     = prim_var;
+  user->phys->use_primitive = use_primitive;
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
@@ -296,7 +296,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
-  newtonian_ig_ctx->is_primitive  = prim_var;
+  newtonian_ig_ctx->use_primitive = use_primitive;
   ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);

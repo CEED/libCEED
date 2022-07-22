@@ -102,7 +102,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
   PetscSection section;
   ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
-  if (phys->primitive) {
+  if (phys->use_primitive) {
     ierr = PetscSectionSetComponentName(section, 0, 0, "Pressure");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 1, "Velocity X");

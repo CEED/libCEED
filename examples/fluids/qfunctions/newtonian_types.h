@@ -50,7 +50,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar ijacobian_time_shift;
   CeedScalar P0;
   bool       is_implicit;
-  bool       is_primitive;
+  bool       use_primitive;
   StabilizationType stabilization;
 };
 
