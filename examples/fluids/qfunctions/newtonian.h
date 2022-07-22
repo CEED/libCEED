@@ -224,28 +224,16 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * body_force[j];
 
-    // -- Stabilization method: none, SU, or SUPG
-    // Strong convective flux
-    CeedScalar strong_conv[5];
-    FluxInviscidStrong(context, s, grad_s, strong_conv);
+    // -- Stabilization method: none (Galerkin), SU, or SUPG
+    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0};
+    Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
-    CeedScalar stab[5][3];
-    CeedScalar Tau_d[3] = {0.};
-    switch (context->stabilization) {
-    case STAB_NONE:        // Galerkin
-      break;
-    case STAB_SU:        // SU
-      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-      Stabilization(context, s, Tau_d, strong_conv, x_i, stab);
-      for (CeedInt j=0; j<5; j++)
-        for (CeedInt k=0; k<3; k++)
-          Grad_v[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
-                                    stab[j][1] * dXdx[k][1] +
-                                    stab[j][2] * dXdx[k][2]);
-      break;
-    case STAB_SUPG:        // SUPG is not implemented for explicit scheme
-      break;
-    }
+    for (CeedInt j=0; j<5; j++)
+      for (CeedInt k=0; k<3; k++)
+        Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                  stab[j][1] * dXdx[k][1] +
+                                  stab[j][2] * dXdx[k][2]);
 
   } // End Quadrature Point Loop
 
@@ -339,42 +327,18 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (q_dot[j][i] - body_force[j]);
 
-    // -- Stabilization method: none, SU, or SUPG
-    // Strong convective flux
-    CeedScalar strong_conv[5];
-    FluxInviscidStrong(context, s, grad_s, strong_conv);
+    // -- Stabilization method: none (Galerkin), SU, or SUPG
+    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0};
+    for (CeedInt j=0; j<5; j++) U_dot[j] = q_dot[j][i];
+    Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
-    // Strong residual
-    CeedScalar strong_res[5];
     for (CeedInt j=0; j<5; j++)
-      strong_res[j] = q_dot[j][i] + strong_conv[j] - body_force[j];
+      for (CeedInt k=0; k<3; k++)
+        Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                  stab[j][1] * dXdx[k][1] +
+                                  stab[j][2] * dXdx[k][2]);
 
-    // -- Stabilization method: none, SU, or SUPG
-    CeedScalar stab[5][3];
-    CeedScalar Tau_d[3] = {0.};
-    switch (context->stabilization) {
-    case STAB_NONE:        // Galerkin
-      break;
-    case STAB_SU:        // SU
-      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-      Stabilization(context, s, Tau_d, strong_conv, x_i, stab);
-      for (CeedInt j=0; j<5; j++)
-        for (CeedInt k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                    stab[j][1] * dXdx[k][1] +
-                                    stab[j][2] * dXdx[k][2]);
-
-      break;
-    case STAB_SUPG:        // SUPG
-      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-      Stabilization(context, s, Tau_d, strong_res, x_i, stab);
-      for (CeedInt j=0; j<5; j++)
-        for (CeedInt k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                    stab[j][1] * dXdx[k][1] +
-                                    stab[j][2] * dXdx[k][2]);
-      break;
-    }
     for (CeedInt j=0; j<5; j++) jac_data[j][i] = U[j];
     for (CeedInt j=0; j<6; j++) jac_data[5+j][i] = kmstress[j];
     for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
@@ -473,38 +437,17 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    // -- Stabilization method: none, SU, or SUPG
-    // Strong convective flux
-    CeedScalar dstrong_conv[5];
-    FluxInviscidStrong(context, s, grad_ds, dstrong_conv);
+    // -- Stabilization method: none (Galerkin), SU, or SUPG
+    CeedScalar dstab[5][3], U_dot[5] = {0};
+    for (CeedInt j=0; j<5; j++) U_dot[j] = context->ijacobian_time_shift * dU[j];
+    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, x_i, dstab);
 
-    // Strong residual
-    CeedScalar dstrong_res[5];
     for (int j=0; j<5; j++)
-      dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
-                       dstrong_conv[j] - dbody_force[j];
+      for (int k=0; k<3; k++)
+        Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
+                                  dstab[j][1] * dXdx[k][1] +
+                                  dstab[j][2] * dXdx[k][2]);
 
-    CeedScalar dstab[5][3];
-    switch (context->stabilization) {
-    case STAB_NONE:      // Galerkin
-      break;
-    case STAB_SU:        // SU
-      Stabilization(context, s, Tau_d, dstrong_conv, x_i, dstab);
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
-                                    dstab[j][1] * dXdx[k][1] +
-                                    dstab[j][2] * dXdx[k][2]);
-      break;
-    case STAB_SUPG:      // SUPG
-      Stabilization(context, s, Tau_d, dstrong_res, x_i, dstab);
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
-                                    dstab[j][1] * dXdx[k][1] +
-                                    dstab[j][2] * dXdx[k][2]);
-      break;
-    }
   } // End Quadrature Point Loop
   return 0;
 }
@@ -973,41 +916,17 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (CeedInt j=0; j<5; j++)
       v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
 
-    // -- Stabilization method: none, SU, or SUPG
-    // Strong convective flux
-    CeedScalar strong_conv[5];
-    FluxInviscidStrong(context, s, grad_s, strong_conv);
+    // -- Stabilization method: none (Galerkin), SU, or SUPG
+    CeedScalar Tau_d[3], stab[5][3];
+    Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
-    // Strong residual
-    CeedScalar strong_res[5];
     for (CeedInt j=0; j<5; j++)
-      strong_res[j] = U_dot[j] + strong_conv[j] - body_force[j];
+      for (CeedInt k=0; k<3; k++)
+        Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+                                  stab[j][1] * dXdx[k][1] +
+                                  stab[j][2] * dXdx[k][2]);
 
-    CeedScalar stab[5][3];
-    CeedScalar Tau_d[3] = {0.};
-    switch (context->stabilization) {
-    case STAB_NONE:        // Galerkin
-      break;
-    case STAB_SU:        // SU
-      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-      Stabilization(context, s, Tau_d, strong_conv, x_i, stab);
-      for (CeedInt j=0; j<5; j++)
-        for (CeedInt k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                    stab[j][1] * dXdx[k][1] +
-                                    stab[j][2] * dXdx[k][2]);
-
-      break;
-    case STAB_SUPG:        // SUPG
-      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-      Stabilization(context, s, Tau_d, strong_res, x_i, stab);
-      for (CeedInt j=0; j<5; j++)
-        for (CeedInt k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
-                                    stab[j][1] * dXdx[k][1] +
-                                    stab[j][2] * dXdx[k][2]);
-      break;
-    }
     for (CeedInt j=0; j<5; j++) jac_data[j][i] = Y[j];
     for (CeedInt j=0; j<6; j++) jac_data[5+j][i] = kmstress[j];
     for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
@@ -1108,38 +1027,17 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++)
       v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    // -- Stabilization method: none, SU, or SUPG
-    // Strong convective flux
-    CeedScalar dstrong_conv[5];
-    FluxInviscidStrong(context, s, grad_ds, dstrong_conv);
+    // -- Stabilization method: none (Galerkin), SU, or SUPG
+    CeedScalar dstab[5][3], U_dot[5] = {0};
+    for (CeedInt j=0; j<5; j++) U_dot[j] = context->ijacobian_time_shift * dU[j];
+    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, x_i, dstab);
 
-    // Strong residual
-    CeedScalar dstrong_res[5];
     for (int j=0; j<5; j++)
-      dstrong_res[j] = context->ijacobian_time_shift * dU[j] +
-                       dstrong_conv[j] - dbody_force[j];
+      for (int k=0; k<3; k++)
+        Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
+                                  dstab[j][1] * dXdx[k][1] +
+                                  dstab[j][2] * dXdx[k][2]);
 
-    CeedScalar dstab[5][3];
-    switch (context->stabilization) {
-    case STAB_NONE:      // Galerkin
-      break;
-    case STAB_SU:        // SU
-      Stabilization(context, s, Tau_d, dstrong_conv, x_i, dstab);
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
-                                    dstab[j][1] * dXdx[k][1] +
-                                    dstab[j][2] * dXdx[k][2]);
-      break;
-    case STAB_SUPG:      // SUPG
-      Stabilization(context, s, Tau_d, dstrong_res, x_i, dstab);
-      for (int j=0; j<5; j++)
-        for (int k=0; k<3; k++)
-          Grad_v[k][j][i] += wdetJ*(dstab[j][0] * dXdx[k][0] +
-                                    dstab[j][1] * dXdx[k][1] +
-                                    dstab[j][2] * dXdx[k][2]);
-      break;
-    }
   } // End Quadrature Point Loop
   return 0;
 }
