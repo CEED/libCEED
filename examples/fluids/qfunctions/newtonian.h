@@ -226,7 +226,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     // Strong convective flux
-    CeedScalar strong_conv[5] = {0};
+    CeedScalar strong_conv[5];
     FluxInviscidStrong(context, s, grad_s, strong_conv);
 
     CeedScalar stab[5][3];
@@ -341,7 +341,7 @@ CEED_QFUNCTION(IFunction_Newtonian)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     // Strong convective flux
-    CeedScalar strong_conv[5] = {0};
+    CeedScalar strong_conv[5];
     FluxInviscidStrong(context, s, grad_s, strong_conv);
 
     // Strong residual
@@ -475,7 +475,7 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     // Strong convective flux
-    CeedScalar dstrong_conv[5] = {0};
+    CeedScalar dstrong_conv[5];
     FluxInviscidStrong(context, s, grad_ds, dstrong_conv);
 
     // Strong residual
@@ -975,7 +975,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     // Strong convective flux
-    CeedScalar strong_conv[5] = {0};
+    CeedScalar strong_conv[5];
     FluxInviscidStrong(context, s, grad_s, strong_conv);
 
     // Strong residual
@@ -1110,7 +1110,7 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q,
 
     // -- Stabilization method: none, SU, or SUPG
     // Strong convective flux
-    CeedScalar dstrong_conv[5] = {0};
+    CeedScalar dstrong_conv[5];
     FluxInviscidStrong(context, s, grad_ds, dstrong_conv);
 
     // Strong residual

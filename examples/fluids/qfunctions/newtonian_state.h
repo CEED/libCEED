@@ -191,13 +191,14 @@ CEED_QFUNCTION_HELPER void FluxInviscid_fwd(NewtonianIdealGasContext gas,
 
 CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
     State s, State ds[3], CeedScalar strong_conv[5]) {
-  for (CeedInt j=0; j<3; j++) {
+  for (CeedInt i=0; i<5; i++) strong_conv[i] = 0;
+  for (CeedInt i=0; i<3; i++) {
     StateConservative dF[3];
-    FluxInviscid_fwd(gas, s, ds[j], dF);
-    CeedScalar dF_j[5];
-    UnpackState_U(dF[j], dF_j);
-    for (CeedInt k=0; k<5; k++)
-      strong_conv[k] += dF_j[k];
+    FluxInviscid_fwd(gas, s, ds[i], dF);
+    CeedScalar dF_i[5];
+    UnpackState_U(dF[i], dF_i);
+    for (CeedInt j=0; j<5; j++)
+      strong_conv[j] += dF_i[j];
   }
 }
 
