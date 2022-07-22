@@ -45,23 +45,23 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time,
   const CeedScalar k           = gas->k;
   // There is a gravity body force but it is excluded from
   //   the potential energy due to periodicity.
-  gas->g[0] = 0.;
-  gas->g[1] = 0.;
-  gas->g[2] = 0.;
+  //     g = (g, 0, 0)
+  //     x = (0, x_2, x_3)
+  //     e_potential = dot(g, x) = 0
+  const CeedScalar x[3] = {0, X[1], X[2]};
 
-  const CeedScalar y     = X[1];
   const CeedScalar Pr    = mu / (cp*k);
   const CeedScalar Ec    = (umax*umax) / (cp*theta0);
   const CeedScalar theta = theta0*(1 + (Pr*Ec/3)
-                                   * (1 - Square(Square((y-center)/H))));
+                                   * (1 - Square(Square((x[1]-center)/H))));
   CeedScalar Y[5] = {0.};
   Y[0] = P0;
-  Y[1] = umax*(1 - Square((y-center)/H));
+  Y[1] = umax*(1 - Square((x[1]-center)/H));
   Y[2] = 0.;
   Y[3] = 0.;
   Y[4] = theta;
 
-  return StateFromY(gas, Y, X);
+  return StateFromY(gas, Y, x);
 }
 
 // *****************************************************************************
@@ -117,9 +117,6 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar cv          = gas->cv;
   const CeedScalar cp          = gas->cp;
   const CeedScalar gamma       = cp / cv;
-  gas->g[0] = 0.;
-  gas->g[1] = 0.;
-  gas->g[2] = 0.;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -131,8 +128,14 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
+    // There is a gravity body force but it is excluded from
+    //   the potential energy due to periodicity.
+    //     g = (g, 0, 0)
+    //     x = (0, x_2, x_3)
+    //     e_potential = dot(g, x) = 0
+    const CeedScalar x[3] = {0, X[1][i], X[2][i]};
+
     // Calcualte prescribed inflow values
-    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     State s_exact = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar q_exact[5] = {0.};
     UnpackState_U(s_exact.U, q_exact);
