@@ -231,7 +231,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q,
 
     for (CeedInt j=0; j<5; j++)
       for (CeedInt k=0; k<3; k++)
-        Grad_v[k][j][i] += wdetJ*(stab[j][0] * dXdx[k][0] +
+        Grad_v[k][j][i] -= wdetJ*(stab[j][0] * dXdx[k][0] +
                                   stab[j][1] * dXdx[k][1] +
                                   stab[j][2] * dXdx[k][2]);
 
