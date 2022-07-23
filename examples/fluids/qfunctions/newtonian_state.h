@@ -34,6 +34,18 @@ typedef struct {
   StatePrimitive Y;
 } State;
 
+CEED_QFUNCTION_HELPER void UnpackState_U(StateConservative s, CeedScalar U[5]) {
+  U[0] = s.density;
+  for (int i=0; i<3; i++) U[i+1] = s.momentum[i];
+  U[4] = s.E_total;
+}
+
+CEED_QFUNCTION_HELPER void UnpackState_Y(StatePrimitive s, CeedScalar Y[5]) {
+  Y[0] = s.pressure;
+  for (int i=0; i<3; i++) Y[i+1] = s.velocity[i];
+  Y[4] = s.temperature;
+}
+
 CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(
   NewtonianIdealGasContext gas, StateConservative U, const CeedScalar x[3]) {
   StatePrimitive Y;
@@ -174,6 +186,29 @@ CEED_QFUNCTION_HELPER void FluxInviscid_fwd(NewtonianIdealGasContext gas,
                              s.U.momentum[i] * ds.Y.velocity[j] + ds.Y.pressure * (i == j);
     dFlux[i].E_total = (ds.U.E_total + ds.Y.pressure) * s.Y.velocity[i] +
                        (s.U.E_total + s.Y.pressure) * ds.Y.velocity[i];
+  }
+}
+
+CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
+    State s, State ds[3], CeedScalar strong_conv[5]) {
+  for (CeedInt i=0; i<5; i++) strong_conv[i] = 0;
+  for (CeedInt i=0; i<3; i++) {
+    StateConservative dF[3];
+    FluxInviscid_fwd(gas, s, ds[i], dF);
+    CeedScalar dF_i[5];
+    UnpackState_U(dF[i], dF_i);
+    for (CeedInt j=0; j<5; j++)
+      strong_conv[j] += dF_i[j];
+  }
+}
+
+CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3],
+                                     CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
+  for (CeedInt j=0; j<3; j++) {
+    Flux[0][j] = F_inviscid[j].density;
+    for (CeedInt k=0; k<3; k++)
+      Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
+    Flux[4][j] = F_inviscid[j].E_total + Fe[j];
   }
 }
 

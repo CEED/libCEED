@@ -113,14 +113,14 @@ CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time,
   CeedScalar rr[3] = {x - center[0], y - center[1], z - center[2]};
   // (I - q q^T) r: distance from dc_axis (or from center if dc_axis is the zero vector)
   for (CeedInt i=0; i<3; i++)
-    rr[i] -= dc_axis[i] *
-             (dc_axis[0]*rr[0] + dc_axis[1]*rr[1] + dc_axis[2]*rr[2]);
-  const CeedScalar r = sqrt(rr[0]*rr[0] + rr[1]*rr[1] + rr[2]*rr[2]);
+    rr[i] -= dc_axis[i] * Dot3(dc_axis, rr);
+  const CeedScalar r = sqrt(Dot3(rr, rr));
   const CeedScalar delta_theta = r <= rc ? thetaC*(1. + cos(M_PI*r/rc))/2. : 0.;
-  const CeedScalar theta = theta0*exp(N*N*z/g) + delta_theta;
+  const CeedScalar theta = theta0*exp(Square(N)*z/g) + delta_theta;
 
   // -- Exner pressure, hydrostatic balance
-  const CeedScalar Pi = 1. + g*g*(exp(-N*N*z/g) - 1.) / (cp*theta0*N*N);
+  const CeedScalar Pi = 1. + Square(g)*(exp(-Square(N)*z/g) - 1.) /
+                        (cp*theta0*Square(N));
 
   // Initial Conditions
   CeedScalar Y[5] = {0.};
@@ -152,17 +152,15 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     State s = Exact_DC(3, 0., x, 5, ctx);
-    if (context->newtonian_ctx.is_primitive) {
-      q0[0][i] = s.Y.pressure;
-      for (CeedInt j=0; j<3; j++)
-        q0[j+1][i] = s.Y.velocity[j];
-      q0[4][i] = s.Y.temperature;
-    } else {
-      q0[0][i] = s.U.density;
-      for (CeedInt j=0; j<3; j++)
-        q0[j+1][i] = s.U.momentum[j];
-      q0[4][i] = s.U.E_total;
-    }
+    CeedScalar q[5] = {0};
+    if (context->newtonian_ctx.is_primitive)
+      UnpackState_Y(s.Y, q);
+    else
+      UnpackState_U(s.U, q);
+
+    for (CeedInt j=0; j<5; j++)
+      q0[j][i] = q[j];
+
   } // End of Quadrature Point Loop
 
   return 0;
