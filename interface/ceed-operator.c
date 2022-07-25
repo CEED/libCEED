@@ -745,7 +745,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
       op->num_elem != num_elem)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION,
-                     "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior "
+                     "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %"
                      CeedInt_FMT " elements", num_elem, op->num_elem);
   // LCOV_EXCL_STOP
 
